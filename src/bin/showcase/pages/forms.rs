@@ -378,11 +378,7 @@ impl Page for FormsPage {
             return vec![("Esc", "Finish"), ("Tab", "Next field")];
         }
         if self.editing() {
-            return vec![
-                ("Enter", "Commit"),
-                ("Esc", "Cancel"),
-                ("Tab", "Next field"),
-            ];
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next field")];
         }
         match focus {
             Some(f) if f == self.mode.id => vec![("↑↓", "Choose"), ("Ctrl+S", "Submit")],
@@ -463,7 +459,7 @@ mod tests {
         assert!(
             !page
                 .hints(Some(page.description.id))
-                .contains(&("Enter", "Commit"))
+                .contains(&("Enter", "Apply"))
         );
     }
 }

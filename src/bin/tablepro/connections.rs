@@ -915,11 +915,7 @@ impl ConnectionsScreen {
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.form.is_some() {
             if self.is_editing() {
-                return vec![
-                    hint("Enter", "Commit"),
-                    hint("Esc", "Cancel"),
-                    hint("Tab", "Next field"),
-                ];
+                return junie_tui::widgets::keyhint::EDIT_FIELD.to_vec();
             }
             return vec![
                 hint("Enter", "Edit"),

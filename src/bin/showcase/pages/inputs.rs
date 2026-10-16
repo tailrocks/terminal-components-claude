@@ -253,7 +253,7 @@ impl Page for InputsPage {
             .unwrap_or(false);
         if editing {
             vec![
-                ("Enter", "Commit"),
+                ("Enter", "Apply"),
                 ("Esc", "Cancel"),
                 ("Shift+←→", "Select"),
                 ("Ctrl+U", "Clear"),

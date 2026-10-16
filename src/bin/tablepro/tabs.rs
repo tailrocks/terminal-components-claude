@@ -716,11 +716,7 @@ impl TableTab {
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.grid.is_editing() {
-            return vec![
-                hint("Enter", "Commit"),
-                hint("Esc", "Cancel"),
-                hint("Tab", "Next cell"),
-            ];
+            return junie_tui::widgets::keyhint::EDIT_CELL.to_vec();
         }
         match focus {
             Some(f) if f == self.mode_tabs.id => {
@@ -1299,7 +1295,7 @@ impl QueryTab {
             && focus == Some(g.id)
         {
             if g.is_editing() {
-                return vec![hint("Enter", "Commit"), hint("Esc", "Cancel")];
+                return vec![hint("Enter", "Apply"), hint("Esc", "Cancel")];
             }
             let mut hints = vec![
                 hint("↑↓←→", "Cell"),

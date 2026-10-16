@@ -535,10 +535,10 @@ impl Page for SettingsPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if self.members.is_editing() {
-            return vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")];
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
         }
         if self.name.editing || self.description.editing {
-            return vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next")];
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next")];
         }
         match focus {
             Some(f) if f == self.tabs.id => vec![("←→", "Switch tab"), ("1–3", "Jump")],

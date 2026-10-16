@@ -2143,7 +2143,7 @@ impl Screen for EditorScreen {
                 EdTab::General => {
                     if focus == Some(NAME) {
                         v.push(if self.name.editing {
-                            hint("Enter", "Commit")
+                            hint("Enter", "Apply")
                         } else {
                             hint("Enter", "Edit")
                         });

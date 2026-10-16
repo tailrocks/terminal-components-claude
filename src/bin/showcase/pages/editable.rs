@@ -167,7 +167,7 @@ impl Page for EditablePage {
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
         if self.table.is_editing() {
-            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+            vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")]
         } else {
             vec![
                 ("↑↓←→", "Cell"),

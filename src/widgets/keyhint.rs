@@ -59,6 +59,22 @@ pub fn normalize_key(key: &str) -> Cow<'_, str> {
     }
 }
 
+/// The hints for an inline field being edited, in every app: Enter
+/// applies the edit, Esc cancels it, Tab applies and moves on. "Commit"
+/// is avoided because it collides with a database commit.
+pub const EDIT_FIELD: [Hint; 3] = [
+    hint("Enter", "Apply"),
+    hint("Esc", "Cancel"),
+    hint("Tab", "Next field"),
+];
+
+/// [`EDIT_FIELD`] for a grid cell: Tab moves to the next cell.
+pub const EDIT_CELL: [Hint; 3] = [
+    hint("Enter", "Apply"),
+    hint("Esc", "Cancel"),
+    hint("Tab", "Next cell"),
+];
+
 /// One `key Action` pair. The action is usually a literal, but a component
 /// that knows its own state (a dialog naming its focused button) builds it
 /// at runtime, so it is a [`Cow`].
