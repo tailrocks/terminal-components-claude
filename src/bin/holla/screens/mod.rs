@@ -14,14 +14,13 @@ pub mod review;
 pub mod snapshot;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
-use junie_tui::ui::context::{ContextAnchor, ContextConfig};
+use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layer::{Layer, LayerEntry, LayerTag, ShellLayers};
+use junie_tui::ui::layer::{LayerEntry, LayerTag, ShellLayers};
 use junie_tui::ui::layers::LayerResult;
 use junie_tui::widgets::keyhint::Hint;
 use junie_tui::widgets::menu::{ContextMenu, MenuAction, MenuItem};
@@ -184,43 +183,11 @@ pub enum Page {
     },
 }
 
-pub enum Request {
-    Status(String),
-    Error(String),
-    Open(Box<dyn Layer<ModalResult>>, LayerTag),
-    Go(Go),
-    Copy(String),
-}
+/// What a holla page asks of the shell (the library request).
+pub type Request = junie_tui::shell::Request<ModalResult, (), Go>;
 
-pub struct Cx<'a> {
-    pub focus: &'a mut Focus,
-    pub ring: &'a FocusRing,
-    /// Context-menu keys and cursor policy ([`crate::app::App::context`]).
-    pub context: ContextConfig,
-    pub requests: Vec<Request>,
-    /// Multi-click count of the click being delivered
-    /// ([`junie_tui::core::pointer::PointerState::count_click`]); 1 for
-    /// every other event.
-    pub clicks: u8,
-}
-
-impl Cx<'_> {
-    pub fn status(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Status(s.into()));
-    }
-    pub fn error(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Error(s.into()));
-    }
-    pub fn open(&mut self, layer: impl Layer<ModalResult>, tag: LayerTag) {
-        self.requests.push(Request::Open(Box::new(layer), tag));
-    }
-    pub fn go(&mut self, g: Go) {
-        self.requests.push(Request::Go(g));
-    }
-    pub fn copy(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Copy(s.into()));
-    }
-}
+/// The event context a holla page handles input in (the library one).
+pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, (), Go>;
 
 /// Status-bar contribution of a screen: the centre item and extra right
 /// items.
@@ -237,7 +204,7 @@ pub trait Screen {
     /// One pointer event the router resolved for this screen
     /// ([`junie_tui::core::pointer::PointerRouter`]): a press (with the
     /// click count it starts), a completed click (its count is
-    /// [`Cx::clicks`]), a drag of the held press, a release away from it,
+    /// `ev.count()`), a drag of the held press, a release away from it,
     /// a secondary or middle click, or a wheel notch on either axis
     /// (offered to each owner under the pointer, innermost first, until
     /// one takes it). Hand it to the owning widget

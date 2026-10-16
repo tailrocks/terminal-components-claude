@@ -297,28 +297,13 @@ impl App {
         &mut self,
         f: F,
     ) -> Outcome {
-        self.with_top_clicks(1, f)
-    }
-
-    /// [`Self::with_top`] delivering a click with its multi-click count.
-    fn with_top_clicks<F: FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome>(
-        &mut self,
-        clicks: u8,
-        f: F,
-    ) -> Outcome {
         let active = self.active;
-        let mut cx = Cx {
-            focus: &mut self.shell.focus,
-            ring: &self.shell.ring,
-            context: self.context,
-            requests: vec![],
-            clicks,
-        };
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
         let o = match self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
             Some(s) => f(s, &mut self.world, &mut cx),
             None => Outcome::Ignored,
         };
-        let reqs = std::mem::take(&mut cx.requests);
+        let reqs = cx.take();
         o.or(self.apply_requests(reqs, active))
     }
 
@@ -338,26 +323,17 @@ impl App {
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.modals.on_blur(ch);
         for ti in 0..self.tabs.len() {
-            let mut cx = Cx {
-                focus: &mut self.shell.focus,
-                ring: &self.shell.ring,
-                context: self.context,
-                requests: vec![],
-                clicks: 1,
-            };
+            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
             if let Some(s) = self.tabs[ti].stack.last_mut() {
                 out = out.or(s.on_blur(ch, &mut self.world, &mut cx));
             }
-            let reqs = std::mem::take(&mut cx.requests);
+            let reqs = cx.take();
             if ti == self.active {
                 out = out.or(self.apply_requests(reqs, ti));
             } else {
                 // a background tab's messages wait for the tab; what
                 // would act on the screen (navigation, modals) does not
-                self.tabs[ti].pending.extend(
-                    reqs.into_iter()
-                        .filter(|r| matches!(r, Request::Status(_) | Request::Error(_))),
-                );
+                self.tabs[ti].pending.extend(shell::background(reqs));
             }
         }
         out
@@ -463,18 +439,12 @@ impl App {
         // every screen on every tab ticks so background tabs keep their state
         let active = self.active;
         for ti in 0..self.tabs.len() {
-            let mut cx = Cx {
-                focus: &mut self.shell.focus,
-                ring: &self.shell.ring,
-                context: self.context,
-                requests: vec![],
-                clicks: 1,
-            };
+            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
             let mut o = Outcome::Ignored;
             if let Some(s) = self.tabs[ti].stack.last_mut() {
                 o = s.on_tick(&mut self.world, &mut cx);
             }
-            let reqs = std::mem::take(&mut cx.requests);
+            let reqs = cx.take();
             if ti == active {
                 out = out.or(o).or(self.apply_requests(reqs, ti));
             }
@@ -558,17 +528,11 @@ impl App {
             }
         }
         for ti in 0..self.tabs.len() {
-            let mut cx = Cx {
-                focus: &mut self.shell.focus,
-                ring: &self.shell.ring,
-                context: self.context,
-                requests: vec![],
-                clicks: 1,
-            };
+            let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
             if let Some(s) = self.tabs[ti].stack.last_mut() {
                 s.on_msg(&m, &mut self.world, &mut cx);
             }
-            let reqs = std::mem::take(&mut cx.requests);
+            let reqs = cx.take();
             if ti == self.active {
                 out = out.or(self.apply_requests(reqs, ti));
             }
@@ -1401,18 +1365,12 @@ impl App {
 
     /// Hand a layer's report to the top screen of the tab that opened it.
     fn report_to_owner(&mut self, owner: usize, tag: &LayerTag, result: ModalResult) -> Outcome {
-        let mut cx = Cx {
-            focus: &mut self.shell.focus,
-            ring: &self.shell.ring,
-            context: self.context,
-            requests: vec![],
-            clicks: 1,
-        };
+        let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
         let o = match self.tabs.get_mut(owner).and_then(|t| t.stack.last_mut()) {
             Some(s) => s.on_modal(tag, result, &mut self.world, &mut cx),
             None => Outcome::Changed,
         };
-        let reqs = std::mem::take(&mut cx.requests);
+        let reqs = cx.take();
         o.or(self.apply_requests(reqs, owner)).or(Outcome::Changed)
     }
 
@@ -1473,13 +1431,7 @@ impl App {
                     PickerAction::Submit => None,
                     _ => picker.and_then(|p| p.current_key()).map(str::to_owned),
                 };
-                let mut cx = Cx {
-                    focus: &mut self.shell.focus,
-                    ring: &self.shell.ring,
-                    context: self.context,
-                    requests: vec![],
-                    clicks: 1,
-                };
+                let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring).context(self.context);
                 let outcome = self
                     .tabs
                     .get_mut(active)
@@ -1493,7 +1445,7 @@ impl App {
                                 .map(|_| target),
                         },
                     );
-                let requests = std::mem::take(&mut cx.requests);
+                let requests = cx.take();
                 match outcome {
                     Some(Ok(target)) => {
                         if chosen.is_none() {
@@ -1552,7 +1504,7 @@ impl App {
             return o;
         }
         let ev = *ev;
-        self.with_top_clicks(ev.count().max(1), |s, w, cx| s.pointer(&ev, w, cx))
+        self.with_top(|s, w, cx| s.pointer(&ev, w, cx))
     }
 
     /// An event while a layer is open: the frame's `×` means what Esc
@@ -1648,11 +1600,15 @@ impl App {
         for r in requests {
             out = Outcome::Changed;
             match r {
-                Request::Status(s) => self.set_status(&s, Tone::Secondary),
-                Request::Error(s) => self.set_status(&s, Tone::Error),
+                Request::Status(s, tone) => self.set_status(&s, tone),
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(g) => self.go(g),
                 Request::Copy(s) => self.copy(s),
+                // holla pages do not ask for these
+                Request::Close
+                | Request::Top(_)
+                | Request::Help
+                | Request::RefusedOutsideClick(_) => {}
             }
         }
         out
