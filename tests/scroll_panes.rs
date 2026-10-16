@@ -67,7 +67,7 @@ fn bar(hits: &HitRegistry, owner: WidgetId, axis: Axis) -> Bar {
 }
 
 fn state(w: &mut dyn Scrollable, axis: Axis) -> ScrollState {
-    w.pane().axis(axis).clone()
+    *w.pane().axis(axis)
 }
 
 /// Press the far end of the track: one page toward the pointer. Then
