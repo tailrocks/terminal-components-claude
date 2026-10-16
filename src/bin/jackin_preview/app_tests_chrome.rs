@@ -287,25 +287,40 @@ fn the_new_tab_picker_is_the_only_layer_showing_focus() {
 }
 
 #[test]
-fn the_usage_dialog_tab_strip_draws_no_focus_bar() {
+fn the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     let (x, y) = h.find("View").unwrap();
     h.click(x, y);
     let (ux, uy) = h.find("Usage").unwrap();
     h.click(ux, uy);
     assert!(h.text().contains("Overview"), "usage dialog: {}", h.text());
-    let (bars, _) = focus_cues(&h);
-    assert_eq!(bars, 0, "tabs never carry the gutter: {}", h.text());
-    // the tab-bar focus is the accent rule under the active tab
     let (ox, oy) = h.find("Overview").unwrap();
-    let t = h.app.theme;
-    let buf = h.term.backend().buffer();
-    let rule: Vec<_> = (ox..ox + 60)
-        .map(|x| &buf[(x, oy + 1)])
-        .filter(|c| c.symbol() == "━")
-        .collect();
-    assert!(!rule.is_empty(), "{}", h.text());
-    assert!(rule.iter().all(|c| c.fg == t.accent));
+    let rule = |h: &H| {
+        let t = h.app.theme;
+        let buf = h.term.backend().buffer();
+        let rule: Vec<_> = (ox..ox + 60)
+            .map(|x| buf[(x, oy + 1)].clone())
+            .filter(|c| c.symbol() == "━")
+            .collect();
+        assert!(!rule.is_empty(), "{}", h.text());
+        rule.iter().all(|c| c.fg == t.accent)
+    };
+    // the strip row from the dialog's left edge: the `▎` sits on the
+    // cursor tab (the dialog opens on the current account's tab)
+    let strip_bar = |h: &H| {
+        let buf = h.term.backend().buffer();
+        (ox - 1..ox + 60).any(|x| buf[(x, oy)].symbol() == "▎")
+    };
+    // the tab bar holds the dialog's keys: one `▎`, on the cursor tab
+    assert_eq!(focus_cues(&h).0, 1, "{}", h.text());
+    assert!(strip_bar(&h), "{}", h.text());
+    // the active tab's rule is the accent: the dialog is the top layer
+    assert!(rule(&h), "{}", h.text());
+    // Tab moves the keys to the body: the strip drops its `▎` but keeps
+    // the selection in the accent
+    h.key(KeyCode::Tab);
+    assert!(!strip_bar(&h), "{}", h.text());
+    assert!(rule(&h), "{}", h.text());
 }
 
 #[test]
