@@ -39,6 +39,11 @@ components work; they are not where behaviour lives.
   `.github/scripts/`, `.github/actionlint.yaml`, `.github/AGENTS.md`,
   `.github/CLAUDE.md`) and never add a workflow by hand; change the config
   and run `velnor-actions generate` instead. See `docs/ci.md`.
+- Keep dependencies on their latest releases: crates (majors included),
+  the Rust toolchain, tuiscotti and velnor-actions. Upgrade at least
+  monthly. A version held below latest is recorded with its blocker in
+  `docs/dependencies.md`; never vendor or patch an upstream crate to get
+  around a pin.
 
 ### Component architecture
 
