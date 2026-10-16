@@ -258,6 +258,17 @@ impl Dialog {
         v
     }
 
+    /// Rename the cancel (dismiss) action. `Cancel` is the default, but it
+    /// is ambiguous next to an action that itself cancels or stops
+    /// something: `Keep launching   Cancel launch` reads unambiguously where
+    /// `Cancel   Cancel launch` does not. The footer hints follow the label.
+    pub fn cancel_label(mut self, label: &str) -> Self {
+        if let Some(b) = self.cancel_index.and_then(|i| self.actions.get_mut(i)) {
+            b.label = label.to_owned();
+        }
+        self
+    }
+
     /// Set how the dialog closes without an action.
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
@@ -819,5 +830,22 @@ mod tests {
             i.begin_edit();
         }
         assert_eq!(hint_text(&d.hints(focused)), "Enter Rename · Esc Cancel");
+    }
+
+    #[test]
+    fn the_cancel_label_renames_the_button_and_the_hints() {
+        let d = Dialog::destructive(
+            WidgetId::of("c"),
+            "Cancel the launch?",
+            "The pipeline stops.",
+            "Cancel launch",
+        )
+        .cancel_label("Keep launching");
+        assert_eq!(d.actions[0].label, "Keep launching");
+        assert_eq!(d.cancel_index, Some(0));
+        assert_eq!(
+            hint_text(&d.hints(Some(d.initial_focus))),
+            "←→ Choose · Enter Keep launching · Esc Keep launching · y Cancel launch · n Keep launching"
+        );
     }
 }

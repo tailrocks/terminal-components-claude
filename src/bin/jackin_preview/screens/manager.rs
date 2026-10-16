@@ -583,7 +583,8 @@ impl ManagerScreen {
                 }
             ),
             "Stop",
-        );
+        )
+        .cancel_label("Keep running");
         cx.open(Modal::Dialog(d), ModalTag::new("stop").key(id));
     }
 

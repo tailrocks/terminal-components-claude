@@ -935,8 +935,10 @@ impl App {
         };
         let d = if n > 0 {
             Dialog::destructive(WidgetId::of("quit"), &title, &body, "Stop and quit")
+                .cancel_label("Stay")
         } else if cleanup.is_some() {
             Dialog::destructive(WidgetId::of("quit"), &title, &body, "Leave when it settles")
+                .cancel_label("Stay")
         } else {
             Dialog::confirm(WidgetId::of("quit"), &title, &body, "Quit")
         };
@@ -1933,7 +1935,8 @@ impl App {
                 &format!("Stop {name}?"),
                 "Closing the tab stops the work it holds. Detach instead to keep a monitor running.",
                 "Stop and close",
-            );
+            )
+            .cancel_label("Keep running");
             self.push_modal(Modal::Dialog(d), ModalTag::new("close-tab"));
         } else {
             self.close_tab(self.active, false);

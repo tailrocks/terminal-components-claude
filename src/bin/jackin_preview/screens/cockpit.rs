@@ -630,7 +630,8 @@ impl Screen for CockpitScreen {
                     "Cancel the launch?",
                     "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
                     "Cancel launch",
-                );
+                )
+                .cancel_label("Keep launching");
                 cx.open(Modal::Dialog(d), ModalTag::new("cancel"));
                 Outcome::Changed
             }
