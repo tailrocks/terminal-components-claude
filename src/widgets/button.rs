@@ -27,6 +27,9 @@ pub struct Button {
     /// button's mnemonic, set by the owner that handles the key (a
     /// [`crate::widgets::dialog::Dialog`]). Default `None`.
     pub mnemonic: Option<usize>,
+    /// What the button does and its shortcut, shown when the pointer rests
+    /// on it ([`crate::ui::tooltip`]). Default `None`.
+    pub tip: Option<crate::ui::tooltip::Tip>,
 }
 
 impl Button {
@@ -41,7 +44,28 @@ impl Button {
             area: Rect::ZERO,
             focus_visible: crate::ui::ctx::FocusVisible::Always,
             mnemonic: None,
+            tip: None,
         }
+    }
+
+    /// A tooltip describing what the button does, shown when the pointer
+    /// rests on it.
+    pub fn tooltip(mut self, text: &str) -> Self {
+        let key = self.tip.take().and_then(|t| t.shortcut);
+        self.tip = Some(crate::ui::tooltip::Tip {
+            text: text.to_owned(),
+            shortcut: key,
+        });
+        self
+    }
+
+    /// The key that does the same, shown in the tooltip after its text
+    /// (set the text with [`Self::tooltip`]).
+    pub fn shortcut(mut self, key: &str) -> Self {
+        let mut tip = self.tip.take().unwrap_or_default();
+        tip.shortcut = Some(key.to_owned());
+        self.tip = Some(tip);
+        self
     }
 
     pub fn focus_visible(mut self, mode: crate::ui::ctx::FocusVisible) -> Self {
@@ -207,6 +231,9 @@ impl Button {
         }
         buf.set_string(area.x + w - 1, area.y, " ", style);
         ctx.control(self.id, area, self.disabled);
+        if let Some(tip) = &self.tip {
+            crate::ui::tooltip::show(ctx, self.id, area, tip, None);
+        }
     }
 }
 

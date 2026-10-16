@@ -176,7 +176,7 @@ pub struct App {
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key).
     pub context: ContextConfig,
     /// Origin of the pointer clock.
-    epoch: Instant,
+    pub(crate) epoch: Instant,
     /// Open overlays, bottom to top; each restores the focus it covered.
     pub modals: ModalStack<Modal>,
     pub size: (u16, u16),
