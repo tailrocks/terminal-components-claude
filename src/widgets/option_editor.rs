@@ -660,8 +660,9 @@ impl ChoiceEditor {
             })
             .max()
             .unwrap_or(0) as u16
+            // frame, gutter and a free cell on each side of a note
             + self.prefix()
-            + 3;
+            + 7;
         let (min_w, max_w) = cfg.popup_width;
         let w = content_w.max(cell.width + 2).clamp(min_w, max_w);
         let pa = place_with(
