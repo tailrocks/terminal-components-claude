@@ -4,6 +4,8 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::StatusKind;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
@@ -177,11 +179,15 @@ impl Page for DialogsPage {
                 }
                 o
             }
-            PageEvent::Click { id, .. } => {
-                let Some(i) = self.buttons.iter().position(|b| b.id == *id) else {
+            PageEvent::Pointer(ev) if ev.is(Phase::Click) => {
+                let Some(i) = self.buttons.iter().position(|b| ev.on(b.id)) else {
                     return Outcome::Ignored;
                 };
-                if self.buttons[i].on_click() {
+                if self.buttons[i]
+                    .route(ev)
+                    .and_then(|r| r.into_action())
+                    .is_some()
+                {
                     self.open(i, cx);
                 }
                 Outcome::Changed
