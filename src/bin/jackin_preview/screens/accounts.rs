@@ -6,7 +6,10 @@
 use std::collections::HashSet;
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{ButtonKind, StatusKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -2449,142 +2452,28 @@ impl Screen for AccountsScreen {
         Outcome::Ignored
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == SEAM {
-            return self.seam.on_click(&mut self.split, cx.clicks);
-        }
-        self.build_rows(w);
-        if self.menu.is_open() {
-            let (o, chosen) = self.menu.on_click(id);
-            return match chosen {
-                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
-                None => o,
+    /// A click picks a row, folds a provider, runs an action or chooses
+    /// from the open row menu; a secondary click opens a row's menu; a
+    /// drag moves the seam or the tree's bar; the wheel scrolls the pane
+    /// under the pointer.
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            return match axis {
+                Axis::Vertical => self.wheel(id, delta),
+                Axis::Horizontal => Outcome::Ignored,
             };
         }
-        for i in self.scroll.visible_range() {
-            if TREE.child(i).sub("toggle") == id {
-                if let Sel::Provider(s) = self.rows[i].sel {
-                    self.selected = Sel::Provider(s);
-                    if !self.folded.remove(&s) {
-                        self.folded.insert(s);
-                    }
-                    self.build_rows(w);
-                }
-                cx.focus.focus(TREE);
-                return Outcome::Changed;
-            }
-            if TREE.child(i) == id {
-                let same = self.selected == self.rows[i].sel;
-                self.selected = self.rows[i].sel.clone();
-                self.inspector_scroll.jump_start();
-                cx.focus.focus(TREE);
-                self.drawer_open = false;
-                if same && self.selected == Sel::Add {
-                    self.open_form(None, w, cx);
-                }
-                return Outcome::Changed;
-            }
+        match ev.phase() {
+            Some(Phase::Click) => self.click(id, pos, w, cx),
+            Some(Phase::Secondary) => self.secondary(id, pos, w, cx),
+            Some(Phase::Drag) => self.drag(id, pos),
+            _ => Outcome::Ignored,
         }
-        if id == scrollbar::id_for(TREE) {
-            let track = Rect::new(
-                self.tree_area.right() - 1,
-                self.tree_area.y,
-                1,
-                self.tree_area.height,
-            );
-            self.scroll
-                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(INSPECTOR) {
-            let track = Rect::new(
-                self.inspector_area.right() - 1,
-                self.inspector_area.y,
-                1,
-                self.inspector_area.height,
-            );
-            self.inspector_scroll.scroll_to(scrollbar::offset_for_click(
-                track,
-                pos,
-                &self.inspector_scroll,
-            ));
-            return Outcome::Changed;
-        }
-        if id == INSPECTOR {
-            cx.focus.focus(INSPECTOR);
-            self.drawer_open = true;
-            return Outcome::Changed;
-        }
-        for i in 0..self.actions.len() {
-            if self.actions[i].id == id {
-                cx.focus.focus(id);
-                if self.actions[i].on_click() {
-                    for n in [
-                        "refresh", "validate", "edit", "default", "toggle", "remove", "add",
-                    ] {
-                        if INSPECTOR.sub(n) == id {
-                            return self.fire(n, w, cx);
-                        }
-                    }
-                }
-                return Outcome::Changed;
-            }
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        self.build_rows(w);
-        let Some(i) = self
-            .scroll
-            .visible_range()
-            .find(|&i| TREE.child(i) == id || TREE.child(i).sub("toggle") == id)
-        else {
-            return Outcome::Ignored;
-        };
-        if self.menu.config.moves_cursor && self.selected != self.rows[i].sel {
-            self.selected = self.rows[i].sel.clone();
-            self.inspector_scroll.jump_start();
-        }
-        cx.focus.focus(TREE);
-        self.drawer_open = false;
-        self.open_menu(i, ContextAnchor::Pointer(pos), w);
-        Outcome::Changed
     }
 
     fn layer_open(&self) -> bool {
         self.menu.hides_page_focus()
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == SEAM {
-            let c = self.seam_container;
-            return self.seam.on_drag(&mut self.split, c, 2, pos);
-        }
-        if pressed == scrollbar::id_for(TREE) {
-            let track = Rect::new(
-                self.tree_area.right() - 1,
-                self.tree_area.y,
-                1,
-                self.tree_area.height,
-            );
-            self.scroll
-                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == TREE || id == scrollbar::id_for(TREE) {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == INSPECTOR || id == scrollbar::id_for(INSPECTOR) {
-            self.inspector_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn form_changed(&mut self, tag: &LayerTag, form: &mut FormDialog, w: &World) {
@@ -2914,5 +2803,145 @@ impl Screen for AccountsScreen {
 
     fn is_editing(&self) -> bool {
         false
+    }
+}
+
+// ------------------------------------------------------------ pointer
+
+/// The screen's pointer gestures by phase (its hand-drawn rows keep
+/// their derived ids until S16 moves them onto widgets).
+impl AccountsScreen {
+    fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == SEAM {
+            return self.seam.on_click(&mut self.split, cx.clicks);
+        }
+        self.build_rows(w);
+        if self.menu.is_open() {
+            let (o, chosen) = self.menu.on_click(id);
+            return match chosen {
+                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
+                None => o,
+            };
+        }
+        for i in self.scroll.visible_range() {
+            if TREE.child(i).sub("toggle") == id {
+                if let Sel::Provider(s) = self.rows[i].sel {
+                    self.selected = Sel::Provider(s);
+                    if !self.folded.remove(&s) {
+                        self.folded.insert(s);
+                    }
+                    self.build_rows(w);
+                }
+                cx.focus.focus(TREE);
+                return Outcome::Changed;
+            }
+            if TREE.child(i) == id {
+                let same = self.selected == self.rows[i].sel;
+                self.selected = self.rows[i].sel.clone();
+                self.inspector_scroll.jump_start();
+                cx.focus.focus(TREE);
+                self.drawer_open = false;
+                if same && self.selected == Sel::Add {
+                    self.open_form(None, w, cx);
+                }
+                return Outcome::Changed;
+            }
+        }
+        if id == scrollbar::id_for(TREE) {
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(INSPECTOR) {
+            let track = Rect::new(
+                self.inspector_area.right() - 1,
+                self.inspector_area.y,
+                1,
+                self.inspector_area.height,
+            );
+            self.inspector_scroll.scroll_to(scrollbar::offset_for_click(
+                track,
+                pos,
+                &self.inspector_scroll,
+            ));
+            return Outcome::Changed;
+        }
+        if id == INSPECTOR {
+            cx.focus.focus(INSPECTOR);
+            self.drawer_open = true;
+            return Outcome::Changed;
+        }
+        for i in 0..self.actions.len() {
+            if self.actions[i].id == id {
+                cx.focus.focus(id);
+                if self.actions[i].on_click() {
+                    for n in [
+                        "refresh", "validate", "edit", "default", "toggle", "remove", "add",
+                    ] {
+                        if INSPECTOR.sub(n) == id {
+                            return self.fire(n, w, cx);
+                        }
+                    }
+                }
+                return Outcome::Changed;
+            }
+        }
+        Outcome::Ignored
+    }
+
+    fn secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        self.build_rows(w);
+        let Some(i) = self
+            .scroll
+            .visible_range()
+            .find(|&i| TREE.child(i) == id || TREE.child(i).sub("toggle") == id)
+        else {
+            return Outcome::Ignored;
+        };
+        if self.menu.config.moves_cursor && self.selected != self.rows[i].sel {
+            self.selected = self.rows[i].sel.clone();
+            self.inspector_scroll.jump_start();
+        }
+        cx.focus.focus(TREE);
+        self.drawer_open = false;
+        self.open_menu(i, ContextAnchor::Pointer(pos), w);
+        Outcome::Changed
+    }
+
+    fn drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if pressed == SEAM {
+            let c = self.seam_container;
+            return self.seam.on_drag(&mut self.split, c, 2, pos);
+        }
+        if pressed == scrollbar::id_for(TREE) {
+            let track = Rect::new(
+                self.tree_area.right() - 1,
+                self.tree_area.y,
+                1,
+                self.tree_area.height,
+            );
+            self.scroll
+                .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn wheel(&mut self, id: WidgetId, delta: i32) -> Outcome {
+        if id == TREE || id == scrollbar::id_for(TREE) {
+            self.scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        if id == INSPECTOR || id == scrollbar::id_for(INSPECTOR) {
+            self.inspector_scroll.scroll_by(delta as isize);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
     }
 }

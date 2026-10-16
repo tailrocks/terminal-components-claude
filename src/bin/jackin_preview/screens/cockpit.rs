@@ -4,6 +4,8 @@
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent, scroll_input};
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{truncate, width};
@@ -17,7 +19,7 @@ use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Span, TextViewport};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use super::modals::{InfoDialog, InfoResult};
@@ -30,7 +32,6 @@ use crate::domain::workspace::WorkspaceId;
 use crate::scenario::Motion;
 use crate::sim::launch::{LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::world::World;
-use junie_tui::core::scroll::Scrollable;
 
 pub const RAIL: WidgetId = WidgetId::of("cockpit.rail");
 pub const LOG: WidgetId = WidgetId::of("cockpit.log");
@@ -665,8 +666,25 @@ impl Screen for CockpitScreen {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        // the build log's close button, and the launch's cancel button
+    /// The build log's close button, the launch's cancel button and the
+    /// chips take a click; the open log is a viewport (a press anchors a
+    /// selection, a drag extends it, its bar and the wheel scroll it), and
+    /// the wheel over the log's frame scrolls it too.
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.log_open {
+            if let Some(r) = self.log.route(ev) {
+                return r.outcome();
+            }
+            if ev.id == junie_tui::ui::modal::SURFACE
+                && let Some(r) = scroll_input(&mut self.log, ev)
+            {
+                return r.outcome();
+            }
+        }
+        if !ev.is(Phase::Click) {
+            return Outcome::Ignored;
+        }
+        let id = ev.id;
         if self.log_open && id == junie_tui::ui::modal::CLOSE {
             self.log_open = false;
             cx.focus.focus(RAIL);
@@ -684,34 +702,7 @@ impl Screen for CockpitScreen {
             self.open_info(w, cx);
             return Outcome::Changed;
         }
-        if id == LOG {
-            return self.log.on_click(pos);
-        }
-        if id == junie_tui::widgets::scrollbar::id_for(LOG) {
-            return self.log.on_scrollbar(pos);
-        }
         Outcome::Consumed
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == junie_tui::widgets::scrollbar::id_for(LOG) {
-            return self.log.on_scrollbar_drag(pos);
-        }
-        if pressed == LOG {
-            return self.log.on_drag(pos);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if self.log_open
-            && (id == LOG
-                || id == junie_tui::widgets::scrollbar::id_for(LOG)
-                || id == WidgetId::of("modal.surface"))
-        {
-            return self.log.on_wheel(delta);
-        }
-        Outcome::Ignored
     }
 
     fn on_modal(
