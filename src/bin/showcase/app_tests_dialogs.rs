@@ -182,3 +182,42 @@ fn the_states_grid_draws_every_row_with_no_second_focus_bar() {
     assert!(h.text().contains("Run task now?"));
     assert!(h.text().contains("Drop table?"));
 }
+
+/// A prompt guarded by `guard_dirty_prompt` refuses the outside click once
+/// its field holds typed text, and the refusal flashes the frame (the
+/// layer stack's dismiss policy, as for page layers). Before the shell's
+/// dialog moved onto `ShellLayers` the refusal read the dialog's raw
+/// policy, which still allowed outside clicks, so nothing flashed.
+#[test]
+fn a_refused_outside_click_on_a_dirty_prompt_flashes_its_frame() {
+    use ratatui::style::Modifier;
+    let mut h = harness();
+    h.opt("dialogs.dismiss=light");
+    h.opt("dialogs.guard_dirty=on");
+    open(&mut h, "Rename task…");
+    assert!(
+        h.app.dialog().unwrap().dismiss.outside_click,
+        "light dismiss"
+    );
+    h.key(KeyCode::Char('x'));
+    assert!(h.app.dialog().unwrap().prompt_dirty(), "typed text");
+    let focus = h.app.shell.focus.current();
+    let area = h.app.dialog().unwrap().area;
+    assert!(area.x > 4, "{area:?}");
+    h.click(area.x - 3, area.y + 1);
+    assert!(h.app.dialog().is_some(), "the dirty prompt stays open");
+    assert_eq!(h.app.shell.focus.current(), focus, "focus stays in it");
+    assert_eq!(h.bars(), 1, "one ▎, inside the dialog");
+    let now = h.app.clock.now_ms();
+    assert_eq!(
+        h.app.shell.pointer.flashing(now),
+        Some(junie_tui::ui::modal::SURFACE),
+        "the refusal flashes the frame"
+    );
+    let corner = &h.term.backend().buffer()[(area.x, area.y)];
+    assert_eq!(
+        corner.fg, h.app.theme.warning,
+        "the frame in the warning tone"
+    );
+    assert!(corner.modifier.contains(Modifier::BOLD));
+}
