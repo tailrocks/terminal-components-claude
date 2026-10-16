@@ -144,6 +144,9 @@ pub struct Picker {
     /// Which dismissals close the picker without choosing. Default
     /// [`Dismiss::LIGHT`]: Esc and a click outside both cancel.
     pub dismiss: crate::ui::popup::Dismiss,
+    /// The last action, kept for the stack while the picker is a
+    /// [`crate::ui::layer::Layer`].
+    pub(crate) pending: Option<PickerAction>,
     /// The query caret as a byte offset, or `None` at the end (where an
     /// owner that rewrites [`Self::query`] leaves it).
     caret: Option<usize>,
@@ -209,6 +212,7 @@ impl Picker {
             cursor_dirty: true,
             reveal: None,
             dismiss: crate::ui::popup::Dismiss::LIGHT,
+            pending: None,
             caret: None,
             delete_is_secondary: true,
             nav: NavKeys::DEFAULT,

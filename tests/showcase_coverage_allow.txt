@@ -442,6 +442,20 @@ ui::layer::Dismissed | Popups & tooltips page: layer API (plan S5) | SC19
 ui::layer::Dismissed::None | Popups & tooltips page: layer API (plan S5) | SC19
 ui::layer::Dismissed::Refused | Popups & tooltips page: layer API (plan S5) | SC19
 ui::layer::Dismissed::Closed | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerOut | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerOut::Close | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::LayerOut::Event | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Taken | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Taken::Event | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layer::Taken::Closed | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Dialog | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Picker | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Menu | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Form | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Choice | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Info | Popups & tooltips page: layer API (plan S5) | SC19
+ui::layers::LayerResult::Help | Popups & tooltips page: layer API (plan S5) | SC19
 
 # widgets::breadcrumb
 widgets::breadcrumb::Breadcrumb | Breadcrumbs & rails page | SC5
