@@ -1200,7 +1200,9 @@ impl QueryTab {
             })
             .collect();
         let active = self.active_result.min(items.len().saturating_sub(1));
-        self.result_tabs = Tabs::with_items(self.id.sub("result-tabs"), items);
+        // replace the items in place: the strip keeps its scroll window
+        debug_assert_eq!(self.result_tabs.id, self.id.sub("result-tabs"));
+        self.result_tabs.set_items(items);
         self.result_tabs.set_active(active);
     }
 
