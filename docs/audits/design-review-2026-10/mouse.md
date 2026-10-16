@@ -154,3 +154,41 @@ Audited `origin/design/interaction-polish` at 9776abef7, mouse first. Most findi
 | Brand | the lockup | lifts | yes | click gives `Brand` | n/a | n/a | n/a |
 
 **Fix order:** start with the router and #1, which together unlock #14, #17, #18 and much of #22–23. Then #2–3 (text copy and editing), then #9–12 (selection and menu correctness), then the dead ends in #4–8 and #13.
+## Status (widget-level mouse pass)
+
+This pass took the widget-level findings, plus the standards review's
+corrections: track click pages (macOS "Jump to the next page", Windows);
+the hover switch needs any-motion reporting; hover reveal follows WCAG
+1.4.13; SGR horizontal wheel buttons 66/67.
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 11 | Fixed | 4201feae1, c9c4c8475 | The strip's scroll window is separate from the active tab: it follows the active tab only when that tab changes, so ‹/› work at the edges. `Tabs::on_wheel(dx, dy)` scrolls on both axes (tablepro, holla). A `+N` button opens a menu of hidden tabs (`Tabs::overflow_menu`, default true). `Tabs::set_items` keeps the scroll when apps rebuild the strip each frame. |
+| 12 | Fixed | 1cee36e98 | `MouseKind::SecondaryDrag` / `SecondaryUp` (and the Ctrl-primary equivalents under `ctrl_click_secondary`). `MenuBar::open_on: OpenOn::{Press, Release}` (default `Press`). `MenuBar::press_drag` (default true): press a title, drag to a row, release chooses; a release on the title keeps the menu open. `ContextMenu::release_selects` (default true): a secondary release on a row after at least 1 cell of movement chooses it. The hover switch acts only once `PointerState::reports_motion()` saw a buttonless move (`Interaction::motion_unreported`); before that, click, press-drag and ←/→ switch menus. Wired in all four apps. A press dragged off and released outside leaves the menu open (non-destructive; macOS closes it). |
+| 19 | Fixed | 8e7c4f4f1 | `Select::wheel: WheelMode::{Viewport, Cursor}` (default `Viewport`). `hover_moves_cursor` (default true; one highlight). The popup list has a draggable scrollbar. `Select::press_drag` (default true): press opens, release on an option chooses, release in place keeps it open. Routed in the showcase selectable page, `FormDialog` and jackin forms. Tablepro filter/connection selects and holla's review select still open on click (their routers do not send press/drag/release). |
+| 20 | Fixed | c4847ed22 | `Splitter::hit_pad` (default 1), on cells no pane control claims (`HitRegistry::register_under`). The drag keeps the grab offset and moves by exact cells (finer `Split` ratio). Double-click restores `Split::default_percent` (`SeamDoubleClick::{Reset, Ignore}`, default `Reset`). Maximise is not offered: a maximised pane has no seam left to double-click back, a mouse trap. Tablepro gets handles on query editor/results, history list/detail and the explorer width (visible seam rule: intended visual change). jackin Inspect and capsule seams lack double-click (no click count on that path). |
+| 25 | Fixed | 0e99f5329 | `Reveal::delay_ms` (default 300) from `Interaction::hover_ms`; keyboard reveal stays immediate; paused motion shows at once. `Reveal::wheel_passes_at_ends` (default true). |
+| 26 | Fixed | 961abe9b4 | `ui::tooltip` with description and shortcut (`Glyphs::key_label`). `RenderCtx::tooltips: Tooltips { enabled, delay_ms: 600, max_width: 48 }`. WCAG 1.4.13: Esc hides only the tooltip (handled in the runtime), the tooltip is hoverable and stays until the pointer leaves both, Esc, a press or keyboard use. `Button::tooltip` / `Button::shortcut`, `StatusItem::tooltip`; used on the showcase Buttons page and the tablepro history toolbar. |
+| 27 | Fixed | d92c2e6d8 | `RenderCtx::autoscroll` registers the drag area; `PointerState::autoscroll_due(now_ms)` replays the drag every `PointerConfig::autoscroll_ms` (default 50) while held past the edge (`autoscroll`, default true); the step grows with the distance. DataGrid range and row-number drags, TextInput, TextArea, TextViewport. Showcase and tablepro tick at `autoscroll_ms` while autoscrolling; holla and jackin replay on their own tick (simulated clock). DataTable has no row drag-select yet, so it has nothing to autoscroll. |
+| 28 | Fixed | 46ed2b0d7, 22acec925, c70ad727d | `ui::columns::ColumnSizing` keeps user widths (`min_width` 3). Header seams (`resizable_columns`, default true; `seam_hit_w`, default 2) resize cell by cell with a grab offset. A double press autofits to the header and visible rows. The header menu has Sort Ascending/Descending, Clear Sort, Size Column to Fit and Reset Column Widths (`HeaderLabels`). Cut headers reveal on hover. Wired in tablepro, showcase Tables (seams and menu) and Grid (seams only). Hide column: deferred, no hidden-column support. User widths are not persisted. |
+| 29 | Fixed | a1d762b97 | Deep rows register before the early `continue`; note rows are inert; Alt-click opens or closes a whole subtree (`TreeView::alt_click_recursive`, default true; lazy branches load one level). Tablepro trees still toggle one level: its `Cx` carries no modifiers. |
+| 30 | Fixed | 184700eda | Chips `+N` is a button with a menu of hidden chips (`ChipBar::overflow_menu`, default true); `ChipBar::close_target_w` (default 3). Showcase "Chips & selects" baseline re-approved (intended). |
+| 33 | Fixed | 66fa25acd | `TextArea::on_wheel_h(delta)` scrolls by `HScroll::step`, also when not editing (`TextArea::horizontal`, default follows `ctx.hscroll`). A separate method, matching `TextViewport`, so `on_wheel` callers keep their signature. |
+| 34 | Fixed | 4201feae1, 49ccae0ac | `Tabs::close_target_w` (default 3, inside the tab). `Checkbox::hit: CheckHit::{Label, Row}` (default `Label`: box, label and one cell). |
+| 35 | Fixed | 9315b44f1 | `TrackClick::Page` is the default everywhere (`Jump` stays an option, `scrollbar::apply_with`). Hold-repeat: `PointerConfig::track_repeat` (true), `track_repeat_delay_ms` (300), `track_repeat_ms` (50), on the app tick in all four apps; it stops when the thumb reaches the pointer. |
+| 36 | Fixed | 66fa25acd | `label_hit` (default true) on TextInput, TextArea and Select: the label is a hit target of the field, not an extra focus stop. Wheel routing in tablepro and showcase offers a notch to each owner under the pointer so a label does not swallow it. |
+| 37 | Fixed | 47d7340f4 | `core::shape`: OSC 22 pointer shapes (text, pointer, col/row-resize, default) declared through `RenderCtx::pointer_shape`, sent only on change. `PointerConfig::pointer_shapes` (default true) is gated to kitty, WezTerm, ghostty and foot, never through tmux or screen. `PointerConfig::caret_shape: CaretShape::{Bar, Block, Underline, Terminal}` (default `Bar`) through DECSCUSR on the xterm family and those terminals. Both reset on exit, suspend and panic. The caret shape is sent once at start (the shape has no effect while the cursor is hidden). xterm gets no pointer shapes (X11 names). |
+| 38 | Fixed | 1cee36e98 | A context menu clears its highlight when the pointer leaves the rows (Enter does nothing until a row is highlighted again). ▲/▼ are hit targets with rest, hover and pressed looks: hover scrolls a row per tick, a click pages. |
+| SGR 66/67 | Fixed | 1cee36e98 | crossterm 0.29 decodes buttons 66/67 as ScrollLeft/Right; they map to `WheelLeft`/`WheelRight` with or without Shift. Regression test guards the mapping (it already passed; the raw parser is private to crossterm). |
+
+Open from this pass:
+
+- When a Tabs or Chips `+N` menu is open, the page underneath still shows its
+  focus indicator (one-focus rule). Apps need to call `page_under_layer` for
+  these menus; none does yet.
+- jackin's router does not send the wheel to its tab strips.
+- The I-beam also shows over a field's label (#36 registers the label under
+  the field id); TextViewport and diff text declare no I-beam yet.
+- Visual: tablepro now draws seam rules between split panes (#20) and an
+  overflowing tab strip shows `+N` (#11). Tuiscotti scenarios covering those
+  screens re-approve with these changes; they were not re-approved here.
