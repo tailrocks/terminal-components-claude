@@ -621,7 +621,7 @@ impl Screen for CockpitScreen {
                 self.open_info(w, cx);
                 Outcome::Changed
             }
-            KeyCode::Char('c') if key.plain() => {
+            KeyCode::Char('x') if key.plain() => {
                 if self.run.is_terminal() {
                     return Outcome::Consumed;
                 }
@@ -635,7 +635,7 @@ impl Screen for CockpitScreen {
                 cx.open(Modal::Dialog(d), ModalTag::new("cancel"));
                 Outcome::Changed
             }
-            KeyCode::Char('d') if key.plain() => {
+            KeyCode::Char('t') if key.plain() => {
                 self.debug = !self.debug;
                 Outcome::Changed
             }
@@ -644,7 +644,7 @@ impl Screen for CockpitScreen {
                 Outcome::Changed
             }
             KeyCode::Esc | KeyCode::Enter if self.run.blocked_at.is_some() => {
-                cx.status("This stage is blocked · c cancels the launch, Ctrl+Q quits");
+                cx.status("This stage is blocked · x cancels the launch, Ctrl+Q quits");
                 Outcome::Changed
             }
             _ => Outcome::Consumed,
@@ -986,7 +986,7 @@ impl Screen for CockpitScreen {
         }
         v.push(hint("i", "Container info"));
         if !self.run.is_terminal() {
-            v.push(hint("c", "Cancel launch…"));
+            v.push(hint("x", "Cancel launch…"));
         }
         v.push(hint("Ctrl+Q", "Quit"));
         v.push(hint("Ctrl+C", "Abort now"));
@@ -1007,7 +1007,7 @@ impl Screen for CockpitScreen {
     }
 
     fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        cx.status("Esc does nothing here · c cancels, Ctrl+Q quits");
+        cx.status("Esc does nothing here · x cancels the launch, Ctrl+Q quits");
         Outcome::Changed
     }
 }

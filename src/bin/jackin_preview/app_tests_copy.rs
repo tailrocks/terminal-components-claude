@@ -67,3 +67,63 @@ fn an_unknown_pane_command_points_at_the_command_list() {
     assert_eq!(s, "Ctrl+B Q does nothing · Ctrl+B Space lists commands");
     assert_plain("prefix status", &s);
 }
+
+fn footer(h: &H) -> String {
+    h.text().lines().last().unwrap_or_default().to_owned()
+}
+
+/// One letter, one meaning across jackin's screens: `d` deletes or removes,
+/// `x` closes or stops what is in front, `c` opens Accounts.
+#[test]
+fn jackin_letters_keep_one_meaning_across_screens() {
+    // Accounts: d removes (as on the manager), t switches enabled
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 220, 40);
+    h.app.screens.accounts.selected =
+        crate::screens::accounts::Sel::Account("acct-claude-work".into());
+    h.draw();
+    let f = footer(&h);
+    assert!(f.contains("d Remove…") && f.contains("t Disable"), "{f}");
+    assert!(!f.contains("x Remove") && !f.contains("d Disable"), "{f}");
+    h.key(KeyCode::Char('d'));
+    assert!(h.text().contains("Remove account"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char('t'));
+    assert!(
+        !h.app
+            .world
+            .accounts
+            .get("acct-claude-work")
+            .unwrap()
+            .enabled
+    );
+    assert!(footer(&h).contains("t Enable"), "{}", footer(&h));
+
+    // Cockpit: x cancels the launch, c stays Accounts' letter
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
+    let f = footer(&h);
+    assert!(
+        f.contains("x Cancel launch…") && !f.contains("c Cancel"),
+        "{f}"
+    );
+    h.key(KeyCode::Char('x'));
+    assert!(h.text().contains("Cancel the launch?"), "{}", h.text());
+
+    // Manager: the shell is !, x never opens something
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 220, 40);
+    let live = h
+        .app
+        .world
+        .instances
+        .iter()
+        .find(|i| i.status.is_live())
+        .map(|i| i.id.clone())
+        .expect("a live instance");
+    h.app.screens.manager.select_instance(&live, &h.app.world);
+    h.draw();
+    let f = footer(&h);
+    assert!(
+        f.contains("! Open shell") && !f.contains("x Open shell"),
+        "{f}"
+    );
+    assert!(f.contains("c Accounts"), "{f}");
+}

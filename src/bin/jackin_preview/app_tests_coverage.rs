@@ -462,7 +462,7 @@ fn cockpit_blocked_sidecar_abort_log_and_info_paths_are_screen_level() {
     let c = h.app.screens.cockpit.as_ref().unwrap();
     assert_eq!(c.run.blocked_at, Some(crate::sim::launch::Stage::Sidecar));
     assert!(c.activity.contains("Blocked"), "{}", h.text());
-    h.key(KeyCode::Char('c'));
+    h.key(KeyCode::Char('x'));
     assert!(h.text().contains("Blocked"), "{}", h.text());
     h.ctrl('q');
     assert!(h.text().contains("Exit jackin"), "{}", h.text());
@@ -476,7 +476,7 @@ fn cockpit_blocked_sidecar_abort_log_and_info_paths_are_screen_level() {
     h.key(KeyCode::PageUp);
     h.key(KeyCode::End);
     h.key(KeyCode::Esc);
-    h.key(KeyCode::Char('d'));
+    h.key(KeyCode::Char('t'));
     h.key(KeyCode::Char('i'));
     assert!(h.text().contains("Debug info"), "{}", h.text());
     h.key(KeyCode::Esc);
@@ -875,7 +875,7 @@ fn accounts_edit_toggle_validate_and_refresh_update_only_the_selected_account() 
         Some("coverage")
     );
 
-    h.key(KeyCode::Char('d'));
+    h.key(KeyCode::Char('t'));
     assert!(
         !h.app
             .world
@@ -884,7 +884,7 @@ fn accounts_edit_toggle_validate_and_refresh_update_only_the_selected_account() 
             .unwrap()
             .enabled
     );
-    h.key(KeyCode::Char('d'));
+    h.key(KeyCode::Char('t'));
     assert!(
         h.app
             .world
@@ -1070,10 +1070,10 @@ fn cancel_launch_dialog_names_both_choices_unambiguously() {
     // the footer tells the confirmed cancel apart from the immediate abort
     let wide = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
     let footer = wide.text().lines().last().unwrap_or_default().to_owned();
-    assert!(footer.contains("c Cancel launch…"), "{footer}");
+    assert!(footer.contains("x Cancel launch…"), "{footer}");
     assert!(footer.contains("Ctrl+C Abort now"), "{footer}");
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40);
-    h.key(KeyCode::Char('c'));
+    h.key(KeyCode::Char('x'));
     let t = h.text();
     assert!(t.contains("Cancel the launch?"), "{t}");
     assert!(t.contains("Keep launching"), "{t}");

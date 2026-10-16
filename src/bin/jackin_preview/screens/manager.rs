@@ -1848,7 +1848,7 @@ impl Screen for ManagerScreen {
                     return Outcome::Changed;
                 }
             }
-            KeyCode::Char('x') if key.plain() => {
+            KeyCode::Char('!') => {
                 if let RowKey::Instance(id) = self.selected.clone() {
                     if w.instance(&id).is_some_and(|i| i.status.is_live()) {
                         cx.go(Go::NewSession {
@@ -2459,7 +2459,7 @@ impl Screen for ManagerScreen {
                 if live {
                     v.push(hint("Enter", "Reconnect"));
                     v.push(hint("a", "New session"));
-                    v.push(hint("x", "Open shell"));
+                    v.push(hint("!", "Open shell"));
                     v.push(hint("t", "Stop"));
                 } else if restorable {
                     v.push(hint("Enter", "Restore"));
