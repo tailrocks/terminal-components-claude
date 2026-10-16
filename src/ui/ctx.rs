@@ -3,6 +3,14 @@
 //! Widgets never read global state directly. They receive a [`RenderCtx`]
 //! that tells them what is focused/hovered/pressed and lets them register
 //! hit regions and focus-ring entries for the *next* event cycle.
+//!
+//! Layering is owned here too. A widget that floats content above the page
+//! (a select's option list, a dropdown) queues it with
+//! [`RenderCtx::overlay`] instead of painting it in place, so whatever the
+//! page draws afterwards can never cover or clip it. Queued overlays land
+//! when a modal starts ([`RenderCtx::begin_modal`]: they belong to the page
+//! the modal covers) and at the end of the frame
+//! ([`RenderCtx::flush_overlays`]).
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -53,6 +61,10 @@ pub struct VisualState {
     pub busy: bool,
 }
 
+/// Deferred drawing queued by [`RenderCtx::overlay`]. It owns what it draws
+/// (no borrow of the frame), so a context never outlives its borrows.
+type OverlayFn = Box<dyn for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>)>;
+
 pub struct RenderCtx<'a> {
     pub theme: &'a Theme,
     pub interaction: Interaction,
@@ -63,6 +75,9 @@ pub struct RenderCtx<'a> {
     /// Frame-level flag: a modal is open, so page content must neither
     /// register hits nor focus entries.
     pub inert: bool,
+    /// Overlays waiting to be drawn, with the `inert` flag they were queued
+    /// under (a popup on a page behind a modal stays unreachable).
+    overlays: Vec<(bool, OverlayFn)>,
 }
 
 impl<'a> RenderCtx<'a> {
@@ -79,6 +94,7 @@ impl<'a> RenderCtx<'a> {
             ring,
             cursor: None,
             inert: false,
+            overlays: Vec::new(),
         }
     }
 
@@ -122,12 +138,61 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-    /// Enter modal mode: everything registered so far is unreachable.
-    pub fn begin_modal(&mut self) {
+    /// Queue drawing that must sit above everything rendered so far in this
+    /// layer: it runs when the layer closes (a modal begins or the frame
+    /// ends), so its pixels and hit regions are always on top of the page.
+    pub fn overlay(
+        &mut self,
+        draw: impl for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>) + 'static,
+    ) {
+        self.overlays.push((self.inert, Box::new(draw)));
+    }
+
+    /// Draw every queued overlay, oldest first. Overlays queued while
+    /// flushing are drawn too, above the one that queued them. Every
+    /// application calls this once after drawing its frame.
+    pub fn flush_overlays(&mut self, buf: &mut Buffer) {
+        while !self.overlays.is_empty() {
+            let queued = std::mem::take(&mut self.overlays);
+            for (inert, draw) in queued {
+                let outer = std::mem::replace(&mut self.inert, inert);
+                draw(buf, self);
+                self.inert = outer;
+            }
+        }
+    }
+
+    /// Enter modal mode: pending page overlays land first (they belong to
+    /// the layer the modal covers), then everything registered so far is
+    /// unreachable.
+    pub fn begin_modal(&mut self, buf: &mut Buffer) {
+        self.flush_overlays(buf);
         self.hits.push_barrier();
         self.ring.push_barrier();
         self.inert = false;
         self.interaction.focus_hidden = false;
+    }
+
+    /// Dim `screen` behind a modal and enter modal mode. The bottom row
+    /// stays live: the footer's key hints belong to the modal.
+    pub fn modal_backdrop(&mut self, buf: &mut Buffer, screen: Rect) {
+        // overlays first, so the page's open popups dim with the page
+        self.flush_overlays(buf);
+        let t = self.theme;
+        let dim = Rect::new(
+            screen.x,
+            screen.y,
+            screen.width,
+            screen.height.saturating_sub(1),
+        );
+        for pos in dim.positions() {
+            if let Some(c) = buf.cell_mut(pos) {
+                let st = t.backdrop(c.style());
+                c.set_style(st);
+                c.modifier = ratatui::style::Modifier::empty();
+            }
+        }
+        self.begin_modal(buf);
     }
 }
 

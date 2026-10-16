@@ -175,15 +175,9 @@ impl Page for ChipsPage {
             ),
         ];
         let _ = (l, r);
-        // draw the open one last so its popup stays on top
-        let open = self.selects().iter().position(|s| s.open);
-        for (i, sel) in self.selects().into_iter().enumerate() {
-            if Some(i) != open {
-                sel.render(cells[i], buf, ctx, bg);
-            }
-        }
-        if let Some(i) = open {
-            self.selects()[i].render(cells[i], buf, ctx, bg);
+        // an open list is an overlay: it lands above everything drawn below
+        for (sel, cell) in self.selects().into_iter().zip(cells) {
+            sel.render(cell, buf, ctx, bg);
         }
 
         // strip (full width), then properties beside an empty state
@@ -297,22 +291,30 @@ impl Page for ChipsPage {
                     self.on_chip(ev, cx);
                     return o;
                 }
-                let mut out = Outcome::Ignored;
+                // a click outside an open list lands on its backdrop, which
+                // the select owns: it closes itself per its dismiss policy
                 for sel in self.selects() {
                     if sel.owns(*id) {
-                        cx.focus.focus(sel.id);
+                        if *id == sel.id {
+                            cx.focus.focus(sel.id);
+                        }
                         let (o, ev) = sel.on_click(*id);
                         if let Some(SelectEvent::Changed(i)) = ev {
                             let msg = format!("{} → {}", sel.label, sel.options[i]);
                             cx.status(msg);
                         }
-                        out = o;
-                    } else if sel.open {
-                        // clicking anywhere else closes an open popup
-                        out = out.or(sel.dismiss());
+                        return o;
                     }
                 }
-                out
+                Outcome::Ignored
+            }
+            PageEvent::Wheel { id, delta } => {
+                for sel in self.selects() {
+                    if sel.open && sel.owns(*id) {
+                        return sel.on_wheel(*delta);
+                    }
+                }
+                Outcome::Ignored
             }
             _ => Outcome::Ignored,
         }

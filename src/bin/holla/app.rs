@@ -1408,9 +1408,8 @@ impl App {
         };
         match &mut top.modal {
             Modal::Dialog(d) => {
-                if matches!(d.body, DialogBody::Facts { ack: Some(_), .. }) {
-                    return Outcome::Consumed;
-                }
+                // the dialog's dismiss policy decides (typed acknowledgements
+                // and destructive confirmations ignore a backdrop click)
                 let out = d.on_click_outside();
                 if let Some(result) = d.result {
                     let action = match result {
@@ -1438,9 +1437,6 @@ impl App {
                 let suppressed = self.hover_suppressed;
                 self.hover_suppressed = false;
                 self.hover = self.hits.hit(m.pos);
-                if self.menu.is_open() {
-                    self.menu.on_hover(self.hover);
-                }
                 if self.hover != was || suppressed {
                     Outcome::Changed
                 } else {
@@ -2940,6 +2936,7 @@ impl App {
             let buf = frame.buffer_mut();
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             self.draw(area, buf, &mut ctx);
+            ctx.flush_overlays(buf);
             cursor = ctx.cursor;
         }
         self.hits = hits;
@@ -2992,7 +2989,7 @@ impl App {
                 Modal::Dialog(d) => d.render(area, buf, ctx),
                 Modal::Picker(p) => p.render(area, buf, ctx, ""),
                 Modal::Menu(m) => {
-                    ctx.begin_modal();
+                    ctx.begin_modal(buf);
                     m.render(area, buf, ctx);
                     ctx.ring.register(m.id);
                 }
@@ -3118,7 +3115,6 @@ impl App {
         }
         self.draw_status(status, buf, ctx);
         self.draw_footer(footer, buf, false);
-        self.menu.render_open(area, buf, ctx);
     }
 
     /// Row zero: the menu bar, then the project crumb and the host identity

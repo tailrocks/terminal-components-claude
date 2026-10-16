@@ -44,20 +44,7 @@ pub fn modal_frame(
     center: bool,
 ) -> (Rect, Rect) {
     let t = ctx.theme;
-    let dim = Rect::new(
-        screen.x,
-        screen.y,
-        screen.width,
-        screen.height.saturating_sub(1),
-    );
-    for pos in dim.positions() {
-        if let Some(c) = buf.cell_mut(pos) {
-            let st = t.backdrop(c.style());
-            c.set_style(st);
-            c.modifier = Modifier::empty();
-        }
-    }
-    ctx.begin_modal();
+    ctx.modal_backdrop(buf, screen);
     let w = width_.min(screen.width.saturating_sub(4)).max(20);
     let h = height.min(screen.height.saturating_sub(2)).max(5);
     let area = if center {
@@ -1301,7 +1288,7 @@ impl FormDialog {
         // click elsewhere closes an open select
         for f in self.fields.iter_mut() {
             if let FieldKindW::Select(s) = &mut f.kind {
-                s.dismiss();
+                s.close();
             }
         }
         Outcome::Consumed
