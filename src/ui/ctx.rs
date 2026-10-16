@@ -40,6 +40,12 @@ impl Interaction {
     pub fn focused(&self, id: WidgetId) -> bool {
         !self.focus_hidden && self.focus == Some(id)
     }
+    /// The hovered widget, unless hover is suppressed by keyboard use: what
+    /// pointer-following behaviour (a menu cursor, a menu-bar switch)
+    /// should read, so the keyboard wins until the pointer moves again.
+    pub fn live_hover(&self) -> Option<WidgetId> {
+        self.hover.filter(|_| !self.hover_suppressed)
+    }
     pub fn hovered(&self, id: WidgetId) -> bool {
         !self.hover_suppressed && self.hover == Some(id)
     }
