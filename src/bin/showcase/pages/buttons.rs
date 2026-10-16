@@ -22,10 +22,12 @@ pub struct ButtonsPage {
 impl ButtonsPage {
     pub fn new() -> Self {
         let buttons = vec![
-            Button::primary(ID.child(0), "Run task"),
-            Button::secondary(ID.child(1), "Preview"),
-            Button::subtle(ID.child(2), "Cancel"),
-            Button::danger(ID.child(3), "Delete branch"),
+            // rest the pointer on a button for its tooltip (Esc hides it)
+            Button::primary(ID.child(0), "Run task").tooltip("Start the task in the background"),
+            Button::secondary(ID.child(1), "Preview").tooltip("Show what the task would change"),
+            Button::subtle(ID.child(2), "Cancel").tooltip("Leave without running anything"),
+            Button::danger(ID.child(3), "Delete branch")
+                .tooltip("Delete the branch, locally and on the remote"),
             Button::toggle(ID.child(4), "Auto-approve", false),
             Button::toggle(ID.child(5), "Verbose", true),
             Button::primary(ID.child(6), "Disabled primary").disabled(true),
