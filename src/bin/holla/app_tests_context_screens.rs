@@ -8,9 +8,10 @@ use crate::app_tests::H;
 use crate::app_tests_context::{
     assert_at_pointer, assert_below_row, choose, menu_area, right_click, shift_f10,
 };
+use crate::app_tests_parity::open;
 use crate::domain::plan::{PlanPhase, StepState};
 use crate::scenario::{Motion, Scenario};
-use crate::screens::plan;
+use crate::screens::{disk, plan};
 
 fn until<F: Fn(&H) -> bool>(h: &mut H, max_ticks: usize, f: F) -> bool {
     for _ in 0..max_ticks {
@@ -124,4 +125,83 @@ fn a_running_plan_step_menu_retries_a_failed_step() {
     assert!(h.app.modals.is_empty());
     assert_eq!(h.app.world.plans[0].steps[5].state, StepState::Ready);
     assert_eq!(h.app.world.plans[0].steps[3].state, StepState::Succeeded);
+}
+
+// ------------------------------------------------------------------ disk
+
+fn disk_tree() -> H {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    open(&mut h, "Analyze disk usage");
+    h.ticks(40);
+    assert!(h.text().contains("scan complete"), "{}", h.text());
+    h
+}
+
+fn disk_selected(h: &mut H) -> Vec<String> {
+    h.app.tabs[0]
+        .stack
+        .last_mut()
+        .and_then(|s| s.as_disk())
+        .map(|d| d.selected.iter().cloned().collect())
+        .expect("the disk page")
+}
+
+#[test]
+fn a_disk_tree_row_right_click_opens_its_menu_at_the_pointer_and_selects_it() {
+    let mut h = disk_tree();
+    let (x, y) = h.find("vm.img").expect("vm.img row");
+    right_click(&mut h, x + 2, y);
+    assert_eq!(h.app.focus.current(), Some(disk::ROW_MENU), "{}", h.text());
+    assert_at_pointer(&h, disk::ROW_MENU, x + 2, y);
+    let t = h.text();
+    assert!(t.contains("Copy path") && t.contains("Rescan"), "{t}");
+    assert!(t.contains("No scan is running"), "{t}");
+    assert!(!disk_selected(&mut h).iter().any(|p| p.ends_with("vm.img")));
+    choose(&mut h, "Select");
+    assert!(h.app.modals.is_empty());
+    assert!(
+        disk_selected(&mut h).iter().any(|p| p.ends_with("vm.img")),
+        "{:?}",
+        disk_selected(&mut h)
+    );
+    assert_eq!(h.app.focus.current(), Some(disk::TREE));
+}
+
+#[test]
+fn shift_f10_opens_the_disk_row_menu_below_the_cursor_row_and_reopens_outside() {
+    let mut h = disk_tree();
+    let (x, y) = h.find("vm.img").expect("vm.img row");
+    h.click(x + 2, y);
+    shift_f10(&mut h);
+    assert_eq!(h.app.focus.current(), Some(disk::ROW_MENU), "{}", h.text());
+    assert_below_row(&h, disk::ROW_MENU, y);
+    h.key(KeyCode::Esc);
+    // a right click on another row, outside the open menu, reopens there
+    let (tx, ty) = h.find("target").expect("target row");
+    right_click(&mut h, x + 2, y);
+    let first = menu_area(&h, disk::ROW_MENU);
+    assert!(ty < first.y || ty >= first.bottom(), "{}", h.text());
+    right_click(&mut h, tx + 2, ty);
+    assert_eq!(h.app.modals.len(), 1);
+    assert_at_pointer(&h, disk::ROW_MENU, tx + 2, ty);
+}
+
+#[test]
+fn a_disk_overview_row_menu_analyzes_the_row() {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
+    h.ticks(10);
+    open(&mut h, "Disk overview");
+    assert!(h.text().contains("Here › Disk › Overview"), "{}", h.text());
+    let depth = h.app.tabs[0].stack.len();
+    shift_f10(&mut h);
+    assert_eq!(h.app.focus.current(), Some(disk::ROW_MENU), "{}", h.text());
+    assert!(h.text().contains("Analyze"), "{}", h.text());
+    choose(&mut h, "Analyze");
+    assert!(h.app.modals.is_empty());
+    assert!(
+        h.app.tabs[0].stack.len() > depth,
+        "Analyze opened the scan\n{}",
+        h.text()
+    );
 }
