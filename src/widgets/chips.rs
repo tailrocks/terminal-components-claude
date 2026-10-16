@@ -358,7 +358,7 @@ impl ChipBar {
         }
         self.area = area;
         let t = ctx.theme;
-        let focused = ctx.interaction.focused(self.id);
+        let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
         let plane = t.plane_of(bg);
         let mut x = area.x;
         let y = area.y;
@@ -714,6 +714,39 @@ mod overflow_tests {
         let mut plain = bar.clone().overflow_menu(false);
         let (_, hits) = render_hits(&mut plain, 24);
         assert!(hits.area_of(plain.more_id()).is_none());
+    }
+
+    /// AGENTS.md: exactly one `▎`, in the topmost layer. The open `+N`
+    /// menu is that layer, so the focused bar under it shows none.
+    #[test]
+    fn the_focused_bar_under_its_open_menu_shows_no_focus() {
+        let mut bar = ChipBar::new(WidgetId::of("c"));
+        bar.add_label = None;
+        bar.chips = ["alpha", "beta", "gamma", "delta"]
+            .iter()
+            .map(|l| Chip::new(l))
+            .collect();
+        let theme = Theme::junie();
+        let draw = |bar: &mut ChipBar| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let inter = Interaction {
+                focus: Some(bar.id),
+                ..Default::default()
+            };
+            let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 24, 12));
+            bar.render(Rect::new(0, 0, 24, 1), &mut buf, &mut ctx, theme.canvas);
+            ctx.flush_overlays(&mut buf);
+            drop(ctx);
+            rows(&buf)
+        };
+        assert_eq!(draw(&mut bar).matches('▎').count(), 1);
+        bar.on_click(bar.more_id());
+        assert!(bar.menu_open());
+        let text = draw(&mut bar);
+        assert!(!text.lines().next().unwrap().contains('▎'), "{text}");
+        assert_eq!(text.matches('▎').count(), 0, "{text}");
     }
 
     #[test]

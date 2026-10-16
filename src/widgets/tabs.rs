@@ -655,7 +655,7 @@ impl Tabs {
             return;
         }
         let t = ctx.theme;
-        let focused = ctx.interaction.focused(self.id);
+        let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
         // the strip is a focus stop with the geometry it draws in; tab and
         // button regions registered after it take precedence under the mouse.
         // It is a scroll region too: the wheel moves its window
