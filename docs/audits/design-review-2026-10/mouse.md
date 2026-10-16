@@ -193,3 +193,29 @@ Open from this pass:
 - Visual: tablepro now draws seam rules between split panes (#20) and an
   overflowing tab strip shows `+N` (#11). Tuiscotti scenarios covering those
   screens re-approve with these changes; they were not re-approved here.
+
+## Status (navigation and dead ends)
+
+This pass took the dead ends and navigation findings (#4, #5, #6, #7, #8, #13, #24 and #40). Commits: 3ca689c22 (#4), 9f06503a2, 11ee79f9d and the jackin modal-frame fix (#13, #24), 77ee176a2 (re-approval), 35cffbafe (#5), 31eaf284a (#6), 1b4e14198 (#7), fc859d764 (#8), 9f9cf5037 (#40). Each fix landed in the shared layer with a regression test through the app harnesses (`app_tests_mouse.rs` in all four apps) that fails on the code before it.
+
+| # | Status | What landed | Knobs (default) |
+|---|---|---|---|
+| 4 | Fixed | `ScrollState::follow(cursor)` brings the cursor into view only after it moves or the viewport resizes; the jackin Roles, Accounts, Mounts/Env, usage, accounts and workspace lists call it from render. `HitRegistry::scroll_stack` lists every wheel candidate under the pointer, and jackin offers the notch to each until one takes it, so a wheel over a list row scrolls its list. | `ScrollState::follow_cursor: FollowCursor` (`OnMove`; `Always` pins the cursor) |
+| 5 | Fixed | `widgets::breadcrumb::Breadcrumb`: one label per level, the earlier levels links (title ladder), the current page neutral, outer levels collapse into `…` when narrow. holla draws the Here tab's trail above the tab strip while a page is nested; a click pops the stack back to that level. | `Breadcrumb::clickable: bool` (`true`) |
+| 6 | Fixed | `EmptyState::actions` (`EmptyAction`, drawn by `empty::render_ctx`); the empty tablepro connection list offers New connection. A click skips the jackin intro and outro. The jackin cockpit has a Cancel launch… button and its build log a light-dismiss frame with a close button. A taken-over capsule offers Reconnect and Workspace manager as buttons. The capsule's usage, container and context chips take clicks again (the status row's own region had covered them). | `PointerConfig::click_skips_animation: bool` (`true`) |
+| 7 | Fixed | The tablepro query tab has a toolbar row: Run, Run all, Explain (disabled while running) and Cancel (while running), each a `Button` through `Theme::interactive` with a tooltip naming its chord. The chords stay, so the toolbar takes no Tab stops. | `Button::focusable: bool` (`true`) |
+| 8 | Fixed | `widgets::rail::SidebarRail`: the rail a collapsed sidebar leaves (expand glyph above its name) and a collapse button on the open sidebar's frame. The tablepro explorer keeps its rail when hidden by Ctrl+B, and below 100 columns while the drawer is closed; a click brings it back with focus. | `SidebarRail::collapsed_rail: bool` (`true`) |
+| 13 | Fixed | `Frame` (form, choice and info dialogs, help, jackin's own modal frames) and `Dialog` draw a close button (` × `, `modal::CLOSE`) in the top border whenever Esc may close them; a click on it means what Esc means. `HelpOverlay` takes at most 80% of the screen, so the page around it is clickable, and has a Done button. | `Dismiss::close_button: bool` (`true` for `LIGHT` and `ESCAPE`, `false` for `NEVER`); `Frame::dismiss: Option<Dismiss>` (`None`); `HelpOverlay::max_percent: u16` (`80`); `Strings::done` (`"Done"`) |
+| 24 | Fixed | A click outside a modal whose policy refuses it flashes the frame border in the warning tone for the pointer's flash time (`modal::refuse_outside_click`), in all four apps. | `Dismiss::refuse_feedback: RefuseFeedback` (`Flash`; `None` swallows silently) |
+| 40 | Fixed | tablepro: the TablePro status segment (and, connected, the connection segment) opens an app menu: Open tabs…, Disconnect (back to the connection list to open another one) and Quit TablePro. Disconnect is refused with a status while rows or a query are unsaved. showcase: the brand asks Quit the showcase? and quits through the same guard as `q`. | none |
+
+Visual changes, stated: dialogs and framed modals show ` × ` at the right of their top border (re-approved: `showcase::flows::selectable::delete_confirm`); the tablepro query tab gains a toolbar row; a hidden tablepro explorer leaves a two-column rail; a nested holla page shows its trail in the row above the tab strip. New pending row: `showcase/overlays/quit_confirm`.
+
+Left for later, with reasons:
+
+- #13: holla's `TextModal` (help, why, about) registers its own region over its frame and does not route `modal::CLOSE` yet, so it draws no close button; it light-dismisses, so a click beside it closes it. jackin's own frames (file browser, inspector, Usage) do draw it. Pickers, menus and popovers light-dismiss and get no close button, as on macOS.
+- #24: the tablepro filter editor draws its own frame, so a refused click there flashes nothing visible until it moves onto `Frame`.
+- #6: the jackin cockpit's blocked stage still explains itself only in the status line; the Cancel launch… button covers its way out.
+- #5: a page whose own crumb has two parts (`Disk › Usage`) is one link in the trail, because it is one page on the stack.
+- #4: `ScrollState::follow` is opt-in for callers that keep the cursor in view from render. The library lists, trees and tables already keep their viewport on wheel; no other render-time `ensure_visible` callers were found in holla or showcase.
+- #11, #12, #19, #20, #25–#30 and #33–#38: see the widget-level pass. #1–#3, #9, #10, #14–#18, #21–#23, #31, #32 and #39 belong to the router, text-editing and selection work, not this pass, and stay open until it records them.
