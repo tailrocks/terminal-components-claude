@@ -1,7 +1,8 @@
 //! Pane seams in TablePro through the real App: the explorer, the query
 //! editor / results split and the history list / detail split resize by
 //! mouse (they were fixed or keyboard-only), cell by cell, and a
-//! double-click restores the default.
+//! double-click restores the default. Toolbar buttons show their tooltip
+//! after a rest.
 
 use junie_tui::core::event::MouseKind;
 use ratatui::layout::Rect;
@@ -85,4 +86,29 @@ fn the_history_list_and_detail_resize_by_the_seam() {
         _ => unreachable!(),
     };
     assert_eq!(now.x, seam.x - 4);
+}
+
+/// The history toolbar's buttons say what they do and which list key does
+/// the same, once the pointer rests on them (no tooltips existed).
+#[test]
+fn history_buttons_show_their_tooltip_after_a_rest() {
+    let mut h = H::connected(120, 40);
+    h.ctrl('y');
+    let (x, y) = h.find("Open in new tab").expect("the open button");
+    h.mouse(MouseKind::Move, x + 2, y);
+    assert!(!h.text().contains("Open the selected query"), "not at once");
+    let rested = h
+        .app
+        .epoch
+        .checked_sub(std::time::Duration::from_millis(700));
+    h.app.epoch = rested.expect("an epoch 700 ms back");
+    h.draw();
+    let text = h.text();
+    assert!(
+        text.contains("Open the selected query in a new tab  Enter"),
+        "{text}"
+    );
+    // leaving the button and its tooltip hides it
+    h.mouse(MouseKind::Move, 0, 0);
+    assert!(!h.text().contains("Open the selected query"));
 }

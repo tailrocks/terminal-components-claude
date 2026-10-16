@@ -39,6 +39,9 @@ pub struct StatusItem {
     /// A live spinner before the text, always in the primary tone (the one
     /// live-activity use of the accent); the text keeps its own tone.
     pub busy: bool,
+    /// A tooltip for the segment (what it is, the key that opens it),
+    /// shown when the pointer rests on it ([`crate::ui::tooltip`]).
+    pub tip: Option<crate::ui::tooltip::Tip>,
 }
 
 /// Track cells of an inline status meter.
@@ -54,6 +57,7 @@ impl StatusItem {
             emphasis: Emphasis::Plain,
             meter: None,
             busy: false,
+            tip: None,
         }
     }
     /// Prefix a primary-tone spinner: `⠋ text`.
@@ -72,6 +76,11 @@ impl StatusItem {
     }
     pub fn clickable(mut self, id: WidgetId) -> Self {
         self.id = Some(id);
+        self
+    }
+    /// A tooltip shown when the pointer rests on the segment.
+    pub fn tooltip(mut self, tip: crate::ui::tooltip::Tip) -> Self {
+        self.tip = Some(tip);
         self
     }
     pub fn strong(mut self) -> Self {
@@ -352,6 +361,15 @@ impl StatusBar {
             if let Some(id) = it.id {
                 ctx.clickable(id, Rect::new(p.x, area.y, p.width, 1));
             }
+            if let Some(tip) = &it.tip {
+                let seg = Rect::new(p.x, area.y, p.width, 1);
+                let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
+                if it.id.is_none() && !ctx.inert {
+                    // hover-only: the tooltip needs a pointer target
+                    ctx.hits.register_hover(id, seg);
+                }
+                crate::ui::tooltip::show(ctx, id, seg, tip, None);
+            }
             if p.text != it.text {
                 let lead = u16::from(it.emphasis == Emphasis::Chip) + if it.busy { 2 } else { 0 };
                 let cut = Rect::new(p.x + lead, area.y, width(&p.text) as u16, 1);
@@ -534,5 +552,46 @@ mod tests {
         assert_ne!(rest.bg, hover.bg);
         assert_ne!(hover.bg, pressed.bg, "the chip shows a press");
         assert_eq!(pressed.bg, t.ladder(crate::theme::Plane::Raised).pressed);
+    }
+
+    /// A segment can carry a tooltip (what it is, its key), clickable or
+    /// not; a plain segment registers a hover target for it.
+    #[test]
+    fn a_segment_shows_its_tooltip_when_the_pointer_rests() {
+        use crate::ui::tooltip::{Tip, tip_id};
+        let t = Theme::junie();
+        let mut b = StatusBar::new();
+        b.left
+            .push(StatusItem::new("main", Tone::Normal).tooltip(Tip::new("Current branch")));
+        let usage = WidgetId::of("usage");
+        b.right.push(
+            StatusItem::new("Weekly 59%", Tone::Warning)
+                .clickable(usage)
+                .tooltip(Tip::new("Usage this week").shortcut("u")),
+        );
+        let draw = |hover: Option<WidgetId>| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                hover_ms: Some(1_000),
+                ..Default::default()
+            };
+            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 4));
+            let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+            b.render(Rect::new(0, 3, 60, 1), &mut buf, &mut ctx);
+            ctx.flush_overlays(&mut buf);
+            let text: String = (0..4)
+                .flat_map(|y| (0..60).map(move |x| (x, y)))
+                .map(|(x, y)| buf[(x, y)].symbol().to_owned())
+                .collect();
+            (text, hits.hover_at(Position::new(2, 3)))
+        };
+        let (text, plain) = draw(None);
+        assert!(!text.contains("Current branch"));
+        let plain = plain.expect("the plain segment is a hover target");
+        assert_ne!(plain, tip_id(plain));
+        assert!(draw(Some(plain)).0.contains("Current branch"));
+        assert!(draw(Some(usage)).0.contains("Usage this week  u"));
     }
 }

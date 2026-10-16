@@ -10,3 +10,4 @@ pub mod modal;
 pub mod popup;
 pub mod reveal;
 pub mod text;
+pub mod tooltip;
