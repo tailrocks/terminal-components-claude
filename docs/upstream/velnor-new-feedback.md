@@ -1,5 +1,17 @@
 # Feedback for velnor-new: visual-test CI jobs, `.github/CLAUDE.md` as a symlink, and the Rust toolchain
 
+## Tracker
+
+Consumer-side status, kept by the Upstream PR loop
+(`docs/upstream/README.md`). Checked 2026-10-16 with `gh`.
+
+| Item (§) | PR/issue | State | Last reviewed head | Last review link | Verdict | Our follow-up after merge |
+|---|---|---|---|---|---|---|
+| Problem A, §2/§4/§5: suites, partitions, triggers, artifacts, timeouts, `Required`, preserved workflows | [#155](https://github.com/tailrocks/velnor-new/pull/155) | open, mergeable, CI green (22 pass, 1 skipped) | `7938fd1` | [review 5548062511](https://github.com/tailrocks/velnor-new/pull/155#pullrequestreview-5548062511) | changes requested, 4 blockers: empty partitions fail under `--no-tests fail`; per-suite schedules are merged into one; `triggers` ignored in `ci.yml`; `allow_failure` rendered as `\|\| true` in `ci.yml` | replace `.velnor/release-manifest.json` with the release's, add the visual suites to `.velnor/config.toml`, `velnor-actions generate`, drop the `default_shards = 1` pin and the commented visual toggle, update `docs/ci.md` "Gaps" and branch-protection check names |
+| Problem B, §3: `.github/CLAUDE.md` as a symlink | [#155](https://github.com/tailrocks/velnor-new/pull/155) | open (same PR) | `7938fd1` | [review 5548062511](https://github.com/tailrocks/velnor-new/pull/155#pullrequestreview-5548062511) | no blocker of its own; merges with Problem A | set the symlink option, regenerate so `.github/CLAUDE.md` is a symlink to `AGENTS.md`, remove the `.github/CLAUDE.md` exception from `AGENTS.md` |
+| Problem C, §8: repository Rust toolchain and tool-version overrides | none (velnor issue [#6](https://github.com/tailrocks/velnor-new/issues/6) is velnor's own freshness bump to rust 1.99.0, not this ask) | no PR | — | — | not started: ask for a PR | raise `rust-version` to the latest stable, drop the second clippy run under `RUSTUP_TOOLCHAIN=1.98.1`, update `docs/dependencies.md` "Rust in CI" |
+
+
 You are working on **velnor-new** (<https://github.com/tailrocks/velnor-new>),
 the generator behind `velnor-actions`. A consumer repository needs three
 changes that velnor-actions 0.1.8 cannot express today (Problem C, §8,
