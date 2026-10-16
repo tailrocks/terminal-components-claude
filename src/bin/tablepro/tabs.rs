@@ -13,7 +13,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::keymap::hint_key;
 use junie_tui::theme::{SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layout::Split;
+use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorEvent, Severity};
@@ -28,6 +28,7 @@ use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::table::{Cell, Column, DataTable, SortDir};
 use junie_tui::widgets::tabs::{TabAction, TabEvent, TabItem, TabRule, Tabs};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
@@ -970,6 +971,10 @@ pub struct QueryTab {
     pub running: Option<Running>,
     pub completion: Completion,
     pub split: Split,
+    /// The editor / results seam (drag resizes, double-click resets).
+    pub seam: Splitter,
+    /// The rect the split was last laid out in.
+    pub split_area: Rect,
     pub last_status: Option<(String, bool)>,
     pub last_duration: Option<u32>,
     pub result_counter: usize,
@@ -995,6 +1000,8 @@ impl QueryTab {
             running: None,
             completion: Completion::new(id.sub("completion")),
             split: Split::new(38, 4, 6),
+            seam: Splitter::new(id.sub("seam"), SplitDir::Vertical),
+            split_area: Rect::ZERO,
             last_status: None,
             last_duration: None,
             result_counter: 0,
@@ -1455,6 +1462,9 @@ impl QueryTab {
     }
 
     pub fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut Cx, cat: &Catalog) -> Outcome {
+        if id == self.seam.id {
+            return self.seam.on_click(&mut self.split, cx.clicks);
+        }
         if self.completion.is_open() {
             if let Some(CompletionEvent::Accept(i)) = self.completion.on_click(id) {
                 self.accept_completion(i);
@@ -1514,6 +1524,10 @@ impl QueryTab {
     }
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if pressed == self.seam.id {
+            let area = self.split_area;
+            return self.seam.on_drag(&mut self.split, area, 1, pos);
+        }
         if pressed == self.editor.id {
             return self.editor.on_drag(pos);
         }
@@ -1595,6 +1609,9 @@ impl QueryTab {
         if !top.is_empty() {
             self.editor.render(top, buf, ctx, bg);
         }
+        self.split_area = area;
+        let handle = self.split.handle(SplitDir::Vertical, area, 1);
+        self.seam.render(handle, buf, ctx, bg);
         if bottom.is_empty() {
             return;
         }
@@ -2327,6 +2344,9 @@ pub struct HistoryTab {
     pub rerun_btn: Button,
     pub copy_btn: Button,
     pub split: Split,
+    /// The list / detail seam.
+    pub seam: Splitter,
+    pub split_area: Rect,
 }
 
 impl HistoryTab {
@@ -2349,6 +2369,8 @@ impl HistoryTab {
             rerun_btn: Button::secondary(id.sub("rerun"), "Run in new tab"),
             copy_btn: Button::subtle(id.sub("copy"), "Copy"),
             split: Split::new(50, 30, 30),
+            seam: Splitter::new(id.sub("seam"), SplitDir::Horizontal),
+            split_area: Rect::ZERO,
         }
     }
 
@@ -2476,6 +2498,14 @@ impl HistoryTab {
             area.height.saturating_sub(3),
         );
         let (l, r) = self.split.horizontal(body, 2);
+        self.split_area = body;
+        let handle = self.split.handle(SplitDir::Horizontal, body, 2);
+        self.seam.render(
+            Rect::new(handle.x + 1, handle.y, 1, handle.height),
+            buf,
+            ctx,
+            bg,
+        );
         // day grouping is shown as a muted header on the first row of each group
         self.list.render(l, buf, ctx, bg);
         // annotate rows: outcome glyph

@@ -12,6 +12,8 @@ mod app_tests_copy;
 mod app_tests_coverage;
 #[cfg(test)]
 mod app_tests_fields;
+#[cfg(test)]
+mod app_tests_splits;
 mod connections;
 mod context;
 mod db;
