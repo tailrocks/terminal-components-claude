@@ -3,12 +3,14 @@
 //! accounting, mise configuration, SSH resolution…) with follow-up actions.
 //! They are read, not run, so they are pages, never tabs (D-15).
 
+use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
@@ -1289,7 +1291,7 @@ impl SnapshotPage {
     }
 }
 
-impl Screen for SnapshotPage {
+impl ShellPage<Holla> for SnapshotPage {
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
         let running = self.report_index().is_some_and(|idx| {
             w.cleanup_job
@@ -1528,24 +1530,14 @@ impl Screen for SnapshotPage {
         }
     }
 
-    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(BODY) {
-            return Outcome::Ignored;
-        }
-        // a read-only text body has no cursor row: the menu opens at its
-        // top line
-        let at = Position::new(self.body_area.x, self.body_area.y);
-        self.body_menu(ContextAnchor::Pointer(at), cx)
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
-        let Some((_, key, k)) = row_choice(tag, "snapshot-body", &result) else {
+        let Some((_, key, k)) = row_choice(tag, "snapshot-body", result.menu_chosen()) else {
             return Outcome::Changed;
         };
         if let Some(key) = key {
@@ -1582,14 +1574,26 @@ impl Screen for SnapshotPage {
         self.title.clone()
     }
 
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(BODY)
+    }
+}
+
+impl Screen for SnapshotPage {
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(BODY) {
+            return Outcome::Ignored;
+        }
+        // a read-only text body has no cursor row: the menu opens at its
+        // top line
+        let at = Position::new(self.body_area.x, self.body_area.y);
+        self.body_menu(ContextAnchor::Pointer(at), cx)
+    }
+
     fn status(&self, _w: &World) -> StatusBits {
         StatusBits {
             center: Some(StatusItem::new("snapshot · read-only", Tone::Muted).priority(5)),
             right: vec![],
         }
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(BODY)
     }
 }

@@ -4,12 +4,14 @@
 //! shown over the current one. Previews are bounded and sanitised by the
 //! filesystem model; file content is displayed, never executed.
 
+use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, fit_right, truncate, truncate_middle, width};
@@ -1151,7 +1153,7 @@ pub fn recommendations(path: &str, markers: &[&str], w: &World) -> Vec<String> {
     v
 }
 
-impl Screen for FilesPage {
+impl ShellPage<Holla> for FilesPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(PREVIEW) {
             if let Some(q) = self.find_query.clone() {
@@ -1407,7 +1409,7 @@ impl Screen for FilesPage {
         Outcome::Consumed
     }
 
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1505,13 +1507,6 @@ impl Screen for FilesPage {
             }
             _ => Outcome::Ignored,
         }
-    }
-
-    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(LIST) {
-            return Outcome::Ignored;
-        }
-        self.open_actions(cx)
     }
 
     fn on_tick(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -1774,6 +1769,23 @@ impl Screen for FilesPage {
         }
     }
 
+    fn animating(&self, w: &World) -> bool {
+        self.pending.is_some() || (self.mode == Mode::Find && !self.indexed(w).1)
+    }
+
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(LIST)
+    }
+}
+
+impl Screen for FilesPage {
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(LIST) {
+            return Outcome::Ignored;
+        }
+        self.open_actions(cx)
+    }
+
     fn status(&self, w: &World) -> StatusBits {
         let text = match self.mode {
             Mode::Browse => format!(
@@ -1807,14 +1819,6 @@ impl Screen for FilesPage {
 
     fn typing_hot(&self) -> bool {
         self.mode == Mode::Find
-    }
-
-    fn animating(&self, w: &World) -> bool {
-        self.pending.is_some() || (self.mode == Mode::Find && !self.indexed(w).1)
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(LIST)
     }
 
     fn as_files(&mut self) -> Option<&mut FilesPage> {

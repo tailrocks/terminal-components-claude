@@ -3,11 +3,13 @@
 //! select › prefix › normal), scrollback, selection, copy, the command
 //! palette and every Capsule dialog, detach, takeover and dirty exit.
 
+use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::{Axis, Bar};
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
+use junie_tui::shell::Page;
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{RenderCtx, fill};
@@ -1889,14 +1891,7 @@ impl CapsuleScreen {
     }
 }
 
-impl Screen for CapsuleScreen {
-    fn layer_open(&self) -> bool {
-        self.menubar.hides_page_focus()
-            || self
-                .tab_menu
-                .as_ref()
-                .is_some_and(|(_, m)| m.hides_page_focus())
-    }
+impl Page<Jackin> for CapsuleScreen {
     fn enter(&mut self, _w: &mut World, cx: &mut Cx) {
         cx.focus.focus(PANES);
     }
@@ -2092,7 +2087,7 @@ impl Screen for CapsuleScreen {
         }
     }
 
-    fn on_paste(&mut self, text: &str, w: &mut World) -> Outcome {
+    fn on_paste(&mut self, text: &str, w: &mut World, _cx: &mut Cx) -> Outcome {
         let now = w.now_ms();
         let ws = self
             .daemon(w)
@@ -2109,14 +2104,7 @@ impl Screen for CapsuleScreen {
         Outcome::Consumed
     }
 
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
-        if tag.kind == "palette" {
-            return Some(self.palette_items(query, w));
-        }
-        None
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -2470,13 +2458,30 @@ impl Screen for CapsuleScreen {
         }
     }
 
+    fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
+        Outcome::Consumed
+    }
+}
+
+impl Screen for CapsuleScreen {
+    fn layer_open(&self) -> bool {
+        self.menubar.hides_page_focus()
+            || self
+                .tab_menu
+                .as_ref()
+                .is_some_and(|(_, m)| m.hides_page_focus())
+    }
+
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+        if tag.kind == "palette" {
+            return Some(self.palette_items(query, w));
+        }
+        None
+    }
+
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let n = w.running_count();
         vec![Segment::new(plural(n, "instance", "instances"), Tone::Muted).priority(4)]
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Consumed
     }
 }
 

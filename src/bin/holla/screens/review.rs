@@ -2,12 +2,14 @@
 //! sequence before a destructive action), the trust review for an untrusted
 //! definition, and structured arguments.
 
+use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::{truncate, width};
@@ -357,7 +359,7 @@ impl GatePage {
     }
 }
 
-impl Screen for GatePage {
+impl ShellPage<Holla> for GatePage {
     fn on_key(&mut self, key: &Key, _w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(GATE_CANCEL) {
             let (o, fired) = self.cancel.on_key(key);
@@ -455,23 +457,14 @@ impl Screen for GatePage {
         }
     }
 
-    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(SEQUENCE) {
-            return Outcome::Ignored;
-        }
-        // the sequence has no cursor row: the menu opens at its top line
-        let at = Position::new(self.sequence_area.x, self.sequence_area.y);
-        self.sequence_menu(ContextAnchor::Pointer(at), cx)
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
-        if let Some((_, Some(key), _)) = row_choice(tag, "gate-sequence", &result) {
+        if let Some((_, Some(key), _)) = row_choice(tag, "gate-sequence", result.menu_chosen()) {
             return self.on_key(&key, w, cx).or(Outcome::Changed);
         }
         Outcome::Changed
@@ -591,13 +584,6 @@ impl Screen for GatePage {
         "Review".into()
     }
 
-    fn status(&self, _w: &World) -> StatusBits {
-        StatusBits {
-            center: Some(StatusItem::new("review · gate 1 of 2", Tone::Secondary).priority(7)),
-            right: vec![],
-        }
-    }
-
     fn primary_focus(&self) -> Option<WidgetId> {
         Some(GATE_CANCEL)
     }
@@ -605,6 +591,24 @@ impl Screen for GatePage {
     fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         cx.go(Go::Pop);
         Outcome::Changed
+    }
+}
+
+impl Screen for GatePage {
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(SEQUENCE) {
+            return Outcome::Ignored;
+        }
+        // the sequence has no cursor row: the menu opens at its top line
+        let at = Position::new(self.sequence_area.x, self.sequence_area.y);
+        self.sequence_menu(ContextAnchor::Pointer(at), cx)
+    }
+
+    fn status(&self, _w: &World) -> StatusBits {
+        StatusBits {
+            center: Some(StatusItem::new("review · gate 1 of 2", Tone::Secondary).priority(7)),
+            right: vec![],
+        }
     }
 }
 
@@ -780,7 +784,7 @@ impl TrustPage {
     }
 }
 
-impl Screen for TrustPage {
+impl ShellPage<Holla> for TrustPage {
     fn on_key(&mut self, key: &Key, _w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(TRUST_CANCEL) {
             let (o, fired) = self.cancel.on_key(key);
@@ -962,6 +966,12 @@ impl Screen for TrustPage {
         "Trust".into()
     }
 
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(TRUST_CANCEL)
+    }
+}
+
+impl Screen for TrustPage {
     fn status(&self, _w: &World) -> StatusBits {
         StatusBits {
             center: Some(
@@ -969,10 +979,6 @@ impl Screen for TrustPage {
             ),
             right: vec![],
         }
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(TRUST_CANCEL)
     }
 }
 
@@ -1099,7 +1105,7 @@ impl ArgsPage {
     }
 }
 
-impl Screen for ArgsPage {
+impl ShellPage<Holla> for ArgsPage {
     fn on_key(&mut self, key: &Key, _w: &mut World, cx: &mut Cx) -> Outcome {
         if key.ctrl() && key.code == KeyCode::Char('s') {
             return self.submit(cx);
@@ -1303,3 +1309,5 @@ impl Screen for ArgsPage {
         Some(ARG.child(0))
     }
 }
+
+impl Screen for ArgsPage {}
