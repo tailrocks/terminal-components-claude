@@ -83,6 +83,10 @@ fn main() {
         ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(
+            "support::run_stamp_names_run_and_bytes",
+            support::run_stamp_names_run_and_bytes,
+        ),
+        check(
             "determinism::sources_are_deterministic",
             determinism::sources_are_deterministic,
         ),
