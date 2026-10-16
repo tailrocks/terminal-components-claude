@@ -231,10 +231,26 @@ impl InspectChanges {
         if pressed == self.seam.id && !self.stacked {
             return self.seam.on_drag(&mut self.split, self.container, 1, pos);
         }
+        if scrollbar::is_bar_of(pressed, self.diff.id()) {
+            return self.diff.on_bar_drag(pressed, pos);
+        }
         if self.diff.owns(pressed) {
             return self.diff.on_drag(pos);
         }
         Outcome::Ignored
+    }
+
+    /// Horizontal wheel: the diff under the pointer pans sideways.
+    pub fn on_wheel_h_at(&mut self, delta: i32, pos: Position) -> Outcome {
+        let over_diff = match self.mode {
+            InspectMode::Advanced => self.diff_area.contains(pos),
+            InspectMode::Compact => self.open,
+        };
+        if over_diff {
+            self.diff.on_wheel_h(delta)
+        } else {
+            Outcome::Consumed
+        }
     }
 
     fn compact_key(&mut self, key: &Key, focus: &mut Focus) -> Outcome {
@@ -655,7 +671,7 @@ impl CustomModal for InspectChanges {
             InspectMode::Compact => {
                 if self.open {
                     if self.diff.owns(id) {
-                        if id == scrollbar::id_for(self.diff.id()) {
+                        if scrollbar::is_bar_of(id, self.diff.id()) {
                             return self.diff.on_scrollbar(pos);
                         }
                         return self.diff.on_click(pos);
@@ -711,7 +727,7 @@ impl CustomModal for InspectChanges {
                 }
                 if self.diff.owns(id) {
                     self.set_region(Region::Diff, focus);
-                    if id == scrollbar::id_for(self.diff.id()) {
+                    if scrollbar::is_bar_of(id, self.diff.id()) {
                         return self.diff.on_scrollbar(pos);
                     }
                     return self.diff.on_click(pos);
@@ -723,6 +739,10 @@ impl CustomModal for InspectChanges {
 
     fn on_wheel(&mut self, delta: i32, pos: Position) -> Outcome {
         self.on_wheel_at(delta, pos)
+    }
+
+    fn on_wheel_h(&mut self, delta: i32, pos: Position) -> Outcome {
+        self.on_wheel_h_at(delta, pos)
     }
 
     fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
