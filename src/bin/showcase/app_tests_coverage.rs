@@ -485,6 +485,36 @@ fn tab_in_an_open_select_chooses_and_moves_focus_on() {
     assert!(!text.contains("created_at"), "and the list closed\n{text}");
 }
 
+/// Keyboard audit #9: closing a picker dropped focus to the sidebar, not
+/// the button that opened it. The picker is a layer on the library's
+/// stack now, which gives the owner its focus back on every close (Esc,
+/// a choice).
+#[test]
+fn closing_a_picker_gives_focus_back_to_the_button_that_opened_it() {
+    let mut h = Harness::new(120, 40, PageId::Pickers);
+    let pickers = WidgetId::of("pickers");
+    for (button, key) in [
+        ("quick", KeyCode::Esc),
+        ("tabs", KeyCode::Enter),
+        ("level", KeyCode::Esc),
+    ] {
+        let b = pickers.sub(button);
+        h.focus(b);
+        h.key(KeyCode::Enter);
+        assert_ne!(h.app.focus.current(), Some(b), "the picker takes focus");
+        h.key(key);
+        assert!(
+            h.app
+                .hits
+                .area_of(pickers.sub(&format!("picker.{button}")))
+                .is_none(),
+            "{button}: closed\n{}",
+            h.text()
+        );
+        assert_eq!(h.app.focus.current(), Some(b), "{button}: focus is back");
+    }
+}
+
 /// Keyboard audit #31: Tab cycles the picker's scope forward and Shift+Tab
 /// goes back (it did nothing).
 #[test]
