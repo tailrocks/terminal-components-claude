@@ -12,6 +12,32 @@ use crate::theme::ButtonKind;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
 
+/// How many items of a horizontal run fit in `avail` cells (`widths` each,
+/// `gap` cells between them), and the `+N` marker naming the ones that do
+/// not. When the whole run fits the marker is `None`; otherwise as many
+/// items as leave room for the marker are kept, so a cut run always says
+/// how much it hides instead of ending silently.
+pub fn overflow_run(widths: &[u16], avail: u16, gap: u16) -> (usize, Option<String>) {
+    let total: u32 = widths.iter().map(|&w| w as u32).sum::<u32>()
+        + gap as u32 * widths.len().saturating_sub(1) as u32;
+    if total <= avail as u32 {
+        return (widths.len(), None);
+    }
+    let n = widths.len();
+    for k in (0..n).rev() {
+        let marker = format!("+{}", n - k);
+        let used: u32 = widths[..k]
+            .iter()
+            .map(|&w| w as u32 + gap as u32)
+            .sum::<u32>()
+            + width(&marker) as u32;
+        if used <= avail as u32 {
+            return (k, Some(marker));
+        }
+    }
+    (0, None)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Chip {
     pub label: String,
@@ -40,6 +66,9 @@ pub struct ChipBar {
     /// Leading label such as `match all ▾` (clickable, emits `Toggle`).
     pub lead: Option<String>,
     pub area: Rect,
+    /// Chips that do not fit are counted in a muted `+N` marker after the
+    /// last one shown. Default true; off, the run just ends.
+    pub overflow_marker: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +90,14 @@ impl ChipBar {
             add_label: Some("+ Add filter".into()),
             lead: None,
             area: Rect::ZERO,
+            overflow_marker: true,
         }
+    }
+
+    /// Show (default) or hide the `+N` count of chips that do not fit.
+    pub fn overflow_marker(mut self, on: bool) -> Self {
+        self.overflow_marker = on;
+        self
     }
 
     pub fn chip_id(&self, i: usize) -> WidgetId {
@@ -172,7 +208,18 @@ impl ChipBar {
             ctx.clickable(lid, Rect::new(x, y, width(&text) as u16, 1));
             x += width(&text) as u16 + 1;
         }
+        let chip_w =
+            |c: &Chip| 1 + width(&c.label) as u16 + 1 + if c.removable { 2 } else { 0 } + 1;
+        let widths: Vec<u16> = self.chips.iter().map(chip_w).collect();
+        let (shown, marker) = overflow_run(&widths, area.right().saturating_sub(x), 1);
         for (i, chip) in self.chips.iter().enumerate() {
+            if i >= shown {
+                if let Some(m) = marker.as_ref().filter(|_| self.overflow_marker) {
+                    buf.set_string(x, y, m, t.muted().bg(bg));
+                    x += width(m) as u16 + 1;
+                }
+                break;
+            }
             let cid = self.chip_id(i);
             let mut s = ctx.state(cid);
             s.focused = focused && i == self.cursor;
@@ -192,11 +239,7 @@ impl ChipBar {
                 st = st.fg(t.error);
             }
             let label_w = width(&chip.label) as u16;
-            let w = 1 + label_w + 1 + if chip.removable { 2 } else { 0 } + 1;
-            if x + w > area.right() {
-                buf.set_string(x, y, "…", t.muted().bg(bg));
-                return;
-            }
+            let w = widths[i];
             let r = Rect::new(x, y, w, 1);
             fill(buf, r, st);
             buf.set_string(
@@ -244,5 +287,52 @@ impl ChipBar {
         if !ctx.inert {
             ctx.ring.register(self.id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+
+    #[test]
+    fn a_run_that_does_not_fit_keeps_room_for_its_count() {
+        assert_eq!(overflow_run(&[5, 5, 5], 17, 1), (3, None));
+        // 5+1+5+1 = 12, "+1" needs 2 more: 14 <= 16
+        assert_eq!(overflow_run(&[5, 5, 5], 16, 1), (2, Some("+1".into())));
+        // only the marker fits
+        assert_eq!(overflow_run(&[9, 9], 4, 1), (0, Some("+2".into())));
+        assert_eq!(overflow_run(&[9, 9], 1, 1), (0, None));
+    }
+
+    fn render(bar: &mut ChipBar, w: u16) -> String {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, w, 1);
+        let mut buf = Buffer::empty(area);
+        bar.render(area, &mut buf, &mut ctx, theme.canvas);
+        (0..w).map(|x| buf[(x, 0)].symbol().to_owned()).collect()
+    }
+
+    #[test]
+    fn chips_that_do_not_fit_are_counted_with_a_marker() {
+        let mut bar = ChipBar::new(WidgetId::of("c"));
+        bar.add_label = None;
+        bar.chips = ["alpha", "beta", "gamma", "delta"]
+            .iter()
+            .map(|l| Chip::new(l))
+            .collect();
+        let line = render(&mut bar, 24);
+        assert!(line.contains("alpha"), "{line:?}");
+        assert!(line.contains("+3") || line.contains("+2"), "{line:?}");
+        assert!(!line.contains('…'), "{line:?}");
+        let mut off = bar.clone().overflow_marker(false);
+        let line = render(&mut off, 24);
+        assert!(!line.contains('+'), "{line:?}");
     }
 }
