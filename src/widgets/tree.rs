@@ -1,13 +1,13 @@
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
@@ -148,14 +148,13 @@ pub enum BranchAction {
 pub struct TreeView {
     /// The rows and disclosures registered in the last render, by id.
     parts: PartMap,
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     pub id: WidgetId,
     pub nodes: Vec<TreeNode>,
     pub expanded: std::collections::HashSet<Path>,
     pub cursor: usize,
     pub selected: Option<Path>,
-    pub scroll: ScrollState,
+    /// The scrolled rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     rows: Vec<FlatRow>,
     /// Case-insensitive substring filter; ancestors of matches stay visible.
@@ -186,11 +185,6 @@ pub struct TreeView {
     /// ↑ on the first row lands on the last and ↓ on the last on the
     /// first. Default off: it stops at the end.
     pub wrap: bool,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// Flat rows built so far (a complexity guard: an expand or collapse
     /// builds only the rows it reveals, never the whole tree).
     rows_built: usize,
@@ -289,16 +283,13 @@ fn walk(
 impl TreeView {
     pub fn new(id: WidgetId, nodes: Vec<TreeNode>) -> Self {
         let mut tv = Self {
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             id,
             nodes,
             expanded: Default::default(),
             cursor: 0,
             selected: None,
-            scroll: ScrollState::default(),
+            scroll: ScrollPane::default(),
             area: Rect::ZERO,
-            track: Rect::ZERO,
             parts: PartMap::default(),
             rows: vec![],
             filter: None,
@@ -895,14 +886,6 @@ impl TreeView {
         (Outcome::Changed, None)
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// (row, is_toggle) for a widget id.
     pub fn locate(&self, id: WidgetId) -> Option<(usize, bool)> {
         let part = self.parts.get(id)?;
@@ -918,48 +901,16 @@ impl TreeView {
         id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.area.y,
-                1,
-                self.area.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged along the scrollbar after a press.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.parts.clear();
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -1152,10 +1103,9 @@ impl TreeView {
         // before the next frame (see `runtime::Coalesce`) then routes to the
         // widget, not to a row whose display index it already scrolled away
         ctx.scrollable(self.id, area);
-        self.track = Rect::ZERO;
         if self.divider && !has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            scrollbar::render_divider(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_divider(sb, buf, ctx, self.id, focused);
         }
         if has_sb {
             crate::ui::fade::scroll_edges_except(
@@ -1177,9 +1127,14 @@ impl TreeView {
                     .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
+    }
+}
+
+impl Scrollable for TreeView {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
     }
 }
 
@@ -1391,6 +1346,7 @@ mod scroll_tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+    use ratatui::layout::Position;
 
     fn render(t: &mut TreeView) -> String {
         let theme = Theme::junie();

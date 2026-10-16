@@ -23,6 +23,7 @@ use crate::app::Cx;
 use crate::db::{Catalog, Connection, ObjectKind};
 use crate::model::History;
 use crate::tabs::{HistoryTab, QueryTab, TableTab};
+use junie_tui::core::scroll::Scrollable;
 
 const ID: WidgetId = WidgetId::of("workbench");
 pub const EXPLORER: WidgetId = ID.sub("explorer");

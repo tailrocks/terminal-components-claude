@@ -13,6 +13,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::FocusRing;
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::{Interaction, RenderCtx};
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};

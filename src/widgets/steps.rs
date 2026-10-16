@@ -4,14 +4,14 @@
 //! with a cursor for detail selection.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::widgets::scrollbar;
 
@@ -68,21 +68,15 @@ impl Step {
 pub struct StepRail {
     /// The rows registered in the last render, by id.
     parts: PartMap,
-    /// The scrollbar track as last drawn: presses and drags map through it.
-    track: Rect,
     pub id: WidgetId,
     pub steps: Vec<Step>,
     pub selectable: bool,
     pub cursor: usize,
-    pub scroll: ScrollState,
+    /// The scrolled rows and the bar ([`Scrollable`]).
+    pub scroll: ScrollPane,
     pub area: Rect,
     /// Show the ordinal (`03`) before the label.
     pub numbered: bool,
-    /// What a press on the bare vertical track does; `None` follows
-    /// [`RenderCtx::track_click`].
-    pub track_click: Option<crate::core::scroll::TrackClick>,
-    /// The vertical track policy resolved at the last render.
-    v_click: crate::core::scroll::TrackClick,
     /// Which keys move the cursor of a selectable rail (default
     /// [`NavKeys::DEFAULT`]).
     pub nav: NavKeys,
@@ -102,13 +96,10 @@ impl StepRail {
             steps,
             selectable: false,
             cursor: 0,
-            scroll: ScrollState::new(n),
+            scroll: ScrollPane::new(n),
             area: Rect::ZERO,
-            track: Rect::ZERO,
             parts: PartMap::default(),
             numbered: true,
-            track_click: None,
-            v_click: crate::core::scroll::TrackClick::Page,
             nav: NavKeys::DEFAULT,
         }
     }
@@ -116,7 +107,7 @@ impl StepRail {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.track_click = Some(click);
+        self.scroll.track_click = Some(click);
         self
     }
 
@@ -205,50 +196,9 @@ impl StepRail {
         Outcome::Changed
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        if self.scroll.scroll_by(delta as isize) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    fn track(&self) -> Rect {
-        if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.area.y,
-                1,
-                self.area.height,
-            )
-        } else {
-            self.track
-        }
-    }
-
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track follows
-    /// [`Self::track_click`].
-    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// The pointer dragged along the scrollbar after a press.
-    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.parts.clear();
-        self.v_click = self.track_click.unwrap_or(ctx.track_click);
+        self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -359,7 +309,6 @@ impl StepRail {
             }
             let _ = frontier;
         }
-        self.track = Rect::ZERO;
         if has_sb {
             crate::ui::fade::scroll_edges_except(
                 buf,
@@ -380,10 +329,15 @@ impl StepRail {
                     .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            self.track = sb;
-            scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         let _ = Style::new();
+    }
+}
+
+impl Scrollable for StepRail {
+    fn pane(&mut self) -> &mut ScrollPane {
+        &mut self.scroll
     }
 }
 
@@ -446,6 +400,7 @@ mod track_click_tests {
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+    use ratatui::layout::Position;
 
     fn pressed_at_the_bottom(click: Option<TrackClick>, app: TrackClick) -> usize {
         let names: Vec<String> = (0..50).map(|i| format!("step {i}")).collect();
@@ -453,7 +408,7 @@ mod track_click_tests {
             WidgetId::of("r"),
             names.iter().map(|s| Step::new(s)).collect(),
         );
-        r.track_click = click;
+        r.scroll.track_click = click;
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -462,7 +417,7 @@ mod track_click_tests {
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         ctx.track_click = app;
         r.render(area, &mut buf, &mut ctx, theme.surface);
-        let bottom = Position::new(r.track().x, r.track().bottom() - 1);
+        let bottom = Position::new(r.scroll.v_track().x, r.scroll.v_track().bottom() - 1);
         assert_eq!(r.on_scrollbar(bottom), Outcome::Changed);
         r.scroll.offset
     }

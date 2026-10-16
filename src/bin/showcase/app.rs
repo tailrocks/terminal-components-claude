@@ -15,6 +15,7 @@ use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, SecondaryRoute};
+use junie_tui::core::scroll::Scrollable;
 use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
