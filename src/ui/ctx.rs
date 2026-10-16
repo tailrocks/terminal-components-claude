@@ -84,6 +84,11 @@ pub struct RenderCtx<'a> {
     /// Overlays waiting to be drawn, with the `inert` flag they were queued
     /// under (a popup on a page behind a modal stays unreachable).
     overlays: Vec<(bool, OverlayFn)>,
+    /// App-wide default for revealing truncated text; widgets may override
+    /// it (see [`crate::ui::reveal`]).
+    pub reveal: crate::ui::reveal::Reveal,
+    /// The frame's single truncated-text reveal, if any.
+    pub(crate) reveal_slot: crate::ui::reveal::Slot,
 }
 
 impl<'a> RenderCtx<'a> {
@@ -101,6 +106,8 @@ impl<'a> RenderCtx<'a> {
             cursor: None,
             inert: false,
             overlays: Vec::new(),
+            reveal: crate::ui::reveal::Reveal::default(),
+            reveal_slot: crate::ui::reveal::Slot::default(),
         }
     }
 

@@ -11,6 +11,7 @@ use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::reveal::{Reveal, RevealState};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,6 +129,11 @@ pub enum PropsEvent {
 
 /// Interactive facts: one focus stop with a row cursor, `y` copies the
 /// copyable row under the cursor, Enter activates it.
+///
+/// A value cut to fit keeps its `…` and reveals the full text on demand
+/// (see [`crate::ui::reveal`]): hovering it shows an expansion tooltip, and
+/// the reveal key (`→` by default) expands the cursor row until `←` or Esc.
+/// Copy always copies the full value.
 #[derive(Debug, Clone)]
 pub struct PropsList {
     /// The scrollbar track as last drawn: presses and drags map through it.
@@ -137,6 +143,8 @@ pub struct PropsList {
     pub cursor: usize,
     pub scroll: ScrollState,
     pub area: Rect,
+    /// Revealing cut values; `reveal.config` overrides the global default.
+    pub reveal: RevealState,
 }
 
 impl PropsList {
@@ -149,7 +157,14 @@ impl PropsList {
             scroll: ScrollState::new(n),
             area: Rect::ZERO,
             track: Rect::ZERO,
+            reveal: RevealState::default(),
         }
+    }
+
+    /// How cut values are revealed (default: [`RenderCtx::reveal`]).
+    pub fn reveal(mut self, config: Reveal) -> Self {
+        self.reveal.config = Some(config);
+        self
     }
 
     pub fn set_props(&mut self, props: Vec<Prop>) {
@@ -176,6 +191,9 @@ impl PropsList {
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PropsEvent>) {
         if self.props.is_empty() {
             return (Outcome::Ignored, None);
+        }
+        if let Some(o) = self.reveal.on_key(key) {
+            return (o, None);
         }
         match key.code {
             KeyCode::Up | KeyCode::Char('k') if key.plain() => {
@@ -256,6 +274,7 @@ impl PropsList {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
+        self.reveal.begin(ctx);
         self.scroll.set_content(self.props.len());
         self.scroll.set_viewport(area.height as usize);
         ctx.control(self.id, area, false);
@@ -298,6 +317,13 @@ impl PropsList {
                 y,
                 crate::ui::text::truncate(&p.value, vw),
                 st.fg(t.tone(p.tone)),
+            );
+            self.reveal.cell(
+                ctx,
+                rid,
+                Rect::new(vx, y, vw as u16, 1),
+                &p.value,
+                s.focused,
             );
             if hint_w > 0 {
                 buf.set_string(

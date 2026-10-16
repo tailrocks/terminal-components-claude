@@ -2594,8 +2594,13 @@ impl App {
                         ]
                     }
                 }
-                Some(Modal::Info(_)) => {
-                    vec![hint("↑↓", "Move"), hint("y", "Copy"), hint("Esc", "Close")]
+                Some(Modal::Info(i)) => {
+                    let mut v = vec![hint("↑↓", "Move")];
+                    if let Some((k, a)) = i.props.reveal.hint() {
+                        v.push(hint(k, a));
+                    }
+                    v.extend([hint("y", "Copy"), hint("Esc", "Close")]);
+                    v
                 }
                 Some(Modal::Help(_)) => vec![hint("↑↓", "Scroll"), hint("Esc", "Close")],
                 Some(Modal::Custom(c)) => c.hints(),
