@@ -242,6 +242,7 @@ mod tests {
             ring: &ring,
             requests: vec![],
             mods: KeyModifiers::NONE,
+            clicks: 0,
         };
         let enter = PageEvent::Key(junie_tui::core::event::Key {
             code: KeyCode::Enter,

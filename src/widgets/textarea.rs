@@ -10,7 +10,9 @@ use crate::core::scroll::ScrollState;
 use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
-use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::field_common::{
+    EditAction, PointerSelect, PressState, click_select, drag_select, edit_key,
+};
 use crate::widgets::input::InputEvent;
 use crate::widgets::scrollbar;
 
@@ -42,6 +44,10 @@ pub struct TextArea {
     pub blur_action: BlurAction,
     /// Text before editing began, for [`BlurAction::Cancel`].
     snapshot: String,
+    /// What a drag, double click and triple click select.
+    /// Default [`PointerSelect::DEFAULT`].
+    pub pointer_select: PointerSelect,
+    press: PressState,
 }
 
 impl TextArea {
@@ -64,7 +70,15 @@ impl TextArea {
             rows,
             blur_action: BlurAction::Commit,
             snapshot: String::new(),
+            pointer_select: PointerSelect::DEFAULT,
+            press: PressState::default(),
         }
+    }
+
+    /// See [`Self::pointer_select`].
+    pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
+        self.pointer_select = sel;
+        self
     }
 
     /// See [`Self::blur_action`].
@@ -222,17 +236,65 @@ impl TextArea {
         Outcome::Changed
     }
 
+    /// Byte offset under `pos`, clamped to the text.
+    fn offset_at(&self, pos: Position) -> usize {
+        let line = pos.y.saturating_sub(self.text_area.y) as usize + self.scroll.offset;
+        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.hscroll;
+        let line = line.min(self.buffer.line_count().saturating_sub(1));
+        self.buffer.offset_at(line, col)
+    }
+
     /// A click enters editing (one click, never two) and places the cursor
-    /// at the pointer.
+    /// at the pointer. Same as [`Self::on_click_count`] with a count of 1.
     pub fn on_click(&mut self, pos: Position) -> Outcome {
+        self.on_click_count(pos, 1)
+    }
+
+    /// A completed click with its multi-click `count`: 1 places the caret,
+    /// 2 selects the word, 3 the line, per [`Self::pointer_select`]. The
+    /// release that ends a drag keeps the dragged selection.
+    pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
         }
         self.begin_edit();
-        let line = pos.y.saturating_sub(self.text_area.y) as usize + self.scroll.offset;
-        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.hscroll;
-        let line = line.min(self.buffer.line_count().saturating_sub(1));
-        self.buffer.set_cursor_line_col(line, col);
+        let offset = self.offset_at(pos);
+        click_select(
+            &mut self.buffer,
+            &mut self.press,
+            self.pointer_select,
+            offset,
+            count,
+            false,
+        );
+        self.follow_cursor = true;
+        Outcome::Changed
+    }
+
+    /// Button down on the area: remembers where, so a drag selects from
+    /// there. The press alone changes nothing; the completed click (or the
+    /// drag) starts editing.
+    pub fn on_press(&mut self, pos: Position) -> Outcome {
+        if self.disabled {
+            return Outcome::Consumed;
+        }
+        self.press = PressState {
+            at: Some(self.offset_at(pos)),
+            dragged: false,
+        };
+        Outcome::Consumed
+    }
+
+    /// Drag with the button held since a press on the area: starts
+    /// editing and selects from the press to the pointer
+    /// ([`PointerSelect::drag`]).
+    pub fn on_drag(&mut self, pos: Position) -> Outcome {
+        if self.disabled || !self.pointer_select.drag {
+            return Outcome::Ignored;
+        }
+        let offset = self.offset_at(pos);
+        self.begin_edit();
+        drag_select(&mut self.buffer, &mut self.press, offset);
         self.follow_cursor = true;
         Outcome::Changed
     }
@@ -469,6 +531,40 @@ impl crate::core::focus::BlurTarget for TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn drag_double_and_triple_click_select_text() {
+        let mut a = TextArea::new(WidgetId::of("s"), "Notes", 4).value("one two\nthree four");
+        let area = Rect::new(0, 0, 30, 6);
+        let mut buf = Buffer::empty(area);
+        render(&mut a, area, &mut buf, ColorLevel::TrueColor);
+        let ta = a.text_area;
+        let at = |col: u16, row: u16| Position::new(ta.x + col, ta.y + row);
+        let (p, d) = (at(4, 0), at(5, 1));
+        a.on_press(p);
+        assert!(!a.editing, "the press alone changes nothing");
+        assert_eq!(a.on_drag(d), Outcome::Changed);
+        assert!(a.editing, "the drag edits");
+        assert_eq!(a.buffer.selected_text(), Some("two\nthree"));
+        a.on_click_count(d, 1);
+        assert_eq!(
+            a.buffer.selected_text(),
+            Some("two\nthree"),
+            "release keeps it"
+        );
+        let (w, l) = (at(7, 1), at(1, 1));
+        a.on_click_count(w, 2);
+        assert_eq!(a.buffer.selected_text(), Some("four"));
+        a.on_click_count(l, 3);
+        assert_eq!(a.buffer.selected_text(), Some("three four"), "one line");
+        let mut off = TextArea::new(WidgetId::of("o"), "Notes", 4)
+            .value("one two")
+            .pointer_select(crate::widgets::field_common::PointerSelect::OFF);
+        render(&mut off, area, &mut buf, ColorLevel::TrueColor);
+        let p = Position::new(off.text_area.x + 5, off.text_area.y);
+        off.on_click_count(p, 2);
+        assert_eq!(off.buffer.selected_text(), None);
+    }
 
     #[test]
     fn rendering_without_focus_never_ends_the_edit() {
