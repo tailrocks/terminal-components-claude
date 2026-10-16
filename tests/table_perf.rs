@@ -283,6 +283,39 @@ fn measure_widgets() {
             spent.as_secs_f64() * 1e6 / toggles as f64
         );
     }
+    // the reveal alone: a pointer resting on a cut value, frame after frame
+    for len in [65_536usize, 1 << 20] {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 200, 55);
+        let id = WidgetId::of("perf-reveal");
+        let text = "lorem ipsum ".repeat(len / 12);
+        let frames = 50;
+        let spent = time(|| {
+            for _ in 0..frames {
+                let mut buf = Buffer::empty(area);
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let interaction = Interaction {
+                    hover: Some(id),
+                    ..Default::default()
+                };
+                let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+                junie_tui::ui::reveal::truncated(
+                    &mut ctx,
+                    None,
+                    id,
+                    Rect::new(10, 10, 30, 1),
+                    &text,
+                );
+                ctx.flush_overlays(&mut buf);
+            }
+        });
+        println!(
+            "Reveal {}K resting tooltip 200x55: {:.1} µs per frame",
+            len / 1024,
+            spent.as_secs_f64() * 1e6 / frames as f64
+        );
+    }
     // cut cells holding long values (JSON documents, long text)
     for blob in [4_096, 65_536] {
         // the pointer resting on a cut long value: its reveal wraps it

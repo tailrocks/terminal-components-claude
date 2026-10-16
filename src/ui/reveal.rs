@@ -37,6 +37,8 @@
 //! was cut to and the full text. [`Reveal`] is the policy: a global default
 //! on [`RenderCtx::reveal`] and an optional per-widget override.
 
+use std::rc::Rc;
+
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -340,7 +342,7 @@ impl RevealState {
         }
         self.inlined = true;
         self.track(id);
-        let lines = wrap(full, width.max(1) as usize);
+        let lines = wrapped(id, full, width.max(1) as usize);
         let rows = cap(room, self.effective.max_rows) as usize;
         let scroll = if self.effective.scroll {
             self.scroll
@@ -371,13 +373,13 @@ impl RevealState {
             if self.open && self.effective.keyboard.is_some() && !self.inlined {
                 self.track(id);
                 let feed = self.feed();
-                show(ctx, area, full, Source::Keyboard, feed);
+                show(ctx, id, area, full, Source::Keyboard, feed);
             }
         }
         if self.effective.hover && cut && !ctx.inert && ctx.interaction.live_hover() == Some(id) {
             self.track(id);
             let feed = self.feed();
-            show(ctx, area, full, Source::Pointer, feed);
+            show(ctx, id, area, full, Source::Pointer, feed);
         }
         cut
     }
@@ -492,7 +494,7 @@ pub fn truncated(
             max_rows: cfg.max_rows,
             extent: None,
         };
-        show(ctx, area, full, Source::Pointer, feed);
+        show(ctx, id, area, full, Source::Pointer, feed);
     }
     cut
 }
@@ -600,7 +602,10 @@ struct Feed {
 #[derive(Debug, Clone)]
 struct Tip {
     anchor: Rect,
-    text: String,
+    id: WidgetId,
+    /// Shared with the wrap cache: a reveal resting on the same value
+    /// frame after frame neither copies nor re-wraps it.
+    text: Rc<str>,
     source: Source,
     feed: Feed,
 }
@@ -612,7 +617,65 @@ pub(crate) struct Slot {
     queued: bool,
 }
 
-fn show(ctx: &mut RenderCtx, anchor: Rect, full: &str, source: Source, feed: Feed) {
+/// The wrapped lines of the last reveal drawn: a reveal stays on screen
+/// for many frames (a resting pointer, an open keyboard reveal), and
+/// wrapping a long value costs time linear in its length.
+#[derive(Debug)]
+struct Wrapped {
+    id: WidgetId,
+    text: Rc<str>,
+    width: usize,
+    lines: Rc<Vec<String>>,
+}
+
+thread_local! {
+    /// One entry: only one reveal shows per frame.
+    static WRAPPED: std::cell::RefCell<Option<Wrapped>> =
+        const { std::cell::RefCell::new(None) };
+    /// Texts wrapped for a reveal so far (a complexity guard).
+    static WRAPS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// `full` as the shared text of the cached reveal when it is the same
+/// value (a length check, then one comparison: no copy), else a new copy.
+fn shared(full: &str) -> Rc<str> {
+    WRAPPED.with(|w| match &*w.borrow() {
+        Some(c) if c.text.len() == full.len() && *c.text == *full => c.text.clone(),
+        _ => Rc::from(full),
+    })
+}
+
+/// The lines of `full` wrapped to `width` for the reveal of `id`, from the
+/// cache when the cell, its text and the width are unchanged. Any change
+/// (another cell, an edited value, a resize) wraps again.
+fn wrapped(id: WidgetId, full: &str, width: usize) -> Rc<Vec<String>> {
+    WRAPPED.with(|w| {
+        let mut w = w.borrow_mut();
+        if let Some(c) = &*w
+            && c.id == id
+            && c.width == width
+            && c.text.len() == full.len()
+            && (std::ptr::eq(c.text.as_ptr(), full.as_ptr()) || *c.text == *full)
+        {
+            return c.lines.clone();
+        }
+        WRAPS.with(|n| n.set(n.get() + 1));
+        let text = match &*w {
+            Some(c) if *c.text == *full => c.text.clone(),
+            _ => Rc::from(full),
+        };
+        let lines = Rc::new(wrap(full, width));
+        *w = Some(Wrapped {
+            id,
+            text,
+            width,
+            lines: lines.clone(),
+        });
+        lines
+    })
+}
+
+fn show(ctx: &mut RenderCtx, id: WidgetId, anchor: Rect, full: &str, source: Source, feed: Feed) {
     let slot = &mut ctx.reveal_slot;
     match &slot.tip {
         Some(tip) if !(tip.source == Source::Keyboard && source == Source::Pointer) => return,
@@ -620,7 +683,8 @@ fn show(ctx: &mut RenderCtx, anchor: Rect, full: &str, source: Source, feed: Fee
     }
     slot.tip = Some(Tip {
         anchor,
-        text: full.to_owned(),
+        id,
+        text: shared(full),
         source,
         feed,
     });
@@ -640,9 +704,15 @@ fn show(ctx: &mut RenderCtx, anchor: Rect, full: &str, source: Source, feed: Fee
 /// its left), over the anchor itself; a long text wraps to the screen and
 /// the box moves left, then up, to stay on screen. Text taller than the
 /// box shows the window at `feed.scroll`, with `↑`/`↓ N more` markers.
-fn layout(screen: Rect, anchor: Rect, text: &str, feed: &Feed) -> (Rect, Vec<RevealLine>) {
+fn layout(
+    screen: Rect,
+    anchor: Rect,
+    id: WidgetId,
+    text: &str,
+    feed: &Feed,
+) -> (Rect, Vec<RevealLine>) {
     let room = screen.width.saturating_sub(2).max(1) as usize;
-    let lines = wrap(text, room);
+    let lines = wrapped(id, text, room);
     let rows = cap(screen.height, feed.max_rows) as usize;
     let (shown, extent) = window(&lines, rows, feed.scroll as usize);
     if let Some(e) = &feed.extent {
@@ -666,7 +736,7 @@ fn layout(screen: Rect, anchor: Rect, text: &str, feed: &Feed) -> (Rect, Vec<Rev
 fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     let screen = *buf.area();
     let t = ctx.theme;
-    let (area, lines) = layout(screen, tip.anchor, &tip.text, &tip.feed);
+    let (area, lines) = layout(screen, tip.anchor, tip.id, &tip.text, &tip.feed);
     let area = area.intersection(screen);
     if area.is_empty() {
         return;
@@ -739,6 +809,54 @@ mod tests {
             truncate(FULL, area.width as usize),
             Style::new(),
         );
+    }
+
+    /// Guard (performance): a reveal resting on a long value wraps it
+    /// once, not every frame; a change of cell, text or width wraps again.
+    #[test]
+    fn a_resting_reveal_wraps_its_text_once() {
+        let wraps = || WRAPS.with(std::cell::Cell::get);
+        let id = WidgetId::of("cell");
+        let area = Rect::new(4, 2, 20, 1);
+        let long = "lorem ipsum ".repeat(64 * 1024 / 12);
+        let show = |w: u16, text: &str, id: WidgetId| {
+            let hover = Interaction {
+                hover: Some(id),
+                ..Default::default()
+            };
+            frame(w, 20, hover, |_, ctx| {
+                truncated(ctx, None, id, area, text);
+            })
+        };
+        let start = wraps();
+        let first = show(80, &long, id);
+        for _ in 0..10 {
+            assert_eq!(show(80, &long, id), first, "the same tooltip");
+        }
+        assert_eq!(wraps() - start, 1, "eleven frames, one wrap");
+        let edited = format!("{long}!");
+        show(80, &edited, id);
+        assert_eq!(wraps() - start, 2, "an edited value wraps again");
+        show(60, &edited, id);
+        assert_eq!(wraps() - start, 3, "a resize wraps again");
+        show(60, &edited, WidgetId::of("other"));
+        assert_eq!(wraps() - start, 4, "another cell wraps its own text");
+        show(60, &edited, WidgetId::of("other"));
+        assert_eq!(wraps() - start, 4);
+        // the open keyboard reveal, inline or as a tooltip, uses the cache
+        let mut state = RevealState::new(Some(Reveal::default().mode(RevealMode::InlineWrap)));
+        state.open = true;
+        let focus = Interaction {
+            focus: Some(id),
+            ..Default::default()
+        };
+        for _ in 0..5 {
+            frame(80, 20, focus, |_, ctx| {
+                state.begin(ctx);
+                assert!(state.inline(ctx, id, 20, &long, true, 10).is_some());
+            });
+        }
+        assert_eq!(wraps() - start, 5, "five inline frames, one wrap");
     }
 
     #[test]
@@ -838,7 +956,13 @@ mod tests {
             .join(" ");
         assert_eq!(text, long.trim());
         // the bottom row anchor pushed the box up, inside the screen
-        let (rect, _) = layout(Rect::new(0, 0, 40, 10), area, long.trim(), &Feed::default());
+        let (rect, _) = layout(
+            Rect::new(0, 0, 40, 10),
+            area,
+            WidgetId::of("t"),
+            long.trim(),
+            &Feed::default(),
+        );
         assert!(rect.right() <= 40 && rect.bottom() <= 10);
     }
 
