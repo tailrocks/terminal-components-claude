@@ -510,6 +510,7 @@ impl Theme {
         t.level = level;
         if level != ColorLevel::TrueColor {
             t.downgrade_all(level);
+            t.apply_level_table(level);
         }
         if let Some(apply) = overrides.get(level) {
             apply(&mut t);
@@ -581,6 +582,171 @@ impl Theme {
             ColorLevel::Mono => StateModifiers::MONO,
         };
         self.tint_selection = matches!(level, ColorLevel::TrueColor | ColorLevel::Ansi256);
+    }
+
+    /// Hand-picked tokens for reduced colour levels. Nearest-match collapses
+    /// dark planes onto one grey and dark saturated fills onto greys, so
+    /// every token a state depends on is pinned here explicitly.
+    fn apply_level_table(&mut self, level: ColorLevel) {
+        match level {
+            ColorLevel::TrueColor => {}
+            ColorLevel::Ansi256 => self.apply_256(),
+            ColorLevel::Ansi16 => self.apply_16(),
+            ColorLevel::Mono => self.apply_mono(),
+        }
+    }
+
+    fn apply_256(&mut self) {
+        let i = Color::Indexed;
+        let lad = |r, h, p| Ladder::new(i(r), i(h), i(p));
+        self.canvas = i(16);
+        self.surface = i(232);
+        self.surface_elevated = i(233);
+        self.field = i(234);
+        self.field_hover = i(237);
+        self.surface_overlay = i(235);
+        self.popover = i(237);
+        self.highlight = i(25);
+        self.highlight_danger = i(88);
+        self.border_subtle = i(238);
+        self.border_strong = i(242);
+        self.text_primary = i(231);
+        self.text_secondary = i(249);
+        self.text_muted = i(245);
+        self.text_faint = i(242);
+        self.text_ghost = i(238);
+        self.text_on_accent = i(232);
+        self.accent = i(78);
+        self.accent_hover = i(71);
+        self.accent_pressed = i(65);
+        self.accent_bg = i(22);
+        self.accent_bg_hover = i(28);
+        self.accent_bg_subtle = i(22);
+        self.focus = i(78);
+        self.success = i(78);
+        self.disabled = i(239);
+        self.error = i(167);
+        self.error_soft = i(174);
+        self.danger_label = i(203);
+        self.error_bg = i(52);
+        self.ladders = Ladders {
+            canvas: lad(16, 234, 236),
+            surface: lad(232, 235, 237),
+            card: lad(233, 235, 237),
+            field: lad(234, 237, 239),
+            raised: lad(235, 238, 240),
+            popover: lad(237, 239, 241),
+            highlight: lad(25, 68, 24),
+            highlight_danger: lad(88, 124, 52),
+            accent: lad(78, 71, 65),
+            danger: lad(160, 124, 88),
+            handle: lad(245, 250, 231),
+            seam: lad(239, 245, 231),
+        };
+    }
+
+    fn apply_16(&mut self) {
+        use Color::*;
+        let black = Ladder::new(Black, DarkGray, Black);
+        let grey = Ladder::new(DarkGray, DarkGray, DarkGray);
+        self.canvas = Black;
+        self.surface = Black;
+        self.surface_elevated = Black;
+        self.field = Black;
+        self.field_hover = DarkGray;
+        self.surface_overlay = DarkGray;
+        self.popover = DarkGray;
+        self.highlight = Blue;
+        self.highlight_danger = Red;
+        self.border_subtle = DarkGray;
+        self.border_strong = Gray;
+        self.text_primary = White;
+        self.text_secondary = Gray;
+        self.text_muted = Gray;
+        // faint text must stay readable on the grey planes; hierarchy is
+        // carried by weight at this level
+        self.text_faint = Gray;
+        self.text_ghost = DarkGray;
+        self.text_on_accent = Black;
+        self.accent = LightGreen;
+        self.accent_hover = Green;
+        self.accent_pressed = Green;
+        self.accent_bg = Black;
+        self.accent_bg_hover = DarkGray;
+        self.accent_bg_subtle = Black;
+        self.focus = LightGreen;
+        self.success = LightGreen;
+        self.disabled = DarkGray;
+        self.error = LightRed;
+        self.error_soft = LightRed;
+        self.danger_label = LightRed;
+        self.error_bg = Black;
+        self.ladders = Ladders {
+            canvas: black,
+            surface: black,
+            card: black,
+            field: black,
+            raised: grey,
+            popover: grey,
+            highlight: Ladder::new(Blue, Blue, Blue),
+            highlight_danger: Ladder::new(Red, Red, Red),
+            accent: Ladder::new(LightGreen, Green, LightGreen),
+            danger: Ladder::new(Red, Red, Red),
+            handle: Ladder::new(DarkGray, Gray, White),
+            seam: Ladder::new(DarkGray, Gray, White),
+        };
+    }
+
+    fn apply_mono(&mut self) {
+        use Color::*;
+        // the backend strips every colour under NO_COLOR; these values only
+        // keep planes and inks apart for code that compares them, and every
+        // state is carried by `StateModifiers::MONO`
+        let flat = |c| Ladder::new(c, c, c);
+        self.canvas = Black;
+        self.surface = Black;
+        self.surface_elevated = Black;
+        self.field = Black;
+        self.field_hover = Black;
+        self.surface_overlay = DarkGray;
+        self.popover = DarkGray;
+        self.highlight = DarkGray;
+        self.highlight_danger = DarkGray;
+        self.border_subtle = DarkGray;
+        self.border_strong = Gray;
+        self.text_primary = White;
+        self.text_secondary = Gray;
+        self.text_muted = Gray;
+        self.text_faint = Gray;
+        self.text_ghost = DarkGray;
+        self.text_on_accent = Black;
+        self.accent = White;
+        self.accent_hover = White;
+        self.accent_pressed = White;
+        self.accent_bg = Black;
+        self.accent_bg_hover = Black;
+        self.accent_bg_subtle = Black;
+        self.focus = White;
+        self.success = White;
+        self.disabled = DarkGray;
+        self.error = White;
+        self.error_soft = White;
+        self.danger_label = White;
+        self.error_bg = Black;
+        self.ladders = Ladders {
+            canvas: flat(Black),
+            surface: flat(Black),
+            card: flat(Black),
+            field: flat(Black),
+            raised: flat(DarkGray),
+            popover: flat(DarkGray),
+            highlight: flat(DarkGray),
+            highlight_danger: flat(DarkGray),
+            accent: flat(White),
+            danger: flat(Gray),
+            handle: Ladder::new(Gray, Gray, White),
+            seam: Ladder::new(DarkGray, Gray, White),
+        };
     }
 
     /// Replace one plane's ladder.
@@ -685,10 +851,14 @@ impl Theme {
             ]
             .contains(&c)
         });
+        // Preserve cells with no visible foreground when dimming a plane.
+        let blank = match style.fg {
+            Some(c) if Some(c) == style.bg => true,
+            Some(c) => (c == self.canvas || c == self.surface) && dark_plane,
+            None => false,
+        };
         let fg = match style.fg {
-            // Preserve cells with no visible foreground when dimming a plane.
-            Some(c) if Some(c) == style.bg => bg,
-            Some(c) if (c == self.canvas || c == self.surface) && dark_plane => bg,
+            _ if blank => bg,
             Some(c) if c == self.canvas || c == self.surface => self.text_muted,
             // focus and accent cues (an active tab rule, a selection
             // marker) drop to the faint tier: under a modal nothing on the
@@ -700,6 +870,17 @@ impl Theme {
             Some(c) if c == self.text_secondary || c == self.text_on_accent => self.text_faint,
             _ => self.text_ghost,
         };
+        // 16 colours and monochrome have no tiers left to dim through: the
+        // ladder lands on the backdrop's own grey. Keep a readable ink and
+        // dim it with the intensity attribute instead.
+        if !blank && (fg == bg || matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono)) {
+            let ink = if self.text_muted != bg {
+                self.text_muted
+            } else {
+                self.text_primary
+            };
+            return Style::new().fg(ink).bg(bg).add_modifier(Modifier::DIM);
+        }
         Style::new().fg(fg).bg(bg)
     }
 
@@ -1494,7 +1675,7 @@ mod tests {
 
     #[test]
     fn every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart() {
-        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+        for level in ColorLevel::ALL {
             let t = Theme::for_level(level);
             for kind in KINDS {
                 for plane in Plane::ALL {
@@ -1595,7 +1776,7 @@ mod tests {
 
     #[test]
     fn interactive_states_differ_from_focus_and_disabled_at_every_level() {
-        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+        for level in ColorLevel::ALL {
             let t = Theme::for_level(level);
             for kind in KINDS {
                 for plane in [Plane::Canvas, Plane::Card, Plane::Popover] {
@@ -1628,6 +1809,125 @@ mod tests {
                             "rest = disabled: {ctx}"
                         );
                     }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn reduced_levels_pin_state_tokens_instead_of_snapping_to_greys() {
+        let is_grey = |c: Color| matches!(c, Color::Indexed(i) if i >= 232);
+        let t = Theme::for_level(ColorLevel::Ansi256);
+        // primary button: three greens, the pressed one still green and readable
+        let a = t.ladder(Plane::Accent);
+        assert_eq!(
+            (a.rest, a.hover, a.pressed),
+            (Color::Indexed(78), Color::Indexed(71), Color::Indexed(65))
+        );
+        assert!(contrast_ratio(t.text_on_accent, a.pressed).unwrap() >= 4.5);
+        // dark saturated tokens keep their hue
+        for c in [
+            t.accent_pressed,
+            t.highlight_danger,
+            t.accent_bg,
+            t.error_bg,
+        ] {
+            assert!(!is_grey(c), "{c:?} snapped to a grey");
+        }
+        assert!(!is_grey(Color::Indexed(nearest_256(0x0f, 0x2e, 0x13))));
+        // a destructive menu cursor is not grey on grey
+        assert_ne!(t.highlight_danger, t.popover);
+        // the selection tint is not the card
+        assert_ne!(t.accent_bg, t.surface_elevated);
+
+        let t = Theme::for_level(ColorLevel::Ansi16);
+        // a disabled button label stays visible on its plane
+        for kind in [
+            ButtonKind::Primary,
+            ButtonKind::Secondary,
+            ButtonKind::Danger,
+        ] {
+            let st = t.button(
+                kind,
+                VisualState {
+                    disabled: true,
+                    ..Default::default()
+                },
+                t.canvas,
+            );
+            assert_ne!(st.fg, st.bg, "{kind:?}");
+        }
+        // an off chip label is not grey on grey
+        let chip = t.interactive(Kind::Chip, VisualState::default(), Plane::Canvas);
+        assert_ne!(chip.style.fg, chip.style.bg);
+        // a destructive label on a menu stays readable
+        let ink = t.legible(t.error_soft, t.popover);
+        assert!(contrast_ratio(ink, t.popover).unwrap() >= 4.5);
+        // borders are visible on the black planes
+        assert_ne!(t.border_subtle, t.canvas);
+        assert_ne!(t.border_strong, t.popover);
+
+        let t = Theme::for_level(ColorLevel::Mono);
+        assert_ne!(t.border_subtle, t.canvas);
+    }
+
+    #[test]
+    fn no_color_buttons_and_menu_cursors_carry_state_in_modifiers() {
+        let t = Theme::for_level(ColorLevel::Mono);
+        let pressed = VisualState {
+            hovered: true,
+            pressed: true,
+            ..Default::default()
+        };
+        let hovered = VisualState {
+            hovered: true,
+            ..Default::default()
+        };
+        for kind in [
+            ButtonKind::Secondary,
+            ButtonKind::Subtle,
+            ButtonKind::Danger,
+        ] {
+            let p = t.button(kind, pressed, t.canvas);
+            assert!(p.add_modifier.contains(Modifier::REVERSED), "{kind:?}");
+            let h = t.button(kind, hovered, t.canvas);
+            assert!(h.add_modifier.contains(Modifier::UNDERLINED), "{kind:?}");
+        }
+        // the menu cursor is reversed video, not bold on the same plane
+        let cursor = VisualState {
+            focused: true,
+            ..Default::default()
+        };
+        let row = t.cursor_row(cursor, t.popover, CursorStyle::Fill);
+        assert!(row.style.add_modifier.contains(Modifier::REVERSED));
+        let rest = t.cursor_row(VisualState::default(), t.popover, CursorStyle::Fill);
+        assert!(!rest.style.add_modifier.contains(Modifier::REVERSED));
+    }
+
+    #[test]
+    fn backdrop_text_never_lands_on_the_backdrop_grey_at_reduced_levels() {
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            for bg in [
+                t.canvas,
+                t.surface_elevated,
+                t.surface_overlay,
+                t.popover,
+                t.accent,
+            ] {
+                for fg in [
+                    t.text_primary,
+                    t.text_secondary,
+                    t.text_muted,
+                    t.text_faint,
+                    t.text_ghost,
+                    t.accent,
+                ] {
+                    if fg == bg {
+                        continue;
+                    }
+                    let st = t.backdrop(Style::new().fg(fg).bg(bg));
+                    assert_ne!(st.fg, st.bg, "{level:?}: {fg:?} on {bg:?}");
                 }
             }
         }
