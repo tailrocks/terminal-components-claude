@@ -227,7 +227,16 @@ impl<'a> Panel<'a> {
             } else {
                 w.saturating_sub(pad)
             };
-            let title = crate::ui::text::truncate(title, room as usize);
+            let full = title;
+            let title = crate::ui::text::truncate(full, room as usize);
+            // a cut title reveals its full text on hover
+            let cut = Rect::new(
+                cx + u16::from(framed),
+                y,
+                crate::ui::text::width(&title) as u16,
+                1,
+            );
+            crate::ui::reveal::queue_title(cut, full);
             let title = if framed { format!(" {title} ") } else { title };
             buf.set_string(cx, y, &title, style);
             cx += crate::ui::text::width(&title) as u16;
@@ -827,5 +836,69 @@ mod scroll_panel_tests {
             scrollbar::position_label(&p.scroll),
             format!("1–2 of {}", p.scroll.content_len)
         );
+    }
+}
+
+#[cfg(test)]
+mod title_reveal_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::ui::ctx::Interaction;
+    use crate::ui::reveal::title_id;
+
+    const TITLE: &str = "Connections to the production analytics warehouse";
+
+    /// A framed panel squeezed to 24 columns inside a 70-column screen,
+    /// with the pointer on `hover`: the screen text and the hit registry.
+    fn frame(hover: Option<WidgetId>) -> (String, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let interaction = Interaction {
+            hover,
+            ..Default::default()
+        };
+        let mut buf = Buffer::empty(Rect::new(0, 0, 70, 4));
+        {
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            ctx.clickable(WidgetId::of("card"), Rect::new(0, 0, 24, 4));
+            Panel::framed(Some(TITLE)).render(Rect::new(0, 0, 24, 4), &mut buf, &theme);
+            ctx.flush_overlays(&mut buf);
+        }
+        let text = (0..4)
+            .map(|y| (0..70).map(|x| buf[(x, y)].symbol()).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n");
+        (text, hits)
+    }
+
+    #[test]
+    fn a_cut_title_reveals_on_hover_and_leaves_clicks_to_the_panel() {
+        let (text, hits) = frame(None);
+        assert!(text.contains('…'), "the title is cut: {text}");
+        assert!(!text.contains(TITLE));
+        // the title's cells hover as the title, click as the panel
+        let on_title = Position::new(4, 0);
+        let id = hits
+            .hover_at(on_title)
+            .expect("a hover region on the title");
+        assert_eq!(id, title_id(Rect::new(3, 0, 1, 1)));
+        assert_eq!(hits.hit(on_title), Some(WidgetId::of("card")));
+        let (text, _) = frame(Some(id));
+        assert!(text.contains(TITLE), "hover shows the full title: {text}");
+    }
+
+    #[test]
+    fn a_title_that_fits_registers_nothing() {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 70, 4));
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        Panel::framed(Some("Short")).render(Rect::new(0, 0, 40, 4), &mut buf, &theme);
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        assert_eq!(hits.hover_at(Position::new(4, 0)), None);
     }
 }
