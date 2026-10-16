@@ -3064,7 +3064,7 @@ impl App {
                     buf,
                     ctx,
                 ),
-                Modal::Picker(p) => p.render(area, buf, ctx, ""),
+                Modal::Picker(p) => p.draw(area, buf, ctx),
                 Modal::Menu(m) => {
                     ctx.begin_modal(buf);
                     m.render(area, buf, ctx);

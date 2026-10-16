@@ -17,7 +17,7 @@ use crate::core::id::WidgetId;
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::theme::ButtonKind;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::Dismiss;
+use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, RowOverflow};
 use crate::widgets::input::{InputEvent, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
@@ -82,6 +82,14 @@ pub struct Dialog {
     /// placed in, so its frame never touches a panel border underneath.
     /// Default 3 columns, 1 row.
     pub outer_margin: Margin,
+    /// Where the dialog opens in its bounds. Default
+    /// [`Placement::Center`]; an anchored placement (a popover-style
+    /// confirmation under the button that asked) opens next to
+    /// [`Self::anchor`], kept [`Self::outer_margin`] off the bounds' edges.
+    pub placement: Placement,
+    /// The rectangle an anchored [`Self::placement`] opens next to.
+    /// Default `Rect::ZERO`.
+    pub anchor: Rect,
     /// How the actions are laid out. Default: packed right, the theme's
     /// button gap, and a row that wraps onto a second line rather than cut
     /// or hide an action ([`RowOverflow::Wrap`]).
@@ -149,6 +157,8 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            placement: Placement::Center,
+            anchor: Rect::ZERO,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -183,6 +193,8 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            placement: Placement::Center,
+            anchor: Rect::ZERO,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -217,6 +229,8 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            placement: Placement::Center,
+            anchor: Rect::ZERO,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -270,6 +284,8 @@ impl Dialog {
             body_scroll: true,
             max_height: None,
             outer_margin: OUTER_MARGIN,
+            placement: Placement::Center,
+            anchor: Rect::ZERO,
             button_row: ButtonRow::new()
                 .align(RowAlign::End)
                 .overflow(RowOverflow::Wrap),
@@ -589,6 +605,19 @@ impl Dialog {
         self
     }
 
+    /// See [`Self::placement`].
+    pub fn placement(mut self, placement: Placement) -> Self {
+        self.placement = placement;
+        self
+    }
+
+    /// Open next to `anchor` per `placement` (see [`Self::anchor`]).
+    pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
+        self.anchor = anchor;
+        self.placement = placement;
+        self
+    }
+
     /// Scroll the body by `delta` rows (the wheel). Consumed either way:
     /// nothing under a modal scrolls.
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
@@ -852,7 +881,22 @@ impl Dialog {
             .saturating_sub(m.vertical * 2)
             .min(self.max_height.unwrap_or(u16::MAX));
         let height = self.height(width).min(room);
-        let area = bounds.centered(Constraint::Length(width), Constraint::Length(height));
+        let area = match self.placement {
+            // ratatui's centring (the odd cell goes after): kept as it was
+            Placement::Center => {
+                bounds.centered(Constraint::Length(width), Constraint::Length(height))
+            }
+            side => place_with(
+                bounds,
+                self.anchor,
+                width,
+                height,
+                side,
+                Place::DEFAULT
+                    .margin(m.horizontal)
+                    .vertical_margin(Some(m.vertical)),
+            ),
+        };
         self.area = area;
         self.track = Rect::ZERO;
         self.htrack = Rect::ZERO;
@@ -1487,6 +1531,23 @@ mod tests {
             actions_y,
             ack.y + 2,
             "one blank row between the field and the actions"
+        );
+    }
+
+    #[test]
+    fn an_anchored_dialog_opens_under_the_control_that_asked() {
+        let screen = Rect::new(0, 0, 100, 30);
+        let button = Rect::new(10, 4, 12, 1);
+        let mut d = Dialog::confirm(WidgetId::of("d"), "Discard?", "Unsaved edits.", "Discard")
+            .anchor(button, Placement::Below);
+        draw(&mut d, screen, screen);
+        assert_eq!((d.area.x, d.area.y), (10, 5), "{:?}", d.area);
+        let mut c = Dialog::confirm(WidgetId::of("d"), "Discard?", "Unsaved edits.", "Discard");
+        draw(&mut c, screen, screen);
+        assert_eq!(
+            c.area.x,
+            (100 - c.area.width).div_ceil(2),
+            "centred by default"
         );
     }
 

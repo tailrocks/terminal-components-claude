@@ -11,7 +11,8 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::RenderCtx;
-use crate::ui::modal::{Frame, FramePlacement};
+use crate::ui::modal::Frame;
+use crate::ui::popup::Placement;
 use crate::ui::text::{truncate, width};
 use crate::widgets::scrollbar;
 
@@ -103,7 +104,7 @@ impl HelpOverlay {
         let (area, inner) = Frame::new(w, h)
             .title(&self.title)
             .meta(Some(&self.scope))
-            .placement(FramePlacement::Middle)
+            .placement(Placement::Center)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;

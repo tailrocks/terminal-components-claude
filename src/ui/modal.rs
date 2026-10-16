@@ -14,7 +14,7 @@ use ratatui::style::Style;
 use crate::core::focus::{Focus, FocusFallback, FocusRing};
 use crate::core::id::WidgetId;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::{Dismiss, Placement, place};
+use crate::ui::popup::{Dismiss, Place, Placement, place_with};
 use crate::ui::text::{truncate, width};
 
 /// A layer that sits above the page and decides how it may be dismissed.
@@ -156,14 +156,30 @@ pub fn ensure_focus(focus: &mut Focus, ring: &FocusRing, fallback: FocusFallback
     focus.ensure_valid_with(ring, fallback);
 }
 
-/// Where a [`Frame`] sits inside its bounds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Where a [`Frame`] sat inside its bounds, before frames took the shared
+/// [`Placement`]. Both variants always resolved to the same centred
+/// rectangle; they convert to [`Placement::Center`].
+#[deprecated(note = "use `popup::Placement` (`Placement::Center`) with `Frame::placement`")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FramePlacement {
-    /// Centered horizontally, in the upper third (dialogs, pickers).
-    #[default]
+    /// Centered (despite the name, never the upper third).
     Upper,
     /// Centered on both axes.
     Middle,
+}
+
+#[allow(deprecated, clippy::derivable_impls)]
+impl Default for FramePlacement {
+    fn default() -> Self {
+        Self::Upper
+    }
+}
+
+#[allow(deprecated)]
+impl From<FramePlacement> for Placement {
+    fn from(_: FramePlacement) -> Self {
+        Placement::Center
+    }
 }
 
 /// The centered, rounded, elevated frame every modal is drawn in: dims the
@@ -178,7 +194,15 @@ pub struct Frame<'a> {
     pub min_height: u16,
     pub title: Option<&'a str>,
     pub meta: Option<&'a str>,
-    pub placement: FramePlacement,
+    /// Where the frame goes in the body. Default [`Placement::Center`];
+    /// an anchored placement opens it next to [`Self::anchor`].
+    pub placement: Placement,
+    /// The rectangle an anchored [`Self::placement`] opens next to.
+    /// Default `Rect::ZERO`.
+    pub anchor: Rect,
+    /// How the frame is fitted into the body ([`place_with`]). Default
+    /// [`Place::DEFAULT`].
+    pub fit: Place,
     /// Inner margin between the border and the content.
     pub margin: Margin,
     /// Header rows kept clear above the frame.
@@ -199,7 +223,9 @@ impl<'a> Frame<'a> {
             min_height: 5,
             title: None,
             meta: None,
-            placement: FramePlacement::Upper,
+            placement: Placement::Center,
+            anchor: Rect::ZERO,
+            fit: Place::DEFAULT,
             margin: Margin::new(3, 1),
             top: 1,
             bottom: 1,
@@ -214,8 +240,20 @@ impl<'a> Frame<'a> {
         self.meta = meta;
         self
     }
-    pub fn placement(mut self, placement: FramePlacement) -> Self {
+    /// See [`Self::placement`]. Takes a [`Placement`] (or, for old
+    /// callers, a deprecated `FramePlacement`).
+    pub fn placement(mut self, placement: impl Into<Placement>) -> Self {
+        self.placement = placement.into();
+        self
+    }
+    /// Open next to `anchor` per `placement`.
+    pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
+        self.anchor = anchor;
         self.placement = placement;
+        self
+    }
+    pub fn fit(mut self, fit: Place) -> Self {
+        self.fit = fit;
         self
     }
     pub fn margin(mut self, margin: Margin) -> Self {
@@ -252,15 +290,7 @@ impl<'a> Frame<'a> {
             .min(bounds.height.saturating_sub(2 * m.vertical))
             .max(self.min_height)
             .min(bounds.height);
-        match self.placement {
-            FramePlacement::Middle => Rect::new(
-                bounds.x + (bounds.width - w) / 2,
-                bounds.y + (bounds.height - h) / 2,
-                w,
-                h,
-            ),
-            FramePlacement::Upper => place(bounds, Rect::ZERO, w, h, Placement::Center),
-        }
+        place_with(bounds, self.anchor, w, h, self.placement, self.fit)
     }
 
     /// Draw the frame. Returns `(outer, inner)`.
@@ -348,9 +378,29 @@ mod tests {
         assert_eq!((r.x, r.width, r.height), (20, 60, 10));
         let r = Frame::new(200, 80).area(screen);
         assert!(r.width <= 94 && r.height <= 26 && r.y >= 1);
-        let mid = Frame::new(60, 10)
-            .placement(FramePlacement::Middle)
-            .area(screen);
+        let mid = Frame::new(60, 10).area(screen);
         assert_eq!(mid.y, 1 + (28 - 10) / 2);
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn the_old_frame_placements_still_resolve_to_the_centred_frame() {
+        let screen = Rect::new(0, 0, 101, 31);
+        for (w, h) in [(60, 10), (61, 11), (20, 5), (200, 80)] {
+            let centred = Frame::new(w, h).area(screen);
+            for old in [FramePlacement::Upper, FramePlacement::Middle] {
+                assert_eq!(Frame::new(w, h).placement(old).area(screen), centred);
+            }
+        }
+    }
+
+    #[test]
+    fn a_frame_can_open_under_an_anchor() {
+        let screen = Rect::new(0, 0, 100, 30);
+        let field = Rect::new(10, 4, 20, 1);
+        let r = Frame::new(40, 8)
+            .anchor(field, Placement::Below)
+            .area(screen);
+        assert_eq!((r.x, r.y), (10, 5));
     }
 }
