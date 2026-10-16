@@ -228,7 +228,7 @@ impl EditorPage {
                     penalty,
                     CompletionItem {
                         label: (*label).to_owned(),
-                        glyph,
+                        glyph: (*glyph).into(),
                         detail: (*detail).to_owned(),
                         insert: (*label).to_owned(),
                         matched,

@@ -69,7 +69,7 @@ impl DialogsPage {
                     "The description was edited. Save before leaving this page?",
                     "Save",
                 )
-                .with_actions(
+                .actions(
                     vec![
                         Button::subtle(CHOICE.sub("cancel"), "Cancel"),
                         Button::secondary(CHOICE.sub("discard"), "Discard"),

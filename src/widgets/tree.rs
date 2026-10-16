@@ -16,7 +16,7 @@ pub struct TreeNode {
     pub children: Vec<TreeNode>,
     pub meta: Option<String>,
     /// One-cell muted glyph before the label (object kind).
-    pub glyph: Option<&'static str>,
+    pub glyph: Option<std::borrow::Cow<'static, str>>,
     /// Children are fetched on first expand; until then the node shows `▸`
     /// and expanding emits [`TreeEvent::Expand`].
     pub lazy: bool,
@@ -61,8 +61,8 @@ impl TreeNode {
         }
     }
 
-    pub fn glyph(mut self, g: &'static str) -> Self {
-        self.glyph = Some(g);
+    pub fn glyph(mut self, g: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        self.glyph = Some(g.into());
         self
     }
 
@@ -90,7 +90,7 @@ pub struct FlatRow {
     pub meta: Option<String>,
     pub has_children: bool,
     pub expanded: bool,
-    pub glyph: Option<&'static str>,
+    pub glyph: Option<std::borrow::Cow<'static, str>>,
     pub busy: bool,
     pub note: bool,
 }
@@ -202,7 +202,7 @@ fn walk(
             meta: n.meta.clone(),
             has_children,
             expanded,
-            glyph: n.glyph,
+            glyph: n.glyph.clone(),
             busy: n.busy,
             note: n.note,
         });
@@ -845,7 +845,7 @@ impl TreeView {
                 label_style = st.fg(t.text_muted).remove_modifier(Modifier::BOLD);
             }
             let mut lx = x;
-            if let Some(g) = row.glyph {
+            if let Some(g) = row.glyph.as_deref() {
                 buf.set_string(
                     lx,
                     y,

@@ -375,7 +375,7 @@ impl SettingsScreen {
                 ),
                 "Save",
             )
-            .with_actions(
+            .actions(
                 vec![
                     Button::subtle(WidgetId::of("settings.exit.cancel"), "Cancel"),
                     Button::danger(WidgetId::of("settings.exit.discard"), "Discard"),

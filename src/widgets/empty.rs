@@ -91,3 +91,53 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
         put(buf, y0 + 2 + i as u16, l, t.faint());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::core::id::WidgetId;
+    use crate::ui::ctx::{Interaction, RenderCtx};
+    use ratatui::layout::Constraint;
+
+    fn text(buf: &Buffer) -> String {
+        buf.content().iter().map(|c| c.symbol()).collect()
+    }
+
+    #[test]
+    fn lists_tables_and_pickers_take_a_full_empty_state() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let state = || EmptyState::new("No connections").hint("Press n to add one");
+        let area = Rect::new(0, 0, 40, 10);
+
+        let mut l = crate::widgets::list::ListBox::new(
+            WidgetId::of("l"),
+            vec![],
+            crate::widgets::list::SelectMode::Single,
+        )
+        .empty(state());
+        let mut buf = Buffer::empty(area);
+        l.render(area, &mut buf, &mut ctx, t.canvas);
+        assert!(text(&buf).contains("Press n to add one"));
+
+        let cols = vec![crate::widgets::table::Column::new(
+            "Name",
+            Constraint::Fill(1),
+        )];
+        let mut tb =
+            crate::widgets::table::DataTable::new(WidgetId::of("t"), cols, vec![]).empty(state());
+        let mut buf = Buffer::empty(area);
+        tb.render(area, &mut buf, &mut ctx, t.canvas);
+        assert!(text(&buf).contains("Press n to add one"));
+
+        let mut p = crate::widgets::picker::Picker::new(WidgetId::of("p"), "Pick").empty(state());
+        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
+        // a picker sizes to its rows: one row shows the title
+        assert!(text(&buf).contains("No connections"));
+    }
+}
