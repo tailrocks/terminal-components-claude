@@ -412,21 +412,21 @@ pub struct ScrollPanel {
     /// Which keys scroll (default [`NavKeys::DEFAULT`]; ←/→ scroll
     /// sideways, since the panel has no caret).
     pub nav: NavKeys,
-    /// The panel's own action keys (default [`PanelAction::default_keymap`]).
-    pub keymap: KeyMap<PanelAction>,
+    /// The panel's own action keys (default [`PanelCmd::default_keymap`]).
+    pub keymap: KeyMap<PanelCmd>,
 }
 
 /// A [`ScrollPanel`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PanelAction {
+pub enum PanelCmd {
     /// A tailing panel: pause following, or jump to the end and follow
     /// again. Default `f`.
     Follow,
 }
 
-impl Actions for PanelAction {
+impl Actions for PanelCmd {
     fn default_keymap() -> KeyMap<Self> {
-        vec![(KeyBinding::char('f'), PanelAction::Follow)]
+        vec![(KeyBinding::char('f'), PanelCmd::Follow)]
     }
 }
 
@@ -438,7 +438,7 @@ impl ScrollPanel {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<PanelAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<PanelCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -462,7 +462,7 @@ impl ScrollPanel {
             htrack: Rect::ZERO,
             h_held: false,
             nav: NavKeys::DEFAULT,
-            keymap: PanelAction::default_keymap(),
+            keymap: PanelCmd::default_keymap(),
         }
     }
 
@@ -526,7 +526,7 @@ impl ScrollPanel {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
-        if let Some(PanelAction::Follow) = lookup(&self.keymap, key)
+        if let Some(PanelCmd::Follow) = lookup(&self.keymap, key)
             && self.tail
         {
             let was = self.follow;
