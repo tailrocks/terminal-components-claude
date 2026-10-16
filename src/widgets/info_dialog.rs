@@ -28,6 +28,16 @@ pub enum InfoResult {
 
 /// Read-only facts with copyable rows and explicit actions.
 pub struct InfoDialog {
+    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
+    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
+    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
+    /// every modal takes a custom one the same way
+    /// ([`crate::ui::layer::Overlay::close_button`]).
+    ///
+    /// [`Dismiss`]: crate::ui::popup::Dismiss
+    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
+    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+    pub close_button: crate::widgets::icon_button::IconButton,
     /// Which dismissals close it. Default `Dismiss::LIGHT`.
     pub dismiss: crate::ui::popup::Dismiss,
     pub id: WidgetId,
@@ -74,6 +84,12 @@ impl Actions for InfoCmd {
 }
 
 impl InfoDialog {
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
+        self.close_button = button;
+        self
+    }
+
     pub fn new(id: WidgetId, title: &str, props: Vec<Prop>) -> Self {
         let copy_values = props
             .iter()
@@ -81,6 +97,7 @@ impl InfoDialog {
             .collect();
         Self {
             dismiss: crate::ui::popup::Dismiss::LIGHT,
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             id,
             title: title.to_owned(),
             meta: None,
@@ -328,7 +345,7 @@ impl InfoDialog {
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&title)
             .meta(self.meta.as_deref())
-            .dismiss(self.dismiss)
+            .overlay(&*self)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;

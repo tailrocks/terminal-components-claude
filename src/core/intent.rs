@@ -177,6 +177,11 @@ impl ActionKey {
 pub enum DismissReason {
     /// Esc.
     Esc,
+    /// A click on the frame's close button (`×`): it means what Esc means
+    /// and is allowed exactly when Esc is ([`Dismiss::shows_close`]).
+    ///
+    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
+    CloseButton,
     /// A click outside the layer.
     OutsideClick,
     /// Focus left the layer.
