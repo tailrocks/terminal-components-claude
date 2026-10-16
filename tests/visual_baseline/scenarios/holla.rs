@@ -451,7 +451,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/docker/remove_gate2", Bin::Holla, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Stop and remove all", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type REMOVE ALL CONTAINERS ON mbp"]),
     // h_hp10: the capped services listing and the failing stop verb.
     Root::new("holla/flows/brew/services", Bin::Holla, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Homebrew services", "enter", "wait:svc02"]),
-    Root::new("holla/flows/brew/services_stop_failed", Bin::Holla, &["--scenario", "parity-brew-services", "--motion", "reduced"], "holla❯").sends(&["type:Stop svc02", "enter", "right", "enter", "wait:Bootstrap failed"]),
+    Root::new("holla/flows/brew/services_stop_failed", Bin::Holla, &["--scenario", "parity-brew-services", "--motion", "reduced"], "holla❯").sends(&["type:Stop svc02", "enter", "right", "enter", "wait:exit 1"]),
     // h_hp11/h_hp12: the special-category cleanup reviews (Right opens the
     // category fold) and their trash gates.
     Root::new("holla/flows/gradle/cleanup", Bin::Holla, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Clean Gradle outputs", "enter", "wait:Cleanup · Gradle outputs", "right", "sleep:300"]),
