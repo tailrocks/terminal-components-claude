@@ -290,7 +290,9 @@ fn chips_selection_and_disabled_behavior() {
             .contains("last action: added created_at > '2026-01-01'")
     );
 
-    h.click_id(filters.sub("lead"));
+    h.click_id(filters.part(junie_tui::core::id::PartRef::of(
+        junie_tui::core::id::Part::TITLE,
+    )));
     assert!(h.text().contains("last action: match any"));
 
     h.key(KeyCode::Char('X'));
@@ -964,7 +966,9 @@ fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     for _ in 0..4 {
         h.key(KeyCode::Char('+'));
     }
-    let more = h.area(filters.sub("more"));
+    let more = h.area(filters.part(junie_tui::core::id::PartRef::of(
+        junie_tui::core::id::Part::OVERFLOW,
+    )));
     let marker: String = (more.x..more.right())
         .map(|x| h.term.backend().buffer()[(x, more.y)].symbol().to_owned())
         .collect();

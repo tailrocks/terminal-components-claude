@@ -8,7 +8,8 @@ use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::hit::PartMap;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
@@ -34,6 +35,8 @@ pub struct CompletionItem {
 
 #[derive(Debug, Clone)]
 pub struct Completion {
+    /// The rows registered in the last render, by id.
+    parts: PartMap,
     pub id: WidgetId,
     pub items: Vec<CompletionItem>,
     pub cursor: usize,
@@ -106,6 +109,7 @@ impl Completion {
             fit: crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET),
             placement: Placement::Below,
             area: Rect::ZERO,
+            parts: PartMap::default(),
             dismiss: Dismiss::LIGHT.pass_through(true),
             cursor_style: CursorStyle::default(),
             nav: Self::NAV,
@@ -155,18 +159,22 @@ impl Completion {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::row_part(i))
+    }
+
+    fn row_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.scroll.visible_range().find(|&i| self.row_id(i) == id)
+        self.parts.index(id, Part::ROW)
     }
 
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
             || id == scrollbar::id_for(self.id)
             || (self.is_open() && id == backdrop_id(self.id))
-            || self.locate(id).is_some()
+            || self.parts.contains(id)
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<CompletionAction>) {
@@ -228,6 +236,7 @@ impl Completion {
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.parts.clear();
         if !self.is_open() {
             return;
         }
@@ -254,6 +263,11 @@ impl Completion {
             .inner(ratatui::layout::Margin::new(1, 1));
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(inner.height as usize);
+        // the overlay paints from a copy, so the rows it will register are
+        // recorded here
+        for i in self.scroll.visible_range() {
+            self.parts.record(self.row_id(i), Self::row_part(i));
+        }
         // drawn as an overlay: above whatever is rendered after the editor
         let me = self.clone();
         ctx.overlay(move |buf, ctx| me.paint(area, buf, ctx));
@@ -322,7 +336,7 @@ impl Completion {
                         .remove_modifier(Modifier::BOLD),
                 );
             }
-            ctx.clickable(rid, row);
+            ctx.register_part(self.id, Self::row_part(i), row);
         }
         if has_sb {
             crate::ui::fade::scroll_edges(

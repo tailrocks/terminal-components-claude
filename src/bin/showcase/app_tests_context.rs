@@ -339,7 +339,16 @@ fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
 fn tables_header_seam_resizes_and_the_header_menu_sorts_and_resets() {
     let mut h = Harness::new(PageId::Tables);
     let tasks = WidgetId::of("tables").sub("tasks");
-    let (head, seam) = (tasks.sub("header").child(2), tasks.sub("seam").child(2));
+    let (head, seam) = (
+        tasks.part(junie_tui::core::id::PartRef::item(
+            junie_tui::core::id::Part::HEADER,
+            junie_tui::core::id::ItemKey::index(2),
+        )),
+        tasks.part(junie_tui::core::id::PartRef::item(
+            junie_tui::core::id::Part::SEAM,
+            junie_tui::core::id::ItemKey::index(2),
+        )),
+    );
     let before = h.app.hits.area_of(head).expect("the Owner title");
     let s = h.app.hits.area_of(seam).expect("a seam after Owner");
     assert_eq!(s.x, before.right());

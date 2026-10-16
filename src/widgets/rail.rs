@@ -11,7 +11,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
 
-use crate::core::id::WidgetId;
+use crate::core::id::{Part, PartRef, WidgetId};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 
@@ -53,9 +53,10 @@ impl SidebarRail {
         self
     }
 
-    /// The collapse button's hit id.
+    /// The collapse button's hit id: the rail's disclosure
+    /// (`Part::ICON`, as a tree branch's).
     pub fn collapse_id(&self) -> WidgetId {
-        self.id.sub("collapse")
+        self.id.part(PartRef::of(Part::ICON))
     }
 
     /// Columns the collapsed sidebar keeps: [`Self::WIDTH`], or 0 without
@@ -116,7 +117,7 @@ impl SidebarRail {
         buf.set_string(r.x, r.y, " ", host);
         buf.set_string(r.x + 1, r.y, t.glyphs.overflow_left, st);
         buf.set_string(r.x + 2, r.y, " ", host);
-        ctx.clickable(id, r);
+        ctx.register_part(self.id, PartRef::of(Part::ICON), r);
     }
 }
 

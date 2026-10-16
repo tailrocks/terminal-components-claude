@@ -41,6 +41,44 @@ impl WidgetId {
     pub const fn sub(self, name: &str) -> Self {
         Self(fnv1a(self.0, name.as_bytes()))
     }
+
+    /// The id of one part of this widget: the single rule every widget
+    /// and [`HitRegistry::register_part`](super::hit::HitRegistry::register_part)
+    /// derive part ids with, so no widget hand-rolls its own.
+    ///
+    /// The widget's own surface (`Part::CONTAINER`, no item) is the widget
+    /// id itself, and a collection's item (`Part::ROW` or `Part::TAB` with
+    /// an [`ItemKey::Index`]) is [`Self::child`], so row ids stay what they
+    /// always were. Every other part hashes the item, then the part number.
+    pub const fn part(self, p: PartRef) -> Self {
+        let base = match p.item {
+            None => self,
+            Some(ItemKey::Index(i)) => self.child(i),
+            Some(ItemKey::Num(n)) => Self(fnv1a(fnv1a(self.0, b"#num"), &n.to_le_bytes())),
+            Some(ItemKey::Text(h)) => Self(fnv1a(fnv1a(self.0, b"#text"), &h.to_le_bytes())),
+        };
+        match (p.part, p.item) {
+            (Part::CONTAINER, None) => self,
+            (Part::ROW | Part::TAB, Some(_)) => base,
+            _ => Self(fnv1a(fnv1a(base.0, b"#part"), &p.part.raw().to_le_bytes())),
+        }
+    }
+
+    /// The inverse of [`Self::part`] over a known set of positional items:
+    /// which `i` in `items` makes `id` this widget's `part` `i`. For a
+    /// collection whose items all exist whether drawn or not (tabs, menu
+    /// rows, select options); a widget that only knows what it drew reads
+    /// its [`PartMap`](super::hit::PartMap) instead.
+    pub fn item_of(
+        self,
+        id: WidgetId,
+        part: Part,
+        items: impl IntoIterator<Item = usize>,
+    ) -> Option<usize> {
+        items
+            .into_iter()
+            .find(|&i| self.part(PartRef::item(part, ItemKey::Index(i))) == id)
+    }
 }
 
 impl fmt::Debug for WidgetId {
@@ -242,6 +280,13 @@ pub struct PartRef {
 }
 
 impl PartRef {
+    /// The overflow indicator before the shown window (a tab strip's `‹N`,
+    /// a scrolled menu's ▲, a grid's hidden columns on the left). The
+    /// `+N` button of a whole overflow is `PartRef::of(Part::OVERFLOW)`.
+    pub const OVERFLOW_BEFORE: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(0));
+    /// The overflow indicator after the shown window (`N›`, ▼).
+    pub const OVERFLOW_AFTER: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(1));
+
     /// A part without an item.
     pub const fn of(part: Part) -> Self {
         Self { part, item: None }
@@ -305,5 +350,34 @@ mod tests {
             }
         ));
         assert_eq!(PartRef::of(Part::THUMB).item, None);
+    }
+
+    #[test]
+    fn part_ids_follow_one_rule() {
+        let w = WidgetId::of("w");
+        assert_eq!(w.part(PartRef::of(Part::CONTAINER)), w);
+        let row = PartRef::item(Part::ROW, ItemKey::index(3));
+        assert_eq!(w.part(row), w.child(3), "row ids stay child ids");
+        assert_eq!(
+            w.part(PartRef::item(Part::TAB, ItemKey::index(3))),
+            w.child(3)
+        );
+        let close = w.part(PartRef::item(Part::CLOSE, ItemKey::index(3)));
+        assert_ne!(close, w.child(3));
+        assert_ne!(close, w.part(PartRef::item(Part::CLOSE, ItemKey::index(4))));
+        assert_ne!(
+            w.part(PartRef::of(Part::NEW)),
+            w.part(PartRef::of(Part::OVERFLOW))
+        );
+        let text = PartRef::item(Part::ROW, ItemKey::text("jk-1"));
+        assert_eq!(w.part(text), w.part(text));
+        assert_ne!(
+            w.part(text),
+            w.part(PartRef::item(Part::ROW, ItemKey::text("jk-2")))
+        );
+        assert_ne!(
+            w.part(PartRef::item(Part::ROW, ItemKey::num(1))),
+            w.part(PartRef::item(Part::ROW, ItemKey::index(1)))
+        );
     }
 }

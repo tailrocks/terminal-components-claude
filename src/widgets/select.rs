@@ -13,7 +13,7 @@ use ratatui::layout::{Margin, Position, Rect};
 use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
-use crate::core::id::WidgetId;
+use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::{ScrollState, TrackClick};
 use crate::theme::CursorStyle;
@@ -306,10 +306,13 @@ impl Select {
             .unwrap_or("")
     }
     pub fn option_id(&self, i: usize) -> WidgetId {
-        self.id.child(i)
+        self.id.part(Self::option_part(i))
+    }
+    fn option_part(i: usize) -> PartRef {
+        PartRef::item(Part::ROW, ItemKey::index(i))
     }
     pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        (0..self.options.len()).find(|&i| self.option_id(i) == id)
+        self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
     pub fn owns(&self, id: WidgetId) -> bool {
         id == self.id
@@ -870,7 +873,7 @@ impl Select {
                     crate::ui::text::truncate(opt, row.width.saturating_sub(3) as usize),
                     st,
                 );
-                ctx.clickable(*rid, row);
+                ctx.register_part(id, Self::option_part(i), row);
                 let cut = Rect::new(row.x + 3, y, row.width.saturating_sub(3), 1);
                 crate::ui::reveal::truncated(ctx, reveal, *rid, cut, opt);
             }

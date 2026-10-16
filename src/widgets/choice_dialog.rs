@@ -258,7 +258,9 @@ impl ChoiceDialog {
         }
         for i in 0..self.radio.options.len() {
             if let Some(r) = self.radio.areas.get(i) {
-                ctx.hits.register(self.radio.option_id(i), *r);
+                let part = crate::widgets::choice::RadioGroup::option_part(i);
+                let id = self.radio.option_id(i);
+                ctx.hits.register_part_as(id, self.radio.id, part, *r);
             }
         }
         for b in &self.buttons {
