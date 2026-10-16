@@ -12,6 +12,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::{FocusOn, PointerState, Release};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::widgets::button::Button;
@@ -124,14 +125,14 @@ pub struct App {
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
-    pub hover: Option<WidgetId>,
-    pub pressed: Option<WidgetId>,
-    pub hover_suppressed: bool,
+    /// Hover, press, flash and click-count state.
+    pub pointer: PointerState,
+    /// Origin of the pointer clock.
+    epoch: Instant,
     pub modal: Option<Modal>,
     pub size: (u16, u16),
     pub tick: u64,
     pub status: Option<(String, Instant)>,
-    flash: Option<(WidgetId, Instant)>,
     pub quit: bool,
     saved_focus: Option<WidgetId>,
     too_small: bool,
@@ -155,14 +156,12 @@ impl App {
             focus,
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
-            hover: None,
-            pressed: None,
-            hover_suppressed: false,
+            pointer: PointerState::default(),
+            epoch: Instant::now(),
             modal: None,
             size: (0, 0),
             tick: 0,
             status: None,
-            flash: None,
             quit: false,
             saved_focus: None,
             too_small: false,
@@ -192,7 +191,7 @@ impl App {
     pub fn animating(&self) -> bool {
         self.connections.animating()
             || self.workbench.as_ref().is_some_and(|w| w.animating())
-            || self.flash.is_some()
+            || self.pointer.has_flash()
             || self.committing.is_some()
     }
 
@@ -208,18 +207,20 @@ impl App {
         self.status = Some((s, Instant::now()));
     }
 
+    /// Milliseconds on the pointer clock.
+    fn now_ms(&self) -> u64 {
+        self.epoch.elapsed().as_millis() as u64
+    }
+
     fn interaction(&self) -> Interaction {
-        let flash = match self.flash {
-            Some((id, at)) if at.elapsed() < Duration::from_millis(140) => Some(id),
-            _ => None,
-        };
+        let flash = self.pointer.flashing(self.now_ms());
         Interaction {
             focus: self.focus.current(),
-            hover: self.hover,
-            pressed: self.pressed,
+            hover: self.pointer.hover,
+            pressed: self.pointer.pressed,
             flash,
             focus_hidden: false,
-            hover_suppressed: self.hover_suppressed,
+            hover_suppressed: self.pointer.hover_suppressed,
             tick: self.tick,
         }
     }
@@ -264,7 +265,7 @@ impl App {
                     }
                     return self.request_quit();
                 }
-                self.hover_suppressed = true;
+                self.pointer.suppress_hover();
                 self.on_key(key)
             }
             Input::Mouse(m) => self.on_mouse(m),
@@ -320,10 +321,7 @@ impl App {
             self.tick = self.tick.wrapping_add(1);
             out = Outcome::Changed;
         }
-        if let Some((_, at)) = self.flash
-            && at.elapsed() >= Duration::from_millis(140)
-        {
-            self.flash = None;
+        if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
         if let Some((_, at)) = &self.status
@@ -549,7 +547,8 @@ impl App {
                 && !editing
                 && let Some(f) = self.focus.current()
             {
-                self.flash = Some((f, Instant::now()));
+                let now = self.now_ms();
+                self.pointer.flash(f, now);
             }
             return out;
         }
@@ -1188,8 +1187,8 @@ impl App {
         self.saved_focus = self.focus.current();
         self.focus.set(Some(d.initial_focus));
         self.modal = Some(Modal::Dialog(d));
-        self.hover = None;
-        self.pressed = None;
+        self.pointer.hover = None;
+        self.pointer.pressed = None;
     }
 
     fn open_help(&mut self) {
@@ -1878,11 +1877,11 @@ impl App {
 
     /// A button release at `m.pos` over `hit`.
     fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
-        let pressed = self.pressed.take();
-        let Some(id) = hit else {
+        let release = self.pointer.release(hit);
+        let Release::Click(id) = release else {
             // click outside a modal cancels it (dialogs decide themselves)
             if let Some(modal) = self.modal.as_mut()
-                && pressed.is_none()
+                && release == Release::Outside
             {
                 match modal {
                     Modal::Dialog(d) => {
@@ -1901,10 +1900,8 @@ impl App {
             }
             return Outcome::Changed;
         };
-        if pressed != Some(id) {
-            return Outcome::Changed;
-        }
-        self.flash = Some((id, Instant::now()));
+        let now = self.now_ms();
+        self.pointer.flash(id, now);
         if let Some(modal) = self.modal.as_mut() {
             return match modal {
                 Modal::Dialog(d) => {
@@ -1991,21 +1988,11 @@ impl App {
     }
 
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
+        self.pointer.pos = Some(m.pos);
         match m.kind {
-            MouseKind::Move => {
-                let was = self.hover;
-                let suppressed = self.hover_suppressed;
-                self.hover_suppressed = false;
-                self.hover = self.hits.hit(m.pos);
-                if self.hover != was || suppressed {
-                    Outcome::Changed
-                } else {
-                    Outcome::Ignored
-                }
-            }
+            MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
             MouseKind::Drag => {
-                self.hover = self.hits.hit(m.pos);
-                let Some(pressed) = self.pressed else {
+                let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
                 if self.modal.is_some() {
@@ -2021,10 +2008,7 @@ impl App {
                 }
             }
             MouseKind::Down => {
-                let hit = self.hits.hit(m.pos);
-                self.pressed = hit;
-                self.hover = hit;
-                let Some(id) = hit else {
+                let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
                     return if self.modal.is_some() {
                         Outcome::Consumed
                     } else {
@@ -2034,22 +2018,19 @@ impl App {
                 if self.modal.is_some() {
                     return Outcome::Changed;
                 }
-                if self.ring.contains(id) {
+                if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
                     self.focus.focus(id);
                 }
                 Outcome::Changed
             }
             MouseKind::Up => {
-                let hit = self.hits.hit(m.pos);
                 // a pass-through backdrop: the click closes the popup and
                 // then lands on what is beneath it, as a click of its own
-                let beneath = hit
-                    .filter(|id| self.pressed == Some(*id))
-                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let (hit, beneath) = self.pointer.on_up(&self.hits, m.pos);
                 let out = self.on_release(m, hit);
                 match beneath {
                     Some(below) => {
-                        self.pressed = Some(below);
+                        self.pointer.press(below);
                         out.or(self.on_release(m, Some(below)))
                     }
                     None => out,
@@ -2061,10 +2042,7 @@ impl App {
             | MouseKind::WheelLeft
             | MouseKind::WheelRight => {
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
-                let delta = match m.kind {
-                    MouseKind::WheelUp | MouseKind::WheelLeft => -3,
-                    _ => 3,
-                };
+                let delta = self.pointer.wheel_delta(m.kind);
                 if let Some(Modal::Picker(_, p, _)) = self.modal.as_mut() {
                     return p.on_wheel(delta);
                 }
@@ -2077,14 +2055,17 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                match self.screen {
+                let out = match self.screen {
                     Screen::Workbench => self
                         .workbench
                         .as_mut()
                         .map(|w| w.on_wheel(id, delta, horizontal))
                         .unwrap_or(Outcome::Ignored),
                     Screen::Connections => Outcome::Ignored,
-                }
+                };
+                // rows move under a still pointer: re-resolve hover next frame
+                self.pointer.scrolled(m.pos, out);
+                out
             }
         }
     }
@@ -2144,6 +2125,7 @@ impl App {
             cursor = ctx.cursor;
         }
         self.hits = hits;
+        self.pointer.refresh_hover(&self.hits);
         self.ring = ring;
         if self.modal.is_none() {
             if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
