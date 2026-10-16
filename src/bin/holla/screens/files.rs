@@ -1637,8 +1637,18 @@ impl Screen for FilesPage {
                 buf.set_string(
                     query.x,
                     query.y,
-                    if focused { "▎" } else { " " },
-                    Style::new().fg(t.focus).bg(bg),
+                    t.gutter_symbol(junie_tui::ui::ctx::VisualState {
+                        focused,
+                        ..Default::default()
+                    }),
+                    t.gutter(
+                        junie_tui::ui::ctx::VisualState {
+                            focused,
+                            ..Default::default()
+                        },
+                        bg,
+                        false,
+                    ),
                 );
                 let readout = format!(
                     "{} · {} of {} indexed{}",
