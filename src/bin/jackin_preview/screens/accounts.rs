@@ -3,6 +3,8 @@
 //! 1Password is the primary credential path, masked plain text the
 //! explicit alternative; an honest overall Usage summary sits on row zero.
 
+use crate::screens::Jackin;
+use junie_tui::shell::Page;
 use std::collections::HashSet;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -2135,7 +2137,7 @@ impl Account {
     }
 }
 
-impl Screen for AccountsScreen {
+impl Page<Jackin> for AccountsScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.build_rows(w);
         cx.focus.focus(TREE);
@@ -2484,22 +2486,7 @@ impl Screen for AccountsScreen {
         }
     }
 
-    fn layer_open(&self) -> bool {
-        self.menu.hides_page_focus()
-    }
-
-    fn form_changed(&mut self, tag: &LayerTag, form: &mut FormDialog, w: &World) {
-        if tag.kind == "form" {
-            Self::reveal(form, w);
-            form.error = None;
-            if let Some(ctx) = self.form.as_mut() {
-                ctx.validation = None;
-            }
-            form.set_note("validation", vec![]);
-        }
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -2793,6 +2780,27 @@ impl Screen for AccountsScreen {
         }
     }
 
+    fn is_editing(&self) -> bool {
+        false
+    }
+}
+
+impl Screen for AccountsScreen {
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
+    }
+
+    fn form_changed(&mut self, tag: &LayerTag, form: &mut FormDialog, w: &World) {
+        if tag.kind == "form" {
+            Self::reveal(form, w);
+            form.error = None;
+            if let Some(ctx) = self.form.as_mut() {
+                ctx.validation = None;
+            }
+            form.set_note("validation", vec![]);
+        }
+    }
+
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let n = w
             .accounts
@@ -2811,10 +2819,6 @@ impl Screen for AccountsScreen {
         } else {
             vec![]
         }
-    }
-
-    fn is_editing(&self) -> bool {
-        false
     }
 }
 

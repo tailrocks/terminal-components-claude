@@ -2,6 +2,8 @@
 //! their instance children, `+ New workspace`, and a detail projection of
 //! the selected row. Row identity is stable across background refreshes.
 
+use crate::screens::Jackin;
+use junie_tui::shell::Page;
 use std::collections::HashSet;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -1866,7 +1868,7 @@ fn agent_rows(
     (items, targets)
 }
 
-impl Screen for ManagerScreen {
+impl Page<Jackin> for ManagerScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.build_rows(w);
         cx.focus.focus(TREE);
@@ -2348,11 +2350,7 @@ impl Screen for ManagerScreen {
         }
     }
 
-    fn layer_open(&self) -> bool {
-        self.menu.hides_page_focus()
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -2624,6 +2622,22 @@ impl Screen for ManagerScreen {
         }
     }
 
+    fn animating(&self, _w: &World) -> bool {
+        !self.busy_rows.is_empty() || self.still_inside.is_some()
+    }
+
+    fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
+        // the root has nowhere to go back to; the shell decides whether Esc
+        // may quit (`QuitKeys::esc_quits`, off by default)
+        Outcome::Ignored
+    }
+}
+
+impl Screen for ManagerScreen {
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
+    }
+
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let mut v = vec![];
         if !self.busy_rows.is_empty() {
@@ -2640,16 +2654,6 @@ impl Screen for ManagerScreen {
             );
         }
         v
-    }
-
-    fn animating(&self, _w: &World) -> bool {
-        !self.busy_rows.is_empty() || self.still_inside.is_some()
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        // the root has nowhere to go back to; the shell decides whether Esc
-        // may quit (`QuitKeys::esc_quits`, off by default)
-        Outcome::Ignored
     }
 }
 

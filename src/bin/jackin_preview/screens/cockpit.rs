@@ -2,10 +2,12 @@
 //! identity, credentials origin, activity, atmosphere, and the build log,
 //! failure, container-info and quit overlays.
 
+use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent, scroll_input};
+use junie_tui::shell::Page;
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{truncate, width};
@@ -562,7 +564,7 @@ fn wrapped_arrow(buf: &mut Buffer, area: Rect, t: &Theme) {
     let _ = (buf, area, t);
 }
 
-impl Screen for CockpitScreen {
+impl Page<Jackin> for CockpitScreen {
     fn enter(&mut self, _w: &mut World, cx: &mut Cx) {
         cx.focus.focus(RAIL);
     }
@@ -705,7 +707,7 @@ impl Screen for CockpitScreen {
         Outcome::Consumed
     }
 
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1030,13 +1032,15 @@ impl Screen for CockpitScreen {
         )
     }
 
-    fn strip_right(&self, _w: &World) -> Vec<Segment> {
-        let (done, _) = self.run.counts();
-        vec![Segment::new(format!("{done}/{} stages", Stage::ALL.len()), Tone::Muted).priority(5)]
-    }
-
     fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         cx.status("Esc does nothing here · x cancels the launch, Ctrl+Q quits");
         Outcome::Changed
+    }
+}
+
+impl Screen for CockpitScreen {
+    fn strip_right(&self, _w: &World) -> Vec<Segment> {
+        let (done, _) = self.run.counts();
+        vec![Segment::new(format!("{done}/{} stages", Stage::ALL.len()), Tone::Muted).priority(5)]
     }
 }

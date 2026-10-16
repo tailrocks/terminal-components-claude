@@ -2,10 +2,12 @@
 //! Editor's stage grammar, a `global` scope column on every scoped row and
 //! the same preview → async save flow.
 
+use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
+use junie_tui::shell::Page;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width};
@@ -798,7 +800,7 @@ fn is_sensitive(path: &str) -> bool {
         || p.starts_with("/.config/op")
 }
 
-impl Screen for SettingsScreen {
+impl Page<Jackin> for SettingsScreen {
     fn enter(&mut self, _w: &mut World, cx: &mut Cx) {
         cx.focus.focus(TABS);
     }
@@ -1012,22 +1014,7 @@ impl Screen for SettingsScreen {
         }
     }
 
-    fn layer_open(&self) -> bool {
-        self.cfg.menu_hides_focus()
-    }
-
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
-        if tag.kind == "cfg.role" {
-            return Some(self.cfg.role_picker_items(query));
-        }
-        None
-    }
-
-    fn form_changed(&mut self, tag: &LayerTag, form: &mut super::modals::FormDialog, w: &World) {
-        self.cfg.form_changed(tag, form, w);
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1209,6 +1196,42 @@ impl Screen for SettingsScreen {
         format!("Settings › global › {}", TAB_NAMES[self.tabs.active.min(4)])
     }
 
+    fn stakes(&mut self, _w: &World) -> junie_tui::ui::leave::Stakes {
+        self.sync_pending();
+        let n = self.change_count();
+        if n > 0 {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: n }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
+    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if cx.focus.is(TABS) {
+            self.leave(cx);
+        } else {
+            cx.focus.focus(TABS);
+        }
+        Outcome::Changed
+    }
+}
+
+impl Screen for SettingsScreen {
+    fn layer_open(&self) -> bool {
+        self.cfg.menu_hides_focus()
+    }
+
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
+        if tag.kind == "cfg.role" {
+            return Some(self.cfg.role_picker_items(query));
+        }
+        None
+    }
+
+    fn form_changed(&mut self, tag: &LayerTag, form: &mut super::modals::FormDialog, w: &World) {
+        self.cfg.form_changed(tag, form, w);
+    }
+
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let mut v = vec![];
         if self.saving {
@@ -1236,27 +1259,8 @@ impl Screen for SettingsScreen {
         v
     }
 
-    fn leave_stakes(&mut self, _w: &World) -> junie_tui::ui::leave::Stakes {
-        self.sync_pending();
-        let n = self.change_count();
-        if n > 0 {
-            junie_tui::ui::leave::Stakes::Unsaved { changes: n }
-        } else {
-            junie_tui::ui::leave::Stakes::Clean
-        }
-    }
-
     fn request_leave(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         self.leave(cx);
-        Outcome::Changed
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if cx.focus.is(TABS) {
-            self.leave(cx);
-        } else {
-            cx.focus.focus(TABS);
-        }
         Outcome::Changed
     }
 }

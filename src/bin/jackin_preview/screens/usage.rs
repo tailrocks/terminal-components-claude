@@ -2,12 +2,14 @@
 //! honest overview on row zero. Nothing here mutates; `m` hands the
 //! selected row to the Account & Usage Center.
 
+use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
@@ -800,7 +802,7 @@ impl UsageScreen {
     }
 }
 
-impl Screen for UsageScreen {
+impl Page<Jackin> for UsageScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.build_rows(w);
         self.show_detail = false;
@@ -996,6 +998,8 @@ impl Screen for UsageScreen {
         }
     }
 }
+
+impl Screen for UsageScreen {}
 
 // ------------------------------------------------------------ pointer
 

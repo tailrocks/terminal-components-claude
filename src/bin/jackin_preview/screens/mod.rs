@@ -14,16 +14,9 @@ pub mod rowmenu;
 pub mod settings;
 pub mod usage;
 
-use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::PointerEvent;
-use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::leave::Stakes;
-use junie_tui::widgets::keyhint::Hint;
+use junie_tui::core::event::Outcome;
 use junie_tui::widgets::picker::PickerItem;
 use junie_tui::widgets::segments::Segment;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
 
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
@@ -155,50 +148,22 @@ pub type Request = junie_tui::shell::Request<ModalResult, World, Go>;
 /// The event context a jackin screen handles input in (the library one).
 pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, World, Go>;
 
-/// Everything a route screen can do. Default bodies let small screens stay
-/// small; the shell calls only what it needs.
-pub trait Screen {
-    fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome;
-    /// One pointer event the router resolved for this screen
-    /// ([`junie_tui::core::pointer::PointerRouter`]): a press (with the
-    /// click count it starts), a completed click (its count is
-    /// [`Cx::clicks`]), a drag of the held press, its end, a release away
-    /// from it, a secondary or middle click, or a wheel notch on either
-    /// axis (offered to each owner under the pointer, innermost first,
-    /// until one takes it). Hand it to the owning widget
-    /// ([`junie_tui::core::pointer::MouseTarget::route`]).
-    fn pointer(&mut self, _ev: &PointerEvent, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_paste(&mut self, _text: &str, _w: &mut World) -> Outcome {
-        Outcome::Ignored
-    }
-    /// A control lost focus (or a click on dead space ended its edit):
-    /// the screen that owns `ch.from` ends the edit through the control's
-    /// `on_blur` and runs its own commit hooks.
-    fn on_blur(
-        &mut self,
-        _ch: junie_tui::core::focus::FocusChange,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_tick(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_msg(&mut self, _msg: &Msg, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_modal(
-        &mut self,
-        _tag: &LayerTag,
-        _result: ModalResult,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
+/// The types a jackin screen works with ([`junie_tui::shell::Page`]).
+pub struct Jackin;
+
+impl junie_tui::shell::PageTypes for Jackin {
+    type State = World;
+    type Msg = Msg;
+    type Result = ModalResult;
+    type LayerState = World;
+    type Go = Go;
+}
+
+/// What a jackin route screen adds to the library page
+/// ([`junie_tui::shell::Page`], whose Esc at the top goes back: the
+/// manager). Default bodies let small screens stay small; the shell calls
+/// only what it needs.
+pub trait Screen: junie_tui::shell::Page<Jackin> {
     /// Rows for a picker this screen opened; `None` keeps the current rows.
     fn picker_items(
         &mut self,
@@ -210,39 +175,15 @@ pub trait Screen {
     }
     /// A form field changed: reveal/hide dependent fields.
     fn form_changed(&mut self, _tag: &LayerTag, _form: &mut FormDialog, _w: &World) {}
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World);
-    fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint>;
-    /// Scope crumb after the Construct state: `Workspaces › api-server`.
-    fn crumb(&self, w: &World) -> String;
     /// Extra right-hand strip segments (dirty count, refreshing…).
     fn strip_right(&self, _w: &World) -> Vec<Segment> {
         vec![]
     }
-    fn is_editing(&self) -> bool {
-        false
-    }
-    fn animating(&self, _w: &World) -> bool {
-        false
-    }
     /// True while the screen draws a keyboard-owned layer above itself (an
     /// open menu): the shell then renders the page with no focus indicator
-    /// ([`RenderCtx::page_under_layer`]).
+    /// ([`junie_tui::ui::ctx::RenderCtx::page_under_layer`]).
     fn layer_open(&self) -> bool {
         false
-    }
-    /// The route became active.
-    fn enter(&mut self, _w: &mut World, _cx: &mut Cx) {}
-    /// Where keyboard focus lands when nothing better is known.
-    fn primary_focus(&self) -> Option<WidgetId>;
-    /// Esc at the top of this screen's ladder: leave it?
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        cx.go(Go::Manager);
-        Outcome::Changed
-    }
-    /// What leaving this screen (or quitting) would lose. The shell's
-    /// quit and letter keys consult it (keyboard audit #4).
-    fn leave_stakes(&mut self, _w: &World) -> Stakes {
-        Stakes::Clean
     }
     /// Leave through the screen's own unsaved-changes question (Save /
     /// Discard / Cancel); a clean screen goes straight to the manager.

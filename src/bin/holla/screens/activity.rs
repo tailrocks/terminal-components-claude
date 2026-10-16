@@ -6,10 +6,12 @@
 //! Monitors can be attached (keys go to the program) and detached with
 //! Ctrl+]. Tasks with a live stdin take typed input in input mode (`i`).
 
+use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
@@ -414,7 +416,7 @@ impl ActivityTab {
     }
 }
 
-impl Screen for ActivityTab {
+impl ShellPage<Holla> for ActivityTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let tick = w.tick;
         if self.attached {
@@ -721,29 +723,7 @@ impl Screen for ActivityTab {
         }
     }
 
-    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.is_editing() {
-            return Outcome::Ignored;
-        }
-        let top = Rect::new(self.view.area.x, self.view.area.y, 1, 1);
-        if cx.focus.is(CHIPS) {
-            let i = self.chips.cursor;
-            let anchor = ContextAnchor::Control {
-                id: self.chips.chip_id(i),
-                fallback: top,
-            };
-            return self.chip_menu(i, anchor, w, cx);
-        }
-        if cx.focus.is(VIEW) {
-            // the output has no cursor row: the menu opens at the
-            // selection, the caret or the followed tail
-            let at = self.view.context_point();
-            return self.output_menu(ContextAnchor::Pointer(at), w, cx);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -1029,6 +1009,47 @@ impl Screen for ActivityTab {
             .unwrap_or_default()
     }
 
+    fn is_editing(&self) -> bool {
+        self.attached || self.input || self.find_query.is_some()
+    }
+
+    fn animating(&self, w: &World) -> bool {
+        w.activity(&self.id).is_some_and(|a| a.state.live())
+    }
+
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(VIEW)
+    }
+
+    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        cx.go(Go::Here);
+        Outcome::Changed
+    }
+}
+
+impl Screen for ActivityTab {
+    fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.is_editing() {
+            return Outcome::Ignored;
+        }
+        let top = Rect::new(self.view.area.x, self.view.area.y, 1, 1);
+        if cx.focus.is(CHIPS) {
+            let i = self.chips.cursor;
+            let anchor = ContextAnchor::Control {
+                id: self.chips.chip_id(i),
+                fallback: top,
+            };
+            return self.chip_menu(i, anchor, w, cx);
+        }
+        if cx.focus.is(VIEW) {
+            // the output has no cursor row: the menu opens at the
+            // selection, the caret or the followed tail
+            let at = self.view.context_point();
+            return self.output_menu(ContextAnchor::Pointer(at), w, cx);
+        }
+        Outcome::Ignored
+    }
+
     fn status(&self, w: &World) -> StatusBits {
         let mut bits = StatusBits::default();
         // the header names the activity and its state; the status bar keeps
@@ -1060,26 +1081,9 @@ impl Screen for ActivityTab {
         bits
     }
 
-    fn is_editing(&self) -> bool {
-        self.attached || self.input || self.find_query.is_some()
-    }
-
-    fn animating(&self, w: &World) -> bool {
-        w.activity(&self.id).is_some_and(|a| a.state.live())
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(VIEW)
-    }
-
     #[cfg(test)]
     fn as_activity(&mut self) -> Option<&mut ActivityTab> {
         Some(self)
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        cx.go(Go::Here);
-        Outcome::Changed
     }
 }
 

@@ -2,12 +2,14 @@
 //! separate original and pending state, `• N changes` in the strip, a save
 //! preview and an asynchronous save that returns to the manager.
 
+use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::shell::Page;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
@@ -1606,7 +1608,7 @@ impl EditorScreen {
     }
 }
 
-impl Screen for EditorScreen {
+impl Page<Jackin> for EditorScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.refresh_taken(w);
         self.build_roles(w);
@@ -1857,10 +1859,6 @@ impl Screen for EditorScreen {
         }
     }
 
-    fn layer_open(&self) -> bool {
-        self.cfg.menu_hides_focus()
-    }
-
     fn on_blur(
         &mut self,
         ch: junie_tui::core::focus::FocusChange,
@@ -1889,7 +1887,7 @@ impl Screen for EditorScreen {
         }
     }
 
-    fn on_paste(&mut self, text: &str, _w: &mut World) -> Outcome {
+    fn on_paste(&mut self, text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
         if self.name.editing {
             let out = self.name.on_paste(text);
             if out.consumed() {
@@ -1901,23 +1899,7 @@ impl Screen for EditorScreen {
         }
     }
 
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
-        if tag.kind == "role.load" {
-            let (items, targets) = self.role_items(w, query);
-            self.picker_targets = targets;
-            return Some(items);
-        }
-        if tag.kind == "cfg.role" {
-            return Some(self.cfg.role_picker_items(query));
-        }
-        None
-    }
-
-    fn form_changed(&mut self, tag: &LayerTag, form: &mut super::modals::FormDialog, w: &World) {
-        self.cfg.form_changed(tag, form, w);
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
@@ -2204,6 +2186,47 @@ impl Screen for EditorScreen {
         }
     }
 
+    fn stakes(&mut self, _w: &World) -> junie_tui::ui::leave::Stakes {
+        self.sync_pending();
+        let n = self.change_count();
+        if n > 0 || self.is_create() {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: n }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
+    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if cx.focus.is(TABS) {
+            self.leave(cx);
+        } else {
+            cx.focus.focus(TABS);
+        }
+        Outcome::Changed
+    }
+}
+
+impl Screen for EditorScreen {
+    fn layer_open(&self) -> bool {
+        self.cfg.menu_hides_focus()
+    }
+
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+        if tag.kind == "role.load" {
+            let (items, targets) = self.role_items(w, query);
+            self.picker_targets = targets;
+            return Some(items);
+        }
+        if tag.kind == "cfg.role" {
+            return Some(self.cfg.role_picker_items(query));
+        }
+        None
+    }
+
+    fn form_changed(&mut self, tag: &LayerTag, form: &mut super::modals::FormDialog, w: &World) {
+        self.cfg.form_changed(tag, form, w);
+    }
+
     fn strip_right(&self, w: &World) -> Vec<Segment> {
         let mut v = vec![];
         if self.saving {
@@ -2235,27 +2258,8 @@ impl Screen for EditorScreen {
         v
     }
 
-    fn leave_stakes(&mut self, _w: &World) -> junie_tui::ui::leave::Stakes {
-        self.sync_pending();
-        let n = self.change_count();
-        if n > 0 || self.is_create() {
-            junie_tui::ui::leave::Stakes::Unsaved { changes: n }
-        } else {
-            junie_tui::ui::leave::Stakes::Clean
-        }
-    }
-
     fn request_leave(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         self.leave(cx);
-        Outcome::Changed
-    }
-
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if cx.focus.is(TABS) {
-            self.leave(cx);
-        } else {
-            cx.focus.focus(TABS);
-        }
         Outcome::Changed
     }
 }
