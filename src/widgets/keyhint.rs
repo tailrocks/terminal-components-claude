@@ -11,6 +11,10 @@
 //! ([`toggle_hint`]). A focused button names itself (`Button::hint`), and a
 //! dialog builds its own row (`Dialog::hints`).
 //!
+//! A modified click names the modifier, then `click`: `Option+click` on
+//! macOS, `Ctrl+click` elsewhere, for the same toggle ([`modifier_click`]
+//! picks the label from a widget's modifier set and the [`Platform`]).
+//!
 //! Esc: `Esc Cancel` leaves an edit or a modal without saving, `Esc Close`
 //! closes an overlay or menu, `Esc Back` returns to the previous page.
 //! Field edits use [`EDIT_FIELD`]: `Enter Apply · Esc Cancel · Tab Next
@@ -37,7 +41,10 @@
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyModifiers;
 use ratatui::layout::Rect;
+
+use crate::core::event::Platform;
 
 use crate::theme::{BadgeKind, HintAlign, HintBarStyle, Theme, Tone};
 
@@ -90,6 +97,30 @@ pub fn normalize_key(key: &str) -> Cow<'_, str> {
     } else {
         Cow::Borrowed(key)
     }
+}
+
+/// The key label for a click with one of `mods` held, naming the modifier
+/// `platform`'s users reach for first: Option, then Cmd, then Ctrl on
+/// macOS (where Ctrl+click is a secondary click); Ctrl, then Alt, then
+/// Super elsewhere. `None` when `mods` holds none of them. A multi-select
+/// table's toggle reads `modifier_click(table.toggle_mods, platform)`:
+/// `Option+click` on macOS, `Ctrl+click` elsewhere.
+pub fn modifier_click(mods: KeyModifiers, platform: Platform) -> Option<&'static str> {
+    const MAC: [(KeyModifiers, &str); 3] = [
+        (KeyModifiers::ALT, "Option+click"),
+        (KeyModifiers::SUPER, "Cmd+click"),
+        (KeyModifiers::CONTROL, "Ctrl+click"),
+    ];
+    const OTHER: [(KeyModifiers, &str); 3] = [
+        (KeyModifiers::CONTROL, "Ctrl+click"),
+        (KeyModifiers::ALT, "Alt+click"),
+        (KeyModifiers::SUPER, "Super+click"),
+    ];
+    let order = if platform.is_macos() { &MAC } else { &OTHER };
+    order
+        .iter()
+        .find(|(m, _)| mods.contains(*m))
+        .map(|&(_, label)| label)
 }
 
 /// The hint for a two-state toggle. A toggle hint starts with a verb and
@@ -403,6 +434,33 @@ pub fn render_styled(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn modifier_click_names_the_platform_modifier() {
+        use crate::widgets::table::DataTable;
+        let mac = Platform::MacOs;
+        let other = Platform::Other;
+        assert_eq!(
+            modifier_click(DataTable::toggle_mods_for(mac), mac),
+            Some("Option+click")
+        );
+        assert_eq!(
+            modifier_click(DataTable::toggle_mods_for(other), other),
+            Some("Ctrl+click")
+        );
+        // all three accepted: each platform names its own first choice
+        assert_eq!(
+            modifier_click(DataTable::TOGGLE_WITH_ALT, mac),
+            Some("Option+click")
+        );
+        assert_eq!(
+            modifier_click(DataTable::TOGGLE_WITH_ALT, other),
+            Some("Ctrl+click")
+        );
+        assert_eq!(modifier_click(KeyModifiers::ALT, other), Some("Alt+click"));
+        assert_eq!(modifier_click(KeyModifiers::SUPER, mac), Some("Cmd+click"));
+        assert_eq!(modifier_click(KeyModifiers::SHIFT, mac), None);
+    }
 
     fn row_text(buf: &Buffer, width: u16) -> String {
         (0..width)
