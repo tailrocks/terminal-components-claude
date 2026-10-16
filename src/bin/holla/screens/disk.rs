@@ -7,7 +7,10 @@
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::hit::Axis;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextSource};
@@ -26,7 +29,7 @@ use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
@@ -37,7 +40,6 @@ use crate::screens::{
 };
 use crate::sim::fs::ScanNode;
 use crate::sim::world::World;
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
@@ -1073,6 +1075,76 @@ fn short_error(e: &crate::sim::fs::FsError) -> &'static str {
     }
 }
 
+impl DiskPage {
+    /// A completed click.
+    fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if id == scrollbar::id_for(TREE) {
+            cx.focus.focus(TREE);
+            return self.tree.pointer(ev).outcome();
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            cx.focus.focus(DETAIL);
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+        }
+        if id == scrollbar::id_for(LIST) {
+            cx.focus.focus(LIST);
+            return scroll_press(self.list_area, pos, &mut self.list_scroll);
+        }
+        if id == DETAIL {
+            cx.focus.focus(DETAIL);
+            return Outcome::Changed;
+        }
+        if self.view == View::Tree {
+            let row = match (ev.index_of(Part::ROW), ev.index_of(Part::ICON)) {
+                (Some(row), _) => Some((row, false)),
+                (None, Some(row)) => Some((row, true)),
+                _ => None,
+            };
+            if ev.on(TREE)
+                && let Some((row, toggle)) = row
+            {
+                cx.focus.focus(TREE);
+                let (o, _) = if toggle {
+                    self.tree.on_click_toggle(row)
+                } else {
+                    self.tree.cursor = row;
+                    (Outcome::Changed, None)
+                };
+                if !toggle
+                    && let Some(p) = self.fs_path_of(&self.tree.rows()[row].path.clone())
+                    && p != self.path
+                {
+                    self.toggle_select(&p, w, cx);
+                }
+                return o.or(Outcome::Changed);
+            }
+            if id == TREE {
+                cx.focus.focus(TREE);
+                return Outcome::Changed;
+            }
+            return Outcome::Ignored;
+        }
+        if let Some(i) = self
+            .list_scroll
+            .visible_range()
+            .find(|&i| LIST.child(i) == id)
+        {
+            self.cursor = i;
+            cx.focus.focus(LIST);
+            if self.view == View::TopFiles {
+                return self.open_row(w, cx);
+            }
+            return Outcome::Changed;
+        }
+        if id == LIST {
+            cx.focus.focus(LIST);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+}
+
 impl Screen for DiskPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(DETAIL) {
@@ -1310,87 +1382,84 @@ impl Screen for DiskPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == scrollbar::id_for(TREE) {
-            cx.focus.focus(TREE);
-            return self.tree.on_scrollbar(pos);
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            cx.focus.focus(DETAIL);
-            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        if id == scrollbar::id_for(LIST) {
-            cx.focus.focus(LIST);
-            return scroll_press(self.list_area, pos, &mut self.list_scroll);
-        }
-        if id == DETAIL {
-            cx.focus.focus(DETAIL);
-            return Outcome::Changed;
-        }
-        if self.view == View::Tree {
-            if let Some((row, toggle)) = self.tree.locate(id) {
-                cx.focus.focus(TREE);
-                let (o, _) = if toggle {
-                    self.tree.on_click_toggle(row)
-                } else {
-                    self.tree.cursor = row;
-                    (Outcome::Changed, None)
-                };
-                if !toggle
-                    && let Some(p) = self.fs_path_of(&self.tree.rows()[row].path.clone())
-                    && p != self.path
-                {
-                    self.toggle_select(&p, w, cx);
-                }
-                return o.or(Outcome::Changed);
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls these vertical panes
+            if axis != Axis::Vertical {
+                return Outcome::Ignored;
             }
-            if id == TREE {
-                cx.focus.focus(TREE);
+            if ev.on(TREE) {
+                return self.tree.pointer(ev).outcome();
+            }
+            if id == LIST {
+                self.list_scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            if id == DETAIL {
+                self.detail_scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
             }
             return Outcome::Ignored;
         }
-        if let Some(i) = self
-            .list_scroll
-            .visible_range()
-            .find(|&i| LIST.child(i) == id)
-        {
-            self.cursor = i;
-            cx.focus.focus(LIST);
-            if self.view == View::TopFiles {
-                return self.open_row(w, cx);
+        match ev.phase() {
+            Some(Phase::Press | Phase::Drag) => {
+                let press = ev.is(Phase::Press);
+                if id == scrollbar::id_for(TREE) {
+                    return self.tree.pointer(ev).outcome();
+                }
+                let (area, scroll) = if id == scrollbar::id_for(DETAIL) {
+                    (self.detail_area, &mut self.detail_scroll)
+                } else if id == scrollbar::id_for(LIST) {
+                    (self.list_area, &mut self.list_scroll)
+                } else {
+                    return Outcome::Ignored;
+                };
+                if press {
+                    scroll_press(area, pos, scroll)
+                } else {
+                    scroll_drag(area, pos, scroll)
+                }
             }
-            return Outcome::Changed;
-        }
-        if id == LIST {
-            cx.focus.focus(LIST);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        let row = if self.view == View::Tree {
-            let Some(req) = cx.context.on_secondary(&mut self.tree, id, pos) else {
-                return Outcome::Ignored;
-            };
-            cx.focus.focus(TREE);
-            req.target
-        } else {
-            let Some(i) = self
-                .list_scroll
-                .visible_range()
-                .find(|&i| LIST.child(i) == id)
-            else {
-                return Outcome::Ignored;
-            };
-            if cx.context.moves_cursor {
-                self.cursor = i;
+            Some(Phase::Click) => {
+                // a double click on an overview row opens it
+                if cx.clicks >= 2
+                    && self.view == View::Overview
+                    && let Some(i) = self
+                        .list_scroll
+                        .visible_range()
+                        .find(|&i| LIST.child(i) == id)
+                {
+                    self.cursor = i;
+                    return self.open_row(w, cx);
+                }
+                self.click(ev, w, cx)
             }
-            cx.focus.focus(LIST);
-            i
-        };
-        self.row_menu(row, ContextAnchor::Pointer(pos), w, cx)
+            Some(Phase::Secondary) => {
+                let row = if self.view == View::Tree {
+                    let Some(req) = cx.context.on_secondary(&mut self.tree, id, pos) else {
+                        return Outcome::Ignored;
+                    };
+                    cx.focus.focus(TREE);
+                    req.target
+                } else {
+                    let Some(i) = self
+                        .list_scroll
+                        .visible_range()
+                        .find(|&i| LIST.child(i) == id)
+                    else {
+                        return Outcome::Ignored;
+                    };
+                    if cx.context.moves_cursor {
+                        self.cursor = i;
+                    }
+                    cx.focus.focus(LIST);
+                    i
+                };
+                self.row_menu(row, ContextAnchor::Pointer(pos), w, cx)
+            }
+            _ => Outcome::Ignored,
+        }
     }
 
     fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -1441,66 +1510,6 @@ impl Screen for DiskPage {
             return self.on_key(&key, w, cx).or(Outcome::Changed);
         }
         Outcome::Changed
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(TREE) {
-            return self.tree.on_scrollbar(pos);
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        if id == scrollbar::id_for(LIST) {
-            return scroll_press(self.list_area, pos, &mut self.list_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(TREE) {
-            return self.tree.on_scrollbar_drag(pos);
-        }
-        if pressed == scrollbar::id_for(DETAIL) {
-            return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        if pressed == scrollbar::id_for(LIST) {
-            return scroll_drag(self.list_area, pos, &mut self.list_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        _pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if self.view == View::Overview
-            && let Some(i) = self
-                .list_scroll
-                .visible_range()
-                .find(|&i| LIST.child(i) == id)
-        {
-            self.cursor = i;
-            return self.open_row(w, cx);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if self.tree.owns(id) {
-            return self.tree.on_wheel(delta);
-        }
-        if id == LIST {
-            self.list_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == DETAIL {
-            self.detail_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {

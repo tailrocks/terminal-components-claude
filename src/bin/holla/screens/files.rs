@@ -5,7 +5,10 @@
 //! filesystem model; file content is displayed, never executed.
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
@@ -27,7 +30,6 @@ use crate::domain::exec::Command;
 use crate::screens::{Cx, Go, ModalResult, Screen, StatusBits, heading, scroll_drag, scroll_press};
 use crate::sim::fs::{FindHit, Fs, NodeKind, Preview};
 use crate::sim::world::{SourceState, World};
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
@@ -1439,65 +1441,70 @@ impl Screen for FilesPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == scrollbar::id_for(LIST) {
-            cx.focus.focus(LIST);
-            return scroll_press(self.list_area, pos, &mut self.scroll);
-        }
-        if id == PREVIEW || scrollbar::is_bar_of(id, PREVIEW) {
-            cx.focus.focus(PREVIEW);
-            if id == PREVIEW {
-                return self.preview.on_click(pos).or(Outcome::Changed);
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        // the preview: a press anchors a selection and a drag extends it;
+        // its bars and the wheel (on both axes) scroll it
+        if ev.on(PREVIEW) && !ev.is(Phase::Secondary) {
+            if ev.is(Phase::Click) {
+                cx.focus.focus(PREVIEW);
             }
-            return self.preview.on_scrollbar(pos);
+            return self.preview.pointer(ev).outcome();
         }
-        if let Some(i) = self.scroll.visible_range().find(|&i| LIST.child(i) == id) {
-            self.cursor = i;
-            cx.focus.focus(LIST);
-            return Outcome::Changed;
-        }
-        if id == LIST {
-            cx.focus.focus(LIST);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        _pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if let Some(i) = self.scroll.visible_range().find(|&i| LIST.child(i) == id) {
-            self.cursor = i;
-            return match self.mode {
-                Mode::Browse => self.open_current(w, cx),
-                Mode::Find => self.open_actions(cx),
-            };
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if let Some(i) = self.scroll.visible_range().find(|&i| LIST.child(i) == id)
-            && let Some(path) = self.path_at(i)
-        {
-            if cx.context.moves_cursor {
-                self.cursor = i;
+        let row = self.scroll.visible_range().find(|&i| LIST.child(i) == id);
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls the vertical list
+            if id == LIST && axis == Axis::Vertical {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
             }
-            cx.focus.focus(LIST);
-            // the menu opens at the pointer, about the row under it
-            return self.open_actions_at(path, Rect::new(pos.x, pos.y, 1, 1), cx);
+            return Outcome::Ignored;
         }
-        Outcome::Ignored
+        match ev.phase() {
+            Some(Phase::Press) if id == scrollbar::id_for(LIST) => {
+                scroll_press(self.list_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Drag) if id == scrollbar::id_for(LIST) => {
+                scroll_drag(self.list_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Click) => {
+                if id == scrollbar::id_for(LIST) {
+                    cx.focus.focus(LIST);
+                    return scroll_press(self.list_area, pos, &mut self.scroll);
+                }
+                if let Some(i) = row {
+                    self.cursor = i;
+                    // a double click opens the row
+                    if cx.clicks >= 2 {
+                        return match self.mode {
+                            Mode::Browse => self.open_current(w, cx),
+                            Mode::Find => self.open_actions(cx),
+                        };
+                    }
+                    cx.focus.focus(LIST);
+                    return Outcome::Changed;
+                }
+                if id == LIST {
+                    cx.focus.focus(LIST);
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Secondary) => {
+                if let Some(i) = row
+                    && let Some(path) = self.path_at(i)
+                {
+                    if cx.context.moves_cursor {
+                        self.cursor = i;
+                    }
+                    cx.focus.focus(LIST);
+                    // the menu opens at the pointer, about the row under it
+                    return self.open_actions_at(path, Rect::new(pos.x, pos.y, 1, 1), cx);
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
+        }
     }
 
     fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
@@ -1505,50 +1512,6 @@ impl Screen for FilesPage {
             return Outcome::Ignored;
         }
         self.open_actions(cx)
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == PREVIEW {
-            return self.preview.on_click(pos);
-        }
-        if scrollbar::is_bar_of(id, PREVIEW) {
-            return self.preview.on_scrollbar(pos);
-        }
-        if id == scrollbar::id_for(LIST) {
-            return scroll_press(self.list_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == PREVIEW {
-            return self.preview.on_drag(pos);
-        }
-        if scrollbar::is_bar_of(pressed, PREVIEW) {
-            return self.preview.on_bar_drag(pressed, pos);
-        }
-        if pressed == scrollbar::id_for(LIST) {
-            return scroll_drag(self.list_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == LIST {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if self.preview.owns(id) {
-            return self.preview.on_wheel(delta);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel_h(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if self.preview.owns(id) {
-            return self.preview.on_wheel_h(delta);
-        }
-        Outcome::Ignored
     }
 
     fn on_tick(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
