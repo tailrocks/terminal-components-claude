@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
 use crate::pages::{Page, PageCtx, PageEvent, Request};
@@ -62,6 +62,7 @@ pub enum PageId {
     Pickers,
     Settings,
     TaskRunner,
+    Selectable,
 }
 
 pub struct NavEntry {
@@ -186,6 +187,19 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         label: "Task runner",
         section: "Screens",
     },
+    NavEntry {
+        id: PageId::Selectable,
+        label: "Selectable table",
+        section: "Screens",
+    },
+];
+
+/// Extra `--page` names for pages whose label is long or reads several
+/// ways (compared like labels: letters and digits only).
+const PAGE_ALIASES: &[(&str, PageId)] = &[
+    ("selection", PageId::Selectable),
+    ("bulkedit", PageId::Selectable),
+    ("selectable", PageId::Selectable),
 ];
 
 impl PageId {
@@ -206,6 +220,12 @@ impl PageId {
             .iter()
             .find(|e| norm(e.label) == n)
             .map(|e| e.id)
+            .or_else(|| {
+                PAGE_ALIASES
+                    .iter()
+                    .find(|(alias, _)| *alias == n)
+                    .map(|&(_, id)| id)
+            })
     }
 }
 
@@ -235,6 +255,9 @@ pub struct App {
     layout: ShellLayout,
     /// Focus to restore when the help dialog closes.
     saved_focus: Option<WidgetId>,
+    /// Modifiers held with the pointer event being handled; pages read
+    /// them from [`PageCtx::mods`].
+    pointer_mods: KeyModifiers,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -291,6 +314,7 @@ impl App {
                     PageId::Chrome => Box::new(chrome::ChromePage::new()),
                     PageId::Settings => Box::new(settings::SettingsPage::new()),
                     PageId::TaskRunner => Box::new(taskrunner::TaskRunnerPage::new()),
+                    PageId::Selectable => Box::new(selectable::SelectablePage::new()),
                 }
             })
             .collect();
@@ -319,6 +343,7 @@ impl App {
             nav_reveal: true,
             layout: ShellLayout::default(),
             saved_focus: None,
+            pointer_mods: KeyModifiers::NONE,
         };
         // Paused fast-forward: page Tick handlers are pure functions of the
         // tick count, so N synchronous dispatches reproduce the exact
@@ -336,6 +361,7 @@ impl App {
                         focus: &mut app.focus,
                         ring: &app.ring,
                         requests: Vec::new(),
+                        mods: KeyModifiers::NONE,
                     };
                     app.pages[i].handle(&PageEvent::Tick, &mut cx);
                 }
@@ -453,6 +479,7 @@ impl App {
             focus: &mut self.focus,
             ring: &self.ring,
             requests: Vec::new(),
+            mods: self.pointer_mods,
         };
         let i = self.page.index();
         let out = self.pages[i].handle(&ev, &mut cx);
@@ -691,7 +718,9 @@ impl App {
 
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
         let before = self.focus.current();
+        self.pointer_mods = m.mods;
         let out = self.route_mouse(m);
+        self.pointer_mods = KeyModifiers::NONE;
         // focus a click moved shows only on controls that want a ring
         // after a click (FocusVisible)
         let pressed = m.kind == MouseKind::Down && self.pointer.pressed.is_some();

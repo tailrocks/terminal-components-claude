@@ -21,6 +21,7 @@
 120x40 TrueColor Chrome 2d5c1b18d5c3d464
 120x40 TrueColor Settings e8761de856f32d20
 120x40 TrueColor Task runner e54bfaad23d51cba
+120x40 TrueColor Selectable table a112035668c1246c
 120x40 Ansi256 Overview 8762ca769e24bf46
 120x40 Ansi256 Buttons 752265d517af2699
 120x40 Ansi256 Inputs d08dd68f4ac78755
@@ -44,6 +45,7 @@
 120x40 Ansi256 Chrome ade1a36ec4ef236f
 120x40 Ansi256 Settings 30c31765a0cfea22
 120x40 Ansi256 Task runner 4cd830522b9d839e
+120x40 Ansi256 Selectable table 531216e85d7fc6a3
 120x40 Ansi16 Overview b6bc22118a35da8c
 120x40 Ansi16 Buttons e3253cb86ce2a341
 120x40 Ansi16 Inputs 752b32eff3632ed0
@@ -67,6 +69,7 @@
 120x40 Ansi16 Chrome cdbbd43b54e347e3
 120x40 Ansi16 Settings fb89b4851b4fe3c5
 120x40 Ansi16 Task runner 63d3d698527c5ce8
+120x40 Ansi16 Selectable table a506d07d2d2ff618
 120x40 Mono Overview 79beec419b568f4b
 120x40 Mono Buttons a9dc52a4a9f06220
 120x40 Mono Inputs 58ebbe32a3d3848b
@@ -90,6 +93,7 @@
 120x40 Mono Chrome c5c6242623584dd2
 120x40 Mono Settings 8344caf5f21dbc72
 120x40 Mono Task runner 9f4f7527c08c087d
+120x40 Mono Selectable table 43fe69fb369c5b24
 80x24 TrueColor Overview 053c5c88d59588c9
 80x24 TrueColor Buttons 149762f336169aa3
 80x24 TrueColor Inputs 3de0d5073c9235a8
@@ -113,6 +117,7 @@
 80x24 TrueColor Chrome 784350229b89bd6b
 80x24 TrueColor Settings e34255fc6e0479a0
 80x24 TrueColor Task runner a235da554bd9a55e
+80x24 TrueColor Selectable table 7288a4ab174091f3
 80x24 Ansi256 Overview 12bbd2753657ab6f
 80x24 Ansi256 Buttons 63eeab0a71b89fa5
 80x24 Ansi256 Inputs 40bfed0a305fb2bc
@@ -136,6 +141,7 @@
 80x24 Ansi256 Chrome 85dff7c8910bd26c
 80x24 Ansi256 Settings 506037c3a2129594
 80x24 Ansi256 Task runner 61eb1d7a74a4f25e
+80x24 Ansi256 Selectable table c17462e98072579a
 80x24 Ansi16 Overview bfd635e008cbea29
 80x24 Ansi16 Buttons c077e5b953bcb22e
 80x24 Ansi16 Inputs d827af18a3588d18
@@ -159,6 +165,7 @@
 80x24 Ansi16 Chrome cf38c22a1964bf00
 80x24 Ansi16 Settings ae2948a7e50e1286
 80x24 Ansi16 Task runner b94748d3ee6fcf96
+80x24 Ansi16 Selectable table 289687d4ec553619
 80x24 Mono Overview 340f182892ae07f7
 80x24 Mono Buttons 47c2ca07dead32d2
 80x24 Mono Inputs e07b6b0b72774998
@@ -182,6 +189,7 @@
 80x24 Mono Chrome 2769af583a0e7ba4
 80x24 Mono Settings 94fb5b73198b0694
 80x24 Mono Task runner dba518e09d9c1190
+80x24 Mono Selectable table 39815102ec3ffce5
 72x20 TrueColor Overview 13da01f475439c38
 72x20 TrueColor Buttons 27e3164cfc16c6d0
 72x20 TrueColor Inputs a45b33bc658c67ea
@@ -205,6 +213,7 @@
 72x20 TrueColor Chrome 2f846f2cce48b41f
 72x20 TrueColor Settings 8b29a7a8a2559b4b
 72x20 TrueColor Task runner 6ff6ac196ccb4159
+72x20 TrueColor Selectable table 503bac10cbffd1eb
 72x20 Ansi256 Overview 571826796d74f3a6
 72x20 Ansi256 Buttons e8cbd844e39c2d01
 72x20 Ansi256 Inputs 17ea450a97295197
@@ -228,6 +237,7 @@
 72x20 Ansi256 Chrome fb3a3ed49d6c3ad2
 72x20 Ansi256 Settings 092a1e6fe2336ebd
 72x20 Ansi256 Task runner 13af7ff8c15d6dae
+72x20 Ansi256 Selectable table d60f8a2fe7c756ec
 72x20 Ansi16 Overview 465ebc7481e96096
 72x20 Ansi16 Buttons d6976279990d3e16
 72x20 Ansi16 Inputs fedac5bfe249f2d6
@@ -251,6 +261,7 @@
 72x20 Ansi16 Chrome 31ad73054daf4c80
 72x20 Ansi16 Settings fceb51b5678c3fef
 72x20 Ansi16 Task runner 54552732784b91b1
+72x20 Ansi16 Selectable table 7f6cb66a1cf3d3ac
 72x20 Mono Overview 1276933f1f8b17b4
 72x20 Mono Buttons 5909e7b00dc26a60
 72x20 Mono Inputs dca63d703d81d9e0
@@ -274,6 +285,7 @@
 72x20 Mono Chrome 125cba233cbda982
 72x20 Mono Settings 9ddaa1374ef7b235
 72x20 Mono Task runner 4b9f2483ba70a201
+72x20 Mono Selectable table 540cf2e2c2b94d4a
 100x30 TrueColor Overview 6635bb16ca5c80eb
 100x30 TrueColor Buttons 2ce26b17c68f8f07
 100x30 TrueColor Inputs 3fdd93098f856b61
@@ -297,6 +309,7 @@
 100x30 TrueColor Chrome a3ceb8dad830898d
 100x30 TrueColor Settings 514443afcab34d78
 100x30 TrueColor Task runner 444d6cefed12f00b
+100x30 TrueColor Selectable table 14607514fc28923e
 100x30 Ansi256 Overview a8ccc43586849392
 100x30 Ansi256 Buttons 8d971c8f5556ffff
 100x30 Ansi256 Inputs a2a6129790bd49b0
@@ -320,6 +333,7 @@
 100x30 Ansi256 Chrome 763015ecd06c104c
 100x30 Ansi256 Settings 15bf0fae58ebdc2e
 100x30 Ansi256 Task runner a72668e5221c174f
+100x30 Ansi256 Selectable table 3663917aa1417ced
 100x30 Ansi16 Overview 1525468eb47d8afe
 100x30 Ansi16 Buttons ce92ded81c979d38
 100x30 Ansi16 Inputs 3162ee53d727f238
@@ -343,6 +357,7 @@
 100x30 Ansi16 Chrome 9525abd42f022d7e
 100x30 Ansi16 Settings 5e7e0fea81d2f97a
 100x30 Ansi16 Task runner ddacf660e997c99f
+100x30 Ansi16 Selectable table dc99ae7ede1039bc
 100x30 Mono Overview 173bc6b54e4036df
 100x30 Mono Buttons 9b5710b485e02683
 100x30 Mono Inputs def3960872f2b091
@@ -366,6 +381,7 @@
 100x30 Mono Chrome 8a65658ec5abd8b7
 100x30 Mono Settings 17ce6a98900f9f7f
 100x30 Mono Task runner 413aecde98a2ce30
+100x30 Mono Selectable table c6b572a95cfd4ea5
 160x50 TrueColor Overview c00e629dc4a172c2
 160x50 TrueColor Buttons 9e0fbe5d07b3ccd5
 160x50 TrueColor Inputs cdc0a078010d9df2
@@ -389,6 +405,7 @@
 160x50 TrueColor Chrome a3d9e6410ef03b95
 160x50 TrueColor Settings 8ef2dfa0a432285b
 160x50 TrueColor Task runner c5253eae9ccc7841
+160x50 TrueColor Selectable table 9bb1eb365890498d
 160x50 Ansi256 Overview 44f370f6c2f158c8
 160x50 Ansi256 Buttons e891e690ee151e62
 160x50 Ansi256 Inputs fc27eb183820dd1f
@@ -412,6 +429,7 @@
 160x50 Ansi256 Chrome b14eedd9f54897b6
 160x50 Ansi256 Settings f53fec05a2c593b3
 160x50 Ansi256 Task runner 983be8865f151191
+160x50 Ansi256 Selectable table cdaaa0c374c07d3e
 160x50 Ansi16 Overview 8de4f065ec1b9a08
 160x50 Ansi16 Buttons 1f1d7f2406baf982
 160x50 Ansi16 Inputs ddfa21164e732d12
@@ -435,6 +453,7 @@
 160x50 Ansi16 Chrome a6fe39183c595058
 160x50 Ansi16 Settings a35da8e7404039bb
 160x50 Ansi16 Task runner 016a70ecad995539
+160x50 Ansi16 Selectable table ab148fbe6c77de86
 160x50 Mono Overview b32758a69fccbfd1
 160x50 Mono Buttons 7a6ee0a9dbdb9605
 160x50 Mono Inputs f1d338ca598203a3
@@ -458,3 +477,4 @@
 160x50 Mono Chrome 4dd0d4d4f74f2449
 160x50 Mono Settings 251af0fa18af44d4
 160x50 Mono Task runner 1f44c2fef5241b5a
+160x50 Mono Selectable table ff916f605d2d4fd8

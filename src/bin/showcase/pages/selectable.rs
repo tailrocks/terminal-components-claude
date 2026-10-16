@@ -1,0 +1,910 @@
+//! Selectable table driving an editor: a members table in multi-selection
+//! mode (checkbox column, tri-state header, disabled owner row) beside an
+//! inspector that edits the selected member, bulk-edits the fields several
+//! members share (`— mixed —` where they differ), applies or reverts, and
+//! deletes after a confirmation that names the count.
+
+use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::{Constraint, Rect};
+
+use crate::pages::{Hint, Page, PageCtx, PageEvent};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::selection::SelectionMode;
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
+use junie_tui::widgets::button::{Button, row_layout};
+use junie_tui::widgets::choice::Checkbox;
+use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::empty::{self, EmptyState};
+use junie_tui::widgets::input::{InputEvent, TextInput};
+use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::select::Select;
+use junie_tui::widgets::table::{Cell, Column, DataTable, TableEvent, Tone};
+
+const ID: WidgetId = WidgetId::of("selectable");
+const DELETE: WidgetId = WidgetId::of("selectable.delete_dialog");
+/// The placeholder a bulk edit shows where the selected members differ.
+pub const MIXED: &str = "— mixed —";
+/// Width of the editor beside the table on a wide page.
+const EDITOR_W: u16 = 44;
+/// Rows the editor card takes: heading, four field rows, the action row
+/// and the frame.
+const EDITOR_H: u16 = 17;
+
+const ROLES: [&str; 3] = ["Admin", "Editor", "Viewer"];
+const STATUSES: [&str; 3] = ["Active", "Invited", "Suspended"];
+const REGIONS: [&str; 3] = ["EU", "US", "APAC"];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Member {
+    pub name: String,
+    pub email: String,
+    /// Index into [`ROLES`]; `None` for the workspace owner.
+    pub role: Option<usize>,
+    pub status: usize,
+    pub region: usize,
+    pub on_call: bool,
+    pub notes: String,
+}
+
+fn member(
+    name: &str,
+    email: &str,
+    role: Option<usize>,
+    status: usize,
+    region: usize,
+    on_call: bool,
+    notes: &str,
+) -> Member {
+    Member {
+        name: name.into(),
+        email: email.into(),
+        role,
+        status,
+        region,
+        on_call,
+        notes: notes.into(),
+    }
+}
+
+pub fn members() -> Vec<Member> {
+    vec![
+        member(
+            "Dana Whitfield",
+            "dana@northwind.dev",
+            None,
+            0,
+            0,
+            true,
+            "Workspace owner",
+        ),
+        member(
+            "Ari Moreno",
+            "ari@northwind.dev",
+            Some(0),
+            0,
+            1,
+            true,
+            "Runs the release train",
+        ),
+        member(
+            "Cleo Barnes",
+            "cleo@northwind.dev",
+            Some(1),
+            0,
+            0,
+            false,
+            "Docs and changelog",
+        ),
+        member("Bo Lindqvist", "bo@northwind.dev", Some(1), 1, 0, false, ""),
+        member(
+            "Eli Nakamura",
+            "eli@contractor.io",
+            Some(2),
+            0,
+            2,
+            false,
+            "Contract ends in March",
+        ),
+        member(
+            "Fay Okafor",
+            "fay@northwind.dev",
+            Some(1),
+            0,
+            1,
+            true,
+            "On call this week",
+        ),
+        member(
+            "Gus Petrov",
+            "gus@northwind.dev",
+            Some(2),
+            2,
+            0,
+            false,
+            "Left the team",
+        ),
+        member("Hana Sato", "hana@northwind.dev", Some(1), 0, 2, false, ""),
+        member(
+            "Ivo Brandt",
+            "ivo@northwind.dev",
+            Some(0),
+            0,
+            0,
+            true,
+            "Billing contact",
+        ),
+        member("June Park", "june@northwind.dev", Some(2), 1, 1, false, ""),
+        member(
+            "Kai Mensah",
+            "kai@northwind.dev",
+            Some(1),
+            0,
+            2,
+            false,
+            "Mobile app",
+        ),
+        member("Lena Varga", "lena@northwind.dev", Some(2), 0, 0, false, ""),
+    ]
+}
+
+fn columns() -> Vec<Column> {
+    vec![
+        Column::new("Name", Constraint::Min(15)),
+        Column::new("Role", Constraint::Length(6)),
+        Column::new("Status", Constraint::Length(9)),
+        Column::new("Region", Constraint::Length(6)),
+        Column::new("On call", Constraint::Length(7)),
+        Column::new("Email", Constraint::Min(20)),
+        Column::new("Notes", Constraint::Min(22)),
+    ]
+}
+
+fn cells(m: &Member) -> Vec<Cell> {
+    let status = Cell::new(STATUSES[m.status]).tone(match m.status {
+        1 => Tone::Secondary,
+        2 => Tone::Warning,
+        _ => Tone::Normal,
+    });
+    vec![
+        Cell::new(m.name.clone()),
+        Cell::new(m.role.map_or("Owner", |r| ROLES[r])),
+        status,
+        Cell::new(REGIONS[m.region]),
+        Cell::new(if m.on_call { "Yes" } else { "—" }).tone(if m.on_call {
+            Tone::Normal
+        } else {
+            Tone::Faint
+        }),
+        Cell::new(m.email.clone()),
+        Cell::new(if m.notes.is_empty() { "—" } else { &m.notes }),
+    ]
+}
+
+/// What the form holds, field by field. `None` is "leave as it is": a
+/// field that is not shown (name and email in a bulk edit) or that still
+/// shows `— mixed —`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct FormValues {
+    name: Option<String>,
+    email: Option<String>,
+    role: Option<usize>,
+    status: Option<usize>,
+    region: Option<usize>,
+    on_call: Option<bool>,
+    notes: Option<String>,
+}
+
+fn name_rule(s: &str) -> Option<String> {
+    s.trim().is_empty().then(|| "Enter a name".to_owned())
+}
+
+fn email_rule(s: &str) -> Option<String> {
+    (!s.contains('@') || !s.contains('.')).then(|| "Enter a valid email address".to_owned())
+}
+
+/// The value every selected member shares, or `None` when they differ.
+fn shared<T: PartialEq + Clone>(mut it: impl Iterator<Item = T>) -> Option<T> {
+    let first = it.next()?;
+    it.all(|v| v == first).then_some(first)
+}
+
+pub struct SelectablePage {
+    pub members: Vec<Member>,
+    pub table: DataTable,
+    pub name: TextInput,
+    pub email: TextInput,
+    pub role: Select,
+    pub status: Select,
+    pub region: Select,
+    pub on_call: Checkbox,
+    pub notes: TextInput,
+    pub apply: Button,
+    pub revert: Button,
+    pub delete: Button,
+    /// Source rows the form was loaded from.
+    loaded: Vec<usize>,
+    /// The form as loaded: Apply writes only what differs from it.
+    base: FormValues,
+    /// The notes differ across the selection (the field shows `— mixed —`
+    /// while empty).
+    notes_mixed: bool,
+    /// The last apply or delete, shown beside the actions.
+    pub feedback: Option<String>,
+    sections: crate::pages::layout::Sections,
+}
+
+impl SelectablePage {
+    pub fn new() -> Self {
+        let members = members();
+        let table = DataTable::new(
+            ID.sub("members"),
+            columns(),
+            members.iter().map(cells).collect(),
+        )
+        .selection_mode(SelectionMode::Multi)
+        .selection_column(true)
+        // the workspace owner is listed but cannot be edited here
+        .disabled_rows(&[0])
+        .empty_text("No members yet");
+        let mut page = Self {
+            members,
+            table,
+            name: TextInput::new(ID.sub("name"), "Name")
+                .required(true)
+                .validator(name_rule),
+            email: TextInput::new(ID.sub("email"), "Email")
+                .required(true)
+                .validator(email_rule),
+            role: Select::new(ID.sub("role"), "Role", &ROLES, 0),
+            status: Select::new(ID.sub("status"), "Status", &STATUSES, 0),
+            region: Select::new(ID.sub("region"), "Region", &REGIONS, 0),
+            on_call: Checkbox::new(ID.sub("oncall"), "On call", false),
+            notes: TextInput::new(ID.sub("notes"), "Notes").plain_label(),
+            apply: Button::primary(ID.sub("apply"), "Apply"),
+            revert: Button::subtle(ID.sub("revert"), "Revert"),
+            delete: Button::danger(ID.sub("delete"), "Delete…"),
+            loaded: vec![],
+            base: FormValues::default(),
+            notes_mixed: false,
+            feedback: None,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        page.load();
+        page
+    }
+
+    /// Fill the form from the current selection.
+    pub fn load(&mut self) {
+        self.loaded = self.table.selected_rows();
+        let sel: Vec<&Member> = self.loaded.iter().map(|&r| &self.members[r]).collect();
+        let single = sel.len() == 1;
+        for input in [&mut self.name, &mut self.email, &mut self.notes] {
+            input.editing = false;
+            input.error = None;
+        }
+        let text = |f: fn(&Member) -> &str| {
+            if single {
+                f(sel[0]).to_owned()
+            } else {
+                String::new()
+            }
+        };
+        self.name.buffer.set_text(text(|m| &m.name));
+        self.email.buffer.set_text(text(|m| &m.email));
+        let pick = |sel_w: &mut Select, v: Option<usize>| {
+            sel_w.open = false;
+            match v {
+                Some(i) => {
+                    sel_w.selected = i;
+                    sel_w.cursor = i;
+                    sel_w.set_mixed(None);
+                }
+                None => sel_w.set_mixed(Some(MIXED)),
+            }
+        };
+        pick(
+            &mut self.role,
+            shared(sel.iter().map(|m| m.role.unwrap_or(0))),
+        );
+        pick(&mut self.status, shared(sel.iter().map(|m| m.status)));
+        pick(&mut self.region, shared(sel.iter().map(|m| m.region)));
+        match shared(sel.iter().map(|m| m.on_call)) {
+            Some(on) => {
+                self.on_call.checked = on;
+                self.on_call.mixed = false;
+            }
+            None => {
+                self.on_call.checked = false;
+                self.on_call.mixed = true;
+            }
+        }
+        let notes = shared(sel.iter().map(|m| m.notes.clone()));
+        self.notes_mixed = notes.is_none() && !sel.is_empty();
+        self.notes.buffer.set_text(notes.unwrap_or_default());
+        self.notes.placeholder = if self.notes_mixed {
+            MIXED.to_owned()
+        } else {
+            "Add a note".to_owned()
+        };
+        self.base = self.values();
+    }
+
+    fn values(&self) -> FormValues {
+        let single = self.loaded.len() == 1;
+        let choice = |s: &Select| s.mixed.is_none().then_some(s.selected);
+        FormValues {
+            name: single.then(|| self.name.text().to_owned()),
+            email: single.then(|| self.email.text().to_owned()),
+            role: choice(&self.role),
+            status: choice(&self.status),
+            region: choice(&self.region),
+            on_call: (!self.on_call.mixed).then_some(self.on_call.checked),
+            notes: (!(self.notes_mixed && self.notes.text().is_empty()))
+                .then(|| self.notes.text().to_owned()),
+        }
+    }
+
+    /// The form differs from what was loaded.
+    pub fn dirty(&self) -> bool {
+        !self.loaded.is_empty() && self.values() != self.base
+    }
+
+    fn editors(&self) -> [WidgetId; 9] {
+        [
+            self.name.id,
+            self.email.id,
+            self.role.id,
+            self.status.id,
+            self.region.id,
+            self.on_call.id,
+            self.notes.id,
+            self.apply.id,
+            self.revert.id,
+        ]
+    }
+
+    fn selection_changed(&mut self) {
+        self.feedback = None;
+        self.load();
+    }
+
+    /// Write the fields that changed to every loaded member.
+    fn do_apply(&mut self, cx: &mut PageCtx) {
+        for input in [&mut self.name, &mut self.email, &mut self.notes] {
+            if input.editing {
+                input.commit();
+            }
+        }
+        if !self.dirty() {
+            return;
+        }
+        if self.loaded.len() == 1 {
+            let a = self.name.validate();
+            let b = self.email.validate();
+            if !(a && b) {
+                cx.status("Fix the highlighted fields");
+                let first = if self.name.error.is_some() {
+                    self.name.id
+                } else {
+                    self.email.id
+                };
+                cx.focus.focus(first);
+                return;
+            }
+        }
+        let now = self.values();
+        let base = self.base.clone();
+        for &r in &self.loaded {
+            let m = &mut self.members[r];
+            if now.name != base.name
+                && let Some(v) = &now.name
+            {
+                m.name = v.trim().to_owned();
+            }
+            if now.email != base.email
+                && let Some(v) = &now.email
+            {
+                m.email = v.trim().to_owned();
+            }
+            if now.role != base.role
+                && let Some(v) = now.role
+            {
+                m.role = Some(v);
+            }
+            if now.status != base.status
+                && let Some(v) = now.status
+            {
+                m.status = v;
+            }
+            if now.region != base.region
+                && let Some(v) = now.region
+            {
+                m.region = v;
+            }
+            if now.on_call != base.on_call
+                && let Some(v) = now.on_call
+            {
+                m.on_call = v;
+            }
+            if now.notes != base.notes
+                && let Some(v) = &now.notes
+            {
+                m.notes = v.trim().to_owned();
+            }
+            self.table.set_row(r, cells(m));
+        }
+        let n = self.loaded.len();
+        let msg = if n == 1 {
+            format!("Saved {}", self.members[self.loaded[0]].name)
+        } else {
+            format!("Updated {n} members")
+        };
+        self.load();
+        cx.status(msg.clone());
+        self.feedback = Some(msg);
+    }
+
+    fn do_revert(&mut self, cx: &mut PageCtx) {
+        self.load();
+        self.feedback = None;
+        cx.status("Changes reverted");
+    }
+
+    fn ask_delete(&mut self, cx: &mut PageCtx) {
+        let n = self.table.selected_rows().len();
+        if n == 0 {
+            return;
+        }
+        let noun = if n == 1 { "member" } else { "members" };
+        let d = Dialog::destructive(
+            DELETE,
+            &format!("Delete {n} {noun}?"),
+            "They lose access to the workspace right away. This can't be undone.",
+            &format!("Delete {n} {noun}"),
+        );
+        cx.open(d);
+    }
+
+    fn do_delete(&mut self, cx: &mut PageCtx) {
+        let rows = self.table.selected_rows();
+        let n = rows.len();
+        self.table.remove_rows(&rows);
+        let mut i = 0;
+        self.members.retain(|_| {
+            let keep = !rows.contains(&i);
+            i += 1;
+            keep
+        });
+        self.table.clear_selection();
+        self.load();
+        let msg = format!("Deleted {n} {}", if n == 1 { "member" } else { "members" });
+        cx.status(msg.clone());
+        self.feedback = Some(msg);
+        cx.focus.focus(self.table.id);
+    }
+
+    /// Enter on a table row: make sure it is selected, then edit it.
+    fn edit_row(&mut self, src: usize, cx: &mut PageCtx) {
+        if !self.table.selection.contains(src) {
+            let disabled = self.table.disabled.clone();
+            self.table
+                .selection
+                .select_only(src, |r| !disabled.contains(&r));
+            self.selection_changed();
+        }
+        if self.loaded.is_empty() {
+            return;
+        }
+        let first = if self.loaded.len() == 1 {
+            self.name.id
+        } else {
+            self.role.id
+        };
+        cx.focus.focus(first);
+    }
+
+    fn on_table_event(&mut self, ev: Option<TableEvent>, cx: &mut PageCtx) {
+        match ev {
+            Some(TableEvent::SelectionChanged) => self.selection_changed(),
+            Some(TableEvent::Activated(src)) => self.edit_row(src, cx),
+            _ => {}
+        }
+    }
+
+    fn selects(&mut self) -> [&mut Select; 3] {
+        [&mut self.role, &mut self.status, &mut self.region]
+    }
+
+    fn render_table(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Members")).focused(ctx.interaction.focused(self.table.id));
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        self.table.render(inner, buf, ctx, bg);
+        let pos = scrollbar::position_label(&self.table.scroll);
+        let meta = [self.table.selection_label(), pos]
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" · ");
+        panel.draw_meta(area, buf, t, &meta);
+    }
+
+    fn render_editor(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let n = self.loaded.len();
+        let title = match n {
+            0 => "Details".to_owned(),
+            1 => "Edit member".to_owned(),
+            n => format!("Edit {n} members"),
+        };
+        let panel = Panel::card(Some(&title));
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        if n == 0 {
+            let e = EmptyState::new("No member selected").hint(
+                "Select rows in the table to edit them here. Space selects, \
+                 Shift+↑↓ extends, Ctrl+A selects all.",
+            );
+            empty::render(inner, buf, t, &e, bg);
+            return;
+        }
+        let bottom = inner.bottom();
+        let fits = |y: u16, h: u16| y + h <= bottom;
+        let mut y = inner.y;
+        let gap = 2;
+        let half = inner.width.saturating_sub(gap) / 2;
+        let left = |y: u16, h: u16| Rect::new(inner.x, y, half, h);
+        let right =
+            |y: u16, h: u16| Rect::new(inner.x + half + gap, y, inner.width - half - gap, h);
+
+        let heading = if n == 1 {
+            "Applies to this member".to_owned()
+        } else {
+            format!("Applies to all {n} · names and emails stay")
+        };
+        buf.set_string(
+            inner.x + 2,
+            y,
+            junie_tui::ui::text::truncate(&heading, inner.width.saturating_sub(2) as usize),
+            t.faint().bg(bg),
+        );
+        y += 1;
+        if n == 1 && fits(y, 3) {
+            self.name.render(left(y, 3), buf, ctx, bg);
+            self.email.render(right(y, 3), buf, ctx, bg);
+            y += 3;
+        }
+        if fits(y, 3) {
+            self.role.render(left(y, Select::HEIGHT), buf, ctx, bg);
+            self.status.render(right(y, Select::HEIGHT), buf, ctx, bg);
+            y += 3;
+        }
+        if fits(y, 3) {
+            self.region.render(left(y, Select::HEIGHT), buf, ctx, bg);
+            self.on_call.render(right(y + 1, 1), buf, ctx, bg);
+            y += 3;
+        }
+        if fits(y, 3) {
+            self.notes
+                .render(Rect::new(inner.x, y, inner.width, 3), buf, ctx, bg);
+        }
+        // actions on the last row
+        let dirty = self.dirty();
+        self.apply.disabled = !dirty;
+        self.revert.disabled = !dirty;
+        let ay = bottom.saturating_sub(1);
+        if ay > y {
+            let widths = [self.apply.width(), self.revert.width(), self.delete.width()];
+            let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);
+            self.apply.render(rects[0], buf, ctx, bg);
+            self.revert.render(rects[1], buf, ctx, bg);
+            self.delete.render(rects[2], buf, ctx, bg);
+            if let Some(msg) = &self.feedback
+                && !dirty
+                && ay > inner.y
+            {
+                let msg = format!("{msg} ✓");
+                buf.set_string(
+                    inner.x + 2,
+                    ay - 1,
+                    junie_tui::ui::text::truncate(&msg, inner.width.saturating_sub(2) as usize),
+                    t.accent_fg().bg(bg),
+                );
+            } else if dirty && ay > inner.y {
+                buf.set_string(
+                    inner.x + 2,
+                    ay - 1,
+                    junie_tui::ui::text::truncate(
+                        "Unsaved changes",
+                        inner.width.saturating_sub(2) as usize,
+                    ),
+                    t.secondary().bg(bg),
+                );
+            }
+        }
+    }
+
+    fn route_input(
+        input: &mut TextInput,
+        key: &junie_tui::core::event::Key,
+        cx: &mut PageCtx,
+    ) -> Outcome {
+        let (out, ev) = input.on_key(key);
+        match ev {
+            Some(InputEvent::CommittedTab { backward: false }) => cx.focus_next(),
+            Some(InputEvent::CommittedTab { backward: true }) => cx.focus_prev(),
+            _ => {}
+        }
+        out
+    }
+}
+
+impl Page for SelectablePage {
+    fn title(&self) -> &'static str {
+        "Selectable table"
+    }
+    fn blurb(&self) -> &'static str {
+        "Select rows, edit one or many together, delete with a confirmation"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        if area.width > 50 + EDITOR_W {
+            // side by side: the table takes what the editor leaves
+            let tw = area.width - EDITOR_W - 1;
+            self.render_table(Rect::new(area.x, area.y, tw, area.height), buf, ctx);
+            let eh = area.height.min(EDITOR_H);
+            self.render_editor(Rect::new(area.x + tw + 1, area.y, EDITOR_W, eh), buf, ctx);
+            return;
+        }
+        // stacked: the page scrolls by whole cards on a short terminal
+        let focus = if ctx.interaction.has_focus(self.table.id) {
+            Some(0)
+        } else if self
+            .editors()
+            .iter()
+            .any(|&id| ctx.interaction.has_focus(id))
+            || ctx.interaction.has_focus(self.delete.id)
+        {
+            Some(1)
+        } else {
+            None
+        };
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::flex(8, area.height.saturating_sub(EDITOR_H + 1).max(8)),
+                StackChild::fixed(EDITOR_H),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        match l.slot(0) {
+            Some(r) => self.render_table(r, buf, ctx),
+            None => ctx.focus_stop(self.table.id),
+        }
+        if let Some(r) = l.slot(1) {
+            self.render_editor(r, buf, ctx);
+        }
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
+        match ev {
+            PageEvent::Key(key) => {
+                if key.ctrl_char('s') && !self.editing() {
+                    self.do_apply(cx);
+                    return Outcome::Changed;
+                }
+                let Some(f) = cx.focus.current() else {
+                    return Outcome::Ignored;
+                };
+                if f == self.table.id {
+                    if !self.table.is_editing()
+                        && (key.is_char('d') || key.is(KeyCode::Delete))
+                        && !self.table.selected_rows().is_empty()
+                    {
+                        self.ask_delete(cx);
+                        return Outcome::Changed;
+                    }
+                    let (out, tev) = self.table.on_key(key);
+                    self.on_table_event(tev, cx);
+                    return out;
+                }
+                if f == self.name.id {
+                    return Self::route_input(&mut self.name, key, cx);
+                }
+                if f == self.email.id {
+                    return Self::route_input(&mut self.email, key, cx);
+                }
+                if f == self.notes.id {
+                    return Self::route_input(&mut self.notes, key, cx);
+                }
+                for sel in self.selects() {
+                    if sel.id == f {
+                        return sel.on_key(key).0;
+                    }
+                }
+                if f == self.on_call.id {
+                    return self.on_call.on_key(key);
+                }
+                if f == self.apply.id {
+                    let (out, act) = self.apply.on_key(key);
+                    if act {
+                        self.do_apply(cx);
+                    }
+                    return out;
+                }
+                if f == self.revert.id {
+                    let (out, act) = self.revert.on_key(key);
+                    if act {
+                        self.do_revert(cx);
+                    }
+                    return out;
+                }
+                if f == self.delete.id {
+                    let (out, act) = self.delete.on_key(key);
+                    if act {
+                        self.ask_delete(cx);
+                    }
+                    return out;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Paste(text) => {
+                for input in [&mut self.name, &mut self.email, &mut self.notes] {
+                    if input.editing {
+                        return input.on_paste(text);
+                    }
+                }
+                self.table.on_paste(text)
+            }
+            PageEvent::Click { id, pos } => {
+                let id = *id;
+                if id == self.table.check_all_id() {
+                    cx.focus.focus(self.table.id);
+                    let (out, tev) = self.table.on_click_check_all();
+                    self.on_table_event(tev, cx);
+                    return out;
+                }
+                if let Some(d) = self.table.locate_check(id) {
+                    cx.focus.focus(self.table.id);
+                    let (out, tev) = self.table.on_click_check(d);
+                    self.on_table_event(tev, cx);
+                    return out;
+                }
+                if let Some(c) = self.table.locate_header(id) {
+                    cx.focus.focus(self.table.id);
+                    return self.table.on_click_header(c);
+                }
+                if let Some((row, col)) = self.table.locate(id) {
+                    cx.focus.focus(self.table.id);
+                    let (out, tev) =
+                        self.table
+                            .on_click_cell_with(row, col.unwrap_or(0), *pos, cx.mods);
+                    self.on_table_event(tev, cx);
+                    return out;
+                }
+                if scrollbar::is_bar_of(id, self.table.id) {
+                    return self.table.on_scrollbar(*pos);
+                }
+                for input in [&mut self.name, &mut self.email, &mut self.notes] {
+                    if id == input.id {
+                        cx.focus.focus(id);
+                        return input.on_click(*pos);
+                    }
+                }
+                for sel in self.selects() {
+                    if sel.owns(id) {
+                        if id == sel.id {
+                            cx.focus.focus(sel.id);
+                        }
+                        return sel.on_click(id).0;
+                    }
+                }
+                if id == self.on_call.id {
+                    return self.on_call.on_click();
+                }
+                if id == self.apply.id {
+                    if self.apply.on_click() {
+                        self.do_apply(cx);
+                    }
+                    return Outcome::Changed;
+                }
+                if id == self.revert.id {
+                    if self.revert.on_click() {
+                        self.do_revert(cx);
+                    }
+                    return Outcome::Changed;
+                }
+                if id == self.delete.id {
+                    if self.delete.on_click() {
+                        self.ask_delete(cx);
+                    }
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Press { id, pos } if scrollbar::is_bar_of(*id, self.table.id) => {
+                self.table.on_scrollbar(*pos)
+            }
+            PageEvent::Drag { pressed, pos } if scrollbar::is_bar_of(*pressed, self.table.id) => {
+                self.table.on_bar_drag(*pressed, *pos)
+            }
+            PageEvent::Wheel { id, delta } => {
+                for sel in self.selects() {
+                    if sel.open && sel.owns(*id) {
+                        return sel.on_wheel(*delta);
+                    }
+                }
+                if self.table.owns(*id) {
+                    return self.table.on_wheel(*delta);
+                }
+                Outcome::Ignored
+            }
+            PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
+                self.table.on_wheel_h(*delta)
+            }
+            PageEvent::DialogClosed { id, result, .. } if *id == DELETE => {
+                if *result == DialogResult::Action(1) {
+                    self.do_delete(cx);
+                } else {
+                    cx.status("Nothing deleted");
+                }
+                Outcome::Changed
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn editing(&self) -> bool {
+        self.name.editing || self.email.editing || self.notes.editing || self.table.is_editing()
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if self.editing() {
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next field")];
+        }
+        let selected = !self.table.selected_rows().is_empty();
+        let save = ("Ctrl+S", "Apply changes");
+        match focus {
+            Some(f) if f == self.table.id => {
+                let mut h = vec![
+                    ("Space", "Select"),
+                    ("Shift+↑↓", "Extend"),
+                    ("Ctrl+A", "Select all"),
+                ];
+                if selected {
+                    h.push(("Enter", "Edit"));
+                    h.push(("d", "Delete…"));
+                    h.push(("Esc", "Clear selection"));
+                } else {
+                    h.push(("↑↓", "Move"));
+                    h.push(("s", "Sort column"));
+                }
+                if self.dirty() {
+                    h.push(save);
+                }
+                h
+            }
+            Some(f) if f == self.name.id || f == self.email.id || f == self.notes.id => {
+                vec![("Enter", "Edit"), ("Tab", "Next field"), save]
+            }
+            Some(f) if f == self.role.id || f == self.status.id || f == self.region.id => {
+                vec![("Enter", "Open"), ("↑↓", "Choose"), save]
+            }
+            Some(f) if f == self.on_call.id => vec![("Space", "Toggle on call"), save],
+            Some(f) if f == self.apply.id => vec![("Enter", "Apply"), ("Tab", "Next")],
+            Some(f) if f == self.revert.id => vec![("Enter", "Revert"), ("Tab", "Next")],
+            Some(f) if f == self.delete.id => vec![("Enter", "Delete…"), ("Tab", "Next")],
+            _ => vec![("Tab", "Members table")],
+        }
+    }
+}
