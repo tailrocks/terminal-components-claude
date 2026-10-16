@@ -141,6 +141,20 @@ impl FormField {
             FormFieldKind::Note(_) => None,
         }
     }
+
+    /// The field's Tab stop, `None` when it takes no focus (a note or a
+    /// disabled control).
+    fn tab_stop(&self) -> Option<WidgetId> {
+        let disabled = match &self.kind {
+            FormFieldKind::Input(i) => i.disabled,
+            FormFieldKind::Select(s) => s.disabled,
+            FormFieldKind::Check(c) => c.disabled,
+            FormFieldKind::Radio(r) => r.disabled,
+            FormFieldKind::Chooser { button, .. } => button.disabled,
+            FormFieldKind::Note(_) => true,
+        };
+        if disabled { None } else { self.focus_id() }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -785,6 +799,12 @@ impl FormDialog {
                 continue;
             }
             let fh = f.height() as i32;
+            let whole = y >= body.y as i32 && y < body.bottom() as i32;
+            if !whole && let Some(id) = f.tab_stop() {
+                // scrolled out of the body (or cut at its top): not drawn,
+                // still in the Tab order; focusing it scrolls it into view
+                ctx.focus_stop(id);
+            }
             if y + fh > body.y as i32 && y < body.bottom() as i32 {
                 let yy = y.max(body.y as i32) as u16;
                 let clip_top = (body.y as i32 - y).max(0) as u16;
@@ -1108,6 +1128,38 @@ mod tests {
         focus.focus(w.save.id);
         w.on_key(&key(KeyCode::Right), &mut focus, &ring);
         assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
+    }
+
+    /// Fields scrolled out of a short form stay in the Tab order. Found
+    /// re-approving jackin: at 72x20 the New account form's Credential
+    /// source and 1Password reference were below the body, never drawn,
+    /// so Tab went from Provider straight to the buttons and they could
+    /// not be reached by keyboard.
+    #[test]
+    fn fields_scrolled_out_of_the_body_stay_in_the_tab_order() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let ids: Vec<WidgetId> = (0..8).map(|i| WidgetId::of("f").child(i)).collect();
+        let fields = ids
+            .iter()
+            .enumerate()
+            .map(|(i, id)| FormField::input(&format!("f{i}"), TextInput::new(*id, "Field")))
+            .collect();
+        let mut d = FormDialog::new(WidgetId::of("f"), "Form", fields);
+        {
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 16));
+            d.render(Rect::new(0, 0, 60, 16), &mut buf, &mut ctx);
+        }
+        assert!(d.scroll.overflows(), "the body scrolls");
+        let order: Vec<WidgetId> = ring
+            .reachable()
+            .iter()
+            .copied()
+            .filter(|id| ids.contains(id))
+            .collect();
+        assert_eq!(order, ids, "every field, in form order");
     }
 
     /// Submit judges the fields an edit only passed (ValidateOn::Change):
