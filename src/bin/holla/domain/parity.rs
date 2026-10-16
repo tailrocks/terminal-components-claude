@@ -2,11 +2,11 @@
 //! (HP01–HP23). Each names the exact states its acceptance contract lists;
 //! nothing here reaches a real process or filesystem.
 
-use crate::clock::EPOCH_SECS;
 use crate::domain::activity::{Branch, LineTone, Script, line, prompt, toned};
 use crate::domain::context::{Host, HostRole, Location, Os, Project, ProjectKind};
 use crate::domain::custom::{Origin, TrustStore, parse_config};
 use crate::domain::stack::*;
+use crate::scenario::EPOCH_SECS;
 use crate::scenario::{Motion, Scenario};
 use crate::sim::fs::BLOCK;
 use crate::sim::world::{Source, World};
@@ -1424,7 +1424,6 @@ fn platforms_linux(motion: Motion) -> World {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::clock::Clock;
 
     #[test]
     fn every_parity_world_builds_a_catalogue_with_unique_ids() {
@@ -1444,7 +1443,7 @@ mod tests {
     fn base_world_uses_a_fixture_clock() {
         let w = world_for(Scenario::ParityDiscovery, Motion::Paused);
         assert!(!w.clock.running);
-        assert_eq!(Clock::new().now_ms, 0);
+        assert_eq!(crate::scenario::CLOCK.now_ms, 0);
         assert!(w.sources.len() > 5);
     }
 }

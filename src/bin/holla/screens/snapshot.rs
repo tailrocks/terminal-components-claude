@@ -842,7 +842,7 @@ impl SnapshotPage {
                     self.lines.push((
                         format!(
                             "{:<18}{:<44}{:<12}{:>10}   {}",
-                            crate::clock::Clock::stamp(when),
+                            crate::scenario::CLOCK.stamp(when),
                             truncate(&w.location.short(&target), 42),
                             method,
                             freed,

@@ -5,7 +5,6 @@
 
 use std::collections::BTreeMap;
 
-use crate::clock::Clock;
 use crate::domain::action::Item;
 use crate::domain::activity::{Activity, ActivityKind, ActivityState, Script};
 use crate::domain::cleanup::{OpsLog, SizeCache};
@@ -21,6 +20,7 @@ use crate::domain::stack::{
 };
 use crate::scenario::Scenario;
 use crate::sim::fs::Fs;
+use junie_tui::clock::SimClock;
 use std::collections::BTreeSet;
 
 /// Virtual milliseconds per tick.
@@ -104,7 +104,7 @@ pub enum Msg {
 
 pub struct World {
     pub scenario: Scenario,
-    pub clock: Clock,
+    pub clock: SimClock,
     pub tick: u64,
     pub host: Host,
     pub location: Location,

@@ -9,6 +9,7 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 
 use crate::pages::{Page, PageCtx, PageEvent, Request};
+use junie_tui::clock::WallClock;
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
@@ -386,8 +387,8 @@ pub struct App {
     pub hits: HitRegistry,
     /// Hover, press, flash and click-count state.
     pub pointer: PointerState,
-    /// Origin of the pointer clock.
-    epoch: Instant,
+    /// The pointer clock (press flash, hover delay, status expiry).
+    clock: WallClock,
     pub dialog: Option<Dialog>,
     pub inspector: bool,
     pub size: (u16, u16),
@@ -488,7 +489,7 @@ impl App {
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
             pointer: PointerState::new(PointerConfig::DEFAULT.focus_on(FocusOn::Release)),
-            epoch: Instant::now(),
+            clock: WallClock::new(),
             dialog: None,
             inspector: false,
             size: (0, 0),
@@ -1323,7 +1324,7 @@ impl App {
 
     /// Milliseconds on the pointer clock.
     fn now_ms(&self) -> u64 {
-        self.epoch.elapsed().as_millis() as u64
+        self.clock.now_ms()
     }
 
     // ----------------------------------------------------------------- render
