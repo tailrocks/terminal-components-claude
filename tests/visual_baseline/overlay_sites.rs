@@ -82,7 +82,6 @@ pub const SITES: &[Site] = &[
     gap("jackin_preview/app.rs::form_changed", NO_ROW),
     gap("jackin_preview/app.rs::open_about", NO_ROW),
     rows("jackin_preview/app.rs::open_help", &["jackin/manager/help_overlay"]),
-    rows("jackin_preview/app.rs::open_quit_confirm", &["jackin/manager/quit_confirm"]),
     gap("jackin_preview/screens/accounts.rs::on_key", NO_ROW),
     gap("jackin_preview/screens/accounts.rs::on_modal", NO_ROW),
     rows("jackin_preview/screens/accounts.rs::open_form", &["jackin/accounts/add_form", "jackin/accounts/add_form_required"]),

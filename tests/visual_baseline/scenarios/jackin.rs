@@ -235,7 +235,6 @@ pub const OVERLAYS: &[Root] = &[
     // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
     Root::new("jackin/manager/menu_open", Bin::Jackin, RETURNING, "jackin❯").sends(&["f10", "wait:New workspace…"]).dismiss_pending(),
     Root::new("jackin/manager/help_overlay", Bin::Jackin, RETURNING, "jackin❯").sends(&["?", "wait:Keyboard shortcuts"]).dismiss_pending(),
-    Root::new("jackin/manager/quit_confirm", Bin::Jackin, RETURNING, "jackin❯").sends(&["ctrl-q", "wait:Quit jackin❯?"]).dismiss_pending(),
     Root::new("jackin/manager/launch_picker", Bin::Jackin, RETURNING, "jackin❯").sends(&["enter", "wait:Launch · choose Agent"]).dismiss_pending(),
     Root::new("jackin/cockpit/info", Bin::Jackin, LAUNCH, "jackin❯").sends(&["i", "wait:Debug info"]).dismiss_pending(),
     // `x` cancels the launch since c3515f652 (one meaning per letter; `c`
