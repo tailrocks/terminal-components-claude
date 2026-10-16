@@ -35,7 +35,6 @@ pub fn customers(w: u16, h: u16) -> H {
 pub fn query_results(w: u16, h: u16) -> H {
     let mut h = H::connected(w, h);
     h.key(KeyCode::Tab);
-    h.key(KeyCode::Char('i'));
     h.type_str("SELECT * FROM customers");
     h.key(KeyCode::Esc);
     h.ctrl('r');
