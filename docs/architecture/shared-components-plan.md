@@ -624,7 +624,7 @@ The apps inventory names patterns that no S-step extracts yet. They become S-ste
 | **S23** Small app patterns | `Tabs` preview flag and pinned (non-closable, `▪` prefix) tabs; `FooterNote` (priority-dropped parts) or `segments` reuse; `ActivityLine` (spinner on the shell `Clock`, elapsed, "Esc cancels", outcome) | T workbench preview tabs, result-tab pins, grid footer note, running status line | S2, S17 | SC42 |
 | **S24** Row-model extensions | `TreeView` tri-state check column and trailing action row ("+ New …"); `DataTable` group heading rows, match ranges (bold matched characters), never-dropped columns, row marks `+ • −`, group fold rows; a `StepRail` table variant (plan outline) | H cleanup checklist, H finder grouped table, J config change tables, H plan outline, J manager/accounts action rows | S16 | SC43 |
 | **S25** `PickerChain` | Chained `Picker` with a crumb scope, Backspace back, `PickerStatus` per level, live suggestions | J OpFlow (`modals.rs:551-948`), H go-to-path | S12, S22 | SC44 |
-| **S26** `PaneTree`, zoom, cross-fade | n-ary split tree with focus and hover borders, zoom and resize chords; H and J zoom moved onto `Split::toggle_max`/`Maximized`; `ui::fade::dim_buffer` cross-fade under `Motion` | J capsule panes, H plan zoom, J handoff cross-fade | S2, S19 | SC45 |
+| **S26** `PaneTree`, zoom | n-ary split tree with focus and hover borders, zoom and resize chords; H and J zoom moved onto `Split::toggle_max`/`Maximized`. No cross-fade: jackin's cockpit-to-capsule handoff fade (`rain::dim_buffer`, `Route::Handoff`) stays in jackin with its intro and outro (product owner decision 2026-10-17) | J capsule panes, H plan zoom | S2, S19 | SC45 |
 | **S27** Strategy B nav policies | Library step, not an extraction: `core::nav::{FocusPolicy, AdjacentMove, AdjacentKeys, Scope, Bounds}` (what a navigable widget does at its edges: stop, wrap, or hand focus to the adjacent control in the ring; which keys may cross; the scope a move stays in, such as a modal, a toolbar or a pane; the bounds a cursor clamps to), each with a field and builder on `Tabs`, `TreeView`, `ListBox`, `Select`, `Picker`, `ContextMenu`/`MenuBar`, `Dialog` and `Toolbar`; `KeyRouter` honours `AdjacentMove` before the shell's Tab handling; `NavProfile` presets (Desktop: stop at edges; Vim: stop) keep today's behaviour as the default. Catalog ids for every type, variant and builder | The per-widget `wrap`/edge checks (`Cursor::wrap` callers, `MenuBar` ←/→ hand-off, `Tabs` end stops) move onto the policy; no app keeps its own edge rule | S4, S7, S8a | SC57 |
 
 ### 7.4 Acceptance for every SC step
@@ -700,7 +700,7 @@ Files named are the files the step owns; steps in the same parallel group own di
 | **SC42** | Preview and pinned tabs; `FooterNote` under the grid; `ActivityLine` on Progress | S23 | `pages/tabs.rs`, `pages/grid.rs`, `pages/progress.rs` |
 | **SC43** | Tri-state checklist tree, trailing action row; `DataTable` group rows, match ranges, row marks, change table; plan outline table | S24 | `pages/trees.rs`, `pages/tables.rs`, `pages/taskrunner.rs` |
 | **SC44** | `PickerChain` (crumb scope, Backspace back, per-level status) | S25 | `pages/pickers.rs` |
-| **SC45** | Pane tree page (nested splits, borders, zoom, resize chords); cross-fade under `Motion` | S26 | `pages/pane_tree.rs`, `pages/overview.rs` |
+| **SC45** | Pane tree page (nested splits, borders, zoom, resize chords); no cross-fade demo (jackin-only, owner decision 2026-10-17) | S26 | `pages/pane_tree.rs`, `pages/overview.rs` |
 | **SC57** | Strategy B on Focus & navigation and Toolbars: `focusnavigation.*` options per policy (`FocusPolicy`, `AdjacentMove` stop/wrap/next control, `AdjacentKeys`, `Scope`, `Bounds`) applied to a list, a tab strip, a tree, a select and a toolbar side by side, with a readout of where each edge key sends focus; `toolbars.adjacent` | S27 | `pages/focus_navigation.rs`, `pages/toolbars.rs` |
 
 **Screens (group SC-S; composed from the library only, parallel among themselves)**
@@ -716,7 +716,7 @@ Files named are the files the step owns; steps in the same parallel group own di
 | **SC52** | Workspaces: tree + seam + detail + roster at ≥150 columns, narrow drawer, per-row spinners, purge typed confirm | S16, S19, S26 |
 | **SC53** | Accounts & usage: account tree with provider folds, inspector with meters, `FormDialog` add/edit, picker chain for secret references, usage dialog with per-account tabs | S17, S19, S25 |
 | **SC54** | Editor shell (extends Settings): change tables, Save preview with diff lines | S20, S24 |
-| **SC55** | Launch cockpit: `StepRail` stages, activity chip opening the build log overlay, Cancel launch, cross-fade handoff | S22, S26 |
+| **SC55** | Launch cockpit: `StepRail` stages, activity chip opening the build log overlay, Cancel launch (the handoff cross-fade stays jackin-only, owner decision 2026-10-17) | S22, S26 |
 | **SC56** | Read-only report: `live · ago` meta, meters, facts, toned body, `r` refresh, Next buttons | S17 |
 
 ### 7.6 Parallel groups
@@ -988,7 +988,7 @@ The ✅ library rows with gaps noted in their "missing" column (Theme tokens, Bu
 | 80 | Files browser list as a table | ❌ | S16b (H rows onto `DataTable`) | SC35 |
 | 81 | Snapshot read-only report | ❌ | S17 (`PageHeader`, `MeterList`) | SC56 |
 | 82 | Usage screen / dialog (tabs per account, quota meters) | ❌ | S17 `MeterList` | SC53 |
-| 83 | Intro / outro ritual, cross-fade handoff | ❌ | S26 (`dim_buffer` cross-fade under `Motion`, the generic part only) | SC45 (cross-fade). The intro and outro animations themselves (typewriter, glitch caption, starfield, rain) stay in jackin: product owner decision 2026-10-16, a `permanent` app-local exclusion in the SC0 allowlist (`app::jackin_preview::intro`, `app::jackin_preview::outro`); no step extracts or demos them |
+| 83 | Intro / outro ritual, cross-fade handoff | — | none (jackin-only) | none. The intro and outro animations (typewriter, glitch caption, starfield, rain) stay in jackin: product owner decision 2026-10-16. The cockpit-to-capsule handoff cross-fade (`rain::dim_buffer` under `Route::Handoff`) stays in jackin too: product owner decision 2026-10-17, which drops the generic cross-fade from S26 and SC45. All three are `permanent` app-local exclusions in the SC0 allowlist (`app::jackin_preview::intro`, `app::jackin_preview::outro`, `app::jackin_preview::handoff_fade`); no step extracts or demos them |
 | 84 | Motion policy full/reduced/paused | ⚠️ | S2 `Motion` | SC1 (switch); SC30 |
 | 85 | Press flash, focus on press, keyboard-only ring | ✅ | — | — (covered) |
 | 86 | Scrollbars + edge fades on hand-drawn lists | ⚠️ | S3 `render_with_fade` | SC22 (`render_vertical` + `scroll_edges` now); SC29 |
