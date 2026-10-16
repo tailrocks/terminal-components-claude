@@ -741,6 +741,9 @@ impl TextInput {
             1,
         );
         self.text_area = inner;
+        if !self.disabled && self.pointer_select.drag {
+            ctx.autoscroll(inner);
+        }
         let text = self.buffer.text();
         if text.is_empty() && !s.editing {
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
@@ -1429,5 +1432,23 @@ mod tests {
         assert!(input.text_area.contains(cursor));
         input.on_click(cursor);
         assert_eq!(input.buffer.cursor_offset(), input.text().len());
+    }
+
+    #[test]
+    fn the_text_is_the_edge_autoscroll_body_unless_disabled() {
+        let theme = Theme::junie();
+        for disabled in [false, true] {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut w = TextInput::new(WidgetId::of("e"), "Name").value("hello");
+            w.disabled = disabled;
+            let area = Rect::new(0, 0, 20, 3);
+            let mut buf = Buffer::empty(area);
+            w.render(area, &mut buf, &mut ctx, theme.surface);
+            let ta = w.text_area;
+            let found = hits.autoscroll_at(Position::new(ta.x, ta.y));
+            assert_eq!(found, (!disabled).then_some(ta), "disabled {disabled}");
+        }
     }
 }

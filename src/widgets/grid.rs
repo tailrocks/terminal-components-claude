@@ -354,6 +354,19 @@ pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, Stri
 
 // ------------------------------------------------------------------ grid
 
+/// A pointer drag on a [`DataGrid`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GridDrag {
+    /// A range selection from the pressed cell.
+    Cells(WidgetId),
+    /// Mark painting from the pressed row number at display row `from`.
+    Rows {
+        id: WidgetId,
+        from: usize,
+        mark: bool,
+    },
+}
+
 #[derive(Debug, Clone)]
 pub struct DataGrid {
     /// The scrollbar track as last drawn: presses and drags map through it.
@@ -390,6 +403,9 @@ pub struct DataGrid {
     pub row_numbers: bool,
     pub area: Rect,
     body: Rect,
+    /// The pointer drag in progress, kept by the pressed id so it goes on
+    /// after edge autoscroll moved its origin out of view.
+    drag: Option<GridDrag>,
     widths: Vec<u16>,
     col_rects: Vec<Rect>,
     show_bar: bool,
@@ -546,6 +562,7 @@ impl DataGrid {
             area: Rect::ZERO,
             track: Rect::ZERO,
             body: Rect::ZERO,
+            drag: None,
             widths,
             col_rects: vec![],
             show_bar: true,
@@ -1544,6 +1561,7 @@ impl DataGrid {
             || self.locate_header(id).is_some()
             || self.locate_rownum(id).is_some()
             || self.bar.iter().any(|b| b.id == id)
+            || matches!(self.drag, Some(GridDrag::Cells(d) | GridDrag::Rows { id: d, .. }) if d == id)
     }
 
     pub fn locate(&self, id: WidgetId) -> Option<(usize, usize)> {
@@ -1613,6 +1631,13 @@ impl DataGrid {
             return self.request_sort(next);
         }
         if let Some(d) = self.locate_rownum(id) {
+            // the release that ends a mark-painting drag back on its
+            // origin keeps the painted marks
+            if let Some(GridDrag::Rows { id: from_id, .. }) = self.drag.take()
+                && from_id == id
+            {
+                return (Outcome::Changed, None);
+            }
             if let Some(&src) = self.order.get(d) {
                 self.set_cursor(d, self.cursor.1, false);
                 if !self.selected_rows.remove(&src) {
@@ -1680,23 +1705,92 @@ impl DataGrid {
         if pressed == scrollbar::h_id_for(self.id) {
             return self.on_hscrollbar_drag(pos);
         }
-        // range selection: find the cell under the pointer
-        for d in self.scroll.visible_range() {
-            let y = self.body.y + (d - self.scroll.offset) as u16;
-            if y != pos.y {
-                continue;
+        // a drag from a row number paints the rows' marks
+        let row_origin = match self.drag {
+            Some(GridDrag::Rows { id, .. }) if id == pressed => None,
+            _ => self.locate_rownum(pressed),
+        };
+        if row_origin.is_some()
+            || matches!(self.drag, Some(GridDrag::Rows { id, .. }) if id == pressed)
+        {
+            return self.drag_rows(pressed, row_origin, pos);
+        }
+        // range selection from a cell: the cell under the pointer, or past
+        // an edge the row or column beyond it (as many as the pointer is
+        // past the edge), so a held drag autoscrolls
+        let from_cell = matches!(self.drag, Some(GridDrag::Cells(id)) if id == pressed)
+            || self.locate(pressed).is_some();
+        if !from_cell || self.body.height == 0 {
+            return Outcome::Ignored;
+        }
+        self.drag = Some(GridDrag::Cells(pressed));
+        let (d, c) = (self.drag_row(pos.y), self.drag_col(pos.x));
+        if (d, c) != self.cursor {
+            self.set_cursor(d, c, true);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    /// The display row a drag at `y` names: past the top or bottom of the
+    /// body, the row as many rows beyond the visible ones.
+    fn drag_row(&self, y: u16) -> usize {
+        let d = self.scroll.offset as isize + (y as isize - self.body.y as isize);
+        (d.max(0) as usize).min(self.content_rows().saturating_sub(1))
+    }
+
+    /// The column a drag at `x` names: left of the cells the one before
+    /// the first visible, right of them the one after the last.
+    fn drag_col(&self, x: u16) -> usize {
+        let (Some(first), Some(last)) = (self.col_rects.first(), self.col_rects.last()) else {
+            return self.cursor.1;
+        };
+        let off = self.hscroll.offset;
+        let c = if x < first.x {
+            off.saturating_sub(1)
+        } else if x >= last.right() + 2 {
+            off + self.col_rects.len()
+        } else {
+            off + self
+                .col_rects
+                .iter()
+                .position(|r| x >= r.x && x < r.right() + 2)
+                .unwrap_or(0)
+        };
+        c.min(self.columns.len().saturating_sub(1))
+    }
+
+    /// A drag that started on a row number: every row between it and the
+    /// pointer takes the mark the origin's click would give it.
+    fn drag_rows(&mut self, pressed: WidgetId, origin: Option<usize>, pos: Position) -> Outcome {
+        let d = self.drag_row(pos.y);
+        let (from, mark) = match (self.drag, origin) {
+            (Some(GridDrag::Rows { from, mark, .. }), _) => (from, mark),
+            (_, Some(from)) => {
+                if d == from {
+                    return Outcome::Ignored;
+                }
+                let src = self.order.get(from).copied();
+                (from, !src.is_some_and(|s| self.selected_rows.contains(&s)))
             }
-            for (k, r) in self.col_rects.iter().enumerate() {
-                if pos.x >= r.x && pos.x < r.right() + 2 {
-                    let c = self.hscroll.offset + k;
-                    if self.locate(pressed).is_some() && (d, c) != self.cursor {
-                        self.set_cursor(d, c, true);
-                        return Outcome::Changed;
-                    }
+            _ => return Outcome::Ignored,
+        };
+        self.drag = Some(GridDrag::Rows {
+            id: pressed,
+            from,
+            mark,
+        });
+        for r in from.min(d)..=from.max(d) {
+            if let Some(&src) = self.order.get(r) {
+                if mark {
+                    self.selected_rows.insert(src);
+                } else {
+                    self.selected_rows.remove(&src);
                 }
             }
         }
-        Outcome::Ignored
+        self.set_cursor(d, self.cursor.1, false);
+        Outcome::Changed
     }
 
     pub fn on_wheel(&mut self, delta: i32, horizontal: bool) -> Outcome {
@@ -1913,6 +2007,12 @@ impl DataGrid {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        // a drag ends with its press
+        if let Some(GridDrag::Cells(id) | GridDrag::Rows { id, .. }) = self.drag
+            && ctx.interaction.pressed != Some(id)
+        {
+            self.drag = None;
+        }
         self.follow_strings(ctx.theme.strings);
         self.v_click = self.track_click.unwrap_or(ctx.track_click);
         self.fit_header_marks();
@@ -1985,6 +2085,9 @@ impl DataGrid {
         self.scroll.set_content(rows_len);
         self.scroll.set_viewport(body.height as usize);
         self.body = body;
+        if has_rows {
+            ctx.autoscroll(body);
+        }
 
         // header
         let header_y = grid_area.y;
@@ -3295,5 +3398,83 @@ mod tests {
         let shown = draw(Some(grid().cell_id(0, 1)));
         assert!(shown.contains(long), "{shown}");
         assert!(!draw(Some(grid().cell_id(1, 1))).contains(long));
+    }
+
+    /// The interaction of a press held on `id`.
+    fn holding(id: WidgetId) -> Interaction {
+        Interaction {
+            pressed: Some(id),
+            ..Interaction::default()
+        }
+    }
+
+    #[test]
+    fn a_range_drag_held_past_the_bottom_edge_keeps_scrolling_and_extending() {
+        let mut g = grid();
+        let area = Rect::new(0, 0, 60, 6);
+        render_at(&mut g, area, Interaction::default());
+        let origin = g.cell_id(0, 1);
+        g.on_click(origin, Position::new(g.col_rects[1].x, g.body.y));
+        let (_, hits) = render_at(&mut g, area, holding(origin));
+        assert_eq!(
+            hits.autoscroll_at(Position::new(g.body.x + 8, g.body.y)),
+            Some(g.body),
+            "the rows are the autoscroll body"
+        );
+        // the pointer rests one row below the body: every replayed drag
+        // (the app's autoscroll tick) moves on by a row, with no motion
+        let below = Position::new(g.col_rects[1].x, g.body.bottom());
+        let mut last = g.cursor.0;
+        for _ in 0..5 {
+            assert_eq!(g.on_drag(origin, below), Outcome::Changed);
+            render_at(&mut g, area, holding(origin));
+            assert!(g.cursor.0 > last, "cursor {:?}", g.cursor);
+            last = g.cursor.0;
+        }
+        assert!(g.scroll.offset > 0, "the rows scrolled");
+        assert_eq!(g.anchor, Some((0, 1)), "the range keeps its anchor");
+        assert_eq!(g.cursor.1, 1);
+        // the press ends: a later stray drag from the origin id is no drag
+        render_at(&mut g, area, Interaction::default());
+        assert_eq!(g.on_drag(origin, below), Outcome::Ignored);
+    }
+
+    #[test]
+    fn a_drag_from_a_row_number_paints_the_marks_and_autoscrolls() {
+        let mut g = grid();
+        let area = Rect::new(0, 0, 60, 6);
+        render_at(&mut g, area, Interaction::default());
+        let origin = g.rownum_id(0);
+        render_at(&mut g, area, holding(origin));
+        let gutter_x = g.body.x + 1;
+        assert_eq!(
+            g.on_drag(origin, Position::new(gutter_x, g.body.y + 2)),
+            Outcome::Changed
+        );
+        assert_eq!(
+            g.selected_rows.iter().copied().collect::<Vec<_>>(),
+            [0, 1, 2]
+        );
+        // back on the origin and released there: the click keeps the
+        // painted marks instead of toggling the origin off
+        g.on_drag(origin, Position::new(gutter_x, g.body.y));
+        let (out, _) = g.on_click(origin, Position::new(gutter_x, g.body.y));
+        assert_eq!(out, Outcome::Changed);
+        assert!(g.selected_rows.contains(&0), "{:?}", g.selected_rows);
+        // a fresh press and drag held below the body marks rows as they
+        // scroll in
+        render_at(&mut g, area, Interaction::default());
+        let origin = g.rownum_id(3);
+        render_at(&mut g, area, holding(origin));
+        for _ in 0..4 {
+            g.on_drag(origin, Position::new(gutter_x, g.body.bottom()));
+            render_at(&mut g, area, holding(origin));
+        }
+        assert!(g.scroll.offset > 0);
+        assert!(
+            (3..8).all(|r| g.selected_rows.contains(&r)),
+            "{:?}",
+            g.selected_rows
+        );
     }
 }

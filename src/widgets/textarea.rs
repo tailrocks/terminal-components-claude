@@ -501,6 +501,9 @@ impl TextArea {
             rows,
         );
         self.text_area = inner;
+        if !self.disabled && self.pointer_select.drag {
+            ctx.autoscroll(inner);
+        }
 
         let text = self.buffer.text();
         let lines: Vec<&str> = text.split('\n').collect();
@@ -950,6 +953,24 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn the_text_is_the_edge_autoscroll_body_unless_disabled() {
+        let theme = Theme::junie();
+        for disabled in [false, true] {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut w = TextArea::new(WidgetId::of("v"), "Notes", 4).value("a\nb");
+            w.disabled = disabled;
+            let area = Rect::new(0, 0, 20, 6);
+            let mut buf = Buffer::empty(area);
+            w.render(area, &mut buf, &mut ctx, theme.surface);
+            let ta = w.text_area;
+            let found = hits.autoscroll_at(Position::new(ta.x, ta.y));
+            assert_eq!(found, (!disabled).then_some(ta), "disabled {disabled}");
         }
     }
 }
