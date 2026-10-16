@@ -246,6 +246,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Tabs => TABS,
         PageId::Menus => MENUS,
         PageId::Dialogs => DIALOGS,
+        PageId::DialogKinds => DIALOG_KINDS,
         PageId::Buttons => BUTTONS,
         PageId::Inputs => INPUTS,
         PageId::TextAreas => TEXTAREAS,
@@ -1088,6 +1089,34 @@ pub static DIALOGS: &[Opt] = &[
         "dialogs.confirm_index",
         "Token gates",
         &["action", "nothing"],
+    ),
+];
+
+/// The Dialog kinds page (SC18): the form, info, choice and help
+/// builders, read back in the page's "Applied" card.
+pub static DIALOG_KINDS: &[Opt] = &[
+    Opt::new("dialogkinds.width", "Width", &["auto", "48", "72"]),
+    Opt::new("dialogkinds.nav", "Nav keys", &["desktop", "vim"]),
+    Opt::new(
+        "dialogkinds.close_button",
+        "× button",
+        &["default", "danger"],
+    ),
+    Opt::new("dialogkinds.button_wrap", "Buttons wrap", OFF_ON),
+    Opt::new("dialogkinds.keep_open", "Form stays open on Save", OFF_ON),
+    Opt::new("dialogkinds.form_meta", "Form meta", OFF_ON).default(1),
+    Opt::new("dialogkinds.info_error", "Info error title", OFF_ON),
+    Opt::new(
+        "dialogkinds.info_keymap",
+        "Info key map",
+        &["default", "ctrl"],
+    ),
+    Opt::new("dialogkinds.choice_tones", "Choice tones", OFF_ON).default(1),
+    Opt::new("dialogkinds.choice_stepper", "Choice stepper", OFF_ON).default(1),
+    Opt::new(
+        "dialogkinds.choice_buttons",
+        "Choice buttons",
+        &["two", "three"],
     ),
 ];
 

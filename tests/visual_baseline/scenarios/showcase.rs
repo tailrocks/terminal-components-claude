@@ -100,7 +100,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/checksradios-options", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "2", "wait:Checkbox click target"]).pending(),
     Root::new("showcase/sections/checksradios-states", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/elements/checks/row-hover", Bin::Showcase, &["--page", "checksradios", "--opt", "checksradios.hit=row"], BOOT).hover("Include archived projects").pending(),
-    Root::new("showcase/planned/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:arrives with SC18"]).pending(),
     Root::new("showcase/planned/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:arrives with SC19"]).pending(),
     Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
     // SC21 filled Empty & error: the page, its sections and an error state
@@ -228,6 +227,12 @@ pub const SURFACES: &[Root] = &[
     // SC17: the Dialogs page's Options and States sections.
     Root::new("showcase/sections/dialogs-options", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "2", "wait:Placement"]).pending(),
     Root::new("showcase/sections/dialogs-states", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "3", "wait:Run task now?"]).pending(),
+    // SC18: the Dialog kinds page and its Options and States sections.
+    Root::new("showcase/pages/dialogkinds", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["wait:Keyboard help"]).pending(),
+    Root::new("showcase/sections/dialogkinds-options", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["tab", "2", "wait:Choice stepper"]).pending(),
+    Root::new("showcase/sections/dialogkinds-states", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["tab", "3", "wait:Toned"]).pending(),
+    // SC28 Focus & navigation: the ring, the nav map and the keys card,
+    // the option table and how each control shows focus.
     Root::new("showcase/pages/focusnavigation", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["wait:Nav map"]).pending(),
     Root::new("showcase/sections/focusnavigation-options", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "2", "wait:List nav keys"]).pending(),
     Root::new("showcase/sections/focusnavigation-states", Bin::Showcase, &["--page", "focusnavigation"], BOOT).sends(&["tab", "3", "wait:Tab strip"]).pending(),
@@ -365,6 +370,12 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/dialogs_gate", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Drop table…").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogs_push", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Push failed…").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogs_notes", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Release notes").pending().dismiss_pending(),
+    // SC18 Dialog kinds: the form, the info dialog, the choice and the
+    // keyboard reference, each opened from its button.
+    Root::new("showcase/overlays/dialogkinds_form", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Add connection…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogkinds_info", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Server info").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogkinds_choice", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Release channel…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/dialogkinds_help", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Keyboard help").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogs_anchored", Bin::Showcase, &["--page", "dialogs", "--opt", "dialogs.placement=below"], BOOT).click("Confirm run").pending().dismiss_pending(),
     Root::new("showcase/overlays/emptyerror_row_actions", Bin::Showcase, &["--page", "emptyerror"], BOOT).click("Row actions ▾").pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.

@@ -1007,6 +1007,118 @@ fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
     }
 }
 
+/// A choice dialog drawn in its modal frame over the sample's cell dimmed
+/// as its backdrop (the frame keeps its outer margin inside the cell):
+/// hover and press land on its primary button, focus on the option group
+/// (or the primary button with the pointer over it), selected moves the
+/// choice to the last option, disabled is the primary button disabled.
+impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
+    fn specimen_id(&self) -> WidgetId {
+        self.radio.id
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        match state {
+            Rest | Hover | Pressed | Focused | FocusedHover | Selected | Disabled => {
+                !self.buttons.is_empty()
+            }
+            Busy | Error | Editing | Empty | Loading | Overflow | Narrow => false,
+        }
+    }
+
+    /// The frame and its outer margin (one row above and below).
+    fn specimen_height(&self, _state: SpecimenState) -> u16 {
+        self.height() + 2
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let _ = bg;
+        let mut d = self.clone();
+        let primary = (0..d.buttons.len())
+            .rev()
+            .find(|&i| i != d.cancel_index)
+            .unwrap_or(0);
+        let v = state.visual();
+        if v.disabled {
+            d.buttons[primary].disabled = true;
+        }
+        if v.selected {
+            let last = d.radio.options.len().saturating_sub(1);
+            d.radio.selected = last;
+            d.radio.cursor = last;
+        }
+        let button = d.buttons.get(primary).map(|b| b.id);
+        ctx.interaction.hover = if v.hovered { button } else { None };
+        ctx.interaction.pressed = if v.pressed { button } else { None };
+        ctx.interaction.focus = match (v.focused, v.hovered) {
+            (true, false) => Some(d.radio.id),
+            (true, true) => button,
+            _ => None,
+        };
+        d.render(area, buf, ctx);
+    }
+}
+
+/// A modal frame drawn in the sample's cell as its screen: the cell is
+/// dimmed per [`Frame::dim`](crate::ui::modal::Frame::dim) (its kept rows
+/// stay live), the frame sits clear of its chrome rows with the outer
+/// margin, and an anchored placement opens next to a marked anchor in the
+/// cell's top-left corner. Hover and press land on its close button (`×`),
+/// which shows while its [`Dismiss`](crate::ui::popup::Dismiss) lets Esc
+/// close it.
+impl Specimen for crate::ui::modal::Frame<'static> {
+    fn specimen_id(&self) -> WidgetId {
+        crate::ui::modal::CLOSE
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        let close = self.dismiss.is_some_and(|d| d.shows_close());
+        match state {
+            Rest => true,
+            Hover | Pressed => close,
+            _ => false,
+        }
+    }
+
+    /// The frame, the outer margin around it, the chrome rows and the
+    /// anchor row with a row of room beside it.
+    fn specimen_height(&self, _state: SpecimenState) -> u16 {
+        let m = crate::widgets::dialog::OUTER_MARGIN;
+        self.height.max(self.min_height) + 2 * m.vertical + self.top + self.bottom + 2
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut f = self.clone();
+        if f.placement != crate::ui::popup::Placement::Center {
+            let anchor = Rect::new(area.x + 4, area.y + f.top + 1, 8, 1).intersection(area);
+            f.anchor = anchor;
+            let t = ctx.theme;
+            buf.set_string(anchor.x, anchor.y, "▣ anchor", t.secondary().bg(bg));
+        }
+        let v = state.visual();
+        ctx.interaction.focus = None;
+        ctx.interaction.hover = v.hovered.then_some(crate::ui::modal::CLOSE);
+        ctx.interaction.pressed = v.pressed.then_some(crate::ui::modal::CLOSE);
+        f.render(area, buf, ctx);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
