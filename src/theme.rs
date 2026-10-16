@@ -1507,6 +1507,9 @@ pub struct Spacing {
     pub panel: Insets,
     /// Inside a popup surface (menus, dropdowns). Default 1 column, 0 rows.
     pub popup: Insets,
+    /// Cells between the screen edge and the text of a chrome row (menu
+    /// bar, identity strip, segment bars), the same on both sides. Default 2.
+    pub chrome_edge: u16,
 }
 
 impl Spacing {
@@ -1515,6 +1518,7 @@ impl Spacing {
         dialog: Insets::new(2, 1),
         panel: Insets::new(2, 0),
         popup: Insets::new(1, 0),
+        chrome_edge: 2,
     };
 }
 

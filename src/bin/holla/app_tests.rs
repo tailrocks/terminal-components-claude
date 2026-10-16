@@ -268,3 +268,19 @@ fn a_text_modal_stays_in_the_body_with_a_margin() {
     let bottom = rows.iter().position(|r| r.contains("╰────────")).unwrap();
     assert_eq!((top, bottom), (2, 16), "{text}");
 }
+
+#[test]
+fn the_header_row_has_the_same_inset_on_both_sides() {
+    for (w, hgt) in [(72u16, 20u16), (100, 30), (160, 50)] {
+        let h = H::new(Scenario::RustDirty, Motion::Reduced, 0, w, hgt);
+        let row = h.row(0);
+        let cells: Vec<char> = row.chars().collect();
+        let lead = cells.iter().take_while(|c| **c == ' ').count();
+        let trail = cells.iter().rev().take_while(|c| **c == ' ').count();
+        assert_eq!(
+            (lead, trail),
+            (2, 2),
+            "{w}x{hgt}: the chrome edge is the same on both sides: {row:?}"
+        );
+    }
+}
