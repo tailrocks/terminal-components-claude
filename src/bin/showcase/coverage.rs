@@ -1291,6 +1291,402 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::validator",
         Demo("editable", "fix/checkout flake !"),
     ),
+    // Data grid (SC12)
+    (
+        "widgets::grid::CellValue",
+        Demo("datagrid", "1001 Northwind Traders enterprise 3 57.00 true"),
+    ),
+    (
+        "widgets::grid::CellValue::Null",
+        Demo("datagrid", "0.00 false NULL"),
+    ),
+    (
+        "widgets::grid::CellValue::Default",
+        Demo("datagrid", "+ 3 DEFAULT"),
+    ),
+    (
+        "widgets::grid::CellValue::Text",
+        Demo("datagrid", "Northwind Traders enterprise"),
+    ),
+    (
+        "widgets::grid::CellValue::Int",
+        Demo("datagrid", "1001 Northwind Traders"),
+    ),
+    (
+        "widgets::grid::CellValue::Num",
+        Demo("datagrid", "57.00 true"),
+    ),
+    (
+        "widgets::grid::CellValue::Bool",
+        Demo("datagrid", "57.00 true"),
+    ),
+    (
+        "widgets::grid::CellValue::Json",
+        Demo("datagrid", "{\"owner\":\"mira\",\"seats\":3}"),
+    ),
+    (
+        "widgets::grid::CellKind",
+        Demo("datagrid", "id Id · integer"),
+    ),
+    (
+        "widgets::grid::CellKind::Text",
+        Demo("datagrid", "customer Text · text"),
+    ),
+    (
+        "widgets::grid::CellKind::Id",
+        Demo("datagrid", "id Id · integer"),
+    ),
+    (
+        "widgets::grid::CellKind::Number",
+        Demo("datagrid", "seats Number · integer"),
+    ),
+    (
+        "widgets::grid::CellKind::Bool",
+        Demo("datagrid", "active Bool · boolean"),
+    ),
+    (
+        "widgets::grid::CellKind::Timestamp",
+        Demo("datagrid", "renewed_at Timestamp · date"),
+    ),
+    (
+        "widgets::grid::CellKind::Json",
+        Demo("datagrid", "notes Json · jsonb"),
+    ),
+    (
+        "widgets::grid::CellKind::Enum",
+        Demo("datagrid", "plan Enum · plan_tier"),
+    ),
+    (
+        "widgets::grid::ColumnSpec",
+        Demo(
+            "datagrid",
+            "id Id · integer · primary key · not null · read-only",
+        ),
+    ),
+    (
+        "widgets::grid::ColumnSpec::editor",
+        Demo("datagrid", "▾ picks from a fixed set"),
+    ),
+    (
+        "widgets::grid::ColumnSpec::primary",
+        Demo("datagrid", "integer · primary key"),
+    ),
+    (
+        "widgets::grid::ColumnSpec::nullable",
+        Demo("datagrid", "customer Text · text · not null"),
+    ),
+    (
+        "widgets::grid::ColumnSpec::read_only",
+        Demo("datagrid", "mrr Number · numeric(10,2) · read-only"),
+    ),
+    (
+        "widgets::grid::ColumnSpec::references",
+        Demo("datagrid", "integer · references accounts"),
+    ),
+    (
+        "widgets::grid::ColumnSpec::type_label",
+        Demo("datagrid", "plan Enum · plan_tier"),
+    ),
+    (
+        "widgets::grid::ColumnSpec::enum_values",
+        Demo("datagrid", "one of free, pro, team, enterprise"),
+    ),
+    (
+        "widgets::grid::RowTotal",
+        Option("datagrid", "datagrid.total"),
+    ),
+    (
+        "widgets::grid::RowTotal::Exact",
+        Option("datagrid", "datagrid.total=exact"),
+    ),
+    (
+        "widgets::grid::RowTotal::Estimated",
+        Option("datagrid", "datagrid.total=estimated"),
+    ),
+    (
+        "widgets::grid::RowTotal::Unknown",
+        Option("datagrid", "datagrid.total=unknown"),
+    ),
+    (
+        "widgets::grid::GridRows",
+        Demo("datagrid", "of 40 loaded · ~4,812 total"),
+    ),
+    (
+        "widgets::grid::UndoAction",
+        Demo("datagrid", "Undo a cell, delete or insert"),
+    ),
+    (
+        "widgets::grid::UndoAction::Cell",
+        Demo("datagrid", "Undo a cell, delete or insert"),
+    ),
+    (
+        "widgets::grid::UndoAction::Delete",
+        Demo("datagrid", "Undo a cell, delete or insert"),
+    ),
+    (
+        "widgets::grid::UndoAction::Insert",
+        Demo("datagrid", "Undo a cell, delete or insert"),
+    ),
+    (
+        "widgets::grid::PendingChanges",
+        Demo("datagrid", "• 3 pending"),
+    ),
+    (
+        "widgets::grid::RowState",
+        Demo(
+            "datagrid",
+            "Change marks • modified + inserted − deleted ! error",
+        ),
+    ),
+    (
+        "widgets::grid::RowState::Clean",
+        Demo("datagrid", "Pending no pending changes"),
+    ),
+    (
+        "widgets::grid::RowState::Modified",
+        Demo("datagrid", "• modified"),
+    ),
+    (
+        "widgets::grid::RowState::Inserted",
+        Demo("datagrid", "+ inserted"),
+    ),
+    (
+        "widgets::grid::RowState::Deleted",
+        Demo("datagrid", "− deleted"),
+    ),
+    (
+        "widgets::grid::RowState::Error",
+        Demo("datagrid", "! error"),
+    ),
+    ("widgets::grid::EditState", StateRow("datagrid", "editing")),
+    (
+        "widgets::grid::GridAction",
+        Demo("datagrid", "Set NULL · CellChanged"),
+    ),
+    (
+        "widgets::grid::GridAction::CellChanged",
+        Demo("datagrid", "Set NULL · CellChanged"),
+    ),
+    (
+        "widgets::grid::GridAction::RowInserted",
+        Demo("datagrid", "Insert row · RowInserted"),
+    ),
+    (
+        "widgets::grid::GridAction::RowDeleted",
+        Demo("datagrid", "Delete row · RowDeleted"),
+    ),
+    (
+        "widgets::grid::GridAction::SortRequested",
+        Demo("datagrid", "Sort · SortRequested"),
+    ),
+    (
+        "widgets::grid::GridAction::FetchMore",
+        Demo("datagrid", "past the last row FetchMore"),
+    ),
+    (
+        "widgets::grid::GridAction::Refresh",
+        Demo("datagrid", "Reload · Refresh"),
+    ),
+    (
+        "widgets::grid::GridAction::CommitRequested",
+        Demo("datagrid", "Save review · CommitRequested"),
+    ),
+    (
+        "widgets::grid::GridAction::DiscardRequested",
+        Demo("datagrid", "Discard · DiscardRequested"),
+    ),
+    (
+        "widgets::grid::GridAction::PreviewSql",
+        Demo("datagrid", "Preview SQL · PreviewSql"),
+    ),
+    (
+        "widgets::grid::GridAction::Copy",
+        Demo("datagrid", "Copy · Copy"),
+    ),
+    (
+        "widgets::grid::GridAction::FollowReference",
+        Demo("datagrid", "Follow account_id · FollowReference"),
+    ),
+    (
+        "widgets::grid::GridAction::OpenViewer",
+        Demo("datagrid", "OpenViewer on JSON"),
+    ),
+    (
+        "widgets::grid::GridAction::FilterOnCell",
+        Demo("datagrid", "Filter on cell · FilterOnCell"),
+    ),
+    (
+        "widgets::grid::GridAction::OpenFilters",
+        Demo("datagrid", "Filters · OpenFilters"),
+    ),
+    (
+        "widgets::grid::GridAction::ClearFilters",
+        Demo("datagrid", "Clear filters · ClearFilters"),
+    ),
+    (
+        "widgets::grid::GridAction::Activated",
+        Demo("datagrid", "Enter (read-only) Activated"),
+    ),
+    (
+        "widgets::grid::GridAction::LeaveForward",
+        Demo("datagrid", "LeaveForward · Shift+Tab LeaveBackward"),
+    ),
+    (
+        "widgets::grid::GridAction::LeaveBackward",
+        Demo("datagrid", "LeaveForward · Shift+Tab LeaveBackward"),
+    ),
+    (
+        "widgets::grid::GridAction::ReadOnly",
+        Demo("datagrid", "ReadOnly says why not"),
+    ),
+    (
+        "widgets::grid::Validator",
+        Option("datagrid", "datagrid.validator"),
+    ),
+    (
+        "widgets::grid::GridChoice",
+        Demo("datagrid", "▾ picks from a fixed set"),
+    ),
+    (
+        "widgets::grid::GridCmd",
+        Option("datagrid", "datagrid.keymap"),
+    ),
+    (
+        "widgets::grid::GridCmd::ClearCell",
+        Demo("datagrid", "Set NULL · CellChanged"),
+    ),
+    (
+        "widgets::grid::GridCmd::ToggleDelete",
+        Demo("datagrid", "Delete row · RowDeleted"),
+    ),
+    (
+        "widgets::grid::GridCmd::InsertRow",
+        Demo("datagrid", "Insert row · RowInserted"),
+    ),
+    (
+        "widgets::grid::GridCmd::DuplicateRow",
+        Demo("datagrid", "Duplicate row · RowInserted"),
+    ),
+    (
+        "widgets::grid::GridCmd::Copy",
+        Demo("datagrid", "Copy · Copy"),
+    ),
+    (
+        "widgets::grid::GridCmd::CopyWithHeader",
+        Demo("datagrid", "Copy with header · Copy"),
+    ),
+    (
+        "widgets::grid::GridCmd::Commit",
+        Demo("datagrid", "Save review · CommitRequested"),
+    ),
+    (
+        "widgets::grid::GridCmd::Sort",
+        Demo("datagrid", "Sort · SortRequested"),
+    ),
+    (
+        "widgets::grid::GridCmd::ClearSort",
+        Demo("datagrid", "Clear sort · SortRequested"),
+    ),
+    (
+        "widgets::grid::GridCmd::FilterOnCell",
+        Demo("datagrid", "Filter on cell · FilterOnCell"),
+    ),
+    (
+        "widgets::grid::GridCmd::OpenFilters",
+        Demo("datagrid", "Filters · OpenFilters"),
+    ),
+    (
+        "widgets::grid::GridCmd::ClearFilters",
+        Demo("datagrid", "Clear filters · ClearFilters"),
+    ),
+    (
+        "widgets::grid::GridCmd::Refresh",
+        Demo("datagrid", "Reload · Refresh"),
+    ),
+    (
+        "widgets::grid::GridCmd::Undo",
+        Demo("datagrid", "Undo a cell, delete or insert"),
+    ),
+    (
+        "widgets::grid::GridCmd::Discard",
+        Demo("datagrid", "Discard · DiscardRequested"),
+    ),
+    (
+        "widgets::grid::GridCmd::PreviewSql",
+        Demo("datagrid", "Preview SQL · PreviewSql"),
+    ),
+    (
+        "widgets::grid::GridCmd::FollowReference",
+        Demo("datagrid", "Follow account_id · FollowReference"),
+    ),
+    (
+        "widgets::grid::GridCmd::SelectAll",
+        Demo("datagrid", "Mark every row"),
+    ),
+    (
+        "widgets::grid::DataGrid::editor_config",
+        Option("datagrid", "datagrid.affordance"),
+    ),
+    (
+        "widgets::grid::DataGrid::type_ahead",
+        Option("datagrid", "datagrid.type_ahead=any"),
+    ),
+    (
+        "widgets::grid::DataGrid::type_ahead_column",
+        Option("datagrid", "datagrid.type_ahead=customer"),
+    ),
+    (
+        "widgets::grid::DataGrid::horizontal",
+        Option("datagrid", "datagrid.horizontal"),
+    ),
+    (
+        "widgets::grid::DataGrid::overflow_badges",
+        Option("datagrid", "datagrid.overflow_badges"),
+    ),
+    (
+        "widgets::grid::DataGrid::bar_labels",
+        Option("datagrid", "datagrid.labels"),
+    ),
+    (
+        "widgets::grid::DataGrid::empty",
+        Option("datagrid", "datagrid.rows"),
+    ),
+    (
+        "widgets::grid::DataGrid::validator",
+        Option("datagrid", "datagrid.validator"),
+    ),
+    (
+        "widgets::grid::DataGrid::editable",
+        Option("datagrid", "datagrid.access"),
+    ),
+    (
+        "widgets::grid::DataGrid::duplicate_keys",
+        Option("datagrid", "datagrid.duplicate_keys"),
+    ),
+    (
+        "widgets::grid::DataGrid::nav",
+        Option("datagrid", "datagrid.nav"),
+    ),
+    (
+        "widgets::grid::DataGrid::keymap",
+        Option("datagrid", "datagrid.keymap"),
+    ),
+    (
+        "widgets::grid::DataGrid::width_sample_rows",
+        Option("datagrid", "datagrid.width_sample_rows"),
+    ),
+    (
+        "widgets::grid::DataGrid::resizable_columns",
+        Option("datagrid", "datagrid.seams=off"),
+    ),
+    (
+        "widgets::grid::DataGrid::seam_hit_w",
+        Option("datagrid", "datagrid.seams=wide"),
+    ),
+    (
+        "widgets::grid::DataGrid::track_click",
+        Option("datagrid", "datagrid.track_click"),
+    ),
     // Columns and Basic table (SC11)
     (
         "core::selection::SelectionMode",
@@ -1397,7 +1793,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::grid::DataGrid",
-        Demo("datagrid", "rows 1–26 of 40 loaded"),
+        Demo("datagrid", "of 40 loaded · ~4,812 total"),
     ),
     (
         "widgets::option_editor::ColumnEditor",
