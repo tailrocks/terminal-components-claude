@@ -324,8 +324,23 @@ impl PointerState {
     /// on the same control, within [`PointerConfig::double_click_slop`]
     /// cells and [`PointerConfig::double_click_ms`] of the previous one.
     pub fn count_click(&mut self, id: WidgetId, pos: Position, now_ms: u64) -> u8 {
+        let count = self.press_count(id, pos, now_ms);
+        self.last_click = Some(LastClick {
+            id,
+            pos,
+            at: now_ms,
+            count,
+        });
+        count
+    }
+
+    /// The count the click a press on `id` at `pos` starts would complete
+    /// with ([`Self::count_click`] without recording it): 2 for the second
+    /// press of a double click. A text field selects the word on that
+    /// press and a drag from it extends by words.
+    pub fn press_count(&self, id: WidgetId, pos: Position, now_ms: u64) -> u8 {
         let slop = self.config.double_click_slop;
-        let count = match self.last_click {
+        match self.last_click {
             Some(l)
                 if l.id == id
                     && now_ms.saturating_sub(l.at) < self.config.double_click_ms
@@ -335,14 +350,7 @@ impl PointerState {
                 l.count.saturating_add(1)
             }
             _ => 1,
-        };
-        self.last_click = Some(LastClick {
-            id,
-            pos,
-            at: now_ms,
-            count,
-        });
-        count
+        }
     }
 
     /// Forget the click chain (a modal opened, the content changed).

@@ -136,7 +136,7 @@ impl Page for TextAreasPage {
                 if *id != self.areas[i].id {
                     return Outcome::Ignored;
                 }
-                self.areas[i].on_press(*pos)
+                self.areas[i].on_press_count(*pos, cx.clicks.max(1))
             }
             PageEvent::Drag { pressed, pos } => {
                 let Some(i) = self.index_of(*pressed) else {

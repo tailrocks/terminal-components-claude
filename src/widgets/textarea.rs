@@ -12,7 +12,8 @@ use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use crate::widgets::field_common::{
-    EditAction, PointerSelect, PressState, click_select, drag_select, edit_key,
+    EditAction, PointerField, PointerSelect, PressState, click_select, drag_select, edit_key,
+    press_select,
 };
 use crate::widgets::input::InputEvent;
 use crate::widgets::scrollbar;
@@ -232,8 +233,12 @@ impl TextArea {
 
     /// Byte offset under `pos`, clamped to the text.
     fn offset_at(&self, pos: Position) -> usize {
-        let line = pos.y.saturating_sub(self.text_area.y) as usize + self.scroll.offset;
-        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.hscroll;
+        // a pointer above or left of the text names the line or column
+        // before the first visible one, so a drag past the edge scrolls
+        let line = (self.scroll.offset as isize + (pos.y as isize - self.text_area.y as isize))
+            .max(0) as usize;
+        let col =
+            (self.hscroll as isize + (pos.x as isize - self.text_area.x as isize)).max(0) as usize;
         let line = line.min(self.buffer.line_count().saturating_sub(1));
         self.buffer.offset_at(line, col)
     }
@@ -269,19 +274,36 @@ impl TextArea {
     /// there. The press alone changes nothing; the completed click (or the
     /// drag) starts editing.
     pub fn on_press(&mut self, pos: Position) -> Outcome {
+        self.on_press_count(pos, 1)
+    }
+
+    /// A press with the click `count` it starts: the second press of a
+    /// double click selects the word, and a drag from it extends by words
+    /// ([`PointerSelect::drag_by_word`]).
+    pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
         }
-        self.press = PressState {
-            at: Some(self.offset_at(pos)),
-            dragged: false,
-        };
+        let offset = self.offset_at(pos);
+        if press_select(
+            &mut self.buffer,
+            &mut self.press,
+            self.pointer_select,
+            offset,
+            count,
+            false,
+        ) {
+            self.begin_edit();
+            self.follow_cursor = true;
+            return Outcome::Changed;
+        }
         Outcome::Consumed
     }
 
     /// Drag with the button held since a press on the area: starts
     /// editing and selects from the press to the pointer
-    /// ([`PointerSelect::drag`]).
+    /// ([`PointerSelect::drag`]). Past an edge the selection runs on and
+    /// the area scrolls to follow it.
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         if self.disabled || !self.pointer_select.drag {
             return Outcome::Ignored;
@@ -527,6 +549,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dragging_above_the_area_scrolls_it_and_selects_on() {
+        let text = (0..20)
+            .map(|i| format!("line {i}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut a = TextArea::new(WidgetId::of("v"), "Notes", 4).value(&text);
+        let area = Rect::new(0, 0, 30, 6);
+        let mut buf = Buffer::empty(area);
+        render(&mut a, area, &mut buf, ColorLevel::TrueColor);
+        a.scroll.offset = 8;
+        render(&mut a, area, &mut buf, ColorLevel::TrueColor);
+        let ta = a.text_area;
+        a.on_press(Position::new(ta.x + 2, ta.y + 1));
+        // two rows above the text: the selection runs into hidden lines
+        a.on_drag(Position::new(ta.x + 2, ta.y.saturating_sub(2)));
+        render(&mut a, area, &mut buf, ColorLevel::TrueColor);
+        assert!(
+            a.scroll.offset < 8,
+            "scrolled up to follow: {}",
+            a.scroll.offset
+        );
+        assert!(
+            a.buffer
+                .selected_text()
+                .is_some_and(|s| s.starts_with("ne 7\nline 8")),
+            "{:?}",
+            a.buffer.selected_text()
+        );
+    }
+
+    #[test]
     fn drag_double_and_triple_click_select_text() {
         let mut a = TextArea::new(WidgetId::of("s"), "Notes", 4).value("one two\nthree four");
         let area = Rect::new(0, 0, 30, 6);
@@ -760,5 +813,20 @@ mod tests {
                 }
             }
         }
+    }
+}
+
+impl PointerField for TextArea {
+    fn pointer_id(&self) -> WidgetId {
+        self.id
+    }
+    fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
+        TextArea::on_press_count(self, pos, count)
+    }
+    fn on_drag(&mut self, pos: Position) -> Outcome {
+        TextArea::on_drag(self, pos)
+    }
+    fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
+        TextArea::on_click_count(self, pos, count)
     }
 }

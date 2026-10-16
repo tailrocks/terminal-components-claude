@@ -448,6 +448,19 @@ fn double_and_triple_clicks_select_a_word_and_a_line_in_a_text_area() {
 }
 
 #[test]
+fn a_drag_from_the_second_press_of_a_double_click_extends_by_words() {
+    let mut h = Harness::new(120, 40, PageId::TextAreas);
+    let (x, y) = h.find("fix stuff").unwrap();
+    h.click(x + 1, y);
+    // the second press selects the word; the drag takes whole words
+    h.mouse(MouseKind::Down, x + 1, y);
+    assert_eq!(selected_on_row(&h, y), "fix", "the press selects the word");
+    h.mouse(MouseKind::Drag, x + 5, y);
+    h.mouse(MouseKind::Up, x + 5, y);
+    assert_eq!(selected_on_row(&h, y), "fix stuff");
+}
+
+#[test]
 fn clicking_another_field_commits_through_the_owner() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
     let name_row = h.find_row("payments-gateway").unwrap();
