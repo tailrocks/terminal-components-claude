@@ -8,6 +8,7 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | File | Category |
 |---|---|
 | `focus.md` | One focus indicator: focus, selection and "active" hierarchy |
+| `states.md` | Rest, hover, pressed, focused, selected and disabled for every control |
 | `color.md` | Colour, contrast and state styling at every colour level |
 | `interaction.md` | Mouse and keyboard parity with desktop conventions |
 | `layout.md` | Layout, truncation, overflow and responsiveness |
