@@ -1,7 +1,7 @@
 # Visual re-approval against `visual-baseline` (tablepro, holla, jackin)
 
-Status: 2026-10-17. tablepro re-approved (gates). holla classified, not
-yet accepted (resume below). jackin not started.
+Status: 2026-10-17. tablepro re-approved (gates). holla re-approved
+(gates). jackin not started.
 
 Until this pass every tablepro, holla and jackin capture was a legacy
 tuisnap approval: skipped unless `VISUAL_FULL=1`, so nothing gated those
@@ -114,14 +114,35 @@ tab-pane focus fix moved 80 dialog frames, re-approved with it.
 
 Owner confirmation: none needed for tablepro.
 
-## holla (classified, not accepted yet)
+## holla
 
-3,125 captures (125 roots). Captured on the branch after the two holla
-fixes and the step fixes above; every capture reaches its state. Not
-accepted: the run stopped before the final single-run capture,
-`cargo xtask visual determinism` and `accept`, so holla still runs only
-with `VISUAL_FULL=1`. No capture is left unexplained; all 3,125 are
-pending only on that last step.
+3,125 captures (125 roots x 5 sizes x 5 colours): **3,125 accepted, 0
+pending** (the pending rows and the narrow tier stay pending as for
+every app). Classified on the branch after the two holla fixes and the
+step fixes above, then captured once more on the HEAD after S6 (one
+`cargo xtask visual determinism` run per group of six or seven roots:
+3,125 of 3,125 byte-identical across the two runs) and accepted from
+that run. No capture is left unexplained.
+
+Re-review after the classification. S5, S6, the type-ahead and the
+backdrop fixes landed between the classification capture and the final
+one; the residual of every root at the five sizes was diffed against the
+classified residual (footers separately) and the palette, `fg == bg` and
+contrast checks were re-run on all 3,125:
+
+- `flows/cleanup/artifacts` (72x20, 80x24, 100x30, 120x40) and
+  `flows/upgrade/excluded` (72x20) moved: the list keeps one row of
+  scroll context past the cursor, so after `End` the view sits at its
+  end (thumb at the bottom) and after five `↓` the next plan step shows
+  below the cursor. That is the library default of ab64d7535 (SVg9),
+  which the classification capture predated.
+- S6 (13cea0a2c holla pointer routing, e57fe76e8 light-dismiss frames,
+  79b40b343 picker backdrop) changed the text of no stored holla capture:
+  every stored root is keyboard-driven. The menu that now opens on press
+  shows only in the pending `elements/menubar/file-pressed` row.
+- Palette, `fg == bg` and contrast results are the classified ones (40
+  popup-frame cells at 16 colours and `none`; four status bars cut at a
+  palette label of another width).
 
 Attributed differences (all sizes went through the same residual
 review; counts are roots):
@@ -154,31 +175,20 @@ Recorded, not fixed (pre-existing, or graphics just under 3:1):
   selected tab, 2.9:1 (graphics need 3:1); a queued `○` is 3.2:1. The
   selected-tab fill comes from 5d0c4467b.
 
-Owner confirmation needed (holla):
+### Decision: holla captures keep `HOLLA_NO_HISTORY=1` (product owner, 2026-10-17)
 
-- Suggestion order under `HOLLA_NO_HISTORY=1` (the seven roots above).
-  The harness pins the opt-out for ambient-learning hygiene, but every
-  capture already runs with an emptied per-scenario `HOME`, so nothing
-  reaches or leaves a real history. Either keep the opt-out (captures
-  rank without learned use, as now) or drop it from
-  `support::PINNED_ENV` so the concept screens rank with their fixture
-  history (Recent then shows it too).
-
-### Resume holla
-
-On the branch HEAD, with no other capture running, from the scratch
-scripts of this pass or by hand:
-
-1. `VISUAL_FULL=1 VISUAL_REVIEW=0 cargo nextest run --run-ignored only -E
-   'binary(visual_baseline) & (<the 125 stored roots>) &
-   test(/::(72x20|80x24|100x30|120x40|160x50)::/)'` (about 15 min; split
-   with `--partition hash:k/4`).
-2. If holla source moved since this pass (S5 holla was landing), re-run
-   the residual review against `visual-baseline` for the moved roots.
-3. `cargo xtask visual determinism` over the same filter, then
-   `cargo xtask visual accept` of it (all 3,125), and commit the
-   snapshots alone as `test(visual): holla re-approval against
-   visual-baseline`.
+The suggestion order of the seven roots above is intended: with the
+opt-out pinned in `support::PINNED_ENV` the captures show what a new
+user sees (no learned use; Recent says `nothing used here yet`). The
+ranking feature keeps visual coverage through three rows that turn the
+fixture's seeded usage back on for that row only (`Root::env`,
+`HISTORY_ON` = `HOLLA_NO_HISTORY=0`): `concept/first-use-with-history`,
+`concept/monorepo-root-with-history` and
+`concept/activities-multi-with-history`. The history is the in-memory
+fixture on the fixture clock; nothing is read from or written to disk,
+and the per-scenario `HOME` stays empty. They rank as the
+`visual-baseline` frames of the plain roots did, with `used 20 times on
+mbp` in Recent; 75 captures, determinism 75 of 75, approved.
 
 ## jackin (not started)
 
