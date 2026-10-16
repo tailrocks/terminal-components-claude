@@ -157,3 +157,39 @@ fn disconnect_keeps_an_unsaved_query() {
     assert!(h.app.workbench.is_some());
     assert!(h.text().contains("before disconnecting"), "{}", h.text());
 }
+
+// docs/design/close-button.md: a query tab's × is a three-cell plate like
+// the strip's `+`; the pointer on its edge cell lights all three, and a
+// click there closes the tab
+#[test]
+fn a_query_tab_close_plate_lights_whole_and_closes_the_tab() {
+    use junie_tui::core::event::MouseKind;
+    let mut h = H::connected(120, 40);
+    let new = h.wb().strip.new_id();
+    let plus = h.app.hits.area_of(new).expect("the strip's +");
+    h.click(plus.x + 1, plus.y);
+    let n = h.wb().tabs.len();
+    assert!(n >= 2, "{}", h.text());
+    let i = h.wb().strip.active;
+    let cid = h.wb().strip.close_id(i);
+    let plate = h.app.hits.area_of(cid).expect("the tab's ×");
+    assert_eq!(plate.width, plus.width, "as wide as the +");
+    let cell = |h: &H, x: u16| h.term.backend().buffer()[(x, plate.y)].clone();
+    assert_eq!(cell(&h, plate.x + 1).symbol(), "×");
+    let rest: Vec<_> = (plate.left()..plate.right())
+        .map(|x| cell(&h, x).bg)
+        .collect();
+    h.mouse(MouseKind::Move, plate.right() - 1, plate.y);
+    for (k, x) in (plate.left()..plate.right()).enumerate() {
+        assert_ne!(cell(&h, x).bg, rest[k], "cell {k} of the plate lights");
+        assert_eq!(cell(&h, x).bg, cell(&h, plate.x).bg, "one plate");
+    }
+    let tab = h.wb().strip.areas[i];
+    assert_eq!(
+        cell(&h, tab.x + 2).bg,
+        rest[0],
+        "the tab itself stays at rest"
+    );
+    h.click(plate.right() - 1, plate.y);
+    assert_eq!(h.wb().tabs.len(), n - 1, "{}", h.text());
+}

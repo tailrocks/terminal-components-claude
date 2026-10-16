@@ -99,3 +99,35 @@ fn the_help_dialog_closes_by_its_close_button() {
         h.text()
     );
 }
+
+// docs/design/close-button.md: the Rename task dialog's × is a three-cell
+// plate; the pointer on its edge cell lights all three and a click there
+// closes the dialog as Esc does
+#[test]
+fn the_rename_dialog_close_plate_lights_whole_and_closes_on_its_edge() {
+    let mut h = Harness::new(120, 40, PageId::Dialogs);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Rename task"), "{}", h.text());
+    let plate = h.area_of(CLOSE);
+    assert_eq!(plate.width, 3);
+    let row: String = h.text().lines().nth(plate.y as usize).unwrap().to_owned();
+    assert!(row.contains(" × ─╮"), "{row}");
+    let bg = |h: &Harness, x: u16| h.term.backend().buffer()[(x, plate.y)].bg;
+    let rest: Vec<_> = (plate.left()..plate.right()).map(|x| bg(&h, x)).collect();
+    // the pointer on the plate's left padding cell
+    h.app.handle(Input::Mouse(Mouse::new(
+        MouseKind::Move,
+        Position::new(plate.x, plate.y),
+    )));
+    h.draw();
+    let lit: Vec<_> = (plate.left()..plate.right()).map(|x| bg(&h, x)).collect();
+    for k in 0..3 {
+        assert_ne!(lit[k], rest[k], "cell {k} of the plate lights");
+        assert_eq!(lit[k], lit[0], "one plate");
+    }
+    assert_eq!(bg(&h, plate.right()), rest[0], "the border beside it stays");
+    h.click(plate.x, plate.y);
+    assert!(h.app.dialog.is_none(), "{}", h.text());
+}
