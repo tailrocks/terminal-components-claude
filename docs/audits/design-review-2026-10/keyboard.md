@@ -126,7 +126,7 @@ Ctrl+C never bypasses an unsaved-changes guard or a page's own Ctrl+C handler.
 | CodeEditor | `▎` plus caret | Enter/F2/`i` edit; Tab indents (`tab_leaves`); Ctrl+Tab leaves; Esc ends the edit; `/` find | while editing (default Immediate when it is the main control) | `Tab Indent · Esc Done · Ctrl+R Run` |
 | ListBox | `▎` on the cursor row | ↑↓, PgUp/PgDn, Home/End; Enter/Space activate; Shift extends; → reveal; typeahead opt-in; Shift+F10 menu | none | `↑↓ Move · Enter Open · Shift+F10 Menu` |
 | TreeView | `▎` on the row | ↑↓, ←→ collapse/expand or parent/child, `*` and `-`, Enter/Space, Shift+F10 | none | `←→ Fold / open` |
-| Tabs | `▎`, active tab neutral | ←→ activate, Home/End, digits, `x` close, `n` new | none | `←→ Switch` |
+| Tabs | `▎` on the cursor tab while the strip is focused; active tab accent rule (selection) | ←→ activate, Home/End, digits, `x` close, `n` new | none | `←→ Switch` |
 | DataTable / Grid | `▎` on the row, cell fill | Arrows move the cell; Enter/F2 edit (or a viewer when read-only); typing replaces when the cell option is on; Space marks the row; Tab moves to the next writable cell, then leaves; Esc cancels or clears | in the cell while editing | `EDIT_CELL`; "Read-only" on such cells |
 | ChipBar | `▎` on a chip | ←→, Home/End; Enter activates; Space toggles; Delete/Backspace removes; `+` adds | none | `←→ Move · Delete Remove` |
 | Panel / Viewport / Diff | title restyle (Panel) or `▎` | ↑↓, PgUp/PgDn, ←→ scroll; Shift+arrows select; `f` follow; `y` copy; End follows; Esc clears selection | browse caret when focused | `↑↓ Scroll · Shift+↑↓ Select · y Copy` |

@@ -851,8 +851,11 @@ narrow layout is never a focus trap.
 
 #### Tabs
 
-- **Anatomy**: two rows; each tab is ` prefix label suffix •/!/⠋ ✕ `. There is
-  no `▎` gutter in a tab strip: the bar belongs to rows and fields. The state
+- **Anatomy**: two rows; each tab is ` prefix label suffix •/!/⠋ ✕ `. A
+  focused strip shows the screen's one `▎` gutter in the cursor tab's leading
+  cell, like any focusable element; an unfocused strip, or one under a modal
+  or popup, shows none. The active tab's accent rule is selection, not focus
+  (decision 2026-10-16, `docs/audits/design-review-2026-10/focus.md`). The state
   slot after the label carries dirty `•` (warning), error `!`, or the busy
   spinner; a `suffix` slot before it carries a muted state glyph (`▶ ● ○ ◆`)
   that turns text-secondary on the active tab.
