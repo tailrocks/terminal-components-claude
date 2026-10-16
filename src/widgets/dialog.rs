@@ -1,15 +1,22 @@
 //! Modal dialogs. A dialog owns its own focus scope; the app draws it over a
 //! dimmed backdrop and routes every event to it while it is open.
+//!
+//! Closing without an action is a [`Dismiss`] policy on the dialog, never a
+//! decision of the app. A dismissal resolves to the cancel action when there
+//! is one, so by default Esc and a click on the dimmed backdrop both close
+//! (cancelling is the safe answer, destructive dialogs included). Dialogs
+//! with a typed acknowledgement close on Esc only: a stray click must not
+//! throw away what was typed.
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Position, Rect};
-use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::theme::ButtonKind;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::popup::Dismiss;
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::input::{InputEvent, TextInput};
 use crate::widgets::panel::Panel;
@@ -52,6 +59,8 @@ pub struct Dialog {
     pub area: Rect,
     pub result: Option<DialogResult>,
     pub initial_focus: WidgetId,
+    /// How the dialog closes without an action (Esc, backdrop click).
+    pub dismiss: Dismiss,
 }
 
 impl Dialog {
@@ -69,6 +78,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: ok_id,
+            dismiss: Dismiss::LIGHT,
         }
     }
 
@@ -86,6 +96,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: cancel_id,
+            dismiss: Dismiss::LIGHT,
         }
     }
 
@@ -103,6 +114,7 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: input_id,
+            dismiss: Dismiss::LIGHT,
         }
     }
 
@@ -132,6 +144,11 @@ impl Dialog {
             area: Rect::ZERO,
             result: None,
             initial_focus: initial,
+            dismiss: if token.is_some() {
+                Dismiss::ESCAPE
+            } else {
+                Dismiss::LIGHT
+            },
         }
     }
 
@@ -140,6 +157,21 @@ impl Dialog {
         match &self.body {
             DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
             _ => true,
+        }
+    }
+
+    /// Set how the dialog closes without an action.
+    pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
+        self.dismiss = dismiss;
+        self
+    }
+
+    /// The result a dismissal resolves to: the cancel action if there is
+    /// one, so the owner handles "closed" and "Cancel" the same way.
+    fn dismissed(&mut self) -> Outcome {
+        match self.cancel_index {
+            Some(ci) => self.finish(DialogResult::Action(ci)),
+            None => self.finish(DialogResult::Cancelled),
         }
     }
 
@@ -268,13 +300,7 @@ impl Dialog {
             }
         }
         match key.code {
-            KeyCode::Esc => {
-                if let Some(ci) = self.cancel_index {
-                    self.finish(DialogResult::Action(ci))
-                } else {
-                    self.finish(DialogResult::Cancelled)
-                }
-            }
+            KeyCode::Esc if self.dismiss.escape => self.dismissed(),
             KeyCode::Tab => {
                 focus.next(ring);
                 Outcome::Changed
@@ -353,31 +379,20 @@ impl Dialog {
         Outcome::Consumed
     }
 
-    /// Click outside the dialog: cancel if cancelable.
+    /// Click on the dimmed backdrop: dismisses when the policy allows,
+    /// consumed either way (nothing under a modal is reachable).
     pub fn on_click_outside(&mut self) -> Outcome {
-        match self.cancel_index {
-            Some(ci) => self.finish(DialogResult::Action(ci)),
-            None => Outcome::Consumed,
+        if self.dismiss.outside_click {
+            self.dismissed()
+        } else {
+            Outcome::Consumed
         }
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         // dim backdrop; the footer row stays live because its hints belong to the dialog
-        let dim = Rect::new(
-            screen.x,
-            screen.y,
-            screen.width,
-            screen.height.saturating_sub(1),
-        );
-        for pos in dim.positions() {
-            if let Some(c) = buf.cell_mut(pos) {
-                let st = t.backdrop(c.style());
-                c.set_style(st);
-                c.modifier = Modifier::empty();
-            }
-        }
-        ctx.begin_modal();
+        ctx.modal_backdrop(buf, screen);
         let width = self.width.min(screen.width.saturating_sub(4)).max(20);
         let height = self.height(width).min(screen.height.saturating_sub(2));
         let area = screen.centered(Constraint::Length(width), Constraint::Length(height));
@@ -577,6 +592,35 @@ mod tests {
             facts_rows > 5,
             "the wrapped facts take more rows than they have entries"
         );
+    }
+
+    #[test]
+    fn backdrop_clicks_follow_the_dismiss_policy() {
+        let id = WidgetId::of("d");
+        let mut plain = Dialog::confirm(id, "Run?", "Run the suite.", "Run");
+        plain.on_click_outside();
+        assert_eq!(plain.result, Some(DialogResult::Action(0)));
+
+        // a typed acknowledgement ignores a stray click
+        let mut gated = gate(78);
+        assert_eq!(gated.on_click_outside(), Outcome::Consumed);
+        assert_eq!(gated.result, None);
+
+        // the policy is the caller's to choose either way
+        let mut del = Dialog::destructive(id, "Delete?", "Gone for good.", "Delete")
+            .dismiss(Dismiss::ESCAPE);
+        assert_eq!(del.on_click_outside(), Outcome::Consumed);
+        assert_eq!(del.result, None);
+        let mut locked = Dialog::confirm(id, "Run?", "Run the suite.", "Run").dismiss(Dismiss::NEVER);
+        let mut focus = crate::core::focus::Focus::default();
+        let ring = FocusRing::default();
+        let esc = Key {
+            code: KeyCode::Esc,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        locked.on_key(&esc, &mut focus, &ring);
+        locked.on_click_outside();
+        assert_eq!(locked.result, None);
     }
 
     #[test]

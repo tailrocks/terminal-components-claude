@@ -365,7 +365,7 @@ impl Page for PickersPage {
         props::render(inner, buf, t, &props, bg);
 
         if let Some((kind, p)) = self.picker.as_mut() {
-            ctx.begin_modal();
+            ctx.begin_modal(buf);
             let hints = match kind {
                 Kind::Quick => {
                     "↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close"

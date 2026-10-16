@@ -1073,3 +1073,50 @@ fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
         Err(error) if error.kind() == ErrorKind::DisplayHelp
     ));
 }
+
+#[test]
+fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
+    // a short terminal: the list opens over the panels drawn after the field
+    let mut h = Harness::new(120, 30, PageId::Chips);
+    let size = WidgetId::of("chips").sub("size");
+    let field = h.app.hits.area_of(size).expect("page size field");
+    h.click(field.x + 2, field.y);
+    let rows: Vec<_> = (0..4)
+        .map(|i| h.app.hits.area_of(size.child(i)).expect("option row"))
+        .collect();
+    let buf = h.term.backend().buffer().clone();
+    for (row, label) in rows.iter().zip(["25", "50", "100", "500"]) {
+        let text: String = (row.x..row.right())
+            .map(|x| buf[(x, row.y)].symbol())
+            .collect();
+        assert!(
+            text.contains(label),
+            "option {label} is painted on top: {text:?}"
+        );
+        assert!(row.bottom() <= 30, "inside the screen: {row:?}");
+    }
+    assert_eq!(
+        h.app.hits.hit(Position::new(rows[3].x + 3, rows[3].y)),
+        Some(size.child(3)),
+        "the last option is clickable, not shadowed by the page"
+    );
+
+    // a click outside closes the list, keeps the value and is consumed
+    let before = h.text();
+    let outside = Position::new(field.x + 2, 29 - 2);
+    assert!(!rows.iter().any(|r| r.contains(outside)));
+    h.click(outside.x, outside.y);
+    assert!(h.app.hits.area_of(size.child(0)).is_none(), "list closed");
+    assert!(before.contains("50"));
+    assert!(h.text().contains("Page size"));
+
+    // reopen and choose with the mouse: the click lands on the option
+    h.click(field.x + 2, field.y);
+    let last = h.app.hits.area_of(size.child(3)).unwrap();
+    h.click(last.x + 3, last.y);
+    assert!(h.app.hits.area_of(size.child(0)).is_none());
+    let row: String = (field.x..field.right())
+        .map(|x| h.term.backend().buffer()[(x, field.y)].symbol().to_owned())
+        .collect();
+    assert!(row.contains("500"), "{row:?}");
+}

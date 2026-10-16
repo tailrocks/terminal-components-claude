@@ -387,20 +387,7 @@ impl Picker {
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
         let t = ctx.theme;
         // dim + modal like Dialog
-        let dim = Rect::new(
-            screen.x,
-            screen.y,
-            screen.width,
-            screen.height.saturating_sub(1),
-        );
-        for pos in dim.positions() {
-            if let Some(c) = buf.cell_mut(pos) {
-                let st = t.backdrop(c.style());
-                c.set_style(st);
-                c.modifier = Modifier::empty();
-            }
-        }
-        ctx.begin_modal();
+        ctx.modal_backdrop(buf, screen);
         let rows = if self.status == PickerStatus::Ready {
             (self.items.len() as u16).clamp(1, self.max_rows)
         } else {
