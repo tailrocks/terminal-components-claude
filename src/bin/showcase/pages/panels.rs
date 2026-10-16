@@ -6,6 +6,7 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::scrollbar;
@@ -16,6 +17,7 @@ pub struct PanelsPage {
     prose: ScrollPanel,
     log: ScrollPanel,
     nested: ListBox,
+    sections: crate::pages::layout::Sections,
 }
 
 fn prose_style(t: &Theme, _line: &str) -> ratatui::style::Style {
@@ -52,7 +54,12 @@ impl PanelsPage {
             ],
             SelectMode::Single,
         );
-        Self { prose, log, nested }
+        Self {
+            prose,
+            log,
+            nested,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        }
     }
 
     fn panels(&mut self) -> [&mut ScrollPanel; 2] {
@@ -71,91 +78,63 @@ impl Page for PanelsPage {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, area.width / 2 - 1, 2);
-        let lrows = crate::pages::layout::rows(l, &[7, 1, 6, 1, 7, 0]);
+        // the left column's cards scroll as whole sections on a short
+        // terminal rather than drawing into the row under the page
+        let focus = ctx.interaction.has_focus(self.nested.id).then_some(2);
+        let lrows = self.sections.layout(
+            l,
+            &[
+                StackChild::fixed(7),
+                StackChild::fixed(6),
+                StackChild::fixed(7),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
 
         // titled card
         let panel = Panel::card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
-        let inner = panel.render(lrows[0], buf, t);
-        for (i, line) in junie_tui::ui::text::wrap("A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.", inner.width as usize).iter().enumerate() {
+        if let Some(inner) = lrows.slot(0).and_then(|r| panel.try_render(r, buf, t)) {
+            for (i, line) in junie_tui::ui::text::wrap("A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.", inner.width as usize).iter().enumerate() {
             if i < inner.height as usize {
                 buf.set_string(inner.x, inner.y + i as u16, line, t.secondary().bg(bg));
             }
+        }
         }
 
         // untitled card
         let panel = Panel::card(None);
         let bg = panel.bg(t);
-        let inner = panel.render(lrows[2], buf, t);
-        for (i, line) in junie_tui::ui::text::wrap(
-            "Untitled card. Same surface, content starts at the padding edge.",
-            inner.width as usize,
-        )
-        .iter()
-        .enumerate()
-        {
-            if i < inner.height as usize {
-                buf.set_string(inner.x, inner.y + i as u16, line, t.secondary().bg(bg));
+        if let Some(inner) = lrows.slot(1).and_then(|r| panel.try_render(r, buf, t)) {
+            for (i, line) in junie_tui::ui::text::wrap(
+                "Untitled card. Same surface, content starts at the padding edge.",
+                inner.width as usize,
+            )
+            .iter()
+            .enumerate()
+            {
+                if i < inner.height as usize {
+                    buf.set_string(inner.x, inner.y + i as u16, line, t.secondary().bg(bg));
+                }
             }
         }
 
         // nested: card containing a framed pane containing a list
         let panel = Panel::card(Some("Nested"));
         let bg = panel.bg(t);
-        let inner = panel.render(lrows[4], buf, t);
-        // nested grouping is a muted label and indent, never a second box
-        buf.set_string(inner.x, inner.y, "Target", t.muted().bg(bg));
-        let group = Rect::new(
-            inner.x,
-            inner.y + 1,
-            inner.width.min(30),
-            inner.height.saturating_sub(1).min(3),
-        );
-        self.nested.render(group, buf, ctx, bg);
-        let note_x = group.right() + 2;
-        if note_x + 20 < inner.right() {
-            for (i, line) in junie_tui::ui::text::wrap("A group inside a card is a muted label plus indent. The focus bar stays on the control.", (inner.right() - note_x) as usize).iter().enumerate() {
-                if (i as u16) < inner.height {
-                    buf.set_string(note_x, inner.y + i as u16, line, t.muted().bg(bg));
-                }
-            }
+        match lrows.slot(2).and_then(|r| panel.try_render(r, buf, t)) {
+            Some(inner) => self.render_nested(inner, buf, ctx, bg),
+            None => ctx.focus_stop(self.nested.id),
         }
-
-        // right: two framed scrollable panes
-        let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
-        let pf = ctx.interaction.focused(self.prose.id);
-        let panel = Panel::framed(Some("Framed · split pane")).focused(pf);
-        let bg = panel.bg(t);
-        let inner = panel.render(rrows[0], buf, t);
-        self.prose.render(inner, buf, ctx, bg, prose_style);
-        panel.draw_meta(
-            rrows[0],
-            buf,
-            t,
-            &scrollbar::position_label(&self.prose.scroll),
-        );
-
-        let lf = ctx.interaction.focused(self.log.id);
-        let panel = Panel::card(Some("Card · scrollable")).focused(lf);
-        let bg = panel.bg(t);
-        let card = Rect::new(
-            rrows[1].x,
-            rrows[1].y + 1,
-            rrows[1].width,
-            rrows[1].height.saturating_sub(1),
-        );
-        let inner = panel.render(card, buf, t);
-        self.log.render(inner, buf, ctx, bg, log_style);
-        let pos = scrollbar::position_label(&self.log.scroll);
-        let meta = if self.log.follow {
-            format!("{pos} · following")
-        } else {
-            pos
-        };
-        panel.draw_meta(card, buf, t, &meta);
+        self.render_panes(r, buf, ctx);
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
         match ev {
             PageEvent::Key(key) => {
                 let Some(f) = cx.focus.current() else {
@@ -217,5 +196,70 @@ impl Page for PanelsPage {
         } else {
             vec![("↑↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         }
+    }
+}
+
+impl PanelsPage {
+    fn render_nested(
+        &mut self,
+        inner: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        let t = ctx.theme;
+        // nested grouping is a muted label and indent, never a second box
+        buf.set_string(inner.x, inner.y, "Target", t.muted().bg(bg));
+        let group = Rect::new(
+            inner.x,
+            inner.y + 1,
+            inner.width.min(30),
+            inner.height.saturating_sub(1).min(3),
+        );
+        self.nested.render(group, buf, ctx, bg);
+        let note_x = group.right() + 2;
+        if note_x + 20 < inner.right() {
+            for (i, line) in junie_tui::ui::text::wrap("A group inside a card is a muted label plus indent. The focus bar stays on the control.", (inner.right() - note_x) as usize).iter().enumerate() {
+                if (i as u16) < inner.height {
+                    buf.set_string(note_x, inner.y + i as u16, line, t.muted().bg(bg));
+                }
+            }
+        }
+    }
+
+    fn render_panes(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        // right: two framed scrollable panes
+        let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
+        let pf = ctx.interaction.focused(self.prose.id);
+        let panel = Panel::framed(Some("Framed · split pane")).focused(pf);
+        let bg = panel.bg(t);
+        let inner = panel.render(rrows[0], buf, t);
+        self.prose.render(inner, buf, ctx, bg, prose_style);
+        panel.draw_meta(
+            rrows[0],
+            buf,
+            t,
+            &scrollbar::position_label(&self.prose.scroll),
+        );
+
+        let lf = ctx.interaction.focused(self.log.id);
+        let panel = Panel::card(Some("Card · scrollable")).focused(lf);
+        let bg = panel.bg(t);
+        let card = Rect::new(
+            rrows[1].x,
+            rrows[1].y + 1,
+            rrows[1].width,
+            rrows[1].height.saturating_sub(1),
+        );
+        let inner = panel.render(card, buf, t);
+        self.log.render(inner, buf, ctx, bg, log_style);
+        let pos = scrollbar::position_label(&self.log.scroll);
+        let meta = if self.log.follow {
+            format!("{pos} · following")
+        } else {
+            pos
+        };
+        panel.draw_meta(card, buf, t, &meta);
     }
 }
