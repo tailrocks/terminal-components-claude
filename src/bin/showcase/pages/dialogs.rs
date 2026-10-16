@@ -4,6 +4,7 @@ use ratatui::layout::Rect;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::theme::StatusKind;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
@@ -81,12 +82,15 @@ impl DialogsPage {
                 d.initial_focus = CHOICE.sub("save");
                 cx.open(d);
             }
-            _ => cx.open(Dialog::destructive(
-                DELETE,
-                "Delete branch?",
-                "feat/rate-limit has 14 commits that are not on main. This cannot be undone.",
-                "Delete branch",
-            )),
+            _ => cx.open(
+                Dialog::destructive(
+                    DELETE,
+                    "Delete branch?",
+                    "feat/rate-limit has 14 commits that are not on main. This cannot be undone.",
+                    "Delete branch",
+                )
+                .title_status(StatusKind::Warn),
+            ),
         }
     }
 }
@@ -113,7 +117,7 @@ impl Page for DialogsPage {
         let notes = [
             "Confirm: primary action focused first · y / n answer directly",
             "Prompt: editing inside a modal, Enter submits, validation blocks",
-            "Destructive: Cancel focused first, action in danger style",
+            "Destructive: ▲ title status, Cancel focused first, action in danger style",
         ];
         for (i, n) in notes.iter().enumerate() {
             buf.set_string(

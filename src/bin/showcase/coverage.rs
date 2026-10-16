@@ -519,4 +519,119 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter",
         Demo("terminal", "drag the seam"),
     ),
+    (
+        "theme::StatusKind",
+        Demo("overview", "✓ ok ✗ failed ▲ warn • pending"),
+    ),
+    ("theme::StatusKind::Ok", Demo("overview", "✓ ok")),
+    ("theme::StatusKind::Fail", Demo("overview", "✗ failed")),
+    ("theme::StatusKind::Warn", Demo("overview", "▲ warn")),
+    ("theme::StatusKind::Pending", Demo("overview", "• pending")),
+    ("theme::StatusKind::Running", Demo("overview", "⠋ running")),
+    ("theme::StatusKind::Queued", Demo("overview", "○ queued")),
+    ("theme::StatusKind::Info", Demo("overview", "i info")),
+    ("theme::StatusKind::Skipped", Demo("overview", "– skipped")),
+    ("theme::EnvKind", Demo("overview", "◆ production ◇ staging")),
+    (
+        "theme::EnvKind::Production",
+        Demo("overview", "◆ production"),
+    ),
+    ("theme::EnvKind::Staging", Demo("overview", "◇ staging")),
+    (
+        "theme::EnvKind::Development",
+        Demo("overview", "· development"),
+    ),
+    (
+        "theme::EnvKind::Local",
+        Demo("overview", "· development local"),
+    ),
+    (
+        "theme::Tone",
+        Demo("overview", "Tone normal secondary muted faint active"),
+    ),
+    ("theme::Tone::Normal", Demo("overview", "Tone normal")),
+    (
+        "theme::Tone::Secondary",
+        Demo("overview", "normal secondary"),
+    ),
+    ("theme::Tone::Muted", Demo("overview", "secondary muted")),
+    ("theme::Tone::Faint", Demo("overview", "muted faint")),
+    ("theme::Tone::Active", Demo("overview", "faint active")),
+    ("theme::Tone::Info", Demo("overview", "info success")),
+    ("theme::Tone::Success", Demo("overview", "info success")),
+    ("theme::Tone::Warning", Demo("overview", "success warning")),
+    ("theme::Tone::Error", Demo("overview", "warning error")),
+    ("theme::Tone::Danger", Demo("overview", "error danger")),
+    (
+        "theme::Theme::link",
+        Demo("overview", "Link docs/colour.md"),
+    ),
+    (
+        "theme::Theme::syntax_literal",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::Theme::syntax_keyword",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::Theme::syntax_string",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Keyword",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Ident",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Number",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Str",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Operator",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Punct",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Comment",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "theme::SyntaxTone::Plain",
+        Demo("overview", "let ok = true, 42, \"text\"; // note"),
+    ),
+    (
+        "widgets::dialog::Dialog::title_status",
+        Demo("dialogs", "▲ title status"),
+    ),
+    (
+        "widgets::list::ListItem::meta_tone",
+        Demo("lists", "tests/checkout.rs new"),
+    ),
+    (
+        "widgets::tree::TreeNode::glyph_tone",
+        Demo("taskrunner", "◆ production"),
+    ),
+    (
+        "widgets::tree::TreeNode::label_tone",
+        Demo("taskrunner", "◆ production"),
+    ),
+    (
+        "widgets::hintbar::HintLayer::status_parts",
+        Demo("chrome", "last: nothing yet"),
+    ),
 ];

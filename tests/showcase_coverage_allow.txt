@@ -587,7 +587,6 @@ widgets::dialog::Dialog::backdrop | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::placement | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::anchor | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::confirm_index | Dialogs page variants and options | SC17
-widgets::dialog::Dialog::title_status | Dialogs page variants and options | SC17
 
 # widgets::diff
 widgets::diff::DiffLineKind | Diff and Terminal page options | SC25
@@ -777,7 +776,6 @@ widgets::hintbar::HintLayer | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::align | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::badge | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::status | Chrome and Status & hints pages | SC4
-widgets::hintbar::HintLayer::status_parts | Chrome and Status & hints pages | SC4
 
 # widgets::icon_button
 widgets::icon_button::IconLook | Buttons page options and States grid | SC7
@@ -845,7 +843,6 @@ widgets::keyref::KeyReference::key_max_share | Help & keys and Quit & leave page
 # widgets::list
 widgets::list::ListItem | Lists and Trees page options | SC15
 widgets::list::ListItem::meta | Lists and Trees page options | SC15
-widgets::list::ListItem::meta_tone | Lists and Trees page options | SC15
 widgets::list::ListItem::disabled | Lists and Trees page options | SC15
 widgets::list::ClickAction | Lists and Trees page options | SC15
 widgets::list::ClickAction::Activate | Lists and Trees page options | SC15
@@ -1182,8 +1179,6 @@ widgets::textarea::TextArea::label_hit | Inputs and Text areas page options | SC
 
 # widgets::tree
 widgets::tree::TreeNode::glyph | Lists and Trees page options | SC15
-widgets::tree::TreeNode::glyph_tone | Lists and Trees page options | SC15
-widgets::tree::TreeNode::label_tone | Lists and Trees page options | SC15
 widgets::tree::TreeNode::meta | Lists and Trees page options | SC15
 widgets::tree::FlatRow | Lists and Trees page options | SC15
 widgets::tree::TreeAction | Lists and Trees page options | SC15
@@ -1280,12 +1275,8 @@ theme::Theme::accent_bg_subtle | Overview theme token tables | SC3
 theme::Theme::focus | Overview theme token tables | SC3
 theme::Theme::disabled | Overview theme token tables | SC3
 theme::Theme::error_bg | Overview theme token tables | SC3
-theme::Theme::link | Overview theme token tables | SC3
 theme::Theme::error_strong | Overview theme token tables | SC3
 theme::Theme::success_strong | Overview theme token tables | SC3
-theme::Theme::syntax_keyword | Overview theme token tables | SC3
-theme::Theme::syntax_string | Overview theme token tables | SC3
-theme::Theme::syntax_literal | Overview theme token tables | SC3
 theme::Theme::accent_bg_hover | Overview theme token tables | SC3
 theme::Theme::ladders | Overview theme token tables | SC3
 theme::Theme::mods | Overview theme token tables | SC3
@@ -1303,40 +1294,6 @@ theme::Theme::with_edit_entry | Inspector pane: app-wide option or State tab rea
 theme::Theme::with_field_keys | Inspector pane: app-wide option or State tab readout | SC1
 theme::Theme::with_state_modifiers | Overview theme token tables | SC3
 theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
-theme::Tone | Overview theme token tables | SC3
-theme::Tone::Normal | Overview theme token tables | SC3
-theme::Tone::Secondary | Overview theme token tables | SC3
-theme::Tone::Muted | Overview theme token tables | SC3
-theme::Tone::Faint | Overview theme token tables | SC3
-theme::Tone::Error | Overview theme token tables | SC3
-theme::Tone::Warning | Overview theme token tables | SC3
-theme::Tone::Success | Overview theme token tables | SC3
-theme::Tone::Info | Overview theme token tables | SC3
-theme::Tone::Active | Overview theme token tables | SC3
-theme::Tone::Danger | Overview theme token tables | SC3
-theme::StatusKind | Overview theme token tables | SC3
-theme::StatusKind::Ok | Overview theme token tables | SC3
-theme::StatusKind::Fail | Overview theme token tables | SC3
-theme::StatusKind::Warn | Overview theme token tables | SC3
-theme::StatusKind::Pending | Overview theme token tables | SC3
-theme::StatusKind::Running | Overview theme token tables | SC3
-theme::StatusKind::Queued | Overview theme token tables | SC3
-theme::StatusKind::Info | Overview theme token tables | SC3
-theme::StatusKind::Skipped | Overview theme token tables | SC3
-theme::EnvKind | Overview theme token tables | SC3
-theme::EnvKind::Production | Overview theme token tables | SC3
-theme::EnvKind::Staging | Overview theme token tables | SC3
-theme::EnvKind::Development | Overview theme token tables | SC3
-theme::EnvKind::Local | Overview theme token tables | SC3
-theme::SyntaxTone | Overview theme token tables | SC3
-theme::SyntaxTone::Keyword | Overview theme token tables | SC3
-theme::SyntaxTone::Ident | Overview theme token tables | SC3
-theme::SyntaxTone::Number | Overview theme token tables | SC3
-theme::SyntaxTone::Str | Overview theme token tables | SC3
-theme::SyntaxTone::Operator | Overview theme token tables | SC3
-theme::SyntaxTone::Punct | Overview theme token tables | SC3
-theme::SyntaxTone::Comment | Overview theme token tables | SC3
-theme::SyntaxTone::Plain | Overview theme token tables | SC3
 theme::ButtonKind::Toggle | Overview theme token tables | SC3
 theme::BadgeKind | Overview theme token tables | SC3
 theme::BadgeKind::Edit | Overview theme token tables | SC3

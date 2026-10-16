@@ -177,6 +177,29 @@ All three are done; the regression tests are in
 | Progress page meters and failed bar | `src/bin/showcase/pages/progress.rs:52, 108-109, 142-151` | **Done.** The block visual (whose fill is the level hue as a background) is shown once, on a low meter, so red appears only as a run or a glyph (the failed bar, high, exhausted), never as a filled block. Meters take the library levels; the right column shows the options: owner thresholds (`MeterTone::Level { warn: 80, crit: 95 }` at 72% and 88%), `MeterTone::Fixed`, a stale domain warning (`Meter::stale`) and `StaleStyle::Faint`. The caption now says low is blue. Test `progress_page_shows_meter_levels_and_staleness_without_red_fills`. |
 | Editor sample `true` / `false` | `src/bin/showcase/pages/editor.rs:57, 119, 130-131` | **Done.** Booleans are `SyntaxTone::Literal`; the sample gains `.gzip(true)` so a literal is on screen. Test `editor_booleans_are_literals`. |
 
+#### Where the showcase demonstrates the roles
+
+Each demo uses the library API only; the coverage declarations are in
+`src/bin/showcase/coverage.rs` and the Harness tests in
+`src/bin/showcase/app_tests_colour.rs`.
+
+| Role | Page | API |
+|---|---|---|
+| Status kinds (all eight), environments (all four), tones (all ten), syntax classes, link | Overview, "Roles" card under Tokens (fully visible from about 160×50; at 120×40 the status and environment rows show) | `Theme::status`, `Theme::status_label`, `Theme::legible`, `Theme::env`, `Glyphs::env`, `EnvKind::tone`, `Theme::tone_on`, `Theme::syntax`, `Theme::link_style` |
+| Task states | Task runner | `Theme::status_at`, `StatusKind::tone` |
+| Environment glyph and tone in a tree | Task runner, deploy targets (staging, production) | `TreeNode::glyph`, `glyph_tone`, `label_tone` (production label in danger) |
+| Meter levels, owner thresholds, fixed level, staleness | Progress, States card | `MeterTone::Level`, `MeterTone::Fixed`, `MeterTone::Stale`, `Meter::stale`, `StaleStyle::Faint` |
+| Running bar in the active tone | Progress | `ProgressStatus::Active` |
+| Syntax literal | Code editor (`gzip(true)`) and Overview | `SyntaxTone::Literal` |
+| Dialog title status | Dialogs, Delete branch (`▲` before the title) | `Dialog::title_status` |
+| List metadata tone | Lists, Files (new in success, modified in warning) | `ListItem::meta_tone` |
+| Toned status in the hint bar, span line, footer status | Chrome (`last:` muted beside its value; `2 ok · 1 failed · 1 cancelled`; `✓ Saved`) | `HintLayer::status_parts`, `viewport::render_spans`, `keyhint::render_status` |
+
+Recorded, not shown yet: `TabItem::done`. No existing showcase page has
+a tab strip of tasks (the only strip is the Settings sections, where
+"done" has no meaning); it stays on the coverage allowlist for the Tabs
+page (SC14), which is the place for tab states.
+
 ### holla
 
 All done; the regression tests are in `src/bin/holla/app_tests_colour.rs`.
