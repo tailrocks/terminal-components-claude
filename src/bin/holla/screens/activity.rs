@@ -322,8 +322,8 @@ impl Screen for ActivityTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let tick = w.tick;
         if self.attached {
-            // crossterm reports Ctrl+] as Ctrl+5
-            if key.ctrl() && matches!(key.code, KeyCode::Char(']') | KeyCode::Char('5')) {
+            // legacy Ctrl+5 arrives decoded as Ctrl+] (InputConfig)
+            if key.ctrl_char(']') {
                 self.attached = false;
                 cx.status("Detached · the program keeps running in its tab");
                 return Outcome::Changed;
