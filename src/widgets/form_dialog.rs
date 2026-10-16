@@ -10,6 +10,7 @@
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::theme::{Strings, Tone};
 use crate::ui::ctx::RenderCtx;
@@ -176,6 +177,10 @@ pub struct FormDialog {
     /// The theme's strings as of the last render; Cancel and Save labels
     /// still reading them follow a change ([`Strings::follow`]).
     strings: Strings,
+    /// Which keys move between the buttons while no field is editing.
+    /// Default [`NavKeys::NO_VIM`]: ←/→ only, so letters stay with the
+    /// fields.
+    pub nav: NavKeys,
 }
 
 impl FormDialog {
@@ -197,6 +202,7 @@ impl FormDialog {
             dirty: false,
             pop_on_save: true,
             strings: Strings::DEFAULT,
+            nav: NavKeys::NO_VIM,
         }
     }
 
@@ -457,7 +463,7 @@ impl FormDialog {
                 }
                 Outcome::Changed
             }
-            KeyCode::Left | KeyCode::Right if !editing => {
+            _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
                 let ids: Vec<WidgetId> = self
                     .actions
                     .iter()
@@ -466,7 +472,7 @@ impl FormDialog {
                     .collect();
                 if let Some(i) = ids.iter().position(|id| Some(*id) == cur) {
                     let n = ids.len();
-                    let j = if key.code == KeyCode::Left {
+                    let j = if self.nav.action(key) == Some(Nav::Left) {
                         (i + n - 1) % n
                     } else {
                         (i + 1) % n
@@ -638,6 +644,12 @@ impl FormDialog {
             h += f.height() + 1;
         }
         h
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

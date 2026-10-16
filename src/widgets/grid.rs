@@ -418,6 +418,14 @@ pub struct DataGrid {
     pub nav: NavKeys,
     /// The grid's action keys (default [`GridAction::default_keymap`]).
     pub keymap: KeyMap<GridAction>,
+    /// Typing a prefix jumps to the first row whose cell in
+    /// [`Self::type_ahead_column`] starts with it (macOS table type-select).
+    /// Off by default: plain letters keep their vim and action bindings.
+    pub type_ahead: bool,
+    /// The column type-ahead matches; `None` (default) is the cursor's
+    /// column.
+    pub type_ahead_column: Option<usize>,
+    typeahead: crate::core::typeahead::TypeAhead,
     /// How many leading rows [`Self::set_rows`] measures to size columns
     /// (the 95th percentile of their widths, clamped to each column's
     /// min/max). Default [`DEFAULT_WIDTH_SAMPLE_ROWS`]; widths are measured
@@ -558,7 +566,22 @@ impl DataGrid {
             width_sample_rows: DEFAULT_WIDTH_SAMPLE_ROWS,
             nav: NavKeys::DEFAULT,
             keymap: GridAction::default_keymap(),
+            type_ahead: false,
+            type_ahead_column: None,
+            typeahead: Default::default(),
         }
+    }
+
+    /// See [`Self::type_ahead`].
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::type_ahead_column`].
+    pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
+        self.type_ahead_column = col;
+        self
     }
 
     /// Override the app-wide horizontal scrolling policy.
@@ -1262,6 +1285,38 @@ impl DataGrid {
                 Some(GridAction::FilterOnCell) => (Outcome::Changed, Some(GridEvent::OpenFilters)),
                 Some(GridAction::ClearFilters) => (Outcome::Changed, Some(GridEvent::ClearFilters)),
                 _ => (Outcome::Ignored, None),
+            };
+        }
+        if let KeyCode::Char(ch) = key.code
+            && self.type_ahead
+            && !ch.is_whitespace()
+            && !ctrl
+            && !key.alt()
+        {
+            let col = self.type_ahead_column.unwrap_or(c);
+            let prefix = self.typeahead.feed(ch).to_owned();
+            let texts: Vec<String> = self
+                .order
+                .iter()
+                .map(|&src| {
+                    self.rows[src]
+                        .get(col)
+                        .map(CellValue::text)
+                        .unwrap_or_default()
+                })
+                .collect();
+            let found = crate::core::typeahead::TypeAhead::find(
+                &prefix,
+                texts.iter().map(String::as_str),
+                r.min(texts.len().saturating_sub(1)),
+                |_| true,
+            );
+            return match found {
+                Some(d) => {
+                    self.set_cursor(d, c, false);
+                    (Outcome::Changed, None)
+                }
+                None => (Outcome::Consumed, None),
             };
         }
         if let Some(action) = lookup(&self.keymap, key) {

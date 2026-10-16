@@ -209,6 +209,14 @@ pub struct DataTable {
     pub nav: NavKeys,
     /// The table's own action keys (default [`TableAction::default_keymap`]).
     pub keymap: KeyMap<TableAction>,
+    /// Typing a prefix jumps to the first enabled row whose cell in
+    /// [`Self::type_ahead_column`] starts with it (macOS table type-select).
+    /// Off by default: plain letters keep their vim and action bindings.
+    pub type_ahead: bool,
+    /// The column type-ahead matches; `None` (default) is the cursor's
+    /// column.
+    pub type_ahead_column: Option<usize>,
+    typeahead: crate::core::typeahead::TypeAhead,
 }
 
 /// A [`DataTable`] action a key can be bound to.
@@ -282,7 +290,22 @@ impl DataTable {
             disabled: BTreeSet::new(),
             nav: NavKeys::DEFAULT,
             keymap: TableAction::default_keymap(),
+            type_ahead: false,
+            type_ahead_column: None,
+            typeahead: Default::default(),
         }
+    }
+
+    /// See [`Self::type_ahead`].
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
+        self
+    }
+
+    /// See [`Self::type_ahead_column`].
+    pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
+        self.type_ahead_column = col;
+        self
     }
 
     /// See [`Self::nav`].
@@ -837,6 +860,32 @@ impl DataTable {
         }
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
+        }
+        if let KeyCode::Char(c) = key.code
+            && self.type_ahead
+            && !c.is_whitespace()
+            && !key.ctrl()
+            && !key.alt()
+        {
+            let col = self.type_ahead_column.unwrap_or(self.cursor_col);
+            let prefix = self.typeahead.feed(c).to_owned();
+            let found = crate::core::typeahead::TypeAhead::find(
+                &prefix,
+                self.order.iter().map(|&src| {
+                    self.rows[src]
+                        .get(col)
+                        .map_or("", |cell| cell.text.as_str())
+                }),
+                self.cursor_row,
+                |d| !self.is_disabled(self.order[d]),
+            );
+            return match found {
+                Some(d) => {
+                    self.set_cursor(d, self.cursor_col);
+                    (Outcome::Changed, None)
+                }
+                None => (Outcome::Consumed, None),
+            };
         }
         if self.multi()
             && let Some(r) = self.on_key_multi(key)
