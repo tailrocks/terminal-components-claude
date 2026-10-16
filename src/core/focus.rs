@@ -17,6 +17,21 @@ impl FocusRing {
         self.order.push(id);
     }
 
+    /// How many entries were registered so far: where a group that
+    /// [`Self::sort_from`] reorders starts.
+    pub fn len(&self) -> usize {
+        self.order.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.order.is_empty()
+    }
+    /// Reorder the entries registered since `start` by `key` (stable:
+    /// equal keys keep their registration order).
+    pub fn sort_from<K: Ord>(&mut self, start: usize, key: impl FnMut(&WidgetId) -> K) {
+        if let Some(group) = self.order.get_mut(start..) {
+            group.sort_by_key(key);
+        }
+    }
     pub fn push_barrier(&mut self) {
         self.barrier = Some(self.order.len());
     }
@@ -319,6 +334,25 @@ mod tests {
         assert_eq!(f.current(), Some(a));
         f.prev(&r);
         assert_eq!(f.current(), Some(c));
+    }
+
+    #[test]
+    fn sort_from_reorders_only_the_group() {
+        let (a, b, c, d) = (
+            WidgetId::of("a"),
+            WidgetId::of("b"),
+            WidgetId::of("c"),
+            WidgetId::of("d"),
+        );
+        let mut r = FocusRing::default();
+        r.register(d);
+        let start = r.len();
+        r.register(c);
+        r.register(a);
+        r.register(b);
+        let rank = |id: &WidgetId| [a, b, c].iter().position(|x| x == id);
+        r.sort_from(start, rank);
+        assert_eq!(r.reachable(), &[d, a, b, c]);
     }
 
     #[test]
