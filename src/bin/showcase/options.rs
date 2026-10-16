@@ -215,6 +215,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Inputs => INPUTS,
         PageId::TextAreas => TEXTAREAS,
         PageId::ChecksRadios => CHECKS,
+        PageId::Chips => CHIPS,
         _ => &[],
     }
 }
@@ -345,6 +346,96 @@ pub static CHECKS: &[Opt] = &[
         &["default", "no-vim", "no-home-end"],
     ),
     Opt::new("checksradios.disabled", "Disable every control", OFF_ON),
+];
+
+/// Chips & selects (SC10): every `ChipBar` and `Select` knob.
+pub static CHIPS: &[Opt] = &[
+    // chip bar
+    Opt::new(
+        "chipsselects.bar_width",
+        "Chip bar width",
+        &["full", "60", "40"],
+    ),
+    Opt::new("chipsselects.overflow_marker", "+N marker", OFF_ON).default(1),
+    Opt::new("chipsselects.overflow_menu", "+N opens a menu", OFF_ON).default(1),
+    Opt::new(
+        "chipsselects.close_target",
+        "× plate width",
+        &["3", "1", "5"],
+    ),
+    Opt::new(
+        "chipsselects.close_button",
+        "× button",
+        &["default", "danger"],
+    ),
+    Opt::new(
+        "chipsselects.more_button",
+        "+N button",
+        &["default", "wide"],
+    ),
+    Opt::new(
+        "chipsselects.chip_nav",
+        "Chip keys",
+        &["default", "no-vim", "no-home-end"],
+    ),
+    Opt::new(
+        "chipsselects.chip_keymap",
+        "Chip key map",
+        &["default", "custom"],
+    ),
+    Opt::new("chipsselects.digit_toggles", "1–9 toggle streams", OFF_ON).default(1),
+    // selects
+    Opt::new("chipsselects.arrows", "Select arrows", &["step", "open"]),
+    Opt::new(
+        "chipsselects.wheel",
+        "Wheel over the list",
+        &["viewport", "cursor"],
+    ),
+    Opt::new(
+        "chipsselects.tab_in_open",
+        "Tab in an open list",
+        &["choose", "close", "swallow"],
+    ),
+    Opt::new("chipsselects.max_rows", "List rows", &["8", "4", "12"]),
+    Opt::new(
+        "chipsselects.placement",
+        "List placement",
+        &["below", "above"],
+    ),
+    Opt::new(
+        "chipsselects.popup_fit",
+        "List fit",
+        &["default", "flush", "menu"],
+    ),
+    Opt::new(
+        "chipsselects.popup_width",
+        "List width",
+        &["12-40", "8-16", "30-60"],
+    ),
+    Opt::new("chipsselects.cursor_style", "List cursor", &["fill", "bar"]),
+    Opt::new(
+        "chipsselects.hover_moves_cursor",
+        "Hover moves cursor",
+        OFF_ON,
+    )
+    .default(1),
+    Opt::new("chipsselects.press_drag", "Press-drag-release", OFF_ON).default(1),
+    Opt::new("chipsselects.label_hit", "Label click opens", OFF_ON).default(1),
+    Opt::new(
+        "chipsselects.track_click",
+        "List track click",
+        &["theme", "jump", "page"],
+    ),
+    Opt::new("chipsselects.wrap", "Arrows wrap", OFF_ON),
+    Opt::new("chipsselects.type_ahead", "Type-ahead", OFF_ON),
+    Opt::new("chipsselects.close_on_blur", "Close on blur", OFF_ON).default(1),
+    Opt::new("chipsselects.dismiss", "Dismiss", &["light", "escape"]),
+    Opt::new(
+        "chipsselects.select_nav",
+        "Select keys",
+        &["default", "no-vim"],
+    ),
+    Opt::new("chipsselects.mixed", "Sort shows mixed", OFF_ON),
 ];
 
 /// A page's option values: an index into each option's values, in the

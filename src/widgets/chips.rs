@@ -93,6 +93,10 @@ pub struct ChipBar {
     /// [`IconButton::new`] on the title ladder, tooltip `Show hidden`
     /// ([`crate::theme::Strings::tip_overflow`]).
     pub more_button: IconButton,
+    /// `1`–`9` toggle the first nine chips while the bar has focus (a
+    /// stream filter: each digit switches one source on or off). Default
+    /// off: digits are left to the page.
+    pub digit_toggles: bool,
     /// The open overflow menu and the chip each of its rows stands for.
     menu: Option<(ContextMenu, Vec<usize>)>,
     /// Chips shown in the last render (the rest sit behind `+N`).
@@ -150,6 +154,7 @@ impl ChipBar {
             close_button: IconButton::close(WidgetId::of("chips.remove")),
             overflow_menu: true,
             more_button: IconButton::new(WidgetId::of("chips.more"), "+"),
+            digit_toggles: false,
             menu: None,
             shown: 0,
             more_area: Rect::ZERO,
@@ -225,6 +230,12 @@ impl ChipBar {
         }
     }
 
+    /// See [`Self::digit_toggles`].
+    pub fn digit_toggles(mut self, on: bool) -> Self {
+        self.digit_toggles = on;
+        self
+    }
+
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -272,6 +283,16 @@ impl ChipBar {
             return (Outcome::Ignored, None);
         }
         self.cursor = self.cursor.min(n - 1);
+        if self.digit_toggles
+            && key.plain()
+            && let KeyCode::Char(c @ '1'..='9') = key.code
+        {
+            let i = c as usize - '1' as usize;
+            if i < self.chips.len() {
+                self.cursor = i;
+                return (Outcome::Changed, Some(ChipAction::Toggle(i)));
+            }
+        }
         let action = lookup(&self.keymap, key);
         if matches!(key.code, KeyCode::Char(_)) && key.chord() && action.is_none() {
             // an unassigned modified chord never performs a plain action
@@ -492,6 +513,54 @@ impl ChipBar {
     }
 }
 
+/// The bar at rest, hovered (over its first chip), focused, with an error
+/// chip, overflowing into `+N`, and narrow.
+impl crate::ui::specimen::Specimen for ChipBar {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover | Focused | FocusedHover | Error | Overflow | Narrow
+        )
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState;
+        let mut b = self.clone();
+        b.menu = None;
+        let v = state.visual();
+        if v.hovered && !b.chips.is_empty() {
+            // the pointer rests on a chip, not on the bar
+            ctx.interaction.hover = Some(b.chip_id(0));
+        }
+        match state {
+            SpecimenState::Error => {
+                if let Some(c) = b.chips.first_mut() {
+                    c.error = true;
+                }
+            }
+            SpecimenState::Overflow => {
+                for l in ["region = 'eu'", "plan = 'pro'", "seats > 5"] {
+                    b.chips.push(Chip::new(l));
+                }
+            }
+            _ => {}
+        }
+        b.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -514,6 +583,26 @@ mod tests {
         off.enabled = false;
         bar.chips = vec![Chip::new("alpha"), off];
         bar
+    }
+
+    /// `1`–`9` toggle the chip of that number only when the bar asks for
+    /// it; otherwise digits pass on to the page.
+    #[test]
+    fn digit_toggles_switch_the_numbered_chip() {
+        let key = |c| Key {
+            code: KeyCode::Char(c),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut b = bar();
+        assert_eq!(b.on_key(&key('2')), (Outcome::Ignored, None));
+        let mut b = bar().digit_toggles(true);
+        assert_eq!(
+            b.on_key(&key('2')),
+            (Outcome::Changed, Some(ChipAction::Toggle(1)))
+        );
+        assert_eq!(b.cursor, 1);
+        // no third chip: the digit passes on
+        assert_eq!(b.on_key(&key('3')), (Outcome::Ignored, None));
     }
 
     #[test]

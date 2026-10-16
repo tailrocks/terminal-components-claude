@@ -282,8 +282,8 @@ fn chips_selection_and_disabled_behavior() {
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("last action: removed status = 'pending'"));
 
-    h.key(KeyCode::Right);
-    h.key(KeyCode::Right);
+    // End reaches the add button past every chip (the error chip too)
+    h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert!(
         h.text()

@@ -14,7 +14,9 @@
 120x40 TrueColor Text areas 3e6d0b7a8ec76141
 120x40 TrueColor Text areas · Options 443187566393f336
 120x40 TrueColor Text areas · States aba140b4b24f5d5c
-120x40 TrueColor Chips & selects 3949e7331865711f
+120x40 TrueColor Chips & selects b8dd1429778e93c5
+120x40 TrueColor Chips & selects · Options d1c0d88ee8d63856
+120x40 TrueColor Chips & selects · States a8143a285b397474
 120x40 TrueColor Forms b640c16a53da835a
 120x40 TrueColor Checks & radios ebcd2ea20e99158b
 120x40 TrueColor Checks & radios · Options 7c764ad8cbd9efd2
@@ -82,7 +84,9 @@
 120x40 Ansi256 Text areas f39978d8a04ecd9e
 120x40 Ansi256 Text areas · Options 75be2b9897e7fa73
 120x40 Ansi256 Text areas · States b061662cae7e0328
-120x40 Ansi256 Chips & selects 426790b136806e21
+120x40 Ansi256 Chips & selects ca0ea970a8da5b96
+120x40 Ansi256 Chips & selects · Options 9552e68897ba4a21
+120x40 Ansi256 Chips & selects · States 999c172307cbee52
 120x40 Ansi256 Forms 6fefae920f31c035
 120x40 Ansi256 Checks & radios db68d610e4567d79
 120x40 Ansi256 Checks & radios · Options 403e399fa61cd0ff
@@ -150,7 +154,9 @@
 120x40 Ansi16 Text areas cd34b2efabe2ea37
 120x40 Ansi16 Text areas · Options 5879414ebc9878af
 120x40 Ansi16 Text areas · States fed73a550f692e23
-120x40 Ansi16 Chips & selects 5218ca82261a726d
+120x40 Ansi16 Chips & selects 2065b40639c566e8
+120x40 Ansi16 Chips & selects · Options 0bc04c2f32636284
+120x40 Ansi16 Chips & selects · States 28f22f430873725a
 120x40 Ansi16 Forms b531108dd1b14423
 120x40 Ansi16 Checks & radios 391d6b279f5cef11
 120x40 Ansi16 Checks & radios · Options c4f6dea0ec2e8cfd
@@ -218,7 +224,9 @@
 120x40 Mono Text areas 0b239d0952960eb4
 120x40 Mono Text areas · Options e3806bb2771a4b0e
 120x40 Mono Text areas · States 5e3743a88516cbe4
-120x40 Mono Chips & selects 49b6b6327fbe4431
+120x40 Mono Chips & selects cb44cdb729a919d2
+120x40 Mono Chips & selects · Options c94221028c1da283
+120x40 Mono Chips & selects · States 3c0a06a269598879
 120x40 Mono Forms a211baf222fe802e
 120x40 Mono Checks & radios 6dd33a1b274b7394
 120x40 Mono Checks & radios · Options ee83e59958e7d10c
@@ -286,7 +294,9 @@
 80x24 TrueColor Text areas 18b2867c80d7afb7
 80x24 TrueColor Text areas · Options 5b06fe306dcd543e
 80x24 TrueColor Text areas · States 3fb4f9a32177fc61
-80x24 TrueColor Chips & selects a3e6abd11cdf8429
+80x24 TrueColor Chips & selects 1ae9698205ca4163
+80x24 TrueColor Chips & selects · Options 97b84a91639be9f0
+80x24 TrueColor Chips & selects · States 91a622f4e5e640ed
 80x24 TrueColor Forms 9b870d8287a6ea5f
 80x24 TrueColor Checks & radios 7e1f0797820425c5
 80x24 TrueColor Checks & radios · Options 1fd9f465bdd719f5
@@ -354,7 +364,9 @@
 80x24 Ansi256 Text areas 6020aa4e2fc004df
 80x24 Ansi256 Text areas · Options fe5baaf4e8691fc4
 80x24 Ansi256 Text areas · States 2b2ca793d8d3a3e6
-80x24 Ansi256 Chips & selects 6a84c646a4144083
+80x24 Ansi256 Chips & selects 66e5f9c7a7d3db8f
+80x24 Ansi256 Chips & selects · Options 95a788e0b77ae0d4
+80x24 Ansi256 Chips & selects · States 8ebc7ef29cfd180c
 80x24 Ansi256 Forms d044c5646ff5f78d
 80x24 Ansi256 Checks & radios cda08ab4ec303847
 80x24 Ansi256 Checks & radios · Options 9c7dd955e219e383
@@ -422,7 +434,9 @@
 80x24 Ansi16 Text areas dd5fe54d02adbeb3
 80x24 Ansi16 Text areas · Options 15abe12eba94c674
 80x24 Ansi16 Text areas · States 30ef4eddb3bcc57f
-80x24 Ansi16 Chips & selects ae1cb63a6f7dc188
+80x24 Ansi16 Chips & selects 5af61ca33e1ccac0
+80x24 Ansi16 Chips & selects · Options 5842fd64c2b88cdb
+80x24 Ansi16 Chips & selects · States a98e70814e04abfc
 80x24 Ansi16 Forms 42458e84e328fd2f
 80x24 Ansi16 Checks & radios 2033ce438361ea68
 80x24 Ansi16 Checks & radios · Options e2595fbbfa9e7f93
@@ -490,7 +504,9 @@
 80x24 Mono Text areas a65460613abfe9d3
 80x24 Mono Text areas · Options f10a649c1e3e57f4
 80x24 Mono Text areas · States 125dc1f82891ebed
-80x24 Mono Chips & selects 96c44b0236404f40
+80x24 Mono Chips & selects fdb16db70707ecd0
+80x24 Mono Chips & selects · Options 466ba19621f13123
+80x24 Mono Chips & selects · States 551acc4932778c10
 80x24 Mono Forms 53c534dd59781617
 80x24 Mono Checks & radios d6eca978085c85b6
 80x24 Mono Checks & radios · Options c4617af62851221f
@@ -558,7 +574,9 @@
 72x20 TrueColor Text areas 3eee874aa5753a99
 72x20 TrueColor Text areas · Options 3830ebc457b3e453
 72x20 TrueColor Text areas · States 533e7360570d6042
-72x20 TrueColor Chips & selects 4f51f2b35195ca29
+72x20 TrueColor Chips & selects 8a887aa6eca51b74
+72x20 TrueColor Chips & selects · Options caa41cc413f8c367
+72x20 TrueColor Chips & selects · States 95bcf796aebd2831
 72x20 TrueColor Forms 11435d827f5ded49
 72x20 TrueColor Checks & radios ab44f7e0a2b00602
 72x20 TrueColor Checks & radios · Options 02709b939c4d7068
@@ -626,7 +644,9 @@
 72x20 Ansi256 Text areas de686d07aa0472d8
 72x20 Ansi256 Text areas · Options f907d7c31795c44c
 72x20 Ansi256 Text areas · States 0d08af9186931568
-72x20 Ansi256 Chips & selects 4b53469ffef36ce3
+72x20 Ansi256 Chips & selects fa4b741d87594cc4
+72x20 Ansi256 Chips & selects · Options 447efce2cb710be9
+72x20 Ansi256 Chips & selects · States 89d17d794edead8b
 72x20 Ansi256 Forms bcaf53b07e23f39d
 72x20 Ansi256 Checks & radios 73f32cd498e100f6
 72x20 Ansi256 Checks & radios · Options 58df4b9c3ec21774
@@ -694,7 +714,9 @@
 72x20 Ansi16 Text areas b3a62ca792a70d4c
 72x20 Ansi16 Text areas · Options 7ec4640aa44a8a27
 72x20 Ansi16 Text areas · States bb6d641c8b666a8e
-72x20 Ansi16 Chips & selects c396062f3d6bcf41
+72x20 Ansi16 Chips & selects d90e346638f32fdb
+72x20 Ansi16 Chips & selects · Options 7fbd5dda7de92941
+72x20 Ansi16 Chips & selects · States 10f8e39da1e09619
 72x20 Ansi16 Forms 251b2ad661559803
 72x20 Ansi16 Checks & radios b31edd81730b52a7
 72x20 Ansi16 Checks & radios · Options 66458f2e71ea1fa8
@@ -762,7 +784,9 @@
 72x20 Mono Text areas 67a6df7fc9da2c24
 72x20 Mono Text areas · Options 99cec1a589431747
 72x20 Mono Text areas · States e9034f7066f20084
-72x20 Mono Chips & selects a112fb13ece486b5
+72x20 Mono Chips & selects f5b0161ceef5a0bb
+72x20 Mono Chips & selects · Options 2d7ddbe906edc0a7
+72x20 Mono Chips & selects · States ac0a2e6f85d6de73
 72x20 Mono Forms 3e3b0aa99c53ada1
 72x20 Mono Checks & radios de2ee770676bed63
 72x20 Mono Checks & radios · Options 89447a4ac3ed0816
@@ -830,7 +854,9 @@
 100x30 TrueColor Text areas 70bc7930ffddabab
 100x30 TrueColor Text areas · Options 415440332870ed4b
 100x30 TrueColor Text areas · States 8b4160c031436d6a
-100x30 TrueColor Chips & selects 6b43727eefa01217
+100x30 TrueColor Chips & selects 064d95d84af1f369
+100x30 TrueColor Chips & selects · Options 92c5426e0a658e26
+100x30 TrueColor Chips & selects · States f255b2513ea5a180
 100x30 TrueColor Forms f55a3c059081e429
 100x30 TrueColor Checks & radios 9894d3595f5a7402
 100x30 TrueColor Checks & radios · Options cba748c36645b3b9
@@ -898,7 +924,9 @@
 100x30 Ansi256 Text areas 4cb9b24bb8308e97
 100x30 Ansi256 Text areas · Options 606917e09843d7a2
 100x30 Ansi256 Text areas · States b06e961494a8f16a
-100x30 Ansi256 Chips & selects af17a93d7794add9
+100x30 Ansi256 Chips & selects 678936faa05bbfe7
+100x30 Ansi256 Chips & selects · Options 193b3333957688f5
+100x30 Ansi256 Chips & selects · States 2ac9f2660ae5d818
 100x30 Ansi256 Forms 70d96e4ae2651bc0
 100x30 Ansi256 Checks & radios 74ad9d54aaa5ecaa
 100x30 Ansi256 Checks & radios · Options 6e1bdfc7fcb089b9
@@ -966,7 +994,9 @@
 100x30 Ansi16 Text areas dc892d1823139f0e
 100x30 Ansi16 Text areas · Options 796109667ee484db
 100x30 Ansi16 Text areas · States b5f7516483a46515
-100x30 Ansi16 Chips & selects 338c05113c09f21d
+100x30 Ansi16 Chips & selects b81fcb6743d9e695
+100x30 Ansi16 Chips & selects · Options 744aff2afd073674
+100x30 Ansi16 Chips & selects · States a92885e12a051cd9
 100x30 Ansi16 Forms ca5a0a4b380cd97a
 100x30 Ansi16 Checks & radios fefb93f6b14e4368
 100x30 Ansi16 Checks & radios · Options 57244640691d512f
@@ -1034,7 +1064,9 @@
 100x30 Mono Text areas 995c2fc90eb85b6b
 100x30 Mono Text areas · Options 558c043e71a3f2f0
 100x30 Mono Text areas · States f0d9e793805b9c8e
-100x30 Mono Chips & selects 14febdf7f3dbfc4a
+100x30 Mono Chips & selects 65d2a815f5c64821
+100x30 Mono Chips & selects · Options 55bf4c8fba357f28
+100x30 Mono Chips & selects · States b3cbc8007128b2e3
 100x30 Mono Forms c30b87f358ebf40d
 100x30 Mono Checks & radios 47d2bfbddfcc7acc
 100x30 Mono Checks & radios · Options 962b6c3212b078f1
@@ -1102,7 +1134,9 @@
 160x50 TrueColor Text areas ef9f15acef2459bd
 160x50 TrueColor Text areas · Options 47feba58653e1443
 160x50 TrueColor Text areas · States 2a393773a82f0c25
-160x50 TrueColor Chips & selects c425d192f8f64e46
+160x50 TrueColor Chips & selects 6adf5b002eada9a8
+160x50 TrueColor Chips & selects · Options d7d9183a2b24025e
+160x50 TrueColor Chips & selects · States f0ca87dc55416b25
 160x50 TrueColor Forms 115c2ae308f6d325
 160x50 TrueColor Checks & radios e866f9df162cd238
 160x50 TrueColor Checks & radios · Options 1a1721418f84e07b
@@ -1170,7 +1204,9 @@
 160x50 Ansi256 Text areas ad30594a5cc32039
 160x50 Ansi256 Text areas · Options fb018066d9f45128
 160x50 Ansi256 Text areas · States f0124283b6f333f2
-160x50 Ansi256 Chips & selects 8bc44c2fe87bcaf2
+160x50 Ansi256 Chips & selects 91ec76db79665738
+160x50 Ansi256 Chips & selects · Options 3516ddab9c48fc91
+160x50 Ansi256 Chips & selects · States 656d67d0d5127963
 160x50 Ansi256 Forms 4c006f007e585b38
 160x50 Ansi256 Checks & radios 9ba17d6ae36d03b4
 160x50 Ansi256 Checks & radios · Options f2279857f925f3c4
@@ -1238,7 +1274,9 @@
 160x50 Ansi16 Text areas 97ecf53aec22f62b
 160x50 Ansi16 Text areas · Options 5e4ac0979b5beac0
 160x50 Ansi16 Text areas · States 4ab6e72c3c1d718b
-160x50 Ansi16 Chips & selects a95cfdab021e6216
+160x50 Ansi16 Chips & selects 489de49ef1cd7cd9
+160x50 Ansi16 Chips & selects · Options 1e495f9575c63c8c
+160x50 Ansi16 Chips & selects · States 25c9c3429cdfe269
 160x50 Ansi16 Forms 1d788724a3f1f738
 160x50 Ansi16 Checks & radios 7553a7f18fa409a0
 160x50 Ansi16 Checks & radios · Options 9b07079b6a524614
@@ -1306,7 +1344,9 @@
 160x50 Mono Text areas 298f35bca898736c
 160x50 Mono Text areas · Options b8494787a2934493
 160x50 Mono Text areas · States 70b21f50d95541dc
-160x50 Mono Chips & selects 0ed13596678c3a14
+160x50 Mono Chips & selects 438bc48b355ac995
+160x50 Mono Chips & selects · Options 8755dc380e86921f
+160x50 Mono Chips & selects · States 902afe81619426b6
 160x50 Mono Forms d5e1c3c99dd69b35
 160x50 Mono Checks & radios c7da1c56c2660c85
 160x50 Mono Checks & radios · Options d93f319a0fccee2f

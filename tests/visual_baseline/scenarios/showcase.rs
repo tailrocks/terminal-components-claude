@@ -44,6 +44,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/codeeditor", Bin::Showcase, &["--page", "codeeditor"], BOOT),
     Root::new("showcase/pages/datagrid", Bin::Showcase, &["--page", "datagrid"], BOOT),
     Root::new("showcase/pages/chips", Bin::Showcase, &["--page", "chipsselects"], BOOT),
+    // SC10: the Chips & selects sections, a narrow chip bar with its +N
+    // menu, a select whose list opens above
+    Root::new("showcase/sections/chips-options", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "2", "wait:Chip bar width"]).pending(),
+    Root::new("showcase/sections/chips-states", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/flows/chips/overflow", Bin::Showcase, &["--page", "chipsselects", "--opt", "chipsselects.bar_width=40"], BOOT).pending(),
+    Root::new("showcase/flows/chips/select_above", Bin::Showcase, &["--page", "chipsselects", "--opt", "chipsselects.placement=above"], BOOT).sends(&["tab", "tab", "tab", "tab", "enter", "wait:customer"]).pending(),
     Root::new("showcase/pages/pickers", Bin::Showcase, &["--page", "pickers"], BOOT),
     Root::new("showcase/pages/chrome", Bin::Showcase, &["--page", "chrome"], BOOT),
     Root::new("showcase/pages/settings", Bin::Showcase, &["--page", "settings"], BOOT),
@@ -239,7 +245,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/tables/selected", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "tab", "down", "down"]),
     Root::new("showcase/flows/editable/editing", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "enter"]),
     Root::new("showcase/flows/datagrid/selected", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "down", "right"]),
-    Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "space"]),
+    Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "space"]),
     // The same paused endpoint keeps the subsequent scroll actions deterministic.
     Root::new("showcase/flows/scrolling/scrolled", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "down", "down", "down"]),
     Root::new("showcase/flows/settings/toggled", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "space"]),
@@ -285,10 +291,11 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/datagrid/failed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "wait:Save failed"]),
     // pickers_tabs: the Switch tab picker (second button).
     Root::new("showcase/flows/pickers/tabs", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "enter", "wait:Filter tabs…"]),
-    // chips_select_open: second stop is the Sort by select at every size;
+    // chips_select_open: the fourth stop (after the section strip, the
+    // filter bar and the stream bar) is the Sort by select at every size;
     // Enter opens its popup (`customer` exists only inside the popup). The
     // old 72x20-100x30 variants waited on the Page size popup (`500`).
-    Root::new("showcase/flows/chips/select_open", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "enter", "wait:customer"]),
+    Root::new("showcase/flows/chips/select_open", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "tab", "tab", "enter", "wait:customer"]),
     // settings_members: tabs bar → Members, then into the table, cursor row 2.
     Root::new("showcase/flows/settings/members", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "tab", "down", "wait:cursor: Jonas Weber"]),
     // chrome_menu_view: File menu open, `right` switches to the View menu.
