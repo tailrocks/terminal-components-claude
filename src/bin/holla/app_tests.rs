@@ -255,3 +255,17 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
         Err(error) if error.kind() == ErrorKind::DisplayHelp
     ));
 }
+
+#[test]
+fn a_text_modal_stays_in_the_body_with_a_margin() {
+    let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 72, 20);
+    h.key(KeyCode::F(1));
+    let text = h.text();
+    let rows: Vec<&str> = text.lines().collect();
+    // the key reference is taller than the screen: it fills the body less
+    // one row of margin, clear of the menu bar (row 0) and the status bar
+    // (row 18)
+    let top = rows.iter().position(|r| r.contains("╭────────")).unwrap();
+    let bottom = rows.iter().position(|r| r.contains("╰────────")).unwrap();
+    assert_eq!((top, bottom), (2, 16), "{text}");
+}
