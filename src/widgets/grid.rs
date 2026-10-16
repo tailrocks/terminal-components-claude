@@ -10,13 +10,14 @@
 use std::collections::{BTreeSet, HashMap};
 
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
 use crate::theme::Theme;
@@ -407,9 +408,12 @@ pub struct DataGrid {
     h_cfg: HScroll,
     /// The horizontal scrollbar track as last drawn.
     htrack: Rect,
-    /// The keys that duplicate the cursor row. Default Ctrl+D and Alt+D;
-    /// an app that gives Ctrl+D another meaning keeps only Alt+D.
-    pub duplicate_keys: Vec<Key>,
+    /// Which keys move the cursor (default [`NavKeys::DEFAULT`]). `g`/`G`
+    /// go to the first/last row, Home/End to the row's first/last cell,
+    /// Ctrl+Home/End to the first/last row; Ctrl+←/→ page sideways.
+    pub nav: NavKeys,
+    /// The grid's action keys (default [`GridAction::default_keymap`]).
+    pub keymap: KeyMap<GridAction>,
     /// How many leading rows [`Self::set_rows`] measures to size columns
     /// (the 95th percentile of their widths, clamped to each column's
     /// min/max). Default [`DEFAULT_WIDTH_SAMPLE_ROWS`]; widths are measured
@@ -420,6 +424,75 @@ pub struct DataGrid {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+}
+
+/// A [`DataGrid`] action a key can be bound to. Enter/F2 (edit or
+/// activate), Space (mark the row) and Esc (clear the selection) are fixed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GridAction {
+    /// Set the cell to NULL, or mark the selected rows deleted. Default Del
+    /// and Backspace.
+    ClearCell,
+    /// Mark the cursor row deleted (again: restore it). Default `-`.
+    ToggleDelete,
+    /// Insert a row. Default `+`.
+    InsertRow,
+    /// Duplicate the cursor row. Default Ctrl+D and Alt+D.
+    DuplicateRow,
+    /// Copy the cell, range or marked rows. Default `y`.
+    Copy,
+    /// Copy with the column names. Default `Y`.
+    CopyWithHeader,
+    /// Ask the app to save the pending changes. Default Ctrl+S.
+    Commit,
+    /// Sort by the cursor column (asc, desc, off). Default `s`.
+    Sort,
+    /// Drop the sort. Default `S`.
+    ClearSort,
+    /// Filter on the cursor cell's value (an empty grid opens the
+    /// filters). Default `f`.
+    FilterOnCell,
+    /// Open the filter editor. Default `/`.
+    OpenFilters,
+    /// Clear every filter. Default `F`.
+    ClearFilters,
+    /// Reload. Default `r` and F5.
+    Refresh,
+    /// Undo the last pending change. Default `u`.
+    Undo,
+    /// Ask the app to discard the pending changes. Default `U`.
+    Discard,
+    /// Ask the app to preview the SQL. Default `p`.
+    PreviewSql,
+    /// Follow the cell's foreign key. Default Ctrl+].
+    FollowReference,
+}
+
+impl Actions for GridAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::key(KeyCode::Delete), GridAction::ClearCell),
+            (KeyBinding::key(KeyCode::Backspace), GridAction::ClearCell),
+            (KeyBinding::char('-'), GridAction::ToggleDelete),
+            (KeyBinding::char('+'), GridAction::InsertRow),
+            (KeyBinding::ctrl('d'), GridAction::DuplicateRow),
+            (KeyBinding::alt('d'), GridAction::DuplicateRow),
+            (KeyBinding::char('y'), GridAction::Copy),
+            (KeyBinding::char('Y'), GridAction::CopyWithHeader),
+            (KeyBinding::ctrl('s'), GridAction::Commit),
+            (KeyBinding::char('s'), GridAction::Sort),
+            (KeyBinding::char('S'), GridAction::ClearSort),
+            (KeyBinding::char('f'), GridAction::FilterOnCell),
+            (KeyBinding::char('/'), GridAction::OpenFilters),
+            (KeyBinding::char('F'), GridAction::ClearFilters),
+            (KeyBinding::char('r'), GridAction::Refresh),
+            (KeyBinding::key(KeyCode::F(5)), GridAction::Refresh),
+            (KeyBinding::char('u'), GridAction::Undo),
+            (KeyBinding::char('U'), GridAction::Discard),
+            (KeyBinding::char('p'), GridAction::PreviewSql),
+            (KeyBinding::ctrl(']'), GridAction::FollowReference),
+        ]
+    }
 }
 
 /// Rows sampled for column widths by default (see
@@ -478,16 +551,8 @@ impl DataGrid {
             h_cfg: HScroll::default(),
             htrack: Rect::ZERO,
             width_sample_rows: DEFAULT_WIDTH_SAMPLE_ROWS,
-            duplicate_keys: vec![
-                Key {
-                    code: KeyCode::Char('d'),
-                    mods: KeyModifiers::CONTROL,
-                },
-                Key {
-                    code: KeyCode::Char('d'),
-                    mods: KeyModifiers::ALT,
-                },
-            ],
+            nav: NavKeys::DEFAULT,
+            keymap: GridAction::default_keymap(),
         }
     }
 
@@ -523,10 +588,28 @@ impl DataGrid {
         self
     }
 
-    /// The keys that duplicate the cursor row (default Ctrl+D and Alt+D).
-    /// An empty list turns the shortcut off; [`Self::duplicate_row`] stays.
+    /// The keys that duplicate the cursor row (default Ctrl+D and Alt+D):
+    /// replaces the [`GridAction::DuplicateRow`] bindings in
+    /// [`Self::keymap`]. An empty list turns the shortcut off;
+    /// [`Self::duplicate_row`] stays.
     pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
-        self.duplicate_keys = keys.to_vec();
+        self.keymap.retain(|(_, a)| *a != GridAction::DuplicateRow);
+        self.keymap.extend(
+            keys.iter()
+                .map(|k| (KeyBinding::new(k.code, k.mods), GridAction::DuplicateRow)),
+        );
+        self
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<GridAction>) -> Self {
+        self.keymap = keymap;
         self
     }
 
@@ -1136,75 +1219,51 @@ impl DataGrid {
         let ctrl = key.ctrl();
         let n_rows = self.content_rows();
         if n_rows == 0 {
-            return match key.code {
-                KeyCode::Char('+') if self.editable => (Outcome::Changed, self.insert_row()),
-                KeyCode::Char('r') | KeyCode::F(5) => (Outcome::Changed, Some(GridEvent::Refresh)),
-                KeyCode::Char('f') if key.plain() => {
-                    (Outcome::Changed, Some(GridEvent::OpenFilters))
+            // an empty grid: only the actions that do not need a row (the
+            // filter-on-cell key opens the filters instead)
+            return match lookup(&self.keymap, key) {
+                Some(GridAction::InsertRow) if self.editable => {
+                    (Outcome::Changed, self.insert_row())
                 }
-                KeyCode::Char('F') => (Outcome::Changed, Some(GridEvent::ClearFilters)),
+                Some(GridAction::Refresh) => (Outcome::Changed, Some(GridEvent::Refresh)),
+                Some(GridAction::FilterOnCell) => (Outcome::Changed, Some(GridEvent::OpenFilters)),
+                Some(GridAction::ClearFilters) => (Outcome::Changed, Some(GridEvent::ClearFilters)),
                 _ => (Outcome::Ignored, None),
             };
         }
+        if let Some(action) = lookup(&self.keymap, key) {
+            return self.on_action(action);
+        }
+        if let Some(nav) = self.nav.action(key) {
+            // `g`/`G` jump to the first/last row; Home/End stay in the row
+            // (spreadsheet convention) and Ctrl+Home/End go to the ends
+            let letter = matches!(key.code, KeyCode::Char(_));
+            let page = self.scroll.viewport_len.max(1);
+            match nav {
+                Nav::Up => self.set_cursor(r.saturating_sub(1), c, shift),
+                Nav::Down => self.set_cursor(r + 1, c, shift),
+                Nav::Left if ctrl => {
+                    self.hscroll
+                        .scroll_by(-(self.hscroll.viewport_len.max(1) as isize));
+                }
+                Nav::Right if ctrl => {
+                    self.hscroll
+                        .scroll_by(self.hscroll.viewport_len.max(1) as isize);
+                }
+                Nav::Left => self.set_cursor(r, c.saturating_sub(1), shift),
+                Nav::Right => self.set_cursor(r, c + 1, shift),
+                Nav::Home if letter => self.set_cursor(0, c, false),
+                Nav::End if letter => self.set_cursor(usize::MAX, c, false),
+                Nav::Home if ctrl => self.set_cursor(0, c, shift),
+                Nav::End if ctrl => self.set_cursor(usize::MAX, c, shift),
+                Nav::Home => self.set_cursor(r, 0, shift),
+                Nav::End => self.set_cursor(r, usize::MAX, shift),
+                Nav::PageUp => self.set_cursor(r.saturating_sub(page), c, shift),
+                Nav::PageDown => self.set_cursor(r + page, c, shift),
+            }
+            return (Outcome::Changed, None);
+        }
         match key.code {
-            KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
-                self.set_cursor(r.saturating_sub(1), c, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('J') => {
-                self.set_cursor(r + 1, c, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Left if ctrl => {
-                self.hscroll
-                    .scroll_by(-(self.hscroll.viewport_len.max(1) as isize));
-                (Outcome::Changed, None)
-            }
-            KeyCode::Right if ctrl => {
-                self.hscroll
-                    .scroll_by(self.hscroll.viewport_len.max(1) as isize);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Left | KeyCode::Char('h') | KeyCode::Char('H') => {
-                self.set_cursor(r, c.saturating_sub(1), shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Right | KeyCode::Char('l') | KeyCode::Char('L') => {
-                self.set_cursor(r, c + 1, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Home if ctrl => {
-                self.set_cursor(0, c, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::End if ctrl => {
-                self.set_cursor(usize::MAX, c, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Home => {
-                self.set_cursor(r, 0, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::End => {
-                self.set_cursor(r, usize::MAX, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageUp => {
-                self.set_cursor(r.saturating_sub(self.scroll.viewport_len.max(1)), c, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::PageDown => {
-                self.set_cursor(r + self.scroll.viewport_len.max(1), c, shift);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('g') => {
-                self.set_cursor(0, c, false);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('G') => {
-                self.set_cursor(usize::MAX, c, false);
-                (Outcome::Changed, None)
-            }
             KeyCode::Enter | KeyCode::F(2) => {
                 if self.on_more_row() {
                     return (Outcome::Changed, Some(GridEvent::FetchMore));
@@ -1237,7 +1296,14 @@ impl DataGrid {
                     (Outcome::Ignored, None)
                 }
             }
-            KeyCode::Delete | KeyCode::Backspace => {
+            _ => (Outcome::Ignored, None),
+        }
+    }
+
+    fn on_action(&mut self, action: GridAction) -> (Outcome, Option<GridEvent>) {
+        let c = self.cursor.1;
+        match action {
+            GridAction::ClearCell => {
                 if !self.editable {
                     return (Outcome::Consumed, None);
                 }
@@ -1268,24 +1334,24 @@ impl DataGrid {
                     (Outcome::Changed, None)
                 }
             }
-            KeyCode::Char('-') => {
+            GridAction::ToggleDelete => {
                 let Some(src) = self.cursor_src() else {
                     return (Outcome::Consumed, None);
                 };
                 (Outcome::Changed, self.toggle_delete(src))
             }
-            KeyCode::Char('+') => (Outcome::Changed, self.insert_row()),
-            _ if self.duplicate_keys.contains(key) => (Outcome::Changed, self.duplicate_row()),
-            KeyCode::Char('y') => (
+            GridAction::InsertRow => (Outcome::Changed, self.insert_row()),
+            GridAction::DuplicateRow => (Outcome::Changed, self.duplicate_row()),
+            GridAction::Copy => (
                 Outcome::Changed,
                 Some(GridEvent::Copy(self.copy_text(false))),
             ),
-            KeyCode::Char('Y') => (
+            GridAction::CopyWithHeader => (
                 Outcome::Changed,
                 Some(GridEvent::Copy(self.copy_text(true))),
             ),
-            KeyCode::Char('s') if ctrl => (Outcome::Changed, Some(GridEvent::CommitRequested)),
-            KeyCode::Char('s') => {
+            GridAction::Commit => (Outcome::Changed, Some(GridEvent::CommitRequested)),
+            GridAction::Sort => {
                 if !self.columns[c].sortable {
                     return (Outcome::Consumed, None);
                 }
@@ -1296,8 +1362,8 @@ impl DataGrid {
                 };
                 self.request_sort(next)
             }
-            KeyCode::Char('S') => self.request_sort(None),
-            KeyCode::Char('f') => {
+            GridAction::ClearSort => self.request_sort(None),
+            GridAction::FilterOnCell => {
                 let value = self
                     .cursor_src()
                     .map(|src| self.value(src, c).clone())
@@ -1307,16 +1373,16 @@ impl DataGrid {
                     Some(GridEvent::FilterOnCell { col: c, value }),
                 )
             }
-            KeyCode::Char('/') => (Outcome::Changed, Some(GridEvent::OpenFilters)),
-            KeyCode::Char('F') => (Outcome::Changed, Some(GridEvent::ClearFilters)),
-            KeyCode::Char('r') | KeyCode::F(5) => (Outcome::Changed, Some(GridEvent::Refresh)),
-            KeyCode::Char('u') if key.plain() => {
+            GridAction::OpenFilters => (Outcome::Changed, Some(GridEvent::OpenFilters)),
+            GridAction::ClearFilters => (Outcome::Changed, Some(GridEvent::ClearFilters)),
+            GridAction::Refresh => (Outcome::Changed, Some(GridEvent::Refresh)),
+            GridAction::Undo => {
                 self.undo();
                 (Outcome::Changed, None)
             }
-            KeyCode::Char('U') => (Outcome::Changed, Some(GridEvent::DiscardRequested)),
-            KeyCode::Char('p') if key.plain() => (Outcome::Changed, Some(GridEvent::PreviewSql)),
-            KeyCode::Char(']') if ctrl => {
+            GridAction::Discard => (Outcome::Changed, Some(GridEvent::DiscardRequested)),
+            GridAction::PreviewSql => (Outcome::Changed, Some(GridEvent::PreviewSql)),
+            GridAction::FollowReference => {
                 if self.columns[c].references.is_some()
                     && let Some(src) = self.cursor_src()
                 {
@@ -1327,7 +1393,6 @@ impl DataGrid {
                 }
                 (Outcome::Consumed, None)
             }
-            _ => (Outcome::Ignored, None),
         }
     }
 
@@ -2411,6 +2476,7 @@ mod tests {
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::ColorLevel;
     use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers;
 
     fn render_editor(grid: &mut DataGrid, level: ColorLevel) -> (Buffer, Position) {
         let area = Rect::new(0, 0, 80, 8);
