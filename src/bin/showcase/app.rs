@@ -13,6 +13,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{BadgeKind, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
@@ -216,20 +217,16 @@ pub struct App {
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
-    pub hover: Option<WidgetId>,
-    pub pressed: Option<WidgetId>,
-    pub mouse: Option<Position>,
-    pub hover_suppressed: bool,
-    /// A wheel scroll moved the content under a still pointer: hover is
-    /// resolved against the next frame's hit regions at this position.
-    hover_refresh: Option<Position>,
+    /// Hover, press, flash and click-count state.
+    pub pointer: PointerState,
+    /// Origin of the pointer clock.
+    epoch: Instant,
     pub dialog: Option<Dialog>,
     pub inspector: bool,
     pub size: (u16, u16),
     pub tick: u64,
     pub last_key: Option<String>,
     pub status: Option<(String, Instant)>,
-    pub flash: Option<(WidgetId, Instant)>,
     pub quit: bool,
     pub motion: Motion,
     nav_areas: Vec<Rect>,
@@ -307,18 +304,14 @@ impl App {
             focus,
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
-            hover: None,
-            pressed: None,
-            mouse: None,
-            hover_suppressed: false,
-            hover_refresh: None,
+            pointer: PointerState::new(PointerConfig::DEFAULT.focus_on(FocusOn::Release)),
+            epoch: Instant::now(),
             dialog: None,
             inspector: false,
             size: (0, 0),
             tick: frame,
             last_key: None,
             status: None,
-            flash: None,
             quit: false,
             motion,
             nav_areas: vec![],
@@ -369,7 +362,7 @@ impl App {
         }
         let page = &self.pages[self.page.index()];
         page.animating()
-            || self.flash.is_some()
+            || self.pointer.has_flash()
             || self
                 .dialog
                 .as_ref()
@@ -385,17 +378,14 @@ impl App {
     }
 
     fn interaction(&self) -> Interaction {
-        let flash = match self.flash {
-            Some((id, at)) if at.elapsed() < Duration::from_millis(140) => Some(id),
-            _ => None,
-        };
+        let flash = self.pointer.flashing(self.now_ms());
         Interaction {
             focus: self.focus.current(),
-            hover: self.hover,
-            pressed: self.pressed,
+            hover: self.pointer.hover,
+            pressed: self.pointer.pressed,
             flash,
             focus_hidden: false,
-            hover_suppressed: self.hover_suppressed,
+            hover_suppressed: self.pointer.hover_suppressed,
             tick: self.tick,
         }
     }
@@ -425,7 +415,7 @@ impl App {
                     return Outcome::Consumed;
                 }
                 self.last_key = Some(describe_key(&key));
-                self.hover_suppressed = true;
+                self.pointer.suppress_hover();
                 self.on_key(key)
             }
             Input::Mouse(m) => self.on_mouse(m),
@@ -441,10 +431,7 @@ impl App {
             self.tick = self.tick.wrapping_add(1);
             out = Outcome::Changed;
         }
-        if let Some((_, at)) = self.flash
-            && at.elapsed() >= Duration::from_millis(140)
-        {
-            self.flash = None;
+        if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
         if let Some((_, at)) = &self.status
@@ -482,8 +469,8 @@ impl App {
         self.saved_focus = self.focus.current();
         self.focus.set(Some(d.initial_focus));
         self.dialog = Some(d);
-        self.hover = None;
-        self.pressed = None;
+        self.pointer.hover = None;
+        self.pointer.pressed = None;
     }
 
     fn close_dialog(&mut self) -> Outcome {
@@ -649,21 +636,19 @@ impl App {
 
     /// A button release at `m.pos` over `hit`.
     fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
-        let pressed = self.pressed.take();
-        let Some(id) = hit else {
-            if let Some(d) = self.dialog.as_mut()
-                && pressed.is_none()
-            {
-                let out = d.on_click_outside();
-                if d.result.is_some() {
-                    return self.close_dialog().or(out);
+        let id = match self.pointer.release(hit) {
+            Release::Click(id) => id,
+            Release::Outside => {
+                if let Some(d) = self.dialog.as_mut() {
+                    let out = d.on_click_outside();
+                    if d.result.is_some() {
+                        return self.close_dialog().or(out);
+                    }
                 }
+                return Outcome::Changed;
             }
-            return Outcome::Changed;
+            Release::Cancelled => return Outcome::Changed,
         };
-        if pressed != Some(id) {
-            return Outcome::Changed;
-        }
         if let Some(d) = self.dialog.as_mut() {
             let out = d.on_click(id, m.pos, &mut self.focus);
             if d.result.is_some() {
@@ -693,29 +678,22 @@ impl App {
         // refocus is focused here so keyboard and pointer agree.
         let before = self.focus.current();
         let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
-        if self.dialog.is_none() && self.focus.current() == before && self.ring.contains(id) {
+        if self.dialog.is_none()
+            && self.pointer.config.focus_on == FocusOn::Release
+            && self.focus.current() == before
+            && self.ring.contains(id)
+        {
             self.focus.focus(id);
         }
         out.or(Outcome::Changed)
     }
 
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
-        self.mouse = Some(m.pos);
+        self.pointer.pos = Some(m.pos);
         match m.kind {
-            MouseKind::Move => {
-                let was = self.hover;
-                let suppressed = self.hover_suppressed;
-                self.hover_suppressed = false;
-                self.hover = self.hits.hit(m.pos);
-                if self.hover != was || suppressed {
-                    Outcome::Changed
-                } else {
-                    Outcome::Ignored
-                }
-            }
+            MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
             MouseKind::Drag => {
-                self.hover = self.hits.hit(m.pos);
-                if let Some(pressed) = self.pressed {
+                if let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) {
                     if self.dialog.is_some() {
                         return Outcome::Consumed;
                     }
@@ -730,10 +708,7 @@ impl App {
                 Outcome::Ignored
             }
             MouseKind::Down => {
-                let hit = self.hits.hit(m.pos);
-                self.pressed = hit;
-                self.hover = hit;
-                let Some(id) = hit else {
+                let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
                     if self.dialog.is_some() {
                         return Outcome::Consumed;
                     }
@@ -747,28 +722,27 @@ impl App {
                     self.nav_cursor = i;
                     return Outcome::Changed;
                 }
+                if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
+                    self.focus.focus(id);
+                }
                 self.dispatch(PageEvent::Press { id, pos: m.pos })
                     .or(Outcome::Changed)
             }
             MouseKind::Up => {
-                let hit = self.hits.hit(m.pos);
                 // a pass-through backdrop: the click closes the popup and
                 // then lands on what is beneath it, as a click of its own
-                let beneath = hit
-                    .filter(|id| self.pressed == Some(*id))
-                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let (hit, beneath) = self.pointer.on_up(&self.hits, m.pos);
                 let out = self.on_release(m, hit);
                 match beneath {
                     Some(below) => {
-                        self.pressed = Some(below);
+                        self.pointer.press(below);
                         out.or(self.on_release(m, Some(below)))
                     }
                     None => out,
                 }
             }
             MouseKind::Secondary => {
-                let hit = self.hits.hit(m.pos);
-                self.hover = hit;
+                let hit = self.pointer.on_secondary(&self.hits, m.pos);
                 if self.dialog.is_some() {
                     return Outcome::Consumed;
                 }
@@ -790,13 +764,11 @@ impl App {
                     1
                 };
                 let out = self.dispatch(PageEvent::WheelH { id, delta });
-                if out == Outcome::Changed {
-                    self.hover_refresh = Some(m.pos);
-                }
+                self.pointer.scrolled(m.pos, out);
                 out
             }
             MouseKind::WheelUp | MouseKind::WheelDown => {
-                let delta = if m.kind == MouseKind::WheelUp { -3 } else { 3 };
+                let delta = self.pointer.wheel_delta(m.kind);
                 if let Some(d) = self.dialog.as_mut() {
                     return d.on_wheel(delta);
                 }
@@ -816,9 +788,7 @@ impl App {
                     };
                 // the rows under the pointer change with the scroll: hover
                 // is re-resolved once the new frame has registered its hits
-                if out == Outcome::Changed {
-                    self.hover_refresh = Some(m.pos);
-                }
+                self.pointer.scrolled(m.pos, out);
                 out
             }
         }
@@ -846,7 +816,13 @@ impl App {
 
     /// Flash a widget as pressed (keyboard activation feedback).
     pub fn flash(&mut self, id: WidgetId) {
-        self.flash = Some((id, Instant::now()));
+        let now = self.now_ms();
+        self.pointer.flash(id, now);
+    }
+
+    /// Milliseconds on the pointer clock.
+    fn now_ms(&self) -> u64 {
+        self.epoch.elapsed().as_millis() as u64
     }
 
     // ----------------------------------------------------------------- render
@@ -871,11 +847,7 @@ impl App {
         }
         self.hits = hits;
         self.ring = ring;
-        if let Some(pos) = self.hover_refresh.take()
-            && !self.hover_suppressed
-        {
-            self.hover = self.hits.hit(pos);
-        }
+        self.pointer.refresh_hover(&self.hits);
         // keep focus valid against the freshly built ring
         if self.dialog.is_none() {
             if !self.layout.too_small
@@ -1166,13 +1138,13 @@ impl App {
             None => "—".to_owned(),
         };
         let focus_area = self.focus.current().and_then(|f| self.hits.area_of(f));
-        let hover_area = self.hover.and_then(|h| self.hits.area_of(h));
+        let hover_area = self.pointer.hover.and_then(|h| self.hits.area_of(h));
         let rows: Vec<(&str, String)> = vec![
             ("mode", mode.to_owned()),
             ("focus", fmt_rect(focus_area)),
             (
                 "hover",
-                if self.hover_suppressed {
+                if self.pointer.hover_suppressed {
                     "suppressed".into()
                 } else {
                     fmt_rect(hover_area)
@@ -1180,11 +1152,12 @@ impl App {
             ),
             (
                 "pressed",
-                fmt_rect(self.pressed.and_then(|p| self.hits.area_of(p))),
+                fmt_rect(self.pointer.pressed.and_then(|p| self.hits.area_of(p))),
             ),
             (
                 "mouse",
-                self.mouse
+                self.pointer
+                    .pos
                     .map(|p| format!("{}·{}", p.x, p.y))
                     .unwrap_or("—".into()),
             ),

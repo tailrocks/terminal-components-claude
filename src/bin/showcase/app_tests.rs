@@ -268,7 +268,12 @@ fn hit_testing_prefers_rows_over_their_container() {
     let mut h = Harness::new(120, 40, PageId::Tables);
     let (x, y) = h.find("#1042").unwrap();
     h.mouse(MouseKind::Move, x + 20, y);
-    let area = h.app.hover.and_then(|id| h.app.hits.area_of(id)).unwrap();
+    let area = h
+        .app
+        .pointer
+        .hover
+        .and_then(|id| h.app.hits.area_of(id))
+        .unwrap();
     assert_eq!(
         area.height, 1,
         "hover resolved to a row/cell, not the table"
@@ -889,14 +894,14 @@ fn boundary_wheels_are_consumed_and_hover_follows_the_content() {
         "at the top"
     );
     h.mouse(MouseKind::Move, x, y);
-    let hovered = h.app.hover;
+    let hovered = h.app.pointer.hover;
     assert!(hovered.is_some());
     assert_eq!(h.mouse(MouseKind::WheelDown, x, y), Outcome::Changed);
     assert_ne!(
-        h.app.hover, hovered,
+        h.app.pointer.hover, hovered,
         "hover moved to the row now under the pointer"
     );
-    assert_eq!(h.app.hover, h.app.hits.hit(Position::new(x, y)));
+    assert_eq!(h.app.pointer.hover, h.app.hits.hit(Position::new(x, y)));
 }
 
 #[test]

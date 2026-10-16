@@ -504,7 +504,7 @@ fn finder_file_and_modal_mouse_contracts() {
     let pos = Position::new(x + 2, y);
     let row = finder.app.hits.hit(pos).expect("finder row hit");
     finder.mouse(MouseKind::Move, pos.x, pos.y);
-    assert_eq!(finder.app.hover, Some(row));
+    assert_eq!(finder.app.pointer.hover, Some(row));
     finder.click(pos.x, pos.y);
     assert_eq!(finder.app.focus.current(), Some(finder::FINDER));
     assert!(finder.row(y).contains("›"), "{}", finder.row(y));
@@ -547,7 +547,7 @@ fn finder_file_and_modal_mouse_contracts() {
     let file_pos = Position::new(fx + 2, fy);
     let file_hit = files_page.app.hits.hit(file_pos).expect("file row hit");
     files_page.mouse(MouseKind::Move, file_pos.x, file_pos.y);
-    assert_eq!(files_page.app.hover, Some(file_hit));
+    assert_eq!(files_page.app.pointer.hover, Some(file_hit));
     files_page.click(file_pos.x, file_pos.y);
     assert_eq!(files_page.app.focus.current(), Some(files::LIST));
     files_page.mouse(MouseKind::Secondary, file_pos.x, file_pos.y);
@@ -731,4 +731,23 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
     assert!(cleanup.app.world.cleanup_job.is_none());
     assert!(!cleanup.app.world.reports.is_empty());
     assert_surface(&cleanup, "cleanup report", "Cleanup report", snapshot::BODY);
+}
+
+#[test]
+fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
+    // interaction #21: a multi-click chains by control, cell and time, not
+    // by control alone (a wide row is one control)
+    let mut h = build_rust();
+    let (dx, dy) = h.find("Run tests").expect("finder row");
+    let row = h.app.hits.hit(Position::new(dx + 2, dy));
+    assert_eq!(row, h.app.hits.hit(Position::new(dx + 30, dy)));
+    let tabs = h.app.tabs.len();
+    let stack = h.app.tabs[0].stack.len();
+    h.click(dx + 2, dy);
+    h.click(dx + 30, dy);
+    assert!(
+        h.app.tabs.len() == tabs && h.app.tabs[0].stack.len() == stack && h.app.modals.is_empty(),
+        "two distant clicks activated the row as a double click\n{}",
+        h.text()
+    );
 }
