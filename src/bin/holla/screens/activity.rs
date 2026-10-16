@@ -8,6 +8,8 @@
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
@@ -21,14 +23,13 @@ use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportAction, line_text};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 
 use crate::domain::activity::{
     ActivityKind, ActivityState, InputError, KILL_AFTER_TICKS, LineTone, RETAIN_LINES, key_bytes,
 };
 use crate::screens::{Cx, Go, ModalResult, Screen, StatusBits, open_context, ticks_label};
 use crate::sim::world::World;
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::layer::LayerTag;
 
 pub const VIEW: WidgetId = WidgetId::of("activity.view");
@@ -658,53 +659,66 @@ impl Screen for ActivityTab {
         Outcome::Consumed
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.chips.owns(id) {
-            let (o, ev) = self.chips.on_click(id);
-            if let Some(ChipAction::Activate(i)) | Some(ChipAction::Toggle(i)) = ev {
-                let name = self.chips.chips[i].label.clone();
-                self.toggle_stream(name, w);
-            }
-            cx.focus.focus(CHIPS);
-            return o.or(Outcome::Changed);
-        }
-        for i in 0..self.follow_ups.len() {
-            if self.follow_ups[i].id == id {
-                cx.focus.focus(id);
-                if self.follow_ups[i].on_click() {
-                    let label = self.follow_ups[i].label.clone();
-                    self.follow_up(&label, w, cx);
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        match ev.phase() {
+            Some(Phase::Click) => {
+                if let Some(r) = self.chips.route(ev) {
+                    let (o, act) = r.into_parts();
+                    if let Some(ChipAction::Activate(i)) | Some(ChipAction::Toggle(i)) = act {
+                        let name = self.chips.chips[i].label.clone();
+                        self.toggle_stream(name, w);
+                    }
+                    cx.focus.focus(CHIPS);
+                    return o.or(Outcome::Changed);
                 }
-                return Outcome::Changed;
+                for i in 0..self.follow_ups.len() {
+                    if self.follow_ups[i].id == id {
+                        cx.focus.focus(id);
+                        if self.follow_ups[i].on_click() {
+                            let label = self.follow_ups[i].label.clone();
+                            self.follow_up(&label, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                if id == VIEW {
+                    cx.focus.focus(VIEW);
+                    // a double click selects the word under it
+                    if cx.clicks >= 2 {
+                        return self.view.select_word_at(pos);
+                    }
+                }
+                self.view
+                    .route(ev)
+                    .map_or(Outcome::Ignored, |r| r.outcome())
             }
-        }
-        if id == junie_tui::widgets::scrollbar::id_for(VIEW) {
-            return self.view.on_scrollbar(pos);
-        }
-        if id == VIEW {
-            cx.focus.focus(VIEW);
-            return self.view.on_click(pos).or(Outcome::Changed);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        // a program owning the keyboard, or an open find, keeps it
-        if self.is_editing() {
-            return Outcome::Ignored;
-        }
-        if let Some(i) = (0..self.chips.chips.len()).find(|&i| self.chips.chip_id(i) == id) {
-            if cx.context.moves_cursor {
-                self.chips.cursor = i;
+            Some(Phase::Secondary) => {
+                // a program owning the keyboard, or an open find, keeps it
+                if self.is_editing() {
+                    return Outcome::Ignored;
+                }
+                if let Some(i) = (0..self.chips.chips.len()).find(|&i| self.chips.chip_id(i) == id)
+                {
+                    if cx.context.moves_cursor {
+                        self.chips.cursor = i;
+                    }
+                    cx.focus.focus(CHIPS);
+                    return self.chip_menu(i, ContextAnchor::Pointer(pos), w, cx);
+                }
+                if id == VIEW {
+                    cx.focus.focus(VIEW);
+                    return self.output_menu(ContextAnchor::Pointer(pos), w, cx);
+                }
+                Outcome::Ignored
             }
-            cx.focus.focus(CHIPS);
-            return self.chip_menu(i, ContextAnchor::Pointer(pos), w, cx);
+            // the output: a press anchors a selection and a drag extends
+            // it; its bar and the wheel scroll it
+            _ => self
+                .view
+                .route(ev)
+                .map_or(Outcome::Ignored, |r| r.outcome()),
         }
-        if id == VIEW {
-            cx.focus.focus(VIEW);
-            return self.output_menu(ContextAnchor::Pointer(pos), w, cx);
-        }
-        Outcome::Ignored
     }
 
     fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -762,47 +776,6 @@ impl Screen for ActivityTab {
             }
             _ => Outcome::Ignored,
         }
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        if id == VIEW {
-            return self.view.select_word_at(pos);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == VIEW {
-            return self.view.on_click(pos);
-        }
-        if id == junie_tui::widgets::scrollbar::id_for(VIEW) {
-            // a press on the track jumps there; the drag that follows tracks
-            return self.view.on_scrollbar(pos);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == VIEW {
-            return self.view.on_drag(pos);
-        }
-        if pressed == junie_tui::widgets::scrollbar::id_for(VIEW) {
-            return self.view.on_scrollbar_drag(pos);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if self.view.owns(id) {
-            return self.view.on_wheel(delta);
-        }
-        Outcome::Ignored
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {

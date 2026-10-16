@@ -4,7 +4,10 @@
 //! live states, aggregate progress and per-step retained output).
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
@@ -22,7 +25,7 @@ use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::viewport::{Span, TextViewport};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::plan::{Plan, PlanPhase, StepState};
@@ -31,7 +34,6 @@ use crate::screens::{
     scroll_press, ticks_label,
 };
 use crate::sim::world::World;
-use junie_tui::core::scroll::Scrollable;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::{plural, truncate_sep};
 
@@ -736,87 +738,97 @@ impl Screen for PlanReviewPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == CANCEL {
-            cx.go(Go::Pop);
-            return Outcome::Changed;
-        }
-        if id == CONFIRM {
-            cx.go(Go::ConfirmPlan(self.plan.clone()));
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(OUTLINE) {
-            cx.focus.focus(OUTLINE);
-            return scroll_press(self.outline_area, pos, &mut self.scroll);
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            cx.focus.focus(DETAIL);
-            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        if id == DETAIL {
-            cx.focus.focus(DETAIL);
-            return Outcome::Changed;
-        }
-        let n = w.plan(&self.plan).map(|p| p.steps.len()).unwrap_or(0);
-        if let Some(i) = (0..n).find(|&i| OUTLINE.child(i) == id) {
-            self.cursor = i;
-            cx.focus.focus(OUTLINE);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(OUTLINE) {
-            return scroll_press(self.outline_area, pos, &mut self.scroll);
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(OUTLINE) {
-            return scroll_drag(self.outline_area, pos, &mut self.scroll);
-        }
-        if pressed == scrollbar::id_for(DETAIL) {
-            return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        _pos: Position,
-        w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        let n = w.plan(&self.plan).map(|p| p.steps.len()).unwrap_or(0);
-        if let Some(i) = (0..n).find(|&i| OUTLINE.child(i) == id)
-            && let Some(p) = w.plan_mut(&self.plan)
-        {
-            self.cursor = i;
-            if p.toggle(i) {
-                self.undo.push(i);
-            } else {
-                cx.status(format!("{:02} is required and cannot be excluded", i + 1));
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls these vertical panes
+            if axis != Axis::Vertical {
+                return Outcome::Ignored;
             }
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        let Some(i) = step_at(id, w, &self.plan) else {
+            if id == OUTLINE {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            if id == DETAIL {
+                self.detail_scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
             return Outcome::Ignored;
-        };
-        if cx.context.moves_cursor {
-            self.cursor = i;
         }
-        cx.focus.focus(OUTLINE);
-        self.step_menu(i, ContextAnchor::Pointer(pos), w, cx)
+        let n = w.plan(&self.plan).map(|p| p.steps.len()).unwrap_or(0);
+        let step = (0..n).find(|&i| OUTLINE.child(i) == id);
+        match ev.phase() {
+            Some(Phase::Press) => {
+                if id == scrollbar::id_for(OUTLINE) {
+                    return scroll_press(self.outline_area, pos, &mut self.scroll);
+                }
+                if id == scrollbar::id_for(DETAIL) {
+                    return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Drag) => {
+                if id == scrollbar::id_for(OUTLINE) {
+                    return scroll_drag(self.outline_area, pos, &mut self.scroll);
+                }
+                if id == scrollbar::id_for(DETAIL) {
+                    return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Click) => {
+                // a double click on a step includes or excludes it
+                if cx.clicks >= 2
+                    && let Some(i) = step
+                    && let Some(p) = w.plan_mut(&self.plan)
+                {
+                    self.cursor = i;
+                    if p.toggle(i) {
+                        self.undo.push(i);
+                    } else {
+                        cx.status(format!("{:02} is required and cannot be excluded", i + 1));
+                    }
+                    return Outcome::Changed;
+                }
+                if id == CANCEL {
+                    cx.go(Go::Pop);
+                    return Outcome::Changed;
+                }
+                if id == CONFIRM {
+                    cx.go(Go::ConfirmPlan(self.plan.clone()));
+                    return Outcome::Changed;
+                }
+                if id == scrollbar::id_for(OUTLINE) {
+                    cx.focus.focus(OUTLINE);
+                    return scroll_press(self.outline_area, pos, &mut self.scroll);
+                }
+                if id == scrollbar::id_for(DETAIL) {
+                    cx.focus.focus(DETAIL);
+                    return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+                }
+                if id == DETAIL {
+                    cx.focus.focus(DETAIL);
+                    return Outcome::Changed;
+                }
+                if let Some(i) = step {
+                    self.cursor = i;
+                    cx.focus.focus(OUTLINE);
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Secondary) => {
+                let Some(i) = step_at(id, w, &self.plan) else {
+                    return Outcome::Ignored;
+                };
+                if cx.context.moves_cursor {
+                    self.cursor = i;
+                }
+                cx.focus.focus(OUTLINE);
+                self.step_menu(i, ContextAnchor::Pointer(pos), w, cx)
+            }
+            _ => Outcome::Ignored,
+        }
     }
 
     fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -844,18 +856,6 @@ impl Screen for PlanReviewPage {
             return self.on_key(&plain_key(c), w, cx).or(Outcome::Changed);
         }
         Outcome::Changed
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == OUTLINE {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == DETAIL {
-            self.detail_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
@@ -1422,70 +1422,77 @@ impl Screen for PlanTab {
         Outcome::Changed
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        for i in 0..self.follow_ups.len() {
-            if self.follow_ups[i].id == id {
-                cx.focus.focus(id);
-                if self.follow_ups[i].on_click() {
-                    self.follow_up(i, w, cx);
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            if id == OUTLINE {
+                // a sideways notch never scrolls the vertical outline
+                if axis != Axis::Vertical {
+                    return Outcome::Ignored;
                 }
+                self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
             }
+            return self
+                .view
+                .route(ev)
+                .map_or(Outcome::Ignored, |r| r.outcome());
         }
-        let n = w.plan(&self.plan).map(|p| p.steps.len()).unwrap_or(0);
-        if let Some(i) = (0..n).find(|&i| OUTLINE.child(i) == id) {
-            self.cursor = i;
-            cx.focus.focus(OUTLINE);
-            return Outcome::Changed;
+        match ev.phase() {
+            Some(Phase::Press) => {
+                if id == scrollbar::id_for(OUTLINE) {
+                    return scroll_press(self.outline_area, pos, &mut self.scroll);
+                }
+                self.view
+                    .route(ev)
+                    .map_or(Outcome::Ignored, |r| r.outcome())
+            }
+            Some(Phase::Drag) => {
+                if id == scrollbar::id_for(OUTLINE) {
+                    return scroll_drag(self.outline_area, pos, &mut self.scroll);
+                }
+                self.view
+                    .route(ev)
+                    .map_or(Outcome::Ignored, |r| r.outcome())
+            }
+            Some(Phase::Click) => {
+                for i in 0..self.follow_ups.len() {
+                    if self.follow_ups[i].id == id {
+                        cx.focus.focus(id);
+                        if self.follow_ups[i].on_click() {
+                            self.follow_up(i, w, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                let n = w.plan(&self.plan).map(|p| p.steps.len()).unwrap_or(0);
+                if let Some(i) = (0..n).find(|&i| OUTLINE.child(i) == id) {
+                    self.cursor = i;
+                    cx.focus.focus(OUTLINE);
+                    return Outcome::Changed;
+                }
+                if id == scrollbar::id_for(OUTLINE) {
+                    return scroll_press(self.outline_area, pos, &mut self.scroll);
+                }
+                if id == OUTPUT {
+                    cx.focus.focus(OUTPUT);
+                }
+                self.view
+                    .route(ev)
+                    .map_or(Outcome::Ignored, |r| r.outcome())
+            }
+            Some(Phase::Secondary) => {
+                let Some(i) = step_at(id, w, &self.plan) else {
+                    return Outcome::Ignored;
+                };
+                if cx.context.moves_cursor {
+                    self.cursor = i;
+                }
+                cx.focus.focus(OUTLINE);
+                self.step_menu(i, ContextAnchor::Pointer(pos), w, cx)
+            }
+            _ => Outcome::Ignored,
         }
-        if id == OUTPUT {
-            cx.focus.focus(OUTPUT);
-            return self.view.on_click(pos).or(Outcome::Changed);
-        }
-        if id == scrollbar::id_for(OUTPUT) {
-            return self.view.on_scrollbar(pos);
-        }
-        if id == scrollbar::id_for(OUTLINE) {
-            return scroll_press(self.outline_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == OUTPUT {
-            return self.view.on_click(pos);
-        }
-        if id == scrollbar::id_for(OUTPUT) {
-            return self.view.on_scrollbar(pos);
-        }
-        if id == scrollbar::id_for(OUTLINE) {
-            return scroll_press(self.outline_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == OUTPUT {
-            return self.view.on_drag(pos);
-        }
-        if pressed == scrollbar::id_for(OUTPUT) {
-            return self.view.on_scrollbar_drag(pos);
-        }
-        if pressed == scrollbar::id_for(OUTLINE) {
-            return scroll_drag(self.outline_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        let Some(i) = step_at(id, w, &self.plan) else {
-            return Outcome::Ignored;
-        };
-        if cx.context.moves_cursor {
-            self.cursor = i;
-        }
-        cx.focus.focus(OUTLINE);
-        self.step_menu(i, ContextAnchor::Pointer(pos), w, cx)
     }
 
     fn on_context_key(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
@@ -1494,17 +1501,6 @@ impl Screen for PlanTab {
         }
         let anchor = row_anchor(OUTLINE, self.cursor, self.outline_area, self.scroll.offset);
         self.step_menu(self.cursor, anchor, w, cx)
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == OUTLINE {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if self.view.owns(id) {
-            return self.view.on_wheel(delta);
-        }
-        Outcome::Ignored
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
