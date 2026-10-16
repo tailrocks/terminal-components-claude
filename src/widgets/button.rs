@@ -317,6 +317,9 @@ pub struct ButtonRow {
     pub gap: Option<u16>,
     /// Default [`RowOverflow::More`].
     pub overflow: RowOverflow,
+    /// ←/→ past the last (first) button wraps to the first (last). Default
+    /// off: the arrows stop at the ends, as in a macOS button row (K32).
+    pub wrap: bool,
 }
 
 /// Where a [`ButtonRow`] put each button.
@@ -350,6 +353,33 @@ impl ButtonRow {
     pub fn overflow(mut self, overflow: RowOverflow) -> Self {
         self.overflow = overflow;
         self
+    }
+    /// See [`Self::wrap`].
+    pub fn wrap(mut self, on: bool) -> Self {
+        self.wrap = on;
+        self
+    }
+
+    /// The button ←/→ moves to from `cur` among `buttons` (row order):
+    /// the next (`forward`) or previous enabled one, wrapping per
+    /// [`Self::wrap`]. `None` when `cur` is not a button of the row or
+    /// there is nowhere to go. The one button-row navigation every dialog
+    /// uses (K32).
+    pub fn step<'a>(
+        &self,
+        buttons: impl IntoIterator<Item = &'a Button>,
+        cur: Option<WidgetId>,
+        forward: bool,
+    ) -> Option<WidgetId> {
+        let row: Vec<&Button> = buttons.into_iter().collect();
+        let i = row.iter().position(|b| Some(b.id) == cur)?;
+        let n = row.len();
+        (1..n)
+            .map(|k| if forward { i + k } else { i + n - k })
+            .take_while(|&j| self.wrap || (j < n && forward) || (j >= n && !forward))
+            .map(|j| row[j % n])
+            .find(|b| !b.disabled)
+            .map(|b| b.id)
     }
 
     /// The id of the `…` button for a row owned by `owner`.

@@ -588,6 +588,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::button::ButtonRow::align"),
     Capability::builder("widgets::button::ButtonRow::gap"),
     Capability::builder("widgets::button::ButtonRow::overflow"),
+    Capability::builder("widgets::button::ButtonRow::wrap"),
     // widgets::chips
     Capability::ty("widgets::chips::Chip"),
     Capability::ty("widgets::chips::ChipBar"),
@@ -629,6 +630,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::choice_dialog::ChoiceDialog::width"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::option_tones"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::close_button"),
+    Capability::builder("widgets::choice_dialog::ChoiceDialog::button_row"),
     // widgets::code
     Capability::ty("widgets::code::Severity"),
     Capability::variant("widgets::code::Severity::Error"),
@@ -789,6 +791,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::form_dialog::FormDialog::meta"),
     Capability::builder("widgets::form_dialog::FormDialog::nav"),
     Capability::builder("widgets::form_dialog::FormDialog::close_button"),
+    Capability::builder("widgets::form_dialog::FormDialog::button_row"),
     // widgets::grid
     Capability::ty("widgets::grid::CellValue"),
     Capability::variant("widgets::grid::CellValue::Null"),
