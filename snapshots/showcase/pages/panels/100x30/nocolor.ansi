@@ -1,31 +1,31 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Panels                  no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
-   Overview       │  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed t… [0m
- ▸ App shell      │                                                                                 [0m
- ▸ Inputs & forms │    Titled card                surface    ╭─ Framed · split pane    1–10 of 29 ─╮[0m
- ▸ Tables         │                                          │  Junie works through a task the   ┃ │[0m
- ▸ Navigation     │    A card is a filled surface. Its       │  way a careful engineer would: it ┃ │[0m
- ▸ Overlays       │    title sits in the top-left and        │  reads the relevant code, forms a ┃ │[0m
- ▸ Feedback       │    metadata on the right. It never       │  plan, makes focused changes,     │ │[0m
- ▾ Layout         │    has a border.                         │  runs the tests, and reports back │ │[0m
-[0m[1m▎  › Panels       [0m│                                          │  with a summary you can review    │ │[0m
-     Scrolling    │                                          │  before anything is merged.       │ │[0m
- ▸ Text & code    │                                          │                                   │ │[0m
- ▸ Screens        │    Untitled card. Same surface,          │  Each step is visible. You can    │ │[0m
-                  │    content starts at the padding         │  [0m[2mpause, redirect, or take over at [0m│ │[0m
-                  │    edge.                                 ╰─────────────────────────────────────╯[0m
-                  │                                                                                 [0m
-                  │                                            Card · scrollable         1–7 of 60  [0m
-                  │                                                                                 [0m
-                  │    Nested                                     0.00s  info   Resolving works… ┃  [0m
-                  │                                               0.37s  info   Fetching crates… │  [0m
-                  │    Target                                     0.74s  info   Compiling proc-… │  [0m
-                  │       Local                                   1.11s  info   Compiling serde… │  [0m
-                  │       CLI                                     1.48s  warn   unused import: … │  [0m
-                  │    [0m[2m   Cloud                      [0m             1.85s  info   Compiling tokio… │  [0m
-                  │                                            [0m[2m   2.22s  info   Running unittes… [0m│  [0m
-                  │                                            ━━━━━━━━━━━━━━━───────────────────   [0m
-                  │                                                                                 [0m
+ [0m[1mComponents[0m      25  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed t… [0m
+                                                                                                    [0m
+    Overview           Titled card                surface    ╭─ Framed · split pane    1–10 of 29 ─╮[0m
+  ▸ App shell                                                │  Junie works through a task the   ┃ │[0m
+  ▸ Inputs & forms     A card is a filled surface. Its       │  way a careful engineer would: it ┃ │[0m
+  ▸ Tables             title sits in the top-left and        │  reads the relevant code, forms a ┃ │[0m
+  ▸ Navigation         metadata on the right. It never       │  plan, makes focused changes,     │ │[0m
+  ▸ Overlays           has a border.                         │  runs the tests, and reports back │ │[0m
+  ▸ Feedback                                                 │  with a summary you can review    │ │[0m
+  ▾ Layout                                                   │  before anything is merged.       │ │[0m
+ [0m[1m▎  › Panels       [0m                                          │                                   │ │[0m
+      Scrolling        Untitled card. Same surface,          │  Each step is visible. You can    │ │[0m
+  ▸ Text & code        content starts at the padding         │  [0m[2mpause, redirect, or take over at [0m│ │[0m
+  ▸ Screens            edge.                                 ╰─────────────────────────────────────╯[0m
+                                                                                                    [0m
+                                                               Card · scrollable         1–7 of 60  [0m
+                                                                                                    [0m
+                       Nested                                     0.00s  info   Resolving works… ┃  [0m
+                                                                  0.37s  info   Fetching crates… │  [0m
+                       Target                                     0.74s  info   Compiling proc-… │  [0m
+                          Local                                   1.11s  info   Compiling serde… │  [0m
+                          CLI                                     1.48s  warn   unused import: … │  [0m
+                       [0m[2m   Cloud                      [0m             1.85s  info   Compiling tokio… │  [0m
+                                                               [0m[2m   2.22s  info   Running unittes… [0m│  [0m
+                                                               ━━━━━━━━━━━━━━━───────────────────   [0m
+                                                                                                    [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l

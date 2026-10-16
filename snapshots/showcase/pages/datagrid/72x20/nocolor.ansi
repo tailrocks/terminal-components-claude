@@ -1,21 +1,21 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Data grid       i Inspector   ? Help  [0m
                                                                         [0m
-   Overview       │  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
- ▸ App shell      │                                                     [0m
- ▸ Inputs & forms │    customers                    rows 1–9/40 loaded  [0m
- ▾ Tables         │                                                     [0m
-     Basic table  │          ⚷ id       customer                  6›    [0m
-     Editable     │        1 1001       Northwind Traders            ┃  [0m
-[0m[1m▎  › Data grid    [0m│        2 1002       Blue Yonder Airlines         │  [0m
-     Selection    │        3 1003       Contoso Pharmaceuticals      │  [0m
-     Cell editors │        4 1004       Fabrikam Robotics            │  [0m
- ▸ Navigation     │        5 1005       Litware Analytics            │  [0m
- ▸ Overlays       │        6 1006       Tailspin Toys                │  [0m
- ▸ Feedback       │        7 1007       Wide World Importers         │  [0m
- ▸ Layout         │        8 1008       Adventure Works              │  [0m
- ▸ Text & code    │    [0m[2m    9 1009       Proseware Studio             [0m│  [0m
- ▸ Screens        │          ━━━━━━━━━━──────────────────────────────   [0m
-                  │                                                     [0m
+ [0m[1mComponents[0m      25  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
+                                                                        [0m
+    Overview      ┃    customers                    rows 1–9/40 loaded  [0m
+  ▸ App shell     ┃                                                     [0m
+  ▸ Inputs & for… ┃          ⚷ id       customer                  6›    [0m
+  ▾ Tables        ┃        1 1001       Northwind Traders            ┃  [0m
+      Basic table ┃        2 1002       Blue Yonder Airlines         │  [0m
+      Editable    ┃        3 1003       Contoso Pharmaceuticals      │  [0m
+ [0m[1m▎  › Data grid   [0m┃        4 1004       Fabrikam Robotics            │  [0m
+      Selection   ┃        5 1005       Litware Analytics            │  [0m
+      Cell edito… ┃        6 1006       Tailspin Toys                │  [0m
+  ▸ Navigation    ┃        7 1007       Wide World Importers         │  [0m
+  ▸ Overlays      ┃        8 1008       Adventure Works              │  [0m
+  ▸ Feedback      │    [0m[2m    9 1009       Proseware Studio             [0m│  [0m
+ [0m[2m ▸ Layout        [0m│          ━━━━━━━━━━──────────────────────────────   [0m
+                                                                        [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l

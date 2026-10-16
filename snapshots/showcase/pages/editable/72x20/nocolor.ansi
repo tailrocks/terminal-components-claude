@@ -1,21 +1,21 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Editable        i Inspector   ? Help  [0m
                                                                         [0m
-   Overview       │  [0m[1mEditable tables[0m  Navigation is reversed cell; edi… [0m
- ▸ App shell      │                                                     [0m
- ▸ Inputs & forms │    Tasks                       0 edits · 1–5 of 14  [0m
- ▾ Tables         │                                                     [0m
-     Basic table  │       ID     Task                      Owner    …   [0m
-[0m[1m▎  › Editable     [0m│       #1040  Add rate limiting to au…  mira      ┃  [0m
-     Data grid    │       #1041  Migrate sessions table …  jonas     │  [0m
-     Selection    │       #1042  Fix flaky checkout inte…  ana       │  [0m
-     Cell editors │       #1043  Write release notes for…  mira      │  [0m
- ▸ Navigation     │    [0m[2m   #1044  Replace deprecated Vue …  kai       [0m│  [0m
- ▸ Overlays       │       ━━━━━━━━━━━━━━━━━━━━━──────────────────────   [0m
- ▸ Feedback       │                                                     [0m
- ▸ Layout         │                                                     [0m
- ▸ Text & code    │  reversed  cell cursor (navigation)                 [0m
- ▸ Screens        │  ▁         editing cursor + accent underline        [0m
-                  │  !         validation error                         [0m
+ [0m[1mComponents[0m      25  [0m[1mEditable tables[0m  Navigation is reversed cell; edi… [0m
+                                                                        [0m
+    Overview      ┃    Tasks                       0 edits · 1–5 of 14  [0m
+  ▸ App shell     ┃                                                     [0m
+  ▸ Inputs & for… ┃       ID     Task                      Owner    …   [0m
+  ▾ Tables        ┃       #1040  Add rate limiting to au…  mira      ┃  [0m
+      Basic table ┃       #1041  Migrate sessions table …  jonas     │  [0m
+ [0m[1m▎  › Editable    [0m┃       #1042  Fix flaky checkout inte…  ana       │  [0m
+      Data grid   ┃       #1043  Write release notes for…  mira      │  [0m
+      Selection   ┃    [0m[2m   #1044  Replace deprecated Vue …  kai       [0m│  [0m
+      Cell edito… ┃       ━━━━━━━━━━━━━━━━━━━━━──────────────────────   [0m
+  ▸ Navigation    ┃                                                     [0m
+  ▸ Overlays      ┃                                                     [0m
+  ▸ Feedback      │  reversed  cell cursor (navigation)                 [0m
+ [0m[2m ▸ Layout        [0m│  ▁         editing cursor + accent underline        [0m
+                     !         validation error                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l

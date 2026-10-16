@@ -1,25 +1,25 @@
  ▪ [0m[1mJunie[0m Design system / Inputs & forms / Chips & selects i Inspector   ? Help  [0m
                                                                                 [0m
-   Overview       │  [0m[1mChips & selects[0m  Removable chips, a popup select, and str… [0m
- ▸ App shell      │                                                             [0m
- ▾ Inputs & forms │    Filters                                      2 active   ┃[0m
-     Buttons      │                                                            ┃[0m
-     Inputs       │     match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m +2                ┃[0m
-     Text areas   │                                                            ┃[0m
-[0m[1m▎  › Chips & sel… [0m│    last action: nothing yet                                │[0m
-     Forms        │                                                            │[0m
- ▸ Tables         │                                                            │[0m
- ▸ Navigation     │    Selects                                                 │[0m
- ▸ Overlays       │                                                            │[0m
- ▸ Feedback       │      Sort by          Page size        Engine              │[0m
- ▸ Layout         │      created_at ▾     50         ▾   [0m[2m  PostgreSQL     ▾ [0m   │[0m
- ▸ Text & code    │      Applies to t…                     Fixed by the con…   │[0m
- ▸ Screens        │                                                            │[0m
-                  │                                                            │[0m
-                  │                                                            │[0m
-                  │                                                            │[0m
-                  │                                                            │[0m
-                  │                                                            │[0m
+ [0m[1mComponents[0m      25  [0m[1mChips & selects[0m  Removable chips, a popup select, and str… [0m
+                                                                                [0m
+    Overview           Filters                                      2 active   ┃[0m
+  ▸ App shell                                                                  ┃[0m
+  ▾ Inputs & forms      match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m +2                ┃[0m
+      Buttons                                                                  ┃[0m
+      Inputs           last action: nothing yet                                │[0m
+      Text areas                                                               │[0m
+ [0m[1m▎  › Chips & sel… [0m                                                            │[0m
+      Forms            Selects                                                 │[0m
+  ▸ Tables                                                                     │[0m
+  ▸ Navigation           Sort by          Page size        Engine              │[0m
+  ▸ Overlays             created_at ▾     50         ▾   [0m[2m  PostgreSQL     ▾ [0m   │[0m
+  ▸ Feedback             Applies to t…                     Fixed by the con…   │[0m
+  ▸ Layout                                                                     │[0m
+  ▸ Text & code                                                                │[0m
+  ▸ Screens                                                                    │[0m
+                                                                               │[0m
+                                                                               │[0m
+                                                                               │[0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l

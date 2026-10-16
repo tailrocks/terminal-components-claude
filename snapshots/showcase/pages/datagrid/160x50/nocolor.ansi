@@ -1,51 +1,51 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Data grid                                                                           no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
-   Overview            │  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging and local sort                                                                 [0m
- ▸ App shell           │                                                                                                                                        [0m
- ▸ Inputs & forms      │    customers                                                                                    rows 1–26 of 40 loaded · ~4,812 total  [0m
- ▾ Tables              │                                                                                                                                        [0m
-     Basic table       │          ⚷ id       customer                   plan          seats      mrr  active    renewed_at    notes                             [0m
-     Editable          │        1 1001       Northwind Traders          enterprise        3    57.00  true      2026-01-01    {"owner":"mira","seats":3}     ┃  [0m
-[0m[1m▎  › Data grid         [0m│        2 1002       Blue Yonder Airlines       team             80  1920.00  true      2026-02-04    [0m[3mNULL                       [0m    ┃  [0m
-     Selection         │        3 1003       Contoso Pharmaceuticals    pro              12   348.00  true      2026-03-07    [0m[3mNULL                       [0m    ┃  [0m
-     Cell editors      │        4 1004       Fabrikam Robotics          free              1     0.00  false     [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
- ▸ Navigation          │        5 1005       Litware Analytics          enterprise       40   760.00  true      2026-05-13    {"owner":"mira","seats":40}    ┃  [0m
- ▸ Overlays            │        6 1006       Tailspin Toys              team              5   120.00  true      2026-06-16    [0m[3mNULL                       [0m    ┃  [0m
- ▸ Feedback            │        7 1007       Wide World Importers       pro             150  4350.00  true      2026-07-19    [0m[3mNULL                       [0m    ┃  [0m
- ▸ Layout              │        8 1008       Adventure Works            free             25     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
- ▸ Text & code         │        9 1009       Proseware Studio           enterprise        3    57.00  false     2026-09-25    {"owner":"mira","seats":3}     ┃  [0m
- ▸ Screens             │       10 1010       Woodgrove Bank             team             80  1920.00  true      2026-10-28    [0m[3mNULL                       [0m    ┃  [0m
-                       │       11 1011       Alpine Ski House           pro              12   348.00  true      2026-11-03    [0m[3mNULL                       [0m    ┃  [0m
-                       │       12 1012       Coho Winery                free              1     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
-                       │       13 1013       Lucerne Publishing         enterprise       40   760.00  true      2026-01-09    {"owner":"mira","seats":40}    ┃  [0m
-                       │       14 1014       Margie's Travel            team              5   120.00  false     2026-02-12    [0m[3mNULL                       [0m    ┃  [0m
-                       │       15 1015       Trey Research              pro             150  4350.00  true      2026-03-15    [0m[3mNULL                       [0m    ┃  [0m
-                       │       16 1016       Humongous Insurance        free             25     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
-                       │       17 1017       Northwind Traders 2        enterprise        3    57.00  true      2026-05-21    {"owner":"mira","seats":3}     │  [0m
-                       │       18 1018       Blue Yonder Airlines 2     team             80  1920.00  true      2026-06-24    [0m[3mNULL                       [0m    │  [0m
-                       │       19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  false     2026-07-27    [0m[3mNULL                       [0m    │  [0m
-                       │       20 1020       Fabrikam Robotics 2        free              1     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    │  [0m
-                       │       21 1021       Litware Analytics 2        enterprise       40   760.00  true      2026-09-05    {"owner":"mira","seats":40}    │  [0m
-                       │       22 1022       Tailspin Toys 2            team              5   120.00  true      2026-10-08    [0m[3mNULL                       [0m    │  [0m
-                       │       23 1023       Wide World Importers 2     pro             150  4350.00  true      2026-11-11    [0m[3mNULL                       [0m    │  [0m
-                       │       24 1024       Adventure Works 2          free             25     0.00  false     [0m[3mNULL        [0m  [0m[3mNULL                       [0m    │  [0m
-                       │       25 1025       Proseware Studio 2         enterprise        3    57.00  true      2026-01-17    {"owner":"mira","seats":3}     │  [0m
-                       │    [0m[2m   26 1026       Woodgrove Bank 2           team             80  1920.00  true      2026-02-20    [0m[2;3mNULL                       [0m[2m    [0m│  [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
-                       │                                                                                                                                        [0m
+ [0m[1mComponents[0m           25  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging and local sort                                                                 [0m
+                                                                                                                                                                [0m
+    Overview                customers                                                                                    rows 1–26 of 40 loaded · ~4,812 total  [0m
+  ▸ App shell                                                                                                                                                   [0m
+  ▸ Inputs & forms                ⚷ id       customer                   plan          seats      mrr  active    renewed_at    notes                             [0m
+  ▾ Tables                      1 1001       Northwind Traders          enterprise        3    57.00  true      2026-01-01    {"owner":"mira","seats":3}     ┃  [0m
+      Basic table               2 1002       Blue Yonder Airlines       team             80  1920.00  true      2026-02-04    [0m[3mNULL                       [0m    ┃  [0m
+      Editable                  3 1003       Contoso Pharmaceuticals    pro              12   348.00  true      2026-03-07    [0m[3mNULL                       [0m    ┃  [0m
+ [0m[1m▎  › Data grid         [0m        4 1004       Fabrikam Robotics          free              1     0.00  false     [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
+      Selection                 5 1005       Litware Analytics          enterprise       40   760.00  true      2026-05-13    {"owner":"mira","seats":40}    ┃  [0m
+      Cell editors              6 1006       Tailspin Toys              team              5   120.00  true      2026-06-16    [0m[3mNULL                       [0m    ┃  [0m
+  ▸ Navigation                  7 1007       Wide World Importers       pro             150  4350.00  true      2026-07-19    [0m[3mNULL                       [0m    ┃  [0m
+  ▸ Overlays                    8 1008       Adventure Works            free             25     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
+  ▸ Feedback                    9 1009       Proseware Studio           enterprise        3    57.00  false     2026-09-25    {"owner":"mira","seats":3}     ┃  [0m
+  ▸ Layout                     10 1010       Woodgrove Bank             team             80  1920.00  true      2026-10-28    [0m[3mNULL                       [0m    ┃  [0m
+  ▸ Text & code                11 1011       Alpine Ski House           pro              12   348.00  true      2026-11-03    [0m[3mNULL                       [0m    ┃  [0m
+  ▸ Screens                    12 1012       Coho Winery                free              1     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
+                               13 1013       Lucerne Publishing         enterprise       40   760.00  true      2026-01-09    {"owner":"mira","seats":40}    ┃  [0m
+                               14 1014       Margie's Travel            team              5   120.00  false     2026-02-12    [0m[3mNULL                       [0m    ┃  [0m
+                               15 1015       Trey Research              pro             150  4350.00  true      2026-03-15    [0m[3mNULL                       [0m    ┃  [0m
+                               16 1016       Humongous Insurance        free             25     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    ┃  [0m
+                               17 1017       Northwind Traders 2        enterprise        3    57.00  true      2026-05-21    {"owner":"mira","seats":3}     │  [0m
+                               18 1018       Blue Yonder Airlines 2     team             80  1920.00  true      2026-06-24    [0m[3mNULL                       [0m    │  [0m
+                               19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  false     2026-07-27    [0m[3mNULL                       [0m    │  [0m
+                               20 1020       Fabrikam Robotics 2        free              1     0.00  true      [0m[3mNULL        [0m  [0m[3mNULL                       [0m    │  [0m
+                               21 1021       Litware Analytics 2        enterprise       40   760.00  true      2026-09-05    {"owner":"mira","seats":40}    │  [0m
+                               22 1022       Tailspin Toys 2            team              5   120.00  true      2026-10-08    [0m[3mNULL                       [0m    │  [0m
+                               23 1023       Wide World Importers 2     pro             150  4350.00  true      2026-11-11    [0m[3mNULL                       [0m    │  [0m
+                               24 1024       Adventure Works 2          free             25     0.00  false     [0m[3mNULL        [0m  [0m[3mNULL                       [0m    │  [0m
+                               25 1025       Proseware Studio 2         enterprise        3    57.00  true      2026-01-17    {"owner":"mira","seats":3}     │  [0m
+                            [0m[2m   26 1026       Woodgrove Bank 2           team             80  1920.00  true      2026-02-20    [0m[2;3mNULL                       [0m[2m    [0m│  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
                                                                                                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
 [?25l

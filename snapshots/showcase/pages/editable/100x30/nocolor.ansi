@@ -1,31 +1,31 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Editable                no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
-   Overview       │  [0m[1mEditable tables[0m  Navigation is reversed cell; editing is a cursor. They never… [0m
- ▸ App shell      │                                                                                 [0m
- ▸ Inputs & forms │    Tasks                                                  0 edits · 1–13 of 14  [0m
- ▾ Tables         │                                                                                 [0m
-     Basic table  │       ID     Task                                       Owner     Status    …   [0m
-[0m[1m▎  › Editable     [0m│       #1040  Add rate limiting to auth endpoints        mira      Done       ┃  [0m
-     Data grid    │       #1041  Migrate sessions table to UUID keys        jonas     ▸ Running  ┃  [0m
-     Selection    │       #1042  Fix flaky checkout integration test        ana       Failed     ┃  [0m
-     Cell editors │       #1043  Write release notes for 3.2                mira      Queued     ┃  [0m
- ▸ Navigation     │       #1044  Replace deprecated Vue mixins              kai       Done       ┃  [0m
- ▸ Overlays       │       #1045  Upgrade Postgres driver to 0.9             jonas     Paused     ┃  [0m
- ▸ Feedback       │       #1046  Extract billing service module             sofia     Done       ┃  [0m
- ▸ Layout         │       #1047  Add OpenTelemetry tracing spans            kai       ▸ Running  ┃  [0m
- ▸ Text & code    │       #1048  Remove legacy feature flags                ana       Queued     ┃  [0m
- ▸ Screens        │       #1049  Generate API client from OpenAPI           sofia     Done       ┃  [0m
-                  │       #1050  Harden CSP headers                         mira      Done       ┃  [0m
-                  │       #1051  Speed up cold start of worker              jonas     Failed     ┃  [0m
-                  │    [0m[2m   #1052  Localize onboarding emails                 kai       Queued     [0m│  [0m
-                  │       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────   [0m
-                  │                                                                                 [0m
-                  │                                                                                 [0m
-                  │  reversed  cell cursor (navigation)                                             [0m
-                  │  ▁         editing cursor + accent underline                                    [0m
-                  │  !         validation error                                                     [0m
-                  │  ▾         Owner: pick from a list (Enter, Space, Alt+↓)                        [0m
-                  │                                                                                 [0m
+ [0m[1mComponents[0m      25  [0m[1mEditable tables[0m  Navigation is reversed cell; editing is a cursor. They never… [0m
+                                                                                                    [0m
+    Overview           Tasks                                                  0 edits · 1–13 of 14  [0m
+  ▸ App shell                                                                                       [0m
+  ▸ Inputs & forms        ID     Task                                       Owner     Status    …   [0m
+  ▾ Tables                #1040  Add rate limiting to auth endpoints        mira      Done       ┃  [0m
+      Basic table         #1041  Migrate sessions table to UUID keys        jonas     ▸ Running  ┃  [0m
+ [0m[1m▎  › Editable     [0m       #1042  Fix flaky checkout integration test        ana       Failed     ┃  [0m
+      Data grid           #1043  Write release notes for 3.2                mira      Queued     ┃  [0m
+      Selection           #1044  Replace deprecated Vue mixins              kai       Done       ┃  [0m
+      Cell editors        #1045  Upgrade Postgres driver to 0.9             jonas     Paused     ┃  [0m
+  ▸ Navigation            #1046  Extract billing service module             sofia     Done       ┃  [0m
+  ▸ Overlays              #1047  Add OpenTelemetry tracing spans            kai       ▸ Running  ┃  [0m
+  ▸ Feedback              #1048  Remove legacy feature flags                ana       Queued     ┃  [0m
+  ▸ Layout                #1049  Generate API client from OpenAPI           sofia     Done       ┃  [0m
+  ▸ Text & code           #1050  Harden CSP headers                         mira      Done       ┃  [0m
+  ▸ Screens               #1051  Speed up cold start of worker              jonas     Failed     ┃  [0m
+                       [0m[2m   #1052  Localize onboarding emails                 kai       Queued     [0m│  [0m
+                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────   [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                     reversed  cell cursor (navigation)                                             [0m
+                     ▁         editing cursor + accent underline                                    [0m
+                     !         validation error                                                     [0m
+                     ▾         Owner: pick from a list (Enter, Space, Alt+↓)                        [0m
+                                                                                                    [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l
