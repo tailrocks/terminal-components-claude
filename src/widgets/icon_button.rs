@@ -100,6 +100,14 @@ impl IconButton {
         }
     }
 
+    /// The same button showing `glyph` (a `+N` count set each frame).
+    pub fn with_glyph(&self, glyph: &str) -> Self {
+        Self {
+            glyph: Some(glyph.to_owned()),
+            ..self.clone()
+        }
+    }
+
     /// See [`Self::pad`].
     pub fn pad(mut self, cells: u16) -> Self {
         self.pad = cells;

@@ -88,6 +88,11 @@ pub struct ChipBar {
     /// do not fit, and choosing one activates it. Default `true` (with
     /// [`Self::overflow_marker`]).
     pub overflow_menu: bool,
+    /// The `+N` overflow button: a padded plate like `+` and `×`, its glyph
+    /// set to `+N` each frame (docs/design/close-button.md). Default
+    /// [`IconButton::new`] on the title ladder, tooltip `Show hidden`
+    /// ([`crate::theme::Strings::tip_overflow`]).
+    pub more_button: IconButton,
     /// The open overflow menu and the chip each of its rows stands for.
     menu: Option<(ContextMenu, Vec<usize>)>,
     /// Chips shown in the last render (the rest sit behind `+N`).
@@ -144,6 +149,7 @@ impl ChipBar {
             keymap: ChipCmd::default_keymap(),
             close_button: IconButton::close(WidgetId::of("chips.remove")),
             overflow_menu: true,
+            more_button: IconButton::new(WidgetId::of("chips.more"), "+"),
             menu: None,
             shown: 0,
             more_area: Rect::ZERO,
@@ -160,6 +166,12 @@ impl ChipBar {
     /// See [`Self::close_button`].
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
+        self
+    }
+
+    /// See [`Self::more_button`].
+    pub fn more_button(mut self, button: IconButton) -> Self {
+        self.more_button = button;
         self
     }
 
@@ -385,13 +397,26 @@ impl ChipBar {
         for (i, chip) in self.chips.iter().enumerate() {
             if i >= shown {
                 if let Some(m) = marker.as_ref().filter(|_| self.overflow_marker) {
-                    let r = Rect::new(x, y, width(m) as u16, 1);
                     if self.overflow_menu {
-                        // a button: the title ladder for its hover and press
-                        let mid = self.more_id();
-                        buf.set_string(x, y, m, ctx.title_style(mid, bg));
-                        ctx.register_part(self.id, PartRef::of(Part::OVERFLOW), r);
-                        more_area = r;
+                        // a padded plate like `+` and `×` (the gap cells
+                        // either side are its padding, so nothing moves at
+                        // rest): the hit area is the plate, which lights
+                        // whole on hover (docs/design/close-button.md)
+                        let left = x.saturating_sub(1).max(area.x);
+                        let r = Rect::new(left, y, x + width(m) as u16 + 1 - left, 1)
+                            .intersection(area);
+                        more_area = self
+                            .more_button
+                            .with_glyph(m)
+                            .part_of(self.id, PartRef::of(Part::OVERFLOW))
+                            .render_in(
+                                r,
+                                x,
+                                buf,
+                                ctx,
+                                ratatui::style::Style::new().bg(bg),
+                                Some(Tip::new(t.strings.tip_overflow)),
+                            );
                     } else {
                         buf.set_string(x, y, m, t.muted().bg(bg));
                     }
@@ -681,6 +706,13 @@ mod overflow_tests {
         let more = hits
             .area_of(bar.more_id())
             .expect("the +N marker is a target");
+        // a padded plate (docs/design/close-button.md): one cell either
+        // side of `+N`, the gap cells, so nothing moves at rest
+        let (buf, _) = render_hits(&mut bar, 24);
+        let plate: String = (more.left()..more.right())
+            .map(|x| buf[(x, 0)].symbol().to_owned())
+            .collect();
+        assert!(plate.starts_with(" +") && plate.ends_with(' '), "{plate:?}");
         assert!(bar.owns(bar.more_id()));
         assert_eq!(bar.on_click(bar.more_id()).1, None);
         assert!(bar.menu_open());

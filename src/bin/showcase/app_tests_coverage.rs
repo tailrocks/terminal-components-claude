@@ -972,7 +972,8 @@ fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     let marker: String = (more.x..more.right())
         .map(|x| h.term.backend().buffer()[(x, more.y)].symbol().to_owned())
         .collect();
-    assert!(marker.starts_with('+'), "{marker:?}\n{}", h.text());
+    // a padded plate: ` +N ` (docs/design/close-button.md)
+    assert!(marker.starts_with(" +"), "{marker:?}\n{}", h.text());
     h.click(more.x, more.y);
     // the last chip added is hidden behind the marker and listed below it
     let label = "seats between 5 and 50";
