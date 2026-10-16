@@ -1,19 +1,37 @@
 //! Contextual key hints for a footer line: `key Action` pairs, dropping the
 //! least important from the right when the line is narrow.
 
+use std::borrow::Cow;
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use crate::theme::{BadgeKind, Theme, Tone};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// One `key Action` pair. The action is usually a literal, but a component
+/// that knows its own state (a dialog naming its focused button) builds it
+/// at runtime, so it is a [`Cow`].
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hint {
     pub key: &'static str,
-    pub action: &'static str,
+    pub action: Cow<'static, str>,
+}
+
+impl Hint {
+    /// A hint whose action is computed (owned) or borrowed.
+    pub fn new(key: &'static str, action: impl Into<Cow<'static, str>>) -> Self {
+        Self {
+            key,
+            action: action.into(),
+        }
+    }
 }
 
 pub const fn hint(key: &'static str, action: &'static str) -> Hint {
-    Hint { key, action }
+    Hint {
+        key,
+        action: Cow::Borrowed(action),
+    }
 }
 
 /// Render hints left-aligned; `badge` (e.g. EDIT) leads; `right` is a
@@ -110,7 +128,7 @@ pub fn render_aligned(
     if centered {
         // measure what fits, then start so the block sits mid-row
         let hint_w = |h: &Hint| {
-            crate::ui::text::width(h.key) as u16 + 1 + crate::ui::text::width(h.action) as u16 + 2
+            crate::ui::text::width(h.key) as u16 + 1 + crate::ui::text::width(&h.action) as u16 + 2
         };
         let mut used = 0u16;
         let mut n = 0usize;
@@ -134,14 +152,14 @@ pub fn render_aligned(
     let mut drawn = 0usize;
     for (i, h) in hints.iter().enumerate() {
         let kw = crate::ui::text::width(h.key) as u16;
-        let w = kw + 1 + crate::ui::text::width(h.action) as u16 + 2;
+        let w = kw + 1 + crate::ui::text::width(&h.action) as u16 + 2;
         // keep two cells for the cut marker when more hints follow
         let reserve = if i + 1 < hints.len() { 2 } else { 0 };
         if x + w + reserve > limit {
             break;
         }
         buf.set_string(x, area.y, h.key, t.key_hint_key());
-        buf.set_string(x + kw + 1, area.y, h.action, t.key_hint_action());
+        buf.set_string(x + kw + 1, area.y, &h.action, t.key_hint_action());
         x += w;
         drawn += 1;
     }
