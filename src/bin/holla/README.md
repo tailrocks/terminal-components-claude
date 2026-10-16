@@ -65,7 +65,7 @@ restart, `p` facts, `u` undo, `y` copy, `c` confirm, `Space` select,
 shows `waiting for input`; `Enter` sends the line, `Ctrl+D` end of input,
 `Ctrl+C` stop, `Esc` returns the keyboard), `/` finds in the output
 (`Enter`/`↓` next, `↑` previous). Files pages: `g` jumps to a path,
-`Ctrl+H` shows hidden entries, `Alt+Enter` lists the file actions, `/`
+`Ctrl+H` shows hidden entries, `Alt+Enter` opens Alternatives… (the file actions), `/`
 finds in the preview. Disk pages: `s` allocated/apparent, `f` folds noise,
 `Space` selects with a parent dominating its descendants, `a` selects the
 visible entries, `d` reviews the deletion, `r` rescans, `x` cancels, `t`

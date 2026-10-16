@@ -1535,7 +1535,7 @@ impl Screen for FinderPage {
             hint("Type", "Search"),
             hint("↑↓", "Move"),
             self.primary_hint(),
-            hint("Alt+Enter", "More"),
+            hint("Alt+Enter", "Alternatives…"),
             hint("Tab", "Preview"),
             hint("Ctrl+↑↓", "Scope"),
         ];

@@ -1766,15 +1766,16 @@ impl Screen for FilesPage {
                     "Hide hidden",
                     "Show hidden",
                 ),
-                hint("Alt+Enter", "Actions"),
+                hint("Alt+Enter", "Alternatives…"),
                 hint("/", "Find"),
                 hint("Esc", "Back"),
             ],
             Mode::Find => vec![
-                hint("Type", "Search"),
+                hint("Type", "Find"),
                 hint("↑↓", "Move"),
-                hint("Enter", "Actions"),
-                hint("Delete", "Clear"),
+                // Enter on a hit opens the same menu as Alt+Enter (HP03,
+                // I-F08), so it carries the same name
+                hint("Enter", "Alternatives…"),
                 hint("Tab", "Preview"),
                 hint(
                     "Esc",
