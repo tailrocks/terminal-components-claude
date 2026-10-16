@@ -154,11 +154,18 @@ pub struct TreeView {
     pub row_click_toggles: bool,
     /// Columns of indentation per depth level. Default 2.
     pub indent: u16,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 impl TreeView {
     pub fn new(id: WidgetId, nodes: Vec<TreeNode>) -> Self {
         let mut tv = Self {
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             id,
             nodes,
             expanded: Default::default(),
@@ -614,7 +621,7 @@ impl TreeView {
     /// The pointer went down on the scrollbar (or a completed click): a
     /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        if scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -630,7 +637,15 @@ impl TreeView {
         }
     }
 
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;

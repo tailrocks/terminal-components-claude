@@ -374,11 +374,18 @@ pub struct ScrollPanel {
     htrack: Rect,
     /// The last scrollbar press landed on the horizontal bar.
     h_held: bool,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+    pub track_click: Option<crate::core::scroll::TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: crate::core::scroll::TrackClick,
 }
 
 impl ScrollPanel {
     pub fn new(id: WidgetId, lines: Vec<String>) -> Self {
         Self {
+            track_click: None,
+            v_click: crate::core::scroll::TrackClick::Jump,
             id,
             lines,
             scroll: ScrollState::default(),
@@ -528,7 +535,7 @@ impl ScrollPanel {
                 Outcome::Consumed
             };
         }
-        let moved = scrollbar::press(self.track(), pos, &mut self.scroll);
+        let moved = scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click);
         self.settle_follow();
         if moved {
             Outcome::Changed
@@ -603,6 +610,13 @@ impl ScrollPanel {
     }
 
     /// Render into `area` (already the inner area of a panel).
+    /// Override the app-wide vertical track-click policy
+    /// (`TrackClick::Page` pages toward the pointer).
+    pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
     pub fn render(
         &mut self,
         area: Rect,
@@ -611,6 +625,7 @@ impl ScrollPanel {
         bg: Color,
         style_line: fn(&Theme, &str) -> Style,
     ) {
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -1042,5 +1057,38 @@ mod title_reveal_tests {
         ctx.flush_overlays(&mut buf);
         drop(ctx);
         assert_eq!(hits.hover_at(Position::new(4, 0)), None);
+    }
+}
+
+#[cfg(test)]
+mod track_click_tests {
+    use super::*;
+    use crate::core::scroll::TrackClick;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::ui::ctx::Interaction;
+
+    fn draw(p: &mut ScrollPanel, click: TrackClick) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 20, 10);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        ctx.track_click = click;
+        p.render(area, &mut buf, &mut ctx, theme.surface, |t, _| t.muted());
+    }
+
+    #[test]
+    fn the_app_default_makes_a_vertical_track_click_page() {
+        let lines: Vec<String> = (0..50).map(|i| format!("line {i}")).collect();
+        let mut p = ScrollPanel::new(WidgetId::of("p"), lines.clone());
+        draw(&mut p, TrackClick::Page);
+        assert_eq!(p.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
+        assert_eq!(p.scroll.offset, 10, "one page, not a jump to the end");
+        // the widget's own setting wins over the app default
+        let mut p = ScrollPanel::new(WidgetId::of("p"), lines).track_click(TrackClick::Jump);
+        draw(&mut p, TrackClick::Page);
+        p.on_scrollbar(Position::new(19, 9));
+        assert_eq!(p.scroll.offset, 40);
     }
 }
