@@ -672,6 +672,26 @@ fn resize_ladder_preserves_inventory_focus_and_hits() {
 }
 
 #[test]
+fn the_history_opt_out_holds_from_the_first_frame() {
+    // HOLLA_NO_HISTORY=1 swapped the store in after the Here page was
+    // built, so the first screen still listed learned use ("Pull git here
+    // used 20 times") until something rebuilt it
+    let app = crate::app::App::launch(
+        Scenario::ParityCargo,
+        Motion::Reduced,
+        0,
+        junie_tui::theme::Theme::junie(),
+        false,
+    );
+    let term = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    let mut h = H { app, term };
+    h.draw();
+    let text = h.text();
+    assert!(text.contains("nothing used here yet"), "{text}");
+    assert!(!text.contains("times on"), "{text}");
+}
+
+#[test]
 fn history_enabled_and_disabled_states_are_deterministic() {
     let mut enabled = H::new(Scenario::ParityHistory, Motion::Reduced, 0, 120, 40);
     enabled.ticks(8);
