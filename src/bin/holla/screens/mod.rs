@@ -16,6 +16,7 @@ pub mod snapshot;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextConfig};
@@ -233,63 +234,20 @@ pub struct StatusBits {
 /// screens small.
 pub trait Screen {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome;
-    fn on_click(&mut self, _id: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_double_click(
-        &mut self,
-        _id: WidgetId,
-        _pos: Position,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_secondary(
-        &mut self,
-        _id: WidgetId,
-        _pos: Position,
-        _w: &mut World,
-        _cx: &mut Cx,
-    ) -> Outcome {
+    /// One pointer event the router resolved for this screen
+    /// ([`junie_tui::core::pointer::PointerRouter`]): a press (with the
+    /// click count it starts), a completed click (its count is
+    /// [`Cx::clicks`]), a drag of the held press, a release away from it,
+    /// a secondary or middle click, or a wheel notch on either axis
+    /// (offered to each owner under the pointer, innermost first, until
+    /// one takes it). Hand it to the owning widget
+    /// ([`junie_tui::core::pointer::MouseTarget::route`]).
+    fn pointer(&mut self, _ev: &PointerEvent, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
     /// The context key ([`Cx::context`]: Shift+F10 and the Menu key by
     /// default) on the focused control: open its menu below the cursor row.
     fn on_context_key(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_press(&mut self, _id: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
-        Outcome::Ignored
-    }
-    /// A press with the click count it starts
-    /// ([`junie_tui::core::pointer::PointerState::press_count`]): a text
-    /// field selects the word on the second press of a double click.
-    /// Defaults to [`Self::on_press`].
-    fn on_press_count(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _count: u8,
-        w: &mut World,
-    ) -> Outcome {
-        self.on_press(id, pos, w)
-    }
-    fn on_drag(&mut self, _pressed: WidgetId, _pos: Position, _w: &mut World) -> Outcome {
-        Outcome::Ignored
-    }
-    fn on_wheel(&mut self, _id: WidgetId, _delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        Outcome::Ignored
-    }
-    /// Horizontal wheel (or Shift+wheel) over `id`: only content with a
-    /// horizontal axis reacts.
-    fn on_wheel_h(
-        &mut self,
-        _id: WidgetId,
-        _delta: i32,
-        _pos: Position,
-        _w: &mut World,
-    ) -> Outcome {
         Outcome::Ignored
     }
     fn on_paste(&mut self, _text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
