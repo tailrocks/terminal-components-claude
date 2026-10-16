@@ -1172,6 +1172,50 @@ fn the_switcher_is_the_only_layer_showing_focus() {
     assert_eq!(cues(&h), (0, 0), "{}", h.text());
 }
 
+/// The colour of the rule under `strip`'s active tab.
+fn active_rule(h: &H, strip: &junie_tui::widgets::tabs::Tabs) -> ratatui::style::Color {
+    let a = strip.areas[strip.active];
+    let cell = &h.term.backend().buffer()[(a.x + 1, a.y + 1)];
+    assert_eq!(cell.symbol(), "━", "{}", h.text());
+    cell.fg
+}
+
+#[test]
+fn the_active_query_tab_shows_the_accent_and_goes_neutral_under_a_modal() {
+    let mut h = H::connected(120, 40);
+    let t = h.app.theme;
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
+    // focus is in the explorer, not on the strip: the selection still shows
+    // the accent while the workbench is the active layer
+    assert_ne!(h.focus(), Some(h.wb().strip.id));
+    assert_eq!(active_rule(&h, &h.wb().strip), t.accent);
+    // a modal covers the page: the rule goes neutral (then dims)
+    h.ctrl('o');
+    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    let under = active_rule(&h, &h.wb().strip);
+    assert_ne!(under, t.accent, "{}", h.text());
+    assert_ne!(under, t.focus);
+    // closed again: back to the accent
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal().is_none());
+    assert_eq!(active_rule(&h, &h.wb().strip), t.accent);
+}
+
+#[test]
+fn a_table_tab_shows_its_chosen_mode_in_the_accent() {
+    let mut h = H::connected(120, 40);
+    let t = h.app.theme;
+    let (x, y) = h.find("customers").unwrap();
+    h.click(x, y);
+    let Some(WorkTab::Table(tab)) = h.wb().active_tab() else {
+        panic!("a table tab: {}", h.text());
+    };
+    // Data / Structure is a segmented choice of the front page, not a
+    // secondary strip: the chosen mode shows the accent like the tab above
+    assert_eq!(active_rule(&h, &tab.mode_tabs), t.accent);
+}
+
 #[test]
 fn cell_edit_footer_says_apply_not_commit() {
     // "Commit" collides with the database commit behind Ctrl+S
