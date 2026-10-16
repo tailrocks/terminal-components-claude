@@ -347,7 +347,7 @@ mod palette {
     pub const RED: Color = rgb(0xe44545);
     pub const RED_20: Color = rgb(0x2e0f0f);
     /// Soft rose: a destructive label at rest on a neutral plane.
-    pub const RED_SOFT: Color = rgb(0xd98a8a);
+    pub const RED_SOFT: Color = rgb(0xe8a0a0);
     /// Deep red: the highlight of a destructive menu row under the cursor.
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
@@ -1022,16 +1022,16 @@ impl Theme {
             } else {
                 self.ladder(body).rest
             };
-            let mut bg = rest;
+            let bg = rest;
             let mut fg = self.disabled;
-            if fg == bg && !glyph {
-                // a grey plane at 16 colours: drop to the canvas
-                bg = self.canvas;
-            }
+            let mut dim = m.disabled;
             if fg == bg {
+                // a grey plane at 16 colours: the disabled grey is the plane
+                // itself, so keep the plane and dim a readable ink instead
                 fg = self.text_muted;
+                dim |= Modifier::DIM;
             }
-            let mut style = Style::new().fg(fg).add_modifier(m.disabled);
+            let mut style = Style::new().fg(fg).add_modifier(dim);
             if glyph {
                 // a glyph keeps the container's plane; dim intensity tells
                 // it from a seam at rest
@@ -1310,6 +1310,32 @@ impl Theme {
         };
         self.interactive(Kind::CursorRow(CursorStyle::Fill), s, Plane::Canvas)
             .style
+    }
+
+    /// A rule or separator that reads on `bg`: the subtle border on the dark
+    /// planes, the strong one on raised, popover and field planes where the
+    /// subtle one disappears.
+    pub fn rule_on(&self, bg: Color) -> Color {
+        let rule = match self.plane_of(bg) {
+            Plane::Raised | Plane::Popover | Plane::Field => self.border_strong,
+            _ => self.border_subtle,
+        };
+        if rule == bg { self.text_muted } else { rule }
+    }
+
+    /// The current search or find match: the accent fill with on-accent ink,
+    /// apart from the selection tint and from the other matches (underlined).
+    /// Reversed video only where colour is gone.
+    pub fn match_current(&self) -> Style {
+        let style = Style::new()
+            .fg(self.text_on_accent)
+            .bg(self.accent)
+            .add_modifier(Modifier::BOLD);
+        if self.level == ColorLevel::Mono {
+            style.add_modifier(Modifier::REVERSED)
+        } else {
+            style
+        }
     }
 
     /// Text selection and a grid range: a cool tint of its own, apart
