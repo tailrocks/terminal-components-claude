@@ -65,3 +65,77 @@ fn dragging_in_an_argument_field_selects_and_a_double_press_drags_by_words() {
     h.mouse(MouseKind::Up, x + 7, y);
     assert_eq!(selected_on_row(&h, y), "alpha beta", "{}", h.text());
 }
+
+/// A background screen whose field reports its blur in the status bar.
+struct BlurReporter;
+
+const REPORTED: junie_tui::core::id::WidgetId = junie_tui::core::id::WidgetId::of("test.reported");
+
+impl crate::screens::Screen for BlurReporter {
+    fn on_key(
+        &mut self,
+        _key: &junie_tui::core::event::Key,
+        _w: &mut crate::sim::world::World,
+        _cx: &mut crate::screens::Cx,
+    ) -> junie_tui::core::event::Outcome {
+        junie_tui::core::event::Outcome::Ignored
+    }
+    fn on_blur(
+        &mut self,
+        ch: junie_tui::core::focus::FocusChange,
+        _w: &mut crate::sim::world::World,
+        cx: &mut crate::screens::Cx,
+    ) -> junie_tui::core::event::Outcome {
+        if ch.from == REPORTED {
+            cx.status("Background field saved");
+            return junie_tui::core::event::Outcome::Changed;
+        }
+        junie_tui::core::event::Outcome::Ignored
+    }
+    fn render(
+        &mut self,
+        _area: ratatui::layout::Rect,
+        _buf: &mut ratatui::buffer::Buffer,
+        _ctx: &mut junie_tui::ui::ctx::RenderCtx,
+        _w: &crate::sim::world::World,
+    ) {
+    }
+    fn hints(
+        &self,
+        _focus: Option<junie_tui::core::id::WidgetId>,
+        _w: &crate::sim::world::World,
+    ) -> Vec<junie_tui::widgets::keyhint::Hint> {
+        vec![]
+    }
+    fn crumb(&self, _w: &crate::sim::world::World) -> String {
+        "Reporter".into()
+    }
+    fn primary_focus(&self) -> Option<junie_tui::core::id::WidgetId> {
+        None
+    }
+}
+
+#[test]
+fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
+    let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
+    assert!(h.app.tabs.len() > 2, "several tabs");
+    let bg = 1;
+    assert_ne!(h.app.active, bg);
+    h.app.tabs[bg].stack.push(Box::new(BlurReporter));
+    // the background field loses focus: its blur hook reports
+    h.app.focus.focus(REPORTED);
+    h.app
+        .focus
+        .focus(junie_tui::core::id::WidgetId::of("test.elsewhere"));
+    h.app.handle(junie_tui::core::event::Input::Tick);
+    h.draw();
+    assert!(
+        !h.text().contains("Background field saved"),
+        "not over another tab's page\n{}",
+        h.text()
+    );
+    // activating the tab delivers it
+    h.alt(KeyCode::Char('1'));
+    assert_eq!(h.app.active, bg);
+    assert!(h.text().contains("Background field saved"), "{}", h.text());
+}
