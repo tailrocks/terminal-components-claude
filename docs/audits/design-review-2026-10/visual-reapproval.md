@@ -1,6 +1,7 @@
 # Visual re-approval against `visual-baseline` (tablepro, holla, jackin)
 
-Status: 2026-10-16. tablepro re-approved; holla and jackin below.
+Status: 2026-10-17. tablepro re-approved (gates). holla classified, not
+yet accepted (resume below). jackin not started.
 
 Until this pass every tablepro, holla and jackin capture was a legacy
 tuisnap approval: skipped unless `VISUAL_FULL=1`, so nothing gated those
@@ -46,6 +47,9 @@ Per app, on the branch HEAD:
 | tablepro `connections/form_advanced` | Shift+Tab out of the untouched New connection Name put `Basic !` on the tab and marked Name required | focus starts the edit (1da20cc01) and Tab or blur commits it (e184db2b0); `TextInput::commit` always validated | `fix(input): an untouched field is not flagged when an edit passes it`: `TextInput::validate_on` (`ValidateOn::Change` default, `EveryCommit` keeps the old rule); submit still validates | `input::passing_through_an_untouched_required_field_marks_no_error`, tablepro `tabbing_past_the_untouched_name_flags_nothing_until_save` |
 | tablepro, every dialog and (after 5d7422edb) every picker | the tab pane under the layer drew its focused title and border: a second focus cue under a modal | the pane read the raw focus ("anything but the explorer or the strip"); a layer that takes focus made it "focused" | `fix(tablepro): the tab pane under a modal or picker shows no focus`: `Interaction::shown_focus` (None under a layer) | tablepro `the_pane_under_a_picker_shows_no_focus` |
 
+| holla, Files results and browser, Disk tree, Cleanup lists, plan steps | the details on the selected row (an accent-tinted fill, `#173f1c`; 256: 22) kept their plane inks: the parent path at 3.45:1 (256: 2.3:1), warning metas at 4.3:1; the baseline row was grey at 4.7:1 | holla draws these rows by hand and never stepped its inks up for the fill, as the library lists do with `Theme::row_ink` | `fix(holla): details on a cursor row stay readable on its fill`: `ui::ctx::legible_on_fill` runs every ink on a row fill through `Theme::legible` | holla `details_on_the_cursor_row_stay_readable_on_its_fill` |
+| holla, every Here page with a Recent section (about 30 roots) | with `HOLLA_NO_HISTORY=1` (pinned by the harness) the first frame listed learned use (`Pull git here used 20 times on mbp`, `everything used here is suggested above`) where the baseline said `nothing used here yet` | `main` swapped in the disabled store after the Here page was built; the finder used to rebuild every tick and hid it, and since it rebuilds only on a view change the stale rows stay | `fix(holla): HOLLA_NO_HISTORY holds from the first frame`: `App::launch` applies the opt-out before the first page | holla `the_history_opt_out_holds_from_the_first_frame` |
+
 Each fix moved approved showcase captures that had the defect in them;
 those were re-approved with the fix, in snapshot-only commits that name
 it (`showcase/flows/selectable/delete_confirm`, the Inspector overlay
@@ -55,6 +59,8 @@ digest in `tests/showcase_baseline.txt`).
 
 | Root | Was | Now |
 |---|---|---|
+| `holla/flows/cleanup/report`, `cleanup/linux_report`, `docker/drift`, `docker/done` | Tab, Enter after the gate-2 phrase and its Enter. A matching typed confirm submits on Enter (3ec122eb2), so the two keys acted on the next screen: the report roots captured Cleanup history (and timed out at 160x50), the Docker roots never reached their state | the stale Tab, Enter dropped; every combo matches its baseline frame apart from attributed changes |
+| `holla/flows/brew/services_stop_failed` | `wait:Bootstrap failed`; at 72x20 the `! ` stderr gutter (299b941d2) wraps it across two rows, so the wait timed out | `wait:exit 1` (the status line), as `docker/remove_failed` |
 | `tablepro/table/filtered`, `tablepro/table/sorted-filtered` | Shift+Tab, Shift+Tab, Enter, Ctrl+L, `pending`, Enter. Since 1da20cc01 focus already selects the value, so Enter applied the prefilled `delivered` and Ctrl+L, outside the field, opened the Safety level picker; the capture showed `status = 'delivered'` and `▲ silent` | Shift+Tab, Shift+Tab, `pending`, Enter (the app test `sort_and_filter_on_table_tab` since 1da20cc01) |
 
 ## tablepro
@@ -101,3 +107,77 @@ same sizes show the list. HEAD draws the list in both, so the form
 pages now look like the baseline's own `form_new`.
 
 Owner confirmation: none needed for tablepro.
+
+## holla (classified, not accepted yet)
+
+3,125 captures (125 roots). Captured on the branch after the two holla
+fixes and the step fixes above; every capture reaches its state. Not
+accepted: the run stopped before the final single-run capture,
+`cargo xtask visual determinism` and `accept`, so holla still runs only
+with `VISUAL_FULL=1`. No capture is left unexplained; all 3,125 are
+pending only on that last step.
+
+Attributed differences (all sizes went through the same residual
+review; counts are roots):
+
+| Roots | Cause |
+|---|---|
+| about 60 | the Here tab's breadcrumb trail above the tab strip (35cffbafe) |
+| 12 | stderr lines lead with a red `!` gutter and wrap one column later (299b941d2) |
+| 8 | plan rows say `required` / `required · sudo` beside the faint marker and the summary drops `N required ·` (299b941d2) |
+| 4 | `✓ trashed`, `2 conflicts` in the status bar, `▲` after a warning-level meter (299b941d2 and the meter levels of the colour roles) |
+| 7 | the typed-confirm field's focus gutter sits inside the dialog margin; dialog bodies scroll with `↓ N more` and the frame meets the page border at small sizes (c394ed8a4, d2d6896b9, e9a9c1941) |
+| 11 | popups and dialogs truly centred instead of the upper third (6612b4443): help, activities, quit, alternatives, menus, Go to path, upgrade confirm, batch picker |
+| 9 | one focus indicator: the baseline drew a second `▎` on the Explore tabs or under menus (1d9055e8b) |
+| every root with a modal or a long list | close plate `─ × ─╮` (9f06503a2, e1325c04f); dotted scrollbar tracks (ef2f81640); horizontal bars under wide viewports (d11ab0792, 6f075829a, b68c2210e) |
+| several | copy: `Facts` to `Details`, `Actions` to `Alternatives` (9f2711d7a, 133434765), `Shift+F10 Menu` in footers (ee613b1a0) |
+| 7 | suggestion order in `concept/first-use`, `concept/monorepo-root`, `concept/activities-multi` and the overlays opened over them (`flows/help/overlay`, `flows/quit/confirm`, `flows/activities/overlay`, `flows/activities/empty`). With the history opt-out applied before the first page (fix above) the ranking no longer reads the fixture's usage history; the baseline ranked with it (the leak was already there, only Recent hid it) |
+
+Checks on the actuals: text is palette-independent (the status bar cuts
+at a palette label of another width, as in the baseline); no `fg == bg`
+text except the popup menu frame at 16 colours and `none`, which the
+baseline has too; no text falls under 4.5:1 from 4.5:1 or more except
+inactive content under a backdrop and two 16-colour tab glyphs.
+
+Recorded, not fixed (pre-existing, or graphics just under 3:1):
+
+- 16 colours and `none`: popup menu frames draw `DarkGray` on the
+  `DarkGray` popover plane, so the frame is invisible (the plane still
+  stands off the black canvas). Same in the baseline.
+- 16 colours: a running tab's spinner `⠋` is LightGreen on the DarkGray
+  selected tab, 2.9:1 (graphics need 3:1); a queued `○` is 3.2:1. The
+  selected-tab fill comes from 5d0c4467b.
+
+Owner confirmation needed (holla):
+
+- Suggestion order under `HOLLA_NO_HISTORY=1` (the seven roots above).
+  The harness pins the opt-out for ambient-learning hygiene, but every
+  capture already runs with an emptied per-scenario `HOME`, so nothing
+  reaches or leaves a real history. Either keep the opt-out (captures
+  rank without learned use, as now) or drop it from
+  `support::PINNED_ENV` so the concept screens rank with their fixture
+  history (Recent then shows it too).
+
+### Resume holla
+
+On the branch HEAD, with no other capture running, from the scratch
+scripts of this pass or by hand:
+
+1. `VISUAL_FULL=1 VISUAL_REVIEW=0 cargo nextest run --run-ignored only -E
+   'binary(visual_baseline) & (<the 125 stored roots>) &
+   test(/::(72x20|80x24|100x30|120x40|160x50)::/)'` (about 15 min; split
+   with `--partition hash:k/4`).
+2. If holla source moved since this pass (S5 holla was landing), re-run
+   the residual review against `visual-baseline` for the moved roots.
+3. `cargo xtask visual determinism` over the same filter, then
+   `cargo xtask visual accept` of it (all 3,125), and commit the
+   snapshots alone as `test(visual): holla re-approval against
+   visual-baseline`.
+
+## jackin (not started)
+
+1,200 stored captures, all still legacy. Before re-approving, check
+jackin's hand-drawn rows (`screens/{accounts,manager,usage,editor,
+settings,inspect,config}.rs` draw details on `Theme::row`) for the
+cursor-row contrast defect fixed in holla; `ui::ctx::legible_on_fill`
+is the fix.
