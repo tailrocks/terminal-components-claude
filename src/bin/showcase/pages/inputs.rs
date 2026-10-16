@@ -15,7 +15,9 @@ use junie_tui::core::edit::{EditEntry, FieldKeys, FocusSelect, TextCmd};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, KeyMap};
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
@@ -454,24 +456,16 @@ impl Page for InputsPage {
                 };
                 self.fields[i].on_paste(text)
             }
-            PageEvent::Press { id, pos } => {
-                let Some(i) = self.fields.iter().position(|f| f.id == *id) else {
-                    return Outcome::Ignored;
-                };
-                self.fields[i].on_press_count(*pos, cx.clicks.max(1))
-            }
-            PageEvent::Drag { pressed, pos } => {
-                match self.fields.iter().position(|f| f.id == *pressed) {
-                    Some(i) => self.fields[i].on_drag(*pos),
-                    None => Outcome::Ignored,
+            PageEvent::Pointer(ev) => {
+                for f in &mut self.fields {
+                    if let Some(r) = f.route(ev) {
+                        if ev.is(Phase::Click) {
+                            cx.focus.focus(f.id);
+                        }
+                        return r.outcome();
+                    }
                 }
-            }
-            PageEvent::Click { id, pos } => {
-                let Some(i) = self.fields.iter().position(|f| f.id == *id) else {
-                    return Outcome::Ignored;
-                };
-                cx.focus.focus(*id);
-                self.fields[i].on_click_count(*pos, cx.clicks.max(1))
+                Outcome::Ignored
             }
             _ => Outcome::Ignored,
         }
