@@ -29,16 +29,16 @@
                                 ▏ danger                        White       State language                                                                      [0m
                                                                                                                                                                 [0m
                                                                             ▎  focus                                                                            [0m
-                                                                            ░  hover lifts the surface                                                          [0m
+                            Roles                                           ░  hover lifts the surface                                                          [0m
                                                                             ›  current / chosen                                                                 [0m
-                                                                            ✓  checked                                                                          [0m
-                                                                            !  error                                                                            [0m
-                                                                            ▁  editing: cursor + underline                                                      [0m
-                                                                            ○  disabled: faint, no hover                                                        [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
+                            Status ✓ ok [0m[1m✗[0m failed ▲ warn • pending           ✓  checked                                                                          [0m
+                                   ⠋ running ○ queued i info – skipped      !  error                                                                            [0m
+                            Env    [0m[1m◆ production[0m ◇ staging                   ▁  editing: cursor + underline                                                      [0m
+                                   · development local                      ○  disabled: faint, no hover                                                        [0m
+                            Tone   normal secondary muted faint active                                                                                          [0m
+                                   info success warning error danger                                                                                            [0m
+                            Code   [0m[1mlet[0m ok = [0m[3mtrue[0m, [0m[3m42[0m, "text"; [0m[3m// note[0m                                                                                           [0m
+                            Link   [0m[4mdocs/colour.md[0m                                                                                                               [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m

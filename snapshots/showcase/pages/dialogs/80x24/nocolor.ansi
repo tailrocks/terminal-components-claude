@@ -8,7 +8,7 @@
   ▸ Tables                                                                      [0m
   ▸ Navigation         Confirm: primary action focused first · y / n answer d…  [0m
   ▾ Overlays           Prompt: editing inside a modal, Enter submits, validat…  [0m
- [0m[1m▎  › Dialogs      [0m    Destructive: Cancel focused first, action in danger st…  [0m
+ [0m[1m▎  › Dialogs      [0m    Destructive: ▲ title status, Cancel focused first, act…  [0m
       Pickers          Task: Migrate sessions table                             [0m
   ▸ Feedback                                                                    [0m
   ▸ Layout                                                                      [0m
