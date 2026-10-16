@@ -5,11 +5,11 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 
 use crate::core::id::WidgetId;
-use crate::theme::Theme;
-use crate::ui::ctx::RenderCtx;
+use crate::theme::{ButtonKind, Kind, Plane, Theme};
+use crate::ui::ctx::{RenderCtx, VisualState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lockup {
@@ -47,11 +47,15 @@ impl Lockup {
         crate::ui::text::width(&self.label()) as u16
     }
 
+    /// A primary control at rest: the brand is an accent fill like a
+    /// primary button, so it walks the same ladder.
     pub fn style(t: &Theme) -> Style {
-        Style::new()
-            .fg(t.text_on_accent)
-            .bg(t.accent)
-            .add_modifier(Modifier::BOLD)
+        Self::state_style(t, VisualState::default())
+    }
+
+    fn state_style(t: &Theme, s: VisualState) -> Style {
+        t.interactive(Kind::Button(ButtonKind::Primary), s, Plane::Canvas)
+            .style
     }
 
     /// Draw at a position; returns the width used.
@@ -61,7 +65,8 @@ impl Lockup {
         crate::ui::text::width(&label) as u16
     }
 
-    /// Draw as a clickable region (hover lifts to `accent_hover`).
+    /// Draw as a clickable region: rest, hover and pressed walk the accent
+    /// ladder.
     pub fn render_clickable(
         &self,
         x: u16,
@@ -72,13 +77,9 @@ impl Lockup {
     ) -> u16 {
         let t = ctx.theme;
         let label = self.label();
-        let mut st = Self::style(t);
-        if ctx.interaction.hovered(id) {
-            st = st.bg(t.accent_hover);
-        }
-        if ctx.interaction.pressed(id) {
-            st = st.bg(t.accent_pressed);
-        }
+        let mut s = ctx.state(id);
+        s.focused = false;
+        let st = Self::state_style(t, s);
         buf.set_string(x, y, &label, st);
         let w = crate::ui::text::width(&label) as u16;
         ctx.clickable(id, Rect::new(x, y, w, 1));
@@ -92,6 +93,7 @@ mod tests {
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
     use crate::ui::ctx::Interaction;
+    use ratatui::style::Modifier;
 
     #[test]
     fn lockup_is_padded_accent_and_bold() {
@@ -128,5 +130,43 @@ mod tests {
         Lockup::new("x").render_clickable(2, 0, &mut buf, &mut ctx, id);
         assert_eq!(buf[(3, 0)].bg, t.accent_hover);
         assert_eq!(hits.hit(ratatui::layout::Position::new(3, 0)), Some(id));
+    }
+
+    #[test]
+    fn clickable_lockup_rest_hover_and_pressed_differ_at_every_level() {
+        use crate::theme::ColorLevel;
+        let id = WidgetId::of("brand");
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let draw = |interaction: Interaction| {
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+                let mut buf = Buffer::empty(Rect::new(0, 0, 10, 1));
+                Lockup::new("mark").render_clickable(0, 0, &mut buf, &mut ctx, id);
+                let c = &buf[(1, 0)];
+                (c.bg, c.modifier)
+            };
+            let rest = draw(Interaction::default());
+            let hover = draw(Interaction {
+                hover: Some(id),
+                ..Default::default()
+            });
+            let pressed = draw(Interaction {
+                hover: Some(id),
+                pressed: Some(id),
+                ..Default::default()
+            });
+            let look = |c: (ratatui::style::Color, Modifier)| {
+                if level == ColorLevel::Mono {
+                    (None, c.1)
+                } else {
+                    (Some(c.0), c.1)
+                }
+            };
+            assert_ne!(look(rest), look(hover), "{level:?}");
+            assert_ne!(look(hover), look(pressed), "{level:?}");
+            assert_ne!(look(rest), look(pressed), "{level:?}");
+        }
     }
 }
