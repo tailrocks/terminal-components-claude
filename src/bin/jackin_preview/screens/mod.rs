@@ -17,6 +17,7 @@ pub mod usage;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::leave::Stakes;
 use junie_tui::widgets::keyhint::Hint;
@@ -207,6 +208,42 @@ impl Cx<'_> {
 /// small; the shell calls only what it needs.
 pub trait Screen {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome;
+    /// One pointer event the router resolved for this screen
+    /// ([`junie_tui::core::pointer::PointerRouter`]): a press (with the
+    /// click count it starts), a completed click (its count is
+    /// [`Cx::clicks`]), a drag of the held press, its end, a release away
+    /// from it, a secondary or middle click, or a wheel notch on either
+    /// axis (offered to each owner under the pointer, innermost first,
+    /// until one takes it). Hand it to the owning widget
+    /// ([`junie_tui::core::pointer::MouseTarget::route`]).
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        use junie_tui::core::hit::Axis;
+        use junie_tui::core::intent::Phase;
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            return match axis {
+                Axis::Vertical => self.on_wheel(id, delta, pos, w),
+                Axis::Horizontal => self.on_wheel_h(id, delta, pos, w),
+            };
+        }
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(id, pos, w, cx),
+            Some(Phase::Drag) => self.on_drag(id, pos, w),
+            Some(Phase::DragEnd | Phase::Release) => self.on_release(id, pos, w, cx),
+            Some(Phase::Click) => {
+                let o = self.on_release(id, pos, w, cx);
+                if ev.count() >= 2 {
+                    let d = self.on_double_click(id, pos, w, cx);
+                    if d.consumed() {
+                        return d;
+                    }
+                }
+                o.or(self.on_click(id, pos, w, cx))
+            }
+            Some(Phase::Secondary) => self.on_secondary(id, pos, w, cx),
+            _ => Outcome::Ignored,
+        }
+    }
     fn on_click(&mut self, _id: WidgetId, _pos: Position, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
