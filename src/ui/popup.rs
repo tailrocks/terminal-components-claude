@@ -25,9 +25,13 @@ pub struct Dismiss {
     /// Esc closes it.
     pub escape: bool,
     /// A click outside it (on the page, or on a dialog's dimmed backdrop)
-    /// closes it. The click is consumed: it does not also activate what is
-    /// underneath, as with desktop menus and popovers.
+    /// closes it.
     pub outside_click: bool,
+    /// The outside click that closes a popup also reaches the control
+    /// beneath it (Windows-style). Off (the default, as with macOS menus
+    /// and popovers): the click only closes. Dialogs are modal and ignore
+    /// it: nothing beneath a dialog is reachable.
+    pub pass_through: bool,
 }
 
 impl Dismiss {
@@ -35,18 +39,29 @@ impl Dismiss {
     pub const LIGHT: Self = Self {
         escape: true,
         outside_click: true,
+        pass_through: false,
     };
     /// Only Esc closes: a stray click cannot throw away a decision in
     /// progress (destructive confirmations, typed acknowledgements).
     pub const ESCAPE: Self = Self {
         escape: true,
         outside_click: false,
+        pass_through: false,
     };
     /// Only an explicit action closes it.
     pub const NEVER: Self = Self {
         escape: false,
         outside_click: false,
+        pass_through: false,
     };
+}
+
+impl Dismiss {
+    /// This policy with the outside click also reaching what is beneath.
+    pub const fn pass_through(mut self, on: bool) -> Self {
+        self.pass_through = on;
+        self
+    }
 }
 
 impl Default for Dismiss {
@@ -67,6 +82,15 @@ pub enum Placement {
     Below,
     /// Centered on the screen (quick switcher).
     Center,
+}
+
+/// Register `owner`'s light-dismiss backdrop over `screen` per `dismiss`.
+/// Call it right after pushing the popup's hit barrier.
+pub fn backdrop(ctx: &mut RenderCtx, owner: WidgetId, dismiss: Dismiss, screen: Rect) {
+    if dismiss.outside_click && !ctx.inert {
+        ctx.hits
+            .register_backdrop(backdrop_id(owner), screen, dismiss.pass_through);
+    }
 }
 
 /// Compute the popup rectangle for a desired size next to `anchor` inside
@@ -145,7 +169,7 @@ pub fn surface_for(
     if let Some((owner, dismiss)) = owner
         && dismiss.outside_click
     {
-        ctx.clickable(backdrop_id(owner), *buf.area());
+        backdrop(ctx, owner, dismiss, *buf.area());
     }
     ctx.hits.register(WidgetId::of("popup.surface"), area);
     area.inner(ratatui::layout::Margin::new(1, 1))

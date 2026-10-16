@@ -1531,6 +1531,106 @@ impl App {
 
     // ------------------------------------------------------------- mouse
 
+    /// A button release at `m.pos` over `hit`.
+    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        let pressed = self.pressed.take();
+        let route = self.route;
+        // drags end here
+        if let Some(p) = pressed
+            && self.modals.is_empty()
+        {
+            let mut cx = Cx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                requests: vec![],
+            };
+            let o = match self.screens.get_mut(route) {
+                Some(s) => s.on_release(p, m.pos, &mut self.world, &mut cx),
+                None => Outcome::Ignored,
+            };
+            let reqs = std::mem::take(&mut cx.requests);
+            let o = o.or(self.apply_requests(reqs, route));
+            if o == Outcome::Changed && hit != Some(p) {
+                return o;
+            }
+        }
+        let Some(id) = hit else {
+            // outside a cancelable modal cancels it
+            if !self.modals.is_empty() && pressed.is_none() {
+                return self.modal_outside_click();
+            }
+            return Outcome::Changed;
+        };
+        if pressed != Some(id) {
+            return Outcome::Changed;
+        }
+        self.flash = Some((id, self.world.now_ms() + 140));
+        let double = self
+            .last_click
+            .take()
+            .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
+        self.last_click = Some((id, self.world.now_ms()));
+        if !self.modals.is_empty() {
+            return self.modal_click(id, m.pos);
+        }
+        if Self::is_host(self.route) && self.host_menu.owns(id) {
+            let (o, ev) = self.host_menu.on_click(id);
+            return match ev {
+                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                    let label = self.host_menu.menus[mi][ii].label.clone();
+                    self.run_host_menu(&label)
+                }
+                Some(MenuBarEvent::Brand) => {
+                    self.open_about();
+                    Outcome::Changed
+                }
+                _ => o.or(Outcome::Changed),
+            };
+        }
+        if Self::is_host(self.route) && self.host_menu.is_open() {
+            self.host_menu.close();
+            return Outcome::Changed;
+        }
+        if id == STRIP_HELP {
+            self.open_help();
+            return Outcome::Changed;
+        }
+        if id == STRIP_USAGE {
+            self.go(Go::Usage { select: None });
+            return Outcome::Changed;
+        }
+        if id == STRIP_ACCOUNTS {
+            self.go(Go::Accounts { select: None });
+            return Outcome::Changed;
+        }
+        if id == STRIP_SETTINGS {
+            self.go(Go::Settings);
+            return Outcome::Changed;
+        }
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: vec![],
+        };
+        let o = match self.screens.get_mut(route) {
+            Some(s) => {
+                if double {
+                    let d = s.on_double_click(id, m.pos, &mut self.world, &mut cx);
+                    if d.consumed() {
+                        d
+                    } else {
+                        s.on_click(id, m.pos, &mut self.world, &mut cx)
+                    }
+                } else {
+                    s.on_click(id, m.pos, &mut self.world, &mut cx)
+                }
+            }
+            None => Outcome::Ignored,
+        };
+        let reqs = std::mem::take(&mut cx.requests);
+        o.or(self.apply_requests(reqs, route)).or(Outcome::Changed)
+    }
+
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
         if matches!(self.route, Route::Intro | Route::Outro | Route::Handoff) {
             return Outcome::Ignored;
@@ -1601,102 +1701,19 @@ impl App {
             }
             MouseKind::Up => {
                 let hit = self.hits.hit(m.pos);
-                let pressed = self.pressed.take();
-                let route = self.route;
-                // drags end here
-                if let Some(p) = pressed
-                    && self.modals.is_empty()
-                {
-                    let mut cx = Cx {
-                        focus: &mut self.focus,
-                        ring: &self.ring,
-                        requests: vec![],
-                    };
-                    let o = match self.screens.get_mut(route) {
-                        Some(s) => s.on_release(p, m.pos, &mut self.world, &mut cx),
-                        None => Outcome::Ignored,
-                    };
-                    let reqs = std::mem::take(&mut cx.requests);
-                    let o = o.or(self.apply_requests(reqs, route));
-                    if o == Outcome::Changed && hit != Some(p) {
-                        return o;
+                // a pass-through backdrop: the click closes the popup and
+                // then lands on what is beneath it, as a click of its own
+                let beneath = hit
+                    .filter(|id| self.pressed == Some(*id))
+                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let out = self.on_release(m, hit);
+                match beneath {
+                    Some(below) => {
+                        self.pressed = Some(below);
+                        out.or(self.on_release(m, Some(below)))
                     }
+                    None => out,
                 }
-                let Some(id) = hit else {
-                    // outside a cancelable modal cancels it
-                    if !self.modals.is_empty() && pressed.is_none() {
-                        return self.modal_outside_click();
-                    }
-                    return Outcome::Changed;
-                };
-                if pressed != Some(id) {
-                    return Outcome::Changed;
-                }
-                self.flash = Some((id, self.world.now_ms() + 140));
-                let double = self
-                    .last_click
-                    .take()
-                    .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
-                self.last_click = Some((id, self.world.now_ms()));
-                if !self.modals.is_empty() {
-                    return self.modal_click(id, m.pos);
-                }
-                if Self::is_host(self.route) && self.host_menu.owns(id) {
-                    let (o, ev) = self.host_menu.on_click(id);
-                    return match ev {
-                        Some(MenuBarEvent::Chosen(mi, ii)) => {
-                            let label = self.host_menu.menus[mi][ii].label.clone();
-                            self.run_host_menu(&label)
-                        }
-                        Some(MenuBarEvent::Brand) => {
-                            self.open_about();
-                            Outcome::Changed
-                        }
-                        _ => o.or(Outcome::Changed),
-                    };
-                }
-                if Self::is_host(self.route) && self.host_menu.is_open() {
-                    self.host_menu.close();
-                    return Outcome::Changed;
-                }
-                if id == STRIP_HELP {
-                    self.open_help();
-                    return Outcome::Changed;
-                }
-                if id == STRIP_USAGE {
-                    self.go(Go::Usage { select: None });
-                    return Outcome::Changed;
-                }
-                if id == STRIP_ACCOUNTS {
-                    self.go(Go::Accounts { select: None });
-                    return Outcome::Changed;
-                }
-                if id == STRIP_SETTINGS {
-                    self.go(Go::Settings);
-                    return Outcome::Changed;
-                }
-                let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
-                    requests: vec![],
-                };
-                let o = match self.screens.get_mut(route) {
-                    Some(s) => {
-                        if double {
-                            let d = s.on_double_click(id, m.pos, &mut self.world, &mut cx);
-                            if d.consumed() {
-                                d
-                            } else {
-                                s.on_click(id, m.pos, &mut self.world, &mut cx)
-                            }
-                        } else {
-                            s.on_click(id, m.pos, &mut self.world, &mut cx)
-                        }
-                    }
-                    None => Outcome::Ignored,
-                };
-                let reqs = std::mem::take(&mut cx.requests);
-                o.or(self.apply_requests(reqs, route)).or(Outcome::Changed)
             }
             MouseKind::Secondary => {
                 let hit = self.hits.hit(m.pos);

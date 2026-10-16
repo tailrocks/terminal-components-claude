@@ -647,6 +647,58 @@ impl App {
         self.open_dialog(d);
     }
 
+    /// A button release at `m.pos` over `hit`.
+    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
+        let pressed = self.pressed.take();
+        let Some(id) = hit else {
+            if let Some(d) = self.dialog.as_mut()
+                && pressed.is_none()
+            {
+                let out = d.on_click_outside();
+                if d.result.is_some() {
+                    return self.close_dialog().or(out);
+                }
+            }
+            return Outcome::Changed;
+        };
+        if pressed != Some(id) {
+            return Outcome::Changed;
+        }
+        if let Some(d) = self.dialog.as_mut() {
+            let out = d.on_click(id, m.pos, &mut self.focus);
+            if d.result.is_some() {
+                return self.close_dialog().or(out);
+            }
+            return out.or(Outcome::Changed);
+        }
+        if id == HEADER_HELP {
+            self.open_help();
+            return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(NAV) {
+            return self.scroll_nav_to(m.pos);
+        }
+        if id == HEADER_INSPECT {
+            self.inspector = !self.inspector;
+            return Outcome::Changed;
+        }
+        if let Some(i) = self.nav_index_at(id) {
+            self.nav_cursor = i;
+            self.goto(NAV_ENTRIES[i].id);
+            self.focus.focus(NAV);
+            return Outcome::Changed;
+        }
+        self.flash(id);
+        // The page owns the click; a control the page did not
+        // refocus is focused here so keyboard and pointer agree.
+        let before = self.focus.current();
+        let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
+        if self.dialog.is_none() && self.focus.current() == before && self.ring.contains(id) {
+            self.focus.focus(id);
+        }
+        out.or(Outcome::Changed)
+    }
+
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
         self.mouse = Some(m.pos);
         match m.kind {
@@ -700,55 +752,19 @@ impl App {
             }
             MouseKind::Up => {
                 let hit = self.hits.hit(m.pos);
-                let pressed = self.pressed.take();
-                let Some(id) = hit else {
-                    if let Some(d) = self.dialog.as_mut()
-                        && pressed.is_none()
-                    {
-                        let out = d.on_click_outside();
-                        if d.result.is_some() {
-                            return self.close_dialog().or(out);
-                        }
+                // a pass-through backdrop: the click closes the popup and
+                // then lands on what is beneath it, as a click of its own
+                let beneath = hit
+                    .filter(|id| self.pressed == Some(*id))
+                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let out = self.on_release(m, hit);
+                match beneath {
+                    Some(below) => {
+                        self.pressed = Some(below);
+                        out.or(self.on_release(m, Some(below)))
                     }
-                    return Outcome::Changed;
-                };
-                if pressed != Some(id) {
-                    return Outcome::Changed;
+                    None => out,
                 }
-                if let Some(d) = self.dialog.as_mut() {
-                    let out = d.on_click(id, m.pos, &mut self.focus);
-                    if d.result.is_some() {
-                        return self.close_dialog().or(out);
-                    }
-                    return out.or(Outcome::Changed);
-                }
-                if id == HEADER_HELP {
-                    self.open_help();
-                    return Outcome::Changed;
-                }
-                if id == scrollbar::id_for(NAV) {
-                    return self.scroll_nav_to(m.pos);
-                }
-                if id == HEADER_INSPECT {
-                    self.inspector = !self.inspector;
-                    return Outcome::Changed;
-                }
-                if let Some(i) = self.nav_index_at(id) {
-                    self.nav_cursor = i;
-                    self.goto(NAV_ENTRIES[i].id);
-                    self.focus.focus(NAV);
-                    return Outcome::Changed;
-                }
-                self.flash(id);
-                // The page owns the click; a control the page did not
-                // refocus is focused here so keyboard and pointer agree.
-                let before = self.focus.current();
-                let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
-                if self.dialog.is_none() && self.focus.current() == before && self.ring.contains(id)
-                {
-                    self.focus.focus(id);
-                }
-                out.or(Outcome::Changed)
             }
             MouseKind::Secondary => {
                 let hit = self.hits.hit(m.pos);
