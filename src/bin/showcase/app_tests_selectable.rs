@@ -303,7 +303,8 @@ fn row_menu_edits_or_deletes_the_row_it_opened_on() {
     assert!(h.has("Delete 1 member?"), "{}", h.text());
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.has("june@northwind.dev"), "the editor loaded June");
-    h.key(KeyCode::Char('y'));
+    // the Delete button's mnemonic (no `y` one-key answer)
+    h.key(KeyCode::Char('d'));
     assert!(!h.has("June Park"), "{}", h.text());
     // Edit on another row moves into the editor with that row loaded
     let (x, y) = h.find("Kai Mensah").unwrap();
