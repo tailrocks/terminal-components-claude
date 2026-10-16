@@ -58,7 +58,7 @@ libtest-mimic = "0.8.2"
 # Oracle manifest `harness_sha256` (tests/visual_baseline/oracle.rs); the
 # same version tuiscotti already pulls in.
 sha2 = "0.11"
-tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274" }
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "3382e57dd03283001d9d1bc4f1186b424c52797c" }
 
 [profile.release]
 lto = "thin"
