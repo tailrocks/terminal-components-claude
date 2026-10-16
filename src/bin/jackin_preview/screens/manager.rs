@@ -11,7 +11,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{ButtonKind, Tone};
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width};
 use junie_tui::widgets::button::{Button, row_layout};
@@ -1155,6 +1155,8 @@ impl ManagerScreen {
             if let Some((g, tone)) = row.trailing {
                 buf.set_string(rect.right().saturating_sub(2), y, g, st.fg(t.tone(tone)));
             }
+            // the cursor row is a fill: its details step up to stay readable
+            legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
             if row.expandable {
                 ctx.clickable(
@@ -1555,6 +1557,7 @@ impl ManagerScreen {
                                 truncate(text, r.width.saturating_sub(3) as usize),
                                 st,
                             );
+                            legible_on_fill(buf, r, t, bg);
                             ctx.clickable(rid, r);
                         }
                         DetailRow::Text(text, tone) => {
@@ -1709,6 +1712,7 @@ impl ManagerScreen {
                 ),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
+            legible_on_fill(buf, r, t, bg);
             ctx.register_part(ROSTER, roster_row(&i.id), r);
             y += 4;
         }

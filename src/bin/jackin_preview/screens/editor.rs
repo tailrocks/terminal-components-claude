@@ -9,7 +9,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::button::{Button, row_layout_right};
@@ -818,6 +818,8 @@ impl EditorScreen {
                     );
                 }
             }
+            // the cursor row is a fill: its details step up to stay readable
+            legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
         if has_sb {
@@ -1096,6 +1098,7 @@ impl EditorScreen {
                             st.fg(status_tone),
                         );
                     }
+                    legible_on_fill(buf, rect, t, bg);
                     ctx.clickable(rid, rect);
                 }
             }
