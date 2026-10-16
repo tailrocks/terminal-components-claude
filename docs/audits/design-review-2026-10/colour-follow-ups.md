@@ -89,16 +89,38 @@ text ladder (muted to secondary). The tests
 - `text_muted`: `#8a8a8a`, matching its 256 pin (245).
 - `active`: a `Tone` (accent as foreground), not a new colour token.
 
-### Deferred (library)
+### Formerly deferred (library), now done
 
-- Stale meters keep the faint run, so a stale 76% hides its level
-  (holla-jackin finding "Session meter at 76%"). Keeping the level hue
-  while stale needs a second cue for staleness (italic value or a
-  `stale` chip); left for the meter follow-up, since the capsule status
-  bar already shows a `stale` chip beside it
-  (`src/bin/jackin_preview/screens/capsule.rs:1843-1845`).
-- `ProgressStatus::Active` bars keep the secondary run: a completion bar
-  is not a quota, and the reviews did not ask for a change.
+- **Done: stale meters keep their level.** A stale meter used to draw a
+  faint run, so a stale 76% hid its level (holla-jackin finding "Session
+  meter at 76%"). Now `MeterTone::Stale` derives the level from the
+  shared thresholds, and `Meter::stale(true)` marks any levelled tone
+  (`Normal`, `Level`, `Fixed`, `Warning`, `Exhausted`) as last-good
+  data. The default `StaleStyle::Dashed` keeps the level hue on the run
+  (info 10.1, warning 9.8, error 6.4:1 on canvas; graphics need 3:1)
+  and the level glyph (`▲`, `!`). It draws the run dashed
+  (`Glyphs::bar_stale`, `╍`, ASCII `~`) and the value muted and italic
+  (muted `#8a8a8a`: 6.1 / 5.5 / 5.1 / 4.8:1 on canvas, surface, card,
+  field; `legible` steps it up where it would fall under 4.5:1, such as
+  the lifted rest of a block meter, where it was 4.4:1). The dashes and
+  the italic are the stale cue without colour, so level (glyph, run
+  length) and staleness (dashes) both read under `NO_COLOR`.
+  `StaleStyle::Faint` keeps the old faint look as an override for
+  owners that would rather not show a level they cannot vouch for.
+  Tests: `stale_meter_keeps_its_level_with_a_cue_that_survives_mono`,
+  `stale_composes_with_tones_and_the_faint_style_is_an_override` in
+  `src/widgets/progress.rs`. The jackin owners can now pass their quota
+  tone with `.stale(true)` instead of `MeterTone::Stale`, so a stale
+  quota warning stays a warning (usage, accounts and capsule meters).
+- **Done: a running progress bar is `Tone::Active`.** A determinate
+  `ProgressStatus::Active` run used the secondary grey; it now takes the
+  accent as live state, the hue of the indeterminate sweep and of the
+  spinner, so a task keeps its colour when its progress becomes known.
+  Done stays the success hue with `✓`: the hues differ at every colour
+  level (truecolor `#48e054` against `#3fb950`, 256 78 against 71, 16
+  LightGreen against Green) and the glyph differs at all of them,
+  including mono. The run is 12.1:1 on canvas (256: 11.6:1). Test:
+  `active_bar_runs_in_the_active_tone_apart_from_done`.
 
 ## Colour follow-ups per app
 
@@ -162,5 +184,5 @@ item uses the library API above; none needs a new token.
 | Running instance `◉` and "running" | `src/bin/jackin_preview/screens/manager.rs:220` (also `1349, 1636, 2839`), meta `1177, 1194` | `Tone::Active` on the glyph and the word |
 | "N running" counts | `src/bin/jackin_preview/app.rs:1046, 2788` | count secondary with an `Active` dot |
 | Run-id chip in warning | `src/bin/jackin_preview/screens/cockpit.rs:971-976` | `Theme::link_style` / info |
-| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | see Deferred (library) |
+| Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | library done (stale keeps the level, dashed run); pass the quota tone with `Meter::stale(true)` to keep a domain warning |
 | Capsule tab suffixes | `src/bin/jackin_preview/screens/capsule.rs:1512-1528` | finished agents use `TabItem::done` (today `○` for Done) |

@@ -1958,6 +1958,9 @@ pub struct Glyphs {
     pub bar_fill: &'static str,
     /// Empty part of a horizontal bar; also a separator rule. `─`.
     pub bar_empty: &'static str,
+    /// Filled part of a meter showing last-good (stale) data: the dashed
+    /// run is the stale cue without colour. `╍`.
+    pub bar_stale: &'static str,
     /// Unsaved changes. `•`.
     pub dirty: &'static str,
     /// A removed row or count. `−`.
@@ -2035,6 +2038,7 @@ impl Glyphs {
         arrow: "→",
         bar_fill: "━",
         bar_empty: "─",
+        bar_stale: "╍",
         dirty: "•",
         removed: "−",
         warning: "▲",
@@ -2097,6 +2101,7 @@ impl Glyphs {
         arrow: ">",
         bar_fill: "=",
         bar_empty: "-",
+        bar_stale: "~",
         dirty: "*",
         removed: "-",
         warning: "!",
