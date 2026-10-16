@@ -833,13 +833,14 @@ impl CodeEditor {
                 if let Some(r) = &sel
                     && r.contains(&off)
                 {
-                    st = st.bg(t.popover);
+                    let sel = t.selection();
+                    st = st.bg(t.selection_bg).add_modifier(sel.add_modifier);
                 }
                 if let Some(f) = &find
                     && let Some(mi) = f.matches.iter().position(|m| m.contains(&off))
                 {
                     st = if mi == f.current {
-                        st.bg(t.popover)
+                        st.patch(t.match_current())
                     } else {
                         st.add_modifier(Modifier::UNDERLINED)
                             .underline_color(t.border_strong)
