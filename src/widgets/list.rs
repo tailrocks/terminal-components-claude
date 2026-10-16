@@ -5,7 +5,7 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, select_all_bindings};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
@@ -114,11 +114,18 @@ pub enum ListAction {
     /// Multi mode: check every enabled row, or uncheck all when all are
     /// checked. Default `a`.
     ToggleAll,
+    /// Multi mode: check every enabled row (Select All). Default Cmd+A
+    /// where the terminal delivers Cmd, and Ctrl+A
+    /// ([`crate::core::keymap::SELECT_ALL`]). A single-selection list
+    /// leaves the key alone.
+    SelectAll,
 }
 
 impl Actions for ListAction {
     fn default_keymap() -> KeyMap<Self> {
-        vec![(KeyBinding::char('a'), ListAction::ToggleAll)]
+        let mut map = vec![(KeyBinding::char('a'), ListAction::ToggleAll)];
+        map.extend(select_all_bindings(ListAction::SelectAll));
+        map
     }
 }
 
@@ -324,10 +331,16 @@ impl ListBox {
         }
         let shift = key.shift();
         if matches!(key.code, KeyCode::Char(_))
-            && (key.ctrl() || key.alt())
+            && key.chord()
             && lookup(&self.keymap, key).is_none()
         {
             // an unassigned modified chord never performs a plain action
+            return Outcome::Ignored;
+        }
+        if self.mode == SelectMode::Single
+            && lookup(&self.keymap, key) == Some(ListAction::SelectAll)
+        {
+            // nothing to select all of: the chord stays the app's
             return Outcome::Ignored;
         }
         if let KeyCode::Char(c) = key.code
@@ -364,6 +377,20 @@ impl ListBox {
                         }
                     }
                     Outcome::Changed
+                }
+                ListAction::SelectAll => {
+                    let mut changed = false;
+                    for (it, c) in self.items.iter().zip(self.checked.iter_mut()) {
+                        if !it.disabled && !*c {
+                            *c = true;
+                            changed = true;
+                        }
+                    }
+                    if changed {
+                        Outcome::Changed
+                    } else {
+                        Outcome::Consumed
+                    }
                 }
             };
         }
@@ -1069,5 +1096,39 @@ mod track_click_tests {
         l.render(area, &mut buf, &mut ctx, theme.surface);
         assert_eq!(l.on_scrollbar(Position::new(19, 9)), Outcome::Changed);
         assert_eq!(l.scroll.offset, 10, "one page, not a jump to the end");
+    }
+}
+
+/// Select All in a multi-selection list; a single-selection list leaves
+/// the chord to the app.
+#[cfg(test)]
+mod select_all_tests {
+    use super::*;
+    use ratatui::crossterm::event::KeyModifiers as M;
+
+    fn items() -> Vec<ListItem> {
+        vec![
+            ListItem::new("a"),
+            ListItem::new("b").disabled(true),
+            ListItem::new("c"),
+        ]
+    }
+
+    #[test]
+    fn multi_selects_every_enabled_row_single_ignores_it() {
+        for mods in [M::SUPER, M::CONTROL] {
+            let key = Key {
+                code: KeyCode::Char('a'),
+                mods,
+            };
+            let mut multi = ListBox::new(WidgetId::of("m"), items(), SelectMode::Multi);
+            assert_eq!(multi.on_key(&key), Outcome::Changed);
+            assert_eq!(multi.checked, vec![true, false, true]);
+            assert_eq!(multi.on_key(&key), Outcome::Consumed, "already all");
+            let mut single =
+                ListBox::new(WidgetId::of("s"), items(), SelectMode::Single).type_ahead(true);
+            assert_eq!(single.on_key(&key), Outcome::Ignored);
+            assert_eq!(single.cursor, 0, "never a type-ahead `a`");
+        }
     }
 }

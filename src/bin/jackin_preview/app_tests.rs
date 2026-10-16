@@ -43,6 +43,17 @@ impl H {
         self.draw();
         o
     }
+    /// Cmd (super) + `c`, as the kitty keyboard protocol delivers it.
+    /// Cmd+A selects all in a field under every `FieldKeys` preset, so a
+    /// test that means "select the field" holds on every client platform.
+    pub fn cmd(&mut self, c: char) -> Outcome {
+        let o = self.app.handle(Input::Key(Key {
+            code: KeyCode::Char(c),
+            mods: KeyModifiers::SUPER,
+        }));
+        self.draw();
+        o
+    }
     pub fn paste(&mut self, text: &str) -> Outcome {
         let o = self.app.handle(Input::Paste(text.to_owned()));
         self.draw();
