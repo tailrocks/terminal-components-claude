@@ -84,7 +84,7 @@ under `snapshots/holla/<sub_group>/`; run one scenario at a time with
 `cargo run --release --bin holla -- --scenario <name>` (the table in
 `src/bin/holla/README.md` says what each scenario shows and which keys to
 press); or regenerate the matrix with `VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`,
-review `target/tuiscotti/` and approve with `cargo xtask visual accept`
+review `target/tuiscotti/` and approve with `tuiscotti accept`
 (see [Visual review tooling](#visual-review-tooling)).
 `holla --help` prints the flags and scenarios.
 
@@ -393,13 +393,13 @@ cargo nextest run                                                  # unit/lib te
 cargo nextest run --run-ignored only -E 'binary(visual_baseline)'  # gate re-approved groups
 cargo nextest run --profile smoke --run-ignored only              # PR tier: 120x40/truecolor + 72x20/nocolor
 VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'test(/^holla::/)'
-cargo xtask visual accept 'test(/^showcase::pages::/)'            # approve after review (local only)
+tuiscotti accept --store snapshots --actual target/tuiscotti/actual showcase/pages  # approve after review (local only)
 ```
 
 Every check writes `target/tuiscotti/actual/<name>.ansi` and `.frame.json`.
 A mismatch also writes actual and expected PNG/HTML (the expected pair is
 rebuilt from the approved `.ansi`) and a diff PNG under `target/tuiscotti/`;
-review those, approve deliberately with `cargo xtask visual accept` (local
+review those, approve deliberately with `tuiscotti accept` (local
 only, never in CI), then re-verify. Commands and tiers:
 [docs/visual-testing/README.md](docs/visual-testing/README.md).
 

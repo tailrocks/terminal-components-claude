@@ -9,7 +9,7 @@ license = "MIT"
 default-run = "showcase"
 
 # `cargo xtask …` (alias in .cargo/config.toml): repository tasks such as
-# `cargo xtask visual accept` (docs/visual-testing/README.md).
+# `cargo xtask visual check-touched` (docs/visual-testing/README.md).
 [workspace]
 members = [".", "xtask"]
 
