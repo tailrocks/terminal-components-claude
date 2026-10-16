@@ -939,6 +939,32 @@ impl ConnectionsScreen {
         Outcome::Ignored
     }
 
+    /// A control lost focus: its field ends the edit (see
+    /// [`junie_tui::core::focus::Focus::take_changes`]).
+    pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
+        use junie_tui::core::focus::forward_blur;
+        let mut out = forward_blur(ch, &mut [&mut self.filter]);
+        if let Some(f) = self.form.as_mut() {
+            out = out.or(forward_blur(
+                ch,
+                &mut [
+                    &mut f.name,
+                    &mut f.engine,
+                    &mut f.host,
+                    &mut f.port,
+                    &mut f.database,
+                    &mut f.user,
+                    &mut f.password,
+                    &mut f.group,
+                    &mut f.ssh_host,
+                    &mut f.ssh_user,
+                    &mut f.startup,
+                ],
+            ));
+        }
+        out
+    }
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if let Some(form) = self.form.as_mut() {
             for inp in [

@@ -1,6 +1,7 @@
 //! TablePro shell: screens (Connections, Workbench), overlays (dialogs,
 //! pickers, filter editor), identity strip, footer hints, routing.
 
+use junie_tui::core::focus::forward_blur;
 use std::time::{Duration, Instant};
 
 use ratatui::Frame;
@@ -243,6 +244,33 @@ impl App {
     // ---------------------------------------------------------------- input
 
     pub fn handle(&mut self, input: Input) -> Outcome {
+        let out = self.handle_input(input);
+        out.or(self.forward_blur())
+    }
+
+    /// Hand every focus change the input caused to the modals and the
+    /// screens, so fields end their edits on the event path.
+    fn forward_blur(&mut self) -> Outcome {
+        let mut out = Outcome::Ignored;
+        for ch in self.focus.take_changes() {
+            for m in self.modals.iter_mut() {
+                out = out.or(match m {
+                    Modal::Dialog(d) => d.on_blur(ch),
+                    Modal::Filter(f) => {
+                        forward_blur(ch, &mut [&mut f.column, &mut f.op, &mut f.value])
+                    }
+                    Modal::Picker(..) => Outcome::Ignored,
+                });
+            }
+            out = out.or(self.connections.on_blur(ch));
+            if let Some(w) = self.workbench.as_mut() {
+                out = out.or(w.on_blur(ch));
+            }
+        }
+        out
+    }
+
+    fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
             Input::Resize(w, h) => {
                 self.size = (w, h);
@@ -2064,6 +2092,7 @@ impl App {
                     return if !self.modals.is_empty() {
                         Outcome::Consumed
                     } else {
+                        self.pointer.dead_space(&mut self.focus);
                         Outcome::Ignored
                     };
                 };
