@@ -41,6 +41,11 @@ pub struct Dismiss {
     /// What a refused outside click shows. Default
     /// [`RefuseFeedback::Flash`].
     pub refuse_feedback: RefuseFeedback,
+    /// Focus leaving it (Tab past a select's open list, a click that
+    /// focuses another control) closes it as cancelled, like a macOS
+    /// transient popover. On for [`Self::LIGHT`]; off for dialogs, which
+    /// trap focus and never lose it to the page.
+    pub focus_out: bool,
 }
 
 /// What a click outside a modal shows when its [`Dismiss`] policy refuses
@@ -63,6 +68,7 @@ impl Dismiss {
         pass_through: false,
         close_button: true,
         refuse_feedback: RefuseFeedback::Flash,
+        focus_out: true,
     };
     /// Only Esc closes: a stray click cannot throw away a decision in
     /// progress (destructive confirmations, typed acknowledgements).
@@ -72,6 +78,7 @@ impl Dismiss {
         pass_through: false,
         close_button: true,
         refuse_feedback: RefuseFeedback::Flash,
+        focus_out: false,
     };
     /// Only an explicit action closes it.
     pub const NEVER: Self = Self {
@@ -80,6 +87,7 @@ impl Dismiss {
         pass_through: false,
         close_button: false,
         refuse_feedback: RefuseFeedback::Flash,
+        focus_out: false,
     };
 }
 
@@ -100,6 +108,24 @@ impl Dismiss {
     pub const fn refuse_feedback(mut self, feedback: RefuseFeedback) -> Self {
         self.refuse_feedback = feedback;
         self
+    }
+
+    /// See [`Self::focus_out`].
+    pub const fn focus_out(mut self, on: bool) -> Self {
+        self.focus_out = on;
+        self
+    }
+
+    /// Whether this policy lets `reason` close the layer. A programmatic
+    /// close (the owner closing it in code) is always allowed.
+    pub const fn allows(self, reason: crate::core::intent::DismissReason) -> bool {
+        use crate::core::intent::DismissReason as R;
+        match reason {
+            R::Esc | R::CloseButton => self.escape,
+            R::OutsideClick => self.outside_click,
+            R::FocusOut => self.focus_out,
+            R::Programmatic => true,
+        }
     }
 
     /// Whether a modal under this policy shows its close button: only when

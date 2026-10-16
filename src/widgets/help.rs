@@ -36,6 +36,16 @@ impl Actions for HelpCmd {
 }
 
 pub struct HelpOverlay {
+    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
+    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
+    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
+    /// every modal takes a custom one the same way
+    /// ([`crate::ui::layer::Overlay::close_button`]).
+    ///
+    /// [`Dismiss`]: crate::ui::popup::Dismiss
+    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
+    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+    pub close_button: crate::widgets::icon_button::IconButton,
     /// Which dismissals close it. Default `Dismiss::LIGHT`.
     pub dismiss: crate::ui::popup::Dismiss,
     pub id: WidgetId,
@@ -65,6 +75,12 @@ pub struct HelpOverlay {
 }
 
 impl HelpOverlay {
+    /// See [`Self::close_button`].
+    pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
+        self.close_button = button;
+        self
+    }
+
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -80,6 +96,7 @@ impl HelpOverlay {
     pub fn new(id: WidgetId, scope: &str, sections: Vec<(&str, Vec<(&str, &str)>)>) -> Self {
         Self {
             dismiss: crate::ui::popup::Dismiss::LIGHT,
+            close_button: crate::widgets::icon_button::IconButton::close(crate::ui::modal::CLOSE),
             id,
             scope: scope.to_owned(),
             sections: sections
@@ -179,7 +196,7 @@ impl HelpOverlay {
             .title(&self.title)
             .meta(Some(&self.scope))
             .placement(Placement::Center)
-            .dismiss(self.dismiss)
+            .overlay(&*self)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;
