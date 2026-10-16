@@ -917,8 +917,11 @@ fn complete_jackin_flow_keyboard_first() {
         "{}",
         h.text()
     );
-    // a second press within the double-click window selects the word
+    // a double click (two clicks on one cell within the window) selects
+    // the word; the drag above ended elsewhere, so it does not chain
     h.app.world.clipboard = None;
+    h.mouse(MouseKind::Down, x + 2, y);
+    h.mouse(MouseKind::Up, x + 2, y);
     h.mouse(MouseKind::Down, x + 2, y);
     h.mouse(MouseKind::Up, x + 2, y);
     assert_eq!(

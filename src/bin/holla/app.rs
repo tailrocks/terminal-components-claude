@@ -8,6 +8,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::{FocusOn, PointerState, Release};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::text::{truncate, truncate_middle, width};
@@ -104,17 +105,14 @@ pub struct App {
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
-    pub hover: Option<WidgetId>,
-    pub pressed: Option<WidgetId>,
-    hover_suppressed: bool,
-    flash: Option<(WidgetId, i64)>,
+    /// Hover, press, flash and click-count state.
+    pub pointer: PointerState,
     pub status: Option<(String, Tone, i64)>,
     pub size: (u16, u16),
     pub quit: bool,
     too_small: bool,
     menu: MenuBar,
     strip: Tabs,
-    last_click: Option<(WidgetId, i64)>,
     menu_item: Option<String>,
     menu_actions: Vec<MenuAction>,
     pending_gate: Option<GateTarget>,
@@ -146,17 +144,13 @@ impl App {
             focus: Focus::default(),
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
-            hover: None,
-            pressed: None,
-            hover_suppressed: false,
-            flash: None,
+            pointer: PointerState::default(),
             status: None,
             size: (0, 0),
             quit: false,
             too_small: false,
             menu: Self::build_menu(),
             strip: Tabs::with_items(TABS, vec![]),
-            last_click: None,
             menu_item: None,
             menu_actions: vec![],
             pending_gate: None,
@@ -228,7 +222,7 @@ impl App {
     }
 
     fn animating(&self) -> bool {
-        self.flash.is_some()
+        self.pointer.has_flash()
             || self.world.discovering()
             || self.world.live_activities() > 0
             || self
@@ -246,18 +240,20 @@ impl App {
         std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
     }
 
+    /// Milliseconds on the pointer clock (the simulated world clock).
+    fn now_ms(&self) -> u64 {
+        self.world.now_ms().max(0) as u64
+    }
+
     fn interaction(&self) -> Interaction {
-        let flash = match self.flash {
-            Some((id, until)) if self.world.now_ms() < until => Some(id),
-            _ => None,
-        };
+        let flash = self.pointer.flashing(self.now_ms());
         Interaction {
             focus: self.focus.current(),
-            hover: self.hover,
-            pressed: self.pressed,
+            hover: self.pointer.hover,
+            pressed: self.pointer.pressed,
             flash,
             focus_hidden: false,
-            hover_suppressed: self.hover_suppressed,
+            hover_suppressed: self.pointer.hover_suppressed,
             tick: (self.world.now_ms() / 80) as u64,
         }
     }
@@ -302,7 +298,7 @@ impl App {
             Input::Tick => self.on_tick(),
             Input::Paste(text) => self.on_paste(&text),
             Input::Key(key) => {
-                self.hover_suppressed = true;
+                self.pointer.suppress_hover();
                 self.on_key(key)
             }
             Input::Mouse(m) => self.on_mouse(m),
@@ -334,10 +330,7 @@ impl App {
         if self.world.cleanup_job.is_some() {
             out = Outcome::Changed;
         }
-        if let Some((_, until)) = self.flash
-            && self.world.now_ms() >= until
-        {
-            self.flash = None;
+        if self.pointer.expire_flash(self.now_ms()) {
             out = Outcome::Changed;
         }
         if let Some((_, _, until)) = &self.status
@@ -630,7 +623,8 @@ impl App {
                 && !typing
                 && let Some(f) = self.focus.current()
             {
-                self.flash = Some((f, self.world.now_ms() + 140));
+                let now = self.now_ms();
+                self.pointer.flash(f, now);
             }
             return out;
         }
@@ -1034,8 +1028,8 @@ impl App {
             saved_focus: self.focus.current(),
         });
         self.focus.set(initial);
-        self.hover = None;
-        self.pressed = None;
+        self.pointer.hover = None;
+        self.pointer.pressed = None;
     }
 
     fn pop_modal(&mut self) -> Option<ModalEntry> {
@@ -1434,28 +1428,24 @@ impl App {
 
     /// A button release at `m.pos` over `hit`.
     fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
-        let pressed = self.pressed.take();
-        let Some(id) = hit else {
-            if !self.modals.is_empty() && pressed.is_none() {
-                return self.modal_outside_click();
+        let id = match self.pointer.release(hit) {
+            Release::Click(id) => id,
+            Release::Outside if !self.modals.is_empty() => return self.modal_outside_click(),
+            _ if hit.is_none() => {
+                if self.menu.is_open() {
+                    self.menu.close();
+                }
+                return Outcome::Changed;
             }
-            if self.menu.is_open() {
-                self.menu.close();
-            }
-            return Outcome::Changed;
+            _ => return Outcome::Changed,
         };
-        if pressed != Some(id) {
-            return Outcome::Changed;
-        }
-        self.flash = Some((id, self.world.now_ms() + 140));
-        let double = self
-            .last_click
-            .take()
-            .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
-        self.last_click = Some((id, self.world.now_ms()));
+        let now = self.now_ms();
+        self.pointer.flash(id, now);
         if !self.modals.is_empty() {
             return self.modal_click(id, m.pos);
         }
+        // multi-clicks count on the page only, by control, cell and time
+        let double = self.pointer.count_click(id, m.pos, now) >= 2;
         if self.menu.owns(id) {
             let (o, ev) = self.menu.on_click(id);
             return match ev {
@@ -1515,21 +1505,11 @@ impl App {
     }
 
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
+        self.pointer.pos = Some(m.pos);
         match m.kind {
-            MouseKind::Move => {
-                let was = self.hover;
-                let suppressed = self.hover_suppressed;
-                self.hover_suppressed = false;
-                self.hover = self.hits.hit(m.pos);
-                if self.hover != was || suppressed {
-                    Outcome::Changed
-                } else {
-                    Outcome::Ignored
-                }
-            }
+            MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
             MouseKind::Drag => {
-                self.hover = self.hits.hit(m.pos);
-                let Some(pressed) = self.pressed else {
+                let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
                     return Outcome::Ignored;
                 };
                 if !self.modals.is_empty() {
@@ -1543,17 +1523,17 @@ impl App {
                 self.with_top(|s, w, _| s.on_drag(pressed, m.pos, w))
             }
             MouseKind::Down => {
-                let hit = self.hits.hit(m.pos);
-                self.pressed = hit;
-                self.hover = hit;
-                let Some(id) = hit else {
+                let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
                     return if self.modals.is_empty() {
                         Outcome::Ignored
                     } else {
                         Outcome::Consumed
                     };
                 };
-                if self.modals.is_empty() && self.ring.contains(id) {
+                if self.modals.is_empty()
+                    && self.pointer.config.focus_on == FocusOn::Press
+                    && self.ring.contains(id)
+                {
                     self.focus.focus(id);
                 }
                 if self.modals.is_empty() {
@@ -1562,24 +1542,20 @@ impl App {
                 Outcome::Changed
             }
             MouseKind::Up => {
-                let hit = self.hits.hit(m.pos);
                 // a pass-through backdrop: the click closes the popup and
                 // then lands on what is beneath it, as a click of its own
-                let beneath = hit
-                    .filter(|id| self.pressed == Some(*id))
-                    .and_then(|id| self.hits.pass_through_target(id, m.pos));
+                let (hit, beneath) = self.pointer.on_up(&self.hits, m.pos);
                 let out = self.on_release(m, hit);
                 match beneath {
                     Some(below) => {
-                        self.pressed = Some(below);
+                        self.pointer.press(below);
                         out.or(self.on_release(m, Some(below)))
                     }
                     None => out,
                 }
             }
             MouseKind::Secondary => {
-                let hit = self.hits.hit(m.pos);
-                self.hover = hit;
+                let hit = self.pointer.on_secondary(&self.hits, m.pos);
                 if !self.modals.is_empty() {
                     return Outcome::Consumed;
                 }
@@ -1592,10 +1568,7 @@ impl App {
             | MouseKind::WheelDown
             | MouseKind::WheelLeft
             | MouseKind::WheelRight => {
-                let delta = match m.kind {
-                    MouseKind::WheelUp | MouseKind::WheelLeft => -3,
-                    _ => 3,
-                };
+                let delta = self.pointer.wheel_delta(m.kind);
                 if let Some(top) = self.modals.last_mut() {
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),
@@ -1606,7 +1579,10 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w))
+                let out = self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w));
+                // rows move under a still pointer: re-resolve hover next frame
+                self.pointer.scrolled(m.pos, out);
+                out
             }
         }
     }
@@ -2966,6 +2942,7 @@ impl App {
             cursor = ctx.cursor;
         }
         self.hits = hits;
+        self.pointer.refresh_hover(&self.hits);
         self.ring = ring;
         if self.modals.is_empty() {
             if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
