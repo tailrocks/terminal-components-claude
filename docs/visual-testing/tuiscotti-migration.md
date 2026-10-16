@@ -61,8 +61,8 @@ requires every non-pending scenario, and rejects files outside the tables.
 
 | Group | Scenarios | Status |
 |---|---|---|
-| `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot); `showcase/pages/chrome` (25) stale since the row context menus landed (2026-10-16), awaiting re-approval by the owner of that change |
-| `showcase/flows/selectable` (new) | 50 | approved on tuiscotti |
+| `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot): `chrome` for the Shift+F10 hint (abdf895c2), then every page for the tree sidebar, breadcrumb and footer hints (e48c7f75c, ea99e01ec, e0bf4a14b, 3ec122eb2, 85cec55af); gate green on 961abe9b4 |
+| `showcase/flows/selectable` (new) | 50 | re-approved with the pilot; gate green on 961abe9b4 |
 | every other stored group | 7,100 | pending re-approval (tuisnap files) |
 | new coverage rows (`.pending()`: 29 element, 7 overlay and 10 resize roots; 92 overlay dismissals) | 3,450 | no approval yet |
 | narrow tier (`40x12`, `60x18`) | 1,056 | no approval yet |
@@ -144,7 +144,15 @@ Approvals go stale fast while the UI is moving: after one rebase (54 new
 commits on the branch) all 450 pilot scenarios differed again, again from
 product changes only, and were re-approved on that HEAD (a later gate run
 matched all 525 pilot and selectable scenarios in 278 s). Whoever changes
-a re-approved surface re-runs the group and approves it with the change.
+a re-approved surface re-runs the group and approves it with the change;
+`cargo xtask visual check-touched` (README, "Gate for UI changes") finds
+the groups a branch touched. With `VISUAL_REVIEW=0` the whole pilot runs
+in about 115 s even when every capture mismatches.
+
+Pitfall: `accept` copies whatever actual exists for a matching scenario,
+including a stale one from an earlier `VISUAL_FULL=1` run of a pending
+row. Narrow the filterset to what you just ran, or clear
+`target/tuiscotti/actual/` first.
 
 | Size | Before (4 files) | After (`.ansi`) |
 |---|---|---|
