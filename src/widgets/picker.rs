@@ -96,6 +96,18 @@ pub struct Picker {
     /// Default [`Place::DEFAULT`](crate::ui::popup::Place): centred like a
     /// dialog, one free cell from every edge.
     pub fit: crate::ui::popup::Place,
+    /// Where the picker opens relative to [`Self::anchor`]. Default
+    /// [`Placement::Center`] (the quick-switcher position, ignoring the
+    /// anchor); an anchored placement turns it into a drop-down under (or
+    /// beside) a control.
+    pub placement: Placement,
+    /// The rectangle an anchored [`Self::placement`] opens next to.
+    /// Default `Rect::ZERO`.
+    pub anchor: Rect,
+    /// The hint row at the bottom of the picker (e.g. "↵ open · esc
+    /// close"). Default empty: no hint row, for owners with a shell-level
+    /// hint bar.
+    pub hints: String,
     /// Optional right-aligned scope label in the query row.
     pub scope: Option<String>,
     pub empty_text: String,
@@ -157,6 +169,9 @@ impl Picker {
             width: 64,
             max_rows: 12,
             fit: crate::ui::popup::Place::DEFAULT,
+            placement: Placement::Center,
+            anchor: Rect::ZERO,
+            hints: String::new(),
             scope: None,
             empty_text: "No matches".into(),
             area: Rect::ZERO,
@@ -209,6 +224,31 @@ impl Picker {
     /// Width in cells before clamping to the screen. Default 64.
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
+        self
+    }
+
+    /// See [`Self::placement`].
+    pub fn placement(mut self, placement: Placement) -> Self {
+        self.placement = placement;
+        self
+    }
+
+    /// Open next to `anchor` per `placement` (see [`Self::anchor`]).
+    pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
+        self.anchor = anchor;
+        self.placement = placement;
+        self
+    }
+
+    /// See [`Self::fit`].
+    pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
+        self.fit = fit;
+        self
+    }
+
+    /// See [`Self::hints`].
+    pub fn hints(mut self, hints: &str) -> Self {
+        self.hints = hints.to_owned();
         self
     }
 
@@ -546,7 +586,20 @@ impl Picker {
         }
     }
 
+    /// Dim `screen` and draw the picker with its [`Self::hints`] row.
+    pub fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let hints = std::mem::take(&mut self.hints);
+        self.paint(screen, buf, ctx, &hints);
+        self.hints = hints;
+    }
+
+    /// Draw with `hints` for this frame only.
+    #[deprecated(note = "set `Picker::hints` and call `Picker::draw`")]
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
+        self.paint(screen, buf, ctx, hints);
+    }
+
+    fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
         let t = ctx.theme;
         // dim + modal like Dialog
         ctx.modal_backdrop(buf, screen);
@@ -558,7 +611,7 @@ impl Picker {
         let query_rows = if self.searchable { 2 } else { 0 };
         let h = (2 + 1 + query_rows + rows + 2).min(screen.height.saturating_sub(2));
         let w = self.width.min(screen.width.saturating_sub(4));
-        let area = place_with(screen, Rect::ZERO, w, h, Placement::Center, self.fit);
+        let area = place_with(screen, self.anchor, w, h, self.placement, self.fit);
         let _ = Constraint::Length(0);
         self.area = area;
         let bg = t.surface_elevated;
@@ -1079,7 +1132,8 @@ mod tests {
         let mut ring = FocusRing::default();
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, 8));
-        p.render(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx, "hints");
+        p.hints = "hints".into();
+        p.draw(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx);
         assert!(
             p.scroll.viewport_len >= 1,
             "a short screen still shows a row"
@@ -1108,7 +1162,7 @@ mod tests {
         let mut ring = FocusRing::default();
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-        p.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx, "");
+        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
         let mut out = String::new();
         for y in 0..24 {
             for x in 0..80 {
@@ -1138,7 +1192,7 @@ mod tests {
         let mut ring = FocusRing::default();
         let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
         let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
-        p.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx, "");
+        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
         let x = out.lines().nth(row).unwrap().find("Item 00").unwrap();
         let x = out.lines().nth(row).unwrap()[..x].chars().count() as u16;
         assert_eq!(buf[(x, row as u16)].style().bg, Some(t.highlight));
@@ -1217,7 +1271,7 @@ mod tests {
             };
             let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
             let mut buf = Buffer::empty(Rect::new(0, 0, 100, 24));
-            p.render(Rect::new(0, 0, 100, 24), &mut buf, &mut ctx, "");
+            p.draw(Rect::new(0, 0, 100, 24), &mut buf, &mut ctx);
             ctx.flush_overlays(&mut buf);
             (0..24)
                 .map(|y| (0..100).map(|x| buf[(x, y)].symbol()).collect::<String>())
@@ -1230,5 +1284,24 @@ mod tests {
         assert!(draw(&mut p, Some(r0)).contains(label));
         let r1 = p.row_id(1);
         assert!(draw(&mut p, Some(r1)).contains(detail));
+    }
+
+    #[test]
+    fn an_anchored_picker_opens_under_its_control_instead_of_centred() {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let screen = Rect::new(0, 0, 100, 30);
+        let mut buf = Buffer::empty(screen);
+        let mut centred = Picker::new(WidgetId::of("p"), "Pick").width(40);
+        centred.draw(screen, &mut buf, &mut ctx);
+        assert_eq!(centred.area.x, 30, "centred by default");
+        let field = Rect::new(6, 4, 20, 1);
+        let mut p = Picker::new(WidgetId::of("p"), "Pick")
+            .width(40)
+            .anchor(field, Placement::Below);
+        p.draw(screen, &mut buf, &mut ctx);
+        assert_eq!((p.area.x, p.area.y), (6, 5), "{:?}", p.area);
     }
 }
