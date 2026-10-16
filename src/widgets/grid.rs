@@ -20,6 +20,7 @@ use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowFn, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::text::TextBuffer;
@@ -1637,13 +1638,8 @@ impl DataGrid {
                 _ => (Outcome::Ignored, None),
             };
         }
-        if let KeyCode::Char(ch) = key.code
-            && self.type_ahead
-            && !ch.is_whitespace()
-            && !key.chord()
-        {
+        if let Some(KeyStep::Type(ch)) = KeyStep::of(key, &self.nav, self.type_ahead) {
             let col = self.type_ahead_column.unwrap_or(c);
-            let prefix = self.typeahead.feed(ch).to_owned();
             let texts: Vec<String> = self
                 .order
                 .iter()
@@ -1654,19 +1650,11 @@ impl DataGrid {
                         .unwrap_or_default()
                 })
                 .collect();
-            let found = crate::core::typeahead::TypeAhead::find(
-                &prefix,
-                texts.iter().map(String::as_str),
-                r.min(texts.len().saturating_sub(1)),
-                |_| true,
-            );
-            return match found {
-                Some(d) => {
-                    self.set_cursor(d, c, false);
-                    (Outcome::Changed, None)
-                }
-                None => (Outcome::Consumed, None),
-            };
+            let moved = Cursor::new(r).type_ahead(ch, &mut self.typeahead, &texts[..]);
+            if let Moved::To(d) = moved {
+                self.set_cursor(d, c, false);
+            }
+            return (moved.outcome(), None);
         }
         if let Some(action) = lookup(&self.keymap, key) {
             return self.on_action(action);
@@ -1675,10 +1663,17 @@ impl DataGrid {
             // `g`/`G` jump to the first/last row; Home/End stay in the row
             // (spreadsheet convention) and Ctrl+Home/End go to the ends
             let letter = matches!(key.code, KeyCode::Char(_));
-            let page = self.scroll.viewport_len.max(1);
+            let rows = RowFn {
+                len: n_rows,
+                enabled: &|_| true,
+                label: &|_| "",
+            };
+            let page = self.scroll.viewport_len;
+            let row = |nav| Cursor::new(r).apply(nav, &rows, page).index().unwrap_or(r);
             match nav {
-                Nav::Up => self.set_cursor(r.saturating_sub(1), c, shift),
-                Nav::Down => self.set_cursor(r + 1, c, shift),
+                Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown => {
+                    self.set_cursor(row(nav), c, shift)
+                }
                 Nav::Left if ctrl => {
                     self.scroll
                         .h
@@ -1691,14 +1686,10 @@ impl DataGrid {
                 }
                 Nav::Left => self.set_cursor(r, c.saturating_sub(1), shift),
                 Nav::Right => self.set_cursor(r, c + 1, shift),
-                Nav::Home if letter => self.set_cursor(0, c, false),
-                Nav::End if letter => self.set_cursor(usize::MAX, c, false),
-                Nav::Home if ctrl => self.set_cursor(0, c, shift),
-                Nav::End if ctrl => self.set_cursor(usize::MAX, c, shift),
+                Nav::Home | Nav::End if letter => self.set_cursor(row(nav), c, false),
+                Nav::Home | Nav::End if ctrl => self.set_cursor(row(nav), c, shift),
                 Nav::Home => self.set_cursor(r, 0, shift),
                 Nav::End => self.set_cursor(r, usize::MAX, shift),
-                Nav::PageUp => self.set_cursor(r.saturating_sub(page), c, shift),
-                Nav::PageDown => self.set_cursor(r + page, c, shift),
             }
             return (Outcome::Changed, None);
         }
@@ -3114,6 +3105,24 @@ impl Scrollable for DataGrid {
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
         Some(c.editor.on_wheel(delta).into())
+    }
+}
+
+/// Display rows (the fetch-more row included); type-ahead reads
+/// [`DataGrid::type_ahead_column`] or the cursor's column.
+impl RowSource for DataGrid {
+    fn len(&self) -> usize {
+        self.content_rows()
+    }
+    fn label(&self, _: usize) -> &str {
+        // cells format on demand; type-ahead builds its own column texts
+        ""
+    }
+}
+
+impl Navigable for DataGrid {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor.0)
     }
 }
 
