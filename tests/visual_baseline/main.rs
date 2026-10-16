@@ -36,6 +36,7 @@ mod determinism;
 mod isolation;
 mod modes;
 mod oracle;
+mod overlay_sites;
 mod scenarios;
 mod support;
 mod tool;
@@ -74,6 +75,11 @@ fn main() {
         check(
             "oracle::store_check_accepts_and_rejects",
             oracle::store_check_accepts_and_rejects,
+        ),
+        check("overlay_sites", overlay_sites::overlay_sites),
+        check(
+            "overlay_sites::site_scanner_reads_functions",
+            overlay_sites::site_scanner_reads_functions,
         ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(
