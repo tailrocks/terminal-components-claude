@@ -119,9 +119,6 @@ pub struct DataTable {
     col_rects: Vec<Rect>,
     /// Numeric sort for these columns.
     pub numeric: Vec<bool>,
-    /// How a cut cell reveals its full text on hover (see
-    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
-    pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,14 +158,7 @@ impl DataTable {
             body: Rect::ZERO,
             col_rects: vec![],
             numeric,
-            reveal: None,
         }
-    }
-
-    /// How cut cells reveal their full text (default: [`RenderCtx::reveal`]).
-    pub fn reveal(mut self, config: crate::ui::reveal::Reveal) -> Self {
-        self.reveal = Some(config);
-        self
     }
 
     pub fn cell_nav(mut self, on: bool) -> Self {
@@ -820,13 +810,6 @@ impl DataTable {
                         Align::Right => crate::ui::text::fit_right(&cell.text, r.width as usize),
                     };
                     buf.set_string(r.x, y, &text, st);
-                    crate::ui::reveal::truncated(
-                        ctx,
-                        self.reveal,
-                        self.cell_id(di, ci),
-                        cell_rect,
-                        &cell.text,
-                    );
                     if cell.error.is_some() && !is_cursor_cell {
                         buf.set_string(
                             r.right().saturating_sub(1),
@@ -1193,42 +1176,5 @@ mod tests {
         let (_, ev) = t.on_key(&tab);
         assert_eq!(ev, Some(TableEvent::LeaveForward));
         assert!(!t.is_editing());
-    }
-
-    #[test]
-    fn hovering_a_cut_cell_reveals_its_full_text() {
-        let long = "a cell value far wider than its column";
-        let mut t = table();
-        t.rows[0][0] = Cell::new(long);
-        let draw = |t: &mut DataTable, hover| {
-            let area = Rect::new(0, 0, 30, 5);
-            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 5));
-            let theme = Theme::junie();
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let mut ctx = RenderCtx::new(
-                &theme,
-                Interaction {
-                    hover,
-                    ..Default::default()
-                },
-                &mut hits,
-                &mut ring,
-            );
-            t.render(area, &mut buf, &mut ctx, theme.surface);
-            ctx.flush_overlays(&mut buf);
-            (0..5)
-                .map(|y| (0..60).map(|x| buf[(x, y)].symbol()).collect::<String>())
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-        assert!(!draw(&mut t, None).contains(long));
-        let cell = t.cell_id(0, 0);
-        assert!(draw(&mut t, Some(cell)).contains(long));
-        let short = t.cell_id(1, 0);
-        assert!(!draw(&mut t, Some(short)).contains(long));
-        let mut off = table().reveal(crate::ui::reveal::Reveal::OFF);
-        off.rows[0][0] = Cell::new(long);
-        assert!(!draw(&mut off, Some(cell)).contains(long));
     }
 }
