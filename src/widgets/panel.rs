@@ -85,7 +85,15 @@ pub struct Panel<'a> {
     /// form is still too long, its first `" · "`-separated fact is shown,
     /// then a cut that never splits a number, then nothing.
     pub meta_short: Option<&'a str>,
+    /// Columns a card keeps blank on each side of its title and content.
+    /// Default [`CARD_PAD`] (2); a narrow pane (a navigation sidebar)
+    /// takes 1 so its rows keep their labels. A framed panel ignores it.
+    pub pad_x: u16,
 }
+
+/// Columns a card keeps blank on each side: the default of
+/// [`Panel::pad_x`].
+pub const CARD_PAD: u16 = 2;
 
 impl<'a> Panel<'a> {
     pub fn card(title: Option<&'a str>) -> Self {
@@ -99,6 +107,7 @@ impl<'a> Panel<'a> {
             focus_mark: PanelFocus::Title,
             title_min: TITLE_MIN,
             meta_short: None,
+            pad_x: CARD_PAD,
         }
     }
     pub fn framed(title: Option<&'a str>) -> Self {
@@ -112,6 +121,7 @@ impl<'a> Panel<'a> {
             focus_mark: PanelFocus::Title,
             title_min: TITLE_MIN,
             meta_short: None,
+            pad_x: CARD_PAD,
         }
     }
     pub fn focused(mut self, f: bool) -> Self {
@@ -131,6 +141,21 @@ impl<'a> Panel<'a> {
         self.meta_short = Some(m);
         self
     }
+    /// Columns a card keeps blank on each side (default [`CARD_PAD`]).
+    pub fn pad_x(mut self, cells: u16) -> Self {
+        self.pad_x = cells;
+        self
+    }
+
+    /// The title row's left edge and width inside `area`.
+    fn title_span(&self, area: Rect) -> (u16, u16) {
+        let pad = match self.kind {
+            PanelKind::Card => self.pad_x,
+            PanelKind::Framed => 2,
+        };
+        (area.x + pad, area.width.saturating_sub(pad * 2))
+    }
+
     /// Cells the title keeps before the meta gives way (default
     /// [`TITLE_MIN`]).
     pub fn title_min(mut self, cells: u16) -> Self {
@@ -168,8 +193,10 @@ impl<'a> Panel<'a> {
             focus_mark: self.focus_mark,
             title_min: self.title_min,
             meta_short: self.meta_short,
+            pad_x: self.pad_x,
         };
-        let row = Rect::new(area.x + 2, area.y, area.width.saturating_sub(4), 1);
+        let (x, w) = self.title_span(area);
+        let row = Rect::new(x, area.y, w, 1);
         fill(buf, row, Style::new().bg(bg));
         late.title_row(row.x, row.y, row.width, buf, t, bg);
     }
@@ -208,7 +235,7 @@ impl<'a> Panel<'a> {
         match self.kind {
             PanelKind::Card => {
                 fill(buf, area, Style::new().bg(bg));
-                let inner = area.inner(ratatui::layout::Margin::new(2, 1));
+                let inner = area.inner(ratatui::layout::Margin::new(self.pad_x, 1));
                 if self.focused && self.title.is_some() && self.focus_mark == PanelFocus::Bar {
                     // opt-in: the container itself is the focus stop
                     let s = crate::ui::ctx::VisualState {
@@ -216,13 +243,14 @@ impl<'a> Panel<'a> {
                         ..Default::default()
                     };
                     buf.set_string(
-                        area.x + 1,
+                        area.x + self.pad_x.saturating_sub(1),
                         area.y,
                         t.gutter_symbol(s),
                         t.gutter(s, bg, false),
                     );
                 }
-                self.title_row(area.x + 2, area.y, area.width.saturating_sub(4), buf, t, bg);
+                let (x, w) = self.title_span(area);
+                self.title_row(x, area.y, w, buf, t, bg);
                 if self.title.is_some() {
                     Rect::new(
                         inner.x,
@@ -1126,5 +1154,41 @@ mod track_click_tests {
         draw(&mut p, TrackClick::Page);
         p.on_scrollbar(Position::new(19, 9));
         assert_eq!(p.scroll.offset, 40);
+    }
+}
+
+#[cfg(test)]
+mod pad_tests {
+    use super::*;
+
+    fn top(buf: &Buffer) -> String {
+        (0..buf.area.width).map(|x| buf[(x, 0)].symbol()).collect()
+    }
+
+    #[test]
+    fn a_card_keeps_its_padding_and_a_narrow_one_can_take_less() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 19, 6);
+        let mut buf = Buffer::empty(area);
+        let inner = Panel::card(Some("Components")).render(area, &mut buf, &theme);
+        assert_eq!(inner, Rect::new(2, 2, 15, 3), "the default card inset");
+        assert_eq!(top(&buf), "  Components       ");
+
+        let mut buf = Buffer::empty(area);
+        let panel = Panel::card(Some("Components")).pad_x(1).meta("25");
+        let inner = panel.render(area, &mut buf, &theme);
+        assert_eq!(inner, Rect::new(1, 2, 17, 3));
+        // the title and its meta keep one blank column at either edge
+        assert_eq!(top(&buf), " Components     25 ");
+        panel.draw_meta(area, &mut buf, &theme, "3/25");
+        assert_eq!(top(&buf), " Components   3/25 ");
+
+        // a framed panel keeps its own geometry
+        let framed =
+            Panel::framed(Some("F"))
+                .pad_x(1)
+                .render(area, &mut Buffer::empty(area), &theme);
+        let plain = Panel::framed(Some("F")).render(area, &mut Buffer::empty(area), &theme);
+        assert_eq!(framed, plain);
     }
 }
