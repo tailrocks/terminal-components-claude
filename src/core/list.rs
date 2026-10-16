@@ -190,7 +190,7 @@ impl Cursor {
         self
     }
 
-    fn usable(&self, src: &dyn RowSource, i: usize) -> bool {
+    fn usable<S: RowSource + ?Sized>(&self, src: &S, i: usize) -> bool {
         !self.skip_disabled || src.enabled(i)
     }
 
@@ -214,7 +214,7 @@ impl Cursor {
     /// | Home End | first / last enabled row | first / last enabled item |
     ///
     /// An empty source ignores every step.
-    pub fn apply(&mut self, nav: Nav, src: &dyn RowSource, page: usize) -> Moved {
+    pub fn apply<S: RowSource + ?Sized>(&mut self, nav: Nav, src: &S, page: usize) -> Moved {
         let n = src.len();
         if n == 0 {
             return Moved::Ignored;
@@ -244,7 +244,7 @@ impl Cursor {
 
     /// Step `delta` rows (±1 for the arrows), passing over disabled rows
     /// and wrapping when [`Self::wrap`] is on.
-    pub fn step(&mut self, delta: isize, src: &dyn RowSource) -> Moved {
+    pub fn step<S: RowSource + ?Sized>(&mut self, delta: isize, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
             return Moved::Ignored;
@@ -266,7 +266,7 @@ impl Cursor {
     }
 
     /// Jump to the first enabled row.
-    pub fn first(&mut self, src: &dyn RowSource) -> Moved {
+    pub fn first<S: RowSource + ?Sized>(&mut self, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
             return Moved::Ignored;
@@ -277,7 +277,7 @@ impl Cursor {
     }
 
     /// Jump to the last enabled row.
-    pub fn last(&mut self, src: &dyn RowSource) -> Moved {
+    pub fn last<S: RowSource + ?Sized>(&mut self, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
             return Moved::Ignored;
@@ -289,7 +289,7 @@ impl Cursor {
 
     /// The usable row nearest `to`, searching away from `from` first (the
     /// direction of travel), then back toward it; `from` when none is.
-    fn nearest(&self, src: &dyn RowSource, to: usize, from: usize) -> usize {
+    fn nearest<S: RowSource + ?Sized>(&self, src: &S, to: usize, from: usize) -> usize {
         let n = src.len();
         if self.usable(src, to) {
             return to;
@@ -313,7 +313,7 @@ impl Cursor {
     /// Place the cursor on row `i` (a click, a context menu, a programmatic
     /// move). Out of range is ignored; the row need not be enabled (a
     /// pointer may point at a disabled row).
-    pub fn select(&mut self, i: usize, src: &dyn RowSource) -> Moved {
+    pub fn select<S: RowSource + ?Sized>(&mut self, i: usize, src: &S) -> Moved {
         if i >= src.len() {
             return Moved::Ignored;
         }
@@ -326,7 +326,12 @@ impl Cursor {
     /// it; a repeated single letter cycles through the rows starting with
     /// it. A miss is [`Moved::Stayed`]: the letter is consumed, never
     /// passed on half-typed (plan §3).
-    pub fn type_ahead(&mut self, c: char, ta: &mut TypeAhead, src: &dyn RowSource) -> Moved {
+    pub fn type_ahead<S: RowSource + ?Sized>(
+        &mut self,
+        c: char,
+        ta: &mut TypeAhead,
+        src: &S,
+    ) -> Moved {
         let n = src.len();
         if n == 0 {
             return Moved::Ignored;
