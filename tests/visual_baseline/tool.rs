@@ -9,6 +9,12 @@
 //!   `missing`.
 //! - `render`: `VISUAL_NAME=<store name>` renders the approved `.ansi` to
 //!   `target/tuiscotti/render/<name>.{png,html}` and prints both paths.
+//! - `capture`: `VISUAL_NAME=<store name>` captures that scenario once,
+//!   without a gate, and prints its `.ansi` (cursor trailer included). It
+//!   runs as `probe/<VISUAL_AS>/<name>` so it never shares a `HOME` with
+//!   the real scenario. Used by the `env_isolation` check.
+//! - `env-probe`: spawns `/bin/sh` through the capture spawn path and prints
+//!   the environment the child sees (`env | sort`).
 
 use crate::scenarios;
 use crate::support;
@@ -24,7 +30,19 @@ pub fn run(tool: &str) -> Result<(), String> {
                 .map_err(|_| "set VISUAL_NAME=<scenario name>".to_string())?;
             render(&name)
         }
-        other => Err(format!("unknown VISUAL_TOOL `{other}` (list, render)")),
+        "capture" => {
+            let name = std::env::var("VISUAL_NAME")
+                .map_err(|_| "set VISUAL_NAME=<scenario name>".to_string())?;
+            let tag = std::env::var("VISUAL_AS").unwrap_or_else(|_| "capture".into());
+            capture(&name, &tag)
+        }
+        "env-probe" => {
+            env_probe();
+            Ok(())
+        }
+        other => Err(format!(
+            "unknown VISUAL_TOOL `{other}` (list, render, capture, env-probe)"
+        )),
     }
 }
 
@@ -63,5 +81,36 @@ fn render(name: &str) -> Result<(), String> {
     let (png, html) = support::render_approved(&name)?;
     println!("{}", png.display());
     println!("{}", html.display());
+    Ok(())
+}
+
+/// Marker the probe shell prints after the environment.
+pub const ENV_PROBE_END: &str = "END-OF-ENV";
+
+fn env_probe() {
+    let case = support::Case::new(
+        "probe/env/200x50/nocolor",
+        "/bin/sh",
+        &["-c", "env | sort; echo END-OF-ENV; sleep 30"],
+        200,
+        50,
+        support::Color::NoColorEnv,
+        ENV_PROBE_END,
+    );
+    let mut session = support::spawn_boot(&case);
+    let frame = session
+        .wait_stable(std::time::Duration::from_millis(100))
+        .unwrap_or_else(|e| panic!("env probe never settled: {e}"));
+    print!("{}", frame.text());
+}
+
+fn capture(name: &str, tag: &str) -> Result<(), String> {
+    let name = name.replace("::", "/");
+    let scenario = scenarios::all()
+        .into_iter()
+        .find(|s| s.name == name)
+        .ok_or_else(|| format!("`{name}` is not a scenario (cargo xtask visual list)"))?;
+    let frame = scenario.capture(&format!("probe/{tag}/{name}"))?;
+    print!("{}", crate::ansi_cursor::encode(&frame));
     Ok(())
 }

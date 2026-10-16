@@ -10,7 +10,7 @@ is done by subagents (AGENTS.md, Way of working).
 |---|---|
 | T0, T1 | done: tuiscotti `a47c9aa`, `.ansi` + cursor trailer gate, review PNG/HTML on mismatch |
 | T2 | done: `harness = false` (libtest-mimic), one test per scenario, 12,131 named tests; gated run 277 s → 135 s |
-| T3 | partial: `VISUAL_BIN_DIR` binary resolution and `env_clear` pinning; per-scenario `HOME` and the env-leak test remain |
+| T3 | done: `VISUAL_BIN_DIR` binary resolution, `env_clear` pinning (`support::PINNED_ENV`; `SHELL` too, which the PTY layer filled in from the account), per-scenario `HOME` = cwd, and the `isolation::env_isolation` check in the default run |
 | T4 | partial: `cargo xtask visual {list, accept, render, import}`, `accept`/`import` refuse under `CI`; `ratchet` and `sync-oracle` remain (needed for T20/T21) |
 | T5 | open: the store is still `snapshots/`; `ORACLE.toml` and `baselines/oracle/` not started |
 | T6 | partial: tablepro `--motion full\|reduced\|paused` and `--frame N`; rendered-time audit and `JUNIE_NOW` remain |
@@ -117,7 +117,8 @@ so the first re-capture is reviewable as a diff against old frames.
 | `--color` | `truecolor\|256\|16\|none`; level `nocolor` = no flag + `NO_COLOR=1` | Both paths are policies under test. |
 | `LANG`, `LC_ALL` | `C.UTF-8` | Width and locale. |
 | `TZ` | `UTC` | Any rendered time. |
-| `HOME`, cwd | `target/tuiscotti/home/<scenario-hash>` (created empty), cwd = repo root | No history or config leaks. |
+| `HOME`, cwd | both `target/tuiscotti/home/<scenario name>`, emptied before each spawn | No history or config leaks; nothing an earlier run left reaches the app. |
+| `SHELL` | `/bin/sh` | The PTY layer sets it from the user account even after `env_clear`. |
 | App noise | `HOLLA_NO_HISTORY=1`; never set `HOLLA_NO_MOTION`, `JACKIN_NO_MOTION`, `CLICOLOR_FORCE`, `FORCE_COLOR` | Same policy as today. |
 | Motion | `--motion paused --frame N` wherever the binary has motion | Deterministic frames. |
 | **New: tablepro** | add `--motion full\|reduced\|paused` and `--frame N` | tablepro has no determinism flags today (T6). |
