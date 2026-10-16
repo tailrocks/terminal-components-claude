@@ -8,6 +8,7 @@ use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::{ButtonKind, Kind};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
@@ -69,6 +70,35 @@ pub struct ChipBar {
     /// Chips that do not fit are counted in a muted `+N` marker after the
     /// last one shown. Default true; off, the run just ends.
     pub overflow_marker: bool,
+    /// Which keys move between chips (default [`NavKeys::DEFAULT`]: ←/→,
+    /// `h`/`l`, Home/End, `g`/`G`).
+    pub nav: NavKeys,
+    /// The bar's action keys (default [`ChipAction::default_keymap`]).
+    pub keymap: KeyMap<ChipAction>,
+}
+
+/// A [`ChipBar`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChipAction {
+    /// Remove the cursor chip (when removable). Default Delete, Backspace
+    /// and `x`.
+    Remove,
+    /// Ask to add a chip. Default `+`.
+    Add,
+    /// Ask to clear every chip. Default `X`.
+    ClearAll,
+}
+
+impl Actions for ChipAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::key(KeyCode::Delete), ChipAction::Remove),
+            (KeyBinding::key(KeyCode::Backspace), ChipAction::Remove),
+            (KeyBinding::char('x'), ChipAction::Remove),
+            (KeyBinding::char('+'), ChipAction::Add),
+            (KeyBinding::char('X'), ChipAction::ClearAll),
+        ]
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,7 +121,21 @@ impl ChipBar {
             lead: None,
             area: Rect::ZERO,
             overflow_marker: true,
+            nav: NavKeys::DEFAULT,
+            keymap: ChipAction::default_keymap(),
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<ChipAction>) -> Self {
+        self.keymap = keymap;
+        self
     }
 
     /// Show (default) or hide the `+N` count of chips that do not fit.
@@ -124,19 +168,33 @@ impl ChipBar {
             return (Outcome::Ignored, None);
         }
         self.cursor = self.cursor.min(n - 1);
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        let action = lookup(&self.keymap, key);
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) && action.is_none() {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
+        match action {
+            Some(ChipAction::Remove)
+                if self.cursor < self.chips.len() && self.chips[self.cursor].removable =>
+            {
+                return (Outcome::Changed, Some(ChipEvent::Remove(self.cursor)));
+            }
+            Some(ChipAction::Add) => return (Outcome::Changed, Some(ChipEvent::Add)),
+            Some(ChipAction::ClearAll) => return (Outcome::Changed, Some(ChipEvent::ClearAll)),
+            _ => {}
+        }
+        let to = match self.nav.action(key).filter(|_| key.plain()) {
+            Some(Nav::Left) => Some(self.cursor.saturating_sub(1)),
+            Some(Nav::Right) => Some((self.cursor + 1).min(n - 1)),
+            Some(Nav::Home) => Some(0),
+            Some(Nav::End) => Some(n - 1),
+            _ => None,
+        };
+        if let Some(to) = to {
+            self.cursor = to;
+            return (Outcome::Changed, None);
+        }
         match key.code {
-            KeyCode::Left | KeyCode::Char('h') if key.plain() => {
-                self.cursor = self.cursor.saturating_sub(1);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Right | KeyCode::Char('l') if key.plain() => {
-                self.cursor = (self.cursor + 1).min(n - 1);
-                (Outcome::Changed, None)
-            }
             KeyCode::Enter => {
                 if self.cursor < self.chips.len() {
                     (Outcome::Changed, Some(ChipEvent::Activate(self.cursor)))
@@ -147,13 +205,6 @@ impl ChipBar {
             KeyCode::Char(' ') if self.cursor < self.chips.len() => {
                 (Outcome::Changed, Some(ChipEvent::Toggle(self.cursor)))
             }
-            KeyCode::Delete | KeyCode::Backspace | KeyCode::Char('x')
-                if self.cursor < self.chips.len() && self.chips[self.cursor].removable =>
-            {
-                (Outcome::Changed, Some(ChipEvent::Remove(self.cursor)))
-            }
-            KeyCode::Char('+') => (Outcome::Changed, Some(ChipEvent::Add)),
-            KeyCode::Char('X') => (Outcome::Changed, Some(ChipEvent::ClearAll)),
             _ => (Outcome::Ignored, None),
         }
     }

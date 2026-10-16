@@ -759,4 +759,162 @@ mod widget_tests {
             Some(KeyBinding::char('y'))
         );
     }
+
+    #[test]
+    fn tabs_nav_and_keymap() {
+        use crate::widgets::tabs::{TabAction, TabEvent, TabItem, Tabs};
+        let items = || {
+            (0..3)
+                .map(|i| TabItem::new(&format!("t{i}")).closable())
+                .collect()
+        };
+        let mut t = Tabs::with_items(WidgetId::of("t"), items());
+        assert_eq!(
+            t.on_key(&c('G')).1,
+            Some(TabEvent::Activated(2)),
+            "G is End"
+        );
+        let mut t = Tabs::with_items(WidgetId::of("t"), items()).nav(NavKeys::NO_VIM);
+        assert_eq!(t.on_key(&c('l')).0, Outcome::Ignored);
+        assert_eq!(t.on_key(&k(KeyCode::Right)).1, Some(TabEvent::Activated(1)));
+
+        let mut t = Tabs::with_items(WidgetId::of("t"), items());
+        assert_eq!(t.on_key(&c('x')).1, Some(TabEvent::Close(0)));
+        assert_eq!(t.on_key(&c('3')).1, Some(TabEvent::Activated(2)));
+        let mut t = Tabs::with_items(WidgetId::of("t"), items())
+            .keymap(vec![(KeyBinding::ctrl('w'), TabAction::Close)]);
+        assert_eq!(
+            t.on_key(&c('x')).0,
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert_eq!(t.on_key(&c('3')).0, Outcome::Ignored, "digits too");
+        let ctrl_w = Key {
+            code: KeyCode::Char('w'),
+            mods: KeyModifiers::CONTROL,
+        };
+        assert_eq!(t.on_key(&ctrl_w).1, Some(TabEvent::Close(0)));
+    }
+
+    #[test]
+    fn chips_nav_and_keymap() {
+        use crate::widgets::chips::{Chip, ChipAction, ChipBar, ChipEvent};
+        let bar = || {
+            let mut b = ChipBar::new(WidgetId::of("c"));
+            b.chips = vec![Chip::new("a"), Chip::new("b")];
+            b
+        };
+        let mut b = bar();
+        b.on_key(&c('l'));
+        assert_eq!(b.cursor, 1);
+        let mut b = bar().nav(NavKeys::NO_VIM);
+        assert_eq!(b.on_key(&c('l')).0, Outcome::Ignored);
+        b.on_key(&k(KeyCode::End));
+        assert_eq!(b.cursor, 2, "End reaches the add button");
+
+        let mut b = bar();
+        assert_eq!(b.on_key(&c('x')).1, Some(ChipEvent::Remove(0)));
+        let mut b = bar().keymap(vec![(KeyBinding::char('d'), ChipAction::Remove)]);
+        assert_eq!(
+            b.on_key(&c('x')).0,
+            Outcome::Ignored,
+            "the default is unbound"
+        );
+        assert_eq!(b.on_key(&c('+')).0, Outcome::Ignored, "so is add");
+        assert_eq!(b.on_key(&c('d')).1, Some(ChipEvent::Remove(0)));
+    }
+
+    #[test]
+    fn dialog_nav_and_keymap() {
+        use crate::core::focus::{Focus, FocusRing};
+        use crate::widgets::dialog::{Dialog, DialogAction, DialogResult};
+        let ring = FocusRing::default();
+        let dialog = || Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit");
+        let mut focus = Focus::default();
+        let mut d = dialog();
+        focus.focus(d.actions[0].id);
+        d.on_key(&c('l'), &mut focus, &ring);
+        assert_eq!(
+            focus.current(),
+            Some(d.actions[1].id),
+            "l moves between actions"
+        );
+        let mut d = dialog().nav(NavKeys::NO_VIM);
+        focus.focus(d.actions[0].id);
+        d.on_key(&c('l'), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(d.actions[0].id));
+        d.on_key(&k(KeyCode::Right), &mut focus, &ring);
+        assert_eq!(focus.current(), Some(d.actions[1].id));
+
+        let mut d = dialog().keymap(vec![(KeyBinding::char('q'), DialogAction::Confirm)]);
+        let mut focus = Focus::default();
+        d.on_key(&c('y'), &mut focus, &ring);
+        assert_eq!(d.result, None, "the default is unbound");
+        d.on_key(&c('n'), &mut focus, &ring);
+        assert_eq!(d.result, None, "so is the cancel letter");
+        d.on_key(&c('q'), &mut focus, &ring);
+        assert!(matches!(d.result, Some(DialogResult::Action(1))));
+    }
+
+    #[test]
+    fn picker_and_completion_nav() {
+        use crate::widgets::completion::{Completion, CompletionItem};
+        use crate::widgets::picker::{Picker, PickerItem};
+        let items = || {
+            (0..5)
+                .map(|i| PickerItem::new(format!("p{i}")))
+                .collect::<Vec<_>>()
+        };
+        let mut p = Picker::new(WidgetId::of("p"), "P");
+        p.set_items(items());
+        p.on_key(&c('j'));
+        assert_eq!(p.cursor, 0, "a searchable picker types its letters");
+        assert_eq!(p.query, "j");
+        p.on_key(&k(KeyCode::Down));
+        assert_eq!(p.cursor, 1);
+        let mut p = Picker::new(WidgetId::of("p"), "P");
+        p.searchable = false;
+        p.set_items(items());
+        p.on_key(&c('G'));
+        assert_eq!(p.cursor, 4, "a plain list takes the whole table");
+        let mut p = Picker::new(WidgetId::of("p"), "P").nav(NavKeys::NO_VIM);
+        p.searchable = false;
+        p.set_items(items());
+        p.on_key(&c('j'));
+        assert_eq!(p.cursor, 0);
+
+        let item = |l: &str| CompletionItem {
+            label: l.to_owned(),
+            glyph: "T".into(),
+            detail: String::new(),
+            insert: l.to_owned(),
+            matched: vec![],
+        };
+        let mut comp = Completion::new(WidgetId::of("c"));
+        comp.open(
+            vec![item("a"), item("b"), item("c")],
+            ratatui::layout::Rect::new(0, 0, 1, 1),
+            0,
+        );
+        assert_eq!(
+            comp.on_key(&c('j')).0,
+            Outcome::Ignored,
+            "letters reach the editor"
+        );
+        assert_eq!(
+            comp.on_key(&k(KeyCode::End)).0,
+            Outcome::Ignored,
+            "so does End"
+        );
+        comp.on_key(&k(KeyCode::Down));
+        assert_eq!(comp.cursor, 1);
+        let mut comp = Completion::new(WidgetId::of("c")).nav(NavKeys::DEFAULT);
+        comp.open(
+            vec![item("a"), item("b"), item("c")],
+            ratatui::layout::Rect::new(0, 0, 1, 1),
+            0,
+        );
+        comp.on_key(&k(KeyCode::End));
+        assert_eq!(comp.cursor, 2, "an app can hand it Home/End");
+    }
 }
