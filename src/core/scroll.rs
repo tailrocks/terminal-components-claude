@@ -13,7 +13,7 @@ use crate::core::hit::{Axis, Bar};
 use crate::core::id::WidgetId;
 use crate::core::response::Response;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
     pub offset: usize,
     pub content_len: usize,
@@ -30,6 +30,18 @@ pub struct ScrollState {
     /// The cursor and viewport length of the last [`follow`](Self::follow),
     /// so `OnMove` can tell a cursor move from a repaint.
     pub(crate) followed: Option<(usize, usize)>,
+    /// Rows kept visible beyond a row brought into view
+    /// ([`Self::ensure_visible`]), so the focused row need not sit on the
+    /// edge of a view that hides more (standards-visual SVg9). Default 0:
+    /// the row itself is always brought fully into view (WCAG 2.4.11);
+    /// views of no more than twice the context keep none.
+    pub context: usize,
+}
+
+impl Default for ScrollState {
+    fn default() -> Self {
+        Self::new(0)
+    }
 }
 
 impl ScrollState {
@@ -42,7 +54,14 @@ impl ScrollState {
             paging: false,
             follow_cursor: FollowCursor::OnMove,
             followed: None,
+            context: 0,
         }
+    }
+
+    /// Builder for [`context`](Self::context).
+    pub fn with_context(mut self, rows: usize) -> Self {
+        self.context = rows;
+        self
     }
 
     /// Builder for [`follow_cursor`](Self::follow_cursor).
@@ -118,10 +137,16 @@ impl ScrollState {
             return false;
         }
         let before = self.offset;
-        if index < self.offset {
-            self.offset = index;
-        } else if index >= self.offset + self.viewport_len {
-            self.offset = index + 1 - self.viewport_len;
+        // context rows only where the view can spare them
+        let ctx = if self.viewport_len > 2 * self.context {
+            self.context
+        } else {
+            0
+        };
+        if index < self.offset + ctx {
+            self.offset = index.saturating_sub(ctx);
+        } else if index + ctx >= self.offset + self.viewport_len {
+            self.offset = index + ctx + 1 - self.viewport_len;
         }
         self.clamp();
         self.offset != before
@@ -1068,6 +1093,28 @@ mod tests {
         assert_eq!(s.offset, 10);
         s.jump_end();
         assert_eq!(s.offset, s.max_offset());
+    }
+
+    #[test]
+    fn context_rows_stay_visible_around_a_row_brought_into_view() {
+        let mut s = ScrollState::new(50).with_context(1);
+        s.set_viewport(10);
+        assert!(!s.ensure_visible(8), "inside the view, clear of the edge");
+        assert!(s.ensure_visible(9), "the last visible row scrolls one on");
+        assert_eq!(s.offset, 1, "row 10 shows below row 9");
+        assert!(s.ensure_visible(25));
+        assert_eq!(s.offset, 17);
+        assert!(s.ensure_visible(17));
+        assert_eq!(s.offset, 16, "one row above stays in view");
+        assert!(s.ensure_visible(0));
+        assert_eq!(s.offset, 0, "the edges of the content clamp");
+        s.ensure_visible(49);
+        assert!(s.at_end());
+        // a view too short to spare the context keeps the row only
+        let mut short = ScrollState::new(50).with_context(1);
+        short.set_viewport(2);
+        short.ensure_visible(5);
+        assert_eq!(short.offset, 4);
     }
 
     #[test]
