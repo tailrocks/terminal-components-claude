@@ -1162,6 +1162,24 @@ impl Screen for ArgsPage {
         Outcome::Ignored
     }
 
+    fn on_blur(
+        &mut self,
+        ch: junie_tui::core::focus::FocusChange,
+        _w: &mut World,
+        _cx: &mut Cx,
+    ) -> Outcome {
+        let Some(i) = (0..self.fields.len()).find(|&i| ARG.child(i) == ch.from) else {
+            return Outcome::Ignored;
+        };
+        match &mut self.fields[i] {
+            Field::Text(t) => match t.on_blur() {
+                Some(_) => Outcome::Changed,
+                None => Outcome::Ignored,
+            },
+            Field::Choice(c) => c.on_blur(),
+        }
+    }
+
     fn on_paste(&mut self, text: &str, _w: &mut World, cx: &mut Cx) -> Outcome {
         // the paste is typing for the focused field: it starts editing the
         // way a key would; a button or choice takes no paste

@@ -284,6 +284,17 @@ pub trait Screen {
     fn on_paste(&mut self, _text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
+    /// A control lost focus (or a click on dead space ended its edit):
+    /// the screen that owns `ch.from` ends the edit through the control's
+    /// `on_blur`.
+    fn on_blur(
+        &mut self,
+        _ch: junie_tui::core::focus::FocusChange,
+        _w: &mut World,
+        _cx: &mut Cx,
+    ) -> Outcome {
+        Outcome::Ignored
+    }
     fn on_tick(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
