@@ -191,6 +191,7 @@ fn config(k: &[usize; 10]) -> EditorConfig {
         flag_out_of_set: flag == 1,
         tag_separator: [", ", " · "][sep],
         placement: [Placement::Below, Placement::Above][place],
+        ..EditorConfig::default()
     }
 }
 

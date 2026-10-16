@@ -285,7 +285,7 @@ static EDITABLE: &[Opt] = &[
     ),
     Opt::new("editable.overflow_marks", "Overflow marks", OFF_ON).default(1),
     Opt::new("editable.numeric", "Numeric ID and Changes", OFF_ON).default(1),
-    Opt::new("editable.nav", "Vim keys", &["on", "off"]),
+    Opt::new("editable.nav", "Vim keys", OFF_ON),
     Opt::new("editable.keymap", "Key map", &["default", "custom"]),
     Opt::new("editable.horizontal", "Horizontal bar", &["auto", "never"]),
     Opt::new("editable.reveal", "Reveal cut cells", OFF_ON).default(1),
@@ -339,7 +339,7 @@ static DATA_GRID: &[Opt] = &[
         "Duplicate row keys",
         &["ctrl-d", "shift-d"],
     ),
-    Opt::new("datagrid.nav", "Vim keys", &["on", "off"]),
+    Opt::new("datagrid.nav", "Vim keys", OFF_ON),
     Opt::new("datagrid.width_sample_rows", "Width sample", &["200", "8"]),
     Opt::new("datagrid.seams", "Column seams", &["on", "off", "wide"]),
     Opt::new(

@@ -296,7 +296,7 @@ fn build(k: &Knobs) -> DataGrid {
             affordance: [Affordance::Focused, Affordance::Always, Affordance::Never][k.affordance],
             ..EditorConfig::default()
         })
-        .nav([NavKeys::DEFAULT, NavKeys::NO_VIM][k.nav])
+        .nav([NavKeys::DEFAULT, NavKeys::VIM][k.nav])
         .width_sample_rows([200, 8][k.width_sample_rows])
         .resizable_columns(k.seams != 1)
         .seam_hit_w(if k.seams == 2 { 3 } else { 2 })
