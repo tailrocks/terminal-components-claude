@@ -8,6 +8,7 @@
 //!
 //! `cargo nextest run --cargo-profile release --bin tablepro --run-ignored only -E 'test(measure_table_surfaces)' --no-capture`
 
+use junie_tui::runtime::Application;
 use std::time::{Duration, Instant};
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -26,7 +27,7 @@ pub fn customers(w: u16, h: u16) -> H {
     h.type_str("customers");
     h.key(KeyCode::Enter);
     let id = grid_of(&h).0;
-    h.app.focus.set(Some(id));
+    h.app.shell.focus.set(Some(id));
     h.draw();
     h
 }
@@ -40,7 +41,7 @@ pub fn query_results(w: u16, h: u16) -> H {
     h.ctrl('r');
     h.ticks(12);
     let id = grid_of(&h).0;
-    h.app.focus.set(Some(id));
+    h.app.shell.focus.set(Some(id));
     h.draw();
     h
 }
