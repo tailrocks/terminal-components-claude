@@ -637,6 +637,30 @@ impl crate::ui::specimen::Specimen for PropsList {
     }
 }
 
+/// The sheet's pointer gestures: a wheel or a bar press scrolls it; a
+/// completed click on a row is [`PropsList::on_click`].
+impl crate::core::pointer::MouseTarget for PropsList {
+    type Action = PropsAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<PropsAction> {
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r.lift();
+        }
+        match ev.index_of(Part::ROW) {
+            Some(row) if ev.is(Phase::Click) => self.on_click(row).into(),
+            _ => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod reveal_scroll_tests {
     use super::*;

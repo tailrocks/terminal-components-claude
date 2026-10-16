@@ -3163,6 +3163,52 @@ impl Navigable for DataGrid {
     }
 }
 
+/// The grid's pointer gestures, as the apps route them: a wheel or a bar
+/// press scrolls it; a press on a header seam starts a resize (a double
+/// press fits the column); a drag resizes, paints row marks or selects a
+/// range ([`DataGrid::on_drag`]); a completed click is
+/// [`DataGrid::on_click`] (cells, headers, row numbers, the overflow
+/// arrows, the fetch-more row, the pending bar's buttons and an open
+/// constrained editor, which are the grid's too: [`Self::route`]).
+impl crate::core::pointer::MouseTarget for DataGrid {
+    type Action = GridAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<GridAction>> {
+        let owner = ev.owner();
+        let mine = owner == self.id
+            || self.bar_ids().contains(&owner)
+            || self.choice.as_ref().is_some_and(|c| c.editor.id == owner);
+        mine.then(|| self.pointer(ev))
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<GridAction> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if ev.on(self.id)
+            && let Some(r) = crate::core::pointer::scroll_input(self, ev)
+        {
+            return r.lift();
+        }
+        let (id, pos) = (ev.id, ev.pos());
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press(id, pos, ev.count()).into(),
+            Some(Phase::Drag) => self.on_drag(id, pos).into(),
+            Some(Phase::Click) => self.on_click(id, pos).into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

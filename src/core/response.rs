@@ -228,6 +228,19 @@ impl<A> From<Outcome> for Response<A> {
     }
 }
 
+/// Adapter from the legacy `(Outcome, Option<A>)` pair the per-gesture
+/// methods return: the outcome's flow and repaint, with the action (an
+/// action always repaints, [`Response::with_action`]).
+impl<A> From<(Outcome, Option<A>)> for Response<A> {
+    fn from((o, a): (Outcome, Option<A>)) -> Self {
+        let r = Self::from(o);
+        match a {
+            Some(a) => r.with_action(a),
+            None => r,
+        }
+    }
+}
+
 /// Fold: `flow`, `Consumed` wins; `invalidate`, the maximum. Defined for
 /// `Response<()>` only, so two actions are never silently merged.
 impl BitOr for Response<()> {

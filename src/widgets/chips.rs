@@ -597,6 +597,42 @@ impl crate::ui::specimen::Specimen for ChipBar {
     }
 }
 
+/// The bar's pointer gestures: a completed click on a chip, its `×`, the
+/// lead, the add button, the `+N` button or a row of its open menu is
+/// [`ChipBar::on_click`]. The overflow menu is the bar's too
+/// ([`Self::route`]).
+impl crate::core::pointer::MouseTarget for ChipBar {
+    type Action = ChipAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<ChipAction>> {
+        let menu = self.menu.as_ref().map(|(m, _)| m.id);
+        (ev.on(self.id) || menu.is_some_and(|m| ev.on(m))).then(|| self.pointer(ev))
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<ChipAction> {
+        use crate::core::intent::Phase;
+        if let Some((Axis::Vertical, delta)) = ev.wheel()
+            && let Some((menu, _)) = self.menu.as_mut()
+        {
+            return menu.on_wheel(delta).into();
+        }
+        match ev.phase() {
+            Some(Phase::Click) => self.on_click(ev.id).into(),
+            _ => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

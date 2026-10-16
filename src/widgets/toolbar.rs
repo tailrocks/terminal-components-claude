@@ -664,6 +664,26 @@ impl crate::ui::specimen::Specimen for Toolbar {
     }
 }
 
+/// The toolbar's pointer gesture: a completed click on an item runs it
+/// ([`Toolbar::on_click`]).
+impl crate::core::pointer::MouseTarget for Toolbar {
+    type Action = ToolbarAction;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<ToolbarAction> {
+        if !ev.is(crate::core::intent::Phase::Click) {
+            return crate::core::response::Response::ignored();
+        }
+        self.on_click(ev.id).into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

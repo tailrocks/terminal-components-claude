@@ -361,6 +361,30 @@ impl Navigable for StepRail {
     }
 }
 
+/// The rail's pointer gestures: a wheel or a bar press scrolls it; a
+/// completed click on a step is [`StepRail::on_click`].
+impl crate::core::pointer::MouseTarget for StepRail {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        match ev.index_of(Part::ROW) {
+            Some(row) if ev.is(Phase::Click) => self.on_click(row).into(),
+            _ => crate::core::response::Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
