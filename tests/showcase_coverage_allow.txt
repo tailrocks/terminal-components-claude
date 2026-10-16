@@ -680,10 +680,6 @@ widgets::help::HelpOverlay::dismiss | Help & keys and Quit & leave pages | SC6
 widgets::help::HelpOverlay::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::hintbar
-widgets::hintbar::HintLayer | Chrome and Status & hints pages | SC4
-widgets::hintbar::HintLayer::align | Chrome and Status & hints pages | SC4
-widgets::hintbar::HintLayer::badge | Chrome and Status & hints pages | SC4
-widgets::hintbar::HintLayer::status | Chrome and Status & hints pages | SC4
 
 # widgets::icon_button
 
@@ -715,13 +711,6 @@ widgets::input::InputAction::Changed | widget edit events and outcomes: the Insp
 widgets::input::TextInput::type_to_edit | deprecated alias of TextInput::edit_entry, shown through inputs.edit_entry | permanent
 
 # widgets::keyhint
-widgets::keyhint::Hint | Chrome and Status & hints pages | SC4
-widgets::keyhint::HintPriority | Chrome and Status & hints pages | SC4
-widgets::keyhint::HintPriority::Auto | Chrome and Status & hints pages | SC4
-widgets::keyhint::HintPriority::Normal | Chrome and Status & hints pages | SC4
-widgets::keyhint::HintPriority::Pinned | Chrome and Status & hints pages | SC4
-widgets::keyhint::Hint::priority | Chrome and Status & hints pages | SC4
-widgets::keyhint::Hint::pinned | Chrome and Status & hints pages | SC4
 
 # widgets::keyref
 widgets::keyref::KeyReference | Help & keys and Quit & leave pages | SC6
@@ -752,27 +741,6 @@ widgets::list::ListBox::empty | Lists and Trees page options | SC15
 widgets::list::ListBox::track_click | Lists and Trees page options | SC15
 
 # widgets::menu
-widgets::menu::MenuBarAction | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBarAction::Opened | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBarAction::Chosen | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBarAction::Closed | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBarAction::Brand | Chrome and Status & hints pages | SC4
-widgets::menu::OpenOn | Chrome and Status & hints pages | SC4
-widgets::menu::OpenOn::Press | Chrome and Status & hints pages | SC4
-widgets::menu::OpenOn::Release | Chrome and Status & hints pages | SC4
-widgets::menu::Overflow | Chrome and Status & hints pages | SC4
-widgets::menu::Overflow::Hide | Chrome and Status & hints pages | SC4
-widgets::menu::Overflow::Chevron | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::nav | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::open_on | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::press_drag | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::type_ahead | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::overflow | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::hide_owner_focus | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::dismiss | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::wrap | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::hover_switch | Chrome and Status & hints pages | SC4
-widgets::menu::MenuBar::brand | Chrome and Status & hints pages | SC4
 
 # widgets::option_editor
 widgets::option_editor::OptionItem | Editable, Selection and Cell editors page options | SC13
@@ -883,10 +851,6 @@ widgets::scrollbar::Bars | Panels and Scrolling page options | SC22
 widgets::scrollbar::VSplit | Panels and Scrolling page options | SC22
 
 # widgets::segments
-widgets::segments::Segment::bold | Chrome and Status & hints pages | SC4
-widgets::segments::Segment::clickable | Chrome and Status & hints pages | SC4
-widgets::segments::Segment::priority | Chrome and Status & hints pages | SC4
-widgets::segments::Segment::lead | Chrome and Status & hints pages | SC4
 
 # widgets::select
 widgets::select::SelectAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -900,23 +864,7 @@ widgets::splitter::Splitter::hit_pad | Splits & stacks page | SC23
 widgets::splitter::Splitter::double_click | Splits & stacks page | SC23
 
 # widgets::statusbar
-widgets::statusbar::Emphasis | Chrome and Status & hints pages | SC4
-widgets::statusbar::Emphasis::Plain | Chrome and Status & hints pages | SC4
-widgets::statusbar::Emphasis::Strong | Chrome and Status & hints pages | SC4
-widgets::statusbar::Emphasis::Chip | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::busy | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::meter | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::meter_stale | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::priority | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::clickable | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::tooltip | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::strong | Chrome and Status & hints pages | SC4
-widgets::statusbar::StatusItem::chip | Chrome and Status & hints pages | SC4
-widgets::statusbar::Group | Chrome and Status & hints pages | SC4
-widgets::statusbar::Group::Left | Chrome and Status & hints pages | SC4
-widgets::statusbar::Group::Center | Chrome and Status & hints pages | SC4
-widgets::statusbar::Group::Right | Chrome and Status & hints pages | SC4
-widgets::statusbar::Placed | Chrome and Status & hints pages | SC4
+widgets::statusbar::StatusItem::tooltip | shown only while the pointer rests on a status item; Chrome wires one on PR #482, the hover capture is a tooltip scenario | SC19
 
 # widgets::steps
 widgets::steps::StepState::Done | Diff and Terminal page options | SC25
@@ -1025,10 +973,6 @@ widgets::viewport::TextViewport::max_lines | Diff and Terminal page options | SC
 
 # theme
 theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
-theme::HintAlign | Chrome and Status & hints pages | SC4
-theme::HintAlign::Start | Chrome and Status & hints pages | SC4
-theme::HintAlign::Center | Chrome and Status & hints pages | SC4
-theme::HintBarStyle | Chrome and Status & hints pages | SC4
 
 # runtime
 runtime::Coalesce | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
