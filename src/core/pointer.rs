@@ -165,7 +165,7 @@ impl PointerState {
         let was = self.hover;
         let suppressed = self.hover_suppressed;
         self.hover_suppressed = false;
-        self.hover = hits.hit(pos);
+        self.hover = hits.hover_at(pos);
         if self.hover != was || suppressed {
             Outcome::Changed
         } else {
@@ -177,6 +177,8 @@ impl PointerState {
     /// any) receives the drag.
     pub fn on_drag(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
+        // a held press tracks what it would release on, so a hover-only
+        // region (a cut title) never cancels the pressed look
         self.hover = hits.hit(pos);
         self.pressed
     }
@@ -309,7 +311,7 @@ impl PointerState {
         if let Some(pos) = self.hover_refresh.take()
             && !self.hover_suppressed
         {
-            self.hover = hits.hit(pos);
+            self.hover = hits.hover_at(pos);
         }
     }
 }
