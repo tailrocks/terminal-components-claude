@@ -43,8 +43,8 @@ use crate::sim::pty::{
     Daemon, Direction, MAX_LABEL, MIN_PANE_COLS, MIN_PANE_ROWS, PaneId, PaneNode, Seam, nearest,
 };
 use crate::sim::world::{Msg, World};
-use junie_tui::ui::text::plural;
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::text::plural;
 
 pub const STRIP: WidgetId = WidgetId::of("capsule.strip");
 pub const MENUBAR: WidgetId = WidgetId::of("capsule.menubar");

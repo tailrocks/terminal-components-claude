@@ -29,8 +29,8 @@ use crate::screens::{
 };
 use crate::sim::fs::{FindHit, Fs, NodeKind, Preview};
 use crate::sim::world::{SourceState, World};
-use junie_tui::ui::text::plural;
 use junie_tui::core::scroll::Scrollable;
+use junie_tui::ui::text::plural;
 
 pub const LIST: WidgetId = WidgetId::of("files.list");
 pub const PREVIEW: WidgetId = WidgetId::of("files.preview");
