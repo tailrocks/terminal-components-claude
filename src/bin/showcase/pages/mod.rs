@@ -84,6 +84,10 @@ pub enum PageEvent {
         id: WidgetId,
         pos: Position,
     },
+    /// Middle button on `id` (a tab strip closes the tab under it).
+    Middle {
+        id: WidgetId,
+    },
     /// Secondary (right) button on `id`: a context action.
     Secondary {
         id: WidgetId,
@@ -200,7 +204,7 @@ pub trait Page {
     /// open menu that owns the keyboard): the shell then renders the page
     /// with no focus indicator ([`RenderCtx::page_under_layer`]).
     fn layer_open(&self) -> bool {
-        false
+        self.template().is_some_and(|t| t.popup_open())
     }
     /// The value index of the page option `key` (one of
     /// `crate::options::page_options` for this page), `None` for a key the
