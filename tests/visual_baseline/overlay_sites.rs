@@ -100,7 +100,7 @@ pub const SITES: &[Site] = &[
     gap("jackin_preview/screens/capsule.rs::request_exit", NO_ROW),
     gap("jackin_preview/screens/capsule.rs::run_palette", NO_ROW),
     gap("jackin_preview/screens/capsule.rs::spawn_flow", NO_ROW),
-    rows("jackin_preview/screens/cockpit.rs::on_key", &["jackin/cockpit/cancel_confirm"]),
+    rows("jackin_preview/screens/cockpit.rs::ask_cancel", &["jackin/cockpit/cancel_confirm"]),
     gap("jackin_preview/screens/cockpit.rs::open_failure", NO_ROW),
     rows("jackin_preview/screens/cockpit.rs::open_info", &["jackin/cockpit/info"]),
     gap("jackin_preview/screens/cockpit.rs::open_quit", NO_ROW),
