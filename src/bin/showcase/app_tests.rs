@@ -523,7 +523,9 @@ fn textarea_scrolls_with_wheel_and_keys() {
     h.mouse(MouseKind::WheelDown, x, y + 2);
     assert!(!h.text().contains(" 1. Read"));
     assert!(h.text().contains(" 4. Run"));
-    // Tab lands in the area editing (EditEntry::Immediate), caret shown
+    // Tab passes the section strip and lands in the area editing
+    // (EditEntry::Immediate), caret shown
+    h.key(tab());
     h.key(tab());
     assert!(h.term.backend().cursor_visible());
     for _ in 0..30 {
