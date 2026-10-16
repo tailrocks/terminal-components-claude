@@ -1119,6 +1119,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("widgets::picker::PickerAction::NextScope"),
     Capability::variant("widgets::picker::PickerAction::Cancelled"),
     Capability::variant("widgets::picker::PickerAction::Back"),
+    Capability::variant("widgets::picker::PickerAction::PrevScope"),
     Capability::builder("widgets::picker::Picker::nav"),
     Capability::builder("widgets::picker::Picker::delete_is_secondary"),
     Capability::builder("widgets::picker::Picker::width"),

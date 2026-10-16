@@ -464,6 +464,23 @@ fn pickers_cancel_scope_and_secondary_action() {
     h.assert_status_prefix("Closed ");
 }
 
+/// Keyboard audit #31: Tab cycles the picker's scope forward and Shift+Tab
+/// goes back (it did nothing).
+#[test]
+fn picker_shift_tab_goes_back_a_scope() {
+    let mut h = Harness::new(120, 40, PageId::Pickers);
+    let pickers = WidgetId::of("pickers");
+    h.focus(pickers.sub("quick"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("All · Tab scope"), "{}", h.text());
+    h.key(KeyCode::BackTab);
+    assert!(h.text().contains("Tasks · Tab scope"), "{}", h.text());
+    h.key(KeyCode::BackTab);
+    assert!(h.text().contains("Files · Tab scope"), "{}", h.text());
+    h.key(KeyCode::Tab);
+    assert!(h.text().contains("Tasks · Tab scope"), "{}", h.text());
+}
+
 #[test]
 fn grid_pending_save_and_discard_lifecycle() {
     let mut h = Harness::new(160, 50, PageId::Grid);
