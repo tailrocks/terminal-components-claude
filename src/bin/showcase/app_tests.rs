@@ -1041,6 +1041,46 @@ fn showcase_visual_baseline() {
     );
 }
 
+/// Product decision 2026-10-16 (docs/audits/design-review-2026-10/hscroll.md):
+/// a scrollbar track is a dotted rail in its own ink, never the panel
+/// border. The Data grid shows both bars in one frame; both tracks use the
+/// matched pair and the track style, at every colour level and with the
+/// ASCII set.
+#[test]
+fn the_data_grid_draws_both_tracks_dotted_in_one_frame() {
+    use junie_tui::theme::{ColorLevel, Glyphs};
+    use junie_tui::widgets::scrollbar;
+    let grid = WidgetId::of("grid").sub("grid");
+    for glyphs in [Glyphs::UNICODE, Glyphs::ASCII] {
+        for level in ColorLevel::ALL {
+            let mut h = Harness::new(120, 40, PageId::Grid);
+            h.app.theme = Theme::for_level(level);
+            h.app.theme.glyphs = glyphs;
+            h.draw();
+            let t = h.app.theme;
+            let ctx = format!("{level:?} {:?}", glyphs.scroll_track);
+            let v = h.app.hits.area_of(scrollbar::id_for(grid));
+            let hz = h.app.hits.area_of(scrollbar::h_id_for(grid));
+            let (v, hz) = (v.expect(&ctx), hz.expect(&ctx));
+            let buf = h.term.backend().buffer();
+            let track_fg = t.scrollbar_track().fg;
+            for (area, track, thumb) in [
+                (v, t.glyphs.scroll_track, t.glyphs.scroll_thumb),
+                (hz, t.glyphs.scroll_h_track, t.glyphs.scroll_h_thumb),
+            ] {
+                let cells: Vec<_> = area.positions().map(|p| &buf[p]).collect();
+                assert!(cells.iter().any(|c| c.symbol() == thumb), "{ctx}: {area:?}");
+                let tracks: Vec<_> = cells.iter().filter(|c| c.symbol() != thumb).collect();
+                assert!(!tracks.is_empty(), "{ctx}: {area:?}");
+                for c in tracks {
+                    assert_eq!(c.symbol(), track, "{ctx}: {area:?}");
+                    assert_eq!(Some(c.fg), track_fg, "{ctx}: {area:?}");
+                }
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------- scrolling audit regressions
 
 /// The card title row of the Scrolling page (the labels live there).
