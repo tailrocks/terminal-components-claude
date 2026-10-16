@@ -16,9 +16,10 @@
    Scrolling      ┃                                                             [0m
    Terminal       ┃    ▎  focus                                                 [0m
    Code editor    ┃    ░  hover lifts the surface                               [0m
-   Diff           ┃    ›  current / chosen                                      [0m
+   Diff           │    ›  current / chosen                                      [0m
    Data grid      │    ✓  checked                                               [0m
    Chips & selec… │    !  error                                                 [0m
 [0m[2m   Pickers        [0m│                                                             [0m
                                                                                 [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+[?25l
