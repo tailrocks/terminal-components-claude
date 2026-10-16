@@ -897,6 +897,10 @@ impl CapsuleScreen {
                 "Usage" => ("Ctrl+B u", false),
                 "Close" => ("Ctrl+B x", false),
                 "Quit" => ("Ctrl+Q", false),
+                // shown unavailable up front instead of failing once chosen
+                "Stage image from clipboard path"
+                | "Paste image from host clipboard"
+                | "Stage image without pasting" => ("Not in this preview", true),
                 _ => ("host", false),
             };
             let matched: Vec<usize> = if q.is_empty() {
