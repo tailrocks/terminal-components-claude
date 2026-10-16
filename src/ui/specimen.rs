@@ -1119,6 +1119,85 @@ impl Specimen for crate::ui::modal::Frame<'static> {
     }
 }
 
+/// A picker drawn centred in the sample's cell over the cell dimmed as its
+/// backdrop: hover and press land on its second row, disabled is that row
+/// disabled, empty has no rows (its empty text), loading and error are
+/// its [`PickerStatus`](crate::widgets::picker::PickerStatus), overflow
+/// caps it at three rows so it scrolls.
+impl Specimen for crate::widgets::picker::Picker {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        match state {
+            Rest | Empty | Loading | Error => true,
+            Hover | Pressed | Disabled => self.items.len() > 1,
+            Overflow => self.items.len() > 3,
+            Focused | FocusedHover | Selected | Busy | Editing | Narrow => false,
+        }
+    }
+
+    /// The frame and one row of margin above and below.
+    fn specimen_height(&self, state: SpecimenState) -> u16 {
+        picker_sample(self, state).height() + 2
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let _ = bg;
+        let mut p = picker_sample(self, state);
+        p.width = p.width.min(area.width);
+        let v = state.visual();
+        let row = p.row_id(1.min(p.items.len().saturating_sub(1)));
+        ctx.interaction.focus = None;
+        ctx.interaction.hover = v.hovered.then_some(row);
+        ctx.interaction.pressed = v.pressed.then_some(row);
+        p.draw(area, buf, ctx);
+    }
+}
+
+/// The picker as a sample in `state`: centred, dimming its whole cell.
+fn picker_sample(
+    p: &crate::widgets::picker::Picker,
+    state: SpecimenState,
+) -> crate::widgets::picker::Picker {
+    use crate::widgets::picker::PickerStatus;
+    let mut p = p.clone();
+    p.placement = crate::ui::popup::Placement::Center;
+    p.anchor = Rect::ZERO;
+    p.backdrop = crate::ui::ctx::Backdrop::FULL;
+    match state {
+        SpecimenState::Disabled => {
+            if let Some(it) = p.items.get_mut(1) {
+                it.disabled = true;
+            }
+        }
+        SpecimenState::Empty => p.set_items(vec![]),
+        SpecimenState::Loading => {
+            p.set_items(vec![]);
+            p.status = PickerStatus::Loading("Fetching branches…".into());
+        }
+        SpecimenState::Error => {
+            p.set_items(vec![]);
+            p.status = PickerStatus::Error {
+                message: "Could not reach origin".into(),
+                detail: Some("r retries".into()),
+            };
+        }
+        SpecimenState::Overflow => p.max_rows = 3,
+        _ => {}
+    }
+    p
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

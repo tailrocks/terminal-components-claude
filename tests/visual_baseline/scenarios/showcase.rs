@@ -236,11 +236,15 @@ pub const SURFACES: &[Root] = &[
     // SC17: the Dialogs page's Options and States sections.
     Root::new("showcase/sections/dialogs-options", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "2", "wait:Placement"]).pending(),
     Root::new("showcase/sections/dialogs-states", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "3", "wait:Run task now?"]).pending(),
+    // SC20: the Pickers page's Options and States sections (the page is on
+    // the template: the section strip is its first Tab stop).
+    Root::new("showcase/sections/pickers-options", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "2", "wait:Max rows"]).pending(),
+    Root::new("showcase/sections/pickers-states", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     // SC19: the Popups & tooltips page, its sections, the tooltips under a
     // resting pointer, and the Data grid header's column-type tooltip.
     Root::new("showcase/pages/popupstooltips", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["wait:Open popover"]).pending(),
     Root::new("showcase/sections/popupstooltips-options", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["tab", "2", "wait:Popover placement"]).pending(),
-    Root::new("showcase/sections/popupstooltips-states", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["tab", "3", "wait:Frame"]).pending(),
+    Root::new("showcase/sections/popupstooltips-states", Bin::Showcase, &["--page", "popupstooltips"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/sections/popupstooltips-tooltip", Bin::Showcase, &["--page", "popupstooltips"], BOOT).hover("Save draft").pending(),
     Root::new("showcase/sections/popupstooltips-status-tooltip", Bin::Showcase, &["--page", "popupstooltips"], BOOT).hover("eu-west-1").pending(),
     Root::new("showcase/sections/datagrid-header-tooltip", Bin::Showcase, &["--page", "datagrid"], BOOT).hover("plan").pending(),
@@ -346,7 +350,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/flows/dialogs/prompt", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "tab", "enter", "wait:Shown in the task list"]).dismiss_pending(),
     // S2: the destructive dialog (fourth button), Cancel focused first.
     Root::new("showcase/flows/dialogs/destructive", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["d", "wait:Delete branch?"]).dismiss_pending(),
-    Root::new("showcase/flows/pickers/open", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "enter"]).dismiss_pending(),
+    Root::new("showcase/flows/pickers/open", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "enter"]).dismiss_pending(),
     // S8: the menu bar is the page's first stop; Enter opens the File menu.
     Root::new("showcase/flows/chrome/menu", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "tab", "enter", "wait:New tab"]).dismiss_pending(),
     // S9: right click on a session row opens its context menu.
@@ -395,6 +399,10 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/dialogkinds_help", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Keyboard help").pending().dismiss_pending(),
     // SC19: the popover under its button.
     Root::new("showcase/overlays/popupstooltips_popover", Bin::Showcase, &["--page", "popupstooltips"], BOOT).click("Open popover").pending().dismiss_pending(),
+    // SC20: the command palette (disabled rows with their reason) and the
+    // remote branch picker while it loads.
+    Root::new("showcase/overlays/pickers_commands", Bin::Showcase, &["--page", "pickers"], BOOT).click("Run command").pending().dismiss_pending(),
+    Root::new("showcase/overlays/pickers_remote", Bin::Showcase, &["--page", "pickers", "--motion", "paused"], BOOT).click("Remote branch").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogs_anchored", Bin::Showcase, &["--page", "dialogs", "--opt", "dialogs.placement=below"], BOOT).click("Confirm run").pending().dismiss_pending(),
     Root::new("showcase/overlays/emptyerror_row_actions", Bin::Showcase, &["--page", "emptyerror"], BOOT).click("Row actions ▾").pending().dismiss_pending(),
     // mouse #40: the brand asks before quitting.
@@ -441,7 +449,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/nav/end", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["0", "G"]),
     // S6: the Level picker (third button) is not searchable; one down from the
     // current level, Enter sets it — the footer status confirms the choice.
-    Root::new("showcase/flows/pickers/level", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "tab", "enter", "down", "enter", "wait:Chose Safe Mode (Full)"]),
+    Root::new("showcase/flows/pickers/level", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "tab", "tab", "enter", "down", "enter", "wait:Chose Safe Mode (Full)"]),
     // S10: cell edit committed; the panel meta counts edits.
     Root::new("showcase/flows/editable/committed", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "tab", "enter", "type:x", "enter", "wait:1 edits"]),
     // S11: fifth stop is the Auto-merge toggle; space twice round-trips it —
@@ -462,8 +470,9 @@ pub const JOURNEYS: &[Root] = &[
     // — deterministic: row 1001 is marked `!`, row 1002 stays `•`. The 4-tick
     // saving window is ridden out by the wait.
     Root::new("showcase/flows/datagrid/failed", Bin::Showcase, &["--page", "datagrid"], BOOT).sends(&["tab", "tab", "right", "right", "right", "enter", "ctrl-l", "type:600", "enter", "down", "enter", "ctrl-l", "type:12", "enter", "ctrl-s", "type:customers", "enter", "wait:Save failed"]),
-    // pickers_tabs: the Switch tab picker (second button).
-    Root::new("showcase/flows/pickers/tabs", Bin::Showcase, &["--page", "pickers"], BOOT).sends(&["tab", "tab", "enter", "wait:Filter tabs…"]),
+    // pickers_tabs: the Switch tab picker (second button); paused, as its
+    // running tabs count up every tick.
+    Root::new("showcase/flows/pickers/tabs", Bin::Showcase, &["--page", "pickers", "--motion", "paused"], BOOT).sends(&["tab", "tab", "tab", "enter", "wait:Filter tabs…"]),
     // chips_select_open: the fourth stop (after the section strip, the
     // filter bar and the stream bar) is the Sort by select at every size;
     // Enter opens its popup (`customer` exists only inside the popup). The
