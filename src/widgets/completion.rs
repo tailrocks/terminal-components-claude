@@ -12,9 +12,13 @@ use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::theme::CursorStyle;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::popup::{Dismiss, Placement, backdrop_id, place, surface_for};
+use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
 use crate::ui::text::{truncate, width};
 use crate::widgets::scrollbar;
+
+/// Columns from the popup's left edge to an item label: the frame, the
+/// cursor gutter, the kind glyph and a space.
+pub const TEXT_INSET: u16 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompletionItem {
@@ -37,6 +41,10 @@ pub struct Completion {
     /// Bytes before the cursor to replace on accept.
     pub replace_len: usize,
     pub max_rows: u16,
+    /// How the list keeps off the screen edges and lines up with the typed
+    /// text. Default: one free cell from every edge, and the item labels
+    /// start in the anchor's column ([`TEXT_INSET`]).
+    pub fit: crate::ui::popup::Place,
     pub area: Rect,
     /// How the list closes without a choice. Default: Esc, or a click
     /// outside that also lands where it was aimed (placing the caret in the
@@ -63,6 +71,7 @@ impl Completion {
             anchor: Rect::ZERO,
             replace_len: 0,
             max_rows: 8,
+            fit: crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET),
             area: Rect::ZERO,
             dismiss: Dismiss::LIGHT.pass_through(true),
             cursor_style: CursorStyle::default(),
@@ -198,7 +207,7 @@ impl Completion {
         let w = (label_w + detail_w + 8).clamp(24, 48) as u16;
         let rows = (self.items.len() as u16).min(self.max_rows);
         let h = rows + 2;
-        let area = place(screen, self.anchor, w, h, Placement::Below);
+        let area = place_with(screen, self.anchor, w, h, Placement::Below, self.fit);
         self.area = area;
         let inner = area
             .intersection(*buf.area())
