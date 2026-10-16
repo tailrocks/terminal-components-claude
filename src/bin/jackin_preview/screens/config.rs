@@ -30,7 +30,7 @@ use super::modals::{
     FormValues, OpFlow,
 };
 use super::rowmenu::RowMenu;
-use super::{Cx, Modal, ModalResult, ModalTag};
+use super::{Cx, LayerTag, ModalResult};
 use crate::domain::agent::AuthMode;
 use crate::domain::onepassword::OpReference;
 use crate::domain::workspace::{
@@ -1404,7 +1404,7 @@ impl ConfigTabs {
                     original: Some(k.clone()),
                 });
                 let flow = OpFlow::new(self.ids.form.sub("op"), &w.op, w.now_ms());
-                cx.open(Modal::Op(flow), ModalTag::new("cfg.env.op"));
+                cx.open(flow, LayerTag::new("cfg.env.op"));
             }
             (RowKey::Env(r, k), KeyCode::Char('s')) => {
                 self.open_scope_picker(RowKey::Env(r.clone(), k.clone()), cx);
@@ -1425,8 +1425,8 @@ impl ConfigTabs {
                     "Delete",
                 );
                 cx.open(
-                    Modal::Dialog(d),
-                    ModalTag::new("cfg.env.remove").key(format!(
+                    d,
+                    LayerTag::new("cfg.env.remove").key(format!(
                         "{}\u{1}{}",
                         r.clone().unwrap_or_default(),
                         k
@@ -1860,7 +1860,7 @@ impl ConfigTabs {
             RowKey::Env(r, k) => format!("e\u{1}{}\u{1}{k}", r.clone().unwrap_or_default()),
             _ => String::new(),
         };
-        cx.open(Modal::Choice(d), ModalTag::new("cfg.scope").key(&k));
+        cx.open(d, LayerTag::new("cfg.scope").key(&k));
     }
 
     /// Searchable Role picker for `+ Add role override…`: every registry
@@ -1872,7 +1872,7 @@ impl ConfigTabs {
         p.scope = Some(format!("{} roles", self.registry.len()));
         let items = self.role_picker_items("");
         p.set_items(items);
-        cx.open(Modal::Picker(p), ModalTag::new("cfg.role"));
+        cx.open(p, LayerTag::new("cfg.role"));
     }
 
     /// Rows for the Role picker filtered by `query`; owners route their
@@ -2013,7 +2013,7 @@ impl ConfigTabs {
         form.set_visible("git", kind_idx == 1);
         form.set_visible("host", kind_idx == 0);
         self.editing = Some(Editing::Mount { original });
-        cx.open(Modal::Form(form), ModalTag::new("cfg.mount"));
+        cx.open(form, LayerTag::new("cfg.mount"));
     }
 
     fn open_env_form(
@@ -2142,10 +2142,10 @@ impl ConfigTabs {
         form.set_visible("host", src_idx == 2);
         self.editing = Some(Editing::Env { role, original });
         let _ = w;
-        cx.open(Modal::Form(form), ModalTag::new("cfg.env"));
+        cx.open(form, LayerTag::new("cfg.env"));
     }
 
-    pub fn form_changed(&mut self, tag: &ModalTag, form: &mut FormDialog, _w: &World) {
+    pub fn form_changed(&mut self, tag: &LayerTag, form: &mut FormDialog, _w: &World) {
         match tag.kind {
             "cfg.mount" => {
                 let kind = form.choice("kind");
@@ -2168,7 +2168,7 @@ impl ConfigTabs {
     /// `None` when the tag belongs to someone else.
     pub fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
@@ -2187,7 +2187,7 @@ impl ConfigTabs {
                         true,
                         w,
                     );
-                    cx.open(Modal::Browser(b), ModalTag::new("cfg.mount.browse"));
+                    cx.open(b, LayerTag::new("cfg.mount.browse"));
                 }
                 Outcome::Changed
             }
@@ -2219,7 +2219,7 @@ impl ConfigTabs {
             ("cfg.env", ModalResult::FormAction(name, _)) => {
                 if name == "choose:op" {
                     let flow = OpFlow::new(self.ids.form.sub("op"), &w.op, w.now_ms());
-                    cx.open(Modal::Op(flow), ModalTag::new("cfg.env.opform"));
+                    cx.open(flow, LayerTag::new("cfg.env.opform"));
                 }
                 Outcome::Changed
             }

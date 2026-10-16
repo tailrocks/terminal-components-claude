@@ -84,7 +84,6 @@ pub const SITES: &[Site] = &[
     gap("holla/screens/review.rs::sequence_menu", NO_ROW),
     gap("holla/screens/snapshot.rs::body_menu", NO_ROW),
     // ------------------------------------------------------------ jackin --
-    gap("jackin_preview/app.rs::form_changed", NO_ROW),
     gap("jackin_preview/app.rs::open_about", NO_ROW),
     rows("jackin_preview/app.rs::open_help", &["jackin/manager/help_overlay"]),
     gap("jackin_preview/screens/accounts.rs::on_key", NO_ROW),

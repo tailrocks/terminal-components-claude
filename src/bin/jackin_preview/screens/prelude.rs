@@ -17,7 +17,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 
 use super::modals::{BrowserResult, ChoiceDialog, FileBrowser};
-use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen};
+use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::workspace::{Mount, Workspace};
 use crate::sim::world::World;
 
@@ -141,8 +141,9 @@ impl PreludeScreen {
         self.step = step;
         match step {
             Step::Source => {
-                let b = FileBrowser::new(BROWSER, Self::title(step), &self.cwd, true, true, w);
-                cx.open(Modal::Browser(b), ModalTag::new("prelude.source"));
+                let mut b = FileBrowser::new(BROWSER, Self::title(step), &self.cwd, true, true, w);
+                b.stepper = Some(self.stepper_line());
+                cx.open(b, LayerTag::new("prelude.source"));
             }
             Step::Destination => {
                 let Some(src) = &self.source else { return };
@@ -178,7 +179,7 @@ impl PreludeScreen {
                     0,
                 )
                 .width(58);
-                cx.open(Modal::Choice(c), ModalTag::new("prelude.dest"));
+                cx.open(c, LayerTag::new("prelude.dest"));
             }
             Step::Edit => {
                 let value = self
@@ -201,7 +202,7 @@ impl PreludeScreen {
                     Some(0),
                 );
                 d.width = 62;
-                cx.open(Modal::Dialog(d), ModalTag::new("prelude.edit"));
+                cx.open(d, LayerTag::new("prelude.edit"));
             }
             Step::Workdir => {
                 let Some(dest) = self.destination.clone() else {
@@ -224,7 +225,7 @@ impl PreludeScreen {
                     p.scroll.ensure_visible(cur);
                 }
                 let _ = dest;
-                cx.open(Modal::Picker(p), ModalTag::new("prelude.workdir"));
+                cx.open(p, LayerTag::new("prelude.workdir"));
             }
             Step::Name => {
                 let value = self
@@ -247,7 +248,7 @@ impl PreludeScreen {
                     Some(0),
                 );
                 d.width = 62;
-                cx.open(Modal::Dialog(d), ModalTag::new("prelude.name"));
+                cx.open(d, LayerTag::new("prelude.name"));
             }
         }
     }
@@ -383,7 +384,7 @@ impl Screen for PreludeScreen {
         Outcome::Changed
     }
 
-    fn picker_items(&mut self, tag: &ModalTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
         if tag.kind != "prelude.workdir" {
             return None;
         }
@@ -392,7 +393,7 @@ impl Screen for PreludeScreen {
 
     fn on_modal(
         &mut self,
-        tag: &ModalTag,
+        tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
