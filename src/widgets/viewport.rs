@@ -32,7 +32,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility, TrackClick};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::width;
@@ -172,6 +172,8 @@ struct Logical {
     /// Concatenated source text of the spans.
     text: String,
     cells: Vec<Cell>,
+    /// Display width of `cells` (set by `segment`).
+    width: usize,
     /// Whether `cells` reflects `spans`.
     segmented: bool,
     /// Wrapped row boundaries (cell index ranges) per layout width; the
@@ -187,6 +189,7 @@ impl Logical {
             spans,
             text,
             cells: vec![],
+            width: 0,
             segmented: false,
             rows: vec![],
         }
@@ -299,6 +302,7 @@ impl Logical {
                 kind: CellKind::Text,
             });
         }
+        self.width = cells.iter().map(|c| c.w).sum();
         self.cells = cells;
         self.segmented = true;
         self.rows.clear();
@@ -344,7 +348,7 @@ impl Logical {
     }
 
     fn total_width(&self) -> usize {
-        self.cells.iter().map(|c| c.w).sum()
+        self.width
     }
 }
 
@@ -392,7 +396,10 @@ pub struct TextViewport {
     /// Leading logical lines whose rows the index holds; lines beyond it were
     /// appended since and extend the index on the next layout.
     indexed_lines: usize,
-    layout_size: Option<(u16, u16, bool)>,
+    /// `(width, height, wrap, horizontal)` the cached layout was made for.
+    layout_size: Option<(u16, u16, bool, bool)>,
+    /// Text rows of the area: the area less the horizontal bar's row.
+    rows_h: u16,
     /// Retained reading position while follow is off: the line identity and
     /// wrapped sub-row at the top of the viewport.
     reading: Option<(u64, usize)>,
@@ -400,6 +407,23 @@ pub struct TextViewport {
     /// Blank columns between the text and the scrollbar (default
     /// [`scrollbar::GAP`]).
     pub scrollbar_gap: u16,
+    /// Horizontal position in cells (only while not wrapping): the first
+    /// content column drawn at the left edge. Lines wider than the text
+    /// area scroll sideways instead of being cut.
+    pub hscroll: ScrollState,
+    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
+    pub horizontal: Option<HScroll>,
+    /// The policy resolved at the last render (events use it).
+    h_cfg: HScroll,
+    /// The horizontal scrollbar track as last drawn.
+    htrack: Rect,
+    /// The last scrollbar press landed on the horizontal bar.
+    h_held: bool,
+    /// What a press on the bare vertical track does; `None` follows
+    /// [`RenderCtx::track_click`].
+    pub track_click: Option<TrackClick>,
+    /// The vertical track policy resolved at the last render.
+    v_click: TrackClick,
 }
 
 impl TextViewport {
@@ -430,7 +454,116 @@ impl TextViewport {
             reading: None,
             work: WorkCounters::default(),
             scrollbar_gap: scrollbar::GAP,
+            rows_h: 0,
+            hscroll: ScrollState::default(),
+            horizontal: None,
+            h_cfg: HScroll::default(),
+            htrack: Rect::ZERO,
+            h_held: false,
+            track_click: None,
+            v_click: TrackClick::Jump,
         }
+    }
+
+    /// Override the app-wide horizontal scrolling policy.
+    pub fn horizontal(mut self, policy: HScroll) -> Self {
+        self.horizontal = Some(policy);
+        self
+    }
+
+    /// Override the app-wide vertical track-click policy.
+    pub fn track_click(mut self, click: TrackClick) -> Self {
+        self.track_click = Some(click);
+        self
+    }
+
+    /// Lines scroll sideways: not wrapping (wrapped text never overflows
+    /// sideways) and the policy allows it.
+    pub fn h_enabled(&self) -> bool {
+        !self.wrap && self.h_cfg.enabled
+    }
+
+    /// The horizontal offset in cells applied to drawing and pointer
+    /// mapping (0 while horizontal scrolling is off).
+    fn hoff(&self) -> usize {
+        if self.h_enabled() {
+            self.hscroll.offset
+        } else {
+            0
+        }
+    }
+
+    /// Width of the text columns of the last layout.
+    fn text_w(&self) -> usize {
+        self.layout_width as usize
+    }
+
+    /// The rows that show text (the area less the horizontal bar).
+    fn text_rect(&self) -> Rect {
+        let h = if self.rows_h == 0 {
+            self.area.height
+        } else {
+            self.rows_h.min(self.area.height)
+        };
+        Rect::new(self.area.x, self.area.y, self.area.width, h)
+    }
+
+    /// Scroll sideways the minimum so content columns `cols` are visible
+    /// (the start wins when the range is wider than the view).
+    pub fn reveal_cols(&mut self, cols: Range<usize>) -> bool {
+        if !self.h_enabled() {
+            return false;
+        }
+        let before = self.hscroll.offset;
+        if cols.end > cols.start {
+            self.hscroll.ensure_visible(cols.end - 1);
+        }
+        self.hscroll.ensure_visible(cols.start);
+        self.hscroll.offset != before
+    }
+
+    /// Display columns covered by a source byte range of a logical line.
+    fn cols_of_bytes(&self, line: usize, range: &Range<usize>) -> Option<Range<usize>> {
+        let l = self.lines.get(line)?;
+        let mut col = 0;
+        let mut start = None;
+        let mut end = 0;
+        for c in &l.cells {
+            if c.src.start < range.end && range.start < c.src.end {
+                start.get_or_insert(col);
+                end = col + c.w;
+            }
+            col += c.w;
+        }
+        start.map(|s| s..end)
+    }
+
+    /// Scroll a search match into view on both axes; pauses follow.
+    pub fn reveal_mark(&mut self, line: usize, range: Range<usize>) {
+        self.reveal_line(line);
+        if let Some(cols) = self.cols_of_bytes(line, &range) {
+            self.reveal_cols(cols);
+        }
+    }
+
+    /// Scroll sideways by `delta` steps of [`HScroll::step`] cells.
+    fn scroll_h(&mut self, delta: isize) -> Outcome {
+        // nothing wider than the text: the arrows stay free for the owner
+        if !self.h_enabled() || !self.hscroll.overflows() {
+            return Outcome::Ignored;
+        }
+        let step = self.h_cfg.step.max(1) as isize;
+        if self.hscroll.scroll_by(delta * step) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    /// Horizontal wheel (or Shift+wheel): `step` cells per notch. Follow
+    /// is vertical and is left as it is.
+    pub fn on_wheel_h(&mut self, delta: i32) -> Outcome {
+        self.scroll_h(delta.signum() as isize)
     }
 
     /// Blank columns between the text and the scrollbar.
@@ -717,13 +850,23 @@ impl TextViewport {
         &self.marks
     }
 
-    /// Scroll so a logical line is visible; pauses follow.
+    /// Scroll so a logical line is visible; pauses follow. The current
+    /// search mark on that line, if any, is also scrolled into view
+    /// sideways, so a search jump lands on the match.
     pub fn reveal_line(&mut self, line: usize) {
         self.ensure_index();
         if let Some(vi) = self.visual.iter().position(|v| v.line == line) {
             self.follow = false;
             self.scroll.ensure_visible(vi);
             self.remember_reading();
+        }
+        let current = self
+            .marks
+            .iter()
+            .find(|m| m.line == line && m.current)
+            .map(|m| m.range.clone());
+        if let Some(cols) = current.and_then(|r| self.cols_of_bytes(line, &r)) {
+            self.reveal_cols(cols);
         }
     }
 
@@ -879,39 +1022,76 @@ impl TextViewport {
     /// the original so positions and page sizes match the last frame.
     pub fn set_area(&mut self, area: Rect) {
         self.area = area;
-        let size = (area.width, area.height, self.wrap);
+        let h_on = self.h_enabled();
+        let size = (area.width, area.height, self.wrap, h_on);
         let dirty = !self.index_valid || self.indexed_lines < self.lines.len();
         if dirty || self.layout_size != Some(size) {
-            // Cache the final layout, including the scrollbar decision. The
-            // width that settled last time is tried first, so a live stream
-            // that already overflows extends its index at the scrollbar
-            // width instead of rebuilding at both widths every frame.
-            // overflowing text keeps the gap clear of the scrollbar
-            let narrow = area
-                .width
-                .saturating_sub(scrollbar::reserve(self.scrollbar_gap));
-            let preferred = if self.layout_width == narrow && self.wrap == self.layout_wrap {
-                narrow
-            } else {
-                area.width
-            };
-            self.ensure_layout(preferred);
-            self.scroll.set_viewport(area.height as usize);
-            if self.scroll.overflows() && preferred == area.width {
-                self.ensure_layout(narrow);
-            } else if !self.scroll.overflows() && preferred == narrow {
-                self.ensure_layout(area.width);
-                self.scroll.set_viewport(area.height as usize);
-                if self.scroll.overflows() {
-                    self.ensure_layout(narrow);
+            let mut rows = area.height;
+            self.lay_out(area.width, rows);
+            if h_on {
+                self.sync_h();
+                if area.height > 1 && self.h_cfg.shows_bar(&self.hscroll) {
+                    // the horizontal bar takes the bottom row; fewer text
+                    // rows may make the text overflow vertically, which
+                    // only narrows it (the bar stays)
+                    rows = area.height - 1;
+                    self.lay_out(area.width, rows);
+                    self.sync_h();
                 }
+            } else {
+                self.hscroll = ScrollState::default();
             }
+            self.rows_h = rows;
             self.layout_size = Some(size);
+            // the horizontal bar's row, known before drawing so a copy
+            // rendered elsewhere still routes presses on the original
+            self.htrack = if rows < area.height && h_on {
+                let w = area
+                    .width
+                    .saturating_sub(u16::from(self.scroll.overflows()));
+                Rect::new(area.x, area.y + rows, w, 1)
+            } else {
+                Rect::ZERO
+            };
         } else {
-            self.scroll.set_viewport(area.height as usize);
+            self.scroll.set_viewport(self.rows_h as usize);
         }
         if self.follow {
             self.scroll.jump_end();
+        }
+    }
+
+    /// The horizontal axis: the widest line against the text width.
+    fn sync_h(&mut self) {
+        let widest = self.lines.iter().map(|l| l.width).max().unwrap_or(0);
+        self.hscroll.set_content(widest);
+        self.hscroll.set_viewport(self.text_w());
+    }
+
+    /// Lay the text out for a `width` × `rows` text region, deciding the
+    /// vertical scrollbar.
+    fn lay_out(&mut self, width: u16, rows: u16) {
+        // Cache the final layout, including the scrollbar decision. The
+        // width that settled last time is tried first, so a live stream
+        // that already overflows extends its index at the scrollbar
+        // width instead of rebuilding at both widths every frame.
+        // overflowing text keeps the gap clear of the scrollbar
+        let narrow = width.saturating_sub(scrollbar::reserve(self.scrollbar_gap));
+        let preferred = if self.layout_width == narrow && self.wrap == self.layout_wrap {
+            narrow
+        } else {
+            width
+        };
+        self.ensure_layout(preferred);
+        self.scroll.set_viewport(rows as usize);
+        if self.scroll.overflows() && preferred == width {
+            self.ensure_layout(narrow);
+        } else if !self.scroll.overflows() && preferred == narrow {
+            self.ensure_layout(width);
+            self.scroll.set_viewport(rows as usize);
+            if self.scroll.overflows() {
+                self.ensure_layout(narrow);
+            }
         }
     }
 
@@ -989,15 +1169,19 @@ impl TextViewport {
         self.lines.get(line).map(|l| l.cell_at(col)).unwrap_or(0)
     }
 
-    /// Map a screen position to a logical position (line, column).
+    /// Map a screen position to a logical position (line, column). The
+    /// horizontal offset is added, so a column is a content column
+    /// whatever part of the line is in view.
     pub fn pos_at(&self, pos: Position) -> Option<CellPos> {
         if self.area.is_empty() || self.visual.is_empty() {
             return None;
         }
-        let row = (pos.y.saturating_sub(self.area.y) as usize + self.scroll.offset)
+        let text = self.text_rect();
+        let y = pos.y.min(text.bottom().saturating_sub(1));
+        let row = (y.saturating_sub(self.area.y) as usize + self.scroll.offset)
             .min(self.visual.len().saturating_sub(1));
         let vr = self.visual.get(row)?;
-        let x = pos.x.saturating_sub(self.area.x) as usize;
+        let x = pos.x.saturating_sub(self.area.x) as usize + self.hoff();
         let base = self.col_of(vr.line, vr.start);
         let line_w = self.col_of(vr.line, vr.end);
         Some(CellPos {
@@ -1115,24 +1299,36 @@ impl TextViewport {
     }
 
     /// Drag: extend the selection from the anchor; auto-scroll at the
-    /// vertical edges.
+    /// edges (vertically by a row, sideways by a step).
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         let Some(anchor) = self.drag_anchor else {
             return Outcome::Ignored;
         };
-        if pos.y < self.area.y {
+        let text = self.text_rect();
+        if pos.y < text.y {
             self.scroll.scroll_by(-1);
             self.follow = false;
             self.remember_reading();
-        } else if pos.y >= self.area.bottom() {
+        } else if pos.y >= text.bottom() {
             self.scroll.scroll_by(1);
             self.remember_reading();
         }
+        // the text columns end before the vertical bar's gap
+        let text_right = if self.h_enabled() {
+            self.area.x + (self.text_w() as u16).min(self.area.width)
+        } else {
+            self.area.right()
+        };
+        if self.h_enabled() {
+            if pos.x < self.area.x {
+                self.scroll_h(-1);
+            } else if pos.x >= text_right {
+                self.scroll_h(1);
+            }
+        }
         let clamped = Position::new(
-            pos.x
-                .clamp(self.area.x, self.area.right().saturating_sub(1)),
-            pos.y
-                .clamp(self.area.y, self.area.bottom().saturating_sub(1)),
+            pos.x.clamp(self.area.x, text_right.saturating_sub(1)),
+            pos.y.clamp(text.y, text.bottom().saturating_sub(1)),
         );
         let Some(head) = self.pos_at(clamped).and_then(|p| self.anchor_at(p)) else {
             return Outcome::Consumed;
@@ -1153,21 +1349,28 @@ impl TextViewport {
 
     fn track(&self) -> Rect {
         if self.track.is_empty() {
-            Rect::new(
-                self.area.right().saturating_sub(1),
-                self.area.y,
-                1,
-                self.area.height,
-            )
+            let text = self.text_rect();
+            Rect::new(text.right().saturating_sub(1), text.y, 1, text.height)
         } else {
             self.track
         }
     }
 
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
+    /// The pointer went down on either scrollbar (or a completed click): a
+    /// press on the thumb grabs it, a press on the track jumps to it (or
+    /// pages, under [`TrackClick::Page`]). A press on the horizontal bar
+    /// ([`scrollbar::h_id_for`]) moves sideways.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if !scrollbar::press(self.track(), pos, &mut self.scroll) {
+        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
+        if self.h_held {
+            let click = self.h_cfg.track_click;
+            return if scrollbar::press_h(self.htrack, pos, &mut self.hscroll, click) {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            };
+        }
+        if !scrollbar::press_with(self.track(), pos, &mut self.scroll, self.v_click) {
             return Outcome::Consumed;
         }
         self.follow = self.is_at_tail();
@@ -1175,8 +1378,23 @@ impl TextViewport {
         Outcome::Changed
     }
 
-    /// The pointer dragged along the scrollbar after a press.
+    /// The pointer dragged while holding `pressed` (either of this
+    /// widget's scrollbar ids): the axis follows the id, so a drag works
+    /// whether or not the press was routed first.
+    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        self.h_held = pressed == scrollbar::h_id_for(self.id);
+        self.on_scrollbar_drag(pos)
+    }
+
+    /// The pointer dragged along the scrollbar it pressed.
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if self.h_held && !self.htrack.is_empty() {
+            return if scrollbar::drag_h(self.htrack, pos, &mut self.hscroll) {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            };
+        }
         if !scrollbar::drag(self.track(), pos, &mut self.scroll) {
             return Outcome::Consumed;
         }
@@ -1185,8 +1403,9 @@ impl TextViewport {
         Outcome::Changed
     }
 
+    /// The viewport itself or one of its scrollbars.
     pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id)
+        id == self.id || scrollbar::is_bar_of(id, self.id)
     }
 
     // ------------------------------------------------- keyboard selection
@@ -1355,10 +1574,14 @@ impl TextViewport {
             self.scroll.ensure_visible(vi);
             self.remember_reading();
         }
+        // and sideways: the head's column comes into view
+        self.reveal_cols(to.col..to.col + 1);
         Outcome::Changed
     }
 
     /// ↑↓ j k · PgUp PgDn · Home End g G · `f` follow · `y` copy ·
+    /// ←→ h l scroll sideways while lines overflow and no producer caret
+    /// is shown (Home/End stay vertical, as on `ScrollPanel`) ·
     /// Shift+arrows extend a keyboard selection (Ctrl/Alt by word,
     /// Ctrl+Shift+Home/End to the document ends) · Esc clears.
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportEvent>) {
@@ -1378,6 +1601,13 @@ impl TextViewport {
             return (o, Some(ViewportEvent::SelectionChanged));
         }
         let moved = match key.code {
+            // no caret to move, so the arrows scroll sideways
+            KeyCode::Left | KeyCode::Char('h') if key.plain() && self.caret.is_none() => {
+                return (self.scroll_h(-1), None);
+            }
+            KeyCode::Right | KeyCode::Char('l') if key.plain() && self.caret.is_none() => {
+                return (self.scroll_h(1), None);
+            }
             KeyCode::Up | KeyCode::Char('k') if key.plain() => self.scroll.scroll_by(-1),
             KeyCode::Down | KeyCode::Char('j') if key.plain() => self.scroll.scroll_by(1),
             KeyCode::PageUp if key.plain() => self.scroll.page_up(),
@@ -1429,24 +1659,46 @@ impl TextViewport {
         }
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
+        let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        if h_cfg != self.h_cfg {
+            self.h_cfg = h_cfg;
+            self.layout_size = None;
+        }
+        self.v_click = self.track_click.unwrap_or(ctx.track_click);
         self.set_area(area);
         let has_sb = self.scroll.overflows();
         let text_w = self.layout_width;
+        let hoff = self.hoff();
+        let text = self.text_rect();
+        let right = area.x + text_w;
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         let sel = self.selection();
         fill(buf, area, Style::new().bg(bg));
         for (k, vi) in self.scroll.visible_range().enumerate() {
             let y = area.y + k as u16;
+            if y >= text.bottom() {
+                break;
+            }
             let Some(vr) = self.visual.get(vi).copied() else {
                 break;
             };
             let l = &self.lines[vr.line];
             let line_marks: Vec<&Mark> = self.marks.iter().filter(|m| m.line == vr.line).collect();
-            let mut x = area.x;
+            // the row's first column plus the horizontal offset is drawn
+            // at the left edge (a wrapped row never has an offset)
+            let left = l.col_of(vr.start) + hoff;
             let mut col = l.col_of(vr.start);
             for c in &l.cells[vr.start..vr.end] {
-                if x + c.w as u16 > area.x + text_w {
+                let at = col;
+                col += c.w;
+                // left of the horizontal offset (a wide cell cut by the
+                // edge leaves its visible half blank)
+                if at < left {
+                    continue;
+                }
+                let x = area.x + (at - left).min(u16::MAX as usize) as u16;
+                if x + c.w as u16 > right {
                     break;
                 }
                 let mut st = Style::new().fg(t.tone(c.style.tone)).bg(bg);
@@ -1475,7 +1727,10 @@ impl TextViewport {
                         st.add_modifier(Modifier::UNDERLINED).bg(t.lift(bg))
                     };
                 }
-                let p = CellPos { line: vr.line, col };
+                let p = CellPos {
+                    line: vr.line,
+                    col: at,
+                };
                 if let Some((a, b)) = sel
                     && p >= a
                     && p < b
@@ -1483,17 +1738,19 @@ impl TextViewport {
                     st = t.selection().add_modifier(st.add_modifier);
                 }
                 buf.set_string(x, y, &c.g, st);
-                x += c.w as u16;
-                col += c.w;
             }
             // a selection that spans to the line end paints the trailing gap
+            let end_col = l.col_of(vr.end);
             if let Some((a, b)) = sel
                 && vr.line >= a.line
                 && vr.line < b.line
                 && vr.end == l.cells.len()
+                && end_col >= left
             {
-                let tail = Rect::new(x, y, (area.x + text_w).saturating_sub(x).min(1), 1);
-                fill(buf, tail, t.selection());
+                let x = area.x + (end_col - left).min(u16::MAX as usize) as u16;
+                if x < right {
+                    fill(buf, Rect::new(x, y, 1, 1), t.selection());
+                }
             }
         }
         if has_sb {
@@ -1504,15 +1761,32 @@ impl TextViewport {
                     area.x,
                     area.y,
                     (area.right() - 1).saturating_sub(area.x),
-                    area.height,
+                    text.height,
                 ),
                 &self.scroll,
             );
-            let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
+            let sb = Rect::new(area.right() - 1, area.y, 1, text.height);
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         } else {
             self.track = Rect::ZERO;
+        }
+        self.htrack = Rect::ZERO;
+        if text.height < area.height && self.h_enabled() {
+            // the bottom row: the horizontal bar; the corner under the
+            // vertical bar stays blank
+            let w = area.width.saturating_sub(u16::from(has_sb));
+            let hb = Rect::new(area.x, text.bottom(), w, 1);
+            self.htrack = hb;
+            scrollbar::render_horizontal_with(
+                hb,
+                buf,
+                ctx,
+                self.id,
+                &self.hscroll,
+                focused,
+                self.h_cfg.bar == ScrollbarVisibility::Always,
+            );
         }
         // the hardware cursor: the keyboard selection head while selecting,
         // else the producer caret while following
@@ -1525,21 +1799,43 @@ impl TextViewport {
         } else {
             None
         };
-        if let Some(c) = cursor_pos
-            && let Some(vi) = self.visual.iter().position(|v| {
-                v.line == c.line
-                    && self.col_of(v.line, v.start) <= c.col
-                    && (c.col < self.col_of(v.line, v.end)
-                        || v.end == self.lines.get(v.line).map_or(0, |l| l.cells.len()))
-            })
-            && self.scroll.visible_range().contains(&vi)
-        {
-            let vr = self.visual[vi];
-            let base = self.col_of(vr.line, vr.start);
-            let cx = area.x + (c.col.saturating_sub(base) as u16).min(text_w.saturating_sub(1));
-            let cy = area.y + (vi - self.scroll.offset) as u16;
-            ctx.set_cursor(Position::new(cx, cy));
+        if let Some(p) = cursor_pos.and_then(|c| self.screen_pos(c)) {
+            ctx.set_cursor(p);
         }
+    }
+
+    /// Where a logical position is drawn after the last layout, through
+    /// both scroll offsets: `None` while it is scrolled out of view on
+    /// either axis. Owners that place the hardware cursor themselves (a
+    /// pane drawing a copy of the viewport) map the caret through this.
+    pub fn screen_pos(&self, c: CellPos) -> Option<Position> {
+        let vi = self.visual.iter().position(|v| {
+            v.line == c.line
+                && self.col_of(v.line, v.start) <= c.col
+                && (c.col < self.col_of(v.line, v.end)
+                    || v.end == self.lines.get(v.line).map_or(0, |l| l.cells.len()))
+        })?;
+        if !self.scroll.visible_range().contains(&vi) {
+            return None;
+        }
+        let vr = self.visual[vi];
+        let hoff = self.hoff();
+        let base = self.col_of(vr.line, vr.start) + hoff;
+        let text_w = self.layout_width;
+        // a caret scrolled out of view sideways is not drawn at an edge
+        let inside = c.col >= base && c.col - base < text_w as usize;
+        if !inside && hoff > 0 {
+            return None;
+        }
+        let cx = self.area.x + (c.col.saturating_sub(base) as u16).min(text_w.saturating_sub(1));
+        let cy = self.area.y + (vi - self.scroll.offset) as u16;
+        Some(Position::new(cx, cy))
+    }
+
+    /// The horizontal bar's track after the last layout (empty without
+    /// one): owners that route presses by position test it.
+    pub fn hbar(&self) -> Rect {
+        self.htrack
     }
 }
 
@@ -2112,5 +2408,225 @@ mod tests {
         assert_eq!(v.marks()[0].line, 0);
         v.reveal_line(2);
         assert!(!v.follow);
+    }
+
+    // ------------------------------------------------- horizontal scroll
+
+    /// Ten lines; line 2 is 80 cells wide (`0123456789` eight times).
+    fn wide() -> TextViewport {
+        let mut ls = lines(10);
+        ls[2] = vec![Span::plain("0123456789".repeat(8))];
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), ls);
+        v.follow = false;
+        v
+    }
+
+    fn bar_row(buf: &Buffer, y: u16) -> String {
+        (0..buf.area.width)
+            .map(|x| buf[(x, y)].symbol().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn long_lines_scroll_sideways_under_a_horizontal_bar() {
+        let mut v = wide();
+        let buf = render(&mut v, 30, 6);
+        // 5 text rows, the bottom row is the bar
+        assert_eq!(v.scroll.viewport_len, 5);
+        assert!(v.hscroll.overflows());
+        assert_eq!(v.hscroll.content_len, 80);
+        let bar0 = bar_row(&buf, 5);
+        assert!(bar0.starts_with(scrollbar::H_THUMB), "{bar0}");
+        assert!(bar0.contains(scrollbar::H_TRACK), "{bar0}");
+        assert!(row(&buf, 2).starts_with("0123456789"));
+        assert_eq!(v.on_wheel_h(1), Outcome::Changed);
+        assert_eq!(v.hscroll.offset, 4, "one notch is HScroll::step cells");
+        let buf = render(&mut v, 30, 6);
+        assert!(row(&buf, 2).starts_with("456789"), "{}", row(&buf, 2));
+        // short lines scroll too: `line 0 alpha beta` loses `line`
+        assert!(row(&buf, 0).starts_with(" 0 alpha"), "{}", row(&buf, 0));
+        assert_ne!(bar_row(&buf, 5), bar0, "the thumb moved");
+        // the arrows scroll sideways too (no producer caret)
+        let (o, _) = v.on_key(&key(KeyCode::Right, KeyModifiers::NONE));
+        assert_eq!(o, Outcome::Changed);
+        assert_eq!(v.hscroll.offset, 8);
+        v.on_key(&key(KeyCode::Left, KeyModifiers::NONE));
+        v.on_key(&key(KeyCode::Left, KeyModifiers::NONE));
+        assert_eq!(v.hscroll.offset, 0);
+        // the end stops at the widest line
+        for _ in 0..40 {
+            v.on_wheel_h(1);
+        }
+        assert_eq!(v.hscroll.offset, v.hscroll.max_offset());
+        assert_eq!(v.hscroll.offset, 80 - v.hscroll.viewport_len);
+    }
+
+    #[test]
+    fn a_producer_caret_keeps_the_arrows() {
+        let mut v = wide();
+        v.caret = Some(CellPos { line: 9, col: 0 });
+        render(&mut v, 30, 6);
+        let (o, _) = v.on_key(&key(KeyCode::Right, KeyModifiers::NONE));
+        assert_eq!(o, Outcome::Ignored);
+        assert_eq!(v.hscroll.offset, 0);
+        assert_eq!(v.on_wheel_h(1), Outcome::Changed, "the wheel still scrolls");
+    }
+
+    #[test]
+    fn mouse_selection_maps_through_the_horizontal_offset() {
+        let mut v = wide();
+        render(&mut v, 30, 6);
+        v.hscroll.scroll_to(13);
+        render(&mut v, 30, 6);
+        assert_eq!(
+            v.pos_at(Position::new(0, 2)),
+            Some(CellPos { line: 2, col: 13 })
+        );
+        v.on_click(Position::new(0, 2));
+        v.on_drag(Position::new(5, 2));
+        assert_eq!(v.selected_text().as_deref(), Some("34567"));
+        let buf = render(&mut v, 30, 6);
+        let t = Theme::junie();
+        let sel_bg = t.selection().bg.unwrap();
+        assert_eq!(buf[(0, 2)].bg, sel_bg, "selection painted at the view");
+        assert_ne!(buf[(5, 2)].bg, sel_bg);
+        // a drag past the right edge scrolls sideways and keeps selecting
+        v.on_drag(Position::new(40, 2));
+        assert_eq!(v.hscroll.offset, 17);
+        let sel = v.selected_text().unwrap();
+        assert!(sel.starts_with("3456789"), "{sel}");
+        // a double-click selects the word under the pointer, offset-aware
+        v.hscroll.scroll_to(4);
+        v.select_word_at(Position::new(4, 0));
+        assert_eq!(v.selected_text().as_deref(), Some("alpha"));
+    }
+
+    #[test]
+    fn a_search_jump_scrolls_the_match_into_view_sideways() {
+        let mut v = wide();
+        render(&mut v, 30, 6);
+        v.set_marks(vec![Mark {
+            line: 2,
+            range: 61..64,
+            current: true,
+        }]);
+        v.reveal_line(2);
+        let visible = v.hscroll.visible_range();
+        assert!(
+            visible.contains(&61) && visible.contains(&63),
+            "{visible:?}"
+        );
+        let buf = render(&mut v, 30, 6);
+        let x = (61 - v.hscroll.offset) as u16;
+        let t = Theme::junie();
+        assert_eq!(
+            buf[(x, 2)].bg,
+            t.accent,
+            "the current match is drawn in view"
+        );
+        assert_eq!(buf[(x, 2)].symbol(), "1");
+        // reveal_mark scrolls back to an earlier match
+        v.reveal_mark(2, 2..3);
+        assert!(v.hscroll.visible_range().contains(&2));
+        // a keyboard selection head is kept in view sideways
+        v.hscroll.scroll_to(0);
+        v.on_click(Position::new(0, 2));
+        v.on_drag(Position::new(1, 2));
+        for _ in 0..40 {
+            v.on_key(&key(KeyCode::Right, KeyModifiers::SHIFT));
+        }
+        assert!(v.hscroll.visible_range().contains(&40), "{:?}", v.hscroll);
+    }
+
+    #[test]
+    fn follow_keeps_the_tail_with_a_horizontal_offset() {
+        let mut v = wide();
+        v.set_follow(true);
+        render(&mut v, 30, 6);
+        assert!(v.is_at_tail());
+        v.on_wheel_h(1);
+        v.on_wheel_h(1);
+        assert!(v.follow, "sideways scrolling does not pause follow");
+        for i in 0..5 {
+            v.push(vec![Span::plain(format!("new {i}"))]);
+        }
+        render(&mut v, 30, 6);
+        assert!(v.follow && v.is_at_tail());
+        assert_eq!(v.hscroll.offset, 8, "the horizontal position is kept");
+        assert_eq!(v.scroll.viewport_len, 5);
+        // the producer caret is not drawn at an edge while scrolled away
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &t,
+            Interaction {
+                focus: Some(v.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        v.caret = Some(CellPos { line: 14, col: 2 });
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
+        v.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, t.canvas);
+        assert_eq!(ctx.cursor, None);
+        // in view, it is
+        v.hscroll.scroll_to(0);
+        v.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, t.canvas);
+        assert_eq!(ctx.cursor, Some(Position::new(2, 4)));
+    }
+
+    #[test]
+    fn wrapping_switches_horizontal_scrolling_off() {
+        let mut v = wide().wrap(true);
+        let buf = render(&mut v, 30, 6);
+        assert!(!v.hscroll.overflows());
+        assert_eq!(v.on_wheel_h(1), Outcome::Ignored);
+        assert!(!bar_row(&buf, 5).contains(scrollbar::H_TRACK));
+        // and the policy can switch it off without wrapping
+        let mut v = wide().horizontal(HScroll::off());
+        let buf = render(&mut v, 30, 6);
+        assert_eq!(v.on_wheel_h(1), Outcome::Ignored);
+        assert!(!bar_row(&buf, 5).contains(scrollbar::H_TRACK));
+        assert_eq!(v.scroll.viewport_len, 6, "no row is reserved");
+    }
+
+    #[test]
+    fn the_horizontal_bar_clicks_and_drags() {
+        let mut v = wide();
+        render(&mut v, 30, 6);
+        // the bar stops short of the vertical bar's corner, which stays blank
+        assert_eq!(v.htrack, Rect::new(0, 5, 29, 1));
+        assert!(v.owns(scrollbar::h_id_for(v.id)));
+        assert_eq!(v.on_scrollbar(Position::new(28, 5)), Outcome::Changed);
+        assert_eq!(v.hscroll.offset, v.hscroll.max_offset());
+        assert_eq!(v.scroll.offset, 0, "the vertical axis did not move");
+        assert_eq!(
+            v.on_bar_drag(scrollbar::h_id_for(v.id), Position::new(0, 5)),
+            Outcome::Changed
+        );
+        assert_eq!(v.hscroll.offset, 0);
+        // TrackClick::Page on the horizontal axis pages
+        let mut v = wide().horizontal(HScroll::default().track_click(TrackClick::Page));
+        render(&mut v, 30, 6);
+        v.on_scrollbar(Position::new(28, 5));
+        assert_eq!(v.hscroll.offset, v.hscroll.viewport_len);
+    }
+
+    #[test]
+    fn the_vertical_bar_can_page_on_a_track_click() {
+        let mut v =
+            TextViewport::with_lines(WidgetId::of("v"), lines(50)).track_click(TrackClick::Page);
+        v.follow = false;
+        render(&mut v, 30, 10);
+        assert_eq!(v.on_scrollbar(Position::new(29, 9)), Outcome::Changed);
+        assert_eq!(v.scroll.offset, 10, "one page down, not a jump to the end");
+        // the default jumps
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
+        v.follow = false;
+        render(&mut v, 30, 10);
+        v.on_scrollbar(Position::new(29, 9));
+        assert_eq!(v.scroll.offset, 40);
     }
 }

@@ -118,6 +118,10 @@ pub struct RenderCtx<'a> {
     /// App-wide default for content wider than its area (horizontal
     /// scrolling and its bar); widgets may override it.
     pub hscroll: crate::core::scroll::HScroll,
+    /// App-wide default for a press on the bare track of a vertical
+    /// scrollbar (`Jump` moves the thumb under the pointer, `Page` moves a
+    /// page toward it); widgets with a `track_click` field may override it.
+    pub track_click: crate::core::scroll::TrackClick,
     /// The frame's single truncated-text reveal, if any.
     pub(crate) reveal_slot: crate::ui::reveal::Slot,
     /// The reveal key hint of the focused widget's cut cursor row, set
@@ -144,6 +148,7 @@ impl<'a> RenderCtx<'a> {
             overlays: Vec::new(),
             reveal: crate::ui::reveal::Reveal::default(),
             hscroll: crate::core::scroll::HScroll::default(),
+            track_click: crate::core::scroll::TrackClick::Jump,
             reveal_hint: None,
             reveal_slot: {
                 crate::ui::reveal::clear_cuts();
