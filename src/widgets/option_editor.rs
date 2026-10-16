@@ -30,7 +30,10 @@ use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
+use crate::core::hit::Axis;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
+use crate::core::keymap::{Nav, NavKeys, unassigned_chord};
+use crate::core::list::{Cursor, KeyStep, Moved, RowSource};
 use crate::theme::{CursorStyle, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id, place_with, surface_for};
@@ -266,6 +269,10 @@ pub struct EditorConfig {
     /// Typing jumps to the option whose label starts with the typed
     /// prefix (Select, Radio, Tags, Segmented). Default on.
     pub type_ahead: bool,
+    /// Which keys move the popup's cursor (default [`NavKeys::default`],
+    /// the installed [`crate::core::list::NavProfile`]'s). A Combo types
+    /// its letters, so only named keys navigate it.
+    pub nav: NavKeys,
     /// Where editable popup cells show their trailing `▾`. Default
     /// [`Affordance::Focused`].
     pub affordance: Affordance,
@@ -288,6 +295,7 @@ impl Default for EditorConfig {
             popup_width: (14, 48),
             cursor_style: CursorStyle::Fill,
             type_ahead: true,
+            nav: NavKeys::default(),
             affordance: Affordance::Focused,
             flag_out_of_set: true,
             tag_separator: ", ",
@@ -435,32 +443,11 @@ impl ChoiceEditor {
         self.options.get(i).is_some_and(|o| !o.is_disabled())
     }
 
-    /// Step the cursor `delta` enabled options through the shown ones.
-    fn step(&mut self, delta: isize) {
-        let shown: Vec<usize> = self
-            .shown()
-            .into_iter()
-            .filter(|&i| self.enabled(i))
-            .collect();
-        if shown.is_empty() {
-            return;
-        }
-        let at = shown.iter().position(|&i| i == self.cursor);
-        let next = match at {
-            None => 0,
-            Some(k) => (k as isize + delta).clamp(0, shown.len() as isize - 1) as usize,
-        };
-        self.cursor = shown[next];
-    }
-
-    fn edge(&mut self, last: bool) {
-        let shown: Vec<usize> = self
-            .shown()
-            .into_iter()
-            .filter(|&i| self.enabled(i))
-            .collect();
-        if let Some(&i) = if last { shown.last() } else { shown.first() } {
-            self.cursor = i;
+    /// The options the popup shows now, as rows for the [`Cursor`].
+    fn shown_rows(&self) -> Shown<'_> {
+        Shown {
+            ed: self,
+            rows: self.shown(),
         }
     }
 
@@ -498,10 +485,11 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
-        if matches!(key.code, KeyCode::Char(_)) && key.chord() {
+        if unassigned_chord::<()>(key, &[]) {
+            // the popup is modal: a chord reaches nothing under it
             return (Outcome::Consumed, None);
         }
-        let horizontal = self.kind == Kind::Segmented;
+        let combo = self.kind == Kind::Combo;
         match key.code {
             KeyCode::Esc if cfg.dismiss.escape => {
                 return (Outcome::Changed, Some(ChoiceResult::Cancel));
@@ -533,38 +521,55 @@ impl ChoiceEditor {
                     None => (Outcome::Consumed, None),
                 };
             }
-            KeyCode::Up | KeyCode::Left if horizontal => self.step(-1),
-            KeyCode::Down | KeyCode::Right if horizontal => self.step(1),
-            KeyCode::Up => self.step(-1),
-            KeyCode::Down => self.step(1),
-            KeyCode::PageUp => self.step(-(self.visible_rows.max(1) as isize)),
-            KeyCode::PageDown => self.step(self.visible_rows.max(1) as isize),
-            KeyCode::Home => self.edge(false),
-            KeyCode::End => self.edge(true),
-            KeyCode::Backspace if self.kind == Kind::Combo => {
+            KeyCode::Backspace if combo => {
                 self.query.pop();
                 self.after_query();
+                return (Outcome::Changed, None);
             }
-            KeyCode::Char(c) if self.kind == Kind::Combo => {
+            KeyCode::Char(c) if combo => {
                 self.query.push(c);
                 self.after_query();
+                return (Outcome::Changed, None);
             }
-            KeyCode::Char(c) if cfg.type_ahead && !c.is_whitespace() => {
-                let prefix = self.typeahead.feed(c).to_owned();
-                let found = crate::core::typeahead::TypeAhead::find(
-                    &prefix,
-                    self.options.0.iter().map(|o| o.label.as_str()),
-                    self.cursor,
-                    |i| self.enabled(i),
-                );
-                match found {
-                    Some(i) => self.cursor = i,
-                    None => return (Outcome::Consumed, None),
+            _ => {}
+        }
+        let step = KeyStep::of(key, &cfg.nav, cfg.type_ahead && !combo);
+        let mut ta = std::mem::take(&mut self.typeahead);
+        let shown = self.shown_rows();
+        let at = shown.rows.iter().position(|&i| i == self.cursor);
+        // a Segmented control is a row: ↑/← go back, ↓/→ go on
+        let axis = if self.kind == Kind::Segmented {
+            Axis::Horizontal
+        } else {
+            Axis::Vertical
+        };
+        let mut cursor = Cursor::new(at.unwrap_or(0)).axis(axis);
+        let moved = match step {
+            Some(KeyStep::Type(c)) => cursor.type_ahead(c, &mut ta, &shown),
+            Some(KeyStep::Nav(nav)) => {
+                let nav = match nav {
+                    Nav::Up if axis == Axis::Horizontal => Nav::Left,
+                    Nav::Down if axis == Axis::Horizontal => Nav::Right,
+                    n => n,
+                };
+                match (at, nav) {
+                    // the cursor is filtered out: any step starts at the top
+                    (None, Nav::Up | Nav::Down | Nav::Left | Nav::Right) => cursor.first(&shown),
+                    _ => cursor.apply(nav, &shown, self.visible_rows),
                 }
             }
-            _ => return (Outcome::Consumed, None),
+            None => Moved::Ignored,
+        };
+        let to = moved.index().map(|k| shown.rows[k]);
+        self.typeahead = ta;
+        match (step, moved, to) {
+            (Some(KeyStep::Type(_)), Moved::Stayed(_), _) => (Outcome::Consumed, None),
+            (_, _, Some(i)) => {
+                self.cursor = i;
+                (Outcome::Changed, None)
+            }
+            _ => (Outcome::Consumed, None),
         }
-        (Outcome::Changed, None)
     }
 
     /// The query changed: the cursor goes to the first enabled match.
@@ -614,6 +619,25 @@ impl ChoiceEditor {
             Outcome::Changed,
             Some(ChoiceResult::Commit(self.options.0[i].value.clone())),
         )
+    }
+
+    /// Step the cursor `delta` enabled options through the shown ones.
+    fn step(&mut self, delta: isize) {
+        let shown = self.shown_rows();
+        let at = shown.rows.iter().position(|&i| i == self.cursor);
+        let mut cursor = Cursor::new(at.unwrap_or(0));
+        let mut moved = match at {
+            None => cursor.first(&shown),
+            Some(k) => Moved::Stayed(k),
+        };
+        if at.is_some() {
+            for _ in 0..delta.unsigned_abs() {
+                moved = cursor.step(delta.signum(), &shown);
+            }
+        }
+        if let Some(k) = moved.index() {
+            self.cursor = shown.rows[k];
+        }
     }
 
     /// The wheel over the open popup moves its cursor.
@@ -909,6 +933,24 @@ impl ChoiceEditor {
     }
 }
 
+/// The options a [`ChoiceEditor`] shows (a Combo filters them).
+struct Shown<'a> {
+    ed: &'a ChoiceEditor,
+    rows: Vec<usize>,
+}
+
+impl RowSource for Shown<'_> {
+    fn len(&self) -> usize {
+        self.rows.len()
+    }
+    fn enabled(&self, k: usize) -> bool {
+        self.ed.enabled(self.rows[k])
+    }
+    fn label(&self, k: usize) -> &str {
+        &self.ed.options.0[self.rows[k]].label
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -971,6 +1013,38 @@ mod tests {
         assert_eq!(toggle.toggled("off").as_deref(), Some("on"));
         assert_eq!(toggle.toggled("on").as_deref(), Some("off"));
         assert_eq!(toggle.toggled("maybe").as_deref(), Some("off"));
+    }
+
+    #[test]
+    fn the_popup_moves_with_nav_keys_not_raw_key_codes() {
+        // duplication-widgets P0: the popup matched raw KeyCodes, so vim
+        // keys and NavKeys remaps did nothing there
+        let vim = EditorConfig {
+            nav: crate::core::keymap::NavKeys::VIM,
+            type_ahead: false,
+            ..EditorConfig::default()
+        };
+        let open = |cfg: &EditorConfig| {
+            ChoiceEditor::open(
+                WidgetId::of("c"),
+                &ColumnEditor::Select(envs()),
+                "stage",
+                cfg,
+            )
+            .unwrap()
+        };
+        let mut c = open(&vim);
+        c.on_key(&key(KeyCode::Char('k')), &vim);
+        assert_eq!(c.cursor, 0, "k moves up under the Vim keys");
+        c.on_key(&key(KeyCode::Char('G')), &vim);
+        assert_eq!(c.cursor, 2, "G goes to the last enabled option");
+        let no_arrows = EditorConfig {
+            nav: crate::core::keymap::NavKeys::DESKTOP.arrows(false),
+            ..EditorConfig::default()
+        };
+        let mut c = open(&no_arrows);
+        c.on_key(&key(KeyCode::Up), &no_arrows);
+        assert_eq!(c.cursor, 1, "arrows switched off do not move");
     }
 
     #[test]
