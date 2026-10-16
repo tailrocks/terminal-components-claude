@@ -664,13 +664,22 @@ impl crate::ui::specimen::Specimen for Toolbar {
     }
 }
 
-/// The toolbar's pointer gesture: a completed click on an item runs it
-/// ([`Toolbar::on_click`]).
+/// The toolbar's pointer gesture: a completed click on an item or a row
+/// of its open overflow menu runs it ([`Toolbar::on_click`]). The overflow
+/// menu is the toolbar's too ([`Self::route`]).
 impl crate::core::pointer::MouseTarget for Toolbar {
     type Action = ToolbarAction;
 
     fn mouse_id(&self) -> WidgetId {
         self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<ToolbarAction>> {
+        let menu = self.menu_open() && ev.on(self.menu_id());
+        (ev.on(self.id) || menu).then(|| self.pointer(ev))
     }
 
     fn pointer(
