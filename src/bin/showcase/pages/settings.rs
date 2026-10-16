@@ -276,6 +276,47 @@ impl Page for SettingsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        let out = self.handle_event(ev, cx);
+        // the tab of the section with unsaved edits carries the dirty mark
+        if let Some(general) = self.tabs.items.get_mut(0) {
+            general.dirty = self.dirty;
+        }
+        out
+    }
+
+    fn editing(&self) -> bool {
+        self.name.editing || self.description.editing || self.members.is_editing()
+    }
+
+    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
+        if self.dirty {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: 0 }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if self.members.is_editing() {
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
+        }
+        if self.name.editing || self.description.editing {
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next")];
+        }
+        match focus {
+            Some(f) if f == self.tabs.id => vec![("←→", "Switch tab"), ("1–3", "Jump")],
+            Some(f) if f == self.members.id => {
+                vec![("↑↓←→", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
+            }
+            Some(f) if f == self.env.id => vec![("Space", "Toggle"), ("a", "All")],
+            _ => vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")],
+        }
+    }
+}
+
+impl SettingsPage {
+    /// The page's events; [`Page::handle`] syncs the tabs after them.
+    fn handle_event(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(
                 *ch,
@@ -537,37 +578,6 @@ impl Page for SettingsPage {
         }
     }
 
-    fn editing(&self) -> bool {
-        self.name.editing || self.description.editing || self.members.is_editing()
-    }
-
-    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
-        if self.dirty {
-            junie_tui::ui::leave::Stakes::Unsaved { changes: 0 }
-        } else {
-            junie_tui::ui::leave::Stakes::Clean
-        }
-    }
-
-    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-        if self.members.is_editing() {
-            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
-        }
-        if self.name.editing || self.description.editing {
-            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next")];
-        }
-        match focus {
-            Some(f) if f == self.tabs.id => vec![("←→", "Switch tab"), ("1–3", "Jump")],
-            Some(f) if f == self.members.id => {
-                vec![("↑↓←→", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
-            }
-            Some(f) if f == self.env.id => vec![("Space", "Toggle"), ("a", "All")],
-            _ => vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")],
-        }
-    }
-}
-
-impl SettingsPage {
     fn open_remove(&mut self, cx: &mut PageCtx) {
         let Some(i) = self.selected_member() else {
             return;

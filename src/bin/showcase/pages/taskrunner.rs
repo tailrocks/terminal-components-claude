@@ -433,6 +433,18 @@ impl Page for TaskRunnerPage {
         self.running
     }
 
+    /// Quitting while the pipeline runs stops it: the shell's quit guard
+    /// asks Stay / Stop and leave first (`leave::running_dialog`).
+    fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
+        if self.running {
+            junie_tui::ui::leave::Stakes::Running {
+                what: "The pipeline".into(),
+            }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.log.id) {
             vec![("↑↓", "Scroll"), ("f", "Follow"), ("r", "Run")]
