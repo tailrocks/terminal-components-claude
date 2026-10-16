@@ -212,6 +212,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Columns => COLUMNS,
         PageId::Tables => BASIC_TABLE,
         PageId::Tabs => TABS,
+        PageId::Menus => MENUS,
         _ => &[],
     }
 }
@@ -240,6 +241,31 @@ static BASIC_TABLE: &[Opt] = &[Opt::new(
     &["none", "single", "multi"],
 )
 .default(1)];
+/// The Menus page (SC16): the menu builders and the row menus'
+/// `ContextConfig`.
+pub static MENUS: &[Opt] = &[
+    Opt::new(
+        "menus.placement",
+        "Actions placement",
+        &["below", "above", "right", "left", "center"],
+    ),
+    Opt::new("menus.fit", "Fit", &["menu", "flush", "default"]),
+    Opt::new("menus.edge_margin", "Edge margin", &["0", "1", "2"]).default(1),
+    Opt::new("menus.min_width", "Min width", &["8", "16", "24"]),
+    Opt::new("menus.max_rows", "Max rows", &["all", "8", "4"]),
+    Opt::new("menus.title", "Title", OFF_ON).default(1),
+    Opt::new("menus.release_selects", "Release selects", OFF_ON).default(1),
+    Opt::new("menus.hide_owner_focus", "Hide page focus", OFF_ON).default(1),
+    Opt::new("menus.nav", "Nav keys", &["default", "no-vim"]),
+    Opt::new("menus.wrap", "Wrap", OFF_ON).default(1),
+    Opt::new("menus.type_ahead", "Type-ahead", OFF_ON),
+    Opt::new("menus.dismiss", "Dismiss", &["light", "escape"]),
+    Opt::new("menus.moves_cursor", "Click moves cursor", OFF_ON).default(1),
+    Opt::new("menus.shift_f10", "Shift+F10", OFF_ON).default(1),
+    Opt::new("menus.menu_key", "Menu key", OFF_ON).default(1),
+    Opt::new("menus.extra_key", "Extra key", &["none", "m"]),
+];
+
 /// The Tabs page (SC14): the editor strip's builders.
 pub static TABS: &[Opt] = &[
     Opt::new(
