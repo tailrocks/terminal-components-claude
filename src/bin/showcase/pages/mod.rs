@@ -132,6 +132,8 @@ pub enum PageEvent {
 pub enum Request {
     OpenDialog(Box<Dialog>),
     Status(String),
+    /// Set a live option ([`PageCtx::set_option`]).
+    SetOption(crate::options::OptSet),
 }
 
 pub struct PageCtx<'a> {
@@ -159,6 +161,11 @@ impl PageCtx<'_> {
     }
     pub fn open(&mut self, d: Dialog) {
         self.requests.push(Request::OpenDialog(Box::new(d)));
+    }
+    /// Set a live option (a page's Options section): the shell applies it
+    /// through `App::apply_opt`, the path `--opt` and the Inspector take.
+    pub fn set_option(&mut self, set: crate::options::OptSet) {
+        self.requests.push(Request::SetOption(set));
     }
 }
 
