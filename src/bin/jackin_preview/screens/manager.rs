@@ -2261,11 +2261,8 @@ impl Screen for ManagerScreen {
                 _ => {}
             }
         }
-        if key.is(KeyCode::Esc) {
-            // top of the ladder: quit
-            cx.go(Go::Quit);
-            return Outcome::Changed;
-        }
+        // Esc at the top of the ladder falls through to the shell, which
+        // never quits on it by default (`QuitKeys::esc_quits`)
         Outcome::Ignored
     }
 
@@ -2780,9 +2777,10 @@ impl Screen for ManagerScreen {
         !self.busy_rows.is_empty() || self.still_inside.is_some()
     }
 
-    fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        cx.go(Go::Quit);
-        Outcome::Changed
+    fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
+        // the root has nowhere to go back to; the shell decides whether Esc
+        // may quit (`QuitKeys::esc_quits`, off by default)
+        Outcome::Ignored
     }
 }
 

@@ -2366,6 +2366,21 @@ impl Screen for EditorScreen {
         v
     }
 
+    fn leave_stakes(&mut self, _w: &World) -> junie_tui::ui::leave::Stakes {
+        self.sync_pending();
+        let n = self.change_count();
+        if n > 0 || self.is_create() {
+            junie_tui::ui::leave::Stakes::Unsaved { changes: n }
+        } else {
+            junie_tui::ui::leave::Stakes::Clean
+        }
+    }
+
+    fn request_leave(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        self.leave(cx);
+        Outcome::Changed
+    }
+
     fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(TABS) {
             self.leave(cx);
