@@ -14,6 +14,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -363,26 +364,16 @@ impl Tabs {
         if overflow {
             let more_left = self.first > 0;
             let st = if more_left {
-                t.secondary().bg(bg)
+                ctx.title_style(self.left_id(), bg)
             } else {
                 t.faint().bg(bg)
             };
-            let hovered = ctx.interaction.hovered(self.left_id());
             let text = if more_left {
                 format!("‹{:<3}", self.first.min(99))
             } else {
                 "    ".into()
             };
-            buf.set_string(
-                x,
-                y,
-                &text,
-                if hovered && more_left {
-                    st.bg(t.lift(bg))
-                } else {
-                    st
-                },
-            );
+            buf.set_string(x, y, &text, st);
             if more_left {
                 ctx.clickable(self.left_id(), Rect::new(x, y, 4, 1));
             }
@@ -399,30 +390,18 @@ impl Tabs {
             let r = Rect::new(x, y, w, 1);
             self.areas[i] = r;
             let tid = self.tab_id(i);
-            let mut s = ctx.state(tid);
+            // the × is its own control: hovering it does not hover the tab
+            let mut s = ctx.child_state(self.id, tid, i == self.cursor);
             s.focused = focused && i == self.cursor;
             let active = i == self.active;
-            // active: one plane up; cursor or hover on another tab: two planes
-            // up (bold marks the keyboard cursor); no gutter glyph ever
-            let plane = if active {
-                t.lift(bg)
-            } else if s.focused || s.hovered {
-                t.lift(t.lift(bg))
-            } else {
-                bg
-            };
-            let mut st =
-                ratatui::style::Style::new()
-                    .bg(plane)
-                    .fg(if active || s.focused || s.hovered {
-                        t.text_primary
-                    } else {
-                        t.text_secondary
-                    });
-            if active || s.focused {
-                st = st.add_modifier(Modifier::BOLD);
-            }
+            s.selected = active;
+            // the active tab sits one plane up; hover and press walk that
+            // plane's ladder (or the strip's for the other tabs); the
+            // keyboard cursor is the `▎` gutter in the tab's leading cell
+            let tab = t.interactive(Kind::Tab, s, t.plane_of(bg));
+            let st = tab.style;
             crate::ui::ctx::fill(buf, r, st);
+            buf.set_string(x, y, tab.gutter, tab.gutter_style);
             let mut cx = x + 1;
             if let Some(p) = &it.prefix {
                 buf.set_string(
@@ -466,12 +445,7 @@ impl Tabs {
             }
             if it.closable {
                 let cid = self.close_id(i);
-                let ch = ctx.interaction.hovered(cid);
-                let cs = if ch {
-                    st.fg(t.text_primary).bg(t.lift(st.bg.unwrap_or(bg)))
-                } else {
-                    st.fg(t.text_faint)
-                };
+                let cs = t.close_glyph(ctx.state(cid), st);
                 buf.set_string(cx + 1, y, "×", cs);
                 ctx.clickable(cid, Rect::new(cx + 1, y, 1, 1));
             }
@@ -499,26 +473,16 @@ impl Tabs {
             let more_right = hidden_right > 0;
             let rx = area.right().saturating_sub(right_w + new_w);
             let st = if more_right {
-                t.secondary().bg(bg)
+                ctx.title_style(self.right_id(), bg)
             } else {
                 t.faint().bg(bg)
             };
-            let hovered = ctx.interaction.hovered(self.right_id());
             let text = if more_right {
                 format!("{:>3}›", hidden_right.min(99))
             } else {
                 "    ".into()
             };
-            buf.set_string(
-                rx,
-                y,
-                &text,
-                if hovered && more_right {
-                    st.bg(t.lift(bg))
-                } else {
-                    st
-                },
-            );
+            buf.set_string(rx, y, &text, st);
             if more_right {
                 ctx.clickable(self.right_id(), Rect::new(rx, y, 4, 1));
             }
@@ -526,12 +490,7 @@ impl Tabs {
         if self.allow_new {
             let nx = area.right().saturating_sub(new_w);
             let nid = self.new_id();
-            let hovered = ctx.interaction.hovered(nid);
-            let st = if hovered {
-                t.primary().bg(t.lift(bg))
-            } else {
-                t.muted().bg(bg)
-            };
+            let st = ctx.title_style(nid, bg);
             buf.set_string(nx, y, " + ", st);
             ctx.clickable(nid, Rect::new(nx, y, 3, 1));
         }
