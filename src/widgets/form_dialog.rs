@@ -929,6 +929,72 @@ impl Scrollable for FormDialog {
     }
 }
 
+impl FormDialog {
+    /// One pointer event the router resolved to the form (its layer's
+    /// [`crate::ui::layer::Layer::pointer`]), routed by the event's owner:
+    /// a select field takes its own gestures (an open list scrolls under
+    /// the wheel, its press-drag-release chooses, its backdrop closes it;
+    /// a chosen value marks the form dirty and queues `Changed`); an input
+    /// takes its press, drag and click (a click focuses it); a wheel or a
+    /// bar press on the form scrolls it, and a wheel over anything else
+    /// (nothing under a modal) moves nothing; any other completed click
+    /// is [`Self::on_click_count`].
+    pub fn pointer_in(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+        focus: &mut Focus,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::MouseTarget;
+        use crate::core::response::Response;
+        for f in self.fields.iter_mut() {
+            match &mut f.kind {
+                FormFieldKind::Select(s) => {
+                    let Some(mut r) = s.route(ev) else {
+                        continue;
+                    };
+                    // a wheel the closed field passes on goes to the form
+                    if ev.wheel().is_some() && !r.is_consumed() {
+                        break;
+                    }
+                    if ev.is(Phase::Click) {
+                        focus.focus(s.id);
+                    }
+                    if r.take_action().is_some() {
+                        self.dirty = true;
+                        self.events.push(FormAction::Changed(f.name.clone()));
+                    }
+                    return r.erase();
+                }
+                FormFieldKind::Input(i) if ev.wheel().is_none() => {
+                    let Some(r) = i.route(ev) else {
+                        continue;
+                    };
+                    if ev.is(Phase::Click) {
+                        focus.focus(i.id);
+                    }
+                    return r;
+                }
+                _ => {}
+            }
+        }
+        if ev.wheel().is_some() && !ev.on(self.id) {
+            return Response::ignored();
+        }
+        if ev.on(self.id)
+            && let Some(r) = crate::core::pointer::scroll_input(self, ev)
+        {
+            return r;
+        }
+        match ev.phase() {
+            Some(Phase::Click) => self
+                .on_click_count(ev.id, ev.pos(), ev.count(), focus)
+                .into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1062,5 +1128,64 @@ mod tests {
         f.on_key(&x, &mut focus, &ring);
         f.on_key(&esc, &mut focus, &ring);
         assert!(!f.events.contains(&FormAction::Cancel), "{:?}", f.events);
+    }
+
+    /// M18: a wheel over an open select's list inside a form scrolls the
+    /// list, not the form behind it. The event reaches the form's layer
+    /// resolved from the frame's hit regions, as the pointer router
+    /// delivers it.
+    #[test]
+    fn a_wheel_over_an_open_select_scrolls_its_list_not_the_form() {
+        use crate::core::hit::Axis;
+        use crate::core::pointer::PointerEvent;
+        use crate::ui::layer::{Layer, LayerCx};
+        use crate::ui::layers::LayerResult;
+        use ratatui::crossterm::event::KeyModifiers;
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let many: Vec<String> = (0..30).map(|i| format!("Option {i}")).collect();
+        let many: Vec<&str> = many.iter().map(String::as_str).collect();
+        let mut fields = vec![FormField::select(
+            "kind",
+            Select::new(WidgetId::of("form.kind"), "Kind", &many, 0).max_rows(5),
+        )];
+        for i in 0..8 {
+            let id = WidgetId::of("form.in").sub(&i.to_string());
+            fields.push(FormField::input(&format!("in{i}"), TextInput::new(id, "Field")));
+        }
+        let mut d = FormDialog::new(WidgetId::of("form"), "Form", fields);
+        fn select(d: &mut FormDialog) -> &mut Select {
+            match &mut d.fields[0].kind {
+                FormFieldKind::Select(s) => s,
+                _ => panic!("the first field is the select"),
+            }
+        }
+        select(&mut d).open = true;
+        let screen = Rect::new(0, 0, 70, 20);
+        let mut buf = Buffer::empty(screen);
+        {
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            d.render(screen, &mut buf, &mut ctx);
+            ctx.flush_overlays(&mut buf);
+        }
+        assert!(d.scroll.overflows(), "the form itself scrolls");
+        let row = hits
+            .area_of(select(&mut d).option_id(1))
+            .expect("the open list's rows are hit regions");
+        let pos = ratatui::layout::Position::new(row.x + 1, row.y);
+        let under = hits.scroll_stack(pos)[0];
+        let ev = PointerEvent::wheel_on(&hits, under, Axis::Vertical, 3, pos, KeyModifiers::NONE);
+        let form_before = d.scroll.offset;
+        let mut focus = Focus::default();
+        let mut cx = LayerCx {
+            focus: &mut focus,
+            ring: &ring,
+            app: &(),
+        };
+        let out = Layer::<LayerResult>::pointer(&mut d, &ev, &mut cx);
+        assert_ne!(out, Outcome::Ignored);
+        assert_eq!(select(&mut d).scroll, 3, "the select's list scrolled");
+        assert_eq!(d.scroll.offset, form_before, "the form behind did not");
     }
 }

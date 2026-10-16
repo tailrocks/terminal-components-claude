@@ -661,6 +661,23 @@ impl Scrollable for ScrollPanel {
     }
 }
 
+/// The panel's pointer gestures: a wheel or a bar press scrolls it
+/// ([`crate::core::pointer::scroll_input`]); nothing else.
+impl crate::core::pointer::MouseTarget for ScrollPanel {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        crate::core::pointer::scroll_input(self, ev).unwrap_or_default()
+    }
+}
+
 #[cfg(test)]
 mod scroll_panel_tests {
     use super::*;

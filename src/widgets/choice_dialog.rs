@@ -296,6 +296,36 @@ impl ChoiceDialog {
     }
 }
 
+impl ChoiceDialog {
+    /// One pointer event the router resolved to the dialog (its layer's
+    /// [`crate::ui::layer::Layer::pointer`]): the radio group takes its own
+    /// clicks ([`crate::core::pointer::MouseTarget::route`]; a click
+    /// focuses it); any other completed click is [`Self::on_click`] (a
+    /// button). The dialog does not scroll: a wheel moves nothing.
+    pub fn pointer_in(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+        focus: &mut Focus,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::MouseTarget;
+        use crate::core::response::Response;
+        if ev.wheel().is_some() {
+            return Response::ignored();
+        }
+        if let Some(r) = self.radio.route(ev) {
+            if ev.is(Phase::Click) {
+                focus.focus(self.radio.id);
+            }
+            return r;
+        }
+        if ev.is(Phase::Click) {
+            return self.on_click(ev.id, focus).into();
+        }
+        Response::ignored()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

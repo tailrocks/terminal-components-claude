@@ -574,6 +574,32 @@ impl ButtonRow {
     }
 }
 
+/// The button's pointer gesture: a completed click activates it
+/// ([`Button::on_click`]); the action (`()`) says it did. A click on a
+/// button that cannot activate (disabled, busy) is consumed.
+impl crate::core::pointer::MouseTarget for Button {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::response::Response;
+        if !ev.is(crate::core::intent::Phase::Click) {
+            return Response::ignored();
+        }
+        if self.on_click() {
+            Response::emit(())
+        } else {
+            Response::consumed()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

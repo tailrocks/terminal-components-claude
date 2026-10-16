@@ -297,6 +297,44 @@ impl Scrollable for HelpOverlay {
     }
 }
 
+/// The overlay's pointer gestures: a wheel or a bar press scrolls it; a
+/// completed click on Done or the frame's `×` closes it
+/// ([`HelpOverlay::on_click`]); any other click inside is consumed. Done
+/// and the `×` are the overlay's too ([`Self::route`]).
+impl crate::core::pointer::MouseTarget for HelpOverlay {
+    type Action = ();
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<()>> {
+        let owner = ev.owner();
+        let mine = owner == self.id || owner == self.done.id || owner == crate::ui::modal::CLOSE;
+        mine.then(|| self.pointer(ev))
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<()> {
+        use crate::core::response::Response;
+        if ev.wheel().is_some() && !ev.on(self.id) {
+            return Response::ignored();
+        }
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        if ev.is(crate::core::intent::Phase::Click) {
+            return self.on_click(ev.id).into();
+        }
+        Response::ignored()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
