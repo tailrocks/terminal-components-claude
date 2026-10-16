@@ -1238,8 +1238,6 @@ pub(crate) fn gate2(h: &mut H, phrase: &str) {
     h.key(KeyCode::Enter);
     h.type_str(phrase);
     h.key(KeyCode::Enter);
-    h.key(KeyCode::Tab);
-    h.key(KeyCode::Enter);
     settle_cleanup(h);
 }
 
@@ -2478,8 +2476,6 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
     h.key(KeyCode::Enter);
     h.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
-    h.key(KeyCode::Enter);
-    h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
     // the gate is gone; the world owns the execution and the report page
     // shows it running before the first item is processed
