@@ -15,6 +15,7 @@ use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
+use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::popup::Dismiss;
@@ -23,12 +24,14 @@ use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::grid::CellValue;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{self, Hint, hint};
+use junie_tui::widgets::menu::MenuEvent;
 use junie_tui::widgets::picker::{Picker, PickerEvent, PickerItem};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::select::Select;
 
 use crate::connections::{ConnEvent, ConnectionsScreen};
+use crate::context::{self, CtxMenu};
 use crate::db::{Catalog, Environment, SafeMode};
 use crate::model::{History, SwitchTarget, SwitcherIndex};
 use crate::sql::{self, Decision};
@@ -120,6 +123,8 @@ pub enum Modal {
     Dialog(Dialog),
     Picker(PickerKind, Picker, Option<SwitcherIndex>),
     Filter(FilterEditor),
+    /// A context menu on an explorer row, a tab or a grid cell.
+    Menu(Box<CtxMenu>),
 }
 
 impl junie_tui::ui::modal::Modal for Modal {
@@ -128,6 +133,7 @@ impl junie_tui::ui::modal::Modal for Modal {
             Modal::Dialog(d) => d.dismiss,
             Modal::Picker(_, p, _) => p.dismiss,
             Modal::Filter(f) => f.dismiss,
+            Modal::Menu(m) => m.menu.dismiss,
         }
     }
 }
@@ -143,6 +149,10 @@ pub struct App {
     pub hits: HitRegistry,
     /// Hover, press, flash and click-count state.
     pub pointer: PointerState,
+    /// Context menus: which keys open one at the focused cursor, and
+    /// whether a right-click moves the cursor onto its row. Default
+    /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key).
+    pub context: ContextConfig,
     /// Origin of the pointer clock.
     epoch: Instant,
     /// Open overlays, bottom to top; each restores the focus it covered.
@@ -173,6 +183,7 @@ impl App {
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
             pointer: PointerState::default(),
+            context: ContextConfig::DEFAULT,
             epoch: Instant::now(),
             modals: ModalStack::new(),
             size: (0, 0),
@@ -259,7 +270,7 @@ impl App {
                     Modal::Filter(f) => {
                         forward_blur(ch, &mut [&mut f.column, &mut f.op, &mut f.value])
                     }
-                    Modal::Picker(..) => Outcome::Ignored,
+                    Modal::Picker(..) | Modal::Menu(_) => Outcome::Ignored,
                 });
             }
             out = out.or(self.connections.on_blur(ch));
@@ -285,6 +296,9 @@ impl App {
                     if f.value.editing {
                         return f.value.on_paste(&text);
                     }
+                    return Outcome::Consumed;
+                }
+                if let Some(Modal::Menu(_)) = self.modals.top() {
                     return Outcome::Consumed;
                 }
                 match self.screen {
@@ -549,6 +563,13 @@ impl App {
             self.focus
                 .focus(WidgetId::of("connections").sub("form").sub("name"));
             return Outcome::Changed;
+        }
+        if self.screen == Screen::Workbench
+            && !editing
+            && let Some(w) = self.workbench.as_ref()
+            && let Some(menu) = context::on_key(w, &self.context, self.focus.current(), &key)
+        {
+            return self.open_context(menu);
         }
         if self.screen == Screen::Workbench
             && let Some(o) = self.workbench_chord(&key, editing)
@@ -1601,6 +1622,17 @@ impl App {
                     }
                 }
             }
+            Modal::Menu(m) => {
+                let (o, ev) = m.menu.on_key(&key);
+                match ev {
+                    Some(MenuEvent::Chosen(i)) => self.context_chosen(i),
+                    Some(MenuEvent::Dismissed) => {
+                        self.close_modal();
+                        Outcome::Changed
+                    }
+                    None => o.or(Outcome::Consumed),
+                }
+            }
             Modal::Filter(f) => {
                 let out = Self::filter_key(f, &key, &mut self.focus, &self.ring);
                 match out {
@@ -1989,6 +2021,14 @@ impl App {
                     }
                     Outcome::Changed
                 }
+                Modal::Menu(menu) => match menu.menu.on_click(id) {
+                    Some(MenuEvent::Chosen(i)) => self.context_chosen(i),
+                    Some(MenuEvent::Dismissed) => {
+                        self.close_modal();
+                        Outcome::Changed
+                    }
+                    None => Outcome::Changed,
+                },
                 Modal::Filter(f) => {
                     let o = Self::filter_click(f, id, m.pos, &mut self.focus);
                     match o {
@@ -2186,12 +2226,48 @@ impl App {
 
     /// A secondary click on `id`: the context menu of the row, cell or tab
     /// under it. Dialogs and the other overlays have none.
-    fn on_secondary(&mut self, _m: Mouse, _id: WidgetId) -> Outcome {
-        if self.modals.is_empty() {
-            Outcome::Ignored
-        } else {
-            Outcome::Consumed
+    fn on_secondary(&mut self, m: Mouse, id: WidgetId) -> Outcome {
+        if !self.modals.is_empty() {
+            return Outcome::Consumed;
         }
+        let cfg = self.context;
+        let menu = match (self.screen, self.workbench.as_mut()) {
+            (Screen::Workbench, Some(w)) => context::on_secondary(w, &cfg, id, m.pos),
+            _ => None,
+        };
+        match menu {
+            Some(menu) => self.open_context(menu),
+            None => Outcome::Ignored,
+        }
+    }
+
+    /// Open a context menu; its commands act on `menu.owner`, which takes
+    /// the focus the menu returns to.
+    fn open_context(&mut self, menu: CtxMenu) -> Outcome {
+        self.focus.focus(menu.owner);
+        let keep = self.focus.current();
+        self.modals
+            .push(Modal::Menu(Box::new(menu)), &mut self.focus, keep);
+        self.pointer.pressed = None;
+        Outcome::Changed
+    }
+
+    /// Item `i` of the open context menu: close it, then replay the key
+    /// the item stands for on the widget it is about.
+    fn context_chosen(&mut self, i: usize) -> Outcome {
+        let Some(Modal::Menu(m)) = self.modals.top() else {
+            return Outcome::Ignored;
+        };
+        let (key, target, owner) = (m.keys.get(i).copied().flatten(), m.target, m.owner);
+        self.close_modal();
+        let Some(key) = key else {
+            return Outcome::Changed;
+        };
+        if let Some(w) = self.workbench.as_mut() {
+            context::select(w, target);
+        }
+        self.focus.focus(owner);
+        self.on_key(key).or(Outcome::Changed)
     }
 
     fn filter_click(
@@ -2335,6 +2411,7 @@ impl App {
                     p.draw(area, buf, ctx);
                 }
                 Modal::Filter(f) => Self::draw_filter_editor(f, area, buf, ctx),
+                Modal::Menu(m) => m.menu.render(area, buf, ctx),
             }
         }
         self.modals = modals;
@@ -2448,6 +2525,11 @@ impl App {
                 hint("Tab", "Next field"),
                 hint("Enter", "Apply"),
                 hint("Esc", "Cancel"),
+            ],
+            Some(Modal::Menu(_)) => vec![
+                hint("↑↓", "Move"),
+                hint("Enter", "Choose"),
+                hint("Esc", "Close"),
             ],
             None => match self.screen {
                 Screen::Connections => self.connections.hints(self.focus.current()),
