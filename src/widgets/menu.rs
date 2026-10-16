@@ -146,6 +146,11 @@ pub struct ContextMenu {
     /// Which keys move the cursor (default [`NavKeys::DEFAULT`]).
     /// PageUp/PageDown move by the rows shown.
     pub nav: NavKeys,
+    /// Typing a prefix jumps to the first enabled row whose label starts
+    /// with it (macOS menus and lists). Off by default: plain letters keep
+    /// their vim and action bindings.
+    pub type_ahead: bool,
+    typeahead: crate::core::typeahead::TypeAhead,
 }
 
 impl ContextMenu {
@@ -210,6 +215,8 @@ impl ContextMenu {
             offset: 0,
             cursor_dirty: true,
             nav: NavKeys::DEFAULT,
+            type_ahead: false,
+            typeahead: Default::default(),
         }
     }
 
@@ -229,6 +236,12 @@ impl ContextMenu {
     /// See [`Self::wrap`].
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
+        self
+    }
+
+    /// See [`Self::type_ahead`].
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
         self
     }
 
@@ -339,6 +352,23 @@ impl ContextMenu {
         if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
+        }
+        if let KeyCode::Char(c) = key.code
+            && self.type_ahead
+            && !c.is_whitespace()
+        {
+            let prefix = self.typeahead.feed(c).to_owned();
+            if let Some(i) = crate::core::typeahead::TypeAhead::find(
+                &prefix,
+                self.items.iter().map(|it| it.label.as_str()),
+                self.cursor,
+                |i| !self.items[i].disabled,
+            ) {
+                self.cursor = i;
+                self.cursor_dirty = true;
+                return (Outcome::Changed, None);
+            }
+            return (Outcome::Consumed, None);
         }
         if let Some(nav) = self.nav.action(key) {
             match nav {
@@ -628,6 +658,9 @@ pub struct MenuBar {
     pub nav: NavKeys,
     /// Titles that do not fit. Default [`Overflow::Hide`].
     pub overflow: Overflow,
+    /// The open menu takes type-ahead ([`ContextMenu::type_ahead`]).
+    /// Default off.
+    pub type_ahead: bool,
     /// The chevron title as last drawn ([`Overflow::Chevron`] with hidden
     /// titles), else `Rect::ZERO`.
     pub more_area: Rect,
@@ -657,7 +690,14 @@ impl MenuBar {
             nav: NavKeys::DEFAULT,
             overflow: Overflow::Hide,
             more_area: Rect::ZERO,
+            type_ahead: false,
         }
+    }
+
+    /// See [`Self::type_ahead`].
+    pub fn type_ahead(mut self, on: bool) -> Self {
+        self.type_ahead = on;
+        self
     }
 
     /// See [`Self::overflow`].
@@ -801,7 +841,8 @@ impl MenuBar {
                 .collect();
             let menu = ContextMenu::new(self.more_id().sub("menu"), items)
                 .anchor(self.more_area, Placement::Below)
-                .nav(self.nav);
+                .nav(self.nav)
+                .type_ahead(self.type_ahead);
             self.open = Some(menu);
             return;
         }
@@ -817,7 +858,8 @@ impl MenuBar {
         };
         let menu = ContextMenu::new(self.label_id(i).sub("menu"), self.menus[i].clone())
             .anchor(anchor, Placement::Below)
-            .nav(self.nav);
+            .nav(self.nav)
+            .type_ahead(self.type_ahead);
         self.open = Some(menu);
     }
 
@@ -831,7 +873,10 @@ impl MenuBar {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
-        let nav = self.nav.action(key);
+        // with type-ahead, letters typed into an open menu are a prefix,
+        // never `h`/`l` to the next title
+        let typing = self.type_ahead && self.open.is_some() && matches!(key.code, KeyCode::Char(_));
+        let nav = if typing { None } else { self.nav.action(key) };
         let chevron = self.chevron();
         let step = match nav {
             Some(Nav::Left) => Some(-1),
