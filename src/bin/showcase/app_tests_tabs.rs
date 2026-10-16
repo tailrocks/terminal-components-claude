@@ -16,57 +16,63 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 use junie_tui::ui::specimen::SpecimenState;
 
-struct Harness {
-    app: App,
-    term: Terminal<TestBackend>,
+/// The harness the SC14, SC16, SC27 and SC28 page tests share.
+pub(super) struct Harness {
+    pub app: App,
+    pub term: Terminal<TestBackend>,
 }
 
+#[allow(dead_code)] // each page's tests use their part
 impl Harness {
     fn new(w: u16, h: u16) -> Self {
+        Self::on(w, h, PageId::Tabs)
+    }
+
+    pub fn on(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(PageId::Tabs);
+        app.goto(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
         h
     }
 
-    fn draw(&mut self) {
+    pub fn draw(&mut self) {
         self.term.draw(|f| self.app.render(f)).unwrap();
     }
 
-    fn key(&mut self, code: KeyCode) {
+    pub fn key(&mut self, code: KeyCode) {
         self.key_mod(code, KeyModifiers::NONE);
     }
 
-    fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) {
+    pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) {
         self.app.handle(Input::Key(Key { code, mods }));
         self.draw();
     }
 
-    fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) {
+    pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) {
         self.app
             .handle(Input::Mouse(Mouse::new(kind, Position::new(x, y))));
         self.draw();
     }
 
-    fn click(&mut self, x: u16, y: u16) {
+    pub fn click(&mut self, x: u16, y: u16) {
         self.mouse(MouseKind::Down, x, y);
         self.mouse(MouseKind::Up, x, y);
     }
 
-    fn opt(&mut self, kv: &str) {
+    pub fn opt(&mut self, kv: &str) {
         let set = options::parse_opt(kv).unwrap();
         self.app.apply_opt(set);
         self.draw();
     }
 
-    fn row(&self, y: u16) -> String {
+    pub fn row(&self, y: u16) -> String {
         let buf = self.term.backend().buffer();
         (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
     }
 
-    fn text(&self) -> String {
+    pub fn text(&self) -> String {
         let buf = self.term.backend().buffer();
         (0..buf.area.height)
             .map(|y| self.row(y))
@@ -74,7 +80,7 @@ impl Harness {
             .join("\n")
     }
 
-    fn find(&self, needle: &str) -> Option<(u16, u16)> {
+    pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         (0..buf.area.height).find_map(|y| {
             let row = self.row(y);
@@ -90,31 +96,34 @@ impl Harness {
             .expect("the Tabs page")
     }
 
-    fn section(&mut self, s: Section) {
-        if let Some(t) = self.app.pages[PageId::Tabs.index()].template_mut() {
+    pub fn section(&mut self, s: Section) {
+        let page = self.app.page;
+        if let Some(t) = self.app.pages[page.index()].template_mut() {
             t.set_section(s);
         }
         self.draw();
     }
 
-    fn focus(&mut self, id: WidgetId) {
+    pub fn focus(&mut self, id: WidgetId) {
         self.app.focus.focus(id);
         self.draw();
     }
 
-    fn bars(&self) -> usize {
+    pub fn bars(&self) -> usize {
         self.text().matches('▎').count()
     }
 }
 
-/// `DUMP_PAGE=1 cargo nextest run --bin showcase tabs_dump --no-capture`
+/// `DUMP_PAGE=<slug> cargo nextest run --bin showcase tabs_dump --no-capture`
 /// prints the page at 120×40 (a development aid; asserts nothing).
 #[test]
 fn tabs_dump() {
     if std::env::var("DUMP_PAGE").is_err() {
         return;
     }
-    let mut h = Harness::new(120, 40);
+    let page = std::env::var("DUMP_PAGE").unwrap();
+    let page = PageId::from_name(&page).unwrap_or(PageId::Tabs);
+    let mut h = Harness::on(120, 40, page);
     for s in Section::ALL {
         h.section(s);
         println!("{}\n{}", "=".repeat(120), h.text());
