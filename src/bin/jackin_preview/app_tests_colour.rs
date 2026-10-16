@@ -249,3 +249,63 @@ fn a_stale_quota_warning_keeps_its_warning_level() {
     assert_eq!(c.fg, t.warning, "{r}");
     assert!(r.contains(&format!("90% {}", t.glyphs.warning)), "{r}");
 }
+
+/// Every text cell of row `y` that sits on the cursor row's fill (its
+/// background differs from the `plane`) reads at 4.5:1, and the focus
+/// gutter on it keeps the focus ink.
+fn assert_cursor_row_reads(h: &H, t: &Theme, y: u16, plane: ratatui::style::Color, what: &str) {
+    let r = row(h, y);
+    let w = h.term.backend().buffer().area.width;
+    let mut on_fill = 0;
+    for x in 0..w {
+        let c = cell(h, x, y);
+        if c.bg == plane || c.symbol().trim().is_empty() {
+            continue;
+        }
+        on_fill += 1;
+        if c.symbol() == t.glyphs.focus_bar {
+            assert_eq!(c.fg, t.focus, "{what}: the focus gutter keeps its ink: {r}");
+            continue;
+        }
+        let ratio = junie_tui::theme::contrast_ratio(c.fg, c.bg).unwrap();
+        assert!(
+            ratio >= 4.5,
+            "{what}: {:?} at {x} is {:?} on {:?}, {ratio:.2}:1: {r}",
+            c.symbol(),
+            c.fg,
+            c.bg
+        );
+    }
+    assert!(on_fill > 3, "{what}: the cursor row is a fill: {r}");
+}
+
+#[test]
+fn details_on_a_cursor_row_stay_readable_on_its_fill() {
+    // the manager tree's cursor row is an accent-tinted fill; its meta
+    // (`saved as payments-platform`) drew muted on it (256: 245 on 22,
+    // 2.3:1), the editor's mount row drew `rw worktree host` secondary
+    // (256: 249 on 22, 3.8:1)
+    for level in [
+        junie_tui::theme::ColorLevel::TrueColor,
+        junie_tui::theme::ColorLevel::Ansi256,
+    ] {
+        let t = Theme::for_level(level).centred_hints();
+        let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 72, 20);
+        h.app.theme = t;
+        h.draw();
+        let (_, y) = find(&h, "saved as payments-platform");
+        assert_cursor_row_reads(&h, &t, y, t.canvas, &format!("{level:?} manager tree"));
+
+        h.key(KeyCode::Char('e'));
+        h.key(KeyCode::Char('2'));
+        h.key(KeyCode::Enter);
+        let (_, y) = find(&h, "worktree");
+        assert_cursor_row_reads(
+            &h,
+            &t,
+            y,
+            cell(&h, 1, y + 3).bg,
+            &format!("{level:?} editor mounts"),
+        );
+    }
+}
