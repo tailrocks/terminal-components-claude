@@ -207,6 +207,34 @@ impl IconButton {
     }
 }
 
+/// An icon button has rest, hover and press looks; it never shows focus
+/// (its owner holds it) and has no disabled look.
+impl crate::ui::specimen::Specimen for IconButton {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Hover | Pressed)
+    }
+
+    fn specimen(
+        &self,
+        _state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let host = Style::default().fg(ctx.theme.text_secondary).bg(bg);
+        self.render(area.x, area.y, buf, ctx, host, Some(Tip::default()));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

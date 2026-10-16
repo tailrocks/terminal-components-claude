@@ -287,9 +287,6 @@ ui::context::ContextRequest::map | Menus page | SC16
 
 # ui::ctx
 ui::ctx::Interaction | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
-ui::ctx::FocusVisible | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
-ui::ctx::FocusVisible::Always | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
-ui::ctx::FocusVisible::KeyboardOnly | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
 ui::ctx::RenderCtx | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 ui::ctx::Backdrop | Popups & tooltips page | SC19
 ui::ctx::Backdrop::keep_bottom | Popups & tooltips page | SC19
@@ -408,8 +405,6 @@ ui::reveal::RevealLine | Popups & tooltips page | SC19
 
 # ui::text
 ui::specimen::SpecimenState::Loading | no SC2 specimen loads; the Pickers States grid | SC20
-ui::specimen::StateGrid::label_width | Buttons States grid layout knob | SC7
-ui::specimen::StateGrid::focus_mark | Buttons States grid: an overridden focus depiction | SC7
 ui::text::WrapOpts | Text utilities page | SC26
 
 # ui::tooltip
@@ -425,21 +420,6 @@ widgets::breadcrumb::Breadcrumb | Breadcrumbs & rails page | SC5
 widgets::breadcrumb::Breadcrumb::clickable | Breadcrumbs & rails page | SC5
 
 # widgets::button
-widgets::button::Button::focusable | Buttons page options and States grid | SC7
-widgets::button::Button::tooltip | Buttons page options and States grid | SC7
-widgets::button::Button::shortcut | Buttons page options and States grid | SC7
-widgets::button::Button::focus_visible | Buttons page options and States grid | SC7
-widgets::button::RowAlign | Buttons page options and States grid | SC7
-widgets::button::RowAlign::Start | Buttons page options and States grid | SC7
-widgets::button::RowAlign::End | Buttons page options and States grid | SC7
-widgets::button::RowOverflow | Buttons page options and States grid | SC7
-widgets::button::RowOverflow::More | Buttons page options and States grid | SC7
-widgets::button::RowOverflow::Wrap | Buttons page options and States grid | SC7
-widgets::button::ButtonRow | Buttons page options and States grid | SC7
-widgets::button::RowLayout | Buttons page options and States grid | SC7
-widgets::button::ButtonRow::align | Buttons page options and States grid | SC7
-widgets::button::ButtonRow::gap | Buttons page options and States grid | SC7
-widgets::button::ButtonRow::overflow | Buttons page options and States grid | SC7
 
 # widgets::chips
 widgets::chips::ChipCmd | Chips & selects page options | SC10
@@ -753,14 +733,6 @@ widgets::hintbar::HintLayer::badge | Chrome and Status & hints pages | SC4
 widgets::hintbar::HintLayer::status | Chrome and Status & hints pages | SC4
 
 # widgets::icon_button
-widgets::icon_button::IconLook | Buttons page options and States grid | SC7
-widgets::icon_button::IconLook::Close | Buttons page options and States grid | SC7
-widgets::icon_button::IconLook::Title | Buttons page options and States grid | SC7
-widgets::icon_button::IconButton | Buttons page options and States grid | SC7
-widgets::icon_button::IconButton::pad | Buttons page options and States grid | SC7
-widgets::icon_button::IconButton::plate | Buttons page options and States grid | SC7
-widgets::icon_button::IconButton::danger_hover | Buttons page options and States grid | SC7
-widgets::icon_button::IconButton::tip | Buttons page options and States grid | SC7
 
 # widgets::info_dialog
 widgets::info_dialog::InfoResult | Dialog kinds page | SC18

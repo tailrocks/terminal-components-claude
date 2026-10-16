@@ -4,8 +4,10 @@
 //! - **Playground**: the live widget with demo data (the page draws it).
 //! - **Options**: the page's option table (`crate::options::page_options`),
 //!   the same declarations the Inspector's Options tab and `--opt` read.
-//!   [`Template::render_options`] is the extension point: a page with
-//!   options draws an `OptionsView` over its table there.
+//!   A page with a table builds the template [`Template::with_options`]:
+//!   the section draws an `OptionsView` over it, the page loads the values
+//!   ([`Template::sync_options`]) and applies a change through its own
+//!   `Page::set_option` ([`Template::take_option`]), as `--opt` does.
 //! - **States**: the page's [`StateGrid`], rows = states and columns =
 //!   variants, drawn by the real widget at the current colour level, with a
 //!   "Compare levels" toggle that draws it at all four.
@@ -18,6 +20,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use super::{Hint, PageCtx, PageEvent};
+use crate::options::{Group, Opt, OptSet, OptionsView};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::ColorLevel;
@@ -62,7 +65,18 @@ impl Section {
 pub const WIDE: u16 = 76;
 
 /// The legend beside the Compare toggle: what the focus mark means.
+/// It starts with the grid's own mark ([`StateGrid::mark`]): `▏` by
+/// default, `:` under ASCII glyphs.
 pub const FOCUS_LEGEND: &str = "▏ depicts a focused sample; it is not where your focus is";
+
+/// [`FOCUS_LEGEND`] after `mark`, the glyph the grid really draws.
+pub fn focus_legend(mark: &str) -> String {
+    let rest = FOCUS_LEGEND.trim_start_matches('▏');
+    format!("{mark}{rest}")
+}
+
+/// Widest the Options section's column of controls grows.
+pub const OPTIONS_WIDTH: u16 = 56;
 
 const LEVELS: [ColorLevel; 4] = [
     ColorLevel::TrueColor,
@@ -80,6 +94,10 @@ pub struct Template {
     states: super::layout::Sections,
     /// Rows the States grid drew whole in the last frame.
     shown: Vec<SpecimenState>,
+    /// The page's option controls ([`Self::with_options`]).
+    options: Option<OptionsView>,
+    /// An option the Options section changed, for the page to apply.
+    changed: Option<OptSet>,
 }
 
 impl Template {
@@ -96,7 +114,41 @@ impl Template {
                 s
             },
             shown: Vec::new(),
+            options: None,
+            changed: None,
         }
+    }
+
+    /// The Options section draws the controls of `opts` (the page's
+    /// `crate::options::page_options` table) under `heading`.
+    pub fn with_options(
+        mut self,
+        owner: WidgetId,
+        heading: &'static str,
+        opts: &'static [Opt],
+    ) -> Self {
+        self.options = Some(OptionsView::new(
+            owner.sub("options"),
+            &[Group {
+                heading,
+                opts,
+                empty: "No page options yet",
+            }],
+        ));
+        self
+    }
+
+    /// Load the option controls' values from the page (`value(key)`).
+    pub fn sync_options(&mut self, value: impl Fn(&str) -> Option<usize>) {
+        if let Some(v) = &mut self.options {
+            v.sync(|o| value(o.key).unwrap_or(o.default));
+        }
+    }
+
+    /// The option the Options section changed since the last call; the
+    /// page applies it through its own `Page::set_option`.
+    pub fn take_option(&mut self) -> Option<OptSet> {
+        self.changed.take()
     }
 
     pub fn section(&self) -> Section {
@@ -140,6 +192,17 @@ impl Template {
     /// options are in the Inspector meanwhile.
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
+        if let Some(v) = &mut self.options {
+            // a column of controls, not a field across the whole page
+            let w = area.width.min(OPTIONS_WIDTH);
+            v.render(
+                Rect::new(area.x, area.y, w, area.height),
+                buf,
+                ctx,
+                t.canvas,
+            );
+            return;
+        }
         let e = EmptyState::new("No page options yet")
             .hint("Shell-wide options: i, then Options · or --opt shell.<key>=<value>");
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
@@ -179,8 +242,9 @@ impl Template {
                     .render(Rect::new(r.x, r.y, bw, 1), buf, ctx, t.canvas);
                 let x = r.x + bw + 3;
                 let room = r.right().saturating_sub(x) as usize;
-                if r.width >= WIDE && room >= junie_tui::ui::text::width(FOCUS_LEGEND) {
-                    buf.set_string(x, r.y, FOCUS_LEGEND, t.faint().bg(t.canvas));
+                let legend = focus_legend(self.grid.mark(t));
+                if r.width >= WIDE && room >= junie_tui::ui::text::width(&legend) {
+                    buf.set_string(x, r.y, &legend, t.faint().bg(t.canvas));
                 }
             }
             None => ctx.focus_stop(self.compare.id),
@@ -228,6 +292,21 @@ impl Template {
     }
 
     fn handle_inner(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Option<Outcome> {
+        let on_options = self.section() == Section::Options;
+        if let Some(v) = &mut self.options {
+            if let PageEvent::Blur(ch) = ev
+                && v.has_control(ch.from)
+            {
+                return Some(v.on_blur(Some(ch.from)));
+            }
+            if on_options && let Some((o, set)) = v.handle(ev, cx) {
+                if set.is_some() {
+                    self.changed = set;
+                    return Some(Outcome::Changed);
+                }
+                return Some(o);
+            }
+        }
         let states = self.section() == Section::States;
         if states && let Some(o) = self.states.handle(ev) {
             return Some(o);
@@ -268,6 +347,9 @@ impl Template {
         let f = focus?;
         if f == self.tabs.id {
             return Some(vec![("←→", "Section"), ("1–3", "Jump")]);
+        }
+        if let Some(h) = self.options.as_ref().and_then(|v| v.hints(focus)) {
+            return Some(h);
         }
         (f == self.compare.id).then(|| vec![("Enter / Space", "Compare levels")])
     }
