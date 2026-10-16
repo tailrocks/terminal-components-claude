@@ -525,6 +525,14 @@ impl ScrollPanel {
         }
     }
 
+    /// The pointer dragged while holding `pressed` (either of this
+    /// widget's scrollbar ids): the axis follows the id, so a drag works
+    /// whether or not the press was routed first.
+    pub fn on_bar_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        self.h_held = pressed == scrollbar::h_id_for(self.id);
+        self.on_scrollbar_drag(pos)
+    }
+
     /// The pointer dragged along the scrollbar it pressed.
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
         if self.h_held && !self.htrack.is_empty() {

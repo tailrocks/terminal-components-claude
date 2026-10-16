@@ -168,7 +168,7 @@ impl Page for PanelsPage {
             PageEvent::Drag { pressed, pos } => {
                 for p in self.panels() {
                     if scrollbar::is_bar_of(*pressed, p.id) {
-                        return p.on_scrollbar_drag(*pos);
+                        return p.on_bar_drag(*pressed, *pos);
                     }
                 }
                 Outcome::Ignored
