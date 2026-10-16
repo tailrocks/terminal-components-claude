@@ -203,6 +203,7 @@ impl DiffMode {
 }
 
 /// Renders one [`DiffFile`] into a [`TextViewport`].
+#[derive(Debug, Clone)]
 pub struct DiffView {
     pub term: TextViewport,
     pub mode: DiffMode,

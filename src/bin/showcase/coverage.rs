@@ -95,6 +95,154 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC25: Diff and Terminal
+    (
+        "widgets::diff::DiffLineKind",
+        Demo("diff", "+ attempts = 5"),
+    ),
+    (
+        "widgets::diff::DiffLineKind::Context",
+        Demo("diff", "[service.worker_0]"),
+    ),
+    (
+        "widgets::diff::DiffLineKind::Add",
+        Demo("diff", "+ attempts = 5"),
+    ),
+    (
+        "widgets::diff::DiffLineKind::Remove",
+        Demo("diff", "- attempts = 3"),
+    ),
+    ("widgets::diff::DiffLine", Demo("diff", "- attempts = 3")),
+    ("widgets::diff::DiffHunk", Demo("diff", "@@ -1,6 +1,7 @@")),
+    (
+        "widgets::diff::DiffStatus",
+        Demo("diff", "M config/service.toml"),
+    ),
+    (
+        "widgets::diff::DiffStatus::Added",
+        Demo("diff", "A docs/retries.md"),
+    ),
+    (
+        "widgets::diff::DiffStatus::Modified",
+        Demo("diff", "M config/service.toml"),
+    ),
+    (
+        "widgets::diff::DiffStatus::Deleted",
+        Demo("diff", "D src/legacy_backoff.rs"),
+    ),
+    (
+        "widgets::diff::DiffStatus::Renamed",
+        Demo("diff", "R src/retry.rs →"),
+    ),
+    ("widgets::diff::DiffFile", Demo("diff", "+10 −5")),
+    (
+        "widgets::diff::DiffMode::toggled",
+        Option("diff", "diff.mode"),
+    ),
+    (
+        "widgets::steps::StepState::Done",
+        StateRow("terminal", "rest"),
+    ),
+    (
+        "widgets::steps::StepState::Skipped",
+        StateRow("terminal", "rest"),
+    ),
+    (
+        "widgets::steps::StepState::Failed",
+        StateRow("terminal", "rest"),
+    ),
+    (
+        "widgets::steps::StepState::Blocked",
+        StateRow("terminal", "rest"),
+    ),
+    (
+        "widgets::steps::StepRail::nav",
+        Option("terminal", "terminal.rail_nav"),
+    ),
+    (
+        "widgets::steps::StepRail::track_click",
+        Option("terminal", "terminal.track_click"),
+    ),
+    (
+        "widgets::steps::StepRail::selectable",
+        Option("terminal", "terminal.selectable"),
+    ),
+    (
+        "widgets::viewport::Span",
+        Demo("terminal", "profile dev · config jackin.toml"),
+    ),
+    (
+        "widgets::viewport::Span::bold",
+        Demo("terminal", "payments-platform ❯ jackin launch"),
+    ),
+    (
+        "widgets::viewport::Span::italic",
+        Demo("terminal", "profile dev"),
+    ),
+    (
+        "widgets::viewport::Span::underline",
+        Demo("terminal", "config jackin.toml"),
+    ),
+    (
+        "widgets::viewport::Span::reversed",
+        Demo("terminal", "LIVE"),
+    ),
+    (
+        "widgets::viewport::CellPos",
+        StateRow("terminal", "selected"),
+    ),
+    (
+        "widgets::viewport::Mark",
+        Option("terminal", "terminal.mark"),
+    ),
+    (
+        "widgets::viewport::WorkCounters",
+        Demo("terminal", "viewport work:"),
+    ),
+    (
+        "widgets::viewport::ViewportCmd",
+        Option("terminal", "terminal.keymap"),
+    ),
+    (
+        "widgets::viewport::ViewportCmd::ToggleFollow",
+        Option("terminal", "terminal.keymap"),
+    ),
+    (
+        "widgets::viewport::ViewportCmd::Copy",
+        Option("terminal", "terminal.keymap"),
+    ),
+    (
+        "widgets::viewport::ViewportCmd::SelectAll",
+        Option("terminal", "terminal.keymap"),
+    ),
+    (
+        "widgets::viewport::TextViewport::nav",
+        Option("terminal", "terminal.nav"),
+    ),
+    (
+        "widgets::viewport::TextViewport::keymap",
+        Option("terminal", "terminal.keymap"),
+    ),
+    (
+        "widgets::viewport::TextViewport::horizontal",
+        Option("terminal", "terminal.horizontal"),
+    ),
+    (
+        "widgets::viewport::TextViewport::track_click",
+        Option("terminal", "terminal.track_click"),
+    ),
+    (
+        "widgets::viewport::TextViewport::scrollbar_gap",
+        Option("terminal", "terminal.scrollbar_gap"),
+    ),
+    (
+        "widgets::viewport::TextViewport::wrap",
+        Option("terminal", "terminal.wrap"),
+    ),
+    (
+        "widgets::viewport::TextViewport::max_lines",
+        Option("terminal", "terminal.max_lines"),
+    ),
     // SC24: Code editor
     ("widgets::code::Severity", StateRow("codeeditor", "error")),
     (

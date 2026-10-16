@@ -270,6 +270,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Trees => TREES,
         PageId::Panels => PANELS,
         PageId::Scrolling => SCROLLING,
+        PageId::Diff => DIFF,
+        PageId::Terminal => TERMINAL,
         _ => &[],
     }
 }
@@ -1199,6 +1201,41 @@ pub static CODE_EDITOR: &[Opt] = &[
         "codeeditor.completion_nav",
         "Completion keys",
         &["default", "vim"],
+    ),
+];
+
+/// Diff (SC25): the view's mode, the no-file state and a narrow pane.
+pub static DIFF: &[Opt] = &[
+    Opt::new("diff.mode", "Mode", &["unified", "review"]),
+    Opt::new("diff.file", "File", &["changes", "none"]),
+    Opt::new("diff.width", "Page width", &["full", "narrow"]),
+];
+
+/// Terminal (SC25): every `TextViewport` knob, then the step rail's.
+pub static TERMINAL: &[Opt] = &[
+    Opt::new("terminal.wrap", "Wrap long lines", OFF_ON),
+    Opt::new("terminal.max_lines", "Lines kept", &["2000", "20"]),
+    Opt::new(
+        "terminal.horizontal",
+        "Horizontal scroll",
+        &["theme", "on", "off"],
+    ),
+    Opt::new("terminal.scrollbar_gap", "Scrollbar gap", &["1", "0", "2"]),
+    Opt::new("terminal.track_click", "Track click", &["page", "jump"]),
+    Opt::new(
+        "terminal.nav",
+        "Viewport keys",
+        &["default", "vim", "no-page"],
+    ),
+    Opt::new("terminal.keymap", "Command keys", &["default", "custom"]),
+    Opt::new("terminal.mark", "Find marks", OFF_ON),
+    // step rail
+    Opt::new("terminal.selectable", "Selectable rail", OFF_ON),
+    Opt::new("terminal.numbered", "Numbered steps", OFF_ON).default(1),
+    Opt::new(
+        "terminal.rail_nav",
+        "Rail keys",
+        &["default", "vim", "no-page"],
     ),
 ];
 
