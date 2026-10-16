@@ -264,7 +264,7 @@ impl ContextMenu {
     /// (as an overlay) on a copy.
     fn prepare(&mut self, screen: Rect, ctx: &RenderCtx) {
         self.area = self.placed(screen).intersection(screen);
-        if let Some(h) = ctx.interaction.hover
+        if let Some(h) = ctx.interaction.live_hover()
             && let Some(i) = self.locate(h)
             && !self.items[i].disabled
         {
@@ -608,7 +608,7 @@ impl MenuBar {
         }
         // with a menu open, pointing at another title opens that one
         // (unless `hover_switch` is off)
-        self.on_hover(ctx.interaction.hover);
+        self.on_hover(ctx.interaction.live_hover());
         let t = ctx.theme;
         fill(buf, area, Style::new().bg(bg));
         ctx.control(self.id, area, false);
