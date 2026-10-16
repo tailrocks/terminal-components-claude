@@ -112,8 +112,10 @@ impl Harness {
         let buffer = self.term.backend().buffer();
         for y in 0..buffer.area.height {
             let row = self.row(y);
+            // a byte offset is not a column: a `│` before the label is
+            // three bytes and one cell
             if let Some(x) = row.find(needle) {
-                return Some((x as u16, y));
+                return Some((junie_tui::ui::text::width(&row[..x]) as u16, y));
             }
         }
         None

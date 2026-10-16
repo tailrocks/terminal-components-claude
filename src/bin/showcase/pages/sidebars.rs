@@ -187,7 +187,8 @@ impl NavList {
         self.scroll.set_content(rows.len());
         self.scroll.set_viewport(area.height as usize);
         let has_sb = self.scroll.overflows();
-        let row_w = area.width.saturating_sub(u16::from(has_sb));
+        // the last column is the divider, and the scrollbar on overflow
+        let row_w = area.width.saturating_sub(1);
         let mut cursor_y = None;
         for (k, ri) in self.scroll.visible_range().enumerate() {
             let y = area.y + k as u16;
@@ -272,8 +273,15 @@ impl NavList {
                 &self.scroll,
                 &cursor_y.into_iter().collect::<Vec<_>>(),
             );
-            scrollbar::render_vertical(self.track, buf, ctx, self.id, &self.scroll, focused);
         }
+        scrollbar::render_divider(
+            Rect::new(area.right().saturating_sub(1), area.y, 1, area.height),
+            buf,
+            ctx,
+            self.id,
+            &self.scroll,
+            focused,
+        );
         if !ctx.inert {
             ctx.ring.register(self.id);
         }
