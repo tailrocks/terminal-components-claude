@@ -15,37 +15,6 @@ app::jackin_preview::intro | jackin-only brand animation, product owner decision
 app::jackin_preview::outro | jackin-only brand animation, product owner decision 2026-10-16 | permanent
 
 # core::edit
-core::edit::EditEntry | Inputs and Text areas page options | SC8
-core::edit::EditEntry::Immediate | Inputs and Text areas page options | SC8
-core::edit::EditEntry::TypeToEdit | Inputs and Text areas page options | SC8
-core::edit::EditEntry::Explicit | Inputs and Text areas page options | SC8
-core::edit::FocusSelect | Inputs and Text areas page options | SC8
-core::edit::FocusSelect::SelectAll | Inputs and Text areas page options | SC8
-core::edit::FocusSelect::CaretEnd | Inputs and Text areas page options | SC8
-core::edit::FocusSelect::CaretStart | Inputs and Text areas page options | SC8
-core::edit::FieldKeys | Inputs and Text areas page options | SC8
-core::edit::FieldKeys::Emacs | Inputs and Text areas page options | SC8
-core::edit::FieldKeys::Desktop | Inputs and Text areas page options | SC8
-core::edit::TextCmd | Inputs and Text areas page options | SC8
-core::edit::TextCmd::SelectAll | Inputs and Text areas page options | SC8
-core::edit::TextCmd::Copy | Inputs and Text areas page options | SC8
-core::edit::TextCmd::Cut | Inputs and Text areas page options | SC8
-core::edit::TextCmd::Paste | Inputs and Text areas page options | SC8
-core::edit::TextCmd::Undo | Inputs and Text areas page options | SC8
-core::edit::TextCmd::Redo | Inputs and Text areas page options | SC8
-core::edit::TextCmd::LineStart | Inputs and Text areas page options | SC8
-core::edit::TextCmd::LineEnd | Inputs and Text areas page options | SC8
-core::edit::TextCmd::DocStart | Inputs and Text areas page options | SC8
-core::edit::TextCmd::DocEnd | Inputs and Text areas page options | SC8
-core::edit::TextCmd::SelectToLineStart | Inputs and Text areas page options | SC8
-core::edit::TextCmd::SelectToLineEnd | Inputs and Text areas page options | SC8
-core::edit::TextCmd::SelectToDocStart | Inputs and Text areas page options | SC8
-core::edit::TextCmd::SelectToDocEnd | Inputs and Text areas page options | SC8
-core::edit::EditKind | Inputs and Text areas page options | SC8
-core::edit::EditKind::Typing | Inputs and Text areas page options | SC8
-core::edit::EditKind::Deleting | Inputs and Text areas page options | SC8
-core::edit::EditKind::Other | Inputs and Text areas page options | SC8
-core::edit::UndoStack | Inputs and Text areas page options | SC8
 
 # core::event
 core::event::Outcome | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -82,10 +51,6 @@ core::focus::FocusRing | Focus & navigation and Toolbars pages | SC28
 core::focus::FocusFallback | Focus & navigation and Toolbars pages | SC28
 core::focus::FocusFallback::Nearest | Focus & navigation and Toolbars pages | SC28
 core::focus::FocusFallback::First | Focus & navigation and Toolbars pages | SC28
-core::focus::BlurAction | Inputs and Text areas page options | SC8
-core::focus::BlurAction::Commit | Inputs and Text areas page options | SC8
-core::focus::BlurAction::Cancel | Inputs and Text areas page options | SC8
-core::focus::BlurAction::Keep | Inputs and Text areas page options | SC8
 core::focus::FocusChange | Focus & navigation and Toolbars pages | SC28
 core::focus::Focus | Focus & navigation and Toolbars pages | SC28
 
@@ -575,27 +540,22 @@ widgets::empty::EmptyState::actions | Progress and Empty & error pages | SC21
 widgets::empty::EmptyState::hint | Progress and Empty & error pages | SC21
 
 # widgets::field_common
-widgets::field_common::PointerSelect | Inputs and Text areas page options | SC8
-widgets::field_common::PointerSelect::drag | Inputs and Text areas page options | SC8
-widgets::field_common::PointerSelect::word | Inputs and Text areas page options | SC8
-widgets::field_common::PointerSelect::line | Inputs and Text areas page options | SC8
-widgets::field_common::PointerSelect::drag_by_word | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Commit | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Cancel | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Tab | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Apply | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Insert | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Undo | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Redo | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Copy | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Cut | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::Paste | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::SelectAll | Inputs and Text areas page options | SC8
-widgets::field_common::EditAction::None | Inputs and Text areas page options | SC8
-widgets::field_common::Applied | Inputs and Text areas page options | SC8
-widgets::field_common::Applied::Edited | Inputs and Text areas page options | SC8
-widgets::field_common::Applied::Moved | Inputs and Text areas page options | SC8
+widgets::field_common::EditAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Commit | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Cancel | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Tab | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Apply | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Insert | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Undo | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Redo | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Copy | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Cut | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::Paste | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::SelectAll | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::EditAction::None | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::Applied | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::Applied::Edited | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::Applied::Moved | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::form_dialog
 widgets::form_dialog::FieldValue | Dialog kinds page | SC18
@@ -765,23 +725,12 @@ widgets::info_dialog::InfoDialog::error | Dialog kinds page | SC18
 widgets::info_dialog::InfoDialog::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::input
-widgets::input::TextValidator | Inputs and Text areas page options | SC8
-widgets::input::InputAction | Inputs and Text areas page options | SC8
-widgets::input::InputAction::Committed | Inputs and Text areas page options | SC8
-widgets::input::InputAction::Cancelled | Inputs and Text areas page options | SC8
-widgets::input::InputAction::CommittedTab | Inputs and Text areas page options | SC8
-widgets::input::InputAction::Changed | Inputs and Text areas page options | SC8
-widgets::input::TextInput::required_message | Inputs and Text areas page options | SC8
-widgets::input::TextInput::plain_label | Inputs and Text areas page options | SC8
-widgets::input::TextInput::wrap_label | Inputs and Text areas page options | SC8
-widgets::input::TextInput::blur_action | Inputs and Text areas page options | SC8
-widgets::input::TextInput::edit_entry | Inputs and Text areas page options | SC8
-widgets::input::TextInput::type_to_edit | Inputs and Text areas page options | SC8
-widgets::input::TextInput::focus_select | Inputs and Text areas page options | SC8
-widgets::input::TextInput::text_keymap | Inputs and Text areas page options | SC8
-widgets::input::TextInput::field_keys | Inputs and Text areas page options | SC8
-widgets::input::TextInput::pointer_select | Inputs and Text areas page options | SC8
-widgets::input::TextInput::label_hit | Inputs and Text areas page options | SC8
+widgets::input::InputAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::input::InputAction::Committed | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::input::InputAction::Cancelled | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::input::InputAction::CommittedTab | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::input::InputAction::Changed | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::input::TextInput::type_to_edit | deprecated alias of TextInput::edit_entry, shown through inputs.edit_entry | permanent
 
 # widgets::keyhint
 widgets::keyhint::Hint | Chrome and Status & hints pages | SC4
@@ -1125,16 +1074,6 @@ widgets::tabs::Tabs::close_reveal | Tabs page | SC14
 widgets::tabs::Tabs::middle_click_closes | Tabs page | SC14
 
 # widgets::textarea
-widgets::textarea::TextArea::edit_entry | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::focus_select | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::esc_reverts | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::text_keymap | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::field_keys | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::nav | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::pointer_select | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::blur_action | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::horizontal | Inputs and Text areas page options | SC8
-widgets::textarea::TextArea::label_hit | Inputs and Text areas page options | SC8
 
 # widgets::tree
 widgets::tree::TreeNode::glyph | Lists and Trees page options | SC15

@@ -843,6 +843,71 @@ impl PointerField for TextArea {
     }
 }
 
+/// Every state a text area has: rest, hover, focused, editing (a static
+/// caret: samples never move the terminal cursor), error, disabled, empty
+/// (the placeholder) and overflow (a line longer than the area).
+impl crate::ui::specimen::Specimen for TextArea {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        match state {
+            Rest | Hover | Focused | FocusedHover | Editing | Error | Disabled | Empty
+            | Overflow | Narrow => true,
+            Pressed | Selected | Busy | Loading => false,
+        }
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        self.height()
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState;
+        let mut a = self.clone();
+        a.help.clear();
+        let v = state.visual();
+        a.disabled |= v.disabled;
+        a.editing = v.editing;
+        if v.error && a.error.is_none() {
+            a.error = Some("Explain why, in the imperative".into());
+        }
+        match state {
+            SpecimenState::Empty => {
+                if a.placeholder.is_empty() {
+                    a.placeholder = "Anything to add…".into();
+                }
+                a = a.value("");
+            }
+            SpecimenState::Overflow => {
+                let long = format!(
+                    "{} and a line longer than the area",
+                    a.buffer.text().lines().next().unwrap_or_default()
+                );
+                a = a.value(&long);
+            }
+            _ => {}
+        }
+        a.render(area, buf, ctx, bg);
+        if v.editing && a.text_area.width > 1 {
+            let first = a.buffer.text().lines().next().unwrap_or_default();
+            let x = (a.text_area.x + width(first) as u16).min(a.text_area.right() - 1);
+            if let Some(c) = buf.cell_mut(Position::new(x, a.text_area.y)) {
+                c.bg = ctx.theme.text_primary;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

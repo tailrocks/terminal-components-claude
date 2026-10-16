@@ -258,6 +258,224 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::specimen::StateGrid::focus_mark",
         Option("buttons", "buttons.focus_mark"),
     ),
+    // SC8 Inputs and Text areas
+    (
+        "core::edit::EditEntry",
+        Option("inputs", "inputs.edit_entry"),
+    ),
+    (
+        "core::edit::EditEntry::Immediate",
+        Option("inputs", "inputs.edit_entry=immediate"),
+    ),
+    (
+        "core::edit::EditEntry::TypeToEdit",
+        Option("inputs", "inputs.edit_entry=type-to-edit"),
+    ),
+    (
+        "core::edit::EditEntry::Explicit",
+        Option("inputs", "inputs.edit_entry=explicit"),
+    ),
+    (
+        "core::edit::FocusSelect",
+        Option("inputs", "inputs.focus_select"),
+    ),
+    (
+        "core::edit::FocusSelect::SelectAll",
+        Option("inputs", "inputs.focus_select=select-all"),
+    ),
+    (
+        "core::edit::FocusSelect::CaretEnd",
+        Option("inputs", "inputs.focus_select=caret-end"),
+    ),
+    (
+        "core::edit::FocusSelect::CaretStart",
+        Option("inputs", "inputs.focus_select=caret-start"),
+    ),
+    (
+        "core::edit::FieldKeys",
+        Option("inputs", "inputs.field_keys"),
+    ),
+    (
+        "core::edit::FieldKeys::Emacs",
+        Option("inputs", "inputs.field_keys=emacs"),
+    ),
+    (
+        "core::edit::FieldKeys::Desktop",
+        Option("inputs", "inputs.field_keys=desktop"),
+    ),
+    (
+        "core::edit::TextCmd",
+        Option("inputs", "inputs.text_keymap"),
+    ),
+    (
+        "core::edit::TextCmd::SelectAll",
+        Demo("inputs", "Select all Ctrl+A"),
+    ),
+    ("core::edit::TextCmd::Copy", Demo("inputs", "Copy Ctrl+C")),
+    ("core::edit::TextCmd::Cut", Demo("inputs", "Cut Ctrl+X")),
+    ("core::edit::TextCmd::Paste", Demo("inputs", "Paste Ctrl+V")),
+    ("core::edit::TextCmd::Undo", Demo("inputs", "Undo Ctrl+Z")),
+    ("core::edit::TextCmd::Redo", Demo("inputs", "Redo Ctrl+Y")),
+    (
+        "core::edit::TextCmd::LineStart",
+        Demo("inputs", "Line start Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::LineEnd",
+        Demo("inputs", "Line end Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::DocStart",
+        Demo("inputs", "Text start Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::DocEnd",
+        Demo("inputs", "Text end Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::SelectToLineStart",
+        Demo("inputs", "Select to line start Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::SelectToLineEnd",
+        Demo("inputs", "Select to line end Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::SelectToDocStart",
+        Demo("inputs", "Select to text start Cmd chord"),
+    ),
+    (
+        "core::edit::TextCmd::SelectToDocEnd",
+        Demo("inputs", "Select to text end Cmd chord"),
+    ),
+    ("core::edit::EditKind", Demo("inputs", "(Typing)")),
+    ("core::edit::EditKind::Typing", Demo("inputs", "(Typing)")),
+    (
+        "core::edit::EditKind::Deleting",
+        Demo("inputs", "(Deleting)"),
+    ),
+    ("core::edit::EditKind::Other", Demo("inputs", "(Other)")),
+    ("core::edit::UndoStack", Demo("inputs", "Undo history")),
+    (
+        "core::focus::BlurAction",
+        Option("inputs", "inputs.blur_action"),
+    ),
+    (
+        "core::focus::BlurAction::Commit",
+        Option("inputs", "inputs.blur_action=commit"),
+    ),
+    (
+        "core::focus::BlurAction::Cancel",
+        Option("inputs", "inputs.blur_action=cancel"),
+    ),
+    (
+        "core::focus::BlurAction::Keep",
+        Option("inputs", "inputs.blur_action=keep"),
+    ),
+    (
+        "widgets::field_common::PointerSelect",
+        Option("inputs", "inputs.pointer_select"),
+    ),
+    (
+        "widgets::field_common::PointerSelect::drag",
+        Option("inputs", "inputs.pointer_select=no-drag"),
+    ),
+    (
+        "widgets::field_common::PointerSelect::word",
+        Option("inputs", "inputs.pointer_select=no-word"),
+    ),
+    (
+        "widgets::field_common::PointerSelect::line",
+        Option("inputs", "inputs.pointer_select=no-line"),
+    ),
+    (
+        "widgets::field_common::PointerSelect::drag_by_word",
+        Option("inputs", "inputs.pointer_select=by-word"),
+    ),
+    (
+        "widgets::input::TextValidator",
+        Demo("inputs", "Enter a valid email address"),
+    ),
+    (
+        "widgets::input::TextInput::required_message",
+        Option("inputs", "inputs.required_message"),
+    ),
+    (
+        "widgets::input::TextInput::plain_label",
+        Option("inputs", "inputs.plain_label"),
+    ),
+    (
+        "widgets::input::TextInput::wrap_label",
+        Option("inputs", "inputs.wrap_label"),
+    ),
+    (
+        "widgets::input::TextInput::blur_action",
+        Option("inputs", "inputs.blur_action"),
+    ),
+    (
+        "widgets::input::TextInput::edit_entry",
+        Option("inputs", "inputs.edit_entry"),
+    ),
+    (
+        "widgets::input::TextInput::focus_select",
+        Option("inputs", "inputs.focus_select"),
+    ),
+    (
+        "widgets::input::TextInput::text_keymap",
+        Option("inputs", "inputs.text_keymap"),
+    ),
+    (
+        "widgets::input::TextInput::field_keys",
+        Option("inputs", "inputs.field_keys"),
+    ),
+    (
+        "widgets::input::TextInput::pointer_select",
+        Option("inputs", "inputs.pointer_select"),
+    ),
+    (
+        "widgets::input::TextInput::label_hit",
+        Option("inputs", "inputs.label_hit"),
+    ),
+    (
+        "widgets::textarea::TextArea::edit_entry",
+        Option("textareas", "textareas.edit_entry"),
+    ),
+    (
+        "widgets::textarea::TextArea::focus_select",
+        Option("textareas", "textareas.focus_select"),
+    ),
+    (
+        "widgets::textarea::TextArea::esc_reverts",
+        Option("textareas", "textareas.esc_reverts"),
+    ),
+    (
+        "widgets::textarea::TextArea::text_keymap",
+        Option("textareas", "textareas.text_keymap"),
+    ),
+    (
+        "widgets::textarea::TextArea::field_keys",
+        Option("textareas", "textareas.field_keys"),
+    ),
+    (
+        "widgets::textarea::TextArea::nav",
+        Option("textareas", "textareas.nav"),
+    ),
+    (
+        "widgets::textarea::TextArea::pointer_select",
+        Option("textareas", "textareas.pointer_select"),
+    ),
+    (
+        "widgets::textarea::TextArea::blur_action",
+        Option("textareas", "textareas.blur_action"),
+    ),
+    (
+        "widgets::textarea::TextArea::horizontal",
+        Option("textareas", "textareas.horizontal"),
+    ),
+    (
+        "widgets::textarea::TextArea::label_hit",
+        Option("textareas", "textareas.label_hit"),
+    ),
     (
         "widgets::input::TextInput",
         Demo("inputs", "Project name *"),
