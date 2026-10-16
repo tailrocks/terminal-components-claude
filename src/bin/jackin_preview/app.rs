@@ -1041,7 +1041,7 @@ impl App {
                     "General",
                     vec![
                         ("Enter", "edit field"),
-                        ("Esc", "revert"),
+                        ("Esc", "cancel the edit"),
                         ("Space", "toggle"),
                         ("Choose…", "working directory picker"),
                     ],
@@ -1081,7 +1081,7 @@ impl App {
                     "Save",
                     vec![
                         ("Ctrl+S", "preview then save"),
-                        ("Esc", "leave · asks when dirty"),
+                        ("Esc", "back · asks when dirty"),
                     ],
                 ),
             ],
@@ -1119,7 +1119,7 @@ impl App {
                     "Save",
                     vec![
                         ("Ctrl+S", "preview then save"),
-                        ("Esc", "leave · asks when dirty"),
+                        ("Esc", "back · asks when dirty"),
                     ],
                 ),
             ],

@@ -769,7 +769,7 @@ impl CustomModal for InspectChanges {
                 hint("drag", "Select"),
                 hint("y", "Copy"),
                 view_hint(self.diff.mode),
-                hint("Esc", "List"),
+                hint("Esc", "Back to list"),
             ],
             InspectMode::Compact => vec![
                 hint("↑↓", "Move"),
@@ -793,7 +793,7 @@ impl CustomModal for InspectChanges {
                     hint("y", "Copy"),
                     hint("Tab", "Tree"),
                     view_hint(self.diff.mode),
-                    hint("Esc", "Tree"),
+                    hint("Esc", "Back to tree"),
                 ],
             },
         }

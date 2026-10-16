@@ -1185,7 +1185,7 @@ impl Screen for CleanupPage {
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if focus == Some(DETAIL) {
-            return vec![hint("↑↓", "Scroll"), hint("Esc", "List")];
+            return vec![hint("↑↓", "Scroll"), hint("Esc", "Back to list")];
         }
         let mut v = vec![
             hint("↑↓", "Move"),
