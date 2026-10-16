@@ -239,6 +239,23 @@ pub enum EditAction {
     None,
 }
 
+/// What an editing text control answers to a key it has no use for
+/// ([`EditAction::None`]). A modified chord (Ctrl, Alt or Cmd) the field
+/// does not bind passes on (`Ignored`), so the container's and the app's
+/// shortcuts (Ctrl+Q quit, Ctrl+N new, Ctrl+S save) work while a field is
+/// editing, as in a desktop text field, which handles only the keys it
+/// uses. Bound chords never get here: the preset's readline keys and the
+/// text keymap ([`FieldKeys::text_keymap`], the Cmd chords included)
+/// resolve first. Any other unused key (an F-key, ↑↓ in a single-line
+/// field) stays with the edit (`Consumed`).
+pub fn unbound_key(key: &Key) -> Outcome {
+    if key.chord() {
+        Outcome::Ignored
+    } else {
+        Outcome::Consumed
+    }
+}
+
 /// Translate a key into an edit action under the client platform's
 /// preset ([`FieldKeys::default`]). `multiline` changes Enter to insert a
 /// newline.

@@ -1629,7 +1629,7 @@ impl DataGrid {
                     e.error = None;
                     (Outcome::Changed, None)
                 }
-                EditAction::None => (Outcome::Consumed, None),
+                EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
             };
         }
         // pending bar buttons are separate focus stops; grid keys only here
