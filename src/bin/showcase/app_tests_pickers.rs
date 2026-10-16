@@ -21,11 +21,15 @@ fn page(h: &Harness) -> &PickersPage {
 }
 
 fn picker(h: &Harness) -> &Picker {
-    page(h)
+    h.app.layers.top_as::<Picker>().expect("a picker is open")
+}
+
+/// The page has a layer open on the shell's stack.
+fn is_open(h: &Harness) -> bool {
+    h.app
         .layers
-        .layers
-        .top_as::<Picker>()
-        .expect("a picker is open")
+        .top()
+        .is_some_and(|e| e.owner == Some(PageId::Pickers.index()))
 }
 
 fn harness() -> Harness {
@@ -35,7 +39,7 @@ fn harness() -> Harness {
 fn open(h: &mut Harness, label: &str) {
     let (x, y) = h.find(label).unwrap_or_else(|| panic!("{label} button"));
     h.click(x + 1, y);
-    assert!(page(h).layers.is_open(), "{label} opens a picker");
+    assert!(is_open(h), "{label} opens a picker");
 }
 
 fn tick(h: &mut Harness) {
@@ -56,7 +60,7 @@ fn a_remote_fetch_loads_then_is_ready() {
     assert!(h.text().contains("feat/rate-limit"), "{}", h.text());
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
-    assert!(!page(&h).layers.is_open());
+    assert!(!is_open(&h));
     assert_eq!(page(&h).last, "Chosen(1)");
 }
 
@@ -72,7 +76,7 @@ fn a_failed_fetch_shows_its_error_and_r_retries() {
     assert!(h.text().contains("Could not reach origin"));
     // Enter is refused on an error
     h.key(KeyCode::Enter);
-    assert!(page(&h).layers.is_open());
+    assert!(is_open(&h));
     h.key(KeyCode::Char('r'));
     assert!(
         matches!(picker(&h).status, PickerStatus::Loading(_)),
@@ -90,15 +94,15 @@ fn the_command_palette_refuses_a_disabled_row_and_says_why() {
         h.key(KeyCode::Char(c));
     }
     h.key(KeyCode::Enter);
-    assert!(page(&h).layers.is_open(), "a disabled row is not chosen");
+    assert!(is_open(&h), "a disabled row is not chosen");
     // Esc clears the query first
     h.key(KeyCode::Esc);
-    assert!(page(&h).layers.is_open());
+    assert!(is_open(&h));
     for c in "format".chars() {
         h.key(KeyCode::Char(c));
     }
     h.key(KeyCode::Enter);
-    assert!(!page(&h).layers.is_open());
+    assert!(!is_open(&h));
     assert!(h.text().contains("Format SQL"), "the result card");
 }
 

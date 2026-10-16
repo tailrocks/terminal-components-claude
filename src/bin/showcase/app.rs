@@ -10,7 +10,9 @@ use ratatui::layout::Rect;
 use crate::inspector::{self, Inspector};
 use crate::options::{OptSet, ShellOptions};
 use crate::pages::adapter::Showcase;
-use crate::pages::{Cx, DIALOG_TAG, Go, HELP_TAG, LayerRes, Page, PageEvent, Request};
+use crate::pages::{
+    Closed, Cx, DIALOG_TAG, Go, HELP_TAG, LayerRes, Page, PageEvent, Report, Request,
+};
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::FocusChange;
@@ -31,6 +33,7 @@ use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved,
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::form_dialog::FormDialog;
 use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::too_small::TooSmall;
@@ -658,6 +661,23 @@ pub struct App {
 pub type Layers = ShellLayers<LayerRes, (), Option<usize>>;
 type LayerSlot = LayerEntry<LayerRes, (), Option<usize>>;
 
+/// A layer that covers the whole window (drawn after the chrome): the
+/// shell's own and the modal dialogs and references pages ask for
+/// ([`crate::pages::CxExt`]). Any other layer a page opens (a picker, a
+/// form) belongs to the page and is drawn with it, under the chrome.
+fn is_window_layer(e: &LayerSlot) -> bool {
+    e.owner.is_none() || matches!(e.tag.kind, DIALOG_TAG | HELP_TAG)
+}
+
+/// What a page's layer that closed reports: `result` and the layer itself.
+fn closed_report(entry: LayerSlot, result: Option<LayerResult>) -> Report {
+    Report {
+        result,
+        values: entry.get::<FormDialog>().map(FormDialog::values),
+        closed: Some(Closed(std::rc::Rc::from(entry.layer))),
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy)]
 struct ShellLayout {
     header: Rect,
@@ -961,9 +981,17 @@ impl App {
         if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
-        if !self.modal_open() {
+        // the page ticks unless a layer it does not own covers it (the
+        // owner of the top layer keeps its live work going: a fetch, a
+        // running tab), then the top layer ticks
+        let shown = self.page.index();
+        if self.layers.top().is_none_or(|e| e.owner == Some(shown)) {
             let page_out = self.with_shown(|p, cx| p.on_tick(&mut (), cx));
             out = out.or(page_out);
+        }
+        if let Some(top) = self.layers.top_mut() {
+            let tick = top.layer.on_tick(&());
+            out = out.or(self.settle_layer(tick));
         }
         out
     }
@@ -1014,8 +1042,22 @@ impl App {
                         now,
                     );
                 }
+                // the owner closes its own top layer without a result, or
+                // acts on it (a form's note, a picker's rows)
+                Request::Close => {
+                    if self.layers.top().is_some_and(|e| e.owner == Some(owner)) {
+                        self.layers.pop(&mut self.shell.focus);
+                    }
+                }
+                Request::Top(f) => {
+                    if let Some(top) = self.layers.top_mut()
+                        && top.owner == Some(owner)
+                    {
+                        f(&mut *top.layer);
+                    }
+                }
                 // showcase pages do not ask for these
-                Request::Close | Request::Top(_) | Request::Back | Request::Copy(_) => {}
+                Request::Back | Request::Copy(_) => {}
             }
         }
     }
@@ -1072,11 +1114,11 @@ impl App {
             return;
         }
         let any: &dyn std::any::Any = layer.as_ref();
-        // the reference's one focus stop is its Done button (its keys
-        // reach it wherever focus is)
+        // the keyboard reference's one focus stop is its Done button (its
+        // keys reach it wherever focus is)
         let initial = match any.downcast_ref::<HelpOverlay>() {
-            Some(h) => Some(h.done.id),
-            None => layer.spec().initial_focus,
+            Some(h) if tag.kind == HELP_TAG => Some(h.done.id),
+            _ => layer.spec().initial_focus,
         };
         self.layers.push(
             LayerEntry { layer, tag, owner },
@@ -1092,8 +1134,17 @@ impl App {
         self.shell.pointer.pressed = None;
     }
 
-    /// A key for the top layer; `None` when no layer is open.
+    /// A key for the top layer; `None` when no layer is open. The page
+    /// that opened it sees the key first (its own key over the layer,
+    /// [`Page::on_layer_key`]); a layer with no use for Esc leaves it to
+    /// its dismiss policy.
     fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
+        if let Some(owner) = self.layers.top()?.owner {
+            let out = self.with_page(owner, |p, cx| p.on_layer_key(key, cx));
+            if out != Outcome::Ignored {
+                return Some(self.settle_layer(out));
+            }
+        }
         let top = self.layers.top_mut()?;
         let mut cx = LayerCx {
             focus: &mut self.shell.focus,
@@ -1101,16 +1152,51 @@ impl App {
             app: &(),
         };
         let out = top.layer.on_key(key, &mut cx);
+        if out == Outcome::Ignored && key.code == KeyCode::Esc && key.mods.is_empty() {
+            let dismiss = top.layer.spec().dismiss;
+            return Some(
+                match self
+                    .layers
+                    .dismiss(DismissReason::Esc, &mut self.shell.focus)
+                {
+                    // a refused Esc stays quiet: only a click flashes
+                    Dismissed::Refused => Outcome::Consumed,
+                    d => self.layer_dismissed(d, dismiss),
+                },
+            );
+        }
         Some(self.settle_layer(out))
     }
 
-    /// After input reached the top layer: a result closes it and goes to
-    /// its owner.
-    fn settle_layer(&mut self, out: Outcome) -> Outcome {
-        match self.layers.take(&mut self.shell.focus) {
-            None | Some(Taken::Event(_)) => out,
-            Some(Taken::Closed(entry, r)) => self.layer_closed(entry, r).or(out),
+    /// After input reached the top layer: everything it reported goes to
+    /// its owner, in order; a result closes it.
+    fn settle_layer(&mut self, mut out: Outcome) -> Outcome {
+        while let Some(taken) = self.layers.take(&mut self.shell.focus) {
+            out = match taken {
+                Taken::Event(r) => self.layer_event(r).or(out),
+                Taken::Closed(entry, r) => self.layer_closed(entry, r).or(out),
+            };
         }
+        out
+    }
+
+    /// The top layer reported `r` and stays open: a page's layer tells
+    /// its page (with a form's values); the shell's own report nothing.
+    fn layer_event(&mut self, r: LayerRes) -> Outcome {
+        let Some(top) = self.layers.top() else {
+            return Outcome::Ignored;
+        };
+        let (Some(owner), LayerRes::Lib(result)) = (top.owner, r) else {
+            return Outcome::Ignored;
+        };
+        let tag = top.tag.clone();
+        let report = Report {
+            result: Some(result),
+            values: top.get::<FormDialog>().map(FormDialog::values),
+            closed: None,
+        };
+        self.page_layer_result(owner, &tag, LayerRes::Page(report))
+            .or(Outcome::Changed)
     }
 
     /// What a dismissal of the top layer did: a refused outside click
@@ -1122,7 +1208,18 @@ impl App {
         dismiss: Dismiss,
     ) -> Outcome {
         match d {
-            Dismissed::None | Dismissed::Closed(_, None) => Outcome::Changed,
+            Dismissed::None => Outcome::Changed,
+            Dismissed::Closed(entry, None) => match entry.owner {
+                // a page's layer closed without a result: its page still
+                // learns that it closed
+                Some(owner) if !is_window_layer(&entry) => {
+                    let tag = entry.tag.clone();
+                    let report = closed_report(entry, None);
+                    self.page_layer_result(owner, &tag, LayerRes::Page(report))
+                        .or(Outcome::Changed)
+                }
+                _ => Outcome::Changed,
+            },
             Dismissed::Refused => {
                 let now = self.clock.now_ms();
                 junie_tui::ui::modal::refuse_outside_click(&mut self.shell.pointer, dismiss, now);
@@ -1160,6 +1257,7 @@ impl App {
             }
             return Outcome::Changed;
         };
+        let tag = entry.tag.clone();
         let r = match (dialog, result, r) {
             (Some(id), Some(result), LayerRes::Lib(LayerResult::Dialog { text, .. })) => {
                 LayerRes::Dialog {
@@ -1168,10 +1266,12 @@ impl App {
                     value: text,
                 }
             }
+            (_, _, LayerRes::Lib(r)) if !is_window_layer(&entry) => {
+                LayerRes::Page(closed_report(entry, Some(r)))
+            }
             (_, _, r) => r,
         };
-        self.page_layer_result(owner, &entry.tag, r)
-            .or(Outcome::Changed)
+        self.page_layer_result(owner, &tag, r).or(Outcome::Changed)
     }
 
     /// A layer page `i` opened reported `r` under `tag`.
@@ -1610,10 +1710,19 @@ impl App {
         self.open_layer(Box::new(h), LayerTag::new(HELP_TAG), None);
     }
 
-    /// A modal (a dialog or the reference) is open: the page beneath
-    /// takes no pointer input and shows no focus.
+    /// A modal (a dialog, the reference or a page's layer) is open: the
+    /// page beneath takes no pointer input and shows no focus.
     fn modal_open(&self) -> bool {
         !self.layers.is_empty()
+    }
+
+    /// The shown page is editing text: a field of its own, or of the
+    /// layer it opened on top (a form).
+    fn page_editing(&self) -> bool {
+        match self.layers.top() {
+            Some(e) if !is_window_layer(e) => e.layer.is_editing(),
+            _ => self.pages[self.page.index()].editing(),
+        }
     }
 
     /// The layers' share of a pointer event: the top layer takes every
@@ -1851,9 +1960,9 @@ impl App {
         if self.inspector_overlay() {
             self.draw_inspector_overlay(area, buf, ctx);
         }
-        // the layers, bottom first (a dialog keeps clear of the header and
-        // footer rows: `open_layer`)
-        for e in self.layers.iter_mut() {
+        // the window's layers, bottom first (a dialog keeps clear of the
+        // header and footer rows: `open_layer`)
+        for e in self.layers.iter_mut().filter(|e| is_window_layer(e)) {
             e.layer.render(area, buf, ctx, &());
         }
     }
@@ -2018,16 +2127,20 @@ impl App {
             area.height.saturating_sub(2),
         );
         shell::Page::<Showcase>::render(page, body, buf, ctx, &());
+        // the page's own layers (a picker, a form) over it, bottom first
+        let screen = *buf.area();
+        for e in self.layers.iter_mut().filter(|e| !is_window_layer(e)) {
+            e.layer.render(screen, buf, ctx, &());
+        }
     }
 
     /// The State tab's diagnostics, from the last frame's hit regions and
     /// focus ring.
     fn state_props(&self) -> Vec<junie_tui::widgets::props::Prop> {
         use junie_tui::widgets::props::Prop;
-        let page = &self.pages[self.page.index()];
         let mode = if self.dialog().is_some() {
             "MODAL"
-        } else if page.editing() {
+        } else if self.page_editing() {
             "EDIT"
         } else {
             "NAV"
@@ -2160,7 +2273,8 @@ impl App {
             .inspector
             .then(|| self.insp.hints(self.shell.focus.current()))
             .flatten();
-        if let Some(top) = self.layers.top() {
+        let top = self.layers.top();
+        if let Some(top) = top.filter(|e| is_window_layer(e)) {
             dialog_hints = Some(match top.get::<HelpOverlay>() {
                 // the reference's own keys
                 Some(h) => {
@@ -2173,8 +2287,12 @@ impl App {
                 }
                 None => top.layer.hints(self.shell.focus.current()),
             });
-        } else if let Some(own) = page.layer_hints(self.shell.focus.current()) {
-            // a page's own layer (a picker, a form): its keys
+        } else if let Some(own) = top
+            .map(|e| e.layer.hints(self.shell.focus.current()))
+            .filter(|h| !h.is_empty())
+        {
+            // a page's own layer (a picker): its keys; one without hints
+            // of its own leaves them to the page
             dialog_hints = Some(own);
         } else if let Some(own) = inspector_hints {
             let popup = self.insp.options.popup_open();
@@ -2215,7 +2333,7 @@ impl App {
             }
             // the focused cursor row is cut: name the reveal key
             junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.0, |k, a| (k, a));
-            if !page.editing() && !hints.iter().any(|(key, _)| *key == "Tab") {
+            if !self.page_editing() && !hints.iter().any(|(key, _)| *key == "Tab") {
                 hints.push(("Tab", "Next"));
             }
         }
@@ -2226,7 +2344,8 @@ impl App {
                 .collect()
         });
         let mut layer = HintLayer::new(hints);
-        layer.badge = (page.editing() && !self.modal_open()).then_some(("EDIT", BadgeKind::Edit));
+        let window_modal = self.layers.iter().any(is_window_layer);
+        layer.badge = (self.page_editing() && !window_modal).then_some(("EDIT", BadgeKind::Edit));
         if let Some(status) = self.shell.status.text() {
             layer = layer.status(status, Tone::Secondary);
         }
