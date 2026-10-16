@@ -1,48 +1,398 @@
+//! Overview: the theme reference (plan §7, SC3).
+//!
+//! Playground: every `Theme` token as a swatch, the colour roles, the
+//! plane ladders, a contrast table per colour level, the state modifiers,
+//! spacing, glyphs and strings, and an explorer that resolves one `Kind`
+//! on one `Plane` through `Theme::interactive`. Options: the explorer's
+//! plane and kind, a custom ladder (`Theme::with_ladder`) and the state
+//! modifiers (`Theme::with_state_modifiers`). States: every `Kind` in every
+//! state on the chosen plane, drawn by the library's `KindSample`.
+//!
+//! Nothing here picks a colour: every value is read from the theme.
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier};
+use ratatui::style::{Color, Modifier, Style};
 
+use crate::pages::layout::Sections;
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
-use junie_tui::theme::{EnvKind, StatusKind, SyntaxTone, Theme, Tone};
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::theme::{
+    BadgeKind, ButtonKind, ColorLevel, CursorStyle, EnvKind, Glyphs, Insets, Kind, Ladder,
+    LevelOverrides, Plane, StateModifiers, StatusKind, Strings, SyntaxTone, Theme, Tone,
+    contrast_ratio,
+};
+use junie_tui::ui::ctx::{RenderCtx, VisualState, fill};
+use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{KindSample, SpecimenState, StateGrid};
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 
-/// Tokens and principles. Nothing interactive: this page is the reference.
-pub struct OverviewPage;
+const ID: WidgetId = WidgetId::of("overview");
+
+/// The planes of `overview.plane`, in its value order.
+const PLANES: [(Plane, &str); 10] = [
+    (Plane::Canvas, "Canvas"),
+    (Plane::Surface, "Surface"),
+    (Plane::Card, "Card"),
+    (Plane::Field, "Field"),
+    (Plane::Raised, "Raised"),
+    (Plane::Popover, "Popover"),
+    (Plane::Highlight, "Highlight"),
+    (Plane::HighlightDanger, "HighlightDanger"),
+    (Plane::Accent, "Accent"),
+    (Plane::Danger, "Danger"),
+];
+
+/// The kinds of `overview.kind`, in its value order, with their column
+/// label.
+const KINDS: [(Kind, &str); 15] = [
+    (Kind::Row, "Row"),
+    (Kind::CursorRow(CursorStyle::Fill), "Cursor fill"),
+    (Kind::CursorRow(CursorStyle::Bar), "Cursor bar"),
+    (Kind::Button(ButtonKind::Primary), "Primary"),
+    (Kind::Button(ButtonKind::Secondary), "Secondary"),
+    (Kind::Button(ButtonKind::Subtle), "Subtle"),
+    (Kind::Button(ButtonKind::Danger), "Danger"),
+    (Kind::Button(ButtonKind::Toggle), "Toggle"),
+    (Kind::Tab, "Tab"),
+    (Kind::Title, "Title"),
+    (Kind::Chip, "Chip"),
+    (Kind::Close, "Close"),
+    (Kind::Field, "Field"),
+    (Kind::Handle, "Handle"),
+    (Kind::Seam, "Seam"),
+];
+
+/// Default value indices of the page options (`crate::options`).
+const DEFAULT_PLANE: usize = 2;
+const DEFAULT_KIND: usize = 4;
+
+/// Narrowest card: the contrast table's label and four level columns.
+const CARD_MIN: u16 = 50;
+
+pub struct OverviewPage {
+    template: Template,
+    sections: Sections,
+    /// `overview.plane`, `overview.kind`, `overview.ladder`, `overview.mods`.
+    plane: usize,
+    kind: usize,
+    ladder: usize,
+    mods: usize,
+}
 
 impl OverviewPage {
     pub fn new() -> Self {
-        Self
+        Self {
+            template: Template::new(ID, states_grid(PLANES[DEFAULT_PLANE].0)),
+            sections: Sections::new(ID.sub("cards")),
+            plane: DEFAULT_PLANE,
+            kind: DEFAULT_KIND,
+            ladder: 0,
+            mods: 0,
+        }
+    }
+
+    /// The explorer's theme: the page theme with the chosen ladder and
+    /// state modifiers, through the builders an app calls.
+    fn explorer_theme(&self, t: &Theme) -> Theme {
+        let plane = PLANES[self.plane].0;
+        let mut th = *t;
+        if self.ladder == 1 {
+            th = th.with_ladder(
+                plane,
+                Ladder::new(t.accent_bg_subtle, t.accent_bg, t.accent_bg_hover),
+            );
+        }
+        match self.mods {
+            1 => th.with_state_modifiers(StateModifiers::COLOR),
+            2 => th.with_state_modifiers(StateModifiers::ANSI16),
+            3 => th.with_state_modifiers(StateModifiers::MONO),
+            _ => th,
+        }
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let cols = ((area.width + 1) / (CARD_MIN + 1)).clamp(1, 3);
+        let gap = 1;
+        let card_w = (area.width.saturating_sub(gap * (cols - 1))) / cols;
+        let bands: Vec<&[Card]> = CARDS.chunks(cols as usize).collect();
+        let heights: Vec<u16> = bands
+            .iter()
+            .map(|b| b.iter().map(|c| c.height(card_w)).max().unwrap_or(0))
+            .collect();
+        let children: Vec<StackChild> = heights.iter().map(|&h| StackChild::fixed(h)).collect();
+        let l = self.sections.layout(area, &children, None, buf, ctx);
+        let xt = self.explorer_theme(t);
+        for (i, band) in bands.iter().enumerate() {
+            let Some(slot) = l.slot(i) else { continue };
+            for (k, card) in band.iter().enumerate() {
+                let x = slot.x + k as u16 * (card_w + gap);
+                let w = if k as u16 == cols - 1 {
+                    slot.right().saturating_sub(x)
+                } else {
+                    card_w
+                };
+                let r = Rect::new(x, slot.y, w, card.height(card_w).min(slot.height));
+                self.draw_card(*card, r, buf, t, &xt);
+            }
+        }
+    }
+
+    fn draw_card(&self, card: Card, area: Rect, buf: &mut Buffer, t: &Theme, xt: &Theme) {
+        if card == Card::Roles {
+            render_roles(area, buf, t);
+            return;
+        }
+        let panel = Panel::card(Some(card.title()));
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        if inner.is_empty() {
+            return;
+        }
+        match card {
+            Card::Planes => render_swatches(inner, buf, t, bg, &planes_and_text(t)),
+            Card::Accents => render_swatches(inner, buf, t, bg, &accent_and_status(t)),
+            Card::Glyphs => render_glyphs(inner, buf, t, bg),
+            Card::Ladders => render_ladders(inner, buf, t, bg),
+            Card::Contrast => render_contrast(inner, buf, t, bg),
+            Card::Principles => render_principles(inner, buf, t, bg),
+            Card::Explorer => self.render_explorer(inner, buf, t, xt, bg),
+            Card::Mods => render_mods(inner, buf, t, bg),
+            Card::Settings => render_settings(inner, buf, t, bg),
+            Card::Legend => render_legend(inner, buf, t, bg),
+            Card::Spacing => render_spacing(inner, buf, t, bg),
+            Card::Roles => {}
+        }
+    }
+
+    /// One kind on one plane in the states a sample can show without a
+    /// second focus bar (focus is in the States section, depicted).
+    fn render_explorer(&self, area: Rect, buf: &mut Buffer, t: &Theme, xt: &Theme, bg: Color) {
+        let (plane, plane_name) = PLANES[self.plane];
+        let (kind, kind_name) = KINDS[self.kind];
+        let lines = [
+            "Theme::interactive(kind, state, plane) → Interactive".to_owned(),
+            format!("plane {plane_name} · kind {kind_name}"),
+            format!(
+                "ladder {} · modifiers {}",
+                ["theme", "custom (with_ladder)"][self.ladder],
+                ["level", "COLOR", "ANSI16", "MONO"][self.mods]
+            ),
+        ];
+        for (i, l) in lines.iter().enumerate() {
+            let style = if i == 0 { t.faint() } else { t.secondary() };
+            put(buf, area, i as u16, 0, l, style.bg(bg));
+        }
+        let sample = KindSample::new(ID.sub("explorer"), kind, plane, "Sample");
+        let v = VisualState::default();
+        let states: [(&str, VisualState); 6] = [
+            ("rest", v),
+            ("hover", VisualState { hovered: true, ..v }),
+            (
+                "pressed",
+                VisualState {
+                    hovered: true,
+                    pressed: true,
+                    ..v
+                },
+            ),
+            (
+                "selected",
+                VisualState {
+                    selected: true,
+                    ..v
+                },
+            ),
+            (
+                "disabled",
+                VisualState {
+                    disabled: true,
+                    ..v
+                },
+            ),
+            ("error", VisualState { error: true, ..v }),
+        ];
+        for (i, (label, s)) in states.iter().enumerate() {
+            let row = 4 + i as u16;
+            if row >= area.height {
+                break;
+            }
+            put(buf, area, row, 0, label, t.muted().bg(bg));
+            let x = area.x + 10;
+            let w = area.right().saturating_sub(x).min(14);
+            sample.draw(xt, *s, Rect::new(x, area.y + row, w, 1), buf);
+        }
+    }
+
+    fn set_plane(&mut self, i: usize) {
+        self.plane = i.min(PLANES.len() - 1);
+        self.template.grid = states_grid(PLANES[self.plane].0);
     }
 }
 
-fn swatches(t: &Theme) -> Vec<(&'static str, Color)> {
+/// The States grid: every `Kind` on the chosen plane, in every state the
+/// state model resolves, drawn by the library's [`KindSample`].
+fn states_grid(plane: Plane) -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let mut g = StateGrid::new(id)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Disabled,
+            Error,
+        ])
+        .label_width(14)
+        .column_width(12);
+    for (i, (kind, label)) in KINDS.iter().enumerate() {
+        g = g.column(label, KindSample::new(id.child(i), *kind, plane, "Aa"));
+    }
+    g
+}
+
+/// The playground's cards, in reading order (row-major bands).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Card {
+    Planes,
+    Accents,
+    Glyphs,
+    Ladders,
+    Contrast,
+    Principles,
+    Roles,
+    Explorer,
+    Mods,
+    Settings,
+    Legend,
+    Spacing,
+}
+
+const CARDS: [Card; 12] = [
+    Card::Planes,
+    Card::Accents,
+    Card::Glyphs,
+    Card::Ladders,
+    Card::Contrast,
+    Card::Principles,
+    Card::Roles,
+    Card::Explorer,
+    Card::Mods,
+    Card::Settings,
+    Card::Legend,
+    Card::Spacing,
+];
+
+impl Card {
+    fn title(self) -> &'static str {
+        match self {
+            Card::Planes => "Tokens · planes and text",
+            Card::Accents => "Tokens · accent and status",
+            Card::Glyphs => "Glyphs and strings",
+            Card::Ladders => "Ladders · theme.ladders",
+            Card::Contrast => "Contrast on the card, per level",
+            Card::Principles => "Principles",
+            Card::Roles => "Roles",
+            Card::Explorer => "Explorer",
+            Card::Mods => "State modifiers · theme.mods",
+            Card::Settings => "Theme settings",
+            Card::Legend => "State language",
+            Card::Spacing => "Spacing · buttons · badges",
+        }
+    }
+
+    /// Rows the card takes at `width` (a titled card adds 3).
+    fn height(self, width: u16) -> u16 {
+        let body = match self {
+            Card::Planes | Card::Accents => 20,
+            Card::Glyphs => 14,
+            Card::Ladders => 13,
+            Card::Contrast => 12,
+            Card::Principles => {
+                let w = width.saturating_sub(2 * junie_tui::widgets::panel::CARD_PAD) as usize;
+                PRINCIPLES
+                    .iter()
+                    .map(|(title, text)| {
+                        junie_tui::ui::text::wrap(&format!("{title}. {text}"), w.max(1)).len()
+                            as u16
+                    })
+                    .sum()
+            }
+            Card::Roles => return 12,
+            Card::Explorer => 10,
+            Card::Mods => 10,
+            Card::Settings => 8,
+            Card::Legend => 7,
+            Card::Spacing => 9,
+        };
+        body + 3
+    }
+}
+
+/// `text` at row `row`, column `col` of `area`, cut to fit.
+fn put(buf: &mut Buffer, area: Rect, row: u16, col: u16, text: &str, style: Style) {
+    if row >= area.height || col >= area.width {
+        return;
+    }
+    let room = (area.width - col) as usize;
+    let text = junie_tui::ui::text::truncate(text, room);
+    buf.set_string(area.x + col, area.y + row, text, style);
+}
+
+fn planes_and_text(t: &Theme) -> Vec<(&'static str, Color)> {
     vec![
         ("canvas", t.canvas),
         ("surface", t.surface),
         ("surface.elevated", t.surface_elevated),
         ("surface.overlay", t.surface_overlay),
         ("field", t.field),
+        ("field.hover", t.field_hover),
         ("popover", t.popover),
+        ("highlight", t.highlight),
+        ("highlight.danger", t.highlight_danger),
+        ("selection", t.selection_bg),
         ("border.subtle", t.border_subtle),
         ("border.strong", t.border_strong),
+        ("scroll.track", t.scroll_track),
         ("text.primary", t.text_primary),
         ("text.secondary", t.text_secondary),
         ("text.muted", t.text_muted),
         ("text.faint", t.text_faint),
+        ("text.ghost", t.text_ghost),
+        ("text.on_accent", t.text_on_accent),
+        ("disabled", t.disabled),
+    ]
+}
+
+fn accent_and_status(t: &Theme) -> Vec<(&'static str, Color)> {
+    vec![
         ("accent", t.accent),
         ("accent.hover", t.accent_hover),
         ("accent.pressed", t.accent_pressed),
         ("accent.bg", t.accent_bg),
-        ("highlight", t.highlight),
-        ("selection", t.selection_bg),
+        ("accent.bg.subtle", t.accent_bg_subtle),
+        ("accent.bg.hover", t.accent_bg_hover),
+        ("focus", t.focus),
+        ("link", t.link),
         ("success", t.success),
+        ("success.strong", t.success_strong),
         ("info", t.info),
         ("warning", t.warning),
         ("error", t.error),
+        ("error.bg", t.error_bg),
+        ("error.soft", t.error_soft),
+        ("error.strong", t.error_strong),
         ("danger", t.danger_label),
+        ("syntax.keyword", t.syntax_keyword),
+        ("syntax.string", t.syntax_string),
+        ("syntax.literal", t.syntax_literal),
     ]
 }
 
@@ -56,6 +406,443 @@ fn swatch_note(c: Color) -> String {
         other => format!("{other:?}"),
     }
 }
+
+/// A column of swatches: the colour, a faint edge (so surface-coloured
+/// swatches stay visible on the card), the token and its value.
+fn render_swatches(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color, all: &[(&str, Color)]) {
+    for (i, (name, color)) in all.iter().enumerate() {
+        let row = i as u16;
+        if row >= area.height {
+            break;
+        }
+        let y = area.y + row;
+        fill(
+            buf,
+            Rect::new(area.x, y, 4.min(area.width), 1),
+            Style::new().bg(*color),
+        );
+        put(buf, area, row, 4, "▏", t.faint().bg(bg));
+        put(buf, area, row, 6, name, t.primary().bg(bg));
+        let note = swatch_note(*color);
+        let nw = junie_tui::ui::text::width(&note) as u16;
+        let nx = area.width.saturating_sub(nw);
+        if nx > 6 + junie_tui::ui::text::width(name) as u16 {
+            put(buf, area, row, nx, &note, t.muted().bg(bg));
+        }
+    }
+}
+
+/// Each plane's ladder (rest, hover, pressed) and the plane one step up;
+/// then the glyph inks of handles and seams.
+fn render_ladders(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    put(
+        buf,
+        area,
+        0,
+        0,
+        "Ladder: rest hover pressed · Plane::up",
+        t.muted().bg(bg),
+    );
+    for (i, (plane, name)) in PLANES.iter().enumerate() {
+        let row = 1 + i as u16;
+        put(buf, area, row, 0, name, t.primary().bg(bg));
+        let l = t.ladder(*plane);
+        for (k, c) in [l.rest, l.hover, l.pressed].into_iter().enumerate() {
+            let x = 16 + k as u16 * 5;
+            if x + 4 <= area.width {
+                fill(
+                    buf,
+                    Rect::new(area.x + x, area.y + row, 4, 1),
+                    Style::new().bg(c),
+                );
+            }
+        }
+        let up = PLANES
+            .iter()
+            .find(|(p, _)| *p == plane.up())
+            .map_or("", |(_, n)| n);
+        put(buf, area, row, 32, &format!("→ {up}"), t.muted().bg(bg));
+    }
+    // glyph inks: the thumb and the seam keep one glyph in every state
+    let inks = [
+        ("handle", t.ladders.handle, t.glyphs.scroll_thumb),
+        ("seam", t.ladders.seam, t.glyphs.divider),
+    ];
+    for (i, (name, l, g)) in inks.into_iter().enumerate() {
+        let row = 11 + i as u16;
+        put(buf, area, row, 0, name, t.primary().bg(bg));
+        for (k, c) in [l.rest, l.hover, l.pressed].into_iter().enumerate() {
+            put(
+                buf,
+                area,
+                row,
+                17 + k as u16 * 5,
+                g,
+                Style::new().fg(c).bg(bg),
+            );
+        }
+    }
+}
+
+/// Ink tokens and how they read on the card at each colour level: the
+/// WCAG ratio, and where it falls under 4.5:1 the step `Theme::legible`
+/// takes.
+fn render_contrast(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    type Ink = fn(&Theme) -> Color;
+    let inks: [(&str, Ink); 10] = [
+        ("text.primary", |t| t.text_primary),
+        ("text.secondary", |t| t.text_secondary),
+        ("text.muted", |t| t.text_muted),
+        ("text.faint", |t| t.text_faint),
+        ("accent", |t| t.accent),
+        ("link", |t| t.link),
+        ("success", |t| t.success),
+        ("warning", |t| t.warning),
+        ("error", |t| t.error),
+        ("info", |t| t.info),
+    ];
+    let levels = [
+        (ColorLevel::TrueColor, "true"),
+        (ColorLevel::Ansi256, "256"),
+        (ColorLevel::Ansi16, "16"),
+        (ColorLevel::Mono, "mono"),
+    ];
+    let col = |k: usize| 15 + k as u16 * 8;
+    put(buf, area, 0, 0, "contrast_ratio", t.muted().bg(bg));
+    for (k, (_, name)) in levels.iter().enumerate() {
+        put(buf, area, 0, col(k), name, t.muted().bg(bg));
+    }
+    let themes: Vec<Theme> = levels.iter().map(|(l, _)| Theme::for_level(*l)).collect();
+    for (i, (name, ink)) in inks.iter().enumerate() {
+        let row = 1 + i as u16;
+        put(buf, area, row, 0, name, t.primary().bg(bg));
+        for (k, th) in themes.iter().enumerate() {
+            let card = th.surface_elevated;
+            let fg = ink(th);
+            let ratio = contrast_ratio(fg, card).unwrap_or(0.0);
+            let text = if ratio >= 4.5 {
+                ratio_label(ratio)
+            } else {
+                let up = contrast_ratio(th.legible(fg, card), card).unwrap_or(0.0);
+                format!("{}→{}", ratio_label(ratio), ratio_label(up))
+            };
+            let style = if ratio >= 4.5 {
+                t.secondary()
+            } else {
+                t.muted()
+            };
+            put(buf, area, row, col(k), &text, style.bg(bg));
+        }
+    }
+    put(
+        buf,
+        area,
+        11,
+        0,
+        "a→b: under 4.5:1, Theme::legible steps it up",
+        t.faint().bg(bg),
+    );
+}
+
+/// A contrast ratio in at most three cells: one decimal under 10.
+fn ratio_label(r: f64) -> String {
+    if r >= 10.0 {
+        format!("{r:.0}")
+    } else {
+        format!("{r:.1}")
+    }
+}
+
+fn render_principles(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    let mut row = 0;
+    for (title, text) in PRINCIPLES {
+        let lines = junie_tui::ui::text::wrap(&format!("{title}. {text}"), area.width as usize);
+        for (k, l) in lines.iter().enumerate() {
+            put(buf, area, row, 0, l, t.secondary().bg(bg));
+            if k == 0 {
+                // the title in bold over the start of its first line
+                let head = format!("{title}.");
+                let bold = t.primary().bg(bg).add_modifier(Modifier::BOLD);
+                put(buf, area, row, 0, &head, bold);
+            }
+            row += 1;
+        }
+    }
+}
+
+/// The modifiers that carry state where colour cannot, at the page's
+/// colour level, each applied to a sample.
+fn render_mods(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    let m = t.mods;
+    put(
+        buf,
+        area,
+        0,
+        0,
+        &format!("StateModifiers at {}", t.level.label()),
+        t.muted().bg(bg),
+    );
+    let rows: [(&str, Modifier); 9] = [
+        ("hover", m.hover),
+        ("hover_flat", m.hover_flat),
+        ("pressed", m.pressed),
+        ("fill", m.fill),
+        ("pressed_fill", m.pressed_fill),
+        ("focused", m.focused),
+        ("disabled", m.disabled),
+        ("thumb_hover", m.thumb_hover),
+        ("thumb_pressed", m.thumb_pressed),
+    ];
+    for (i, (name, md)) in rows.iter().enumerate() {
+        let row = 1 + i as u16;
+        put(buf, area, row, 0, name, t.primary().bg(bg));
+        let value = if md.is_empty() {
+            "—".to_owned()
+        } else {
+            format!("{md:?}")
+        };
+        put(buf, area, row, 15, &value, t.muted().bg(bg));
+        let sample = t.primary().bg(bg).add_modifier(*md);
+        put(
+            buf,
+            area,
+            row,
+            area.width.saturating_sub(6),
+            "Sample",
+            sample,
+        );
+    }
+}
+
+/// Theme-wide settings and the level overrides.
+fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    let h = t.hintbar;
+    let on = |b: bool| if b { "on" } else { "off" };
+    let mono = Theme::for_level(ColorLevel::Mono);
+    let ascii = Theme::for_level_with(ColorLevel::Mono, &LevelOverrides::ASCII_MONO);
+    let sample = |th: &Theme| {
+        let g = th.glyphs;
+        format!(
+            "{} {} {} {}",
+            g.check_on, g.chevron_closed, g.ellipsis, g.done
+        )
+    };
+    let list = [
+        Prop::new("theme.level", t.level.label()),
+        Prop::new("theme.tint_selection", on(t.tint_selection)),
+        Prop::new(
+            "theme.hintbar",
+            format!(
+                "{:?} · status ≥ {}% · compact {}",
+                h.align,
+                h.status_min_share,
+                on(h.compact)
+            ),
+        ),
+        Prop::new("pinned keys", h.pinned_keys.join(" ")),
+        Prop::new("edit entry", format!("{:?}", t.edit_entry)),
+        Prop::new("for_level(Mono)", sample(&mono)),
+        Prop::new("+ ASCII_MONO", sample(&ascii)),
+    ];
+    props::render(area, buf, t, &list, bg);
+}
+
+/// What each state looks like, in words.
+fn render_legend(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    // the focus bar is depicted (▏): the one live bar is where focus is
+    let legend: [(&str, &str, Style); 7] = [
+        ("▏", "focus: the bar (depicted)", t.accent_fg()),
+        ("░", "hover lifts the surface", t.secondary()),
+        ("›", "current / chosen", t.primary()),
+        ("✓", "checked", t.primary()),
+        ("!", "error", t.error_fg()),
+        ("▁", "editing: cursor + underline", t.primary()),
+        ("○", "disabled: faint, no hover", t.faint()),
+    ];
+    for (i, (g, text, st)) in legend.iter().enumerate() {
+        put(buf, area, i as u16, 0, g, st.bg(bg));
+        put(buf, area, i as u16, 3, text, t.secondary().bg(bg));
+    }
+}
+
+/// Spacing tokens, then every button kind and the badge, drawn by the
+/// theme's resolvers.
+fn render_spacing(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    let s = t.spacing;
+    let ins = |i: Insets| format!("Insets {{ x: {}, y: {} }}", i.x, i.y);
+    let list = [
+        Prop::new("theme.spacing", format!("button_gap {}", s.button_gap)),
+        Prop::new("dialog", ins(s.dialog)),
+        Prop::new("panel", ins(s.panel)),
+        Prop::new("popup", ins(s.popup)),
+        Prop::new("chrome_edge", s.chrome_edge.to_string()),
+    ];
+    let used = props::render(area, buf, t, &list, bg);
+    let row = used + 1;
+    put(buf, area, row, 0, "ButtonKind", t.muted().bg(bg));
+    let mut x = 0;
+    for (kind, label) in [
+        (ButtonKind::Primary, "Primary"),
+        (ButtonKind::Secondary, "Secondary"),
+        (ButtonKind::Subtle, "Subtle"),
+        (ButtonKind::Danger, "Danger"),
+        (ButtonKind::Toggle, "Toggle"),
+    ] {
+        let text = format!(" {label} ");
+        let w = junie_tui::ui::text::width(&text) as u16;
+        if x + w > area.width {
+            break;
+        }
+        let style = t.button(kind, VisualState::default(), bg);
+        put(buf, area, row + 1, x, &text, style);
+        x += w + s.button_gap;
+    }
+    put(buf, area, row + 2, 0, "BadgeKind::Edit", t.muted().bg(bg));
+    put(buf, area, row + 2, 17, " EDIT ", t.badge(BadgeKind::Edit));
+}
+
+/// Glyphs: Unicode beside ASCII; strings: the default copy beside an
+/// override (`Strings::ASCII`).
+fn render_glyphs(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    type Draw = fn(&Glyphs) -> String;
+    let (u, a) = (Glyphs::UNICODE, Glyphs::ASCII);
+    let col = |k: u16| 15 + k * 18;
+    // one cell of the two-column table, cut to its column
+    let cell = |buf: &mut Buffer, row: u16, k: u16, text: &str, style: Style| {
+        put(
+            buf,
+            area,
+            row,
+            col(k),
+            &junie_tui::ui::text::truncate(text, 17),
+            style,
+        );
+    };
+    put(buf, area, 0, 0, "Glyphs", t.muted().bg(bg));
+    put(buf, area, 0, col(0), "UNICODE", t.muted().bg(bg));
+    put(buf, area, 0, col(1), "ASCII", t.muted().bg(bg));
+    let glyphs: [(&str, Draw); 7] = [
+        ("checks", |g| {
+            format!("{} {} {}", g.check_on, g.check_off, g.check_mixed)
+        }),
+        ("radio, toggle", |g| {
+            format!(
+                "{} {} {} {}",
+                g.radio_on, g.radio_off, g.toggle_on, g.toggle_off
+            )
+        }),
+        ("chevrons", |g| {
+            format!(
+                "{} {} {} {}",
+                g.chevron_open, g.chevron_closed, g.disclosure_open, g.disclosure_closed
+            )
+        }),
+        ("status", |g| {
+            format!("{} {} {} {}", g.done, g.fail, g.warning, g.info)
+        }),
+        ("scrollbar", |g| {
+            format!("{}{}{}", g.scroll_track, g.scroll_thumb, g.scroll_track)
+        }),
+        ("meter", |g| {
+            format!("{}{}{}", g.bar_fill, g.bar_fill, g.bar_empty)
+        }),
+        ("more, close", |g| {
+            format!("{} {} {}", g.ellipsis, g.more_below, g.close)
+        }),
+    ];
+    for (i, (name, f)) in glyphs.iter().enumerate() {
+        let row = 1 + i as u16;
+        put(buf, area, row, 0, name, t.primary().bg(bg));
+        cell(buf, row, 0, &f(&u), t.secondary().bg(bg));
+        cell(buf, row, 1, &f(&a), t.secondary().bg(bg));
+    }
+    let (d, o) = (Strings::DEFAULT, Strings::ASCII);
+    put(buf, area, 9, 0, "Strings", t.muted().bg(bg));
+    put(buf, area, 9, col(0), "DEFAULT", t.muted().bg(bg));
+    put(buf, area, 9, col(1), "override", t.muted().bg(bg));
+    let strings: [(&str, &str, &str); 4] = [
+        ("more_cut", d.more_cut, o.more_cut),
+        ("search", d.search_placeholder, o.search_placeholder),
+        ("empty_list", d.empty_list, o.empty_list),
+        ("loading", d.loading_rows, o.loading_rows),
+    ];
+    for (i, (name, a, b)) in strings.iter().enumerate() {
+        let row = 10 + i as u16;
+        put(buf, area, row, 0, name, t.primary().bg(bg));
+        cell(buf, row, 0, a, t.secondary().bg(bg));
+        cell(buf, row, 1, b, t.secondary().bg(bg));
+    }
+}
+
+impl Page for OverviewPage {
+    fn title(&self) -> &'static str {
+        "Overview"
+    }
+    fn blurb(&self) -> &'static str {
+        "Tokens and principles behind every component"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() == Section::Playground
+            && let Some(o) = self.sections.handle(ev)
+        {
+            return o;
+        }
+        Outcome::Ignored
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        self.template
+            .hints(focus)
+            .unwrap_or_else(|| vec![("[ ]", "Pages"), ("i", "Inspector")])
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        let values = [self.plane, self.kind, self.ladder, self.mods];
+        OPTION_KEYS
+            .iter()
+            .position(|k| *k == key)
+            .map(|i| values[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        match key {
+            "overview.plane" => self.set_plane(value),
+            "overview.kind" => self.kind = value.min(KINDS.len() - 1),
+            "overview.ladder" => self.ladder = value.min(1),
+            "overview.mods" => self.mods = value.min(3),
+            _ => {}
+        }
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
+}
+
+/// The page's option keys, in the order of [`OverviewPage::option_value`].
+const OPTION_KEYS: [&str; 4] = [
+    "overview.plane",
+    "overview.kind",
+    "overview.ladder",
+    "overview.mods",
+];
 
 const PRINCIPLES: &[(&str, &str)] = &[
     (
@@ -83,139 +870,6 @@ const PRINCIPLES: &[(&str, &str)] = &[
         "Bold is reserved for the focused control. No box around a thing unless the box carries meaning.",
     ),
 ];
-
-impl Page for OverviewPage {
-    fn title(&self) -> &'static str {
-        "Overview"
-    }
-    fn blurb(&self) -> &'static str {
-        "Tokens and principles behind every component"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let (left, right) = crate::pages::layout::columns(area, 46, 2);
-
-        // token swatches
-        let panel = Panel::card(Some("Tokens"));
-        let bg = panel.bg(t);
-        let all = swatches(t);
-        let column = left;
-        let left = Rect::new(
-            left.x,
-            left.y,
-            left.width,
-            left.height.min(all.len() as u16 + 3),
-        );
-        let inner = panel.render(left, buf, t);
-        // two columns when the card cannot show every token in one
-        let two_col = (inner.height as usize) < all.len() && inner.width >= 44;
-        let per_col = if two_col {
-            all.len().div_ceil(2)
-        } else {
-            all.len()
-        };
-        let col_w = if two_col {
-            inner.width / 2
-        } else {
-            inner.width
-        };
-        for (i, (name, color)) in all.iter().enumerate() {
-            let note = swatch_note(*color);
-            let col = (i / per_col) as u16;
-            let y = inner.y + (i % per_col) as u16;
-            if y >= inner.bottom() {
-                continue;
-            }
-            let x = inner.x + col * col_w;
-            fill(
-                buf,
-                Rect::new(x, y, 4, 1),
-                ratatui::style::Style::new().bg(*color),
-            );
-            // a faint edge keeps surface-coloured swatches visible on the card
-            buf.set_string(x + 4, y, "▏", t.faint().bg(bg));
-            buf.set_string(x + 6, y, name, t.primary().bg(bg));
-            let nw = junie_tui::ui::text::width(&note) as u16;
-            if col_w > 30 {
-                buf.set_string(x + col_w.saturating_sub(nw + 1), y, &note, t.muted().bg(bg));
-            }
-        }
-
-        let below = Rect::new(
-            column.x,
-            left.bottom() + 1,
-            column.width,
-            column.bottom().saturating_sub(left.bottom() + 1),
-        );
-        render_roles(below, buf, t);
-
-        // principles + state legend
-        let inner_w = right.width.saturating_sub(4) as usize;
-        let wrapped: Vec<(&str, Vec<String>)> = PRINCIPLES
-            .iter()
-            .map(|(title, text)| (*title, junie_tui::ui::text::wrap(text, inner_w)))
-            .collect();
-        let needed: u16 = wrapped.iter().map(|(_, l)| l.len() as u16 + 2).sum::<u16>() + 2;
-        let rows =
-            crate::pages::layout::rows(right, &[needed.min(right.height.saturating_sub(10)), 1, 0]);
-        let panel = Panel::card(Some("Principles"));
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        let mut y = inner.y;
-        for (title, lines) in &wrapped {
-            if y + 1 >= inner.bottom() {
-                break;
-            }
-            buf.set_string(
-                inner.x,
-                y,
-                title,
-                t.primary().bg(bg).add_modifier(Modifier::BOLD),
-            );
-            y += 1;
-            for l in lines {
-                if y >= inner.bottom() {
-                    break;
-                }
-                buf.set_string(inner.x, y, l, t.secondary().bg(bg));
-                y += 1;
-            }
-            y += 1;
-        }
-
-        let panel = Panel::card(Some("State language"));
-        let bg = panel.bg(t);
-        let legend_area = Rect::new(rows[2].x, rows[2].y, rows[2].width, rows[2].height.min(10));
-        let _ = &legend_area;
-        let inner = panel.render(legend_area, buf, t);
-        let legend: [(&str, &str, ratatui::style::Style); 7] = [
-            ("▎", "focus", t.accent_fg()),
-            ("░", "hover lifts the surface", t.secondary()),
-            ("›", "current / chosen", t.primary()),
-            ("✓", "checked", t.primary()),
-            ("!", "error", t.error_fg()),
-            ("▁", "editing: cursor + underline", t.primary()),
-            ("○", "disabled: faint, no hover", t.faint()),
-        ];
-        for (i, (g, text, st)) in legend.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            buf.set_string(inner.x, y, g, st.bg(bg));
-            buf.set_string(inner.x + 3, y, text, t.secondary().bg(bg));
-        }
-    }
-
-    fn handle(&mut self, _ev: &PageEvent, _cx: &mut PageCtx) -> Outcome {
-        Outcome::Ignored
-    }
-
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
-        vec![("[ ]", "Pages"), ("i", "Inspector")]
-    }
-}
 
 /// The colour roles, each drawn by the library: status kinds
 /// ([`Theme::status`], label in [`Theme::status_label`]), environments
