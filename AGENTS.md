@@ -106,8 +106,8 @@ components work; they are not where behaviour lives.
 - App-specific UI patterns must be extracted to the library and
   demonstrated in the showcase before apps use them. An app never ships a
   pattern the showcase does not show.
-  Exception: jackin's intro and outro animations are brand-specific and
-  stay in jackin.
+  Exception: jackin's intro, outro and cockpit-to-capsule fade are
+  brand-specific and stay in jackin.
 - The showcase is a thin consumer too: its pages add wiring, demo data and
   option tables, never drawing, interaction or state logic of their own.
   See the showcase coverage track in
