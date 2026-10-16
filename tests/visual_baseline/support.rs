@@ -765,6 +765,12 @@ pub const PINNED_ENV: [(&str, &str); 9] = [
 /// is inherited, `HOME` and the cwd are [`scenario_home`], emptied first so
 /// nothing an earlier run left there can reach the app.
 pub fn spawn(case: &Case) -> Session {
+    spawn_with_env(case, &[])
+}
+
+/// [`spawn`] with extra variables on top of the capture environment (test
+/// instrumentation such as `JUNIE_TUI_FIRST_POLL_DELAY_MS`).
+pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
     let home = scenario_home(&case.name);
     match std::fs::remove_dir_all(&home) {
         Ok(()) => {}
@@ -782,6 +788,9 @@ pub fn spawn(case: &Case) -> Session {
     }
     if matches!(case.color, Color::NoColorEnv) {
         tui = tui.env("NO_COLOR", "1");
+    }
+    for (key, value) in extra {
+        tui = tui.env(key, value);
     }
     let inner = tui
         .spawn()
