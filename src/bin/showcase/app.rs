@@ -842,8 +842,7 @@ impl App {
         if self.focus.is(NAV) {
             self.nav_reveal = true;
             type_ahead = matches!(key.code, KeyCode::Char(c) if !c.is_whitespace())
-                && !key.ctrl()
-                && !key.alt()
+                && !key.chord()
                 && self.nav.nav.action(&key).is_none()
                 && junie_tui::core::keymap::lookup(&self.nav.keymap, &key).is_none();
             let leaf = self.nav.cursor_path().and_then(PageId::from_nav_path);
@@ -1225,7 +1224,7 @@ impl App {
             KeyCode::Backspace => {
                 query.pop();
             }
-            KeyCode::Char(c) if !key.ctrl() && !key.alt() => query.push(c),
+            KeyCode::Char(c) if !key.chord() => query.push(c),
             KeyCode::Enter => {
                 let rows = self.nav.rows();
                 let leaf = |i: usize| rows.get(i).and_then(|r| PageId::from_nav_path(&r.path));

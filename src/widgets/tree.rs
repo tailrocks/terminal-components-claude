@@ -633,7 +633,7 @@ impl TreeView {
             return (Outcome::Ignored, None);
         }
         if matches!(key.code, KeyCode::Char(_))
-            && (key.ctrl() || key.alt())
+            && key.chord()
             && lookup(&self.keymap, key).is_none()
         {
             // an unassigned modified chord never performs a plain action

@@ -485,7 +485,7 @@ impl Screen for ActivityTab {
                     self.run_find();
                     return Outcome::Changed;
                 }
-                KeyCode::Char(c) if !key.ctrl() && !key.alt() => {
+                KeyCode::Char(c) if !key.chord() => {
                     let mut q = q;
                     q.push(c);
                     self.find_query = Some(q);
