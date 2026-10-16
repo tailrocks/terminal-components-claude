@@ -162,11 +162,11 @@ fn header_help_and_inspector_are_mouse_actions() {
     let mut h = Harness::new(120, 40, PageId::Overview);
 
     h.click_id(HEADER_HELP);
-    assert!(h.app.help.is_some());
+    assert!(h.app.help().is_some());
     assert!(h.text().contains("Keyboard & mouse"));
 
     h.click_label("Done");
-    assert!(h.app.help.is_none());
+    assert!(h.app.help().is_none());
 
     h.click_id(HEADER_INSPECT);
     assert!(h.app.inspector);
@@ -324,7 +324,7 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
 
     h.click_label("Unsaved changes");
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     h.key(KeyCode::Left);
     h.key(KeyCode::Enter);
     h.assert_status("Changes discarded");
@@ -338,7 +338,7 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
     h.assert_status("Description saved");
 
     h.key(KeyCode::Char('d'));
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.assert_status("Branch feat/rate-limit deleted");
@@ -348,7 +348,7 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str(&"x".repeat(41));
     h.key(KeyCode::Enter);
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     assert!(h.text().contains("Keep it under 40"));
 
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
@@ -563,7 +563,7 @@ fn grid_pending_save_and_discard_lifecycle() {
 
     // the save review asks for the table's name first
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
-    assert!(h.app.dialog.is_some(), "Ctrl+S opens the save review");
+    assert!(h.app.dialog().is_some(), "Ctrl+S opens the save review");
     h.type_str("customers");
     h.key(KeyCode::Enter);
     h.assert_status("Saving…");
@@ -613,9 +613,9 @@ fn settings_save_cancel_and_environment_remove() {
     assert!(h.text().contains("General · unsaved"));
 
     h.click_id(save);
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     h.key(KeyCode::Esc);
-    assert!(h.app.dialog.is_none());
+    assert!(h.app.dialog().is_none());
     assert!(h.text().contains("General · unsaved"));
 
     h.click_id(save);
@@ -666,7 +666,7 @@ fn taskrunner_reports_immediate_running_and_cancel() {
 
     h.tick();
     h.click_id(runner.sub("cancel"));
-    assert!(h.app.dialog.is_some());
+    assert!(h.app.dialog().is_some());
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.assert_status("Cancelled");
@@ -1148,7 +1148,7 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     // Cancel (the default) stays
     h.key(KeyCode::Enter);
     assert!(!h.app.shell.quit);
-    assert!(h.app.dialog.is_none());
+    assert!(h.app.dialog().is_none());
     // Discard quits
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
     h.key(KeyCode::Char('d'));
@@ -1204,7 +1204,7 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     h.focus(tabs);
     assert_eq!(strip_gutters(&h).len(), 1, "{}", h.text());
     h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
-    assert!(h.app.dialog.is_some(), "{}", h.text());
+    assert!(h.app.dialog().is_some(), "{}", h.text());
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     assert!(strip_gutters(&h).is_empty(), "{}", h.text());
     assert!(gutters(&h) <= 1, "{}", h.text());
