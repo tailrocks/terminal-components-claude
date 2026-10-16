@@ -296,8 +296,8 @@
 80x24 TrueColor Accounts & usage be5148ca7c0efa84
 80x24 TrueColor Launch cockpit d53fea3e9b77afba
 80x24 TrueColor Read-only report 2f2e70a8980c1f73
-80x24 TrueColor Inspector · State ac98f54f34551a5b
-80x24 TrueColor Inspector · Options 0b60733529f4a403
+80x24 TrueColor Inspector · State 7b2fbfd727769831
+80x24 TrueColor Inspector · Options 90155cf057f85389
 80x24 Ansi256 Overview 2c1e485c62acd5d6
 80x24 Ansi256 Chrome a5dd2c2190d5142f
 80x24 Ansi256 Status & hints 8fb2e8b7554db06e
@@ -356,8 +356,8 @@
 80x24 Ansi256 Accounts & usage 2e28f5e285b54e82
 80x24 Ansi256 Launch cockpit d65ffff4d0ee5658
 80x24 Ansi256 Read-only report 28b3a3627e8cb3b7
-80x24 Ansi256 Inspector · State 5b619424fe013dc7
-80x24 Ansi256 Inspector · Options 4476c4a3e55643a2
+80x24 Ansi256 Inspector · State 81ddeaf61cb7641a
+80x24 Ansi256 Inspector · Options dceab0cff7a7a07a
 80x24 Ansi16 Overview cd8f52d79349f53b
 80x24 Ansi16 Chrome 7bf7e777c5d693d0
 80x24 Ansi16 Status & hints 2f611fe99e05ad9d
@@ -536,8 +536,8 @@
 72x20 TrueColor Accounts & usage 32ff92ae2454f1d9
 72x20 TrueColor Launch cockpit ec89c1eb79741253
 72x20 TrueColor Read-only report 20c959eec71bb953
-72x20 TrueColor Inspector · State 70d82feaede20449
-72x20 TrueColor Inspector · Options 5711782eff082d92
+72x20 TrueColor Inspector · State 4db701ccda5ec93b
+72x20 TrueColor Inspector · Options a00a4004830ece94
 72x20 Ansi256 Overview e01344364b31f493
 72x20 Ansi256 Chrome ecfb5b0e028df0ae
 72x20 Ansi256 Status & hints 2ea7d438e802f54e
@@ -596,8 +596,8 @@
 72x20 Ansi256 Accounts & usage f6e03a6fd69e9ab5
 72x20 Ansi256 Launch cockpit c81fd986cba251c3
 72x20 Ansi256 Read-only report 773abe574f489221
-72x20 Ansi256 Inspector · State 7e725612110753e1
-72x20 Ansi256 Inspector · Options cca7dfe9e2636ab5
+72x20 Ansi256 Inspector · State 3c2faa8546c2253d
+72x20 Ansi256 Inspector · Options 7a7cc85bf0f92074
 72x20 Ansi16 Overview 952703894e85b369
 72x20 Ansi16 Chrome 257d7c795baa16c9
 72x20 Ansi16 Status & hints 85df1e04d9e239ed
