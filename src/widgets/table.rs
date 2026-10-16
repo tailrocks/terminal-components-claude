@@ -248,8 +248,8 @@ pub struct DataTable {
     /// column.
     pub type_ahead_column: Option<usize>,
     /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
     /// The constrained editor open on a cell, if any.

@@ -124,8 +124,8 @@ pub struct Select {
     /// `Vim`.
     pub type_ahead: bool,
     /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
+    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     /// Stepping past either end (open list ↑/↓, closed field arrows)
     /// lands on the other end. Default off: it stops at the end.
