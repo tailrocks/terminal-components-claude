@@ -330,6 +330,14 @@ impl Stack {
         }
         let fits = self.total(&h) <= room;
         let scrolls = !fits && self.overflow == Overflow::Scroll && n > 0;
+        if scrolls {
+            // shrinking did not make everything fit, so it buys nothing:
+            // a scrolling stack shows each child at its own height, never
+            // taller than the view
+            for (hi, c) in h.iter_mut().zip(children) {
+                *hi = c.height.min(area.height);
+            }
+        }
         let (content, track) = if scrolls && area.width > self.scrollbar_gap + 1 {
             let w = area.width - self.scrollbar_gap - 1;
             (
@@ -414,7 +422,9 @@ impl Stack {
     }
 
     /// Draw the scrollbar of a laid-out stack and register `area` as its
-    /// wheel region under `id` (wheel and track events come back to the
+    /// wheel region under `id`. Call it right after [`Self::layout`] and
+    /// before drawing the children, so a scrollable child (a list, a text
+    /// area) registered later keeps its own wheel (wheel and track events come back to the
     /// owner as `id` and [`scrollbar::id_for`](crate::widgets::scrollbar::id_for)`(id)`).
     pub fn chrome(
         layout: &StackLayout,
