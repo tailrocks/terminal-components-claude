@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Panels                                      no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
- [0m[1mComponents[0m           25  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice             [0m
+ [0m[1mComponents[0m           54  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice             [0m
                                                                                                                         [0m
     Overview                Titled card                        surface    ╭─ Framed · split pane           1–15 of 24 ─╮[0m
   ▸ App shell                                                             │  Junie works through a task the way a    ┃ │[0m
@@ -12,11 +12,11 @@
   ▾ Layout                                                                │                                          ┃ │[0m
  [0m[1m▎  › Panels            [0m                                                  │  Each step is visible. You can pause,    ┃ │[0m
       Scrolling             Untitled card. Same surface, content          │  redirect, or take over at any point,    ┃ │[0m
-  ▸ Text & code             starts at the padding edge.                   │  and every change lands as an ordinary   │ │[0m
-  ▸ Screens                                                               │  diff in your working tree.              │ │[0m
-                                                                          │                                          │ │[0m
-                                                                          │  The design system in this prototype     │ │[0m
-                                                                          │  exists so that the terminal version of  │ │[0m
+      Splits & stacks       starts at the padding edge.                   │  and every change lands as an ordinary   │ │[0m
+      Master-detail                                                       │  diff in your working tree.              │ │[0m
+      Pane tree                                                           │                                          │ │[0m
+  ▸ Text & code                                                           │  The design system in this prototype     │ │[0m
+  ▸ Screens                                                               │  exists so that the terminal version of  │ │[0m
                             Nested                                        │  [0m[2mthat experience feels as deliberate as  [0m│ │[0m
                                                                           ╰────────────────────────────────────────────╯[0m
                             Target                                                                                      [0m

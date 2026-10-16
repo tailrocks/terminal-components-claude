@@ -1,6 +1,6 @@
 [0m[2m ▪ Junie Design system / Tables / Selection               i Inspector   ? Help  [0m
 [0m[2m                                                                                [0m
-[0m[2m Components      25  Selectable table  Select rows, edit one or many together,… [0m
+[0m[2m Components      54  Selectable table  Select rows, edit one or many together,… [0m
 [0m[2m                                                                                [0m
 [0m[2m [0m [0m[2m  Overview           Members                        2 selected · 1–3 of 12   ┃[0m
 [0m[2m [0m [0m[2m▸ App shell                                                                  ┃[0m
@@ -11,13 +11,13 @@
 [0m[2m [0m [0m[2m    Data gr│                                                    │────────    ┃[0m
 [0m[2m [0m [0m[2m  › Selecti│  They lose access to the workspace right away.     │            ┃[0m
 [0m[2m [0m [0m[2m    Cell ed│  This can't be undone.                             │            ┃[0m
-[0m[2m [0m [0m[2m▸ Navigatio│                                                    │            │[0m
-[0m[2m [0m [0m[2m▸ Overlays │                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │            │[0m
-[0m[2m [0m [0m[2m▸ Feedback │                                                    │            │[0m
-[0m[2m [0m [0m[2m▸ Layout   ╰────────────────────────────────────────────────────╯            │[0m
+[0m[2m [0m [0m[2m    Columns│                                                    │            │[0m
+[0m[2m [0m [0m[2m▸ Navigatio│                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │            │[0m
+[0m[2m [0m [0m[2m▸ Overlays │                                                    │            │[0m
+[0m[2m [0m [0m[2m▸ Feedback ╰────────────────────────────────────────────────────╯            │[0m
+[0m[2m [0m [0m[2m▸ Layout                                                                     │[0m
 [0m[2m [0m [0m[2m▸ Text & code                                                                │[0m
 [0m[2m [0m [0m[2m▸ Screens                                                                    │[0m
-[0m[2m                                                                               │[0m
 [0m[2m                                                                               │[0m
 [0m[2m                                                                               │[0m
 [0m[2m                                                                                [0m

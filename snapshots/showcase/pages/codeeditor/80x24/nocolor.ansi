@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Text & code / Code editor        i Inspector   ? Help  [0m
                                                                                 [0m
- [0m[1mComponents[0m      25  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
+ [0m[1mComponents[0m      54  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
                                                                                 [0m
     Overview           retry.rs                                       3 blocks  [0m
   ▸ App shell                                                                   [0m
@@ -14,8 +14,8 @@
  [0m[1m▎  › Code editor  [0m    State                                                    [0m
       Diff                                                                      [0m
       Terminal         Mode         navigating                                  [0m
-  ▸ Screens            Cursor       ln 1 · col 1                                [0m
-                       Block        1 of 3                                      [0m
+      Text utilit…     Cursor       ln 1 · col 1                                [0m
+  ▸ Screens            Block        1 of 3                                      [0m
                        Runs         0                                           [0m
                        Last run     —                                           [0m
                        Diagnostics  0                                           [0m

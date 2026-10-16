@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Scrolling               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
+ [0m[1mComponents[0m      54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
                                                                                                     [0m
     Overview           Wrapped … 1–21 of 141      Long list 1–21 of 120      Log    1981–2000/2000  [0m
   ▸ App shell                                                                                       [0m
@@ -12,11 +12,11 @@
   ▾ Layout             forms a plan, makes │         Row 006          │       734.45s  info   C… │  [0m
       Panels           focused changes,    │         Row 007          │       734.82s  info   R… │  [0m
  [0m[1m▎  › Scrolling    [0m    runs the tests, and │         Row 008          │       735.19s  info   t… │  [0m
-  ▸ Text & code        reports back with a │         Row 009          │       735.56s  info   t… │  [0m
-  ▸ Screens            summary you can     │         Row 010          │       735.93s  error  t… │  [0m
-                       review before       │         Row 011          │       736.30s  info   t… │  [0m
-                       anything is merged. │         Row 012          │       736.67s  info   L… │  [0m
-                                           │         Row 013          │       737.04s  info   R… │  [0m
+      Splits & st…     reports back with a │         Row 009          │       735.56s  info   t… │  [0m
+      Master-deta…     summary you can     │         Row 010          │       735.93s  error  t… │  [0m
+      Pane tree        review before       │         Row 011          │       736.30s  info   t… │  [0m
+  ▸ Text & code        anything is merged. │         Row 012          │       736.67s  info   L… │  [0m
+  ▸ Screens                                │         Row 013          │       737.04s  info   R… │  [0m
                        Each step is        │         Row 014          │       737.41s  info   F… │  [0m
                        visible. You can    │         Row 015          │       737.78s  info   C… │  [0m
                        pause, redirect, or │         Row 016          │       738.15s  info   C… │  [0m

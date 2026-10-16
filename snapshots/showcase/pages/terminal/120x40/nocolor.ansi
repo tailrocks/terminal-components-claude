@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Text & code / Terminal                               no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
- [0m[1mComponents[0m           25  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step rail reports a… [0m
+ [0m[1mComponents[0m           54  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step rail reports a… [0m
                                                                                                                         [0m
     Overview              ╭─ Viewport ───────────────────── 37 lines · following ─╮ │  Step rail                7 of 7  [0m
   ▸ App shell             │  [0m[2m  layer 03/12   34%                                [0m│ │ │                                   [0m
@@ -14,8 +14,8 @@
       Code editor         │    #2 COPY rust-toolchain.toml ./                   ┃ │ │                                   [0m
       Diff                │    #3 RUN cargo fetch --locked                      ┃ │ │                                   [0m
  [0m[1m▎  › Terminal          [0m  │    #4 RUN cargo build --release                     ┃ │ │                                   [0m
-  ▸ Screens               │    #5 RUN apt-get install -y build-essential        ┃ │ │                                   [0m
-                          │    #6 COPY rust-toolchain.toml ./                   ┃ │ │                                   [0m
+      Text utilities      │    #5 RUN apt-get install -y build-essential        ┃ │ │                                   [0m
+  ▸ Screens               │    #6 COPY rust-toolchain.toml ./                   ┃ │ │                                   [0m
                           │    #7 RUN cargo fetch --locked                      ┃ │ │                                   [0m
                           │    #8 RUN cargo build --release                     ┃ │ │                                   [0m
                           │    #9 RUN apt-get install -y build-essential        ┃ │ │                                   [0m

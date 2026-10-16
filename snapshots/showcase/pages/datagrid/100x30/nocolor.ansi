@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Data grid               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging and local sort          [0m
+ [0m[1mComponents[0m      54  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging and local sort          [0m
                                                                                                     [0m
     Overview           customers             rows 1–19 of 40 loaded · ~4,812 total · cols 1–4 of 8  [0m
   ▸ App shell                                                                                       [0m
@@ -11,13 +11,13 @@
  [0m[1m▎  › Data grid    [0m        4 1004       Fabrikam Robotics          free              1           ┃  [0m
       Selection            5 1005       Litware Analytics          enterprise       40           ┃  [0m
       Cell editors         6 1006       Tailspin Toys              team              5           ┃  [0m
-  ▸ Navigation             7 1007       Wide World Importers       pro             150           ┃  [0m
-  ▸ Overlays               8 1008       Adventure Works            free             25           ┃  [0m
-  ▸ Feedback               9 1009       Proseware Studio           enterprise        3           │  [0m
-  ▸ Layout                10 1010       Woodgrove Bank             team             80           │  [0m
-  ▸ Text & code           11 1011       Alpine Ski House           pro              12           │  [0m
-  ▸ Screens               12 1012       Coho Winery                free              1           │  [0m
-                          13 1013       Lucerne Publishing         enterprise       40           │  [0m
+      Columns              7 1007       Wide World Importers       pro             150           ┃  [0m
+  ▸ Navigation             8 1008       Adventure Works            free             25           ┃  [0m
+  ▸ Overlays               9 1009       Proseware Studio           enterprise        3           │  [0m
+  ▸ Feedback              10 1010       Woodgrove Bank             team             80           │  [0m
+  ▸ Layout                11 1011       Alpine Ski House           pro              12           │  [0m
+  ▸ Text & code           12 1012       Coho Winery                free              1           │  [0m
+  ▸ Screens               13 1013       Lucerne Publishing         enterprise       40           │  [0m
                           14 1014       Margie's Travel            team              5           │  [0m
                           15 1015       Trey Research              pro             150           │  [0m
                           16 1016       Humongous Insurance        free             25           │  [0m

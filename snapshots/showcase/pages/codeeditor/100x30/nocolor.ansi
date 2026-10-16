@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Text & code / Code editor        no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; the gutter says where… [0m
+ [0m[1mComponents[0m      54  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; the gutter says where… [0m
                                                                                                     [0m
     Overview           retry.rs                            3 blocks      State                      [0m
   ▸ App shell                                                                                       [0m
@@ -14,8 +14,8 @@
  [0m[1m▎  › Code editor  [0m        8                 log::warn!("attempt… ┃                                 [0m
       Diff                 9                 sleep(delay).[0m[1mawait[0m;  ┃                                 [0m
       Terminal            10                 delay *= [0m[3m2[0m;          ┃                                 [0m
-  ▸ Screens               11             }                        ┃      Diagnostics                [0m
-                          12             Err(e) => [0m[1mreturn[0m Err(e), ┃                                 [0m
+      Text utilit…        11             }                        ┃      Diagnostics                [0m
+  ▸ Screens               12             Err(e) => [0m[1mreturn[0m Err(e), ┃                                 [0m
                           13         }                            ┃           Nothing flagged       [0m
                           14     }                                │                                 [0m
                           15     Err(Error::Exhausted)            │        Run the second block:    [0m

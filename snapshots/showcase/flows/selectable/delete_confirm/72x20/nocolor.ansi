@@ -1,6 +1,6 @@
 [0m[2m ▪ Junie Design system / Tables / Selection       i Inspector   ? Help  [0m
 [0m[2m                                                                        [0m
-[0m[2m Components      25  Selectable table  Select rows, edit one or many t… [0m
+[0m[2m Components      54  Selectable table  Select rows, edit one or many t… [0m
 [0m[2m                                                                        [0m
 [0m[2m [0m [0m[2m  Overview      ┃    Members                2 selected · 1–3 of 12   ┃[0m
 [0m[2m [0m [0m[2m▸ App s╭──────────────────────────────────────────────── × ─╮        ┃[0m
@@ -11,10 +11,10 @@
 [0m[2m [0m [0m[2m    Dat│  This can't be undone.                             │────    ┃[0m
 [0m[2m [0m [0m[2m  › Sel│                                                    │        │[0m
 [0m[2m [0m [0m[2m    Cel│                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │        │[0m
-[0m[2m [0m [0m[2m▸ Navig│                                                    │        │[0m
-[0m[2m [0m [0m[2m▸ Overl╰────────────────────────────────────────────────────╯        │[0m
+[0m[2m [0m [0m[2m    Col│                                                    │        │[0m
+[0m[2m [0m [0m[2m▸ Navig╰────────────────────────────────────────────────────╯        │[0m
+[0m[2m [0m [0m[2m▸ Overlays      │                                                    │[0m
 [0m[2m [0m [0m[2m▸ Feedback      │                                                    │[0m
-[0m[2m [0m [0m[2m▸ Layout        │                                                    │[0m
 [0m[2m                                                                       │[0m
 [0m[2m                                                                        [0m
  [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mEsc[0m Cancel                                    [0m

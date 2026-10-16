@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Scrolling                                   no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
- [0m[1mComponents[0m           25  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are… [0m
+ [0m[1mComponents[0m           54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are… [0m
                                                                                                                         [0m
     Overview                Wrapped text   1–31 of 120      Long list      1–31 of 120      Log         1971–2000/2000  [0m
   ▸ App shell                                                                                                           [0m
@@ -12,11 +12,11 @@
   ▾ Layout                  changes, runs the tests, ┃         Row 006               ┃       730.75s  info   test a… │  [0m
       Panels                and reports back with a  ┃         Row 007       flagged ┃       731.12s  info   test d… │  [0m
  [0m[1m▎  › Scrolling         [0m    summary you can review   ┃         Row 008               ┃       731.49s  error  test c… │  [0m
-  ▸ Text & code             before anything is       │         Row 009               │       731.86s  info   test w… │  [0m
-  ▸ Screens                 merged.                  │         Row 010               │       732.23s  info   Linkin… │  [0m
-                                                     │         Row 011               │       732.60s  info   Resolv… │  [0m
-                            Each step is visible.    │         Row 012               │       732.97s  info   Fetchi… │  [0m
-                            You can pause, redirect, │         Row 013               │       733.34s  info   Compil… │  [0m
+      Splits & stacks       before anything is       │         Row 009               │       731.86s  info   test w… │  [0m
+      Master-detail         merged.                  │         Row 010               │       732.23s  info   Linkin… │  [0m
+      Pane tree                                      │         Row 011               │       732.60s  info   Resolv… │  [0m
+  ▸ Text & code             Each step is visible.    │         Row 012               │       732.97s  info   Fetchi… │  [0m
+  ▸ Screens                 You can pause, redirect, │         Row 013               │       733.34s  info   Compil… │  [0m
                             or take over at any      │         Row 014       flagged │       733.71s  info   Compil… │  [0m
                             point, and every change  │         Row 015               │       734.08s  warn   unused… │  [0m
                             lands as an ordinary     │         Row 016               │       734.45s  info   Compil… │  [0m

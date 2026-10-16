@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Basic table                                                                         no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
- [0m[1mComponents[0m           25  [0m[1mTables[0m  Sort by header, hover rows, select with Enter, overflow scrolls                                                               [0m
+ [0m[1mComponents[0m           54  [0m[1mTables[0m  Sort by header, hover rows, select with Enter, overflow scrolls                                                               [0m
                                                                                                                                                                 [0m
     Overview                Tasks                                                                                                                     unsorted  [0m
   ▸ App shell                                                                                                                                                   [0m
@@ -11,13 +11,13 @@
       Data grid                #1043  Write release notes for 3.2                             mira     Queued     docs/release-3.2              0         0s    [0m
       Selection                #1044  Replace deprecated Vue mixins                           kai      Done       refactor/mixins              87    22m 10s    [0m
       Cell editors             #1045  Upgrade Postgres driver to 0.9                          jonas    Paused     chore/pg-driver               5     4m 00s    [0m
-  ▸ Navigation                 #1046  Extract billing service module                          sofia    Done       refactor/billing             52    15m 08s    [0m
-  ▸ Overlays                   #1047  Add OpenTelemetry tracing spans                         kai      ▸ Running  feat/otel                    22     2m 10s    [0m
-  ▸ Feedback                   #1048  Remove legacy feature flags                             ana      Queued     chore/flags                   0         0s    [0m
-  ▸ Layout                     #1049  Generate API client from OpenAPI                        sofia    Done       feat/api-client             118    36m 50s    [0m
-  ▸ Text & code                #1050  Harden CSP headers                                      mira     Done       sec/csp                       4     1m 17s    [0m
-  ▸ Screens                    #1051  Speed up cold start of worker                           jonas    Failed     perf/worker-boot              9    10m 01s    [0m
-                               #1052  Localize onboarding emails                              kai      Queued     feat/i18n-emails              0         0s    [0m
+      Columns                  #1046  Extract billing service module                          sofia    Done       refactor/billing             52    15m 08s    [0m
+  ▸ Navigation                 #1047  Add OpenTelemetry tracing spans                         kai      ▸ Running  feat/otel                    22     2m 10s    [0m
+  ▸ Overlays                   #1048  Remove legacy feature flags                             ana      Queued     chore/flags                   0         0s    [0m
+  ▸ Feedback                   #1049  Generate API client from OpenAPI                        sofia    Done       feat/api-client             118    36m 50s    [0m
+  ▸ Layout                     #1050  Harden CSP headers                                      mira     Done       sec/csp                       4     1m 17s    [0m
+  ▸ Text & code                #1051  Speed up cold start of worker                           jonas    Failed     perf/worker-boot              9    10m 01s    [0m
+  ▸ Screens                    #1052  Localize onboarding emails                              kai      Queued     feat/i18n-emails              0         0s    [0m
                                #1053  Add pagination to audit log                             ana      Done       feat/audit-pages             16     5m 44s    [0m
                                #1054  Refactor retry helper into crate                        sofia    ▸ Running  refactor/retry               11        45s    [0m
                                #1055  Rotate signing keys quarterly                           mira     Queued     sec/key-rotation              0         0s    [0m

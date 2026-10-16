@@ -1,24 +1,24 @@
  ▪ [0m[1mJunie[0m Design system / Screens / Settings               i Inspector   ? Help  [0m
                                                                                 [0m
- [0m[1mComponents[0m      25  [0m[1mProject settings[0m  Composed: tabs, form, editable table, l… [0m
+ [0m[1mComponents[0m      54  [0m[1mProject settings[0m  Composed: tabs, form, editable table, l… [0m
                                                                                 [0m
-    Overview         [0m[1m General  [0m  Members    Environment                         [0m
-  ▸ App shell        ━━━━━━━━━━─────────────────────────────────────────────────[0m
-  ▸ Inputs & forms                                                              [0m
-  ▸ Tables             General                                                  [0m
-  ▸ Navigation                                                                  [0m
-  ▸ Overlays             Project name *               Visibility                [0m
-  ▸ Feedback             payments-gateway            (●) Private                [0m
-  ▸ Layout                                           ( ) Internal               [0m
-  ▸ Text & code          Description                 ( ) Public                 [0m
-  ▾ Screens              Handles checkout, in…                                  [0m
- [0m[1m▎  › Settings     [0m                                  ○── Auto-merge approved …  [0m
-      Task runner                                    ──● Protect main branch    [0m
-                                                                                [0m
-                                                                                [0m
-                                                                                [0m
-                                                                                [0m
-                        [0m[1;7mSave changes [0m  No changes                               [0m
+    Overview      ┃  [0m[1m General  [0m  Members    Environment                         [0m
+  ▸ App shell     ┃  ━━━━━━━━━━─────────────────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                             [0m
+  ▸ Tables        ┃    General                                                  [0m
+  ▸ Navigation    ┃                                                             [0m
+  ▸ Overlays      ┃      Project name *               Visibility                [0m
+  ▸ Feedback      ┃      payments-gateway            (●) Private                [0m
+  ▸ Layout        ┃                                  ( ) Internal               [0m
+  ▸ Text & code   ┃      Description                 ( ) Public                 [0m
+  ▾ Screens       ┃      Handles checkout, in…                                  [0m
+ [0m[1m▎  › Settings    [0m┃                                  ○── Auto-merge approved …  [0m
+      Task runner ┃                                  ──● Protect main branch    [0m
+      Query work… ┃                                                             [0m
+      Connections │                                                             [0m
+      Finder      │                                                             [0m
+      Disk clean… │                                                             [0m
+ [0m[2m     Activity    [0m│     [0m[1;7mSave changes [0m  No changes                               [0m
                                                                                 [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m

@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Selection               no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
- [0m[1mComponents[0m      25  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confi… [0m
+ [0m[1mComponents[0m      54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confi… [0m
                                                                                                     [0m
     Overview           Members                                                         1–3 of 12   ┃[0m
   ▸ App shell                                                                                      ┃[0m
@@ -11,13 +11,13 @@
       Data grid               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────    ┃[0m
  [0m[1m▎  › Selection    [0m                                                                                ┃[0m
       Cell editors                                                                                 ┃[0m
+      Columns                                                                                      ┃[0m
   ▸ Navigation                                                                                     ┃[0m
   ▸ Overlays                                                                                       ┃[0m
-  ▸ Feedback                                                                                       ┃[0m
+  ▸ Feedback                                                                                       │[0m
   ▸ Layout                                                                                         │[0m
   ▸ Text & code                                                                                    │[0m
   ▸ Screens                                                                                        │[0m
-                                                                                                   │[0m
                                                                                                    │[0m
                                                                                                    │[0m
                                                                                                    │[0m

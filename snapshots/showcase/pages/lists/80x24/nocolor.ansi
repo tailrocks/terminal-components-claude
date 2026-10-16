@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Lists               i Inspector   ? Help  [0m
                                                                                 [0m
- [0m[1mComponents[0m      25  [0m[1mLists[0m  Single and multiple selection, disabled items, scr… [0m
+ [0m[1mComponents[0m      54  [0m[1mLists[0m  Single and multiple selection, disabled items, scr… [0m
                                                                                 [0m
     Overview           Language            Files to incl…      Search results   [0m
   ▸ App shell                                                                   [0m
@@ -10,13 +10,13 @@
  [0m[1m▎  › Lists        [0m       TypeScri… ┃       ✓ src/api/bi…                       [0m
       Trees               Python    ┃      [0m[2m   src/db/sch…[0m                       [0m
       Sidebars            Kotlin    ┃         tests/chec…                       [0m
-  ▸ Overlays              Go        ┃      [0m[2m   Cargo.lock [0m                       [0m
-  ▸ Feedback              Java      ┃         docs/webho…      No results for…  [0m
-  ▸ Layout                Swift     ┃         src/worker…                       [0m
-  ▸ Text & code           C#        ┃         src/config…                       [0m
-  ▸ Screens               Ruby      │         README.md                         [0m
-                          Scala     │         src/main.rs                       [0m
-                          Elixir    │         tests/auth…                       [0m
+      Tabs                Go        ┃      [0m[2m   Cargo.lock [0m                       [0m
+      Menus               Java      ┃         docs/webho…      No results for…  [0m
+  ▸ Overlays              Swift     ┃         src/worker…                       [0m
+  ▸ Feedback              C#        ┃         src/config…                       [0m
+  ▸ Layout                Ruby      │         README.md                         [0m
+  ▸ Text & code           Scala     │         src/main.rs                       [0m
+  ▸ Screens               Elixir    │         tests/auth…                       [0m
                           Haskell   │         src/db/poo…                       [0m
                        [0m[2m   Zig       [0m│                                           [0m
                                                                                 [0m

@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Selection                                                                           no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
- Components           25  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation                                                  [0m
+ Components           54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation                                                  [0m
                                                                                                                                                                 [0m
     Overview                [0m[1mMembers[0m                                                                    3 selected     Edit 3 members                            [0m
   ▸ App shell                                                                                                                                                   [0m
@@ -11,13 +11,13 @@
       Data grid             [0m[1m▎  [✓] Bo Lindqvist        Editor  Invited    EU      —        bo@northwind.dev      [0m       Region                                  [0m
     › [0m[1mSelection        [0m        [ ] Eli Nakamura        Viewer  Active     APAC    —        eli@contractor.io            — mixed —      ▾    [–] On call         [0m
       Cell editors             [ ] Fay Okafor          Editor  Active     US      Yes      fay@northwind.dev                                                    [0m
-  ▸ Navigation                 [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev            Notes                                   [0m
-  ▸ Overlays                   [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev           — mixed —                               [0m
-  ▸ Feedback                   [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
-  ▸ Layout                     [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
-  ▸ Text & code                [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
-  ▸ Screens                    [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
-                                                                                                                       [0m[2mApply [0m   [0m[2mRevert [0m   Delete…               [0m
+      Columns                  [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev            Notes                                   [0m
+  ▸ Navigation                 [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev           — mixed —                               [0m
+  ▸ Overlays                   [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
+  ▸ Feedback                   [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
+  ▸ Layout                     [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
+  ▸ Text & code                [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
+  ▸ Screens                                                                                                            [0m[2mApply [0m   [0m[2mRevert [0m   Delete…               [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m

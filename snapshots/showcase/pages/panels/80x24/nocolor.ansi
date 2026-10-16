@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Layout / Panels                  i Inspector   ? Help  [0m
                                                                                 [0m
- [0m[1mComponents[0m      25  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an e… [0m
+ [0m[1mComponents[0m      54  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an e… [0m
                                                                                 [0m
     Overview           Titled card    surface   ┃  ╭─ Framed · s…   1–7 of 41 ─╮[0m
   ▸ App shell                                   ┃  │  Junie works through a  ┃ │[0m
@@ -12,11 +12,11 @@
   ▾ Layout                                      ┃  │  [0m[2mruns the tests, and    [0m│ │[0m
  [0m[1m▎  › Panels       [0m                             ┃  ╰───────────────────────────╯[0m
       Scrolling        Untitled card. Same      ┃                               [0m
-  ▸ Text & code        surface, content         ┃    Card · scrolla… 1–4 of 60  [0m
-  ▸ Screens            starts at the padding    ┃                               [0m
-                       edge.                    │       0.00s  info   Resol… ┃  [0m
-                                                │       0.37s  info   Fetch… │  [0m
-                                                │       0.74s  info   Compi… │  [0m
+      Splits & st…     surface, content         ┃    Card · scrolla… 1–4 of 60  [0m
+      Master-deta…     starts at the padding    ┃                               [0m
+      Pane tree        edge.                    │       0.00s  info   Resol… ┃  [0m
+  ▸ Text & code                                 │       0.37s  info   Fetch… │  [0m
+  ▸ Screens                                     │       0.74s  info   Compi… │  [0m
                                                 │    [0m[2m   1.11s  info   Compi… [0m│  [0m
                                                 │    ━━━━━━━─────────────────   [0m
                                                 │                               [0m

@@ -1,20 +1,20 @@
  ▪ [0m[1mJunie[0m Design system / Navigation / Lists       i Inspector   ? Help  [0m
                                                                         [0m
- [0m[1mComponents[0m      25  [0m[1mLists[0m  Single and multiple selection, disabled it… [0m
+ [0m[1mComponents[0m      54  [0m[1mLists[0m  Single and multiple selection, disabled it… [0m
                                                                         [0m
-    Overview           Language          Files to in…      Search res…  [0m
-  ▸ App shell                                                           [0m
-  ▸ Inputs & forms     Chosen: Rust      Space toggl…                   [0m
-  ▸ Tables                                                              [0m
-  ▾ Navigation          › Rust    ┃       ✓ src/ap… ┃                   [0m
- [0m[1m▎  › Lists        [0m       TypeSc… ┃       ✓ src/ap… ┃                   [0m
-      Trees               Python  ┃      [0m[2m   src/db… [0m┃                   [0m
-      Sidebars            Kotlin  ┃         tests/… ┃      No results…  [0m
-  ▸ Overlays              Go      │      [0m[2m   Cargo.… [0m┃                   [0m
-  ▸ Feedback              Java    │         docs/w… ┃                   [0m
-  ▸ Layout                Swift   │         src/wo… │                   [0m
-  ▸ Text & code           C#      │         src/co… │                   [0m
-  ▸ Screens            [0m[2m   Ruby    [0m│      [0m[2m   README… [0m│                   [0m
+    Overview      ┃    Language          Files to in…      Search res…  [0m
+  ▸ App shell     ┃                                                     [0m
+  ▸ Inputs & for… ┃    Chosen: Rust      Space toggl…                   [0m
+  ▸ Tables        ┃                                                     [0m
+  ▾ Navigation    ┃     › Rust    ┃       ✓ src/ap… ┃                   [0m
+ [0m[1m▎  › Lists       [0m┃       TypeSc… ┃       ✓ src/ap… ┃                   [0m
+      Trees       ┃       Python  ┃      [0m[2m   src/db… [0m┃                   [0m
+      Sidebars    ┃       Kotlin  ┃         tests/… ┃      No results…  [0m
+      Tabs        ┃       Go      │      [0m[2m   Cargo.… [0m┃                   [0m
+      Menus       ┃       Java    │         docs/w… ┃                   [0m
+  ▸ Overlays      ┃       Swift   │         src/wo… │                   [0m
+  ▸ Feedback      │       C#      │         src/co… │                   [0m
+ [0m[2m ▸ Layout        [0m│    [0m[2m   Ruby    [0m│      [0m[2m   README… [0m│                   [0m
                                                                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m

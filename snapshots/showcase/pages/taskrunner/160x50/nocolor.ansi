@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Screens / Task runner                                                                        no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
- [0m[1mComponents[0m           25  [0m[1mTask runner[0m  Composed: tree, live progress, following log, busy states                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mTask runner[0m  Composed: tree, live progress, following log, busy states                                                                [0m
                                                                                                                                                                 [0m
     Overview                Targets                         Pipeline                                                                               0 of 6 done  [0m
   ▸ App shell                                                                                                                                                   [0m
@@ -14,15 +14,15 @@
   ▾ Screens                        integration               [0m[1;7mRun pipeline [0m   [0m[2mCancel [0m                                                                            [0m
       Settings                     e2e                                                                                                                          [0m
  [0m[1m▎  › Task runner       [0m       ▾ deploy                                                                                                                         [0m
-                                   staging                  Log                                                                                    · following  [0m
-                                   production                                                                                                                   [0m
-                             ▾ shared-libs                  Ready. Press r or Run to start the pipeline.                                                        [0m
-                                 compile                                                                                                                        [0m
-                                 publish                                                                                                                        [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
+      Query workbench              staging                  Log                                                                                    · following  [0m
+      Connections                  production                                                                                                                   [0m
+      Finder                 ▾ shared-libs                  Ready. Press r or Run to start the pipeline.                                                        [0m
+      Disk cleanup               compile                                                                                                                        [0m
+      Activity                   publish                                                                                                                        [0m
+      Workspaces                                                                                                                                                [0m
+      Accounts & usage                                                                                                                                          [0m
+      Launch cockpit                                                                                                                                            [0m
+      Read-only report                                                                                                                                          [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m

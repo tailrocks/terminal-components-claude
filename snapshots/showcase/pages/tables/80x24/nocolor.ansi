@@ -1,6 +1,6 @@
  ▪ [0m[1mJunie[0m Design system / Tables / Basic table             i Inspector   ? Help  [0m
                                                                                 [0m
- [0m[1mComponents[0m      25  [0m[1mTables[0m  Sort by header, hover rows, select with Enter, ov… [0m
+ [0m[1mComponents[0m      54  [0m[1mTables[0m  Sort by header, hover rows, select with Enter, ov… [0m
                                                                                 [0m
     Overview           Tasks                              unsorted · 1–4 of 24  [0m
   ▸ App shell                                                                   [0m
@@ -11,13 +11,13 @@
       Data grid        [0m[2m   #1043  Write release notes for 3.2        mira     [0m│  [0m
       Selection           ━━━━━━━━━━━━━━━━━━━━━──────────────────────────────   [0m
       Cell editors                                                              [0m
-  ▸ Navigation                                                                  [0m
-  ▸ Overlays           Checks                                                   [0m
-  ▸ Feedback                                                                    [0m
-  ▸ Layout                Check                                     Result      [0m
+      Columns                                                                   [0m
+  ▸ Navigation         Checks                                                   [0m
+  ▸ Overlays                                                                    [0m
+  ▸ Feedback              Check                                     Result      [0m
+  ▸ Layout                                                                      [0m
   ▸ Text & code                                                                 [0m
-  ▸ Screens                                                                     [0m
-                                       No checks have run yet                   [0m
+  ▸ Screens                            No checks have run yet                   [0m
                                                                                 [0m
                                                                                 [0m
                                                                                 [0m
