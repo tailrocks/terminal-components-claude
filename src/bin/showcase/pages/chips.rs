@@ -112,9 +112,9 @@ impl ChipsPage {
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("chipsselects.chip_nav") {
-            "no-vim" => NavKeys::NO_VIM,
-            "no-home-end" => NavKeys::DEFAULT.home_end(false),
-            _ => NavKeys::DEFAULT,
+            "vim" => NavKeys::VIM,
+            "no-home-end" => NavKeys::default().home_end(false),
+            _ => NavKeys::default(),
         };
         let keymap = match o.value("chipsselects.chip_keymap") {
             // Delete only removes; `n` adds; Shift+Delete clears
@@ -204,8 +204,8 @@ impl ChipsPage {
             .type_ahead(o.on("chipsselects.type_ahead"))
             .close_on_blur(o.on("chipsselects.close_on_blur"))
             .nav(match o.value("chipsselects.select_nav") {
-                "no-vim" => NavKeys::NO_VIM,
-                _ => NavKeys::DEFAULT,
+                "vim" => NavKeys::VIM,
+                _ => NavKeys::default(),
             });
             match o.value("chipsselects.track_click") {
                 "jump" => n = n.track_click(TrackClick::Jump),

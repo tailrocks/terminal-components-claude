@@ -546,9 +546,9 @@ fn checks_mixed_box_checks_when_toggled() {
 #[test]
 fn checks_radio_keys_follow_the_nav_option() {
     for (value, j_moves, end_moves) in [
-        ("default", true, true),
-        ("no-vim", false, true),
-        ("no-home-end", true, false),
+        ("default", false, true),
+        ("vim", true, true),
+        ("no-home-end", false, false),
     ] {
         let mut h = Harness::new(120, 40, PageId::ChecksRadios);
         h.opt(&format!("checksradios.radio_nav={value}"));
