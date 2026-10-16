@@ -184,6 +184,18 @@ impl HitRegistry {
     /// included, so it lands on top of what was registered since (a
     /// dialog lifting its open select's options above its own surface).
     pub fn raise(&mut self, id: WidgetId) {
+        if let Some(bar) = self.bar(id) {
+            // a scrollbar is its track and, above it, its thumb
+            let parts: Vec<HitRegion> = self
+                .regions
+                .iter()
+                .filter(|r| r.id == id && bar.track.contains(r.area.as_position()))
+                .copied()
+                .collect();
+            let from = parts.iter().rposition(|r| r.area == bar.track).unwrap_or(0);
+            self.regions.extend_from_slice(&parts[from..]);
+            return;
+        }
         if let Some(r) = self.regions.iter().rev().find(|r| r.id == id).copied() {
             self.regions.push(r);
         }
@@ -246,6 +258,18 @@ impl HitRegistry {
         }
         self.register_part_as(bar.id, bar.owner, PartRef::of(Part::TRACK), bar.track);
         self.bars.push(bar);
+    }
+
+    /// Register the thumb of the scrollbar `bar_id` (drawn in `thumb`)
+    /// above its track: the cells under the thumb resolve to the owner's
+    /// [`Part::THUMB`], the rest of the bar to [`Part::TRACK`]. The hit id
+    /// stays the bar's, so hover, press and the pointer grab are one
+    /// control.
+    pub fn register_thumb(&mut self, bar_id: WidgetId, owner: WidgetId, thumb: Rect) {
+        if self.bar(bar_id).is_none() {
+            return;
+        }
+        self.register_part_as(bar_id, owner, PartRef::of(Part::THUMB), thumb);
     }
 
     /// Let a release over `id` complete a click although the press started
@@ -468,6 +492,10 @@ impl HitRegistry {
     }
 
     pub fn area_of(&self, id: WidgetId) -> Option<Rect> {
+        // a scrollbar's area is its whole track, not the thumb above it
+        if let Some(bar) = self.bar(id) {
+            return Some(bar.track);
+        }
         self.regions
             .iter()
             .rev()
@@ -608,6 +636,24 @@ mod tests {
                 part: PartRef::of(Part::TRACK)
             }),
             "a scrollbar resolves to its owner's track"
+        );
+        h.register_thumb(WidgetId::of("list.bar"), list, Rect::new(19, 1, 1, 2));
+        assert_eq!(
+            h.resolve(Position::new(19, 2)),
+            Some(Hit {
+                owner: list,
+                part: PartRef::of(Part::THUMB)
+            }),
+            "the thumb is its own part"
+        );
+        assert_eq!(
+            h.hit(Position::new(19, 2)),
+            Some(WidgetId::of("list.bar")),
+            "one control: the thumb keeps the bar's id"
+        );
+        assert_eq!(
+            h.resolve(Position::new(19, 4)).map(|h| h.part),
+            Some(PartRef::of(Part::TRACK))
         );
         assert_eq!(h.resolve(Position::new(30, 2)), None);
     }
