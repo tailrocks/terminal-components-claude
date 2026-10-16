@@ -103,3 +103,9 @@ Each finding is fixed (with its commit) or deferred with a reason.
 | 28 | Partial | 71477f758 | `Picker::{placeholder, empty_text}` builders. Deferred: `theme::Strings`, `DataGrid::bar_labels`, `TextInput::required_message`. |
 | 29 | Partial | 71477f758 | TextInput validators are closures (`TextValidator`). Deferred: DataTable and DataGrid validators. |
 | 30 | Partial | cec8f1474, c4f8a7b5b | `ListBox::mode`, `Tabs::allow_new`. Deferred: `Cow` labels, `Dialog::actions` rename, `danger(bool)`/`separator(bool)`, `empty(EmptyState)`. |
+
+## Status update (fields and focus pass)
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 10 | Fixed | e184db2b0, e5917f9e1 | `Select::on_blur()` with `close_on_blur: bool` (default `true`), called from the focus-change hook every app forwards (interaction #15); `render` no longer closes the list, so `on_key` never sees a stale `open`. |
