@@ -252,7 +252,7 @@ impl Page for InputsPage {
                 let Some(i) = self.fields.iter().position(|f| f.id == *id) else {
                     return Outcome::Ignored;
                 };
-                self.fields[i].on_press(*pos)
+                self.fields[i].on_press_count(*pos, cx.clicks.max(1))
             }
             PageEvent::Drag { pressed, pos } => {
                 match self.fields.iter().position(|f| f.id == *pressed) {

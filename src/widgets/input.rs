@@ -10,7 +10,8 @@ use crate::core::text::TextBuffer;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use crate::widgets::field_common::{
-    EditAction, PointerSelect, PressState, click_select, drag_select, edit_key,
+    EditAction, PointerField, PointerSelect, PressState, click_select, drag_select, edit_key,
+    press_select,
 };
 
 /// A text validator: `Some(message)` rejects the value.
@@ -380,7 +381,10 @@ impl TextInput {
     /// same display geometry as rendering: a masked CJK/emoji grapheme
     /// occupies one cell, regardless of raw width.
     fn offset_at(&self, pos: Position) -> usize {
-        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.scroll;
+        // a pointer left of the text names the column before the first
+        // visible one, so a drag past the edge scrolls the field
+        let col =
+            (self.scroll as isize + (pos.x as isize - self.text_area.x as isize)).max(0) as usize;
         let mut width = 0;
         for (bi, _, gw) in self.display_graphemes(true) {
             if width + gw > col {
@@ -424,19 +428,36 @@ impl TextInput {
     /// there. The press alone changes nothing; the completed click (or the
     /// drag) starts editing.
     pub fn on_press(&mut self, pos: Position) -> Outcome {
+        self.on_press_count(pos, 1)
+    }
+
+    /// A press with the click `count` it starts
+    /// ([`crate::core::pointer::PointerState::press_count`]): the second
+    /// press of a double click selects the word, and a drag from it
+    /// extends by words ([`PointerSelect::drag_by_word`]).
+    pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
         }
-        self.press = PressState {
-            at: Some(self.offset_at(pos)),
-            dragged: false,
-        };
+        let offset = self.offset_at(pos);
+        if press_select(
+            &mut self.buffer,
+            &mut self.press,
+            self.pointer_select,
+            offset,
+            count,
+            self.masked,
+        ) {
+            self.begin_edit();
+            return Outcome::Changed;
+        }
         Outcome::Consumed
     }
 
     /// Drag with the button held since a press on the field: starts
     /// editing and selects from the press to the pointer
-    /// ([`PointerSelect::drag`]).
+    /// ([`PointerSelect::drag`]). Past the field's left or right edge the
+    /// selection runs on and the field scrolls to follow it.
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         if self.disabled || !self.pointer_select.drag {
             return Outcome::Ignored;
@@ -672,6 +693,21 @@ impl crate::core::focus::BlurTarget for TextInput {
     }
 }
 
+impl PointerField for TextInput {
+    fn pointer_id(&self) -> WidgetId {
+        self.id
+    }
+    fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
+        TextInput::on_press_count(self, pos, count)
+    }
+    fn on_drag(&mut self, pos: Position) -> Outcome {
+        TextInput::on_drag(self, pos)
+    }
+    fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
+        TextInput::on_click_count(self, pos, count)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -812,6 +848,65 @@ mod tests {
         off.on_click_count(w, 2);
         assert_eq!(off.buffer.selected_text(), None);
         assert_eq!(off.buffer.cursor(), 7);
+    }
+
+    #[test]
+    fn a_drag_after_a_double_click_extends_by_words() {
+        let mut i = TextInput::new(WidgetId::of("w"), "Name").value("alpha beta gamma delta");
+        let area = Rect::new(0, 0, 40, 3);
+        let mut buf = Buffer::empty(area);
+        render(&mut i, area, &mut buf);
+        let ta = i.text_area;
+        let at = |col: u16| Position::new(ta.x + col, ta.y);
+        // first click, then the second press of the double click on "beta"
+        i.on_click_count(at(7), 1);
+        assert_eq!(i.on_press_count(at(7), 2), Outcome::Changed);
+        assert_eq!(i.buffer.selected_text(), Some("beta"), "the press selects");
+        // dragging into "gamma" takes the whole word, not the characters
+        i.on_drag(at(12));
+        assert_eq!(i.buffer.selected_text(), Some("beta gamma"));
+        // backwards into "alpha": from the start of alpha to the end of beta
+        i.on_drag(at(1));
+        assert_eq!(i.buffer.selected_text(), Some("alpha beta"));
+        i.on_click_count(at(1), 2);
+        assert_eq!(
+            i.buffer.selected_text(),
+            Some("alpha beta"),
+            "release keeps"
+        );
+        // configurable: by characters from the press
+        let mut c = TextInput::new(WidgetId::of("c"), "Name")
+            .value("alpha beta gamma delta")
+            .pointer_select(PointerSelect::DEFAULT.drag_by_word(false));
+        render(&mut c, area, &mut buf);
+        c.on_click_count(at(7), 1);
+        assert_eq!(c.on_press_count(at(7), 2), Outcome::Consumed);
+        c.on_drag(at(12));
+        assert_eq!(c.buffer.selected_text(), Some("eta g"));
+    }
+
+    #[test]
+    fn dragging_past_the_left_edge_scrolls_the_field() {
+        let long = "0123456789abcdefghijklmnopqrstuvwxyz";
+        let mut i = TextInput::new(WidgetId::of("e"), "Name").value(long);
+        let area = Rect::new(0, 0, 16, 3);
+        let mut buf = Buffer::empty(area);
+        render(&mut i, area, &mut buf);
+        // show the end: the caret at the end scrolls the start out
+        i.begin_edit();
+        i.buffer.select_range(long.len(), long.len());
+        i.buffer.clear_selection();
+        render(&mut i, area, &mut buf);
+        let first = i.scroll;
+        assert!(first > 0, "the start is scrolled out");
+        let ta = i.text_area;
+        i.on_press(Position::new(ta.x + 3, ta.y));
+        // past the left edge: the selection runs on and the field follows
+        i.on_drag(Position::new(ta.x.saturating_sub(1), ta.y));
+        render(&mut i, area, &mut buf);
+        assert!(i.scroll < first, "scrolled back: {} → {}", first, i.scroll);
+        let sel = i.buffer.selection().expect("a selection");
+        assert!(sel.start < first, "selects text that was out of view");
     }
 
     #[test]
