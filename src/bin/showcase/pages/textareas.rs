@@ -127,7 +127,16 @@ impl Page for TextAreasPage {
                     return Outcome::Changed;
                 }
                 cx.focus.focus(*id);
-                self.areas[i].on_click(*pos)
+                self.areas[i].on_click_count(*pos, cx.clicks.max(1))
+            }
+            PageEvent::Press { id, pos } => {
+                let Some(i) = self.index_of(*id) else {
+                    return Outcome::Ignored;
+                };
+                if *id != self.areas[i].id {
+                    return Outcome::Ignored;
+                }
+                self.areas[i].on_press(*pos)
             }
             PageEvent::Drag { pressed, pos } => {
                 let Some(i) = self.index_of(*pressed) else {
@@ -140,6 +149,9 @@ impl Page for TextAreasPage {
                     a.scroll
                         .scroll_to(scrollbar::offset_for_click(track, *pos, &a.scroll));
                     return Outcome::Changed;
+                }
+                if *pressed == self.areas[i].id {
+                    return self.areas[i].on_drag(*pos);
                 }
                 Outcome::Ignored
             }

@@ -46,6 +46,7 @@ impl InputsPage {
                 .help("Managed by the organization"),
             TextInput::new(ID.child(4), "Search files")
                 .placeholder("Type a path or symbol…")
+                .type_to_edit(true)
                 .help("Selection: Shift+←→  ·  words: Ctrl+←→  ·  clear: Ctrl+U"),
             TextInput::new(ID.child(5), "API key")
                 .masked()
@@ -247,12 +248,24 @@ impl Page for InputsPage {
                 };
                 self.fields[i].on_paste(text)
             }
+            PageEvent::Press { id, pos } => {
+                let Some(i) = self.fields.iter().position(|f| f.id == *id) else {
+                    return Outcome::Ignored;
+                };
+                self.fields[i].on_press(*pos)
+            }
+            PageEvent::Drag { pressed, pos } => {
+                match self.fields.iter().position(|f| f.id == *pressed) {
+                    Some(i) => self.fields[i].on_drag(*pos),
+                    None => Outcome::Ignored,
+                }
+            }
             PageEvent::Click { id, pos } => {
                 let Some(i) = self.fields.iter().position(|f| f.id == *id) else {
                     return Outcome::Ignored;
                 };
                 cx.focus.focus(*id);
-                self.fields[i].on_click(*pos)
+                self.fields[i].on_click_count(*pos, cx.clicks.max(1))
             }
             _ => Outcome::Ignored,
         }

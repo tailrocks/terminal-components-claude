@@ -389,6 +389,64 @@ fn input_editing_commit_and_revert() {
     assert!(h.app.pages[PageId::Inputs.index()].editing());
 }
 
+/// Cells of row `y` drawn with the selection style.
+fn selected_on_row(h: &Harness, y: u16) -> String {
+    let sel = Theme::junie().selection().bg;
+    let buf = h.term.backend().buffer();
+    (0..buf.area.width)
+        .filter(|&x| buf[(x, y)].bg == sel.unwrap())
+        .map(|x| buf[(x, y)].symbol().to_owned())
+        .collect()
+}
+
+#[test]
+fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_waits() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    // "Search files" opts into type_to_edit
+    h.app.focus.focus(WidgetId::of("inputs").child(4));
+    h.draw();
+    h.type_str("src");
+    assert!(h.app.pages[PageId::Inputs.index()].editing());
+    assert!(h.text().contains("src"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    // "Branch" keeps today's default: letters do not start editing
+    h.app.focus.focus(WidgetId::of("inputs").child(1));
+    h.draw();
+    h.type_str("x");
+    assert!(!h.app.pages[PageId::Inputs.index()].editing());
+}
+
+#[test]
+fn dragging_across_a_field_selects_the_text_it_crosses() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    let (x, y) = h.find("payments-gateway").unwrap();
+    h.mouse(MouseKind::Down, x, y);
+    assert!(
+        !h.app.pages[PageId::Inputs.index()].editing(),
+        "press alone"
+    );
+    h.mouse(MouseKind::Drag, x + 4, y);
+    h.mouse(MouseKind::Drag, x + 8, y);
+    h.mouse(MouseKind::Up, x + 8, y);
+    assert!(h.app.pages[PageId::Inputs.index()].editing());
+    assert_eq!(selected_on_row(&h, y), "payments");
+}
+
+#[test]
+fn double_and_triple_clicks_select_a_word_and_a_line_in_a_text_area() {
+    let mut h = Harness::new(120, 40, PageId::TextAreas);
+    let (x, y) = h.find("fix stuff").unwrap();
+    h.click(x + 5, y);
+    h.click(x + 5, y);
+    assert_eq!(selected_on_row(&h, y), "stuff", "double click: the word");
+    h.click(x + 5, y);
+    assert_eq!(
+        selected_on_row(&h, y),
+        "fix stuff",
+        "triple click: the line"
+    );
+}
+
 #[test]
 fn clicking_another_field_commits_through_the_owner() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
