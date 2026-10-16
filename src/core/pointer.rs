@@ -28,6 +28,38 @@ pub enum FocusOn {
     Release,
 }
 
+/// What a secondary (context) click on a light-dismiss popup's backdrop
+/// does, i.e. a right-click outside an open menu, select or popover.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SecondaryOutside {
+    /// Close the popup, then open the context menu of what is under the
+    /// pointer (macOS: the new menu replaces the old one at the new spot).
+    #[default]
+    Reopen,
+    /// Close the popup only.
+    Close,
+    /// Do nothing: the popup stays open.
+    Ignore,
+}
+
+/// Where a secondary click goes ([`PointerState::route_secondary`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SecondaryRoute {
+    /// Nothing reachable under the pointer.
+    Nothing,
+    /// A control: open its context menu.
+    Target(WidgetId),
+    /// The backdrop of an open popup. Deliver a click on `backdrop` (it
+    /// closes the popup through its own [`crate::ui::popup::Dismiss`]),
+    /// then, when `reopen` is set, the secondary click on that control.
+    Outside {
+        backdrop: WidgetId,
+        reopen: Option<WidgetId>,
+    },
+    /// The backdrop of an open popup under [`SecondaryOutside::Ignore`].
+    Swallowed,
+}
+
 /// Pointer behaviour knobs. The defaults follow desktop (macOS)
 /// conventions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +79,9 @@ pub struct PointerConfig {
     pub hover_refresh_after_scroll: bool,
     /// How long the pressed flash shows after an activation.
     pub flash_ms: u64,
+    /// A secondary click outside an open popup. Default
+    /// [`SecondaryOutside::Reopen`].
+    pub secondary_outside: SecondaryOutside,
 }
 
 impl PointerConfig {
@@ -58,6 +93,7 @@ impl PointerConfig {
         wheel_lines: 3,
         hover_refresh_after_scroll: true,
         flash_ms: 140,
+        secondary_outside: SecondaryOutside::Reopen,
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -82,6 +118,10 @@ impl PointerConfig {
     }
     pub const fn flash_ms(mut self, ms: u64) -> Self {
         self.flash_ms = ms;
+        self
+    }
+    pub const fn secondary_outside(mut self, policy: SecondaryOutside) -> Self {
+        self.secondary_outside = policy;
         self
     }
 }
@@ -202,6 +242,34 @@ impl PointerState {
         let hit = hits.hit(pos);
         self.hover = hit;
         hit
+    }
+
+    /// Secondary button, resolved against open popups: on a light-dismiss
+    /// backdrop it is an outside click (closing the popup) followed, per
+    /// [`PointerConfig::secondary_outside`], by the same secondary click on
+    /// the control beneath. Hover lands on the final target.
+    pub fn route_secondary(&mut self, hits: &HitRegistry, pos: Position) -> SecondaryRoute {
+        let hit = self.on_secondary(hits, pos);
+        let Some(id) = hit else {
+            return SecondaryRoute::Nothing;
+        };
+        let Some((backdrop, beneath)) = hits.backdrop_at(pos) else {
+            return SecondaryRoute::Target(id);
+        };
+        match self.config.secondary_outside {
+            SecondaryOutside::Ignore => SecondaryRoute::Swallowed,
+            SecondaryOutside::Close => SecondaryRoute::Outside {
+                backdrop,
+                reopen: None,
+            },
+            SecondaryOutside::Reopen => {
+                self.hover = beneath;
+                SecondaryRoute::Outside {
+                    backdrop,
+                    reopen: beneath,
+                }
+            }
+        }
     }
 
     /// Button up: the control under the pointer, plus — when it is a
