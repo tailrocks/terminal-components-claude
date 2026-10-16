@@ -34,6 +34,7 @@ mod ansi_cursor;
 mod modes;
 mod scenarios;
 mod support;
+mod tool;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -42,6 +43,13 @@ use libtest_mimic::{Arguments, Failed, Trial};
 use support::{COMMITTED, LEGACY_EXTS};
 
 fn main() {
+    if let Ok(tool) = std::env::var("VISUAL_TOOL") {
+        if let Err(e) = tool::run(&tool) {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+        return;
+    }
     let args = Arguments::from_args();
     let mut trials = vec![
         check("store_integrity", store_integrity),

@@ -330,6 +330,8 @@ pub const MATRIX: &[Tier] = &[
 pub struct Scenario {
     /// Store name: `<root>/<cols>x<rows>/<color>`.
     pub name: String,
+    pub kind: Kind,
+    pub tier: &'static str,
     pub root: &'static Root,
     pub cols: u16,
     pub rows: u16,
@@ -422,6 +424,8 @@ pub fn all() -> Vec<Scenario> {
                     for &color in tier.colors {
                         out.push(Scenario {
                             name: format!("{}/{cols}x{rows}/{}", root.root, color.suffix()),
+                            kind,
+                            tier: tier.name,
                             root,
                             cols,
                             rows,

@@ -369,6 +369,27 @@ fn write_expected_evidence(name: &str, actual_png: &[u8]) -> String {
     note
 }
 
+/// Render the approved `.ansi` of `name` to
+/// `target/tuiscotti/render/<name>.{png,html}` (`cargo xtask visual render`).
+pub fn render_approved(name: &str) -> Result<(PathBuf, PathBuf), String> {
+    let approved = artifact_path(&approved_root(), name, "ansi");
+    let text = std::fs::read_to_string(&approved)
+        .map_err(|e| format!("read {}: {e}", approved.display()))?;
+    let provenance =
+        render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), &profile_name()).provenance;
+    let frame = ansi_cursor::decode(&text, provenance)
+        .ok_or_else(|| format!("{} is not decodable", approved.display()))?;
+    let (png, html) = render_png_html(&frame, name);
+    let root = manifest_path("target/tuiscotti/render");
+    let (png_path, html_path) = (
+        artifact_path(&root, name, "png"),
+        artifact_path(&root, name, "html"),
+    );
+    write_file(&png_path, &png);
+    write_file(&html_path, &html);
+    Ok((png_path, html_path))
+}
+
 /// Fail-closed assertion: only a full match passes.
 pub fn assert_gated(name: &str, frame: &Frame) {
     match gate(name, frame) {
