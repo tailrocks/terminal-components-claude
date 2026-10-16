@@ -2627,7 +2627,7 @@ impl App {
         let menu_layer =
             (!modal && Self::is_host(self.route) && self.host_menu.is_open()).then(|| {
                 HintLayer::new(vec![
-                    hint("← →", "Menu"),
+                    hint("←→", "Menu"),
                     hint("↑↓", "Move"),
                     hint("Enter", "Choose"),
                     hint("Esc", "Close"),

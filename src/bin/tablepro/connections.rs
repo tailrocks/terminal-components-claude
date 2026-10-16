@@ -923,7 +923,7 @@ impl ConnectionsScreen {
             }
             return vec![
                 hint("Enter", "Edit"),
-                hint("← →", "Basic / Advanced"),
+                hint("←→", "Basic / Advanced"),
                 hint("Ctrl+S", "Save"),
             ];
         }
@@ -935,7 +935,7 @@ impl ConnectionsScreen {
             ];
         }
         vec![
-            hint("↑ ↓", "Move"),
+            hint("↑↓", "Move"),
             hint("Enter", "Connect"),
             hint("e", "Edit…"),
             hint("d", "Delete…"),

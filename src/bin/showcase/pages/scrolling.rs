@@ -191,11 +191,11 @@ impl Page for ScrollingPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.log.id) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
+            vec![("↑↓", "Scroll"), ("f", "Follow"), ("G", "End")]
         } else if focus == Some(self.list.id) {
-            vec![("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            vec![("↑↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         } else {
-            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            vec![("↑↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         }
     }
 }

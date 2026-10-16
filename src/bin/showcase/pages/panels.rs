@@ -211,11 +211,11 @@ impl Page for PanelsPage {
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.nested.id) {
-            vec![("↑ ↓", "Move"), ("Enter", "Choose")]
+            vec![("↑↓", "Move"), ("Enter", "Choose")]
         } else if focus == Some(self.log.id) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
+            vec![("↑↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
         } else {
-            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            vec![("↑↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         }
     }
 }

@@ -8,6 +8,57 @@ use ratatui::layout::Rect;
 
 use crate::theme::{BadgeKind, Theme, Tone};
 
+/// The key-label vocabulary. Every hint names keys the same way: arrow
+/// pairs without a space, ranges with an en dash, `Delete` in full.
+pub const UP_DOWN: &str = "↑↓";
+pub const LEFT_RIGHT: &str = "←→";
+pub const ARROWS: &str = "↑↓←→";
+pub const DELETE: &str = "Delete";
+
+/// A key range such as `1–6`.
+pub fn range(from: u32, to: u32) -> String {
+    format!("{from}–{to}")
+}
+
+/// Normalise a key label to the vocabulary: spaces between arrow glyphs
+/// are dropped (`↑ ↓` → `↑↓`), a hyphen between digits becomes an en dash
+/// (`1-6` → `1–6`) and `Del` is spelled `Delete`. Rendering applies this,
+/// so a stray spelling cannot reach the screen.
+pub fn normalize_key(key: &str) -> Cow<'_, str> {
+    const ARROW: [char; 4] = ['↑', '↓', '←', '→'];
+    if key == "Del" {
+        return Cow::Borrowed(DELETE);
+    }
+    let chars: Vec<char> = key.chars().collect();
+    let mut out = String::with_capacity(key.len());
+    let mut changed = false;
+    for (i, &c) in chars.iter().enumerate() {
+        let prev = i.checked_sub(1).map(|j| chars[j]);
+        let next = chars.get(i + 1).copied();
+        if c == ' '
+            && prev.is_some_and(|p| ARROW.contains(&p))
+            && next.is_some_and(|n| ARROW.contains(&n))
+        {
+            changed = true;
+            continue;
+        }
+        if c == '-'
+            && prev.is_some_and(|p| p.is_ascii_digit())
+            && next.is_some_and(|n| n.is_ascii_digit())
+        {
+            out.push('–');
+            changed = true;
+            continue;
+        }
+        out.push(c);
+    }
+    if changed {
+        Cow::Owned(out)
+    } else {
+        Cow::Borrowed(key)
+    }
+}
+
 /// One `key Action` pair. The action is usually a literal, but a component
 /// that knows its own state (a dialog naming its focused button) builds it
 /// at runtime, so it is a [`Cow`].
@@ -128,7 +179,10 @@ pub fn render_aligned(
     if centered {
         // measure what fits, then start so the block sits mid-row
         let hint_w = |h: &Hint| {
-            crate::ui::text::width(h.key) as u16 + 1 + crate::ui::text::width(&h.action) as u16 + 2
+            crate::ui::text::width(&normalize_key(h.key)) as u16
+                + 1
+                + crate::ui::text::width(&h.action) as u16
+                + 2
         };
         let mut used = 0u16;
         let mut n = 0usize;
@@ -151,14 +205,15 @@ pub fn render_aligned(
     }
     let mut drawn = 0usize;
     for (i, h) in hints.iter().enumerate() {
-        let kw = crate::ui::text::width(h.key) as u16;
+        let key = normalize_key(h.key);
+        let kw = crate::ui::text::width(&key) as u16;
         let w = kw + 1 + crate::ui::text::width(&h.action) as u16 + 2;
         // keep two cells for the cut marker when more hints follow
         let reserve = if i + 1 < hints.len() { 2 } else { 0 };
         if x + w + reserve > limit {
             break;
         }
-        buf.set_string(x, area.y, h.key, t.key_hint_key());
+        buf.set_string(x, area.y, &key, t.key_hint_key());
         buf.set_string(x + kw + 1, area.y, &h.action, t.key_hint_action());
         x += w;
         drawn += 1;
@@ -260,5 +315,35 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn key_labels_render_in_one_vocabulary() {
+        assert_eq!(normalize_key("↑ ↓"), UP_DOWN);
+        assert_eq!(normalize_key("← →"), LEFT_RIGHT);
+        assert_eq!(normalize_key("↑ ↓ ← →"), ARROWS);
+        assert_eq!(normalize_key("1-6"), range(1, 6));
+        assert_eq!(normalize_key("Del"), DELETE);
+        // labels that are already right, or merely contain spaces, stay as they are
+        assert!(matches!(
+            normalize_key("PgUp PgDn"),
+            Cow::Borrowed("PgUp PgDn")
+        ));
+        assert!(matches!(normalize_key("Ctrl+-"), Cow::Borrowed("Ctrl+-")));
+        assert!(matches!(normalize_key("Shift+↑"), Cow::Borrowed(_)));
+
+        let t = Theme::junie();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
+        render(
+            Rect::new(0, 0, 40, 1),
+            &mut buf,
+            &t,
+            &[hint("↑ ↓", "Move"), hint("1-6", "Jump")],
+            None,
+            None,
+        );
+        let row = row_text(&buf, 40);
+        assert!(row.contains("↑↓ Move"), "{row}");
+        assert!(row.contains("1–6 Jump"), "{row}");
     }
 }
