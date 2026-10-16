@@ -445,8 +445,12 @@ fn the_gate_sequence_menu_copies_or_cancels_but_never_continues() {
         h.text()
     );
     assert_below_row(&h, review::SEQUENCE_MENU, seq.y);
-    let labels: Vec<String> = match h.app.modals.top().map(|m| &m.modal) {
-        Some(crate::screens::Modal::Menu(m)) => m.items.iter().map(|i| i.label.clone()).collect(),
+    let labels: Vec<String> = match h
+        .app
+        .modals
+        .top_as::<junie_tui::widgets::menu::ContextMenu>()
+    {
+        Some(m) => m.items.iter().map(|i| i.label.clone()).collect(),
         _ => panic!("no menu"),
     };
     assert_eq!(labels, ["Copy sequence", "Cancel"], "never Continue");

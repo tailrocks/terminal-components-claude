@@ -20,10 +20,11 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextConfig};
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::widgets::dialog::Dialog;
+use junie_tui::ui::layer::{Layer, LayerEntry, LayerTag, ShellLayers};
+use junie_tui::ui::layers::LayerResult;
 use junie_tui::widgets::keyhint::Hint;
-use junie_tui::widgets::menu::{ContextMenu, MenuItem};
-use junie_tui::widgets::picker::Picker;
+use junie_tui::widgets::menu::{ContextMenu, MenuAction, MenuItem};
+use junie_tui::widgets::picker::PickerAction;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
 use ratatui::buffer::Buffer;
@@ -31,37 +32,16 @@ use ratatui::layout::{Position, Rect};
 
 use crate::domain::context::Scope;
 use crate::sim::world::{Msg, World};
-use modals::TextModal;
 
-/// Identifies a modal's purpose for its owning screen or the shell.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModalTag {
-    pub kind: &'static str,
-    pub key: String,
-}
+/// The shell's layer stack: every dialog, picker, menu and text modal,
+/// owned by the tab that opened it.
+pub type Layers = ShellLayers<ModalResult, (), usize>;
 
-impl ModalTag {
-    pub fn new(kind: &'static str) -> Self {
-        Self {
-            kind,
-            key: String::new(),
-        }
-    }
-    pub fn key(mut self, k: impl Into<String>) -> Self {
-        self.key = k.into();
-        self
-    }
-}
+/// One open layer of [`Layers`].
+pub type LayerSlot = LayerEntry<ModalResult, (), usize>;
 
-#[allow(clippy::large_enum_variant)]
-pub enum Modal {
-    Dialog(Dialog),
-    Picker(Picker),
-    /// An anchored alternatives menu; drawn last, keyboard goes to it.
-    Menu(ContextMenu),
-    Text(TextModal),
-}
-
+/// What a layer reports to its owner (the shell or a screen), by
+/// [`LayerTag`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
     /// The pressed button index (None = cancelled) and the typed text.
@@ -73,6 +53,27 @@ pub enum ModalResult {
     Cancelled,
     MenuChosen(usize),
     Closed,
+    /// A picker event that leaves it open (the query changed, Submit, ...).
+    PickerEvent(PickerAction),
+    /// A library modal holla does not open (forms, choices, info).
+    Other(LayerResult),
+}
+
+impl From<LayerResult> for ModalResult {
+    fn from(r: LayerResult) -> Self {
+        match r {
+            LayerResult::Dialog { action, text } => Self::Dialog { action, text },
+            LayerResult::Picker(PickerAction::Chosen(i) | PickerAction::ChosenAlt(i)) => {
+                Self::Picked(i)
+            }
+            LayerResult::Picker(PickerAction::Cancelled) => Self::Cancelled,
+            LayerResult::Picker(ev) => Self::PickerEvent(ev),
+            LayerResult::Menu(MenuAction::Chosen(i)) => Self::MenuChosen(i),
+            LayerResult::Menu(MenuAction::Dismissed) => Self::Cancelled,
+            LayerResult::Help => Self::Closed,
+            other => Self::Other(other),
+        }
+    }
 }
 
 /// What Enter should do with an item once the shell has resolved trust,
@@ -185,7 +186,7 @@ pub enum Page {
 pub enum Request {
     Status(String),
     Error(String),
-    Open(Box<Modal>, ModalTag),
+    Open(Box<dyn Layer<ModalResult>>, LayerTag),
     Go(Go),
     Copy(String),
 }
@@ -209,8 +210,8 @@ impl Cx<'_> {
     pub fn error(&mut self, s: impl Into<String>) {
         self.requests.push(Request::Error(s.into()));
     }
-    pub fn open(&mut self, modal: Modal, tag: ModalTag) {
-        self.requests.push(Request::Open(Box::new(modal), tag));
+    pub fn open(&mut self, layer: impl Layer<ModalResult>, tag: LayerTag) {
+        self.requests.push(Request::Open(Box::new(layer), tag));
     }
     pub fn go(&mut self, g: Go) {
         self.requests.push(Request::Go(g));
@@ -313,7 +314,7 @@ pub trait Screen {
     }
     fn on_modal(
         &mut self,
-        _tag: &ModalTag,
+        _tag: &LayerTag,
         _result: ModalResult,
         _w: &mut World,
         _cx: &mut Cx,
@@ -376,7 +377,7 @@ pub fn row_anchor(list: WidgetId, i: usize, area: Rect, offset: usize) -> Contex
     }
 }
 
-/// Open a row's context menu through the shell's modal stack: `items`
+/// Open a row's context menu through the shell's layer stack: `items`
 /// titled `title` at `anchor`, answered to the owner as
 /// [`ModalResult::MenuChosen`] under `tag`.
 pub fn open_context(
@@ -385,10 +386,10 @@ pub fn open_context(
     anchor: ContextAnchor,
     title: impl Into<String>,
     items: Vec<MenuItem>,
-    tag: ModalTag,
+    tag: LayerTag,
 ) -> Outcome {
     let menu = anchor.apply(ContextMenu::new(id, items)).title(title);
-    cx.open(Modal::Menu(menu), tag);
+    cx.open(menu, tag);
     Outcome::Changed
 }
 
@@ -413,7 +414,7 @@ pub fn replay_key(c: char) -> Key {
 /// A menu's chosen item `k` under `tag` of `kind` whose key is
 /// `row:keys`: the row it was opened for and the key item `k` replays.
 pub fn row_choice(
-    tag: &ModalTag,
+    tag: &LayerTag,
     kind: &str,
     result: &ModalResult,
 ) -> Option<(usize, Option<Key>, usize)> {
