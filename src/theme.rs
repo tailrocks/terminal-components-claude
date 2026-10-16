@@ -934,7 +934,6 @@ impl Theme {
         self
     }
 
-    /// Replace the state modifiers.
     /// The same theme drawing with `glyphs` (for example [`Glyphs::ASCII`]
     /// on a terminal without Unicode).
     pub const fn with_glyphs(mut self, glyphs: Glyphs) -> Self {
@@ -963,6 +962,9 @@ impl Theme {
         self
     }
 
+    /// Replace the state modifiers (for example [`StateModifiers::MONO`]
+    /// on a colour terminal whose user wants state carried by weight and
+    /// reverse video too).
     pub fn with_state_modifiers(mut self, mods: StateModifiers) -> Self {
         self.mods = mods;
         self

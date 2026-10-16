@@ -95,6 +95,203 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
+    // SC3: Overview theme reference
+    (
+        "theme::Theme::field_hover",
+        Demo("overview", "▏ field.hover #"),
+    ),
+    (
+        "theme::Theme::highlight_danger",
+        Demo("overview", "▏ highlight.danger #"),
+    ),
+    (
+        "theme::Theme::error_soft",
+        Demo("overview", "▏ error.soft #"),
+    ),
+    (
+        "theme::Theme::text_ghost",
+        Demo("overview", "▏ text.ghost #"),
+    ),
+    (
+        "theme::Theme::scroll_track",
+        Demo("overview", "▏ scroll.track #"),
+    ),
+    (
+        "theme::Theme::text_on_accent",
+        Demo("overview", "▏ text.on_accent #"),
+    ),
+    (
+        "theme::Theme::accent_bg_subtle",
+        Demo("overview", "▏ accent.bg.subtle #"),
+    ),
+    ("theme::Theme::focus", Demo("overview", "▏ focus #")),
+    ("theme::Theme::disabled", Demo("overview", "▏ disabled #")),
+    ("theme::Theme::error_bg", Demo("overview", "▏ error.bg #")),
+    (
+        "theme::Theme::error_strong",
+        Demo("overview", "▏ error.strong #"),
+    ),
+    (
+        "theme::Theme::success_strong",
+        Demo("overview", "▏ success.strong #"),
+    ),
+    (
+        "theme::Theme::accent_bg_hover",
+        Demo("overview", "▏ accent.bg.hover #"),
+    ),
+    (
+        "theme::Theme::level",
+        Demo("overview", "theme.level truecolor"),
+    ),
+    (
+        "theme::Theme::tint_selection",
+        Demo("overview", "theme.tint_selection on"),
+    ),
+    (
+        "theme::Theme::hintbar",
+        Demo("overview", "theme.hintbar Start"),
+    ),
+    (
+        "theme::Theme::spacing",
+        Demo("overview", "theme.spacing button_gap 2"),
+    ),
+    (
+        "theme::Spacing",
+        Demo("overview", "theme.spacing button_gap 2"),
+    ),
+    ("theme::Insets", Demo("overview", "Insets { x: 2, y: 1 }")),
+    (
+        "theme::Theme::ladders",
+        Demo("overview", "Ladders · theme.ladders"),
+    ),
+    (
+        "theme::Ladders",
+        Demo("overview", "Ladders · theme.ladders"),
+    ),
+    (
+        "theme::Ladder",
+        Demo("overview", "Ladder: rest hover pressed"),
+    ),
+    ("theme::Plane::up", Demo("overview", "Plane::up")),
+    (
+        "theme::Theme::mods",
+        Demo("overview", "State modifiers · theme.mods"),
+    ),
+    (
+        "theme::Interactive",
+        Demo(
+            "overview",
+            "Theme::interactive(kind, state, plane) → Interactive",
+        ),
+    ),
+    ("theme::BadgeKind", Demo("overview", "BadgeKind::Edit EDIT")),
+    (
+        "theme::BadgeKind::Edit",
+        Demo("overview", "BadgeKind::Edit EDIT"),
+    ),
+    ("theme::StateModifiers", Option("overview", "overview.mods")),
+    (
+        "theme::Theme::with_state_modifiers",
+        Option("overview", "overview.mods"),
+    ),
+    (
+        "theme::Theme::with_ladder",
+        Option("overview", "overview.ladder"),
+    ),
+    ("theme::Plane", Option("overview", "overview.plane")),
+    (
+        "theme::Plane::Canvas",
+        Option("overview", "overview.plane=canvas"),
+    ),
+    (
+        "theme::Plane::Surface",
+        Option("overview", "overview.plane=surface"),
+    ),
+    (
+        "theme::Plane::Card",
+        Option("overview", "overview.plane=card"),
+    ),
+    (
+        "theme::Plane::Field",
+        Option("overview", "overview.plane=field"),
+    ),
+    (
+        "theme::Plane::Raised",
+        Option("overview", "overview.plane=raised"),
+    ),
+    (
+        "theme::Plane::Popover",
+        Option("overview", "overview.plane=popover"),
+    ),
+    (
+        "theme::Plane::Highlight",
+        Option("overview", "overview.plane=highlight"),
+    ),
+    (
+        "theme::Plane::HighlightDanger",
+        Option("overview", "overview.plane=highlight-danger"),
+    ),
+    (
+        "theme::Plane::Accent",
+        Option("overview", "overview.plane=accent"),
+    ),
+    (
+        "theme::Plane::Danger",
+        Option("overview", "overview.plane=danger"),
+    ),
+    ("theme::Kind", Option("overview", "overview.kind")),
+    ("theme::Kind::Row", Option("overview", "overview.kind=row")),
+    (
+        "theme::Kind::CursorRow",
+        Option("overview", "overview.kind=cursor-fill"),
+    ),
+    (
+        "theme::Kind::Button",
+        Option("overview", "overview.kind=primary"),
+    ),
+    ("theme::Kind::Tab", Option("overview", "overview.kind=tab")),
+    (
+        "theme::Kind::Title",
+        Option("overview", "overview.kind=title"),
+    ),
+    (
+        "theme::Kind::Chip",
+        Option("overview", "overview.kind=chip"),
+    ),
+    (
+        "theme::Kind::Close",
+        Option("overview", "overview.kind=close"),
+    ),
+    (
+        "theme::Kind::Field",
+        Option("overview", "overview.kind=field"),
+    ),
+    (
+        "theme::Kind::Handle",
+        Option("overview", "overview.kind=handle"),
+    ),
+    (
+        "theme::Kind::Seam",
+        Option("overview", "overview.kind=seam"),
+    ),
+    ("theme::CursorStyle", Option("overview", "overview.kind")),
+    (
+        "theme::CursorStyle::Fill",
+        Option("overview", "overview.kind=cursor-fill"),
+    ),
+    (
+        "theme::CursorStyle::Bar",
+        Option("overview", "overview.kind=cursor-bar"),
+    ),
+    (
+        "theme::ButtonKind::Toggle",
+        Option("overview", "overview.kind=toggle"),
+    ),
+    ("ui::specimen::KindSample", Demo("overview", "Cursor fill")),
+    (
+        "ui::specimen::KindSample::plane",
+        Option("overview", "overview.plane"),
+    ),
     ("widgets::brand::Lockup", Demo("chrome", "app❯")),
     (
         "widgets::menu::MenuBar",

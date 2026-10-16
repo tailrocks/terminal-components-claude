@@ -29,7 +29,7 @@ use ratatui::style::{Color, Style};
 use crate::core::focus::FocusRing;
 use crate::core::hit::HitRegistry;
 use crate::core::id::WidgetId;
-use crate::theme::{ColorLevel, Theme};
+use crate::theme::{ColorLevel, Kind, Plane, Theme};
 use crate::ui::ctx::{Interaction, RenderCtx, VisualState};
 
 /// A state a [`Specimen`] can be drawn in: one row of a [`StateGrid`].
@@ -529,6 +529,154 @@ fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) 
         if c.bg == bg {
             c.fg = t.text_muted;
         }
+    }
+}
+
+/// A theme [`Kind`] resolved on a [`Plane`] through
+/// [`Theme::interactive`]: the state model itself, without a widget. A
+/// token explorer shows one per kind, so every state of the ladder
+/// (rest, hover, pressed), the focus gutter, selection and disabled read
+/// side by side for the plane a control sits on.
+///
+/// The sample paints the plane, then the gutter cell and the label in the
+/// resolved style. [`Kind::Handle`] and [`Kind::Seam`] are glyph inks: the
+/// label is drawn in the ink on the plane.
+#[derive(Debug, Clone)]
+pub struct KindSample {
+    pub id: WidgetId,
+    pub kind: Kind,
+    /// The container the control sits on.
+    pub plane: Plane,
+    pub label: String,
+}
+
+impl KindSample {
+    pub fn new(id: WidgetId, kind: Kind, plane: Plane, label: &str) -> Self {
+        Self {
+            id,
+            kind,
+            plane,
+            label: label.to_owned(),
+        }
+    }
+
+    /// The same sample on another plane.
+    pub fn plane(mut self, plane: Plane) -> Self {
+        self.plane = plane;
+        self
+    }
+
+    /// Draw the sample in visual state `s` with theme `t`.
+    pub fn draw(&self, t: &Theme, s: VisualState, area: Rect, buf: &mut Buffer) {
+        let area = area.intersection(buf.area);
+        if area.is_empty() {
+            return;
+        }
+        let plane_bg = t.ladder(self.plane).rest;
+        crate::ui::ctx::fill(buf, area, Style::new().bg(plane_bg));
+        let r = t.interactive(self.kind, s, self.plane);
+        let row = Rect::new(area.x, area.y, area.width, 1);
+        // the body: gutter cell, then the label with a cell of padding
+        let body = Style::new().bg(plane_bg).patch(r.style);
+        let gutter = Style::new().bg(plane_bg).patch(r.gutter_style);
+        buf.set_string(row.x, row.y, r.gutter, gutter);
+        let w = crate::ui::text::width(r.gutter) as u16;
+        let room = row.width.saturating_sub(w) as usize;
+        let text = crate::ui::text::fit(&format!(" {} ", self.label), room);
+        let tw = crate::ui::text::width(&text) as u16;
+        crate::ui::ctx::fill(buf, Rect::new(row.x + w, row.y, tw, 1), body);
+        buf.set_string(row.x + w, row.y, text, body);
+    }
+}
+
+impl Specimen for KindSample {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: SpecimenState) -> bool {
+        use SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover | Pressed | Focused | FocusedHover | Selected | Disabled | Error
+        )
+    }
+
+    fn specimen(
+        &self,
+        state: SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        _bg: Color,
+    ) {
+        self.draw(ctx.theme, state.visual(), area, buf);
+    }
+}
+
+#[cfg(test)]
+mod kind_sample_tests {
+    use super::*;
+    use crate::theme::{ButtonKind, CursorStyle};
+
+    fn cell(sample: &KindSample, t: &Theme, s: VisualState) -> ratatui::buffer::Cell {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 1));
+        sample.draw(t, s, Rect::new(0, 0, 10, 1), &mut buf);
+        buf[(2, 0)].clone()
+    }
+
+    #[test]
+    fn a_sample_walks_its_ladder() {
+        let t = Theme::junie();
+        let id = WidgetId::of("kind");
+        let row = KindSample::new(id, Kind::Row, Plane::Card, "Aa");
+        let hover = VisualState {
+            hovered: true,
+            ..Default::default()
+        };
+        let pressed = VisualState {
+            pressed: true,
+            ..hover
+        };
+        let ladder = t.ladder(Plane::Card);
+        assert_eq!(cell(&row, &t, VisualState::default()).bg, ladder.rest);
+        assert_eq!(cell(&row, &t, hover).bg, ladder.hover);
+        assert_eq!(cell(&row, &t, pressed).bg, ladder.pressed);
+        // a primary button paints the accent fill whatever it sits on
+        let primary = row.clone().plane(Plane::Popover);
+        let primary = KindSample {
+            kind: Kind::Button(ButtonKind::Primary),
+            ..primary
+        };
+        assert_eq!(
+            cell(&primary, &t, VisualState::default()).bg,
+            t.ladders.accent.rest
+        );
+    }
+
+    #[test]
+    fn a_focused_sample_is_depicted_in_a_grid() {
+        let t = Theme::junie();
+        let id = WidgetId::of("kinds");
+        let mut grid = StateGrid::new(id).row(SpecimenState::Focused).column(
+            "Bar",
+            KindSample::new(
+                id.child(0),
+                Kind::CursorRow(CursorStyle::Bar),
+                Plane::Card,
+                "Aa",
+            ),
+        );
+        let area = Rect::new(0, 0, 40, 3);
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        grid.render(area, &mut buf, &mut ctx, t.canvas);
+        drop(ctx);
+        let text: String = buf.content().iter().map(|c| c.symbol()).collect();
+        assert!(!text.contains(t.glyphs.focus_bar), "{text}");
+        assert!(text.contains('▏'), "{text}");
     }
 }
 
