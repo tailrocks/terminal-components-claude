@@ -948,6 +948,7 @@ dependencies = [
  "clap",
  "libtest-mimic",
  "ratatui 0.30.2",
+ "sha2 0.10.9",
  "tuiscotti",
  "unicode-segmentation",
  "unicode-width 0.2.0",

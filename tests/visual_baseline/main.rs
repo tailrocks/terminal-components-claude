@@ -35,6 +35,7 @@ mod ansi_cursor;
 mod determinism;
 mod isolation;
 mod modes;
+mod oracle;
 mod scenarios;
 mod support;
 mod tool;
@@ -64,6 +65,15 @@ fn main() {
         check(
             "ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor",
             ansi_cursor::ansi_cursor_round_trips_cells_and_visible_cursor,
+        ),
+        check("oracle_integrity", oracle::integrity),
+        check(
+            "oracle::manifest_and_hash_are_stable",
+            oracle::manifest_and_hash_are_stable,
+        ),
+        check(
+            "oracle::store_check_accepts_and_rejects",
+            oracle::store_check_accepts_and_rejects,
         ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(
@@ -127,7 +137,11 @@ fn known_ext(ext: &str) -> bool {
 /// Pending rows and the narrow tier may be absent; nothing in the store may
 /// be outside the tables.
 fn store_integrity() {
-    let approved = support::approved_root();
+    let approved = support::snapshots_root();
+    if !approved.exists() && oracle::active() {
+        eprintln!("snapshots/ is gone; the oracle is the store (oracle_integrity)");
+        return;
+    }
     let (by_name, extra) = walk_store(&approved);
     assert!(
         extra.is_empty(),

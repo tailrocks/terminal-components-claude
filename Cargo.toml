@@ -51,6 +51,9 @@ unicode-segmentation = "1"
 
 [dev-dependencies]
 libtest-mimic = "0.8.2"
+# Oracle manifest `harness_sha256` (tests/visual_baseline/oracle.rs); the
+# same version tuiscotti already pulls in.
+sha2 = "0.10"
 tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274" }
 
 [profile.release]
