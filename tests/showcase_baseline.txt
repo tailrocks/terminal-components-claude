@@ -29,7 +29,9 @@
 120x40 TrueColor Checks & radios ebcd2ea20e99158b
 120x40 TrueColor Checks & radios · Options 7c764ad8cbd9efd2
 120x40 TrueColor Checks & radios · States 7a5c41c37b6d1bf0
-120x40 TrueColor Toolbars af0a53d72a008daf
+120x40 TrueColor Toolbars b738955d87092823
+120x40 TrueColor Toolbars · Options cfafc0b390443f49
+120x40 TrueColor Toolbars · States 328f09e4b1d6733a
 120x40 TrueColor Basic table 004448b0fb30f505
 120x40 TrueColor Basic table · Options 9f5c1d31bdef509e
 120x40 TrueColor Basic table · States 16f37f3c06daa466
@@ -121,7 +123,9 @@
 120x40 Ansi256 Checks & radios db68d610e4567d79
 120x40 Ansi256 Checks & radios · Options 403e399fa61cd0ff
 120x40 Ansi256 Checks & radios · States d8b143ea02e65673
-120x40 Ansi256 Toolbars 67a0c73039ffeacc
+120x40 Ansi256 Toolbars e0a1892d4dfd7a09
+120x40 Ansi256 Toolbars · Options c79cad16ca3b2509
+120x40 Ansi256 Toolbars · States a9c5669d5f3ef3a0
 120x40 Ansi256 Basic table b3f193f4f2e06018
 120x40 Ansi256 Basic table · Options 0d20e1b70391ee88
 120x40 Ansi256 Basic table · States c0646eb0d9b50c65
@@ -213,7 +217,9 @@
 120x40 Ansi16 Checks & radios 391d6b279f5cef11
 120x40 Ansi16 Checks & radios · Options c4f6dea0ec2e8cfd
 120x40 Ansi16 Checks & radios · States 0d5e151b4af345f1
-120x40 Ansi16 Toolbars f1bf2afa48a328b7
+120x40 Ansi16 Toolbars 1060b3b722b66062
+120x40 Ansi16 Toolbars · Options ab04569fd6927aa4
+120x40 Ansi16 Toolbars · States cf53cf50769b5af7
 120x40 Ansi16 Basic table 0b482d5fe4fd17b8
 120x40 Ansi16 Basic table · Options 622640114d97a2c9
 120x40 Ansi16 Basic table · States 53ce0662da40c3e9
@@ -305,7 +311,9 @@
 120x40 Mono Checks & radios 6dd33a1b274b7394
 120x40 Mono Checks & radios · Options ee83e59958e7d10c
 120x40 Mono Checks & radios · States 921941f914eb0b38
-120x40 Mono Toolbars 742e46ae68cb6fca
+120x40 Mono Toolbars e38b2a592c98aa51
+120x40 Mono Toolbars · Options 15c68961777af8a5
+120x40 Mono Toolbars · States 75089cfa90543164
 120x40 Mono Basic table 0c5769ded0e84144
 120x40 Mono Basic table · Options 4d26638b6039e06a
 120x40 Mono Basic table · States 33f699d194f179e0
@@ -397,7 +405,9 @@
 80x24 TrueColor Checks & radios 7e1f0797820425c5
 80x24 TrueColor Checks & radios · Options 1fd9f465bdd719f5
 80x24 TrueColor Checks & radios · States 66bda6625f637541
-80x24 TrueColor Toolbars a890c65025189fa0
+80x24 TrueColor Toolbars dbf95a9e79159df2
+80x24 TrueColor Toolbars · Options a49ea98dd6c358d0
+80x24 TrueColor Toolbars · States 41cf7afc02ace8ef
 80x24 TrueColor Basic table 8411a09605beb984
 80x24 TrueColor Basic table · Options 39ddbee6c6959efb
 80x24 TrueColor Basic table · States c962fdca3f94c616
@@ -489,7 +499,9 @@
 80x24 Ansi256 Checks & radios cda08ab4ec303847
 80x24 Ansi256 Checks & radios · Options 9c7dd955e219e383
 80x24 Ansi256 Checks & radios · States 8081a73f9f86afe8
-80x24 Ansi256 Toolbars 1ffc1cc528120887
+80x24 Ansi256 Toolbars fb6507eff3e76728
+80x24 Ansi256 Toolbars · Options c84165fb816af0e8
+80x24 Ansi256 Toolbars · States 5f8a61bdf8400c4a
 80x24 Ansi256 Basic table ab06c8472921e1ce
 80x24 Ansi256 Basic table · Options 8796b86f6006014f
 80x24 Ansi256 Basic table · States 6001ef2031f5fa78
@@ -581,7 +593,9 @@
 80x24 Ansi16 Checks & radios 2033ce438361ea68
 80x24 Ansi16 Checks & radios · Options e2595fbbfa9e7f93
 80x24 Ansi16 Checks & radios · States cefc62ec6ffde31b
-80x24 Ansi16 Toolbars c05ef770e7488dc8
+80x24 Ansi16 Toolbars e08384582817a07f
+80x24 Ansi16 Toolbars · Options dde8369f1ff49b7e
+80x24 Ansi16 Toolbars · States 083e7ed4d61c6e7c
 80x24 Ansi16 Basic table 93f2cb520871c36a
 80x24 Ansi16 Basic table · Options 58698821727436c0
 80x24 Ansi16 Basic table · States 8498e9d1a730352c
@@ -673,7 +687,9 @@
 80x24 Mono Checks & radios d6eca978085c85b6
 80x24 Mono Checks & radios · Options c4617af62851221f
 80x24 Mono Checks & radios · States 364bc659480b8e29
-80x24 Mono Toolbars 6a74d2c9ed4d16d2
+80x24 Mono Toolbars c4d8eb5408077fa3
+80x24 Mono Toolbars · Options 8b9a47db9c61a4ac
+80x24 Mono Toolbars · States 9ea02b1ad5128432
 80x24 Mono Basic table 8c608d0b73230ace
 80x24 Mono Basic table · Options 44b65fa63e78b794
 80x24 Mono Basic table · States 5c8c09e5f0675306
@@ -765,7 +781,9 @@
 72x20 TrueColor Checks & radios ab44f7e0a2b00602
 72x20 TrueColor Checks & radios · Options 02709b939c4d7068
 72x20 TrueColor Checks & radios · States b3f5fa25fde7d37e
-72x20 TrueColor Toolbars b80c7a587d1e8ae1
+72x20 TrueColor Toolbars 49aa50fd1fafde75
+72x20 TrueColor Toolbars · Options 456bd7627abe558f
+72x20 TrueColor Toolbars · States 3dfc8ae002680e74
 72x20 TrueColor Basic table abca18a4963a34eb
 72x20 TrueColor Basic table · Options 9c409f93ae9fb84b
 72x20 TrueColor Basic table · States 9e28c94db6afb8df
@@ -857,7 +875,9 @@
 72x20 Ansi256 Checks & radios 73f32cd498e100f6
 72x20 Ansi256 Checks & radios · Options 58df4b9c3ec21774
 72x20 Ansi256 Checks & radios · States 91e1ee02d7c10bab
-72x20 Ansi256 Toolbars d06a05b9a6365aad
+72x20 Ansi256 Toolbars 2bdd4ddecc85767c
+72x20 Ansi256 Toolbars · Options 7330aa96a1eca54a
+72x20 Ansi256 Toolbars · States ee5aea1d5e35cda4
 72x20 Ansi256 Basic table 673c9bfbfc67735d
 72x20 Ansi256 Basic table · Options 4e68722545cd9977
 72x20 Ansi256 Basic table · States 4ac794fea6272466
@@ -949,7 +969,9 @@
 72x20 Ansi16 Checks & radios b31edd81730b52a7
 72x20 Ansi16 Checks & radios · Options 66458f2e71ea1fa8
 72x20 Ansi16 Checks & radios · States 554b6c324104d1cd
-72x20 Ansi16 Toolbars 73bdfe59563f5af1
+72x20 Ansi16 Toolbars 1a931e5587ff91f6
+72x20 Ansi16 Toolbars · Options afdcb474121ae0ed
+72x20 Ansi16 Toolbars · States f6c3f393dc320437
 72x20 Ansi16 Basic table 505e81840bab78b0
 72x20 Ansi16 Basic table · Options 74f88c32316a6488
 72x20 Ansi16 Basic table · States 6f2f3a569af5c162
@@ -1041,7 +1063,9 @@
 72x20 Mono Checks & radios de2ee770676bed63
 72x20 Mono Checks & radios · Options 89447a4ac3ed0816
 72x20 Mono Checks & radios · States 8fa08e9a7e113b0d
-72x20 Mono Toolbars 600bdd0621675c27
+72x20 Mono Toolbars cc4f7183b09bbcb6
+72x20 Mono Toolbars · Options e6f23e7685c7b2bd
+72x20 Mono Toolbars · States 3af88171e1d1713d
 72x20 Mono Basic table c6d94dfadde631f4
 72x20 Mono Basic table · Options d03718c8b052d95c
 72x20 Mono Basic table · States ce7fc9ef1e97d1fc
@@ -1133,7 +1157,9 @@
 100x30 TrueColor Checks & radios 9894d3595f5a7402
 100x30 TrueColor Checks & radios · Options cba748c36645b3b9
 100x30 TrueColor Checks & radios · States 9fdf121b8cc36d16
-100x30 TrueColor Toolbars 606a8b3c89f1cad2
+100x30 TrueColor Toolbars 7b935047930f817c
+100x30 TrueColor Toolbars · Options 1e973a265de4494b
+100x30 TrueColor Toolbars · States 765592423f4c902c
 100x30 TrueColor Basic table d274b9864f3f8924
 100x30 TrueColor Basic table · Options c08b994067466923
 100x30 TrueColor Basic table · States 1380ab0c7735b794
@@ -1225,7 +1251,9 @@
 100x30 Ansi256 Checks & radios 74ad9d54aaa5ecaa
 100x30 Ansi256 Checks & radios · Options 6e1bdfc7fcb089b9
 100x30 Ansi256 Checks & radios · States dd4592464eb4a683
-100x30 Ansi256 Toolbars e48004695aea6023
+100x30 Ansi256 Toolbars b2e3a3cd94aad3dc
+100x30 Ansi256 Toolbars · Options 4f06aed72cb449bd
+100x30 Ansi256 Toolbars · States 32af8d01149720e6
 100x30 Ansi256 Basic table 06fd22e2d960756c
 100x30 Ansi256 Basic table · Options 9ce72a0509d9f50c
 100x30 Ansi256 Basic table · States 6aa19d63c8908e16
@@ -1317,7 +1345,9 @@
 100x30 Ansi16 Checks & radios fefb93f6b14e4368
 100x30 Ansi16 Checks & radios · Options 57244640691d512f
 100x30 Ansi16 Checks & radios · States 8373c9dd74d000d0
-100x30 Ansi16 Toolbars 4522779135657418
+100x30 Ansi16 Toolbars 48a916c6d867c579
+100x30 Ansi16 Toolbars · Options d1288af9dd647985
+100x30 Ansi16 Toolbars · States e81dea4ca8ed6fc0
 100x30 Ansi16 Basic table 5d733badc3fd0d0b
 100x30 Ansi16 Basic table · Options a9bf16bb0a447252
 100x30 Ansi16 Basic table · States 90e43c8c34fcf0b3
@@ -1409,7 +1439,9 @@
 100x30 Mono Checks & radios 47d2bfbddfcc7acc
 100x30 Mono Checks & radios · Options 962b6c3212b078f1
 100x30 Mono Checks & radios · States c3c5123be6bc9358
-100x30 Mono Toolbars 1a3da658ae22b511
+100x30 Mono Toolbars 046559b3fcc5b3d6
+100x30 Mono Toolbars · Options 86e70a8dd4986bbc
+100x30 Mono Toolbars · States b5e17cbb084608fd
 100x30 Mono Basic table 8cef18a1dbe1d34e
 100x30 Mono Basic table · Options 15e6189df9fc2ec1
 100x30 Mono Basic table · States 0e2fc7cc31db62e2
@@ -1501,7 +1533,9 @@
 160x50 TrueColor Checks & radios e866f9df162cd238
 160x50 TrueColor Checks & radios · Options 1a1721418f84e07b
 160x50 TrueColor Checks & radios · States c20dd1e188541fa7
-160x50 TrueColor Toolbars 886805a276b4f65a
+160x50 TrueColor Toolbars 1de53ce46263272a
+160x50 TrueColor Toolbars · Options eeea38a7d8fe6094
+160x50 TrueColor Toolbars · States 46b2a5da01734fd9
 160x50 TrueColor Basic table 58220db5dd80c0e3
 160x50 TrueColor Basic table · Options 6db1b17b71542a2d
 160x50 TrueColor Basic table · States 6a7602846e14bf85
@@ -1593,7 +1627,9 @@
 160x50 Ansi256 Checks & radios 9ba17d6ae36d03b4
 160x50 Ansi256 Checks & radios · Options f2279857f925f3c4
 160x50 Ansi256 Checks & radios · States 724e5d577e683dac
-160x50 Ansi256 Toolbars 4922a3176aa6b3ef
+160x50 Ansi256 Toolbars edb90658ed8f8738
+160x50 Ansi256 Toolbars · Options a4511209229c86b6
+160x50 Ansi256 Toolbars · States 6306eaabcd517215
 160x50 Ansi256 Basic table e3dd13dec38012eb
 160x50 Ansi256 Basic table · Options f079fad5065b07d7
 160x50 Ansi256 Basic table · States 4fce6622889b84ea
@@ -1685,7 +1721,9 @@
 160x50 Ansi16 Checks & radios 7553a7f18fa409a0
 160x50 Ansi16 Checks & radios · Options 9b07079b6a524614
 160x50 Ansi16 Checks & radios · States b4d6ac7def8cc7ba
-160x50 Ansi16 Toolbars 0247b30502265010
+160x50 Ansi16 Toolbars c0d6670f3d469f1f
+160x50 Ansi16 Toolbars · Options dfc32bf031dd7fed
+160x50 Ansi16 Toolbars · States 9eacd9e42f31a00c
 160x50 Ansi16 Basic table d8a002cb9f63b2c7
 160x50 Ansi16 Basic table · Options 453893abeff7de9c
 160x50 Ansi16 Basic table · States 40415aee86fe59f9
@@ -1777,7 +1815,9 @@
 160x50 Mono Checks & radios c7da1c56c2660c85
 160x50 Mono Checks & radios · Options d93f319a0fccee2f
 160x50 Mono Checks & radios · States fc9e45f7187afacb
-160x50 Mono Toolbars a3f3642716431361
+160x50 Mono Toolbars b3a26694368a88bc
+160x50 Mono Toolbars · Options fd25aa8f8eee9c72
+160x50 Mono Toolbars · States e565385d1efa5ddd
 160x50 Mono Basic table b62463ffd6009b6a
 160x50 Mono Basic table · Options c14057a22c05cbf9
 160x50 Mono Basic table · States ea04f3508781d428

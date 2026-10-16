@@ -256,6 +256,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Selectable => SELECTION,
         PageId::CellEditors => CELL_EDITORS,
         PageId::FocusNavigation => FOCUS_NAV,
+        PageId::Toolbars => TOOLBARS,
         _ => &[],
     }
 }
@@ -821,6 +822,14 @@ static OVERVIEW: &[Opt] = &[
         "State modifiers",
         &["level", "color", "16", "mono"],
     ),
+];
+
+/// Toolbars (SC28): the `Toolbar` builders.
+pub static TOOLBARS: &[Opt] = &[
+    Opt::new("toolbars.nav", "Nav keys", &["desktop", "vim"]),
+    Opt::new("toolbars.wrap", "Wrap", OFF_ON),
+    Opt::new("toolbars.skip_disabled", "Skip disabled", OFF_ON).default(1),
+    Opt::new("toolbars.gap", "Gap", &["0", "1", "2"]).default(1),
 ];
 
 /// Focus & navigation (SC28): one list's navigation keys and what Tab
