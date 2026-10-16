@@ -249,10 +249,10 @@ pub struct SelectablePage {
     notes_mixed: bool,
     /// The last apply or delete, shown beside the actions.
     pub feedback: Option<String>,
-    /// Changing the selection while the editor has unsaved edits asks
-    /// "Discard unsaved changes?" (Keep editing / Discard) first. Default
-    /// on; off, the new selection loads and the edits are dropped.
-    pub confirm_discard: bool,
+    /// What changing the selection does to unsaved edits in the editor.
+    /// Default [`LeaveEdits::Commit`]: they are applied, as leaving a
+    /// field commits it; only edits that fail validation ask first.
+    pub leave_edits: LeaveEdits,
     /// Whose conventions the toggle click follows and the footer names:
     /// the table's `toggle_mods` is `DataTable::toggle_mods_for` this
     /// platform (Option+click on macOS, Ctrl+click elsewhere). Default
@@ -261,9 +261,24 @@ pub struct SelectablePage {
     /// The row menu: which display row (and column) it is about.
     menu: RowMenu<(usize, usize)>,
     /// The selection (and cursor row) a change asked for while the
-    /// discard question is open: Discard applies it.
+    /// unsaved-changes question is open: Don't Save (or a Save that
+    /// succeeds) applies it.
     pending: Option<(junie_tui::core::selection::RowSelection, usize)>,
     sections: crate::pages::layout::Sections,
+}
+
+/// What changing the selection does to unsaved edits in the editor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LeaveEdits {
+    /// Apply them (macOS: leaving an edit commits it). Edits that fail
+    /// validation ask Save / Don't Save / Cancel instead.
+    #[default]
+    Commit,
+    /// Always ask Save / Don't Save / Cancel.
+    #[allow(dead_code)] // an option for apps; the showcase uses Commit
+    Ask,
+    /// Drop them silently.
+    Discard,
 }
 
 /// What the row menu's items do.
@@ -313,7 +328,7 @@ impl SelectablePage {
             base: FormValues::default(),
             notes_mixed: false,
             feedback: None,
-            confirm_discard: true,
+            leave_edits: LeaveEdits::default(),
             platform,
             menu: RowMenu::default(),
             pending: None,
@@ -553,28 +568,59 @@ impl SelectablePage {
         cx.focus.focus(first);
     }
 
+    /// The editor's edits pass validation (a single member's name and
+    /// email); a field that fails shows its error.
+    fn edits_valid(&mut self) -> bool {
+        for input in [&mut self.name, &mut self.email, &mut self.notes] {
+            if input.editing {
+                input.commit();
+            }
+        }
+        if self.loaded.len() != 1 {
+            return true;
+        }
+        let a = self.name.validate();
+        let b = self.email.validate();
+        a && b
+    }
+
     /// Run `f` on the table; when it changes the selection while the
-    /// editor holds unsaved edits (and [`Self::confirm_discard`] is on),
-    /// put the old selection back and ask first.
+    /// editor holds unsaved edits, [`Self::leave_edits`] decides: apply
+    /// them and move on, or put the old selection back and ask.
     fn table_input(
         &mut self,
         cx: &mut PageCtx,
         f: impl FnOnce(&mut DataTable) -> (Outcome, Option<TableEvent>),
     ) -> Outcome {
-        let guard = (self.confirm_discard && self.dirty())
+        let guard = (self.leave_edits != LeaveEdits::Discard && self.dirty())
             .then(|| (self.table.selection.clone(), self.table.cursor_row));
         let (out, tev) = f(&mut self.table);
         if let (Some((before, cursor)), Some(TableEvent::SelectionChanged)) = (guard, &tev) {
+            // commit: apply to the rows the editor holds, then load the
+            // new selection (do_apply reloads from it)
+            if self.leave_edits == LeaveEdits::Commit && self.edits_valid() {
+                self.do_apply(cx);
+                return Outcome::Changed;
+            }
             let after = std::mem::replace(&mut self.table.selection, before);
             let to = std::mem::replace(&mut self.table.cursor_row, cursor);
             self.pending = Some((after, to));
-            let d = Dialog::destructive(
-                DISCARD,
-                "Discard unsaved changes?",
-                "The editor has changes that were not applied. Changing the selection drops them.",
-                "Discard",
-            )
-            .cancel_label("Keep editing");
+            let invalid =
+                self.loaded.len() == 1 && (self.name.error.is_some() || self.email.error.is_some());
+            let text = if invalid {
+                "Some fields need fixing before they can be saved. Changing the selection without saving drops the edits."
+            } else {
+                "The editor has changes that were not applied. Changing the selection without saving drops them."
+            };
+            let mut d = Dialog::confirm(DISCARD, "Save changes?", text, "Save").actions(
+                vec![
+                    Button::subtle(DISCARD.sub("cancel"), "Cancel"),
+                    Button::secondary(DISCARD.sub("discard"), "Don't Save"),
+                    Button::primary(DISCARD.sub("save"), "Save"),
+                ],
+                Some(0),
+            );
+            d.initial_focus = DISCARD.sub("save");
             cx.open(d);
             return Outcome::Changed;
         }
@@ -641,7 +687,8 @@ impl SelectablePage {
                         changed.then_some(TableEvent::SelectionChanged),
                     )
                 });
-                // the discard question comes first when the editor is dirty
+                // the unsaved-changes question comes first when edits
+                // cannot be applied
                 if self.pending.is_none() {
                     self.ask_delete(cx);
                 }
@@ -1039,13 +1086,29 @@ impl Page for SelectablePage {
                 self.table.on_wheel_h(*delta)
             }
             PageEvent::DialogClosed { id, result, .. } if *id == DISCARD => {
-                if let Some((sel, cursor)) = self.pending.take()
-                    && *result == DialogResult::Action(1)
-                {
-                    self.table.selection = sel;
-                    self.table.cursor_row = cursor;
-                    self.selection_changed();
-                    cx.status("Changes discarded");
+                let Some((sel, cursor)) = self.pending.take() else {
+                    return Outcome::Changed;
+                };
+                let go = |page: &mut Self| {
+                    page.table.selection = sel;
+                    page.table.cursor_row = cursor;
+                    page.selection_changed();
+                };
+                match result {
+                    // Don't Save: drop the edits, load the new selection
+                    DialogResult::Action(1) => {
+                        go(self);
+                        cx.status("Changes discarded");
+                    }
+                    // Save: apply (a field that fails keeps the editor and
+                    // focuses it), then move on
+                    DialogResult::Action(2) => {
+                        self.do_apply(cx);
+                        if !self.dirty() {
+                            go(self);
+                        }
+                    }
+                    _ => {}
                 }
                 Outcome::Changed
             }

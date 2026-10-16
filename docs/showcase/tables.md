@@ -166,6 +166,11 @@ explicitly).
    chooses and moves on; type-ahead is on in option lists.
 7. Navigation lists (the sidebar) open on one click; data views select on
    one click and edit or activate on a second click, double click or Enter.
+8. Selection: changing the selected rows commits the editor's edits (as
+   blur commits a field, `LeaveEdits::Commit`); only edits that fail
+   validation ask Save / Don't Save / Cancel. Terminals often keep
+   Shift+click for their own text selection, so a range also grows from
+   the clicked row with Shift+↑↓ (the footer says so).
 
 ## Deferred
 
