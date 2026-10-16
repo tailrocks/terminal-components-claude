@@ -1,34 +1,34 @@
-[0m[2m ▪ Junie Design system / Screens / Selectable table                                                                   no color · 160×50   i Inspector   ? Help  [0m
+[0m[2m ▪ Junie Design system / Tables / Selection                                                                           no color · 160×50   i Inspector   ? Help  [0m
 [0m[2m                                                                                                                                                                [0m
-[0m[2m   Foundations         │  Selectable table  Select rows, edit one or many together, delete with a confirmation                                                  [0m
- [0m[2m  Overview            │                                                                                                                                        [0m
-[0m[2m                       │    Members                                                                    2 selected     Edit 2 members                            [0m
-[0m[2m   Components          │                                                                                                                                        [0m
- [0m[2m  Buttons             │       [–] Name                Role    Status     Region  On call  Email                …       Applies to all 2 · names and emails s…  [0m
- [0m[2m  Inputs              │    [0m [0m[2m  [ ] Dana Whitfield      Owner   Active     EU      Yes      dana@northwind.dev           Role                 Status             [0m
- [0m[2m  Text areas          │    [0m [0m[2m  [✓] Ari Moreno          Admin   Active     US      Yes      ari@northwind.dev          [0m [0m[2m — mixed —      ▾   [0m [0m[2m Active         ▾   [0m
- [0m[2m  Forms               │    [0m [0m[2m  [✓] Cleo Barnes         Editor  Active     EU      —        cleo@northwind.dev                                                   [0m
- [0m[2m  Lists               │    [0m [0m[2m  [ ] Bo Lindqvist        Editor  Invited    EU      —        bo@northwind.dev             Region                                  [0m
- [0m[2m  Trees               │    [0m [0m[2m  [ ] Eli Nakamura        Viewer  Active     APAC    —        eli@contractor.io          [0m [0m[2m — mixed —      ▾   [0m [0m[2m[–] On call         [0m
- [0m[2m  Tables              │    [0m [0m[2m  [ ] Fay Okafor          Editor  Active     US      Yes      fay@northwind.dev                                                    [0m
- [0m[2m  Editable tables     │    [0m [0m[2m  [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev            Notes                                   [0m
- [0m[2m  Panels              │    [0m [0m[2m  [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev         [0m [0m[2m — mixed —                               [0m
- [0m[2m  Sidebars            │    [0m [0m[2m  [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
- [0m[2m  Dialogs             │    [0m [0m[2m  [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
- [0m[2m  Progress            │    [0m [0m[2m  [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
- [0m[2m  Scrolling           │    [0m [0m[2m  [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
- [0m[2m  Terminal            │                                                                                              [0m [0m[2mApply   [0m [0m[2mRevert   [0m [0m[2mDelete…               [0m
- [0m[2m  Code editor         │                             ╭────────────────────────────────────────────────────╮                                                     [0m
- [0m[2m  Diff                │                             │                                                    │                                                     [0m
- [0m[2m  Data grid           │                             │  [0m[1;2mDelete 2 members?[0m[2m                                 │                                                     [0m
- [0m[2m  Chips & selects     │                             │                                                    │                                                     [0m
- [0m[2m  Pickers             │                             │  They lose access to the workspace right away.     │                                                     [0m
- [0m[2m  Chrome              │                             │  This can't be undone.                             │                                                     [0m
+ [0m[2m  Overview            │  Selectable table  Select rows, edit one or many together, delete with a confirmation                                                  [0m
+ [0m[2m▸ App shell           │                                                                                                                                        [0m
+ [0m[2m▸ Inputs & forms      │    Members                                                                    2 selected     Edit 2 members                            [0m
+ [0m[2m▾ Tables              │                                                                                                                                        [0m
+ [0m[2m    Basic table       │       [–] Name                Role    Status     Region  On call  Email                …       Applies to all 2 · names and emails s…  [0m
+ [0m[2m    Editable          │    [0m [0m[2m  [ ] Dana Whitfield      Owner   Active     EU      Yes      dana@northwind.dev           Role                 Status             [0m
+ [0m[2m    Data grid         │    [0m [0m[2m  [✓] Ari Moreno          Admin   Active     US      Yes      ari@northwind.dev          [0m [0m[2m — mixed —      ▾   [0m [0m[2m Active         ▾   [0m
+ [0m[2m  › Selection         │    [0m [0m[2m  [✓] Cleo Barnes         Editor  Active     EU      —        cleo@northwind.dev                                                   [0m
+ [0m[2m    Cell editors      │    [0m [0m[2m  [ ] Bo Lindqvist        Editor  Invited    EU      —        bo@northwind.dev             Region                                  [0m
+ [0m[2m▸ Navigation          │    [0m [0m[2m  [ ] Eli Nakamura        Viewer  Active     APAC    —        eli@contractor.io          [0m [0m[2m — mixed —      ▾   [0m [0m[2m[–] On call         [0m
+ [0m[2m▸ Overlays            │    [0m [0m[2m  [ ] Fay Okafor          Editor  Active     US      Yes      fay@northwind.dev                                                    [0m
+ [0m[2m▸ Feedback            │    [0m [0m[2m  [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev            Notes                                   [0m
+ [0m[2m▸ Layout              │    [0m [0m[2m  [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev         [0m [0m[2m — mixed —                               [0m
+ [0m[2m▸ Text & code         │    [0m [0m[2m  [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
+ [0m[2m▸ Screens             │    [0m [0m[2m  [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
+[0m[2m                       │    [0m [0m[2m  [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
+[0m[2m                       │    [0m [0m[2m  [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
+[0m[2m                       │                                                                                              [0m [0m[2mApply   [0m [0m[2mRevert   [0m [0m[2mDelete…               [0m
+[0m[2m                       │                             ╭────────────────────────────────────────────────────╮                                                     [0m
 [0m[2m                       │                             │                                                    │                                                     [0m
-[0m[2m   Screens             │                             │                      ▎[0m[1;2mCancel [0m[2m   Delete 2 members   │                                                     [0m
- [0m[2m  Settings            │                             │                                                    │                                                     [0m
- [0m[2m  Task runner         │                             ╰────────────────────────────────────────────────────╯                                                     [0m
- [0m[2m› Selectable table    │                                                                                                                                        [0m
+[0m[2m                       │                             │  [0m[1;2mDelete 2 members?[0m[2m                                 │                                                     [0m
+[0m[2m                       │                             │                                                    │                                                     [0m
+[0m[2m                       │                             │  They lose access to the workspace right away.     │                                                     [0m
+[0m[2m                       │                             │  This can't be undone.                             │                                                     [0m
+[0m[2m                       │                             │                                                    │                                                     [0m
+[0m[2m                       │                             │                      ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mD[0m[2melete 2 members   │                                                     [0m
+[0m[2m                       │                             │                                                    │                                                     [0m
+[0m[2m                       │                             ╰────────────────────────────────────────────────────╯                                                     [0m
+[0m[2m                       │                                                                                                                                        [0m
 [0m[2m                       │                                                                                                                                        [0m
 [0m[2m                       │                                                                                                                                        [0m
 [0m[2m                       │                                                                                                                                        [0m
@@ -47,5 +47,5 @@
 [0m[2m                       │           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────                                               [0m
 [0m[2m                       │                                                                                                                                        [0m
 [0m[2m                                                                                                                                                                [0m
- [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mEsc[0m Cancel  [0m[1my[0m Delete 2 members  [0m[1mn[0m Cancel                                                                                              [0m
+ [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mEsc[0m Cancel                                                                                                                            [0m
 [?25l

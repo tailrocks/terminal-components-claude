@@ -1,25 +1,25 @@
- ▪ [0m[1mJunie[0m Design system / Components / Code editor         i Inspector   ? Help  [0m
+ ▪ [0m[1mJunie[0m Design system / Text & code / Code editor        i Inspector   ? Help  [0m
                                                                                 [0m
-   Overview       ┃  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
-   Buttons        ┃                                                             [0m
-   Inputs         ┃    retry.rs                                       3 blocks  [0m
-   Text areas     ┃                                                             [0m
-   Forms          ┃     ›  1 [0m[3m// Retry a request with exponential backoff.[0m    ┃  [0m
-   Lists          ┃        2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Result<Body, … │  [0m
-   Trees          ┃        3     [0m[1mlet[0m [0m[1mmut[0m delay = 200;                        │  [0m
-   Tables         ┃    [0m[2m    4     [0m[1;2mfor[0m[2m attempt [0m[1;2min[0m[2m 1..=5 {                      [0m│  [0m
-   Editable tabl… ┃          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────    [0m
-   Panels         ┃                                                 1–4 of 26   [0m
-   Sidebars       ┃                                                             [0m
-   Dialogs        ┃    State                                                    [0m
-   Progress       ┃                                                             [0m
-   Scrolling      ┃    Mode         navigating                                  [0m
-   Terminal       ┃    Cursor       ln 1 · col 1                                [0m
-[0m[1m▎› Code editor    [0m┃    Block        1 of 3                                      [0m
-   Diff           │    Runs         0                                           [0m
-   Data grid      │    Last run     —                                           [0m
-   Chips & selec… │    Diagnostics  0                                           [0m
-[0m[2m   Pickers        [0m│                                                             [0m
+   Overview       │  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
+ ▸ App shell      │                                                             [0m
+ ▸ Inputs & forms │    retry.rs                                       3 blocks  [0m
+ ▸ Tables         │                                                             [0m
+ ▸ Navigation     │     ›  1 [0m[3m// Retry a request with exponential backoff.[0m    ┃  [0m
+ ▸ Overlays       │        2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Result<Body, … │  [0m
+ ▸ Feedback       │        3     [0m[1mlet[0m [0m[1mmut[0m delay = 200;                        │  [0m
+ ▸ Layout         │    [0m[2m    4     [0m[1;2mfor[0m[2m attempt [0m[1;2min[0m[2m 1..=5 {                      [0m│  [0m
+ ▾ Text & code    │          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────    [0m
+[0m[1m▎  › Code editor  [0m│                                                 1–4 of 26   [0m
+     Diff         │                                                             [0m
+     Terminal     │    State                                                    [0m
+ ▸ Screens        │                                                             [0m
+                  │    Mode         navigating                                  [0m
+                  │    Cursor       ln 1 · col 1                                [0m
+                  │    Block        1 of 3                                      [0m
+                  │    Runs         0                                           [0m
+                  │    Last run     —                                           [0m
+                  │    Diagnostics  0                                           [0m
+                  │                                                             [0m
                                                                                 [0m
- [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                     [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l

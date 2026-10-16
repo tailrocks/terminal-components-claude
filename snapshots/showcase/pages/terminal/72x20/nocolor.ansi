@@ -1,21 +1,21 @@
- ▪ [0m[1mJunie[0m Design system / Components / Terminal    i Inspector   ? Help  [0m
+ ▪ [0m[1mJunie[0m Design system / Text & code / Terminal   i Inspector   ? Help  [0m
                                                                         [0m
-   Overview       ┃  [0m[1mTerminal[0m  Viewport with scrollback, selection and… [0m
-   Buttons        ┃                                                     [0m
-   Inputs         ┃  ╭─ Viewport ────── 37 lines ─╮ │  Step rail   7/7  [0m
-   Text areas     ┃  │  [0m[2m  #14 COPY rust-toolcha [0m│ │ │                   [0m
-   Forms          ┃  │  ✓ Build container       │ │ │   ✓ 01 Resolve…   [0m
-   Lists          ┃  │  [0m[1m▶ Resolve credentials[0m   │ │ │   ✓ 02 Pull ba…   [0m
-   Trees          ┃  │    1Password  Engineerin │ │ │   ✓ 03 Build c…   [0m
-   Tables         ┃  │  ✓ Resolve credentials   │ │ │     04 Mount s…   [0m
-   Editable tabl… ┃  │  [0m[1m▶ Start agent[0m           │ │ │   ✓ 05 Resolve…   [0m
-   Panels         ┃  │    claude --resume  pid  │ │ │   ✓ 06 Start a…   [0m
-   Sidebars       │  │  ✓ Start agent           │ │ │   ✓ 07 Ready      [0m
-   Dialogs        │  │  [0m[1m▶ Ready[0m                 ┃ │ │                   [0m
-   Progress       │  │  ✓ Ready                 ┃ │ │                   [0m
-   Scrolling      │  │  [0m[1mpayments-platform ❯ [0m    ┃ │ │                   [0m
-[0m[1m▎› Terminal       [0m│  │  ━━━━━━━━━───────────────  │ │   [0m[1;7mRun [0m   Run w…   [0m
-[0m[2m   Code editor    [0m│  ╰────────────────────────────╯ │                   [0m
+   Overview       │  [0m[1mTerminal[0m  Viewport with scrollback, selection and… [0m
+ ▸ App shell      │                                                     [0m
+ ▸ Inputs & forms │  ╭─ Viewport ────── 37 lines ─╮ │  Step rail   7/7  [0m
+ ▸ Tables         │  │  [0m[2m  #14 COPY rust-toolcha [0m│ │ │                   [0m
+ ▸ Navigation     │  │  ✓ Build container       │ │ │   ✓ 01 Resolve…   [0m
+ ▸ Overlays       │  │  [0m[1m▶ Resolve credentials[0m   │ │ │   ✓ 02 Pull ba…   [0m
+ ▸ Feedback       │  │    1Password  Engineerin │ │ │   ✓ 03 Build c…   [0m
+ ▸ Layout         │  │  ✓ Resolve credentials   │ │ │     04 Mount s…   [0m
+ ▾ Text & code    │  │  [0m[1m▶ Start agent[0m           │ │ │   ✓ 05 Resolve…   [0m
+     Code editor  │  │    claude --resume  pid  │ │ │   ✓ 06 Start a…   [0m
+     Diff         │  │  ✓ Start agent           │ │ │   ✓ 07 Ready      [0m
+[0m[1m▎  › Terminal     [0m│  │  [0m[1m▶ Ready[0m                 ┃ │ │                   [0m
+ ▸ Screens        │  │  ✓ Ready                 ┃ │ │                   [0m
+                  │  │  [0m[1mpayments-platform ❯ [0m    ┃ │ │                   [0m
+                  │  │  ━━━━━━━━━───────────────  │ │   [0m[1;7mRun [0m   Run w…   [0m
+                  │  ╰────────────────────────────╯ │                   [0m
                                                                         [0m
- [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                             [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l

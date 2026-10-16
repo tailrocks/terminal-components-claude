@@ -1,31 +1,31 @@
- ▪ [0m[1mJunie[0m Design system / Components / Terminal            no color · 100×30   i Inspector   ? Help  [0m
+ ▪ [0m[1mJunie[0m Design system / Text & code / Terminal           no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
    Overview       │  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step… [0m
-   Buttons        │                                                                                 [0m
-   Inputs         │  ╭─ Viewport ─────────── 37 lines · following ─╮ │  Step rail           7 of 7  [0m
-   Text areas     │  │  [0m[2m  #4 RUN cargo build --release           [0m│ │ │                              [0m
-   Forms          │  │    #5 RUN apt-get install -y build-essent │ │ │   ✓ 01 Resolve wor…  0.8 s   [0m
-   Lists          │  │    #6 COPY rust-toolchain.toml ./         │ │ │   ✓ 02 Pull base i…  2.1 s   [0m
-   Trees          │  │    #7 RUN cargo fetch --locked            │ │ │   ✓ 03 Build conta…  3.2 s   [0m
-   Tables         │  │    #8 RUN cargo build --release           │ │ │     04 Mount sour…  cached   [0m
-   Editable tabl… │  │    #9 RUN apt-get install -y build-essent │ │ │   ✓ 05 Resolve cre…  1.4 s   [0m
-   Panels         │  │    #10 COPY rust-toolchain.toml ./        │ │ │   ✓ 06 Start agent   1.1 s   [0m
-   Sidebars       │  │    #11 RUN cargo fetch --locked           │ │ │   ✓ 07 Ready         0.1 s   [0m
-   Dialogs        │  │    #12 RUN cargo build --release          │ │ │                              [0m
-   Progress       │  │    #13 RUN apt-get install -y build-essen │ │ │                              [0m
-   Scrolling      │  │    #14 COPY rust-toolchain.toml ./        ┃ │ │                              [0m
-[0m[1m▎› Terminal       [0m│  │  ✓ Build container                        ┃ │ │                              [0m
-   Code editor    │  │  [0m[1m▶ Resolve credentials[0m                    ┃ │ │                              [0m
-   Diff           │  │    1Password  Engineering › Anthropic · W ┃ │ │                              [0m
-   Data grid      │  │  ✓ Resolve credentials                    ┃ │ │                              [0m
-   Chips & selec… │  │  [0m[1m▶ Start agent[0m                            ┃ │ │                              [0m
-   Pickers        │  │    claude --resume  pid 4188              ┃ │ │                              [0m
-   Chrome         │  │  ✓ Start agent                            ┃ │ │                              [0m
-   Settings       │  │  [0m[1m▶ Ready[0m                                  ┃ │ │                              [0m
-   Task runner    │  │  ✓ Ready                                  ┃ │ │                              [0m
-   Selectable ta… │  │  [0m[1mpayments-platform ❯ [0m                     ┃ │ │                              [0m
+ ▸ App shell      │                                                                                 [0m
+ ▸ Inputs & forms │  ╭─ Viewport ─────────── 37 lines · following ─╮ │  Step rail           7 of 7  [0m
+ ▸ Tables         │  │  [0m[2m  #4 RUN cargo build --release           [0m│ │ │                              [0m
+ ▸ Navigation     │  │    #5 RUN apt-get install -y build-essent │ │ │   ✓ 01 Resolve wor…  0.8 s   [0m
+ ▸ Overlays       │  │    #6 COPY rust-toolchain.toml ./         │ │ │   ✓ 02 Pull base i…  2.1 s   [0m
+ ▸ Feedback       │  │    #7 RUN cargo fetch --locked            │ │ │   ✓ 03 Build conta…  3.2 s   [0m
+ ▸ Layout         │  │    #8 RUN cargo build --release           │ │ │     04 Mount sour…  cached   [0m
+ ▾ Text & code    │  │    #9 RUN apt-get install -y build-essent │ │ │   ✓ 05 Resolve cre…  1.4 s   [0m
+     Code editor  │  │    #10 COPY rust-toolchain.toml ./        │ │ │   ✓ 06 Start agent   1.1 s   [0m
+     Diff         │  │    #11 RUN cargo fetch --locked           │ │ │   ✓ 07 Ready         0.1 s   [0m
+[0m[1m▎  › Terminal     [0m│  │    #12 RUN cargo build --release          │ │ │                              [0m
+ ▸ Screens        │  │    #13 RUN apt-get install -y build-essen │ │ │                              [0m
+                  │  │    #14 COPY rust-toolchain.toml ./        ┃ │ │                              [0m
+                  │  │  ✓ Build container                        ┃ │ │                              [0m
+                  │  │  [0m[1m▶ Resolve credentials[0m                    ┃ │ │                              [0m
+                  │  │    1Password  Engineering › Anthropic · W ┃ │ │                              [0m
+                  │  │  ✓ Resolve credentials                    ┃ │ │                              [0m
+                  │  │  [0m[1m▶ Start agent[0m                            ┃ │ │                              [0m
+                  │  │    claude --resume  pid 4188              ┃ │ │                              [0m
+                  │  │  ✓ Start agent                            ┃ │ │                              [0m
+                  │  │  [0m[1m▶ Ready[0m                                  ┃ │ │                              [0m
+                  │  │  ✓ Ready                                  ┃ │ │                              [0m
+                  │  │  [0m[1mpayments-platform ❯ [0m                     ┃ │ │                              [0m
                   │  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────  │ │   [0m[1;7mRun [0m   Run with a failu…   [0m
                   │  ╰─────────────────────────────────────────────╯ │                              [0m
                                                                                                     [0m
- [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                         [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l
