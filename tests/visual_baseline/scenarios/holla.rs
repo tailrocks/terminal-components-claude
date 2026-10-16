@@ -381,7 +381,7 @@ pub const JOURNEYS: &[Root] = &[
     // to gate 1 (the docker_cleanup_takes_two_gates flow); the second pass
     // executes and ticks drive the plan to Done. Reduced is required (the run is
     // tick-driven); the end frame is stable because nothing animates after Done.
-    Root::new("holla/flows/docker/done", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "reduced"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "tab", "enter", "wait:Plan changed", "right", "enter", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "tab", "enter", "wait:7 succeeded"]).timeout(60_000),
+    Root::new("holla/flows/docker/done", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "reduced"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "wait:Plan changed", "right", "enter", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "wait:7 succeeded"]).timeout(60_000),
     // H20: the Spotlight top-files page over the finished scan (`t` opens it,
     // disk.rs). Reduced: the tree scan completes only through ticks.
     Root::new("holla/flows/disk/top_files", Bin::Holla, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "t", "wait:Top files · Spotlight"]).timeout(15_000),
@@ -394,7 +394,7 @@ pub const JOURNEYS: &[Root] = &[
     // tick-driven; the page's `· live ·` meta is a constant ("1 s ago"), not a
     // tick readout. `space` selects the row first — `d` refuses an empty
     // selection ("Select at least one entry first").
-    Root::new("holla/flows/cleanup/report", Bin::Holla, &["--scenario", "parity-cleanup-results", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp", "enter", "tab", "enter", "wait:Cleanup report"]).timeout(15_000),
+    Root::new("holla/flows/cleanup/report", Bin::Holla, &["--scenario", "parity-cleanup-results", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp", "enter", "wait:Cleanup report"]).timeout(15_000),
     // ------------------------------------------- coverage holes (legacy h_flow_*,
     // h_hp*, h_p3 states; keys from the retired tools/holla_flows.sh and
     // tools/holla_parity_flows.sh, motion hardened per the determinism playbook) --
@@ -508,12 +508,12 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/platforms/linux_gate2", Bin::Holla, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "right", "down", "space", "d", "wait:no Trash backend", "right", "enter", "wait:Type TRASH 1 UNDER /home/alex ON devbox"]),
     // h_hp23_linux_report: commit the linux trash (no backend) — every item
     // fails, never falls back. Reduced: the cleanup job is tick-driven.
-    Root::new("holla/flows/cleanup/linux_report", Bin::Holla, &["--scenario", "parity-platforms-linux", "--motion", "reduced"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "right", "down", "space", "d", "wait:no Trash backend", "right", "enter", "wait:Type TRASH 1 UNDER /home/alex ON devbox", "enter", "type:TRASH 1 UNDER /home/alex ON devbox", "enter", "tab", "enter", "wait:Cleanup report"]).timeout(15_000),
+    Root::new("holla/flows/cleanup/linux_report", Bin::Holla, &["--scenario", "parity-platforms-linux", "--motion", "reduced"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "right", "down", "space", "d", "wait:no Trash backend", "right", "enter", "wait:Type TRASH 1 UNDER /home/alex ON devbox", "enter", "type:TRASH 1 UNDER /home/alex ON devbox", "enter", "wait:Cleanup report"]).timeout(15_000),
     Root::new("holla/flows/platforms/files", Bin::Holla, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Top files on this Mac", "enter", "wait:did not finish within 5 s"]),
     // h_p3_docker_drift: the first Execute meets the drift and bounces back to
     // gate 1 with the Changed row (the docker_done chain passes through this
     // state; all key-driven, so paused pins the gate-1 Provenance label).
-    Root::new("holla/flows/docker/drift", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "tab", "enter", "wait:a new container"]),
+    Root::new("holla/flows/docker/drift", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "wait:a new container"]),
     // --------------------------------------------------------------------- fade --
     // Wheel scroll-fade over live sessions. Below 100 columns, Home removes
     // width-dependent cursor drift and Right opens the compact preview drawer.
