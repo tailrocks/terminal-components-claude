@@ -470,9 +470,11 @@ impl Overlay for Dialog {
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(Overlay::dismiss(self)).initial_focus(self.initial_focus)
     }
+    /// The dialog's own cancel action (its `cancel_index` button, else
+    /// `Cancelled`): a dismissal means exactly what Esc means.
     fn on_dismiss(&mut self, _: DismissReason) -> Response<DialogResult> {
-        self.result = Some(DialogResult::Cancelled);
-        Response::emit(DialogResult::Cancelled)
+        let _ = self.dismissed();
+        Response::emit(self.result.unwrap_or(DialogResult::Cancelled))
     }
     fn close_button(&self) -> Option<&IconButton> {
         Some(&self.close_button)
@@ -657,9 +659,25 @@ mod tests {
         let mut d = Dialog::confirm(id, "Delete?", "Gone.", "Delete").dismiss(Dismiss::ESCAPE);
         assert!(dismiss(&mut d, R::OutsideClick).is_none(), "refused");
         assert_eq!(d.result, None);
+        // a dismissal is the dialog's Cancel action, exactly as Esc
+        let cancel = d
+            .cancel_index
+            .map_or(DialogResult::Cancelled, DialogResult::Action);
         let r = dismiss(&mut d, R::CloseButton).unwrap();
-        assert_eq!(r.into_action(), Some(DialogResult::Cancelled));
-        assert_eq!(d.result, Some(DialogResult::Cancelled));
+        assert_eq!(r.into_action(), Some(cancel));
+        assert_eq!(d.result, Some(cancel));
+        let mut esc = Dialog::confirm(id, "Delete?", "Gone.", "Delete");
+        let ring = FocusRing::default();
+        let mut focus = Focus::default();
+        let _ = esc.on_key(
+            &Key {
+                code: ratatui::crossterm::event::KeyCode::Esc,
+                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+            },
+            &mut focus,
+            &ring,
+        );
+        assert_eq!(esc.result, Some(cancel), "Esc resolves the same way");
 
         let mut f = FormDialog::new(id, "Form", vec![]);
         assert!(dismiss(&mut f, R::OutsideClick).is_none());
