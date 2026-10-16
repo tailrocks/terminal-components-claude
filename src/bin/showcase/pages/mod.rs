@@ -15,6 +15,7 @@ use junie_tui::widgets::help::HelpOverlay;
 
 pub mod accounts_usage;
 pub mod activity;
+pub mod adapter;
 pub mod breadcrumbs_rails;
 pub mod buttons;
 pub mod celleditors;

@@ -9,6 +9,7 @@ use ratatui::layout::Rect;
 
 use crate::inspector::{self, Inspector};
 use crate::options::{OptSet, ShellOptions};
+use crate::pages::adapter::Showcase;
 use crate::pages::{Cx, DIALOG_TAG, Go, HELP_TAG, LayerRes, Page, PageEvent, Request};
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
@@ -18,7 +19,7 @@ use junie_tui::core::pointer::{
     FocusOn, MouseTarget, PointerConfig, PointerEvent, PointerHost, PointerParts, PointerRouter,
 };
 use junie_tui::core::response::Response;
-use junie_tui::shell::{self, Shell};
+use junie_tui::shell::{self, Page as _, Shell};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
@@ -799,7 +800,7 @@ impl App {
             for _ in 0..frame {
                 for i in 0..app.pages.len() {
                     let mut cx = Cx::new(&mut app.shell.focus, &app.shell.ring);
-                    app.pages[i].handle(&PageEvent::Tick, &mut cx);
+                    app.pages[i].on_tick(&mut (), &mut cx);
                 }
             }
         }
@@ -870,7 +871,7 @@ impl App {
             return false;
         }
         let page = &self.pages[self.page.index()];
-        page.animating()
+        shell::Page::<Showcase>::animating(page.as_ref(), &())
             || self.shell.pointer.has_flash()
             || self
                 .dialog()
@@ -908,7 +909,7 @@ impl App {
         out = out.or(self.layers.on_blur(ch));
         out = out.or(self.insp.on_blur(Some(ch.from)));
         for i in 0..self.pages.len() {
-            out = out.or(self.dispatch_to(i, PageEvent::Blur(ch)));
+            out = out.or(self.with_page(i, |p, cx| p.on_blur(ch, &mut (), cx)));
         }
         out
     }
@@ -925,7 +926,7 @@ impl App {
                     }
                     return top.layer.on_paste(&text);
                 }
-                self.dispatch(PageEvent::Paste(text))
+                self.with_shown(|p, cx| p.on_paste(&text, &mut (), cx))
             }
             Input::Key(key) => {
                 self.last_key = Some(describe_key(&key));
@@ -961,20 +962,35 @@ impl App {
             out = Outcome::Changed;
         }
         if !self.modal_open() {
-            let page_out = self.dispatch(PageEvent::Tick);
+            let page_out = self.with_shown(|p, cx| p.on_tick(&mut (), cx));
             out = out.or(page_out);
         }
         out
     }
 
-    fn dispatch(&mut self, ev: PageEvent) -> Outcome {
-        self.dispatch_to(self.page.index(), ev)
+    /// Drive the shown page ([`Self::with_page`]).
+    fn with_shown(
+        &mut self,
+        f: impl FnOnce(&mut (dyn Page + 'static), &mut Cx) -> Outcome,
+    ) -> Outcome {
+        self.with_page(self.page.index(), f)
     }
 
-    fn dispatch_to(&mut self, i: usize, ev: PageEvent) -> Outcome {
+    /// Drive page `i` through the shell's page contract (`f` calls a
+    /// `shell::Page` method; `pages::adapter` turns it into the page's
+    /// `PageEvent`), then apply what it asked for. A page that is not
+    /// shown may only report a status (`shell::background`).
+    fn with_page(
+        &mut self,
+        i: usize,
+        f: impl FnOnce(&mut (dyn Page + 'static), &mut Cx) -> Outcome,
+    ) -> Outcome {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
-        let out = self.pages[i].handle(&ev, &mut cx);
-        let requests = cx.take();
+        let out = f(self.pages[i].as_mut(), &mut cx);
+        let mut requests = cx.take();
+        if i != self.page.index() {
+            requests = shell::background(requests).collect();
+        }
         self.apply_requests(requests, i);
         out
     }
@@ -1005,10 +1021,10 @@ impl App {
     }
 
     /// What quitting would lose across every page.
-    pub fn quit_stakes(&self) -> Stakes {
+    pub fn quit_stakes(&mut self) -> Stakes {
         self.pages
-            .iter()
-            .fold(Stakes::Clean, |acc, p| acc.max(p.leave_stakes()))
+            .iter_mut()
+            .fold(Stakes::Clean, |acc, p| acc.max(p.stakes(&())))
     }
 
     /// Every quit goes through here: a clean showcase quits at once,
@@ -1159,13 +1175,8 @@ impl App {
     }
 
     /// A layer page `i` opened reported `r` under `tag`.
-    fn page_layer_result(&mut self, i: usize, _tag: &LayerTag, r: LayerRes) -> Outcome {
-        match r {
-            LayerRes::Dialog { id, result, value } => {
-                self.dispatch_to(i, PageEvent::DialogClosed { id, result, value })
-            }
-            LayerRes::Lib(_) => Outcome::Ignored,
-        }
+    fn page_layer_result(&mut self, i: usize, tag: &LayerTag, r: LayerRes) -> Outcome {
+        self.with_page(i, |p, cx| p.on_layer_result(tag, r, &mut (), cx))
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
@@ -1215,8 +1226,8 @@ impl App {
         }
         // page first (editing widgets capture everything)
         let activating = matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) && key.plain();
-        let was_editing = self.pages[self.page.index()].editing();
-        let out = self.dispatch(PageEvent::Key(key));
+        let was_editing = self.pages[self.page.index()].is_editing();
+        let out = self.with_shown(|p, cx| p.on_key(&key, &mut (), cx));
         if out.consumed() {
             if activating
                 && !was_editing
@@ -2006,7 +2017,7 @@ impl App {
             area.width,
             area.height.saturating_sub(2),
         );
-        page.render(body, buf, ctx);
+        shell::Page::<Showcase>::render(page, body, buf, ctx, &());
     }
 
     /// The State tab's diagnostics, from the last frame's hit regions and
@@ -2199,7 +2210,7 @@ impl App {
             hints.push(("Tab", "Into page"));
             hints.push(("q", "Quit"));
         } else {
-            for (k, v) in page.hints(self.shell.focus.current()) {
+            for (k, v) in Page::hints(page.as_ref(), self.shell.focus.current()) {
                 hints.push((k, v));
             }
             // the focused cursor row is cut: name the reveal key
@@ -2316,7 +2327,7 @@ impl PointerHost for App {
                 Some(out) => out,
                 None => match self.inspector_pointer(ev) {
                     Some(out) => out,
-                    None => self.dispatch(PageEvent::Pointer(*ev)),
+                    None => self.with_shown(|p, cx| p.pointer(ev, &mut (), cx)),
                 },
             },
         };
