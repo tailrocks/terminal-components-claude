@@ -12,11 +12,11 @@
 120x40 TrueColor Dialogs f8dd3d9b714480ec
 120x40 TrueColor Progress 9b22f805742383f3
 120x40 TrueColor Scrolling dac48016d5dd8106
-120x40 TrueColor Terminal 484ababa33d89cad
+120x40 TrueColor Terminal ebfa16dcbd43e531
 120x40 TrueColor Code editor 4326ccdc85c6a95b
 120x40 TrueColor Diff 3f97222027afb0d1
 120x40 TrueColor Data grid 7228000703dc5ac9
-120x40 TrueColor Chips & selects a60959142b1a3838
+120x40 TrueColor Chips & selects 9e324211ce67f5c6
 120x40 TrueColor Pickers e8c00c374254cf99
 120x40 TrueColor Chrome af8507d060125f2a
 120x40 TrueColor Settings a80af6b3596ae142
@@ -35,11 +35,11 @@
 120x40 Ansi256 Dialogs d6a8c5edc31de517
 120x40 Ansi256 Progress b79fa92e2b2ab29f
 120x40 Ansi256 Scrolling 3b26ec919e94561b
-120x40 Ansi256 Terminal b8773c0dff95fc00
+120x40 Ansi256 Terminal 14b5cbb8bbf304e6
 120x40 Ansi256 Code editor 64730ba52f4b7727
 120x40 Ansi256 Diff 442325ecee59c2ed
 120x40 Ansi256 Data grid 32d36d5a4f1e7a01
-120x40 Ansi256 Chips & selects bd4f1271c8659611
+120x40 Ansi256 Chips & selects d87f849ada266701
 120x40 Ansi256 Pickers 2c10bc8f9c0cd51d
 120x40 Ansi256 Chrome b0b832ce794c68bb
 120x40 Ansi256 Settings dd4888cd24b74f80
@@ -62,7 +62,7 @@
 120x40 Ansi16 Code editor d066a8a8cb99c4d0
 120x40 Ansi16 Diff e1cc2e4915d29463
 120x40 Ansi16 Data grid 00a7dcfeb4600e4a
-120x40 Ansi16 Chips & selects 30e21e13cc66ee3b
+120x40 Ansi16 Chips & selects a3387d00a2854f09
 120x40 Ansi16 Pickers 7d242d54b647913e
 120x40 Ansi16 Chrome cdbbd43b54e347e3
 120x40 Ansi16 Settings 8955adaa018b6f0d
@@ -85,9 +85,9 @@
 120x40 Mono Code editor 4b747253c84b5833
 120x40 Mono Diff 533586fbebe337b1
 120x40 Mono Data grid dade22711b10014a
-120x40 Mono Chips & selects fbeb69ee391bfb1b
+120x40 Mono Chips & selects f7638c4725286f8b
 120x40 Mono Pickers ef5602a34c40520f
-120x40 Mono Chrome 6bf525401c2df610
+120x40 Mono Chrome c5c6242623584dd2
 120x40 Mono Settings 949c415c991648d8
 120x40 Mono Task runner 9f4f7527c08c087d
 80x24 TrueColor Overview 5a39a038749aa0cb
@@ -104,11 +104,11 @@
 80x24 TrueColor Dialogs 020d62808374ce36
 80x24 TrueColor Progress dce0984bbfe3b5eb
 80x24 TrueColor Scrolling 84b35107ff940450
-80x24 TrueColor Terminal c863fa7a0904cd75
+80x24 TrueColor Terminal adaaf31d9dc4c999
 80x24 TrueColor Code editor 6068ae2fbd07a6ca
 80x24 TrueColor Diff 48062609055c97b1
 80x24 TrueColor Data grid ab1af6451bb55a9d
-80x24 TrueColor Chips & selects 4da6172ea0dee737
+80x24 TrueColor Chips & selects 5c1277720a1a4d77
 80x24 TrueColor Pickers 901c4c1e7fca578a
 80x24 TrueColor Chrome d5d93edeae218aa1
 80x24 TrueColor Settings aa0b5afefc08d312
@@ -127,11 +127,11 @@
 80x24 Ansi256 Dialogs 89c470b4098e3117
 80x24 Ansi256 Progress e3a635665d76adbf
 80x24 Ansi256 Scrolling 12317ac9343385ae
-80x24 Ansi256 Terminal b75bc7ca98e8b5ed
+80x24 Ansi256 Terminal 3acf99f2864ff8a5
 80x24 Ansi256 Code editor b63eb389367ead23
 80x24 Ansi256 Diff 9175a86b9c6ee9dc
 80x24 Ansi256 Data grid 59a12f2b47c766cd
-80x24 Ansi256 Chips & selects c96934fb9ba75b07
+80x24 Ansi256 Chips & selects 481934979a9a2665
 80x24 Ansi256 Pickers 7a419cd3d0231536
 80x24 Ansi256 Chrome 304e7588a57277f8
 80x24 Ansi256 Settings 35fee99355447ab2
@@ -154,7 +154,7 @@
 80x24 Ansi16 Code editor 81ee31ae5f3907b1
 80x24 Ansi16 Diff 91951c12b69059ce
 80x24 Ansi16 Data grid 44602e50229ab680
-80x24 Ansi16 Chips & selects f932e2be5c147272
+80x24 Ansi16 Chips & selects 41e35950a9fb6ae4
 80x24 Ansi16 Pickers 951ba69688a01506
 80x24 Ansi16 Chrome cf38c22a1964bf00
 80x24 Ansi16 Settings 55130c378d186d5e
@@ -177,9 +177,9 @@
 80x24 Mono Code editor 8b932f63fde29775
 80x24 Mono Diff 1ebd42af64f330eb
 80x24 Mono Data grid d79259cfdbd2e627
-80x24 Mono Chips & selects ec727c6e9d46178a
+80x24 Mono Chips & selects 2d91292d93b32cd4
 80x24 Mono Pickers 8e2926819c5874ee
-80x24 Mono Chrome a49b4455b2509ac2
+80x24 Mono Chrome 2769af583a0e7ba4
 80x24 Mono Settings 95bd23ff4b2badd2
 80x24 Mono Task runner dba518e09d9c1190
 72x20 TrueColor Overview fc1f1fcd3e27199e
@@ -196,7 +196,7 @@
 72x20 TrueColor Dialogs ec43bb40206c4c32
 72x20 TrueColor Progress 1d40b8bb1dabdd58
 72x20 TrueColor Scrolling b060497e7b9cdfe7
-72x20 TrueColor Terminal 8912a0ddbc5a2aa4
+72x20 TrueColor Terminal d270feb6b3cb5514
 72x20 TrueColor Code editor b8cd32834685de04
 72x20 TrueColor Diff 9dc37813b224f347
 72x20 TrueColor Data grid 0884679d7e94bfd8
@@ -219,7 +219,7 @@
 72x20 Ansi256 Dialogs a9ddc3d0ee7fdc7e
 72x20 Ansi256 Progress e6f4f47df17aa694
 72x20 Ansi256 Scrolling ede5c0af89a9191f
-72x20 Ansi256 Terminal 679c7ee1c0ba3d40
+72x20 Ansi256 Terminal 8c600415fffd6806
 72x20 Ansi256 Code editor 295cc42214892645
 72x20 Ansi256 Diff 166aeaff4c359d52
 72x20 Ansi256 Data grid d90806630a4ebf99
@@ -271,7 +271,7 @@
 72x20 Mono Data grid 2729fd071b4e0de8
 72x20 Mono Chips & selects 16dd5162ae25795c
 72x20 Mono Pickers 343e14e7db5de330
-72x20 Mono Chrome 987e412fe77a93c8
+72x20 Mono Chrome 125cba233cbda982
 72x20 Mono Settings b7f853437adeb63b
 72x20 Mono Task runner 4b9f2483ba70a201
 100x30 TrueColor Overview 3fa4b78bae537f6d
@@ -288,11 +288,11 @@
 100x30 TrueColor Dialogs 9a83a45875ed5287
 100x30 TrueColor Progress a5dd103c3cbcbba4
 100x30 TrueColor Scrolling 9e3708bc537599d0
-100x30 TrueColor Terminal 2be975160cc9e6b6
+100x30 TrueColor Terminal 763b724feb7ed10a
 100x30 TrueColor Code editor acdfb716c04b5472
 100x30 TrueColor Diff bd818ddabf483475
 100x30 TrueColor Data grid eb466296d3401f61
-100x30 TrueColor Chips & selects 178e974d3347473b
+100x30 TrueColor Chips & selects 3e01f0db4e109a5a
 100x30 TrueColor Pickers c1fe7d2d38187a55
 100x30 TrueColor Chrome 34a763f5d3d427f7
 100x30 TrueColor Settings 7e272f3e3fcb557e
@@ -311,11 +311,11 @@
 100x30 Ansi256 Dialogs 8febd84344a9768c
 100x30 Ansi256 Progress 3d4761a9449035d1
 100x30 Ansi256 Scrolling 038f4e4ca95816db
-100x30 Ansi256 Terminal 9380ee09b23ce0d4
+100x30 Ansi256 Terminal 34565d278e09984c
 100x30 Ansi256 Code editor d74f6a1414d0d83b
 100x30 Ansi256 Diff 2c347fa05185fc6f
 100x30 Ansi256 Data grid ceb617f7df7d2e13
-100x30 Ansi256 Chips & selects 3da5576baf0ce1fd
+100x30 Ansi256 Chips & selects 443f7256791ce4a2
 100x30 Ansi256 Pickers 8be97a3fb5c8993d
 100x30 Ansi256 Chrome d9564ef9b4f24950
 100x30 Ansi256 Settings 12410be14245a310
@@ -338,7 +338,7 @@
 100x30 Ansi16 Code editor 27712b658be3fab3
 100x30 Ansi16 Diff 443529c3fcc2292a
 100x30 Ansi16 Data grid 48c6eb4c357c11a0
-100x30 Ansi16 Chips & selects 74558828a3ed7e2d
+100x30 Ansi16 Chips & selects d0c8d6dcb87065ee
 100x30 Ansi16 Pickers 257ccead5a68df51
 100x30 Ansi16 Chrome 9525abd42f022d7e
 100x30 Ansi16 Settings 121f98486677dbb2
@@ -361,9 +361,9 @@
 100x30 Mono Code editor 2000ff389fcec91a
 100x30 Mono Diff 5bf923ee02c2f5e2
 100x30 Mono Data grid d70e69665e6b3614
-100x30 Mono Chips & selects 8e012ee22549432b
+100x30 Mono Chips & selects ee6ce02b2ac50f90
 100x30 Mono Pickers 43aa01779a037150
-100x30 Mono Chrome 7f942c698d74fc39
+100x30 Mono Chrome 8a65658ec5abd8b7
 100x30 Mono Settings f236fc474c9c1561
 100x30 Mono Task runner 413aecde98a2ce30
 160x50 TrueColor Overview b9b00ddd9f9dd4bc
@@ -380,11 +380,11 @@
 160x50 TrueColor Dialogs 9b2eb165a54391e7
 160x50 TrueColor Progress 46e8a857852c6bb5
 160x50 TrueColor Scrolling e3b0113af837cefb
-160x50 TrueColor Terminal b50ee94756675eca
+160x50 TrueColor Terminal 864d84a1bf3a1a86
 160x50 TrueColor Code editor 6dfbd29c7acc55af
 160x50 TrueColor Diff d3ce736a5518463b
 160x50 TrueColor Data grid 44133cc9a43e8a62
-160x50 TrueColor Chips & selects 915b67e0b6ab7111
+160x50 TrueColor Chips & selects 69f157829f4eefd3
 160x50 TrueColor Pickers 5b1861ae692e3993
 160x50 TrueColor Chrome b0ce438ccc327477
 160x50 TrueColor Settings fbd582c92abdcfa1
@@ -403,11 +403,11 @@
 160x50 Ansi256 Dialogs d11e8b3bb3c049d6
 160x50 Ansi256 Progress 02f6cf6859d63f7d
 160x50 Ansi256 Scrolling c642c80c70c29746
-160x50 Ansi256 Terminal d81950ab47ba7fe5
+160x50 Ansi256 Terminal 48d8416c3ded4a05
 160x50 Ansi256 Code editor 30468923c2b1b323
 160x50 Ansi256 Diff ec3dd171733e59f5
 160x50 Ansi256 Data grid 4ed70ccb22f3ea66
-160x50 Ansi256 Chips & selects fe54e827de11569a
+160x50 Ansi256 Chips & selects 0f84d8b45e66338a
 160x50 Ansi256 Pickers 348834d5c6a87ced
 160x50 Ansi256 Chrome 0ea917a845225ad2
 160x50 Ansi256 Settings 7c01722eada327e9
@@ -430,7 +430,7 @@
 160x50 Ansi16 Code editor 68e87d100b81cee9
 160x50 Ansi16 Diff ebb493de3e24e6e6
 160x50 Ansi16 Data grid 8b87fdaa716d8ad7
-160x50 Ansi16 Chips & selects 742f50c53cef68ca
+160x50 Ansi16 Chips & selects e6ce291511eb7aca
 160x50 Ansi16 Pickers 9e4b1284273869fa
 160x50 Ansi16 Chrome a6fe39183c595058
 160x50 Ansi16 Settings e085e9f8a6841713
@@ -453,8 +453,8 @@
 160x50 Mono Code editor c806e04e1c119e74
 160x50 Mono Diff 6f5deeb90d7484e4
 160x50 Mono Data grid 5667b70b434b5bd3
-160x50 Mono Chips & selects 32e732c535b3bd5c
+160x50 Mono Chips & selects 8e13bf20971bb6c6
 160x50 Mono Pickers d7d2089491863901
-160x50 Mono Chrome cefad818063a9be3
+160x50 Mono Chrome 4dd0d4d4f74f2449
 160x50 Mono Settings 21bd3e3e752d3a06
 160x50 Mono Task runner 1f44c2fef5241b5a

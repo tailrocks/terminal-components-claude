@@ -12,6 +12,8 @@ pub const THUMB: &str = "┃";
 /// Horizontal track and thumb: the vertical glyphs turned on their side.
 pub const H_TRACK: &str = "─";
 pub const H_THUMB: &str = "━";
+/// The thumb while dragged: a full block, so the grab reads without colour.
+pub const THUMB_HELD: &str = "█";
 
 /// Id used for a container's scrollbar hit region.
 pub fn id_for(container: WidgetId) -> WidgetId {
@@ -57,13 +59,14 @@ pub fn render_vertical(
     }
     let sb_id = id_for(container);
     let thumb = thumb_style(ctx, sb_id, focused);
+    let held = ctx.interaction.pressed == Some(sb_id);
     let track = ctx.theme.scrollbar_track();
     let track_len = area.height as usize;
     let (start, len) = scroll.thumb(track_len);
     for i in 0..track_len {
         let y = area.y + i as u16;
         if i >= start && i < start + len {
-            buf.set_string(area.x, y, THUMB, thumb);
+            buf.set_string(area.x, y, if held { THUMB_HELD } else { THUMB }, thumb);
         } else {
             buf.set_string(area.x, y, TRACK, track);
         }
@@ -103,13 +106,14 @@ pub fn render_horizontal_with(
     }
     let sb_id = h_id_for(container);
     let thumb = thumb_style(ctx, sb_id, focused);
+    let held = ctx.interaction.pressed == Some(sb_id);
     let track = ctx.theme.scrollbar_track();
     let track_len = area.width as usize;
     let (start, len) = scroll.thumb(track_len);
     for i in 0..track_len {
         let x = area.x + i as u16;
         if i >= start && i < start + len {
-            buf.set_string(x, area.y, H_THUMB, thumb);
+            buf.set_string(x, area.y, if held { THUMB_HELD } else { H_THUMB }, thumb);
         } else {
             buf.set_string(x, area.y, H_TRACK, track);
         }

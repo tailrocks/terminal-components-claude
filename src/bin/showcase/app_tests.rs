@@ -765,7 +765,11 @@ fn titles(h: &Harness) -> String {
 fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
     let buf = h.term.backend().buffer();
     (0..buf.area.height)
-        .filter(|&y| buf[(x, y)].symbol() == "┃")
+        .filter(|&y| {
+            let sym = buf[(x, y)].symbol();
+            sym == junie_tui::widgets::scrollbar::THUMB
+                || sym == junie_tui::widgets::scrollbar::THUMB_HELD
+        })
         .collect()
 }
 
@@ -841,6 +845,11 @@ fn a_press_on_the_thumb_grabs_it_and_a_drag_moves_the_view_with_the_pointer() {
     // pressing the last row of the thumb changes nothing
     h.mouse(MouseKind::Down, x, grab_y);
     assert_eq!(first_list_row(&h), 1, "a press on the thumb does not jump");
+    // the held thumb reads as pressed without colour: a full block
+    assert_eq!(
+        h.term.backend().buffer()[(x, grab_y)].symbol(),
+        junie_tui::widgets::scrollbar::THUMB_HELD
+    );
     // one row of pointer motion moves the view by a few rows, not a page
     let thumb_top = thumb[0];
     h.mouse(MouseKind::Drag, x, grab_y + 1);
