@@ -344,3 +344,141 @@ Deferred, with reasons:
 |---|---|---|---|
 | 33 | Fixed | S4 "desktop keys and type-ahead by default" | `NavKeys::default()` follows `NavProfile::current()`: `Desktop` (default) has no `h j k l g G`; `NavProfile::Vim` turns them on for every widget. Per widget `nav(..)` still overrides. |
 | 34 | Fixed | same | List, Tree, Select, ContextMenu and MenuBar type-select by default under `Desktop` (off under `Vim`), through the one `Cursor::type_ahead`. Type-ahead takes letters and digits only, so `?`, `/`, `*` and Space keep their meaning while a list has focus (a terminal trade-off; see plan "S4 deviations" 3). |
+
+## Status (type-ahead and single-letter shortcuts, decision log)
+
+Problem. S4 turned type-ahead on by default in lists, trees, selects and
+menus, and a type-ahead miss is consumed. A focused list therefore
+swallowed every letter and digit, including the page's and the app's
+single-character shortcuts (`q` quit, `i` inspector, `0` sidebar). Footers
+kept advertising those keys, which broke the rule that hints never
+advertise a key that does not work.
+
+### Decision
+
+Standards weighed:
+
+- WAI-ARIA APG (listbox, tree view): type-ahead is recommended for every
+  listbox and tree. The keyboard section also warns that type-ahead must
+  not take over keys the application relies on.
+- WCAG 2.1.4 Character Key Shortcuts: a single-character shortcut must be
+  possible to turn off or remap, or be active only while its component has
+  focus.
+- macOS: lists, outline views and popup buttons type-select. Commands use
+  ⌘, so letters and commands never compete.
+- Terminal practice: ⌘ is not delivered (kitty protocol only), so terminal
+  apps bind single letters as commands (`q`, `d`, `/`, `?`), and users
+  expect those letters to work whatever has focus.
+
+Options:
+
+- (a) Keymap first: a key that some shortcut in the current context takes
+  runs that shortcut, and type-ahead gets the remaining letters and digits.
+- (b) Type-ahead first: page shortcuts need a modifier, or the user presses
+  Esc first to leave the list.
+- (c) A per-app or per-profile setting.
+
+Chosen: (a) as the default, with (b) available as an app-wide or
+per-widget setting, which also covers (c). Reasons: on a terminal the
+letter is the command, so (b) would break every hinted letter in every
+app. (a) keeps hints truthful by construction, because a hinted key is a
+key that a handler takes, and that handler now runs before type-ahead.
+Unbound letters still type-select, as APG recommends. WCAG 2.1.4 is met
+by the key maps (remap or unbind) and by `TypeAheadPrecedence::TypeAhead`.
+
+### Implementation (one rule, in the library)
+
+- `core::list::route_key(&key, || self.on_key(key))` is the key entry of
+  all four apps (`handle_input`). A key that is not a type-ahead
+  character (punctuation, Space, chords, navigation keys) is delivered
+  once. A letter or digit is first delivered with type-ahead held back:
+  modals, the shell, the page and widget key maps all see it as though no
+  list typed. If a collection held the key back and nothing visible
+  happened (the result is not `Outcome::Changed`, so no shortcut ran), the
+  key is delivered a second time and types. A modal that swallows unbound
+  keys (`Consumed`) still lets its own list type.
+- `KeyStep::ordered(key, nav, type_ahead, precedence)` is where every
+  embedded collection decides whether a key types: `ListBox`, `TreeView`,
+  a closed `Select`, `DataTable` and `DataGrid`. Open popups (an open
+  `Select`, `ContextMenu`, `MenuBar` menus, the cell editor's
+  `ChoiceEditor`) are the topmost layer and use `KeyStep::of`, which
+  always types first. Nothing beneath a popup may take its keys, and
+  K14's menu rule is unchanged.
+- Override layers:
+  1. App-wide: `TypeAheadPrecedence::{Shortcuts (default), TypeAhead}.install()`.
+     It is read on every key, so an app can install it at any time.
+  2. Per widget: `.type_ahead_precedence(..)` on `ListBox`, `TreeView`,
+     `Select`, `DataTable` and `DataGrid`. Use `type_ahead(false)` to turn
+     type-ahead off.
+  3. Key maps: a shortcut the app unbinds no longer competes with
+     type-ahead.
+- A widget driven on its own, outside `route_key` (widget unit tests), keeps
+  S4's behaviour and types at once.
+- Contract for shortcut handlers: a handler that takes a letter returns
+  `Outcome::Changed`. A handler that returns `Consumed` without a visible
+  change also lets the focused list type the letter.
+- showcase's app-local exception is deleted. It covered the sidebar only
+  and listed `q i ? [ ] 0` by hand, which duplicated the rule. The
+  sidebar now uses the library rule.
+
+### Inventory (probed through the real apps)
+
+Method: for every scenario in holla and jackin, every showcase page, and
+the tablepro connections screen, edit form and workbench, Tab through
+each focus stop. At each stop, press every letter, every digit, `?`, `/`
+and `Q`. Compare the screen and the quit flag with three builds: before
+S4 (`1679f6c49`), the S4 tip (`TypeAheadPrecedence::TypeAhead`, S4's
+behaviour), and this fix. The table lists every single-character key
+whose effect S4 changed. The vim letters `h j k l g G` are excluded:
+holla 105, showcase about 250, tablepro 7. K33 removed them from the
+Desktop profile on purpose.
+
+| Key | App / page | Focused widget | Before S4 | S4 tip | Now |
+|---|---|---|---|---|---|
+| `q` Quit | tablepro Connections | connection tree | quits | swallowed (type-ahead miss) | quits |
+| `q` Quit | tablepro Workbench | explorer tree | quits | swallowed | quits |
+| `q` Quit | tablepro connection form (clean) | Engine / Group selects | quits | swallowed | quits |
+| `q` Back | jackin Editor | "On dirty exit" select | back to the manager | swallowed | back |
+| `j` `k` | jackin Editor | "On dirty exit" select | the editor's own row step | typed: `k` silently set the policy to "keep" | the editor's own row step |
+| `q` `i` `0` | showcase Lists | single list, multi list | quit, inspector, sidebar | swallowed | work |
+| `q` `i` `0` | showcase Trees, Task runner | tree | quit, inspector, sidebar | swallowed | work |
+| `q` `i` `0` | showcase Chips & selects | two closed selects | quit, inspector, sidebar | swallowed | work |
+| `q` `i` `0` | showcase Chrome, Panels, Scrolling | list | quit, inspector, sidebar | swallowed | work |
+| page letters, `q` `i` `0` | showcase sidebar | navigation tree | work | work (app-local exception) | work (library rule) |
+| `e` `d` `/` | tablepro Connections | connection tree | work | work (page-first) | work |
+| `s` `f` `d` `c` `r` | holla Disk | disk tree | work | work (page-first) | work |
+| `?` Help | all apps | any | works | works (punctuation is never type-ahead) | works |
+
+Broken on the S4 tip: tablepro 4 focus stops (`q`), jackin 1 (`q`, `j`,
+`k`), showcase 9 page contexts (`q`, `i`, `0`), holla none. holla's pages
+take their letters before their trees, and its quit key is Ctrl+Q. After
+the fix, the only differences from before S4 are new type-ahead jumps on
+letters nothing binds, and the deliberate vim-letter removal.
+
+Regression tests, each driven through the real app. All but the holla
+guard fail on the S4 tip:
+`tablepro app_tests::q_quits_from_the_focused_connection_tree_and_other_letters_type`
+(also covers `?` help and type-select),
+`tablepro app_tests::q_quits_from_the_focused_explorer_tree`,
+`jackin app_tests::q_leaves_the_editor_from_a_focused_select`,
+`showcase app_tests_nav::shell_letters_win_over_a_focused_page_list`,
+`holla app_tests::page_letters_win_over_the_focused_disk_tree` (a guard;
+it passes on the S4 tip). Library: `core::list::tests::{a_bound_letter_wins_over_type_ahead_and_the_rest_type,
+type_ahead_first_is_an_app_wide_and_a_per_widget_choice,
+outside_route_key_and_in_popups_a_letter_types_at_once}`.
+
+### Recorded, not fixed here
+
+- Untruthful hints from K33, outside key routing. showcase
+  `pages/lists.rs`, `pages/scrolling.rs` and `pages/panels.rs` still hint
+  `g G Ends`. Under `Desktop`, `g` and `G` no longer navigate (in a list
+  they type-select). The owner is plan S8b ("hints must stop advertising
+  `j/k` and `g/G` unless the profile is Vim"), together with the showcase
+  page groups that are editing those pages now.
+- jackin's editor hand-codes `j`/`k` as page-level row steps. These are
+  vim letters outside `NavKeys`, so `NavProfile::Desktop` does not remove
+  them, and under rule (a) they win over a focused select's type-ahead.
+  Move them to the shared nav keys with the jackin screen migration
+  (plan S16/S17).
+- S8a's `KeyRouter` should call `route_key` once, in place of the
+  per-app call in each `handle_input`.
