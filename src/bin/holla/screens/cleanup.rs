@@ -4,6 +4,8 @@
 //! authorized deletion gate. The same page serves Gradle and IntelliJ
 //! recursive cleanups through the shared candidate walker.
 
+use crate::screens::Holla;
+use junie_tui::shell::Page as ShellPage;
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -966,7 +968,7 @@ impl CleanupPage {
     }
 }
 
-impl Screen for CleanupPage {
+impl ShellPage<Holla> for CleanupPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(DETAIL) {
             match key.code {
@@ -1324,22 +1326,14 @@ impl Screen for CleanupPage {
         }
     }
 
-    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
-        if !cx.focus.is(LIST) {
-            return Outcome::Ignored;
-        }
-        let anchor = row_anchor(LIST, self.cursor, self.list_area, self.scroll.offset);
-        self.row_menu(self.cursor, anchor, cx)
-    }
-
-    fn on_modal(
+    fn on_layer_result(
         &mut self,
         tag: &LayerTag,
         result: ModalResult,
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
-        if let Some((row, Some(key), _)) = row_choice(tag, "cleanup-row", &result) {
+        if let Some((row, Some(key), _)) = row_choice(tag, "cleanup-row", result.menu_chosen()) {
             // the chosen item runs its key on the row it was opened for
             self.cursor = row.min(self.rows.len().saturating_sub(1));
             return self.on_key(&key, w, cx).or(Outcome::Changed);
@@ -1386,6 +1380,20 @@ impl Screen for CleanupPage {
         }
     }
 
+    fn primary_focus(&self) -> Option<WidgetId> {
+        Some(LIST)
+    }
+}
+
+impl Screen for CleanupPage {
+    fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if !cx.focus.is(LIST) {
+            return Outcome::Ignored;
+        }
+        let anchor = row_anchor(LIST, self.cursor, self.list_area, self.scroll.offset);
+        self.row_menu(self.cursor, anchor, cx)
+    }
+
     fn status(&self, _w: &World) -> StatusBits {
         StatusBits {
             center: Some(
@@ -1402,10 +1410,6 @@ impl Screen for CleanupPage {
             ),
             right: vec![],
         }
-    }
-
-    fn primary_focus(&self) -> Option<WidgetId> {
-        Some(LIST)
     }
 }
 

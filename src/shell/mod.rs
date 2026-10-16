@@ -8,17 +8,23 @@
 //! - [`Cx`] and [`Request`]: the event context a page handles input in and
 //!   what it asks of the shell, with the background-request policy
 //!   ([`background`]).
+//! - [`Page`]: what every page of every app can do, so an app's screen
+//!   trait only adds its own extras.
 //! - [`StatusLine`]: the transient status message and its expiry rule.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
 
 mod app;
 mod cx;
+mod page;
 mod status;
 
 pub use crate::ui::layer::LayerTag;
 pub use app::{App, PageKey, Shell, blur_fan_out, handle, render};
 pub use cx::{Cx, Request, background};
+pub use page::{
+    Page, PageCx, PageTypes, open_context, rebuild_on_tick, replay_key, row_anchor, row_choice,
+};
 pub use status::StatusLine;
 
 use crate::runtime::Application;

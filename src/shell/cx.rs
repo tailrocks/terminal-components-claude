@@ -28,6 +28,10 @@ pub enum Request<R, W: ?Sized = (), G = ()> {
     Top(TopFn<R, W>),
     /// Navigate.
     Go(G),
+    /// Go back: the app's own back navigation (pop a page, return to the
+    /// root route). A page's Esc at the top of its ladder asks for it by
+    /// default ([`super::Page::on_esc_top`]).
+    Back,
     /// Copy text to the clipboard; the shell reports the result.
     Copy(String),
     /// Open the keyboard reference.
@@ -122,6 +126,10 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
 
     pub fn go(&mut self, g: G) {
         self.requests.push(Request::Go(g));
+    }
+
+    pub fn back(&mut self) {
+        self.requests.push(Request::Back);
     }
 
     pub fn copy(&mut self, s: impl Into<String>) {

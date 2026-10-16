@@ -1,8 +1,10 @@
 //! Pointer text selection in holla's fields through the real App: click
 //! counts, press and drag reach the argument fields (interaction #16).
 
+use crate::screens::Holla;
 use junie_tui::core::event::MouseKind;
 use junie_tui::runtime::Application;
+use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Theme;
 use ratatui::crossterm::event::KeyCode;
 
@@ -72,7 +74,7 @@ struct BlurReporter;
 
 const REPORTED: junie_tui::core::id::WidgetId = junie_tui::core::id::WidgetId::of("test.reported");
 
-impl crate::screens::Screen for BlurReporter {
+impl ShellPage<Holla> for BlurReporter {
     fn on_key(
         &mut self,
         _key: &junie_tui::core::event::Key,
@@ -81,6 +83,7 @@ impl crate::screens::Screen for BlurReporter {
     ) -> junie_tui::core::event::Outcome {
         junie_tui::core::event::Outcome::Ignored
     }
+
     fn on_blur(
         &mut self,
         ch: junie_tui::core::focus::FocusChange,
@@ -93,6 +96,7 @@ impl crate::screens::Screen for BlurReporter {
         }
         junie_tui::core::event::Outcome::Ignored
     }
+
     fn render(
         &mut self,
         _area: ratatui::layout::Rect,
@@ -101,6 +105,7 @@ impl crate::screens::Screen for BlurReporter {
         _w: &crate::sim::world::World,
     ) {
     }
+
     fn hints(
         &self,
         _focus: Option<junie_tui::core::id::WidgetId>,
@@ -108,13 +113,17 @@ impl crate::screens::Screen for BlurReporter {
     ) -> Vec<junie_tui::widgets::keyhint::Hint> {
         vec![]
     }
+
     fn crumb(&self, _w: &crate::sim::world::World) -> String {
         "Reporter".into()
     }
+
     fn primary_focus(&self) -> Option<junie_tui::core::id::WidgetId> {
         None
     }
 }
+
+impl crate::screens::Screen for BlurReporter {}
 
 #[test]
 fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
