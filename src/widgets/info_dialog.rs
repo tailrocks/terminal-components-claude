@@ -425,6 +425,49 @@ impl Scrollable for InfoDialog {
     }
 }
 
+impl InfoDialog {
+    /// One pointer event the router resolved to the dialog (its layer's
+    /// [`crate::ui::layer::Layer::pointer`]): the property sheet takes its
+    /// own gestures ([`crate::core::pointer::MouseTarget::route`]: a wheel
+    /// over it scrolls it; a click on a row focuses it and reports the
+    /// row's copy value); a wheel or a bar press on the dialog scrolls the
+    /// detail, and a wheel over anything else moves nothing; a drag is
+    /// [`Self::on_drag`] and any other completed click [`Self::on_click`].
+    pub fn pointer_in(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+        focus: &mut Focus,
+    ) -> Response<()> {
+        use crate::core::id::Part;
+        use crate::core::intent::Phase;
+        use crate::core::pointer::MouseTarget;
+        if let Some(r) = self.props.route(ev) {
+            if ev.is(Phase::Click)
+                && let Some(i) = ev.index_of(Part::ROW)
+            {
+                focus.focus(self.props.id);
+                if let Some(Some(v)) = self.copy_values.get(i) {
+                    self.result = Some(InfoResult::Copy(v.clone()));
+                }
+            }
+            return r.erase();
+        }
+        if ev.wheel().is_some() && !ev.on(self.id) {
+            return Response::ignored();
+        }
+        if ev.on(self.id)
+            && let Some(r) = crate::core::pointer::scroll_input(self, ev)
+        {
+            return r;
+        }
+        match ev.phase() {
+            Some(Phase::Drag) => self.on_drag(ev.id, ev.pos()).into(),
+            Some(Phase::Click) => self.on_click(ev.id, ev.pos(), focus).into(),
+            _ => Response::ignored(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
