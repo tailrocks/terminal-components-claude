@@ -25,6 +25,18 @@ pub enum PanelKind {
     Framed,
 }
 
+/// How a card panel shows that focus is inside it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PanelFocus {
+    /// The title turns primary and bold; the only `▎` on screen stays with
+    /// the focused control inside.
+    #[default]
+    Title,
+    /// The title also carries a `▎` bar (a container that is itself the
+    /// focus stop, with no focusable control inside).
+    Bar,
+}
+
 /// Cells a title keeps when a long meta competes for the title row.
 const TITLE_MIN: u16 = 4;
 
@@ -36,6 +48,8 @@ pub struct Panel<'a> {
     pub meta: Option<&'a str>,
     pub badge: Option<(&'a str, crate::theme::BadgeKind)>,
     pub bg_override: Option<Color>,
+    /// How focus-within shows on a card. Default [`PanelFocus::Title`].
+    pub focus_mark: PanelFocus,
 }
 
 impl<'a> Panel<'a> {
@@ -47,6 +61,7 @@ impl<'a> Panel<'a> {
             meta: None,
             badge: None,
             bg_override: None,
+            focus_mark: PanelFocus::Title,
         }
     }
     pub fn framed(title: Option<&'a str>) -> Self {
@@ -57,10 +72,15 @@ impl<'a> Panel<'a> {
             meta: None,
             badge: None,
             bg_override: None,
+            focus_mark: PanelFocus::Title,
         }
     }
     pub fn focused(mut self, f: bool) -> Self {
         self.focused = f;
+        self
+    }
+    pub fn focus_mark(mut self, mark: PanelFocus) -> Self {
+        self.focus_mark = mark;
         self
     }
     pub fn meta(mut self, m: &'a str) -> Self {
@@ -95,6 +115,7 @@ impl<'a> Panel<'a> {
             meta: Some(meta),
             badge: self.badge,
             bg_override: self.bg_override,
+            focus_mark: self.focus_mark,
         };
         let row = Rect::new(area.x + 2, area.y, area.width.saturating_sub(4), 1);
         fill(buf, row, Style::new().bg(bg));
@@ -112,9 +133,18 @@ impl<'a> Panel<'a> {
             PanelKind::Card => {
                 fill(buf, area, Style::new().bg(bg));
                 let inner = area.inner(ratatui::layout::Margin::new(2, 1));
-                if self.focused && self.title.is_some() {
-                    // container focus: the same bar as a control, in the padding column
-                    buf.set_string(area.x + 1, area.y, "▎", Style::new().fg(t.focus).bg(bg));
+                if self.focused && self.title.is_some() && self.focus_mark == PanelFocus::Bar {
+                    // opt-in: the container itself is the focus stop
+                    let s = crate::ui::ctx::VisualState {
+                        focused: true,
+                        ..Default::default()
+                    };
+                    buf.set_string(
+                        area.x + 1,
+                        area.y,
+                        t.gutter_symbol(s),
+                        t.gutter(s, bg, false),
+                    );
                 }
                 self.title_row(area.x + 2, area.y, area.width.saturating_sub(4), buf, t, bg);
                 if self.title.is_some() {
@@ -446,6 +476,23 @@ mod scroll_panel_tests {
         (0..buf.area.width)
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect::<String>()
+    }
+
+    #[test]
+    fn a_focused_card_shows_focus_by_its_title_not_a_second_bar() {
+        let t = Theme::junie();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 24, 3));
+        Panel::card(Some("Language"))
+            .focused(true)
+            .render(Rect::new(0, 0, 24, 3), &mut buf, &t);
+        assert!(!row(&buf, 0).contains('▎'), "{}", row(&buf, 0));
+        assert_eq!(buf[(2, 0)].fg, t.text_primary, "focus-within: the title");
+        let mut buf = Buffer::empty(Rect::new(0, 0, 24, 3));
+        Panel::card(Some("Language"))
+            .focused(true)
+            .focus_mark(PanelFocus::Bar)
+            .render(Rect::new(0, 0, 24, 3), &mut buf, &t);
+        assert_eq!(buf[(1, 0)].symbol(), "▎", "the bar stays available");
     }
 
     #[test]
