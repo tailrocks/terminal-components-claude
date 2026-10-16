@@ -328,6 +328,7 @@ impl InfoDialog {
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&title)
             .meta(self.meta.as_deref())
+            .dismiss(self.dismiss)
             .render(screen, buf, ctx);
         self.area = area;
         let t = ctx.theme;
