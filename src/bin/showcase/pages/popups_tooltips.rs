@@ -26,8 +26,9 @@ use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{Backdrop, RenderCtx};
 use junie_tui::ui::modal::Frame;
@@ -494,28 +495,33 @@ impl Page for PopupsTooltipsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, .. } => {
-                if *id == self.open.id {
-                    cx.focus.focus(self.open.id);
-                    if self.open.on_click() {
+            PageEvent::Pointer(p) => {
+                let click = p.is(Phase::Click);
+                if let Some(r) = self.open.route(p) {
+                    if click {
+                        cx.focus.focus(self.open.id);
+                    }
+                    if r.action().is_some() {
                         self.open_popover();
                     }
-                    return Outcome::Changed;
+                    return r.outcome().or(Outcome::Changed);
                 }
-                if let Some(row) = self.paths.locate(*id) {
-                    cx.focus.focus(self.paths.id);
-                    return self.paths.on_click(row);
+                if p.on(self.paths.id) {
+                    if click && p.index_of(Part::ROW).is_some() {
+                        cx.focus.focus(self.paths.id);
+                    }
+                    return self.paths.pointer(p).outcome();
                 }
                 for b in [&mut self.save, &mut self.new_tab] {
-                    if *id == b.id {
-                        cx.focus.focus(b.id);
-                        b.on_click();
-                        return Outcome::Changed;
+                    if let Some(r) = b.route(p) {
+                        if click {
+                            cx.focus.focus(b.id);
+                        }
+                        return r.outcome().or(Outcome::Changed);
                     }
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } if self.paths.owns(*id) => self.paths.on_wheel(*delta),
             _ => Outcome::Ignored,
         }
     }

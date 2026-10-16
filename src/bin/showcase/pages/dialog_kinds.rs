@@ -27,7 +27,9 @@ use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys};
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::LayerTag;
@@ -630,15 +632,20 @@ impl Page for DialogKindsPage {
                 }
                 o
             }
-            PageEvent::Click { id, .. } => {
-                let Some(i) = self.buttons.iter().position(|b| b.id == *id) else {
+            PageEvent::Pointer(p) => {
+                let hit = (self.buttons.iter_mut().enumerate())
+                    .find_map(|(i, b)| b.route(p).map(|r| (i, r)));
+                let Some((i, r)) = hit else {
                     return Outcome::Ignored;
                 };
-                cx.focus.focus(*id);
-                if self.buttons[i].on_click() {
-                    self.open(i, cx.focus);
+                if p.is(Phase::Click) {
+                    cx.focus.focus(p.id);
                 }
-                Outcome::Changed
+                if r.action().is_some() {
+                    self.open(i, cx.focus);
+                    return Outcome::Changed;
+                }
+                r.outcome()
             }
             _ => Outcome::Ignored,
         }

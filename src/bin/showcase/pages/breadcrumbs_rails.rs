@@ -21,8 +21,9 @@ use crate::options::page_options;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
@@ -401,19 +402,29 @@ impl Page for BreadcrumbsRailsPage {
                 }
                 o
             }
-            PageEvent::Click { id, .. } => {
-                if let Some(level) = self.crumbs.on_click(*id) {
-                    self.last_crumb = format!("{} (level {level})", self.path[level]);
-                    self.go_to_level(level, cx);
-                    return Outcome::Changed;
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.crumbs.route(ev) {
+                    let (o, level) = r.into_parts();
+                    if let Some(level) = level {
+                        self.last_crumb = format!("{} (level {level})", self.path[level]);
+                        self.go_to_level(level, cx);
+                        return Outcome::Changed;
+                    }
+                    return o;
                 }
-                if let Some(a) = self.rail.on_click(*id) {
-                    self.set_collapsed(a == RailAction::Collapse, cx);
-                    return Outcome::Changed;
+                if let Some(r) = self.rail.route(ev) {
+                    let (o, a) = r.into_parts();
+                    if let Some(a) = a {
+                        self.set_collapsed(a == RailAction::Collapse, cx);
+                        return Outcome::Changed;
+                    }
+                    return o;
                 }
-                if let Some(row) = self.list.locate(*id) {
+                if ev.on(LIST) && ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                     cx.focus.focus(LIST);
-                    let o = self.list.on_click(row);
+                }
+                if let Some(r) = self.list.route(ev) {
+                    let o = r.outcome();
                     if let Some(i) = self.list.chosen.take() {
                         self.open_row(i, cx);
                         return Outcome::Changed;
@@ -422,7 +433,6 @@ impl Page for BreadcrumbsRailsPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Wheel { id, delta } if self.list.owns(*id) => self.list.on_wheel(*delta),
             _ => Outcome::Ignored,
         }
     }

@@ -18,9 +18,10 @@ use crate::pages::row_menu::RowMenu;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::{BadgeKind, StatusKind, Tone};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
@@ -639,11 +640,11 @@ impl Page for ChromePage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Secondary { id, pos } => {
-                if let Some(req) = self
-                    .context
-                    .config
-                    .on_secondary(&mut self.sessions, *id, *pos)
+            PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
+                if let Some(req) =
+                    self.context
+                        .config
+                        .on_secondary(&mut self.sessions, ev.id, ev.pos())
                 {
                     cx.focus.focus(SESSIONS);
                     self.open_context(req);
@@ -652,54 +653,49 @@ impl Page for ChromePage {
                 Outcome::Ignored
             }
             // a title opens its menu on the press (MenuBar::open_on)
-            PageEvent::Press { id, .. } if self.bar.owns(*id) => {
-                let (o, ev) = self.bar.on_press(*id);
-                self.bar_action(ev, cx);
-                o
-            }
-            PageEvent::Click { id, pos } => {
-                if self.bar.owns(*id) || self.bar.is_open() {
-                    let (o, ev) = self.bar.on_click(*id);
-                    self.bar_action(ev, cx);
-                    if o.consumed() {
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.bar.route(ev) {
+                    let (o, a) = r.into_parts();
+                    self.bar_action(a, cx);
+                    if o.consumed() || !ev.is(Phase::Click) {
                         return o;
                     }
                 }
-                if let Some(row) = self.sessions.locate(*id) {
+                if ev.on(SESSIONS) && ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                     cx.focus.focus(SESSIONS);
-                    return self.sessions.on_click(row);
                 }
-                if *id == ENV {
+                if let Some(r) = self.sessions.route(ev) {
+                    return r.outcome();
+                }
+                if !ev.is(Phase::Click) {
+                    return Outcome::Ignored;
+                }
+                let id = ev.id;
+                if id == ENV {
                     // the app menu, anchored where the segment was clicked
                     let menu = ContextMenu::new(CONTEXT, self.context_items(Target::Env))
-                        .at(*pos)
+                        .at(ev.pos())
                         .title("production");
                     self.context.open(menu, Target::Env);
                     return Outcome::Changed;
                 }
-                if *id == PENDING {
+                if id == PENDING {
                     self.last = "strip › 3 pending".into();
                     cx.status("3 pending changes");
                     return Outcome::Changed;
                 }
-                if *id == USAGE || *id == PR {
-                    self.last = if *id == USAGE {
+                if id == USAGE || id == PR {
+                    self.last = if id == USAGE {
                         "status › usage".into()
                     } else {
                         "status › PR".into()
                     };
-                    cx.status(if *id == USAGE {
+                    cx.status(if id == USAGE {
                         "Usage chip"
                     } else {
                         "PR context"
                     });
                     return Outcome::Changed;
-                }
-                Outcome::Ignored
-            }
-            PageEvent::Wheel { id, delta } => {
-                if self.sessions.owns(*id) {
-                    return self.sessions.on_wheel(*delta);
                 }
                 Outcome::Ignored
             }
