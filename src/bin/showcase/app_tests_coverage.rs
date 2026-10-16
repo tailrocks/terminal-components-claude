@@ -10,7 +10,7 @@ use ratatui::{
     layout::{Position, Rect},
 };
 
-use crate::app::{App, NAV_ENTRIES, PageId};
+use crate::app::{App, PageId};
 
 const NAV: WidgetId = WidgetId::of("app.nav");
 const HEADER_HELP: WidgetId = WidgetId::of("app.header.help");
@@ -204,21 +204,26 @@ fn navigation_edges_and_page_entry_are_deterministic() {
     h.key(KeyCode::Char('0'));
     assert_eq!(h.app.focus.current(), Some(NAV));
 
+    let last = h.app.nav.rows().len() - 1;
     h.key(KeyCode::PageDown);
-    assert!(h.app.nav_cursor > 0);
+    assert!(h.app.nav.cursor > 0);
     h.key(KeyCode::PageUp);
-    assert_eq!(h.app.nav_cursor, 0);
+    assert_eq!(h.app.nav.cursor, 0);
 
     h.key(KeyCode::End);
-    assert_eq!(h.app.nav_cursor, NAV_ENTRIES.len() - 1);
+    assert_eq!(h.app.nav.cursor, last);
     h.key(KeyCode::Char('k'));
-    assert_eq!(h.app.nav_cursor, NAV_ENTRIES.len() - 2);
+    assert_eq!(h.app.nav.cursor, last - 1);
     h.key(KeyCode::Char('j'));
-    assert_eq!(h.app.nav_cursor, NAV_ENTRIES.len() - 1);
+    assert_eq!(h.app.nav.cursor, last);
     h.key(KeyCode::Home);
-    assert_eq!(h.app.nav_cursor, 0);
+    assert_eq!(h.app.nav.cursor, 0, "the first group");
 
+    // → steps from the open group onto its first page, then opens it
     h.key(KeyCode::Right);
+    assert_eq!(h.app.nav.cursor_path(), Some(&[0, 0][..]));
+    h.key(KeyCode::Right);
+    assert_eq!(h.app.page, PageId::Overview);
     assert_eq!(h.app.page, PageId::Overview);
 }
 
