@@ -643,7 +643,11 @@ impl CleanupPage {
                         row.x + 1,
                         y,
                         mark,
-                        plain.fg(if checked > 0 { t.accent } else { t.text_muted }),
+                        plain.fg(if checked > 0 {
+                            t.chosen(focused)
+                        } else {
+                            t.text_muted
+                        }),
                     );
                     let fold = if self.open.contains(ci) { "▾" } else { "▸" };
                     buf.set_string(row.x + 5, y, fold, plain.fg(t.text_secondary));
