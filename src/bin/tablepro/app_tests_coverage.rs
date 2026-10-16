@@ -692,3 +692,20 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     assert!(h.text().contains("of 11"), "the column label stays exact");
     assert_eq!(grid.scroll.offset, 0, "a sideways drag never scrolls rows");
 }
+
+#[test]
+fn open_quickly_query_edits_at_the_caret() {
+    // interaction #19: ←/→ move the caret in the search field and typing
+    // inserts there, as in a macOS search field
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+    h.ctrl('o');
+    h.type_str("ordrs");
+    h.key(KeyCode::Left);
+    h.key(KeyCode::Left);
+    h.key(KeyCode::Char('e'));
+    match h.app.modal() {
+        Some(Modal::Picker(_, p, _)) => assert_eq!(p.query, "orders"),
+        _ => panic!("Open Quickly closed\n{}", h.text()),
+    }
+}
