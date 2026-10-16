@@ -1,4 +1,4 @@
- [0m[1m jackin❯ [0m   File   Go   Help       ! instance index unreadable  ▲ daemon stale [0m
+ [0m[1;7m jackin❯ [0m   File   Go   Help      ! instance index unreadable  ▲ daemon stale  [0m
                                                                                 [0m
  ╭─[0m[1m Workspaces [0m─────────────────────────────────────────────────── 3 running ─╮ [0m
  │ [0m[1m▎   Current directory                         [0msaved as payments-platform[0m[1m [0m┃ │ [0m
@@ -8,10 +8,10 @@
  │   ▸ customer-portal                                             ! failed ┃ │ [0m
  │   ▸ data-pipeline                                              1 running ┃ │ [0m
  │   ▸ docs-site                                                   1 record ┃ │ [0m
- │     auth-service                                                    idle │ │ [0m
- │     gateway                                                         idle │ │ [0m
- │     mobile-app                                                      idle │ │ [0m
- │  [0m[2m   ml-notebooks                                                    idle [0m│ │ [0m
+ │     auth-service                                                    idle ┆ │ [0m
+ │     gateway                                                         idle ┆ │ [0m
+ │     mobile-app                                                      idle ┆ │ [0m
+ │  [0m[2m   ml-notebooks                                                    idle [0m┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                 [0m
    Current directory                                              Tab details   [0m
@@ -21,4 +21,5 @@
    ◉ 7f3a  the-architect · Claude Code · running                                [0m
                                                                                 [0m
                                                                                 [0m
- [0m[1m▲[0m Could not confirm running instances: instance index unreadable · entered wi… [0m
+  [0m[1m?[0m Help  …  [0m[1m▲[0m Could not confirm running instances: instance index unreadable … [0m
+[?25l
