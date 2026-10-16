@@ -456,6 +456,7 @@ widgets::chips::ChipAction::ClearAll | Chips & selects page options | SC10
 widgets::chips::ChipBar::close_target_w | Chips & selects page options | SC10
 widgets::chips::ChipBar::close_button | Chips & selects page options | SC10
 widgets::chips::ChipBar::overflow_menu | Chips & selects page options | SC10
+widgets::chips::ChipBar::more_button | Chips & selects page options: a custom +N button | SC10
 widgets::chips::ChipBar::nav | Chips & selects page options | SC10
 widgets::chips::ChipBar::keymap | Chips & selects page options | SC10
 widgets::chips::ChipBar::overflow_marker | Chips & selects page options | SC10
@@ -1137,6 +1138,7 @@ widgets::tabs::Tabs::close_keys | Tabs page | SC14
 widgets::tabs::Tabs::new_key | Tabs page | SC14
 widgets::tabs::Tabs::allow_new | Tabs page | SC14
 widgets::tabs::Tabs::overflow_menu | Tabs page | SC14
+widgets::tabs::Tabs::more_button | Tabs page: a custom +N button | SC14
 widgets::tabs::Tabs::close_target_w | Tabs page | SC14
 widgets::tabs::Tabs::close_button | Tabs page | SC14
 widgets::tabs::Tabs::close_reveal | Tabs page | SC14
