@@ -35,9 +35,9 @@ pub fn modal_frame(
     height: u16,
     title: &str,
     meta: Option<&str>,
-    // kept for the call sites: the "upper" and "middle" frame placements
-    // always resolved to the same centred rectangle
-    _center: bool,
+    // the modal's dismissal policy: its close button shows when Esc may
+    // close it (mouse #13)
+    dismiss: junie_tui::ui::popup::Dismiss,
 ) -> (Rect, Rect) {
     // placed in the body, clear of the header and the footer, with the
     // dialog's margin around it
@@ -45,6 +45,7 @@ pub fn modal_frame(
         .title(title)
         .meta(meta)
         .placement(junie_tui::ui::popup::Placement::Center)
+        .dismiss(dismiss)
         .render(screen, buf, ctx)
 }
 
@@ -444,7 +445,7 @@ impl FileBrowser {
         } else {
             (84, 22)
         };
-        let (area, inner) = modal_frame(screen, buf, ctx, w, h, &self.title, None, true);
+        let (area, inner) = modal_frame(screen, buf, ctx, w, h, &self.title, None, self.dismiss);
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;

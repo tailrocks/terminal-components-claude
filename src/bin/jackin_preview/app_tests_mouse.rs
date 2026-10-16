@@ -242,3 +242,25 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
     h.click(r.x + 1, r.y);
     assert_ne!(h.app.route, Route::Capsule, "{}", h.text());
 }
+
+// mouse #13: the app's own modal frames (here the capsule's Usage) close by ×
+#[test]
+fn an_app_modal_frame_closes_by_its_close_button() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let chip = h
+        .app
+        .hits
+        .area_of(crate::screens::capsule::USAGE_CHIP)
+        .expect("the usage chip");
+    let x = (chip.x..chip.right())
+        .find(|&x| {
+            h.app.hits.hit(Position::new(x, chip.y)) == Some(crate::screens::capsule::USAGE_CHIP)
+        })
+        .expect("a cell of the usage chip takes the click");
+    h.click(x, chip.y);
+    assert!(h.text().contains("read-only projection"), "{}", h.text());
+    let x = h.app.hits.area_of(CLOSE).expect("the Usage modal has ×");
+    h.click(x.x + 1, x.y);
+    assert!(!h.text().contains("read-only projection"), "{}", h.text());
+    assert_eq!(h.app.route, Route::Capsule);
+}
