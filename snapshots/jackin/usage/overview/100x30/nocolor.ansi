@@ -1,4 +1,4 @@
- [0m[1m jackin❯ [0m   File   Go   Help                     Usage › Overview  inside the Construct  2 running [0m
+ [0m[1;7m jackin❯ [0m   File   Go   Help                  Usage › Overview  inside the Construct  ● 2 running  [0m
                                                                                                     [0m
  ╭─[0m[1m Usage · read-only [0m─────────────────────────────────────────────────────────── ⠋ refreshing 1 ─╮ [0m
  │  [0m[1m▎› Overview                                                                                  [0m │ [0m
@@ -27,4 +27,5 @@
  │                                                                                                │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                                     [0m
-                [0m[1m↑↓[0m Move  [0m[1mEnter[0m Detail  [0m[1mr[0m Refresh  [0m[1mm[0m Manage in Accounts  [0m[1mEsc[0m Close                   [0m
+                 [0m[1m↑↓[0m Move  [0m[1mEnter[0m Details  [0m[1mr[0m Refresh  [0m[1mm[0m Manage in Accounts  [0m[1mEsc[0m Close                 [0m
+[?25l

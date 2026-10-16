@@ -1,4 +1,4 @@
- [0m[1m jackin❯ [0m entering the Construct  2 running  Launch › payments-platform › the-architect            2/11 stages  ? help [0m
+ [0m[1;7m jackin❯ [0m  entering the Construct  ● 2 running  Launch › payments-platform › the-architect        2/11 stages  ? help  [0m
                                                                                                                         [0m
                                                                                                   \                     [0m
                                                        [0m[1m jackin❯ [0m                             k    Z                     [0m
@@ -34,7 +34,8 @@
                                                                                                                         [0m
                                                                                                                         [0m
                                                                                                                         [0m
- ⠋ Resolving credentials…                                                                        run-202609030914-b5df  [0m
+ ⠋ Resolving credentials…                                                                       [0m[4m run-202609030914-b5df [0m [0m
+                                                                                                        Cancel launch…  [0m
                                                                                                                         [0m
-                                                                                                                        [0m
-                                [0m[1mi[0m Container info  [0m[1mc[0m Cancel  [0m[1mCtrl+Q[0m Quit  [0m[1mCtrl+C[0m Abort                                   [0m
+                           [0m[1mi[0m Container info  [0m[1mx[0m Cancel launch…  [0m[1mCtrl+Q[0m Quit  [0m[1mCtrl+C[0m Abort now                            [0m
+[?25l
