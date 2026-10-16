@@ -285,6 +285,39 @@ impl StackScroll {
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> bool {
         !self.track.is_empty() && crate::widgets::scrollbar::drag(self.track, pos, &mut self.scroll)
     }
+    /// The stack's own pointer events, as the router resolves them for a
+    /// stack registered under `id` ([`Stack::chrome`]): a vertical wheel
+    /// notch over it scrolls one child; a press, the click that ends it,
+    /// or a drag on its scrollbar moves the view. `None`: the event is not
+    /// the stack's.
+    pub fn pointer(
+        &mut self,
+        id: crate::core::id::WidgetId,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::event::Outcome> {
+        use crate::core::event::Outcome;
+        use crate::core::intent::Phase;
+        let changed = |moved: bool| {
+            if moved {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            }
+        };
+        if let Some((axis, delta)) = ev.wheel() {
+            let mine = ev.id == id && axis == crate::core::hit::Axis::Vertical;
+            return mine.then(|| changed(self.on_wheel(delta)));
+        }
+        if ev.id != crate::widgets::scrollbar::id_for(id) {
+            return None;
+        }
+        match ev.phase()? {
+            Phase::Press | Phase::Click => Some(changed(self.on_scrollbar(ev.pos()))),
+            Phase::Drag => Some(changed(self.on_scrollbar_drag(ev.pos()))),
+            _ => None,
+        }
+    }
+
     /// Show the start again (a form that reopens, a page change).
     pub fn reset(&mut self) {
         self.scroll.offset = 0;
