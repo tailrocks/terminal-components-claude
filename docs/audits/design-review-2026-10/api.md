@@ -153,3 +153,42 @@ changes status.
 | Text fields | 8c9a6c523, 0a3fbc311 | `PointerSelect::drag_by_word: bool` (default `true`) with `drag`/`word`/`line`/`drag_by_word` builders; `TextInput::on_press_count`, `TextArea::on_press_count`; `field_common::{PointerField, route_press, route_drag, route_click}`; `TextBuffer::selected_text` is public. |
 | Dialogs | 76ee283ba | `Dialog::{on_press, on_click_count}` (and `on_drag` reaches the input); `FormDialog::{on_press, on_drag, on_click_count}`. |
 | Tables | 84cb0f669 | `DataTable::TOGGLE_CTRL_CMD` (the default `toggle_mods`) and `DataTable::TOGGLE_WITH_ALT`. |
+
+## Status update (glyphs, strings and keymap leftovers)
+
+Supersedes the Deferred and Partial rows for #22, #25, #26, #27 and #28
+above, and the deferred notes of #14 and #17 in the keymap pass.
+
+| # | Status | Commit(s) | Notes |
+|---|---|---|---|
+| 22 | Fixed | 3d5415e56 | `menu::Overflow { Hide, Chevron }` on `MenuBar::overflow` (builder `overflow`, default `Hide`: today's output). With `Chevron`, the titles that do not fit, and every title after the first hidden one, collapse into one chevron title drawn with `Glyphs::more_titles` (`»`). Its menu lists the hidden titles; choosing one opens that title's menu under the chevron (`MenuBarEvent::Opened(title)`). The chevron is clickable, hover-switches like a title and sits on the ←/→ ring; its own menu reports `Opened(labels.len())`. New: `MenuBar::{more_id, more_area, hidden}`. |
+| 25 | Fixed | 18f15fd5f, b85109a1e | `theme::Glyphs` on `Theme::glyphs` (`Theme::with_glyphs`). `Glyphs::UNICODE` (default) is today's set; `Glyphs::ASCII` draws 7-bit only with the same cell widths. Fields: `focus_bar`, `current`, `chevron_open/closed`, `disclosure_open/closed`, `more_above/below`, `sort_asc/desc`, `ellipsis`, `separator`, `more_titles`, `arrows`, `shift`, `border` (the popup, dialog, menu and framed-panel `border::Set`). `Theme::gutter_symbol` and `Theme::interactive` draw `focus_bar`; the modal backdrop strips the theme's bar (an ASCII `|` only when it carries the focus ink). Hint keys go through `Glyphs::key_label` (arrows, `⇧`, the range dash) when the hint bar draws. Per-level hook: `LevelOverrides::ASCII_MONO` (hook `theme::ascii`) switches Mono to `Glyphs::ASCII` and `Strings::ASCII`; `theme::ascii_glyphs` switches the glyphs only. Every glyph a widget draws in src/widgets and src/ui now reads the theme; key-name constants (`keyhint::UP_DOWN`, reveal keys) stay Unicode and are mapped when the hint bar draws them. |
+| 26 | Fixed | 18f15fd5f | Same type: `check_on/off/mixed` (`[✓] [ ] [–]`), `tick`, `check_off_narrow`, `dash`, `radio_on/off`, `dot_on/off`, `toggle_on/off`, `close`, `overflow_left/right`, `scroll_track/thumb`, `scroll_h_track/h_thumb`, `scroll_held` (splitters use the scrollbar glyphs), `spinner` (`Glyphs::spinner_frame`), `done`, `arrow` (cut cell, rename), `bar_fill/empty` (progress, meters, tab rules, menu separators, diff rules), `dirty`, `removed`, `warning`, `paused`, `none`, `mask`, `bullet`, `filter`, `key`, `newline`, `tab`, `control`. Pure functions gained `_with` variants that take the glyphs (`grid::cell_text_with`, `diff::{unified_lines_with, review_lines_with}`, `DiffFile::{summary_with, header_with}`, `TriState::glyph_in`); the old names keep the Unicode set. `scrollbar::{TRACK, THUMB, ...}`, `progress::SPINNER`, `button::MORE_LABEL` and `PickerItem::DEFAULT_GLYPH` stay as the Unicode defaults. Deferred: `ui::text::{truncate, truncate_middle, fit, slice_cells, wrap}` still cut with `…`. They are pure functions with about 300 call sites (most in the apps) and no theme; threading the glyph through needs a `_with` variant per helper and a pass over every caller. A widget's own cut marks (`…` drawn at an edge) already use `Glyphs::ellipsis`. |
+| 27 | Fixed | acfbe62db, b85109a1e | `theme::Strings` on `Theme::strings` (`Theme::with_strings`). `Strings::DEFAULT` is today's copy, `Strings::ASCII` the same words with 7-bit punctuation. Templates fill `{}` in order with `Strings::fill`. A label still reading the strings it was built from follows a theme change (`Strings::follow`), so a theme set after construction applies; a builder sets text that the theme no longer changes. Dialog: `cancel`, `type_to_confirm`, `type_to_confirm_hint`, `more_cut`, `more_count` and the hints `hint_choose`, `hint_scroll`, `hint_scroll_code`, `hint_cancel`, `hint_close`, `hint_next`, `hint_apply`, `hint_edit` (read from the strings of the last render). FormDialog `cancel`/`save`, ChoiceDialog `cancel`/`next`, InfoDialog `close`. `Dialog::cancel_label` still overrides. |
+| 28 | Fixed | acfbe62db | `required` (+ `TextInput::required_message(&str)`, an `Option` that wins over the theme), `optional` (the field suffix), `no_matches`, `search_placeholder` (`Picker::{placeholder, empty_text}`), `empty_list` (`ListBox::empty_text`), `no_rows` (`DataTable::empty_text`, the grid's `EmptyState`), `loading_rows`, `fetching`, `fetch_more`, the grid bar's `preview_sql`/`discard`/`save_changes` (+ `DataGrid::bar_labels([&str; 3])`), diff `diff_old`/`diff_new`/`diff_no_file`/`diff_no_changes`/`diff_review`, reveal `reveal_open`/`reveal_close`, HelpOverlay `help_title`/`help_footer`, and `not_in_preview`, the convention for a menu item's `reason` (holla and jackin still spell it; they are being edited by the app passes). Deferred: the grid and scrollbar position labels (`rows 1–20 of 1,203`, `{n} update(s)`, `12–24 of 120`), CodeEditor's `ln/col` and the Meter's `refreshing`. They pluralise and order numbers, which a `{}` template cannot express; they need a formatter hook (`fn(&Counts) -> String`) on `Strings`. |
+| 14 | Fixed | 0b2379818 | Leftovers: `ChoiceDialog::nav` (default `NavKeys::DEFAULT`: ←/→ and `h`/`l` between buttons, as before), `FormDialog::nav` (default `NavKeys::NO_VIM`: ←/→ only, as before, so letters stay with the fields) and `InfoDialog::nav` (detail scroll with ↑/↓ and `j`/`k`) replace their own matches. Type-ahead, off by default like ListBox and Select: `ContextMenu::type_ahead`, `MenuBar::type_ahead` (hands it to its menus; letters then never switch titles), `DataTable::type_ahead` and `DataGrid::type_ahead` with `type_ahead_column: Option<usize>` (default the cursor's column). TreeView's type-ahead landed in 8da9efa7f. |
+| 17 | Fixed | 0b2379818 | Leftovers: `PropsAction::Copy` (`y`) on `PropsList::keymap`, `HelpAction::Close` (`?`, `q`) on `HelpOverlay::keymap`, `InfoAction::{Close, Copy}` (`q`, `y`) on `InfoDialog::keymap`. Esc and Enter stay the fixed vocabulary. Behaviour change: these letters no longer fire with Ctrl or Alt held. |
+
+Proof: `tests/ascii_glyphs.rs` renders every widget family (choice
+controls, buttons, chips, tabs, scrollbars, splitters, progress, steps,
+lists, trees, menus, selects, tables, grids, inputs, panels, dialogs,
+diffs, hint bars) with `Glyphs::ASCII` + `Strings::ASCII` and asserts no
+non-ASCII cell, after checking the same scene draws Unicode by default.
+`tests/strings.rs` overrides the strings per widget and checks that
+builders win and default labels follow a theme change back.
+`tests/keymap_leftovers.rs` covers the new NavKeys, KeyMaps and
+type-ahead. `menu.rs` tests cover the chevron. `tests/showcase_baseline.txt` is
+unchanged. The showcase/pages and showcase/flows/selectable captures
+passed after the glyph commit, except showcase/pages/chrome, which
+still showed the pre-Shift+F10 hint until 8d1046880 re-approved it. After the later
+commits they differ only where the showcase's tree sidebar (e48c7f75c)
+changed the frame (breadcrumb and sidebar), pending that pass's
+re-approval.
+
+Breaking changes: `Theme` gains `glyphs` and `strings` (struct literals
+of `Theme` must add them). `FormDialog`, `ChoiceDialog`, `InfoDialog`
+and `HelpOverlay` gain private fields, so they can no longer be built
+as struct literals outside the crate. `TriState::glyph`,
+`grid::cell_text`, `diff::{unified_lines, review_lines}` and
+`DiffFile::{summary, header}` keep the Unicode set; themed callers use
+the `_with` variants.
