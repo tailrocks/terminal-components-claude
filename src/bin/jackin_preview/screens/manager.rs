@@ -28,17 +28,21 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use super::modals::{InfoDialog, InfoResult};
+use super::rowmenu::RowMenu;
 use super::{Cx, Go, Modal, ModalResult, ModalTag, Screen, plural};
 use crate::domain::agent::Agent;
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::workspace::WorkspaceId;
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{DaemonHealth, Msg, World};
+use junie_tui::ui::context::ContextAnchor;
+use junie_tui::widgets::menu::MenuItem;
 
 pub const TREE: WidgetId = WidgetId::of("manager.tree");
 pub const DETAIL: WidgetId = WidgetId::of("manager.detail");
 pub const ROSTER: WidgetId = WidgetId::of("manager.roster");
 pub const SEAM: WidgetId = WidgetId::of("manager.seam");
+pub const MENU: WidgetId = WidgetId::of("manager.menu");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RowKey {
@@ -93,6 +97,9 @@ pub struct ManagerScreen {
     body_narrow: bool,
     wide: bool,
     seam_container: Rect,
+    /// The tree rows' context menu (right-click, Shift+F10, Menu key);
+    /// its `config` is the knob.
+    pub menu: RowMenu<RowKey, &'static str>,
 }
 
 impl Default for ManagerScreen {
@@ -126,6 +133,7 @@ impl ManagerScreen {
             body_narrow: false,
             wide: false,
             seam_container: Rect::ZERO,
+            menu: RowMenu::new(MENU),
         }
     }
 
@@ -681,6 +689,131 @@ impl ManagerScreen {
             Some(r) => cx.status(format!("Opened {} on the host", r.url)),
             None => cx.status(format!("No GitHub source for {}", ws.name)),
         }
+    }
+
+    // ------------------------------------------------------- context menu
+
+    /// The commands a tree row offers: the row's own actions (the detail
+    /// buttons and keys), unavailable ones with the reason.
+    fn menu_items(&self, key: &RowKey, w: &World) -> (String, Vec<(MenuItem, &'static str)>) {
+        let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
+        match key {
+            RowKey::Instance(id) => {
+                let Some(i) = w.instance(id) else {
+                    return (String::new(), vec![]);
+                };
+                let short = id.trim_start_matches("jk-");
+                let live = i.status.is_live();
+                let off = "needs a running instance";
+                let reconnect = if live {
+                    item("Reconnect", "Enter")
+                } else if i.status.reconnectable() && i.status != InstanceStatus::Crashed {
+                    item("Restore", "Enter")
+                } else {
+                    let why = match i.status {
+                        InstanceStatus::Crashed => "crashed (exit 137) · inspect or purge it",
+                        InstanceStatus::FailedSetup => "never reached the Capsule",
+                        _ => "exited · launch the workspace again",
+                    };
+                    item("Reconnect", "Enter").reason(why)
+                };
+                let session = item("New session…", "a");
+                let shell = item("Shell", "!");
+                let stop = item("Stop…", "t");
+                (
+                    format!("Instance {short}"),
+                    vec![
+                        (reconnect, "reconnect"),
+                        (if live { session } else { session.reason(off) }, "session"),
+                        (
+                            if live { shell } else { shell.reason(off) }.separator(),
+                            "shell",
+                        ),
+                        (item("Inspect", "i"), "inspect"),
+                        (
+                            if i.status.stoppable() {
+                                stop
+                            } else {
+                                stop.reason("not running")
+                            }
+                            .separator(),
+                            "stop",
+                        ),
+                        (item("Purge…", "p").danger(), "purge"),
+                    ],
+                )
+            }
+            RowKey::Workspace(id) => (
+                w.workspace(*id).map(|x| x.name.clone()).unwrap_or_default(),
+                vec![
+                    (item("Launch…", "Enter"), "launch"),
+                    (item("Edit", "e"), "edit"),
+                    (item("Prewarm", "w"), "prewarm"),
+                    (item("Open on GitHub", "o").separator(), "github"),
+                    (item("Delete…", "d").danger(), "delete"),
+                ],
+            ),
+            RowKey::CurrentDir => {
+                let saved = w.cwd_workspace().is_some();
+                let not_saved = "not a saved workspace";
+                let edit = item("Edit", "e");
+                let github = item("Open on GitHub", "o");
+                (
+                    "Current directory".into(),
+                    vec![
+                        (item("Launch…", "Enter"), "launch"),
+                        (if saved { edit } else { edit.reason(not_saved) }, "edit"),
+                        (
+                            if saved {
+                                github
+                            } else {
+                                github.reason(not_saved)
+                            },
+                            "github",
+                        ),
+                        (item("Create workspace", "n"), "new"),
+                    ],
+                )
+            }
+            RowKey::NewWorkspace => (
+                "New workspace".into(),
+                vec![(item("Create workspace", "Enter"), "new")],
+            ),
+        }
+    }
+
+    /// Open row `i`'s menu at `anchor`.
+    fn open_menu(&mut self, i: usize, anchor: ContextAnchor, w: &World) {
+        let Some(key) = self.rows.get(i).map(|r| r.key.clone()) else {
+            return;
+        };
+        let (title, items) = self.menu_items(&key, w);
+        if !items.is_empty() {
+            self.menu.open(key, anchor, title, items);
+        }
+    }
+
+    /// Run a chosen menu command on `target` through the same path its key
+    /// or button takes.
+    fn run_menu(
+        &mut self,
+        target: RowKey,
+        cmd: &'static str,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Outcome {
+        let prev = std::mem::replace(&mut self.selected, target.clone());
+        let out = if cmd == "github" {
+            self.open_github(w, cx);
+            Outcome::Changed
+        } else {
+            self.fire_action(cmd, w, cx)
+        };
+        // a menu that leaves the cursor in place runs on its row only
+        if !self.menu.config.moves_cursor && self.selected == target {
+            self.selected = prev;
+        }
+        out.or(Outcome::Changed)
     }
 
     // -------------------------------------------------------------- detail
@@ -1779,8 +1912,33 @@ impl Screen for ManagerScreen {
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
+        if self.menu.is_open() {
+            let (o, chosen) = self.menu.on_key(key);
+            return match chosen {
+                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
+                None => o,
+            };
+        }
         let focus = cx.focus.current();
         let in_tree = focus == Some(TREE);
+        if in_tree
+            && self.menu.is_context_key(key)
+            && let Some(i) = self.cursor()
+        {
+            let dy = i.saturating_sub(self.scroll.offset) as u16;
+            let fallback = Rect::new(
+                self.tree_area.x,
+                self.tree_area.y + dy.min(self.tree_area.height.saturating_sub(1)),
+                self.tree_area.width.max(1),
+                1,
+            );
+            let anchor = ContextAnchor::Control {
+                id: Self::row_id(i),
+                fallback,
+            };
+            self.open_menu(i, anchor, w);
+            return Outcome::Changed;
+        }
         let in_detail = focus == Some(DETAIL);
         let action_focus = self.actions.iter().position(|b| Some(b.id) == focus);
         // global letters (any focus)
@@ -2085,6 +2243,13 @@ impl Screen for ManagerScreen {
 
     fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
+        if self.menu.is_open() {
+            let (o, chosen) = self.menu.on_click(id);
+            return match chosen {
+                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
+                None => o,
+            };
+        }
         for i in self.scroll.visible_range() {
             if Self::toggle_id(i) == id {
                 if let RowKey::Workspace(ws) = self.rows[i].key.clone() {
@@ -2204,6 +2369,30 @@ impl Screen for ManagerScreen {
         Outcome::Ignored
     }
 
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        self.build_rows(w);
+        let Some(i) = self
+            .scroll
+            .visible_range()
+            .find(|&i| Self::row_id(i) == id || Self::toggle_id(i) == id)
+        else {
+            return Outcome::Ignored;
+        };
+        if self.menu.config.moves_cursor && self.selected != self.rows[i].key {
+            self.selected = self.rows[i].key.clone();
+            self.detail_cursor = 0;
+            self.detail_scroll.jump_start();
+        }
+        cx.focus.focus(TREE);
+        self.drawer_open = false;
+        self.open_menu(i, ContextAnchor::Pointer(pos), w);
+        Outcome::Changed
+    }
+
+    fn layer_open(&self) -> bool {
+        self.menu.hides_page_focus()
+    }
+
     fn on_double_click(
         &mut self,
         id: WidgetId,
@@ -2211,6 +2400,10 @@ impl Screen for ManagerScreen {
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
+        if self.menu.is_open() {
+            // the menu takes the click (on_click)
+            return Outcome::Ignored;
+        }
         for i in self.scroll.visible_range() {
             if Self::row_id(i) == id {
                 self.selected = self.rows[i].key.clone();
@@ -2409,6 +2602,7 @@ impl Screen for ManagerScreen {
                 // hidden-but-reachable detail stop
                 ctx.control(DETAIL, Rect::ZERO, false);
             }
+            self.menu.render(area, buf, ctx);
             return;
         }
         let seam_container = area;
@@ -2431,9 +2625,14 @@ impl Screen for ManagerScreen {
         } else {
             self.draw_detail(right, buf, ctx, w, false);
         }
+        // after the rows: a keyboard-opened menu anchors to the cursor row
+        self.menu.render(area, buf, ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint> {
+        if self.menu.is_open() {
+            return RowMenu::<RowKey, &str>::hints();
+        }
         let mut v = vec![];
         if focus == Some(DETAIL) {
             v.push(hint("↑↓", "Move"));

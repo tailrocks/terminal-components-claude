@@ -179,7 +179,7 @@ pub struct App {
     pub quit: bool,
     too_small: bool,
     /// The application menu bar shown on every host screen.
-    host_menu: MenuBar,
+    pub host_menu: MenuBar,
     host_menu_route: Route,
     intro_guard: u8,
     pub clipboard_gen: u32,
