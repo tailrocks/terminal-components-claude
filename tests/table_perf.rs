@@ -290,3 +290,55 @@ fn measure_widgets() {
         );
     }
 }
+
+// ------------------------------------------------------------------ guards
+
+/// Guard: a frame's work is bounded by the viewport, not the dataset. The
+/// hit regions a 100k-row widget registers equal those of a 500-row one.
+#[test]
+fn hit_regions_per_frame_do_not_grow_with_the_row_count() {
+    let theme = Theme::junie();
+    let area = Rect::new(0, 0, 200, 55);
+    let small = frame(&mut grid(500), area, &theme).len();
+    let large = frame(&mut grid(100_000), area, &theme).len();
+    assert_eq!(small, large, "DataGrid");
+    // at most every visible cell, its row and the chrome
+    assert!(large <= 55 * (COLS + 2) + 16, "DataGrid registered {large}");
+    let small = frame(&mut table(500), area, &theme).len();
+    let large = frame(&mut table(100_000), area, &theme).len();
+    assert_eq!(small, large, "DataTable");
+    let small = frame(&mut list(500), area, &theme).len();
+    let large = frame(&mut list(100_000), area, &theme).len();
+    assert_eq!(small, large, "ListBox");
+    let small = frame(&mut tree(500), area, &theme).len();
+    let large = frame(&mut tree(100_000), area, &theme).len();
+    assert_eq!(small, large, "TreeView");
+}
+
+/// Guard (P1): the wheel resolves to the widget itself over its rows, so a
+/// coalesced burst (handled against the hit regions of the frame it began
+/// on) keeps scrolling after the rows under the pointer have moved away.
+#[test]
+fn the_wheel_over_rows_routes_to_the_widget_for_the_whole_burst() {
+    let theme = Theme::junie();
+    let area = Rect::new(0, 0, 120, 40);
+    let pos = ratatui::layout::Position::new(20, 10);
+    fn burst(s: &mut impl Surface, hits: &HitRegistry, pos: ratatui::layout::Position) -> usize {
+        // every notch of the burst routes through the same, stale regions
+        (0..30)
+            .filter(|_| hits.hit_scroll(pos) == Some(s.id()) && s.wheel(1) == Outcome::Changed)
+            .count()
+    }
+    let mut g = grid(10_000);
+    let hits = frame(&mut g, area, &theme);
+    assert_eq!(burst(&mut g, &hits, pos), 30, "DataGrid");
+    let mut t = table(10_000);
+    let hits = frame(&mut t, area, &theme);
+    assert_eq!(burst(&mut t, &hits, pos), 30, "DataTable");
+    let mut l = list(10_000);
+    let hits = frame(&mut l, area, &theme);
+    assert_eq!(burst(&mut l, &hits, pos), 30, "ListBox");
+    let mut tr = tree(10_000);
+    let hits = frame(&mut tr, area, &theme);
+    assert_eq!(burst(&mut tr, &hits, pos), 30, "TreeView");
+}

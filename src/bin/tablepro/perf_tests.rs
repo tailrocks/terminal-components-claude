@@ -205,3 +205,69 @@ fn measure_table_surfaces() {
         report("query results", &mut h);
     }
 }
+
+/// Pump `inputs` through the runtime's own `InputPump`, drawing whenever
+/// the event loop would. Returns the number of frames drawn.
+fn pump(h: &mut H, policy: junie_tui::runtime::Coalesce, inputs: &[Input]) -> usize {
+    let mut queue: std::collections::VecDeque<Input> = inputs.iter().cloned().collect();
+    let mut pump = junie_tui::runtime::InputPump::new(policy);
+    let mut frames = 0;
+    while pump.has_pending() || !queue.is_empty() {
+        if pump.drain(&mut h.app, || Ok(queue.pop_front())).unwrap() {
+            h.draw();
+            frames += 1;
+            if pump.settle(&mut h.app) {
+                h.draw();
+                frames += 1;
+            }
+        }
+    }
+    frames
+}
+
+/// Guard (P1): a burst of wheel notches, key repeats and pointer moves over
+/// the customers table draws one frame per burst, and the screen it ends on
+/// is cell-for-cell the one per-event drawing ends on.
+#[test]
+fn input_bursts_over_the_customers_table_draw_once_and_land_identically() {
+    use junie_tui::runtime::Coalesce;
+    for (w, ht) in [(120, 40), (200, 55)] {
+        let mut coalesced = customers(w, ht);
+        let mut per_event = customers(w, ht);
+        let (_, area) = grid_of(&coalesced);
+        let mid = Position::new(area.x + area.width / 2, area.y + area.height / 2);
+        let mut inputs = vec![wheel(MouseKind::WheelDown, mid); 60];
+        inputs.extend(vec![key(KeyCode::Down); 30]);
+        inputs.extend(vec![wheel(MouseKind::WheelRight, mid); 4]);
+        inputs.extend(
+            (0..area.height - 2)
+                .map(|dy| wheel(MouseKind::Move, Position::new(area.x + 20, area.y + 1 + dy))),
+        );
+        let policy = Coalesce {
+            max_latency: Duration::MAX,
+            ..Coalesce::default()
+        };
+        let frames = pump(&mut coalesced, policy, &inputs);
+        let baseline = pump(&mut per_event, Coalesce::OFF, &inputs);
+        // wheel (one batch of 60 ≤ 64), Down ×30, wheel-right ×4, sweep
+        assert_eq!(frames, 4, "{w}x{ht}: one frame per burst");
+        assert!(baseline > 90, "{w}x{ht}: per-event drawing drew {baseline}");
+        if coalesced.text() != per_event.text() {
+            for (y, (a, b)) in coalesced
+                .text()
+                .lines()
+                .zip(per_event.text().lines())
+                .enumerate()
+            {
+                if a != b {
+                    eprintln!("{y}\n C {a}\n P {b}");
+                }
+            }
+        }
+        assert_eq!(
+            coalesced.term.backend().buffer(),
+            per_event.term.backend().buffer(),
+            "{w}x{ht}: coalescing must not change what is drawn"
+        );
+    }
+}

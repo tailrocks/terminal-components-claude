@@ -431,6 +431,10 @@ impl ListBox {
             ctx.clickable(rid, row);
             y += h;
         }
+        // the scroll region also sits above the rows: a wheel burst handled
+        // before the next frame (see `runtime::Coalesce`) then routes to the
+        // widget, not to a row whose display index it already scrolled away
+        ctx.scrollable(self.id, area);
         self.track = Rect::ZERO;
         if let Some(sb) = sp.track {
             crate::ui::fade::scroll_edges_except(
