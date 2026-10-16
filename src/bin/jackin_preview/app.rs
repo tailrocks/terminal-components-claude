@@ -9,9 +9,10 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::{truncate, width};
-use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
+use junie_tui::widgets::dialog::{DialogBody, DialogResult};
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::picker::PickerEvent;
@@ -177,6 +178,12 @@ pub struct App {
     pub status: Option<(String, Tone, i64)>,
     pub size: (u16, u16),
     pub quit: bool,
+    /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Esc never
+    /// quits, `q` never fires over a field or unsaved edits.
+    pub quit_keys: QuitKeys,
+    /// A quit is waiting on the screen's unsaved-changes question: when
+    /// that flow leaves for the manager (Save or Discard), the app quits.
+    quit_after_leave: bool,
     too_small: bool,
     /// The application menu bar shown on every host screen.
     pub host_menu: MenuBar,
@@ -215,6 +222,8 @@ impl App {
             status: None,
             size: (0, 0),
             quit: false,
+            quit_keys: QuitKeys::DEFAULT,
+            quit_after_leave: false,
             too_small: false,
             host_menu: Self::build_host_menu(Route::Manager),
             host_menu_route: Route::Manager,
@@ -636,17 +645,17 @@ impl App {
             }
             _ => {}
         }
-        if self.modals.is_empty()
-            && key.ctrl_char('c')
-            && self.route != Route::Cockpit
-            && self.route != Route::Capsule
-        {
-            self.world.arbiter.release_entry();
-            self.quit = true;
-            return Outcome::Consumed;
-        }
         if !self.modals.is_empty() {
             return self.modal_key(key);
+        }
+        // back on the page: a quit that waited on the leave question was
+        // cancelled
+        self.quit_after_leave = false;
+        if key.ctrl_char('c') && self.route != Route::Cockpit && self.route != Route::Capsule {
+            let kc = KeyContext::default();
+            if self.quit_keys.classify(&key, kc) == Some(LeaveKey::Quit) {
+                return self.request_quit();
+            }
         }
         let route = self.route;
         // an open page menu owns the keyboard like a text field does: no
@@ -710,9 +719,8 @@ impl App {
                     self.go(Go::Settings);
                     return Outcome::Changed;
                 }
-                KeyCode::Char('q') if key.ctrl() && route == Route::Manager => {
-                    self.open_quit_confirm();
-                    return Outcome::Changed;
+                KeyCode::Char('q') if key.ctrl() => {
+                    return self.request_quit();
                 }
                 _ => {}
             }
@@ -750,8 +758,20 @@ impl App {
                 Outcome::Changed
             }
             KeyCode::Char('q') if key.plain() && !editing && host => {
-                if route == Route::Manager {
-                    self.go(Go::Quit);
+                // a letter never leaves unsaved edits (keyboard audit #4)
+                let dirty = self
+                    .screens
+                    .get_mut(route)
+                    .is_some_and(|s| !s.leave_stakes(&self.world).is_clean());
+                let kc = KeyContext {
+                    text_focus: editing,
+                    dirty,
+                    ..KeyContext::default()
+                };
+                if !letters_allowed(kc) {
+                    self.set_status("Unsaved changes · save, or Esc to leave", Tone::Secondary);
+                } else if route == Route::Manager {
+                    return self.request_quit();
                 } else {
                     self.go(Go::Manager);
                 }
@@ -769,10 +789,50 @@ impl App {
                     None => Outcome::Ignored,
                 };
                 let reqs = std::mem::take(&mut cx.requests);
-                o.or(self.apply_requests(reqs, route))
+                let o = o.or(self.apply_requests(reqs, route));
+                if o != Outcome::Ignored || !host {
+                    return o;
+                }
+                // the top of the ladder: Esc never quits unless configured
+                if self.quit_keys.classify(&key, KeyContext::default()) == Some(LeaveKey::Quit) {
+                    return self.request_quit();
+                }
+                self.set_status("Esc never quits · Ctrl+Q quits", Tone::Secondary);
+                Outcome::Changed
             }
             _ => Outcome::Ignored,
         }
+    }
+
+    /// Every quit (Ctrl+Q, Ctrl+C, `q`, the menu) goes through here: a
+    /// clean screen quits at once (running instances keep running in the
+    /// Construct, so nothing is lost); unsaved edits ask the screen's own
+    /// Save / Discard / Cancel first, and the app quits when that flow
+    /// leaves the screen.
+    fn request_quit(&mut self) -> Outcome {
+        let route = self.route;
+        let dirty = self
+            .screens
+            .get_mut(route)
+            .is_some_and(|s| !s.leave_stakes(&self.world).is_clean());
+        if !dirty {
+            self.world.arbiter.release_entry();
+            self.quit = true;
+            return Outcome::Consumed;
+        }
+        self.quit_after_leave = true;
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: vec![],
+            clicks: 1,
+        };
+        let o = match self.screens.get_mut(route) {
+            Some(s) => s.request_leave(&mut self.world, &mut cx),
+            None => Outcome::Ignored,
+        };
+        let reqs = std::mem::take(&mut cx.requests);
+        o.or(self.apply_requests(reqs, route))
     }
 
     fn is_host(route: Route) -> bool {
@@ -868,7 +928,9 @@ impl App {
             }
             "Key reference" => self.open_help(),
             "About jackin-preview" => self.open_about(),
-            "Quit" => self.open_quit_confirm(),
+            "Quit" => {
+                return self.request_quit();
+            }
             "New workspace…" => return self.handle(key(KeyCode::Char('n'), KeyModifiers::NONE)),
             "Edit workspace…" | "Edit account…" => {
                 return self.handle(key(KeyCode::Char('e'), KeyModifiers::NONE));
@@ -1047,7 +1109,7 @@ impl App {
                         ("i", "container info"),
                         ("x", "cancel launch…"),
                         ("t", "toggle debug"),
-                        ("Ctrl+Q", "quit with confirmation"),
+                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
                         ("Ctrl+C", "hard abort"),
                     ],
                 ),
@@ -1101,7 +1163,7 @@ impl App {
                         ("Esc", "back one level"),
                         ("s", "Settings"),
                         ("?", "this help"),
-                        ("Ctrl+Q", "quit with confirmation"),
+                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
                     ],
                 ),
             ],
@@ -1272,8 +1334,8 @@ impl App {
                         ("F5", "refresh now"),
                         ("?", "this help"),
                         ("q", "back / quit"),
-                        ("Ctrl+Q", "quit with confirmation"),
-                        ("Ctrl+C", "quit immediately"),
+                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
+                        ("Ctrl+C", "quit · same as Ctrl+Q"),
                     ],
                 ),
                 (
@@ -1298,22 +1360,6 @@ impl App {
         };
         let h = HelpOverlay::new(WidgetId::of("help"), &scope, sections);
         self.push_modal(Modal::Help(h), ModalTag::new("help"), self.route);
-    }
-
-    fn open_quit_confirm(&mut self) {
-        let n = self.world.running_count();
-        let body = if n > 0 {
-            format!(
-                "{} keep running in the Construct. The host console closes; reconnect from a new terminal.",
-                crate::screens::plural(n, "instance keeps", "instances keep")
-                    .replace("instances keep", "instances")
-                    .replace("instance keeps", "instance")
-            )
-        } else {
-            "No instances are running. The pending Construct entry is released.".into()
-        };
-        let d = Dialog::confirm(WidgetId::of("quit"), "Quit jackin❯?", &body, "Quit");
-        self.push_modal(Modal::Dialog(d), ModalTag::new("quit"), self.route);
     }
 
     // ------------------------------------------------------------ modals
@@ -2145,6 +2191,13 @@ impl App {
     }
 
     pub fn go(&mut self, g: Go) {
+        // the unsaved-changes question of a quit resolved to leaving
+        if self.quit_after_leave && matches!(g, Go::Manager) {
+            self.quit_after_leave = false;
+            self.world.arbiter.release_entry();
+            self.quit = true;
+            return;
+        }
         let now = self.world.now_ms();
         match g {
             Go::Manager => {

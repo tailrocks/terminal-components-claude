@@ -18,6 +18,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::leave::Stakes;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::Hint;
 use junie_tui::widgets::picker::{Picker, PickerItem};
@@ -362,6 +363,17 @@ pub trait Screen {
     fn primary_focus(&self) -> Option<WidgetId>;
     /// Esc at the top of this screen's ladder: leave it?
     fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
+        cx.go(Go::Manager);
+        Outcome::Changed
+    }
+    /// What leaving this screen (or quitting) would lose. The shell's
+    /// quit and letter keys consult it (keyboard audit #4).
+    fn leave_stakes(&mut self, _w: &World) -> Stakes {
+        Stakes::Clean
+    }
+    /// Leave through the screen's own unsaved-changes question (Save /
+    /// Discard / Cancel); a clean screen goes straight to the manager.
+    fn request_leave(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         cx.go(Go::Manager);
         Outcome::Changed
     }
