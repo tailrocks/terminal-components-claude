@@ -275,8 +275,11 @@ impl ManagerScreen {
                             InstanceStatus::Running => (
                                 format!(
                                     "running {}",
-                                    junie_tui::ui::text::duration_secs(
-                                        (w.now_secs() - i.created_secs).max(0) as u64
+                                    junie_tui::ui::text::duration(
+                                        std::time::Duration::from_secs(
+                                            (w.now_secs() - i.created_secs).max(0) as u64
+                                        ),
+                                        junie_tui::ui::text::DurationStyle::Spoken
                                     )
                                 ),
                                 Tone::Active,
@@ -1681,16 +1684,22 @@ impl ManagerScreen {
             let live = match &i.daemon {
                 DaemonSnapshot::Tabs(tabs) => format!(
                     "running {} · {} · {}",
-                    junie_tui::ui::text::duration_secs(
-                        (w.now_secs() - i.created_secs).max(0) as u64
+                    junie_tui::ui::text::duration(
+                        std::time::Duration::from_secs(
+                            (w.now_secs() - i.created_secs).max(0) as u64
+                        ),
+                        junie_tui::ui::text::DurationStyle::Spoken
                     ),
                     plural(tabs.len(), "tab", "tabs"),
                     plural(tabs.iter().map(|t| t.panes.len()).sum(), "pane", "panes")
                 ),
                 _ => format!(
                     "running {} · daemon unavailable",
-                    junie_tui::ui::text::duration_secs(
-                        (w.now_secs() - i.created_secs).max(0) as u64
+                    junie_tui::ui::text::duration(
+                        std::time::Duration::from_secs(
+                            (w.now_secs() - i.created_secs).max(0) as u64
+                        ),
+                        junie_tui::ui::text::DurationStyle::Spoken
                     )
                 ),
             };

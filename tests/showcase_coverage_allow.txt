@@ -442,6 +442,9 @@ ui::specimen::SpecimenState::Loading | no SC2 specimen loads; the Pickers States
 ui::specimen::StateGrid::label_width | Buttons States grid layout knob | SC7
 ui::specimen::StateGrid::focus_mark | Buttons States grid: an overridden focus depiction | SC7
 ui::text::WrapOpts | Text utilities page | SC26
+ui::text::DurationStyle | Text utilities page: both styles of one elapsed time (showcase pages are held by SC1/SC2 today) | SC26
+ui::text::DurationStyle::Compact | Text utilities page: both styles of one elapsed time (showcase pages are held by SC1/SC2 today) | SC26
+ui::text::DurationStyle::Spoken | Text utilities page: both styles of one elapsed time (showcase pages are held by SC1/SC2 today) | SC26
 
 # ui::tooltip
 ui::tooltip::Tooltips | Popups & tooltips page | SC19

@@ -14,7 +14,7 @@ use junie_tui::core::keymap::hint_key;
 use junie_tui::theme::{StatusKind, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
-use junie_tui::ui::text::duration_ms;
+use junie_tui::ui::text::{DurationStyle, duration};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipCmd};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
@@ -1177,7 +1177,10 @@ impl QueryTab {
                         } else {
                             "ok".into()
                         },
-                        duration_ms(u64::from(total_ms))
+                        duration(
+                            std::time::Duration::from_millis(u64::from(total_ms)),
+                            DurationStyle::Compact
+                        )
                     ),
                     false,
                 ));
@@ -1683,7 +1686,10 @@ impl QueryTab {
             format!(
                 "{} running {} · Esc cancels",
                 junie_tui::widgets::progress::spinner_frame(ctx.interaction.tick),
-                duration_ms(u64::from(r.started_ticks * 80))
+                duration(
+                    std::time::Duration::from_millis(u64::from(r.started_ticks * 80)),
+                    DurationStyle::Compact
+                )
             )
         } else if let Some(rs) = self.results.get(self.active_result) {
             match &rs.body {
@@ -1701,16 +1707,31 @@ impl QueryTab {
                     } else {
                         format!("{} rows", junie_tui::ui::text::thousands(total))
                     };
-                    format!("{rows} · {}", duration_ms(u64::from(rs.duration_ms)))
+                    format!(
+                        "{rows} · {}",
+                        duration(
+                            std::time::Duration::from_millis(u64::from(rs.duration_ms)),
+                            DurationStyle::Compact
+                        )
+                    )
                 }
                 ResultBody::Affected { rows, verb } => format!(
                     "{verb} · {} row{} affected · {}",
                     rows,
                     if *rows == 1 { "" } else { "s" },
-                    duration_ms(u64::from(rs.duration_ms))
+                    duration(
+                        std::time::Duration::from_millis(u64::from(rs.duration_ms)),
+                        DurationStyle::Compact
+                    )
                 ),
                 ResultBody::Error { .. } => {
-                    format!("failed · {}", duration_ms(u64::from(rs.duration_ms)))
+                    format!(
+                        "failed · {}",
+                        duration(
+                            std::time::Duration::from_millis(u64::from(rs.duration_ms)),
+                            DurationStyle::Compact
+                        )
+                    )
                 }
                 ResultBody::Plan {
                     planning_ms,
@@ -1795,8 +1816,14 @@ impl QueryTab {
                             &[
                                 Prop::new("Statement", verb.clone()),
                                 Prop::new("Rows affected", junie_tui::ui::text::thousands(*rows)),
-                                Prop::new("Duration", duration_ms(u64::from(rs.duration_ms)))
-                                    .tone(Tone::Muted),
+                                Prop::new(
+                                    "Duration",
+                                    duration(
+                                        std::time::Duration::from_millis(u64::from(rs.duration_ms)),
+                                        DurationStyle::Compact,
+                                    ),
+                                )
+                                .tone(Tone::Muted),
                             ],
                             cbg,
                         );

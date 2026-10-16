@@ -448,7 +448,10 @@ pub(crate) fn rebuild_on_tick<S, V: PartialEq>(
 
 /// `2 min 14 s` from ticks.
 pub fn ticks_label(ticks: u64) -> String {
-    junie_tui::ui::text::duration_secs(ticks * crate::sim::world::TICK_MS as u64 / 1000)
+    junie_tui::ui::text::duration(
+        std::time::Duration::from_millis(ticks * crate::sim::world::TICK_MS as u64),
+        junie_tui::ui::text::DurationStyle::Spoken,
+    )
 }
 
 /// Tone for a risk word in rows and previews (D-7).

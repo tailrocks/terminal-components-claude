@@ -535,6 +535,9 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("ui::specimen::StateGrid::focus_mark"),
     // ui::text
     Capability::ty("ui::text::WrapOpts"),
+    Capability::ty("ui::text::DurationStyle"),
+    Capability::variant("ui::text::DurationStyle::Compact"),
+    Capability::variant("ui::text::DurationStyle::Spoken"),
     // ui::tooltip
     Capability::ty("ui::tooltip::Tooltips"),
     Capability::builder("ui::tooltip::Tooltips::enabled"),
