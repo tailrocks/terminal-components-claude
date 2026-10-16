@@ -29,12 +29,12 @@
                                 ▏ danger                        White                                                   [0m
                                                                             State language                              [0m
                                                                                                                         [0m
-                                                                            ▎  focus                                    [0m
+                            Roles                                           ▎  focus                                    [0m
                                                                             ░  hover lifts the surface                  [0m
-                                                                            ›  current / chosen                         [0m
-                                                                            ✓  checked                                  [0m
-                                                                            !  error                                    [0m
-                                                                            ▁  editing: cursor + underline              [0m
+                            Status ✓ ok [0m[1m✗[0m failed ▲ warn • pending           ›  current / chosen                         [0m
+                                   ⠋ running ○ queued i info – skipped      ✓  checked                                  [0m
+                            Env    [0m[1m◆ production[0m ◇ staging                   !  error                                    [0m
+                                   · development local                      ▁  editing: cursor + underline              [0m
                                                                                                                         [0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
