@@ -146,14 +146,14 @@ impl Page for DiffPage {
                     cx.focus.focus(self.view.id());
                     return Outcome::Consumed;
                 }
-                if *id == scrollbar::id_for(self.view.id()) {
+                if scrollbar::is_bar_of(*id, self.view.id()) {
                     return self.view.on_scrollbar(*pos);
                 }
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } => {
-                if *pressed == scrollbar::id_for(self.view.id()) {
-                    return self.view.on_scrollbar_drag(*pos);
+                if scrollbar::is_bar_of(*pressed, self.view.id()) {
+                    return self.view.on_bar_drag(*pressed, *pos);
                 }
                 if *pressed == self.view.id() {
                     cx.focus.focus(self.view.id());
@@ -162,6 +162,7 @@ impl Page for DiffPage {
                 Outcome::Ignored
             }
             PageEvent::Wheel { id, delta } if self.view.owns(*id) => self.view.on_wheel(*delta),
+            PageEvent::WheelH { id, delta } if self.view.owns(*id) => self.view.on_wheel_h(*delta),
             _ => Outcome::Ignored,
         }
     }

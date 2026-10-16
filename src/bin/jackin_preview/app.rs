@@ -1731,7 +1731,12 @@ impl App {
                 let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
                 if let Some(top) = self.modals.top_mut() {
                     if horizontal {
-                        return Outcome::Consumed;
+                        // only content with a horizontal axis takes it
+                        return match &mut top.modal {
+                            Modal::Custom(c) => c.on_wheel_h(delta, m.pos),
+                            Modal::Dialog(d) => d.on_wheel_h(delta),
+                            _ => Outcome::Consumed,
+                        };
                     }
                     return match &mut top.modal {
                         Modal::Picker(p) => p.on_wheel(delta),

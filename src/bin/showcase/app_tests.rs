@@ -1414,3 +1414,40 @@ fn header_links_show_rest_hover_and_press() {
     assert_ne!(hover, pressed, "the Help link presses");
     assert_ne!(rest, pressed);
 }
+
+#[test]
+fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
+    use junie_tui::widgets::scrollbar::{H_THUMB, h_id_for};
+    let mut h = Harness::new(80, 24, PageId::Terminal);
+    let term = WidgetId::of("terminal").sub("term");
+    let bar = h
+        .app
+        .hits
+        .area_of(h_id_for(term))
+        .expect("the prompt line overflows: a horizontal bar");
+    let (x, y) = h.find("payments-platform").expect("the prompt is drawn");
+    let thumb = |h: &Harness| {
+        (bar.x..bar.right())
+            .position(|x| h.term.backend().buffer()[(x, bar.y)].symbol() == H_THUMB)
+            .expect("a thumb")
+    };
+    assert_eq!(thumb(&h), 0, "at the left edge");
+    h.mouse(MouseKind::WheelRight, x + 2, y);
+    assert!(
+        !h.row(y).contains("payments-platform"),
+        "the line moved left: {}",
+        h.row(y)
+    );
+    assert!(
+        h.row(y).contains("launch"),
+        "its end comes into view: {}",
+        h.row(y)
+    );
+    assert!(thumb(&h) > 0, "the thumb moved right");
+    // the bar drags back to the start
+    h.mouse(MouseKind::Down, bar.right() - 1, bar.y);
+    h.mouse(MouseKind::Drag, bar.x, bar.y);
+    h.mouse(MouseKind::Up, bar.x, bar.y);
+    assert_eq!(thumb(&h), 0);
+    assert!(h.row(y).contains("payments-platform"));
+}
