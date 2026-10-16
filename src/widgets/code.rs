@@ -126,8 +126,8 @@ pub struct CodeEditor {
     /// text buffer's own.
     pub nav: NavKeys,
     /// The reading-mode action keys (default
-    /// [`CodeAction::default_keymap`]).
-    pub keymap: KeyMap<CodeAction>,
+    /// [`CodeCmd::default_keymap`]).
+    pub keymap: KeyMap<CodeCmd>,
     /// How focus starts an edit. `None` (default) follows the theme's
     /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
     /// A read-only editor never edits.
@@ -153,7 +153,7 @@ pub struct CodeEditor {
 
 /// A [`CodeEditor`] reading-mode action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CodeAction {
+pub enum CodeCmd {
     /// Start editing at the cursor. Default Enter and `i`.
     Edit,
     /// Start editing after the cursor. Default `a`.
@@ -170,17 +170,17 @@ pub enum CodeAction {
     PrevMatch,
 }
 
-impl Actions for CodeAction {
+impl Actions for CodeCmd {
     fn default_keymap() -> KeyMap<Self> {
         vec![
-            (KeyBinding::key(KeyCode::Enter), CodeAction::Edit),
-            (KeyBinding::char('i'), CodeAction::Edit),
-            (KeyBinding::char('a'), CodeAction::Append),
-            (KeyBinding::char('{'), CodeAction::PrevBlock),
-            (KeyBinding::char('}'), CodeAction::NextBlock),
-            (KeyBinding::char('/'), CodeAction::Find),
-            (KeyBinding::char('n'), CodeAction::NextMatch),
-            (KeyBinding::char('N'), CodeAction::PrevMatch),
+            (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),
+            (KeyBinding::char('i'), CodeCmd::Edit),
+            (KeyBinding::char('a'), CodeCmd::Append),
+            (KeyBinding::char('{'), CodeCmd::PrevBlock),
+            (KeyBinding::char('}'), CodeCmd::NextBlock),
+            (KeyBinding::char('/'), CodeCmd::Find),
+            (KeyBinding::char('n'), CodeCmd::NextMatch),
+            (KeyBinding::char('N'), CodeCmd::PrevMatch),
         ]
     }
 }
@@ -230,7 +230,7 @@ impl CodeEditor {
             htrack: Rect::ZERO,
             h_held: false,
             nav: NavKeys::DEFAULT,
-            keymap: CodeAction::default_keymap(),
+            keymap: CodeCmd::default_keymap(),
             edit_entry: None,
             entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
             esc_reverts: false,
@@ -320,7 +320,7 @@ impl CodeEditor {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<CodeAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<CodeCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -747,40 +747,40 @@ impl CodeEditor {
         }
     }
 
-    fn on_action(&mut self, action: CodeAction) -> (Outcome, Option<EditorEvent>) {
+    fn on_action(&mut self, action: CodeCmd) -> (Outcome, Option<EditorEvent>) {
         match action {
-            CodeAction::Edit => {
+            CodeCmd::Edit => {
                 self.begin_edit();
                 (Outcome::Changed, None)
             }
-            CodeAction::Append => {
+            CodeCmd::Append => {
                 self.begin_edit();
                 self.buffer.move_right(false);
                 (Outcome::Changed, None)
             }
-            CodeAction::PrevBlock => {
+            CodeCmd::PrevBlock => {
                 let cur = self.buffer.cursor_offset();
                 if let Some(b) = self.blocks().iter().rev().find(|b| b.start < cur) {
                     self.jump_to(b.start);
                 }
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            CodeAction::NextBlock => {
+            CodeCmd::NextBlock => {
                 let cur = self.buffer.cursor_offset();
                 if let Some(b) = self.blocks().iter().find(|b| b.start > cur) {
                     self.jump_to(b.start);
                 }
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            CodeAction::Find => {
+            CodeCmd::Find => {
                 self.open_find();
                 (Outcome::Changed, None)
             }
-            CodeAction::NextMatch => {
+            CodeCmd::NextMatch => {
                 self.goto_match(1);
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            CodeAction::PrevMatch => {
+            CodeCmd::PrevMatch => {
                 self.goto_match(-1);
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
