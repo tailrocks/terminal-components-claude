@@ -103,7 +103,7 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/splitsstacks", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["wait:arrives with SC23"]).pending(),
     Root::new("showcase/planned/masterdetail", Bin::Showcase, &["--page", "masterdetail"], BOOT).sends(&["wait:arrives with SC38"]).pending(),
     Root::new("showcase/planned/panetree", Bin::Showcase, &["--page", "panetree"], BOOT).sends(&["wait:arrives with SC45"]).pending(),
-    Root::new("showcase/planned/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:arrives with SC26"]).pending(),
+    Root::new("showcase/pages/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:TextBuffer"]).pending(),
     Root::new("showcase/planned/queryworkbench", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["wait:arrives with SC46"]).pending(),
     Root::new("showcase/planned/connections", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:arrives with SC47"]).pending(),
     Root::new("showcase/planned/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:arrives with SC48"]).pending(),
@@ -148,6 +148,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/statushints-options", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "2", "wait:F5 priority"]).pending(),
     Root::new("showcase/sections/statushints-states", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "3", "wait:Pinned F5"]).pending(),
     Root::new("showcase/sections/statushints-modal-narrow", Bin::Showcase, &["--page", "statushints", "--opt", "statushints.layer=modal", "--opt", "statushints.width=narrow"], BOOT).sends(&["wait:Enter Delete"]).pending(),
+    // Text utilities (SC26): the helpers at a narrow width, the list's
+    // builders, and the list in its states.
+    Root::new("showcase/sections/textutilities-options", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["tab", "2", "wait:Copy key"]).pending(),
+    Root::new("showcase/sections/textutilities-states", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["tab", "3", "wait:Narrow labels"]).pending(),
+    Root::new("showcase/sections/textutilities-width-8", Bin::Showcase, &["--page", "textutilities", "--opt", "textutilities.width=8", "--opt", "textutilities.duration=compact"], BOOT).sends(&["wait:width 8"]).pending(),
+    Root::new("showcase/sections/textutilities-list-focus", Bin::Showcase, &["--page", "textutilities"], BOOT).click("Port").pending(),
     // Overview (SC3): the theme explorer's options and every Kind on a plane.
     Root::new("showcase/sections/overview-options", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "2", "wait:State modifiers"]).pending(),
     Root::new("showcase/sections/overview-states", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["tab", "3", "wait:Cursor fill"]).pending(),

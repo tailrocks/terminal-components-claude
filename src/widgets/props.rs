@@ -600,6 +600,42 @@ impl Navigable for PropsList {
     }
 }
 
+/// A property list drawn in a forced state for a States grid
+/// ([`crate::ui::specimen`]): at rest, focused (the cursor row's gutter,
+/// depicted by the grid, and the copy hint on a copyable row), with a value
+/// too long for its row (overflow) and in the narrow slot.
+impl crate::ui::specimen::Specimen for PropsList {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Focused | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        self.props.len().max(1) as u16
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        let mut list = self.clone();
+        if state == crate::ui::specimen::SpecimenState::Overflow
+            && let Some(p) = list.props.first_mut()
+        {
+            p.value = format!("{} and a value far longer than its row", p.value);
+        }
+        list.render(area, buf, ctx, bg);
+    }
+}
+
 #[cfg(test)]
 mod reveal_scroll_tests {
     use super::*;
