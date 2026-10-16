@@ -17,6 +17,7 @@ layer (see `AGENTS.md`), with a regression test, in its own commit.
 | `hscroll.md` | Horizontal scrolling and position for wide content |
 | `performance.md` | Scrolling cost of tables, grids, lists and trees |
 | `keyboard.md` | Keyboard-only use: focus order, caret, Esc, quit safety and hints |
+| `mouse.md` | Mouse-only use: routing, dead ends, navigation, menus, drag and wheel |
 | `standards-interaction.md` | Standards review of interaction decisions (HIG, WAI-ARIA APG, WCAG 2.2) |
 | `standards-visual.md` | Standards review of visual tokens and states (contrast, colour, glyphs) |
 
