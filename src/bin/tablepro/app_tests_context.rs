@@ -383,3 +383,38 @@ fn the_help_dialog_lists_the_context_menu_key() {
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Shift+F10"));
 }
+
+#[test]
+fn a_header_seam_resizes_and_the_header_menu_resets_widths() {
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+    let g = &table(&h).grid;
+    let (head, seam) = (g.header_id(1), g.seam_id(1));
+    let before = area(&h, head);
+    let s = area(&h, seam);
+    assert_eq!(
+        s.x,
+        before.right(),
+        "the seam sits in the gap after the title"
+    );
+    // press on the seam, drag three cells right, release
+    h.mouse(MouseKind::Down, s.x, s.y);
+    h.mouse(MouseKind::Drag, s.x + 3, s.y);
+    h.mouse(MouseKind::Up, s.x + 3, s.y);
+    assert_eq!(
+        area(&h, head).width,
+        before.width + 3,
+        "cell-precise resize"
+    );
+    // right-click the header: its menu resets the widths
+    h.mouse(MouseKind::Secondary, before.x + 1, before.y);
+    assert_eq!(menu(&h).target, Target::Header(1));
+    choose(&mut h, "Reset Column Widths");
+    assert!(h.app.modal().is_none(), "the menu closed");
+    assert_eq!(
+        area(&h, head).width,
+        before.width,
+        "back to the measured width"
+    );
+    assert!(table(&h).grid.sizing.is_default());
+}

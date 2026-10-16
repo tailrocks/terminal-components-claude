@@ -1015,7 +1015,50 @@ impl Workbench {
             }
             _ => {}
         }
-        route_press(&mut self.pointer_fields(), id, pos, count).unwrap_or(Outcome::Ignored)
+        if let Some(o) = route_press(&mut self.pointer_fields(), id, pos, count) {
+            return o;
+        }
+        // a header seam: resize (double press: fit) the column
+        match self.active_grid_any_mut() {
+            Some(g) if g.owns(id) => g.on_press(id, pos, count),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// The grid of the active tab: the table's rows or the query's
+    /// current result.
+    pub fn active_grid_any_mut(&mut self) -> Option<&mut junie_tui::widgets::grid::DataGrid> {
+        match self.tabs.get_mut(self.active)? {
+            WorkTab::Table(t) => Some(&mut t.grid),
+            WorkTab::Query(q) => q.active_grid_mut(),
+            WorkTab::History(_) => None,
+        }
+    }
+
+    /// A header menu command on column `col` of the active tab's grid.
+    pub fn on_header_action(
+        &mut self,
+        col: usize,
+        action: junie_tui::ui::columns::HeaderAction,
+        cx: &mut Cx,
+        history: &mut History,
+    ) -> Outcome {
+        let cat = &self.catalog;
+        let conn = self.connection.name.clone();
+        let db = self.catalog.database.clone();
+        match self.tabs.get_mut(self.active) {
+            Some(WorkTab::Table(t)) => {
+                let (o, ev) = t.grid.on_header_action(col, action);
+                match ev {
+                    Some(ev) => Self::grid_event(t, ev, cx, cat, &conn, &db, history).or(o),
+                    None => o,
+                }
+            }
+            Some(WorkTab::Query(q)) => q
+                .active_grid_mut()
+                .map_or(Outcome::Ignored, |g| g.on_header_action(col, action).0),
+            _ => Outcome::Ignored,
+        }
     }
 
     pub fn on_click(
