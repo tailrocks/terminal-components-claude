@@ -156,54 +156,149 @@ pub fn fit_right(s: &str, w: usize) -> String {
     format!("{}{t}", " ".repeat(pad))
 }
 
+/// How [`wrap_with`] lays out indented paragraphs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WrapOpts {
+    /// A paragraph's leading spaces are kept on its first line and repeated
+    /// on every continuation line, so an indented block stays indented
+    /// when it wraps. Default `true`.
+    pub keep_indent: bool,
+    /// A run of at least this many spaces inside a paragraph marks a
+    /// column (`Ctrl+F    find`): continuation lines hang under the text
+    /// after the first such run, like a key reference or a definition
+    /// list. `None` turns the hanging indent off. Default `Some(3)`, so the
+    /// single and double spaces of prose never start a column.
+    pub hang_at_gap: Option<u8>,
+}
+
+impl Default for WrapOpts {
+    fn default() -> Self {
+        Self {
+            keep_indent: true,
+            hang_at_gap: Some(3),
+        }
+    }
+}
+
+impl WrapOpts {
+    /// Plain word wrap: leading spaces dropped, no hanging indent.
+    pub const PLAIN: Self = Self {
+        keep_indent: false,
+        hang_at_gap: None,
+    };
+}
+
 /// Word-wrap into lines of at most `w.max(1)` cells. Hard-wraps overlong
 /// words; a grapheme wider than the entire line is represented by `…`.
+/// Indentation follows [`WrapOpts::default`]: leading spaces carry over to
+/// continuation lines and a wide column gap hangs them under the second
+/// column.
 pub fn wrap(s: &str, w: usize) -> Vec<String> {
+    wrap_with(s, w, WrapOpts::default())
+}
+
+/// [`wrap`] with explicit indentation rules.
+pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     let w = w.max(1);
     let mut lines = Vec::new();
     for para in s.split('\n') {
-        let mut line = String::new();
-        let mut lw = 0;
-        for word in para.split(' ') {
-            let ww = width(word);
-            if lw == 0 {
-                if ww <= w {
-                    line.push_str(word);
-                    lw = ww;
-                } else {
-                    hard_wrap(word, w, &mut lines, &mut line, &mut lw);
-                }
-            } else if lw + 1 + ww <= w {
-                line.push(' ');
-                line.push_str(word);
-                lw += 1 + ww;
-            } else {
-                lines.push(std::mem::take(&mut line));
-                lw = 0;
-                if ww <= w {
-                    line.push_str(word);
-                    lw = ww;
-                } else {
-                    hard_wrap(word, w, &mut lines, &mut line, &mut lw);
-                }
-            }
+        let body = para.trim_start_matches(' ');
+        let lead = para.len() - body.len();
+        let first = if opts.keep_indent { lead } else { 0 };
+        let mut cont = first;
+        if let Some(gap) = opts.hang_at_gap.filter(|g| *g > 0)
+            && let Some(col) = hang_column(body, gap as usize)
+        {
+            cont = first + col;
         }
-        lines.push(line);
+        // an indent only applies while it leaves at least half the line
+        let first = if first * 2 <= w { first } else { 0 };
+        let cont = if cont * 2 <= w { cont } else { first };
+        wrap_para(body, w, first, cont, &mut lines);
     }
     lines
 }
 
-fn hard_wrap(word: &str, w: usize, lines: &mut Vec<String>, line: &mut String, lw: &mut usize) {
-    for g in word.graphemes(true) {
-        let g = if width(g) > w { "…" } else { g };
-        let gw = width(g);
-        if *lw + gw > w {
-            lines.push(std::mem::take(line));
-            *lw = 0;
-        }
-        line.push_str(g);
-        *lw += gw;
+/// The cell column after the first run of at least `gap` spaces in `s`.
+fn hang_column(s: &str, gap: usize) -> Option<usize> {
+    let at = s.find(&" ".repeat(gap))?;
+    let rest = s[at..].trim_start_matches(' ');
+    if rest.is_empty() {
+        return None;
     }
+    Some(width(&s[..s.len() - rest.len()]))
+}
+
+/// One paragraph being wrapped: the open line, its width, the indent it
+/// started at and the indent of the lines after it.
+struct Para<'a> {
+    lines: &'a mut Vec<String>,
+    line: String,
+    lw: usize,
+    base: usize,
+    cont: usize,
+    w: usize,
+}
+
+impl Para<'_> {
+    fn empty(&self) -> bool {
+        self.lw == self.base
+    }
+
+    fn break_line(&mut self) {
+        self.lines.push(std::mem::take(&mut self.line));
+        self.line = " ".repeat(self.cont);
+        self.lw = self.cont;
+        self.base = self.cont;
+    }
+
+    fn push_word(&mut self, word: &str, ww: usize) {
+        if self.lw + ww <= self.w {
+            self.line.push_str(word);
+            self.lw += ww;
+        } else {
+            self.hard_wrap(word);
+        }
+    }
+
+    fn hard_wrap(&mut self, word: &str) {
+        for g in word.graphemes(true) {
+            let room = (self.w - self.base).max(1);
+            let g = if width(g) > room { "…" } else { g };
+            let gw = width(g);
+            if self.lw + gw > self.w && !self.empty() {
+                self.break_line();
+            }
+            self.line.push_str(g);
+            self.lw += gw;
+        }
+    }
+}
+
+fn wrap_para(body: &str, w: usize, first: usize, cont: usize, lines: &mut Vec<String>) {
+    let mut p = Para {
+        lines,
+        line: " ".repeat(first),
+        lw: first,
+        base: first,
+        cont,
+        w,
+    };
+    for word in body.split(' ') {
+        let ww = width(word);
+        if p.empty() {
+            p.push_word(word, ww);
+        } else if p.lw + 1 + ww <= w {
+            p.line.push(' ');
+            p.line.push_str(word);
+            p.lw += 1 + ww;
+        } else {
+            p.break_line();
+            p.push_word(word, ww);
+        }
+    }
+    let last = std::mem::take(&mut p.line);
+    p.lines.push(last);
 }
 
 /// Search text retains source graphemes when lowercase expands a scalar.
@@ -351,6 +446,32 @@ mod tests {
         assert_eq!(truncate_middle("short", 12), "short");
         assert_eq!(thousands(1_203_338), "1,203,338");
         assert_eq!(thousands(999), "999");
+    }
+
+    #[test]
+    fn an_indented_paragraph_keeps_its_indent_on_every_line() {
+        assert_eq!(
+            wrap("  alpha beta gamma", 12),
+            vec!["  alpha beta", "  gamma"]
+        );
+        // the plain wrap still drops it
+        assert_eq!(
+            wrap_with("  alpha beta gamma", 12, WrapOpts::PLAIN),
+            vec!["alpha beta", "gamma"]
+        );
+    }
+
+    #[test]
+    fn a_column_gap_hangs_continuation_lines_under_the_second_column() {
+        let lines = wrap("Ctrl+D   Data / Structure or find (editor)", 26);
+        assert_eq!(
+            lines,
+            vec!["Ctrl+D   Data / Structure", "         or find (editor)"]
+        );
+        // prose spacing never starts a column
+        assert_eq!(wrap("one.  two three", 9), vec!["one.  two", "three"]);
+        // an indent that would leave less than half the line is dropped
+        assert_eq!(wrap("        ab cd", 10), vec!["ab cd"]);
     }
 
     #[test]
