@@ -4,7 +4,10 @@
 //! They are read, not run, so they are pages, never tabs (D-15).
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::context::ContextAnchor;
@@ -1377,48 +1380,50 @@ impl Screen for SnapshotPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
-        for i in 0..self.buttons.len() {
-            if self.buttons[i].id == id {
-                cx.focus.focus(id);
-                if self.buttons[i].on_click() {
-                    let (_, item, args) = self.follow_ups[i].clone();
-                    cx.go(Go::Run { item, args });
-                }
+    fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls the vertical body
+            if id == BODY && axis == Axis::Vertical {
+                self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
             }
+            return Outcome::Ignored;
         }
-        if id == BODY {
-            cx.focus.focus(BODY);
-            return Outcome::Changed;
+        match ev.phase() {
+            Some(Phase::Press) if id == scrollbar::id_for(BODY) => {
+                scroll_press(self.body_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Drag) if id == scrollbar::id_for(BODY) => {
+                scroll_drag(self.body_area, pos, &mut self.scroll)
+            }
+            Some(Phase::Click) => {
+                for i in 0..self.buttons.len() {
+                    if self.buttons[i].id == id {
+                        cx.focus.focus(id);
+                        if self.buttons[i].on_click() {
+                            let (_, item, args) = self.follow_ups[i].clone();
+                            cx.go(Go::Run { item, args });
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                if id == BODY {
+                    cx.focus.focus(BODY);
+                    return Outcome::Changed;
+                }
+                if id == scrollbar::id_for(BODY) {
+                    cx.focus.focus(BODY);
+                    return scroll_press(self.body_area, pos, &mut self.scroll);
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Secondary) if id == BODY => {
+                cx.focus.focus(BODY);
+                self.body_menu(ContextAnchor::Pointer(pos), cx)
+            }
+            _ => Outcome::Ignored,
         }
-        if id == scrollbar::id_for(BODY) {
-            cx.focus.focus(BODY);
-            return scroll_press(self.body_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(BODY) {
-            return scroll_press(self.body_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(BODY) {
-            return scroll_drag(self.body_area, pos, &mut self.scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == BODY {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
@@ -1521,20 +1526,6 @@ impl Screen for SnapshotPage {
                 x += bw + 2;
             }
         }
-    }
-
-    fn on_secondary(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if id != BODY {
-            return Outcome::Ignored;
-        }
-        cx.focus.focus(BODY);
-        self.body_menu(ContextAnchor::Pointer(pos), cx)
     }
 
     fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {

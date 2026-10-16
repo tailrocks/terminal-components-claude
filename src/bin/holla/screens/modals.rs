@@ -2,7 +2,10 @@
 //! About, and "Why is this here?". It is a [`Layer`] on the shell's stack.
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
@@ -12,7 +15,7 @@ use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Style;
 
 use super::ModalResult;
@@ -175,27 +178,6 @@ impl TextModal {
         }
     }
 
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
-    }
-
-    pub fn on_scrollbar(&mut self, pos: ratatui::layout::Position) -> Outcome {
-        if scrollbar::press(self.scroll_area, pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    pub fn on_scrollbar_drag(&mut self, pos: ratatui::layout::Position) -> Outcome {
-        if scrollbar::drag(self.scroll_area, pos, &mut self.scroll) {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         // the shared modal frame, placed in the body clear of the menu bar,
@@ -304,20 +286,32 @@ impl Layer<ModalResult> for TextModal {
     fn on_key(&mut self, key: &Key, _: &mut LayerCx<'_>) -> Outcome {
         TextModal::on_key(self, key)
     }
-    fn on_click(&mut self, id: WidgetId, pos: Position, _: &mut LayerCx<'_>) -> Outcome {
-        if id == scrollbar::id_for(self.id) {
-            return self.on_scrollbar(pos);
+    /// The body's bar takes a click on its track and a drag of its thumb;
+    /// a vertical wheel notch scrolls the body.
+    fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_>) -> Outcome {
+        if let Some((axis, delta)) = ev.wheel() {
+            if axis == Axis::Vertical {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            return Outcome::Consumed;
         }
-        Outcome::Changed
-    }
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if pressed == scrollbar::id_for(self.id) {
-            return self.on_scrollbar_drag(pos);
+        let bar = ev.id == scrollbar::id_for(self.id);
+        let moved = match ev.phase() {
+            Some(Phase::Click) if bar => {
+                scrollbar::press(self.scroll_area, ev.pos(), &mut self.scroll)
+            }
+            Some(Phase::Drag) if bar => {
+                scrollbar::drag(self.scroll_area, ev.pos(), &mut self.scroll)
+            }
+            Some(Phase::Click) => return Outcome::Changed,
+            _ => return Outcome::Ignored,
+        };
+        if moved {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
         }
-        Outcome::Ignored
-    }
-    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        TextModal::on_wheel(self, delta)
     }
     fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
         vec![hint("↑↓", "Scroll"), hint("Esc", "Close")]

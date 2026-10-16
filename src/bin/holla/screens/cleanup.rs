@@ -7,8 +7,10 @@
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::hit::PartMap;
+use junie_tui::core::hit::{Axis, PartMap};
 use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
@@ -22,7 +24,7 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::catalog::{InsightCategory, insight_candidates, observe_process};
@@ -854,10 +856,6 @@ impl CleanupPage {
         }
     }
 
-    fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
-    }
-
     /// The context menu of row `row` (a category or a candidate): the
     /// page's own keys. Each item stands for the key at its index in the
     /// tag (`row:keys`).
@@ -1142,74 +1140,95 @@ impl Screen for CleanupPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if id == scrollbar::id_for(LIST) {
-            cx.focus.focus(LIST);
-            return scroll_press(self.list_area, pos, &mut self.scroll);
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            cx.focus.focus(DETAIL);
-            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        if id == DETAIL {
-            cx.focus.focus(DETAIL);
-            return Outcome::Changed;
-        }
-        if let Some(i) = self.locate(id) {
-            self.cursor = i;
-            cx.focus.focus(LIST);
-            match self.rows.get(i).cloned() {
-                Some(Row::Category(ci)) => {
-                    if !self.open.remove(&ci) {
-                        self.open.insert(ci);
-                    }
-                    self.rebuild(w);
-                }
-                Some(Row::Candidate(ci, ki)) => {
-                    self.toggle_candidate(ci, ki, cx);
-                    self.rebuild(w);
-                }
-                _ => {}
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        // a row of the list: its index is the part's
+        let row = ev.on(LIST).then(|| ev.index_of(Part::ROW)).flatten();
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls these vertical panes
+            if axis != Axis::Vertical {
+                return Outcome::Ignored;
             }
-            return Outcome::Changed;
+            if id == LIST {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            if id == DETAIL {
+                self.detail_scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
+            }
+            return Outcome::Ignored;
         }
-        if id == LIST {
-            cx.focus.focus(LIST);
-            return Outcome::Changed;
+        match ev.phase() {
+            Some(Phase::Press | Phase::Drag) => {
+                let (area, scroll) = if id == scrollbar::id_for(LIST) {
+                    (self.list_area, &mut self.scroll)
+                } else if id == scrollbar::id_for(DETAIL) {
+                    (self.detail_area, &mut self.detail_scroll)
+                } else {
+                    return Outcome::Ignored;
+                };
+                if ev.is(Phase::Press) {
+                    scroll_press(area, pos, scroll)
+                } else {
+                    scroll_drag(area, pos, scroll)
+                }
+            }
+            Some(Phase::Click) => {
+                if id == scrollbar::id_for(LIST) {
+                    cx.focus.focus(LIST);
+                    return scroll_press(self.list_area, pos, &mut self.scroll);
+                }
+                if id == scrollbar::id_for(DETAIL) {
+                    cx.focus.focus(DETAIL);
+                    return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+                }
+                if id == DETAIL {
+                    cx.focus.focus(DETAIL);
+                    return Outcome::Changed;
+                }
+                if let Some(i) = row {
+                    self.cursor = i;
+                    cx.focus.focus(LIST);
+                    match self.rows.get(i).cloned() {
+                        Some(Row::Category(ci)) => {
+                            if !self.open.remove(&ci) {
+                                self.open.insert(ci);
+                            }
+                            self.rebuild(w);
+                        }
+                        Some(Row::Candidate(ci, ki)) => {
+                            self.toggle_candidate(ci, ki, cx);
+                            self.rebuild(w);
+                        }
+                        _ => {}
+                    }
+                    return Outcome::Changed;
+                }
+                if id == LIST {
+                    cx.focus.focus(LIST);
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Secondary) => {
+                let Some(i) = row else {
+                    return Outcome::Ignored;
+                };
+                if !matches!(
+                    self.rows.get(i),
+                    Some(Row::Category(_) | Row::Candidate(..))
+                ) {
+                    return Outcome::Ignored;
+                }
+                if cx.context.moves_cursor {
+                    self.cursor = i;
+                }
+                cx.focus.focus(LIST);
+                self.row_menu(i, ContextAnchor::Pointer(pos), cx)
+            }
+            _ => Outcome::Ignored,
         }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(LIST) {
-            return scroll_press(self.list_area, pos, &mut self.scroll);
-        }
-        if id == scrollbar::id_for(DETAIL) {
-            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(LIST) {
-            return scroll_drag(self.list_area, pos, &mut self.scroll);
-        }
-        if pressed == scrollbar::id_for(DETAIL) {
-            return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == LIST {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == DETAIL {
-            self.detail_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
@@ -1307,29 +1326,6 @@ impl Screen for CleanupPage {
             self.render_list(body, buf, ctx, w);
             ctx.control(DETAIL, Rect::ZERO, false);
         }
-    }
-
-    fn on_secondary(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        let Some(i) = self.locate(id) else {
-            return Outcome::Ignored;
-        };
-        if !matches!(
-            self.rows.get(i),
-            Some(Row::Category(_) | Row::Candidate(..))
-        ) {
-            return Outcome::Ignored;
-        }
-        if cx.context.moves_cursor {
-            self.cursor = i;
-        }
-        cx.focus.focus(LIST);
-        self.row_menu(i, ContextAnchor::Pointer(pos), cx)
     }
 
     fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {

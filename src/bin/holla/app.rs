@@ -5,11 +5,15 @@
 //! the shell before anything executes.
 
 use junie_tui::clock::Clock;
-use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::{
+    MouseTarget, PointerEvent, PointerHost, PointerParts, PointerRouter,
+};
+use junie_tui::core::response::Response;
 use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
@@ -21,7 +25,7 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
-use junie_tui::widgets::hintbar::{HintBar, HintLayer};
+use junie_tui::widgets::hintbar::{HintBar, HintKeys, HintLayer};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarAction, MenuItem, Placement};
@@ -95,6 +99,9 @@ enum AltCmd {
     Why,
 }
 
+/// The hints a footer drew and the cell each landed on.
+type FooterDrawn = (Vec<Hint>, Vec<(usize, Rect)>);
+
 pub struct App {
     pub theme: Theme,
     pub scenario: Scenario,
@@ -106,8 +113,8 @@ pub struct App {
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
-    /// Hover, press, flash and click-count state.
-    pub pointer: PointerState,
+    /// The pointer router: hover, press, flash and click-count state.
+    pub pointer: PointerRouter,
     /// Context menus: the keys that open one at the focused cursor row
     /// and whether a secondary click moves the cursor. Default
     /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key; moves).
@@ -123,6 +130,11 @@ pub struct App {
     strip: Tabs,
     /// The Here tab's page trail, drawn above a nested page (mouse #5).
     pub crumbs: Breadcrumb,
+    /// The footer's hints that name one key: a click runs it (mouse #1).
+    footer_keys: HintKeys,
+    /// The hints the footer drew this frame and where: their hits
+    /// register once the overlays are down, on the topmost layer.
+    footer_drawn: Option<FooterDrawn>,
     menu_item: Option<String>,
     menu_actions: Vec<AltCmd>,
     pending_gate: Option<GateTarget>,
@@ -176,7 +188,7 @@ impl App {
             focus: Focus::default(),
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
-            pointer: PointerState::default(),
+            pointer: PointerRouter::default(),
             context: ContextConfig::DEFAULT,
             status: StatusLine::new(),
             size: (0, 0),
@@ -185,6 +197,8 @@ impl App {
             menu: Self::build_menu(),
             strip: Tabs::with_items(TABS, vec![]),
             crumbs: Breadcrumb::new(CRUMBS, vec![]),
+            footer_keys: HintKeys::default(),
+            footer_drawn: None,
             menu_item: None,
             menu_actions: vec![],
             pending_gate: None,
@@ -427,7 +441,7 @@ impl App {
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
-            Input::Mouse(m) => self.on_mouse(m),
+            Input::Mouse(m) => PointerRouter::route(self, m),
         }
     }
 
@@ -456,18 +470,14 @@ impl App {
         if self.world.cleanup_job.is_some() {
             out = Outcome::Changed;
         }
-        if self.pointer.expire_flash(self.now_ms()) {
+        let now = self.now_ms();
+        if self.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
-        // a held drag past a selecting body's edge autoscrolls one step a
-        // tick (the simulated clock keeps its own tick rate)
-        if let Some((_, pos)) = self.pointer.autoscroll_due(self.now_ms()) {
-            out = out.or(self.on_mouse(Mouse::new(MouseKind::Drag, pos)));
-        }
-        // a press held on a scrollbar track keeps paging toward the pointer
-        if let Some(pos) = self.pointer.track_repeat_due(self.now_ms()) {
-            out = out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos)));
-        }
+        // a held drag past a selecting body's edge autoscrolls, a press
+        // held on a scrollbar track keeps paging (the simulated clock
+        // keeps its own tick rate)
+        out = out.or(PointerRouter::tick(self));
         if self.status.expire(self.world.clock.now()) {
             out = Outcome::Changed;
         }
@@ -1549,51 +1559,61 @@ impl App {
         }
     }
 
-    /// A click on `id` inside the top layer; its `×` closes it as Esc does.
-    fn layer_click(&mut self, id: WidgetId, pos: Position, clicks: u8) -> Outcome {
-        if id == junie_tui::ui::modal::CLOSE {
+    // ------------------------------------------------------------- mouse
+
+    /// One pointer event the router resolved: the footer's hints first
+    /// (they are drawn above every layer), then the top layer while one
+    /// is open, then the chrome (breadcrumbs, menu bar, tab strip, status
+    /// segments) and the page.
+    fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
+        // a footer hint naming one key runs it (mouse #1)
+        if ev.on(HintBar::ID) {
+            return match self.footer_keys.clicked(ev) {
+                Some(key) => self.on_key(key).or(Outcome::Changed),
+                None => Outcome::Consumed,
+            };
+        }
+        if !self.modals.is_empty() {
+            return self.layer_pointer(ev);
+        }
+        if let Some(o) = self.chrome_pointer(ev) {
+            return o;
+        }
+        let ev = *ev;
+        self.with_top_clicks(ev.count().max(1), |s, w, cx| s.pointer(&ev, w, cx))
+    }
+
+    /// An event while a layer is open: the frame's `×` means what Esc
+    /// means, under the layer's own policy; anything else (a popup's own
+    /// backdrop included) is the layer's.
+    fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
+        if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
         }
         let (Some(top), mut cx) = self.layer_cx() else {
             return Outcome::Ignored;
         };
-        let out = top.layer.on_click_count(id, pos, clicks, &mut cx);
-        self.settle_layer(out.or(Outcome::Changed))
+        let out = top.layer.pointer(ev, &mut cx);
+        self.settle_layer(out)
     }
 
-    // ------------------------------------------------------------- mouse
-
-    /// A button release at `m.pos` over `hit`.
-    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
-        let id = match self.pointer.release(hit) {
-            Release::Click(id) => id,
-            Release::Outside if !self.modals.is_empty() => {
-                return self.dismiss_layer(DismissReason::OutsideClick);
-            }
-            _ if hit.is_none() => {
-                if self.menu.is_open() {
-                    self.menu.close();
+    /// An event on the chrome around the page; `None` when it is not the
+    /// chrome's.
+    fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        // every earlier level of the trail is a link (mouse #5)
+        if let Some(r) = self.crumbs.route(ev) {
+            let (o, level) = r.into_parts();
+            return Some(match level {
+                Some(level) => {
+                    self.pop_to(level + 1);
+                    Outcome::Changed
                 }
-                return Outcome::Changed;
-            }
-            _ => return Outcome::Changed,
-        };
-        let now = self.now_ms();
-        self.pointer.flash(id, now);
-        // multi-clicks count by control, cell and time; a field in a
-        // dialog selects a word or a line with them too
-        let clicks = self.pointer.count_click(id, m.pos, now);
-        if !self.modals.is_empty() {
-            return self.layer_click(id, m.pos, clicks);
+                None => o,
+            });
         }
-        let double = clicks >= 2;
-        if let Some(level) = self.crumbs.on_click(id) {
-            self.pop_to(level + 1);
-            return Outcome::Changed;
-        }
-        if self.menu.owns(id) {
-            let (o, ev) = self.menu.on_click(id);
-            return match ev {
+        if let Some(r) = self.menu.route(ev) {
+            let (o, act) = r.into_parts();
+            return Some(match act {
                 Some(MenuBarAction::Chosen(mi, ii)) => {
                     let label = self.menu.menus[mi][ii].label.clone();
                     self.run_menu(&label)
@@ -1602,221 +1622,47 @@ impl App {
                     self.open_about();
                     Outcome::Changed
                 }
-                _ => o.or(Outcome::Changed),
-            };
+                _ => o,
+            });
         }
-        if self.menu.is_open() {
-            self.menu.close();
-            return Outcome::Changed;
-        }
-        if self.strip.owns(id) {
-            let (_, ev) = self.strip.on_click(id);
-            match ev {
-                Some(TabAction::Activated(i)) => self.activate_tab(i),
+        // the strip: a click activates or closes a tab, a middle click
+        // closes it, a wheel notch on either axis moves one tab
+        if let Some(r) = self.strip.route(ev) {
+            let (o, act) = r.into_parts();
+            return Some(match act {
+                Some(TabAction::Activated(i)) => {
+                    self.activate_tab(i);
+                    Outcome::Changed
+                }
                 Some(TabAction::Close(i)) => {
                     self.active = i;
                     self.go(Go::CloseTab);
+                    Outcome::Changed
                 }
-                _ => {}
-            }
-            return Outcome::Changed;
+                _ => o,
+            });
         }
-        if id == STATUS_RUNNING {
+        if !ev.is(Phase::Click) {
+            return None;
+        }
+        // the status bar's clickable segments
+        if ev.id == STATUS_RUNNING {
             self.open_activities();
-            return Outcome::Changed;
+            return Some(Outcome::Changed);
         }
-        if id == STATUS_PATH {
+        if ev.id == STATUS_PATH {
             let p = self.world.location.cwd.clone();
             self.copy(p);
-            return Outcome::Changed;
+            return Some(Outcome::Changed);
         }
-        if id == STATUS_GIT {
+        if ev.id == STATUS_GIT {
             self.go(Go::Run {
                 item: "git.status".into(),
                 args: vec![],
             });
-            return Outcome::Changed;
+            return Some(Outcome::Changed);
         }
-        let o = self.with_top_clicks(clicks, |s, w, cx| {
-            if double {
-                let d = s.on_double_click(id, m.pos, w, cx);
-                if d.consumed() {
-                    return d;
-                }
-            }
-            s.on_click(id, m.pos, w, cx)
-        });
-        o.or(Outcome::Changed)
-    }
-
-    /// A secondary click on `id`: the page under no modal opens its
-    /// context menu; inside a dialog or menu it is swallowed.
-    fn secondary_at(&mut self, id: WidgetId, pos: Position) -> Outcome {
-        if !self.modals.is_empty() {
-            return Outcome::Consumed;
-        }
-        self.with_top(|s, w, cx| s.on_secondary(id, pos, w, cx))
-    }
-
-    fn on_mouse(&mut self, m: Mouse) -> Outcome {
-        let before = self.focus.current();
-        let out = self.route_mouse(m);
-        // focus a click moved shows only on controls that want a ring
-        // after a click (FocusVisible)
-        let pressed = m.kind == MouseKind::Down && self.pointer.pressed.is_some();
-        if pressed || (m.kind == MouseKind::Up && self.focus.current() != before) {
-            self.pointer.focused_by_click();
-        }
-        out
-    }
-
-    fn route_mouse(&mut self, m: Mouse) -> Outcome {
-        self.pointer.pos = Some(m.pos);
-        match m.kind {
-            MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
-            MouseKind::Drag => {
-                let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) else {
-                    return Outcome::Ignored;
-                };
-                // a drag from a press on a dialog's field selects; one on a
-                // text modal's scrollbar scrolls it
-                if let Some(top) = self.modals.top_mut() {
-                    return top.layer.on_drag(pressed, m.pos).or(Outcome::Consumed);
-                }
-                self.with_top(|s, w, _| s.on_drag(pressed, m.pos, w))
-            }
-            MouseKind::Down => {
-                let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    return if self.modals.is_empty() {
-                        self.pointer.dead_space(&mut self.focus);
-                        Outcome::Ignored
-                    } else {
-                        Outcome::Consumed
-                    };
-                };
-                // a press on a modal's own body is dead space inside it:
-                // it ends the focused field's edit in place
-                if !self.modals.is_empty() {
-                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
-                }
-                if self.modals.is_empty()
-                    && self.pointer.config.focus_on == FocusOn::Press
-                    && self.ring.contains(id)
-                {
-                    self.focus.focus(id);
-                }
-                // the click count this press starts: the second press of a
-                // double click selects a word in a field
-                let count = self.pointer.press_count(id, m.pos, self.now_ms());
-                if let Some(top) = self.modals.top_mut() {
-                    top.layer.on_press(id, m.pos, count);
-                }
-                if self.modals.is_empty() {
-                    self.with_top(|s, w, _| s.on_press_count(id, m.pos, count, w));
-                }
-                Outcome::Changed
-            }
-            MouseKind::Up => {
-                // a pass-through backdrop: the click closes the popup and
-                // then lands on what is beneath it, as a click of its own
-                let pressed = self.pointer.pressed;
-                let (hit, beneath) = self.pointer.on_up(&self.hits, m.pos);
-                if let (Some(top), Some(p)) = (self.modals.top_mut(), pressed) {
-                    top.layer.on_release(p, m.pos);
-                }
-                let out = self.on_release(m, hit);
-                match beneath {
-                    Some(below) => {
-                        self.pointer.press(below);
-                        out.or(self.on_release(m, Some(below)))
-                    }
-                    None => out,
-                }
-            }
-            MouseKind::SecondaryDrag => self.pointer.on_secondary_drag(&self.hits, m.pos),
-            // press, drag onto a context-menu row, release: the release
-            // chooses it, delivered as a click on the row
-            MouseKind::SecondaryUp => match self.pointer.on_secondary_up(&self.hits, m.pos) {
-                Some(id) => {
-                    self.pointer.press(id);
-                    self.on_release(m, Some(id))
-                }
-                None => Outcome::Ignored,
-            },
-            MouseKind::Middle => {
-                // a middle click on a tab closes it (browsers, editors)
-                let hit = self.pointer.on_secondary(&self.hits, m.pos);
-                if !self.modals.is_empty() {
-                    return Outcome::Consumed;
-                }
-                match hit.and_then(|id| self.strip.on_middle_click(id)) {
-                    Some(TabAction::Close(i)) => {
-                        self.active = i;
-                        self.go(Go::CloseTab);
-                        Outcome::Changed
-                    }
-                    _ => Outcome::Ignored,
-                }
-            }
-            MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
-                SecondaryRoute::Target(id) => self.secondary_at(id, m.pos),
-                SecondaryRoute::Outside { backdrop, reopen } => {
-                    // the right click lands on an open popup's backdrop:
-                    // click it exactly as a primary release would (the
-                    // popup closes through its own dismiss policy), then
-                    // open the menu of what is beneath at the same spot
-                    self.pointer.press(backdrop);
-                    let out = self.on_release(m, Some(backdrop)).or(Outcome::Changed);
-                    match reopen {
-                        Some(id) => out.or(self.secondary_at(id, m.pos)),
-                        None => out,
-                    }
-                }
-                SecondaryRoute::Nothing | SecondaryRoute::Swallowed => {
-                    if self.modals.is_empty() {
-                        Outcome::Ignored
-                    } else {
-                        Outcome::Consumed
-                    }
-                }
-            },
-            MouseKind::WheelUp
-            | MouseKind::WheelDown
-            | MouseKind::WheelLeft
-            | MouseKind::WheelRight => {
-                let delta = self.pointer.wheel_delta(m.kind);
-                // a horizontal swipe is its own axis: it never scrolls a
-                // vertical list
-                let horizontal = matches!(m.kind, MouseKind::WheelLeft | MouseKind::WheelRight);
-                if let Some(top) = self.modals.top_mut() {
-                    return if horizontal {
-                        top.layer.on_wheel_h(delta, m.pos)
-                    } else {
-                        top.layer.on_wheel(delta, m.pos)
-                    };
-                }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
-                    return Outcome::Ignored;
-                };
-                // the tab strip scrolls one tab per notch, on either axis
-                if self.strip.owns(id) {
-                    let step = delta.signum();
-                    return if horizontal {
-                        self.strip.on_wheel(step, 0)
-                    } else {
-                        self.strip.on_wheel(0, step)
-                    };
-                }
-                let out = if horizontal {
-                    self.with_top(|s, w, _| s.on_wheel_h(id, delta, m.pos, w))
-                } else {
-                    self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w))
-                };
-                // rows move under a still pointer: re-resolve hover next frame
-                self.pointer.scrolled(m.pos, out);
-                out
-            }
-        }
+        None
     }
 
     // ----------------------------------------------------------- requests
@@ -3177,6 +3023,12 @@ impl App {
             ctx.page_under_layer(layer);
             self.draw(area, buf, &mut ctx);
             ctx.flush_overlays(buf);
+            // the footer belongs to the topmost layer (it names that
+            // layer's keys): its hints register above every popup
+            self.footer_keys = match self.footer_drawn.take() {
+                Some((hints, spots)) => HintKeys::register(&mut ctx, buf, &hints, spots),
+                None => HintKeys::default(),
+            };
             cursor = ctx.cursor;
         }
         self.hits = hits;
@@ -3227,7 +3079,7 @@ impl App {
         self.modals = modals;
         if open {
             let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-            self.draw_footer(footer, buf, true, ctx.reveal_hint);
+            self.draw_footer(footer, buf, ctx, true);
         }
     }
 
@@ -3357,7 +3209,7 @@ impl App {
             s.render(body, buf, ctx, &self.world);
         }
         self.draw_status(status, buf, ctx);
-        self.draw_footer(footer, buf, false, ctx.reveal_hint);
+        self.draw_footer(footer, buf, ctx, false);
     }
 
     /// Row zero: the menu bar, then the project crumb and the host identity
@@ -3476,14 +3328,9 @@ impl App {
         bar.render(area, buf, ctx);
     }
 
-    fn draw_footer(
-        &mut self,
-        area: Rect,
-        buf: &mut Buffer,
-        modal: bool,
-        reveal: Option<(&'static str, &'static str)>,
-    ) {
+    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, modal: bool) {
         let t = self.theme;
+        let reveal = ctx.reveal_hint;
         fill(buf, area, t.base());
         let hints: Vec<Hint> = if modal {
             // the top layer's own hints; the library picker and menu
@@ -3557,7 +3404,46 @@ impl App {
         layer.badge = badge;
         layer.status = status;
         layer.status_parts = status_parts;
-        HintBar::render(area, buf, &t, &layer);
+        let spots = HintBar::render_at(area, buf, &t, &layer);
+        self.footer_drawn = Some((layer.hints, spots));
+    }
+}
+
+impl PointerHost for App {
+    fn pointer_parts(&mut self) -> PointerParts<'_> {
+        PointerParts {
+            router: &mut self.pointer,
+            hits: &self.hits,
+            focus: &mut self.focus,
+            ring: &self.ring,
+        }
+    }
+
+    fn layer_open(&self) -> bool {
+        !self.modals.is_empty()
+    }
+
+    fn now_ms(&self) -> u64 {
+        App::now_ms(self)
+    }
+
+    fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
+        self.deliver_pointer(ev).into()
+    }
+
+    /// A click on nothing: the top layer's own policy decides (a refused
+    /// outside click flashes); with no layer, an open menu closes.
+    fn outside(&mut self, _pos: Position) -> Response<()> {
+        if !self.modals.is_empty() {
+            return self
+                .dismiss_layer(DismissReason::OutsideClick)
+                .or(Outcome::Changed)
+                .into();
+        }
+        if self.menu.is_open() {
+            self.menu.close();
+        }
+        Response::changed()
     }
 }
 

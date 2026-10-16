@@ -4,7 +4,10 @@
 //! every printable key edits the query.
 
 use junie_tui::core::event::{Key, Outcome};
+use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::columns::{self, Col};
@@ -1111,6 +1114,56 @@ impl FinderPage {
     }
 }
 
+impl FinderPage {
+    /// A completed click on `id`.
+    fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.dirty {
+            self.rebuild(w);
+        }
+        if id == SCOPE {
+            let next = match self.scope {
+                Scope::System => Scope::Children,
+                s => s.outward(),
+            };
+            cx.go(Go::Scope(next));
+            return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(FINDER) {
+            cx.focus.focus(FINDER);
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(PREVIEW) {
+            cx.focus.focus(PREVIEW);
+            return scroll_press(self.preview_area, pos, &mut self.preview_scroll);
+        }
+        if id == PREVIEW {
+            cx.focus.focus(PREVIEW);
+            return Outcome::Changed;
+        }
+        if let Some((_, _, ci)) = self.explore_areas.iter().find(|(cid, _, _)| *cid == id) {
+            if let Some(r) = self.rows.iter().position(|r| matches!(r, Row::Explore(_))) {
+                self.cursor = r;
+                self.explore_cursor = *ci;
+            }
+            cx.focus.focus(FINDER);
+            return self.activate_current(cx);
+        }
+        if let Some(i) = self.locate_row(id) {
+            if matches!(self.rows[i], Row::Item(..) | Row::Explore(_)) {
+                self.cursor = i;
+                self.preview_scroll.jump_start();
+            }
+            cx.focus.focus(FINDER);
+            return Outcome::Changed;
+        }
+        if id == FINDER {
+            cx.focus.focus(FINDER);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+}
+
 impl Screen for FinderPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.dirty {
@@ -1321,112 +1374,73 @@ impl Screen for FinderPage {
         Outcome::Changed
     }
 
-    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.dirty {
-            self.rebuild(w);
-        }
-        if id == SCOPE {
-            let next = match self.scope {
-                Scope::System => Scope::Children,
-                s => s.outward(),
-            };
-            cx.go(Go::Scope(next));
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(FINDER) {
-            cx.focus.focus(FINDER);
-            return scroll_press(self.list_area, pos, &mut self.scroll);
-        }
-        if id == scrollbar::id_for(PREVIEW) {
-            cx.focus.focus(PREVIEW);
-            return scroll_press(self.preview_area, pos, &mut self.preview_scroll);
-        }
-        if id == PREVIEW {
-            cx.focus.focus(PREVIEW);
-            return Outcome::Changed;
-        }
-        if let Some((_, _, ci)) = self.explore_areas.iter().find(|(cid, _, _)| *cid == id) {
-            if let Some(r) = self.rows.iter().position(|r| matches!(r, Row::Explore(_))) {
-                self.cursor = r;
-                self.explore_cursor = *ci;
+    fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        let (id, pos) = (ev.id, ev.pos());
+        if let Some((axis, delta)) = ev.wheel() {
+            // a sideways notch never scrolls these vertical panes
+            if axis != Axis::Vertical {
+                return Outcome::Ignored;
             }
-            cx.focus.focus(FINDER);
-            return self.activate_current(cx);
-        }
-        if let Some(i) = self.locate_row(id) {
-            if matches!(self.rows[i], Row::Item(..) | Row::Explore(_)) {
-                self.cursor = i;
-                self.preview_scroll.jump_start();
+            if id == PREVIEW {
+                self.preview_scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
             }
-            cx.focus.focus(FINDER);
-            return Outcome::Changed;
-        }
-        if id == FINDER {
-            cx.focus.focus(FINDER);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if id == scrollbar::id_for(FINDER) {
-            return scroll_press(self.list_area, pos, &mut self.scroll);
-        }
-        if id == scrollbar::id_for(PREVIEW) {
-            return scroll_press(self.preview_area, pos, &mut self.preview_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
-        if pressed == scrollbar::id_for(FINDER) {
-            return scroll_drag(self.list_area, pos, &mut self.scroll);
-        }
-        if pressed == scrollbar::id_for(PREVIEW) {
-            return scroll_drag(self.preview_area, pos, &mut self.preview_scroll);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_double_click(
-        &mut self,
-        id: WidgetId,
-        _pos: Position,
-        _w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if let Some(i) = self.locate_row(id)
-            && matches!(self.rows[i], Row::Item(..))
-        {
-            self.cursor = i;
-            return self.activate_current(cx);
-        }
-        Outcome::Ignored
-    }
-
-    fn on_secondary(
-        &mut self,
-        id: WidgetId,
-        pos: Position,
-        _w: &mut World,
-        cx: &mut Cx,
-    ) -> Outcome {
-        if let Some(i) = self.locate_row(id)
-            && let Some(Row::Item(ix, _)) = self.rows.get(i)
-            && let Some(item) = self.items.get(*ix).map(|it| it.id.clone())
-        {
-            if cx.context.moves_cursor {
-                self.cursor = i;
+            if id == FINDER {
+                self.scroll.scroll_by(delta as isize);
+                return Outcome::Changed;
             }
-            cx.focus.focus(FINDER);
-            // the menu opens at the pointer, about the row under it
-            cx.go(Go::Alternatives {
-                item,
-                anchor: Rect::new(pos.x, pos.y, 1, 1),
-            });
-            return Outcome::Changed;
+            return Outcome::Ignored;
         }
-        Outcome::Ignored
+        match ev.phase() {
+            Some(Phase::Press) => {
+                if id == scrollbar::id_for(FINDER) {
+                    return scroll_press(self.list_area, pos, &mut self.scroll);
+                }
+                if id == scrollbar::id_for(PREVIEW) {
+                    return scroll_press(self.preview_area, pos, &mut self.preview_scroll);
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Drag) => {
+                if id == scrollbar::id_for(FINDER) {
+                    return scroll_drag(self.list_area, pos, &mut self.scroll);
+                }
+                if id == scrollbar::id_for(PREVIEW) {
+                    return scroll_drag(self.preview_area, pos, &mut self.preview_scroll);
+                }
+                Outcome::Ignored
+            }
+            Some(Phase::Click) => {
+                // a double click on an item runs it
+                if cx.clicks >= 2
+                    && let Some(i) = self.locate_row(id)
+                    && matches!(self.rows[i], Row::Item(..))
+                {
+                    self.cursor = i;
+                    return self.activate_current(cx);
+                }
+                self.click(id, pos, w, cx)
+            }
+            Some(Phase::Secondary) => {
+                if let Some(i) = self.locate_row(id)
+                    && let Some(Row::Item(ix, _)) = self.rows.get(i)
+                    && let Some(item) = self.items.get(*ix).map(|it| it.id.clone())
+                {
+                    if cx.context.moves_cursor {
+                        self.cursor = i;
+                    }
+                    cx.focus.focus(FINDER);
+                    // the menu opens at the pointer, about the row under it
+                    cx.go(Go::Alternatives {
+                        item,
+                        anchor: Rect::new(pos.x, pos.y, 1, 1),
+                    });
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
+        }
     }
 
     fn on_context_key(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
@@ -1434,18 +1448,6 @@ impl Screen for FinderPage {
             return Outcome::Ignored;
         }
         self.alternatives(cx)
-    }
-
-    fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
-        if id == PREVIEW {
-            self.preview_scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        if id == FINDER {
-            self.scroll.scroll_by(delta as isize);
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
     }
 
     fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
