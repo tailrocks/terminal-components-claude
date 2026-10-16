@@ -7,6 +7,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::reveal::{Reveal, RevealState};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,8 @@ pub enum SelectMode {
 
 /// Scrollable list. The list is one focus stop; `cursor` is the keyboard row.
 /// Single mode: `›` marks the chosen item. Multi mode: `✓` marks each.
+/// A cut label reveals its full text on hover and with `→` on the cursor
+/// row (see [`crate::ui::reveal`]).
 #[derive(Debug, Clone)]
 pub struct ListBox {
     /// The scrollbar track as last drawn: presses and drags map through it.
@@ -57,6 +60,8 @@ pub struct ListBox {
     pub empty_text: String,
     /// Range-select anchor for Shift+arrows in multi mode.
     anchor: Option<usize>,
+    /// Revealing cut labels; `reveal.config` overrides the global default.
+    pub reveal: RevealState,
 }
 
 impl ListBox {
@@ -74,7 +79,14 @@ impl ListBox {
             track: Rect::ZERO,
             empty_text: "Nothing here yet".to_owned(),
             anchor: None,
+            reveal: RevealState::default(),
         }
+    }
+
+    /// How cut labels are revealed (default: [`RenderCtx::reveal`]).
+    pub fn reveal(mut self, config: Reveal) -> Self {
+        self.reveal.config = Some(config);
+        self
     }
 
     pub fn empty_text(mut self, s: &str) -> Self {
@@ -121,6 +133,9 @@ impl ListBox {
     pub fn on_key(&mut self, key: &Key) -> Outcome {
         if self.items.is_empty() {
             return Outcome::Ignored;
+        }
+        if let Some(o) = self.reveal.on_key(key) {
+            return o;
         }
         let shift = key.shift();
         if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
@@ -242,6 +257,7 @@ impl ListBox {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
+        self.reveal.begin(ctx);
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(area.height as usize);
         // the container registers first so rows drawn later win hit-testing
@@ -314,6 +330,10 @@ impl ListBox {
             };
             let lw = label_w.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 0 });
             buf.set_string(row.x + 3, y, crate::ui::text::fit(&item.label, lw), st);
+            if !item.disabled {
+                let label = Rect::new(row.x + 3, y, lw as u16, 1);
+                self.reveal.cell(ctx, rid, label, &item.label, s.focused);
+            }
             if let Some(m) = &item.meta
                 && meta_w > 0
                 && meta_w + 4 < label_w
@@ -352,6 +372,90 @@ impl ListBox {
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
+    }
+}
+
+#[cfg(test)]
+mod reveal_tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers;
+
+    const LONG: &str = "a label far too long for the narrow list it lives in";
+
+    fn render(l: &mut ListBox, interaction: Interaction) -> String {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 70, 4));
+        l.render(Rect::new(0, 0, 20, 4), &mut buf, &mut ctx, theme.canvas);
+        ctx.flush_overlays(&mut buf);
+        (0..4)
+            .map(|y| {
+                (0..70)
+                    .map(|x| buf[(x, y)].symbol().to_owned())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn list() -> ListBox {
+        ListBox::new(
+            WidgetId::of("l"),
+            vec![ListItem::new("short"), ListItem::new(LONG)],
+            SelectMode::Single,
+        )
+    }
+
+    #[test]
+    fn hovering_a_cut_label_shows_it_in_full() {
+        let mut l = list();
+        assert!(!render(&mut l, Interaction::default()).contains(LONG));
+        let hover = Interaction {
+            hover: Some(l.row_id(1)),
+            ..Default::default()
+        };
+        assert!(render(&mut l, hover).contains(LONG));
+        let hover_short = Interaction {
+            hover: Some(l.row_id(0)),
+            ..Default::default()
+        };
+        assert!(!render(&mut l, hover_short).contains(LONG));
+    }
+
+    #[test]
+    fn right_reveals_the_cut_cursor_row_and_left_hides_it() {
+        let mut l = list();
+        let focus = Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        };
+        let key = |code| Key {
+            code,
+            mods: KeyModifiers::NONE,
+        };
+        render(&mut l, focus);
+        assert_eq!(
+            l.on_key(&key(KeyCode::Right)),
+            Outcome::Ignored,
+            "short row"
+        );
+        l.on_key(&key(KeyCode::Down));
+        render(&mut l, focus);
+        assert_eq!(l.on_key(&key(KeyCode::Right)), Outcome::Changed);
+        assert!(render(&mut l, focus).contains(LONG));
+        l.on_key(&key(KeyCode::Left));
+        assert!(!render(&mut l, focus).contains(LONG));
+        // the policy turns it off
+        let mut l = list().reveal(Reveal::OFF);
+        l.on_key(&key(KeyCode::Down));
+        render(&mut l, focus);
+        assert_eq!(l.on_key(&key(KeyCode::Right)), Outcome::Ignored);
     }
 }
 
