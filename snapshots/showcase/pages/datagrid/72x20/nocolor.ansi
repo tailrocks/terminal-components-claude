@@ -6,15 +6,15 @@
   ▸ App shell     ┃                                                     [0m
   ▸ Inputs & for… ┃          ⚷ id       customer                  6›    [0m
   ▾ Tables        ┃        1 1001       Northwind Traders            ┃  [0m
-      Basic table ┃        2 1002       Blue Yonder Airlines         │  [0m
-      Editable    ┃        3 1003       Contoso Pharmaceuticals      │  [0m
- [0m[1m▎  › Data grid   [0m┃        4 1004       Fabrikam Robotics            │  [0m
-      Selection   ┃        5 1005       Litware Analytics            │  [0m
-      Cell edito… ┃        6 1006       Tailspin Toys                │  [0m
-  ▸ Navigation    ┃        7 1007       Wide World Importers         │  [0m
-  ▸ Overlays      ┃        8 1008       Adventure Works              │  [0m
-  ▸ Feedback      │    [0m[2m    9 1009       Proseware Studio             [0m│  [0m
- [0m[2m ▸ Layout        [0m│          ━━━━━━━━━━──────────────────────────────   [0m
+      Basic table ┃        2 1002       Blue Yonder Airlines         ┆  [0m
+      Editable    ┃        3 1003       Contoso Pharmaceuticals      ┆  [0m
+ [0m[1m▎  › Data grid   [0m┃        4 1004       Fabrikam Robotics            ┆  [0m
+      Selection   ┃        5 1005       Litware Analytics            ┆  [0m
+      Cell edito… ┃        6 1006       Tailspin Toys                ┆  [0m
+  ▸ Navigation    ┃        7 1007       Wide World Importers         ┆  [0m
+  ▸ Overlays      ┃        8 1008       Adventure Works              ┆  [0m
+  ▸ Feedback      ┆    [0m[2m    9 1009       Proseware Studio             [0m┆  [0m
+ [0m[2m ▸ Layout        [0m┆          ━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
                                                                         [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
