@@ -225,7 +225,7 @@ fn explorer_opens_table_and_grid_navigates() {
 #[test]
 fn grid_footer_names_the_keys_its_keymap_binds() {
     use junie_tui::core::keymap::KeyBinding;
-    use junie_tui::widgets::grid::GridAction;
+    use junie_tui::widgets::grid::GridCmd;
     let mut h = H::connected(120, 40);
     for _ in 0..5 {
         h.key(KeyCode::Down);
@@ -235,7 +235,7 @@ fn grid_footer_names_the_keys_its_keymap_binds() {
     assert!(footer(&h).contains("s Sort"), "{}", footer(&h));
     match h.app.workbench.as_mut().unwrap().active_tab_mut() {
         Some(WorkTab::Table(t)) => {
-            t.grid.keymap = vec![(KeyBinding::char('o'), GridAction::Sort)];
+            t.grid.keymap = vec![(KeyBinding::char('o'), GridCmd::Sort)];
         }
         _ => unreachable!(),
     }

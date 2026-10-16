@@ -77,9 +77,9 @@ pub struct Tabs {
     /// Which keys move between tabs (default [`NavKeys::DEFAULT`]: ←/→,
     /// `h`/`l`, Home/End, `g`/`G`).
     pub nav: NavKeys,
-    /// The strip's action keys (default [`TabAction::default_keymap`]:
+    /// The strip's action keys (default [`TabCmd::default_keymap`]:
     /// `x`/Delete close, `n` new, digits 1-9 jump).
-    pub keymap: KeyMap<TabAction>,
+    pub keymap: KeyMap<TabCmd>,
     /// Hit width of a tab's `×` in cells, centred on the glyph and kept
     /// inside the tab (a one-cell target is too small to hit reliably).
     /// Default 3.
@@ -133,7 +133,7 @@ pub const DEFAULT_CLOSE_KEYS: &[KeyCode] = &[KeyCode::Char('x'), KeyCode::Delete
 
 /// A [`Tabs`] action a key can be bound to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TabAction {
+pub enum TabCmd {
     /// Close the cursor tab (when it is closable). Default `x` and Delete.
     Close,
     /// Ask for a new tab (with [`Tabs::allow_new`]). Default `n`.
@@ -142,23 +142,23 @@ pub enum TabAction {
     Jump(usize),
 }
 
-impl TabAction {
+impl TabCmd {
     /// The digit bindings `1`-`9` (see [`Tabs::digit_jump`]).
     pub fn digit_keys() -> KeyMap<Self> {
         ('1'..='9')
             .enumerate()
-            .map(|(i, c)| (KeyBinding::char(c), TabAction::Jump(i)))
+            .map(|(i, c)| (KeyBinding::char(c), TabCmd::Jump(i)))
             .collect()
     }
 }
 
-impl Actions for TabAction {
+impl Actions for TabCmd {
     fn default_keymap() -> KeyMap<Self> {
         let mut map: KeyMap<Self> = DEFAULT_CLOSE_KEYS
             .iter()
-            .map(|&code| (KeyBinding::key(code), TabAction::Close))
+            .map(|&code| (KeyBinding::key(code), TabCmd::Close))
             .collect();
-        map.push((KeyBinding::char('n'), TabAction::New));
+        map.push((KeyBinding::char('n'), TabCmd::New));
         map.extend(Self::digit_keys());
         map
     }
@@ -185,7 +185,7 @@ impl Tabs {
             middle_click_closes: true,
             wrap: false,
             nav: NavKeys::DEFAULT,
-            keymap: TabAction::default_keymap(),
+            keymap: TabCmd::default_keymap(),
             close_target_w: 3,
             overflow_menu: true,
             menu: None,
@@ -209,7 +209,7 @@ impl Tabs {
             middle_click_closes: true,
             wrap: false,
             nav: NavKeys::DEFAULT,
-            keymap: TabAction::default_keymap(),
+            keymap: TabCmd::default_keymap(),
             close_target_w: 3,
             overflow_menu: true,
             menu: None,
@@ -238,39 +238,38 @@ impl Tabs {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<TabAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<TabCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
     /// Digits 1-9 jump to that tab (default on): adds or removes the
-    /// [`TabAction::Jump`] bindings in [`Self::keymap`].
+    /// [`TabCmd::Jump`] bindings in [`Self::keymap`].
     pub fn digit_jump(mut self, on: bool) -> Self {
-        self.keymap
-            .retain(|(_, a)| !matches!(a, TabAction::Jump(_)));
+        self.keymap.retain(|(_, a)| !matches!(a, TabCmd::Jump(_)));
         if on {
-            self.keymap.extend(TabAction::digit_keys());
+            self.keymap.extend(TabCmd::digit_keys());
         }
         self
     }
 
     /// The keys that close the cursor tab (default `x` and Delete):
-    /// replaces the [`TabAction::Close`] bindings in [`Self::keymap`].
+    /// replaces the [`TabCmd::Close`] bindings in [`Self::keymap`].
     pub fn close_keys(mut self, keys: &[KeyCode]) -> Self {
-        self.keymap.retain(|(_, a)| *a != TabAction::Close);
+        self.keymap.retain(|(_, a)| *a != TabCmd::Close);
         self.keymap.extend(
             keys.iter()
-                .map(|&code| (KeyBinding::key(code), TabAction::Close)),
+                .map(|&code| (KeyBinding::key(code), TabCmd::Close)),
         );
         self
     }
 
     /// The letter that asks for a new tab (default `Some('n')`): replaces
-    /// the [`TabAction::New`] bindings in [`Self::keymap`].
+    /// the [`TabCmd::New`] bindings in [`Self::keymap`].
     pub fn new_key(mut self, key: Option<char>) -> Self {
-        self.keymap.retain(|(_, a)| *a != TabAction::New);
+        self.keymap.retain(|(_, a)| *a != TabCmd::New);
         if let Some(c) = key {
-            self.keymap.push((KeyBinding::char(c), TabAction::New));
+            self.keymap.push((KeyBinding::char(c), TabCmd::New));
         }
         self
     }
@@ -488,14 +487,14 @@ impl Tabs {
         }
         if self.items.is_empty() {
             return match (action, key.code) {
-                (_, KeyCode::Enter) | (Some(TabAction::New), _) if self.allow_new => {
+                (_, KeyCode::Enter) | (Some(TabCmd::New), _) if self.allow_new => {
                     (Outcome::Changed, Some(TabEvent::New))
                 }
                 _ => (Outcome::Ignored, None),
             };
         }
         match action {
-            Some(TabAction::Jump(i)) => {
+            Some(TabCmd::Jump(i)) => {
                 return if i < self.items.len() {
                     self.set_active(i);
                     (Outcome::Changed, Some(TabEvent::Activated(i)))
@@ -503,10 +502,10 @@ impl Tabs {
                     (Outcome::Ignored, None)
                 };
             }
-            Some(TabAction::Close) if self.items[self.cursor].closable => {
+            Some(TabCmd::Close) if self.items[self.cursor].closable => {
                 return (Outcome::Changed, Some(TabEvent::Close(self.cursor)));
             }
-            Some(TabAction::New) if self.allow_new => {
+            Some(TabCmd::New) if self.allow_new => {
                 return (Outcome::Changed, Some(TabEvent::New));
             }
             _ => {}

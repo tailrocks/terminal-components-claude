@@ -61,9 +61,9 @@ pub struct Dialog {
     pub cancel_index: Option<usize>,
     pub width: u16,
     /// Extra action keys on a text dialog (default
-    /// [`DialogAction::default_keymap`]: none; the label mnemonics are the
+    /// [`DialogCmd::default_keymap`]: none; the label mnemonics are the
     /// letter keys, see [`Self::mnemonics`]).
-    pub keymap: KeyMap<DialogAction>,
+    pub keymap: KeyMap<DialogCmd>,
     /// Which keys scroll a tall body (↑/↓, paging, Home/End) and move
     /// between the actions (←/→). Default [`NavKeys::DEFAULT`].
     pub nav: NavKeys,
@@ -164,14 +164,14 @@ pub enum AckEnter {
 
 /// A [`Dialog`] action a key can be bound to (text dialogs only).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DialogAction {
+pub enum DialogCmd {
     /// Press the primary (or danger) action. Unbound by default.
     Confirm,
     /// Press the cancel action. Unbound by default.
     Cancel,
 }
 
-impl Actions for DialogAction {
+impl Actions for DialogCmd {
     /// Empty: the label mnemonics ([`Dialog::mnemonics`]) are the
     /// letter keys of a dialog. Bind `y`/`n` here to restore them.
     fn default_keymap() -> KeyMap<Self> {
@@ -197,8 +197,8 @@ impl Dialog {
     pub fn accelerators(mut self, keys: Option<(char, char)>) -> Self {
         self.keymap = match keys {
             Some((yes, no)) => vec![
-                (KeyBinding::char(yes), DialogAction::Confirm),
-                (KeyBinding::char(no), DialogAction::Cancel),
+                (KeyBinding::char(yes), DialogCmd::Confirm),
+                (KeyBinding::char(no), DialogCmd::Cancel),
             ],
             None => vec![],
         };
@@ -206,7 +206,7 @@ impl Dialog {
     }
 
     /// See [`Self::keymap`].
-    pub fn keymap(mut self, keymap: KeyMap<DialogAction>) -> Self {
+    pub fn keymap(mut self, keymap: KeyMap<DialogCmd>) -> Self {
         self.keymap = keymap;
         self
     }
@@ -312,7 +312,7 @@ impl Dialog {
             actions: vec![cancel, ok],
             cancel_index: Some(0),
             width: 54,
-            keymap: DialogAction::default_keymap(),
+            keymap: DialogCmd::default_keymap(),
             nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
@@ -357,7 +357,7 @@ impl Dialog {
             actions: vec![cancel, del],
             cancel_index: Some(0),
             width: 54,
-            keymap: DialogAction::default_keymap(),
+            keymap: DialogCmd::default_keymap(),
             nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
@@ -403,7 +403,7 @@ impl Dialog {
             actions: vec![cancel, ok],
             cancel_index: Some(0),
             width: 54,
-            keymap: DialogAction::default_keymap(),
+            keymap: DialogCmd::default_keymap(),
             nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
@@ -486,7 +486,7 @@ impl Dialog {
             actions: vec![cancel, confirm],
             cancel_index: Some(0),
             width: 66,
-            keymap: DialogAction::default_keymap(),
+            keymap: DialogCmd::default_keymap(),
             nav: NavKeys::DEFAULT,
             area: Rect::ZERO,
             result: None,
@@ -633,14 +633,14 @@ impl Dialog {
         // explicit accelerators (the keymap; empty by default) name what
         // they press; the label mnemonics show in the buttons themselves
         if matches!(self.body, DialogBody::Text(_)) {
-            if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogAction::Confirm)
+            if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogCmd::Confirm)
                 && let Some(p) = self.actions.iter().find(|b| {
                     matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled
                 })
             {
                 v.push(Hint::new(k, p.label.clone()));
             }
-            if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogAction::Cancel)
+            if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogCmd::Cancel)
                 && let Some(c) = cancel_label
             {
                 v.push(Hint::new(k, c));
@@ -1020,7 +1020,7 @@ impl Dialog {
         }
         if matches!(self.body, DialogBody::Text(_)) {
             match lookup(&self.keymap, key) {
-                Some(DialogAction::Confirm) => {
+                Some(DialogCmd::Confirm) => {
                     let primary = self.actions.iter().position(|b| {
                         matches!(b.kind, ButtonKind::Primary | ButtonKind::Danger) && !b.disabled
                     });
@@ -1029,7 +1029,7 @@ impl Dialog {
                         None => Outcome::Consumed,
                     };
                 }
-                Some(DialogAction::Cancel) => {
+                Some(DialogCmd::Cancel) => {
                     return match self.cancel_index {
                         Some(ci) => self.finish(DialogResult::Action(ci)),
                         None => Outcome::Consumed,
