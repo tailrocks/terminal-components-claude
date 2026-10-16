@@ -23,6 +23,10 @@ pub struct Button {
     /// When the focus ring shows. Default [`FocusVisible::Always`];
     /// `KeyboardOnly` hides it after a click, as macOS buttons do.
     pub focus_visible: crate::ui::ctx::FocusVisible,
+    /// The label character (index in chars) drawn underlined as the
+    /// button's mnemonic, set by the owner that handles the key (a
+    /// [`crate::widgets::dialog::Dialog`]). Default `None`.
+    pub mnemonic: Option<usize>,
 }
 
 impl Button {
@@ -36,6 +40,7 @@ impl Button {
             busy: false,
             area: Rect::ZERO,
             focus_visible: crate::ui::ctx::FocusVisible::Always,
+            mnemonic: None,
         }
     }
 
@@ -186,6 +191,19 @@ impl Button {
                 t.glyphs.spinner_frame(ctx.interaction.tick),
                 style.fg(if filled { busy_ink } else { t.accent }),
             );
+        }
+        // the mnemonic letter, underlined where the label is drawn whole
+        if let Some(mi) = self.mnemonic
+            && !self.busy
+            && self.on.is_none()
+            && text == self.label
+            && let Some(c) = self.label.chars().nth(mi)
+        {
+            let x = area.x + 1 + width(&self.label.chars().take(mi).collect::<String>()) as u16;
+            if let Some(cell) = buf.cell_mut((x, area.y)) {
+                cell.set_style(style.add_modifier(ratatui::style::Modifier::UNDERLINED));
+                debug_assert_eq!(cell.symbol(), c.to_string());
+            }
         }
         buf.set_string(area.x + w - 1, area.y, " ", style);
         ctx.control(self.id, area, self.disabled);
