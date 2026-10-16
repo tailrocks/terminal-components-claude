@@ -41,6 +41,10 @@ impl Harness {
         self.send(Input::Key(Key { code, mods }))
     }
 
+    fn shift_f10(&mut self) -> Outcome {
+        self.key_mod(KeyCode::F(10), KeyModifiers::SHIFT)
+    }
+
     fn mouse(&mut self, kind: MouseKind, (x, y): (u16, u16)) -> Outcome {
         self.send(Input::Mouse(Mouse::new(kind, Position::new(x, y))))
     }
@@ -107,6 +111,7 @@ impl Harness {
 }
 
 const CHROME_MENU: WidgetId = WidgetId::of("chrome.context");
+const LISTS_MENU: WidgetId = WidgetId::of("lists.menu");
 
 // ------------------------------------------------------------------ router
 
@@ -177,4 +182,84 @@ fn a_secondary_click_outside_a_dialog_stays_swallowed() {
         h.menu(CHROME_MENU).is_none(),
         "no menu opens under a dialog"
     );
+}
+
+// ------------------------------------------------------------------ chrome
+
+#[test]
+fn chrome_shift_f10_opens_the_tab_menu_under_the_cursor_row() {
+    let mut h = Harness::new(PageId::Chrome);
+    let shell = h.at("3 Shell");
+    h.click(shell);
+    assert_eq!(h.shift_f10(), Outcome::Changed);
+    let menu = h.menu(CHROME_MENU).expect("Shift+F10 opens the tab menu");
+    assert_eq!(menu.y, shell.1 + 1, "right under the cursor row");
+    assert!(h.text_in(menu).contains("3 Shell"));
+    assert!(
+        !h.text().contains("New tab"),
+        "Shift+F10 is not the menu bar"
+    );
+    h.key(KeyCode::Esc);
+    assert!(h.menu(CHROME_MENU).is_none());
+
+    h.key(KeyCode::Menu);
+    assert!(h.menu(CHROME_MENU).is_some(), "the Menu key");
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char('m'));
+    assert!(
+        h.menu(CHROME_MENU).is_none(),
+        "m is no longer a context key"
+    );
+    assert!(h.text().contains("Shift+F10"), "the hint names the key");
+}
+
+// ------------------------------------------------------------------ lists
+
+#[test]
+fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
+    let mut h = Harness::new(PageId::Lists);
+    assert!(h.text().contains("2 selected"));
+    let billing = h.at("src/api/billing.rs");
+    let at = (billing.0 + 2, billing.1);
+    assert_eq!(h.right_click(at), Outcome::Changed);
+    let menu = h.menu(LISTS_MENU).expect("the row menu");
+    assert_eq!((menu.x, menu.y), (at.0, at.1 + 1), "at the pointer");
+    let shown = h.text_in(menu);
+    assert!(shown.contains("src/api/billing.rs"), "titled by the row");
+    assert!(shown.contains("Exclude") && shown.contains("Space"));
+    assert!(shown.contains("Select all"));
+
+    h.click(h.at("Exclude"));
+    assert!(h.menu(LISTS_MENU).is_none(), "choosing closes the menu");
+    assert!(h.text().contains("1 selected"), "the file was excluded");
+
+    // a locked file says why it cannot be included
+    let lock = h.at("Cargo.lock");
+    h.right_click((lock.0 + 1, lock.1));
+    let menu = h.menu(LISTS_MENU).expect("the row menu");
+    assert!(h.text_in(menu).contains("locked file"));
+    // the cursor starts on the first available item
+    h.key(KeyCode::Enter);
+    assert!(h.menu(LISTS_MENU).is_none());
+    assert!(
+        h.text().contains("10 selected"),
+        "Select all skips the locked files"
+    );
+}
+
+#[test]
+fn lists_shift_f10_opens_under_the_cursor_row_and_chooses() {
+    let mut h = Harness::new(PageId::Lists);
+    h.click(h.at("TypeScript"));
+    h.key(KeyCode::Down);
+    let python = h.at("Python");
+    h.key(KeyCode::Char('j'));
+    h.key(KeyCode::Char('k'));
+    assert_eq!(h.shift_f10(), Outcome::Changed);
+    let menu = h.menu(LISTS_MENU).expect("Shift+F10 opens the row menu");
+    assert_eq!(menu.y, python.1 + 1, "under the cursor row\n{}", h.text());
+    assert!(h.text_in(menu).contains("Python"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Chosen: Python"));
+    assert!(h.menu(LISTS_MENU).is_none());
 }

@@ -24,6 +24,7 @@ pub mod overview;
 pub mod panels;
 pub mod pickers;
 pub mod progress;
+pub mod row_menu;
 pub mod scrolling;
 pub mod selectable;
 pub mod settings;
