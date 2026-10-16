@@ -1613,3 +1613,16 @@ fn the_accounts_health_line_wraps_instead_of_cutting_its_issues() {
     }
     assert!(!joined.contains("refres…"), "{text}");
 }
+
+#[test]
+fn the_launch_picker_shows_the_one_focus_bar_on_its_cursor_row() {
+    // a fixed-choice picker (no query field): since popup cursors became
+    // fills (948e926d8) Enter on a workspace opened a picker with no `▎`
+    // anywhere on screen
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+    let bars = focus_bars(&h);
+    assert_eq!(bars.len(), 1, "{}", h.text());
+    assert!(bars[0].contains("▪ Claude Code"), "{}", h.text());
+}

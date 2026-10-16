@@ -565,7 +565,7 @@ impl PickersPage {
                 "Rows",
                 format!(
                     "cursor {:?} · Delete secondary {} · nav {}",
-                    p.cursor_style,
+                    p.effective_cursor_style(),
                     on(p.delete_is_secondary),
                     self.opts.value("pickers.nav")
                 ),

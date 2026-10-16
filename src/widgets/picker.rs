@@ -129,9 +129,12 @@ pub struct Picker {
     pub area: Rect,
     /// Show the query field (false for fixed-choice pickers).
     pub searchable: bool,
-    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
-    /// query field that owns the list keeps the only focus bar.
-    pub cursor_style: CursorStyle,
+    /// How the cursor row is marked. `None` (default) follows the picker:
+    /// [`CursorStyle::Fill`] while it is searchable (the query field owns
+    /// the list and keeps the only focus bar), [`CursorStyle::Bar`] on a
+    /// fixed-choice picker, whose list holds focus itself and would
+    /// otherwise show no focus at all. See [`Self::effective_cursor_style`].
+    pub cursor_style: Option<CursorStyle>,
     /// The cursor moved since the last render: the next render pulls it
     /// into view. Wheel scrolling leaves it alone so the viewport and the
     /// selection never fight.
@@ -205,7 +208,7 @@ impl Picker {
             empty: None,
             area: Rect::ZERO,
             searchable: true,
-            cursor_style: CursorStyle::default(),
+            cursor_style: None,
             cursor_dirty: true,
             reveal: None,
             dismiss: crate::ui::popup::Dismiss::LIGHT,
@@ -333,8 +336,18 @@ impl Picker {
     }
 
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
-        self.cursor_style = cursor_style;
+        self.cursor_style = Some(cursor_style);
         self
+    }
+
+    /// The cursor-row style this picker draws with: [`Self::cursor_style`]
+    /// when set, otherwise Fill while searchable and Bar when not.
+    pub fn effective_cursor_style(&self) -> CursorStyle {
+        self.cursor_style.unwrap_or(if self.searchable {
+            CursorStyle::Fill
+        } else {
+            CursorStyle::Bar
+        })
     }
 
     /// The frame's height in rows before it is fitted to a screen: the
@@ -862,7 +875,7 @@ impl Picker {
             let mut s = ctx.state(rid);
             s.focused = i == self.cursor;
             s.disabled = it.disabled;
-            let cr = t.cursor_row(s, bg, self.cursor_style);
+            let cr = t.cursor_row(s, bg, self.effective_cursor_style());
             let st = cr.style;
             let row = Rect::new(list.x, ry, list.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, row, st);
@@ -1355,6 +1368,30 @@ mod tests {
         // the bar look stays available as configuration
         let mut barred = picker(4).cursor_style(CursorStyle::Bar);
         assert_eq!(render(&mut barred).matches('▎').count(), 2);
+    }
+
+    /// A fixed-choice picker has no query field to own its list: the list
+    /// holds focus itself, so its cursor row carries the one `▎`. With the
+    /// Fill cursor (948e926d8) the jackin launch picker showed no focus at
+    /// all (found re-approving jackin against visual-baseline).
+    #[test]
+    fn a_fixed_choice_picker_marks_its_cursor_with_the_one_focus_bar() {
+        let mut p = picker(4);
+        p.searchable = false;
+        let out = render(&mut p);
+        let bars: Vec<&str> = out.lines().filter(|l| l.contains('▎')).collect();
+        assert_eq!(bars.len(), 1, "{out}");
+        assert!(bars[0].contains("Item 00"), "{out}");
+        assert_eq!(p.effective_cursor_style(), CursorStyle::Bar);
+        // searchable: the query field keeps the bar, the row is a fill
+        let mut q = picker(4);
+        assert_eq!(q.effective_cursor_style(), CursorStyle::Fill);
+        let out = render(&mut q);
+        assert_eq!(out.matches('▎').count(), 1, "{out}");
+        // an explicit style wins either way
+        let mut filled = picker(4).cursor_style(CursorStyle::Fill);
+        filled.searchable = false;
+        assert_eq!(render(&mut filled).matches('▎').count(), 0);
     }
 
     #[test]
