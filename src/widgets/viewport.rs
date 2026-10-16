@@ -32,6 +32,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility, TrackClick};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -424,9 +425,45 @@ pub struct TextViewport {
     pub track_click: Option<TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: TrackClick,
+    /// Which keys scroll (default [`NavKeys::DEFAULT`]). Shift+arrows
+    /// always extend a keyboard selection.
+    pub nav: NavKeys,
+    /// The viewport's own action keys (default
+    /// [`ViewportAction::default_keymap`]).
+    pub keymap: KeyMap<ViewportAction>,
+}
+
+/// A [`TextViewport`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewportAction {
+    /// Toggle following the tail. Default `f`.
+    ToggleFollow,
+    /// Copy the selection ([`ViewportEvent::Copy`]). Default `y`.
+    Copy,
+}
+
+impl Actions for ViewportAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::char('f'), ViewportAction::ToggleFollow),
+            (KeyBinding::char('y'), ViewportAction::Copy),
+        ]
+    }
 }
 
 impl TextViewport {
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<ViewportAction>) -> Self {
+        self.keymap = keymap;
+        self
+    }
+
     pub fn new(id: WidgetId) -> Self {
         Self {
             id,
@@ -462,6 +499,8 @@ impl TextViewport {
             h_held: false,
             track_click: None,
             v_click: TrackClick::Jump,
+            nav: NavKeys::DEFAULT,
+            keymap: ViewportAction::default_keymap(),
         }
     }
 
@@ -1600,39 +1639,43 @@ impl TextViewport {
             let o = self.extend_selection(key.code, word);
             return (o, Some(ViewportEvent::SelectionChanged));
         }
-        let moved = match key.code {
-            // no caret to move, so the arrows scroll sideways
-            KeyCode::Left | KeyCode::Char('h') if key.plain() && self.caret.is_none() => {
-                return (self.scroll_h(-1), None);
-            }
-            KeyCode::Right | KeyCode::Char('l') if key.plain() && self.caret.is_none() => {
-                return (self.scroll_h(1), None);
-            }
-            KeyCode::Up | KeyCode::Char('k') if key.plain() => self.scroll.scroll_by(-1),
-            KeyCode::Down | KeyCode::Char('j') if key.plain() => self.scroll.scroll_by(1),
-            KeyCode::PageUp if key.plain() => self.scroll.page_up(),
-            KeyCode::PageDown if key.plain() => self.scroll.page_down(),
-            KeyCode::Home | KeyCode::Char('g') if key.plain() => self.scroll.jump_start(),
-            KeyCode::End | KeyCode::Char('G') if key.plain() => {
-                self.scroll.jump_end();
-                self.follow = true;
-                self.reading = None;
-                return (Outcome::Changed, Some(ViewportEvent::FollowChanged(true)));
-            }
-            KeyCode::Char('f') if key.plain() => {
+        match lookup(&self.keymap, key) {
+            Some(ViewportAction::ToggleFollow) => {
                 self.set_follow(!self.follow);
                 return (
                     Outcome::Changed,
                     Some(ViewportEvent::FollowChanged(self.follow)),
                 );
             }
-            KeyCode::Char('y') if key.plain() => {
+            Some(ViewportAction::Copy) => {
                 return match self.selected_text() {
                     Some(t) => (Outcome::Changed, Some(ViewportEvent::Copy(t))),
                     None => (Outcome::Consumed, None),
                 };
             }
-            KeyCode::Esc if key.plain() => {
+            None => {}
+        }
+        let nav = self.nav.action(key).filter(|_| key.plain());
+        let moved = match (nav, key.code) {
+            // no caret to move, so the arrows scroll sideways
+            (Some(Nav::Left), _) if self.caret.is_none() => {
+                return (self.scroll_h(-1), None);
+            }
+            (Some(Nav::Right), _) if self.caret.is_none() => {
+                return (self.scroll_h(1), None);
+            }
+            (Some(Nav::Up), _) => self.scroll.scroll_by(-1),
+            (Some(Nav::Down), _) => self.scroll.scroll_by(1),
+            (Some(Nav::PageUp), _) => self.scroll.page_up(),
+            (Some(Nav::PageDown), _) => self.scroll.page_down(),
+            (Some(Nav::Home), _) => self.scroll.jump_start(),
+            (Some(Nav::End), _) => {
+                self.scroll.jump_end();
+                self.follow = true;
+                self.reading = None;
+                return (Outcome::Changed, Some(ViewportEvent::FollowChanged(true)));
+            }
+            (_, KeyCode::Esc) if key.plain() => {
                 return match self.clear_selection() {
                     Outcome::Changed => (Outcome::Changed, Some(ViewportEvent::SelectionChanged)),
                     _ => (Outcome::Ignored, None),

@@ -6,6 +6,7 @@ use ratatui::style::{Color, Modifier};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::BlurAction;
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::ScrollState;
 use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
@@ -48,6 +49,9 @@ pub struct TextArea {
     /// Default [`PointerSelect::DEFAULT`].
     pub pointer_select: PointerSelect,
     press: PressState,
+    /// Which keys scroll the area while it is not being edited (default
+    /// [`NavKeys::DEFAULT`]). Editing keys are the text buffer's own.
+    pub nav: NavKeys,
 }
 
 impl TextArea {
@@ -72,10 +76,17 @@ impl TextArea {
             snapshot: String::new(),
             pointer_select: PointerSelect::DEFAULT,
             press: PressState::default(),
+            nav: NavKeys::DEFAULT,
         }
     }
 
     /// See [`Self::pointer_select`].
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
     pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
         self.pointer_select = sel;
         self
@@ -156,37 +167,20 @@ impl TextArea {
             return (Outcome::Ignored, None);
         }
         if !self.editing {
-            return match key.code {
-                KeyCode::Enter | KeyCode::F(2) if key.plain() => {
-                    self.begin_edit();
-                    (Outcome::Changed, None)
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.scroll.scroll_by(-1);
-                    (Outcome::Changed, None)
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.scroll.scroll_by(1);
-                    (Outcome::Changed, None)
-                }
-                KeyCode::PageUp => {
-                    self.scroll.page_up();
-                    (Outcome::Changed, None)
-                }
-                KeyCode::PageDown => {
-                    self.scroll.page_down();
-                    (Outcome::Changed, None)
-                }
-                KeyCode::Home | KeyCode::Char('g') => {
-                    self.scroll.jump_start();
-                    (Outcome::Changed, None)
-                }
-                KeyCode::End | KeyCode::Char('G') => {
-                    self.scroll.jump_end();
-                    (Outcome::Changed, None)
-                }
-                _ => (Outcome::Ignored, None),
+            if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
+                self.begin_edit();
+                return (Outcome::Changed, None);
+            }
+            let _moved = match self.nav.action(key) {
+                Some(Nav::Up) => self.scroll.scroll_by(-1),
+                Some(Nav::Down) => self.scroll.scroll_by(1),
+                Some(Nav::PageUp) => self.scroll.page_up(),
+                Some(Nav::PageDown) => self.scroll.page_down(),
+                Some(Nav::Home) => self.scroll.jump_start(),
+                Some(Nav::End) => self.scroll.jump_end(),
+                Some(Nav::Left | Nav::Right) | None => return (Outcome::Ignored, None),
             };
+            return (Outcome::Changed, None);
         }
         self.follow_cursor = true;
         match edit_key(key, true) {

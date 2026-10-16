@@ -15,6 +15,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
 use crate::theme::SyntaxTone;
@@ -110,6 +111,47 @@ pub struct CodeEditor {
     pub track_click: Option<crate::core::scroll::TrackClick>,
     /// The vertical track policy resolved at the last render.
     v_click: crate::core::scroll::TrackClick,
+    /// Which keys move the cursor while reading (default
+    /// [`NavKeys::DEFAULT`]; ←/→ scroll sideways). Editing keys are the
+    /// text buffer's own.
+    pub nav: NavKeys,
+    /// The reading-mode action keys (default
+    /// [`CodeAction::default_keymap`]).
+    pub keymap: KeyMap<CodeAction>,
+}
+
+/// A [`CodeEditor`] reading-mode action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodeAction {
+    /// Start editing at the cursor. Default Enter and `i`.
+    Edit,
+    /// Start editing after the cursor. Default `a`.
+    Append,
+    /// Jump to the previous block. Default `{`.
+    PrevBlock,
+    /// Jump to the next block. Default `}`.
+    NextBlock,
+    /// Open the find bar. Default `/`.
+    Find,
+    /// Next find match. Default `n`.
+    NextMatch,
+    /// Previous find match. Default `N`.
+    PrevMatch,
+}
+
+impl Actions for CodeAction {
+    fn default_keymap() -> KeyMap<Self> {
+        vec![
+            (KeyBinding::key(KeyCode::Enter), CodeAction::Edit),
+            (KeyBinding::char('i'), CodeAction::Edit),
+            (KeyBinding::char('a'), CodeAction::Append),
+            (KeyBinding::char('{'), CodeAction::PrevBlock),
+            (KeyBinding::char('}'), CodeAction::NextBlock),
+            (KeyBinding::char('/'), CodeAction::Find),
+            (KeyBinding::char('n'), CodeAction::NextMatch),
+            (KeyBinding::char('N'), CodeAction::PrevMatch),
+        ]
+    }
 }
 
 fn hash_text(s: &str) -> u64 {
@@ -156,7 +198,21 @@ impl CodeEditor {
             hbar: ScrollState::default(),
             htrack: Rect::ZERO,
             h_held: false,
+            nav: NavKeys::DEFAULT,
+            keymap: CodeAction::default_keymap(),
         }
+    }
+
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<CodeAction>) -> Self {
+        self.keymap = keymap;
+        self
     }
 
     /// Blank columns between the text and the scrollbar.
@@ -465,79 +521,48 @@ impl CodeEditor {
     }
 
     fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorEvent>) {
-        match key.code {
-            KeyCode::Enter | KeyCode::Char('i') if key.plain() => {
-                self.begin_edit();
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('a') if key.plain() => {
-                self.begin_edit();
-                self.buffer.move_right(false);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Up | KeyCode::Char('k') if key.plain() => {
+        if let Some(action) = lookup(&self.keymap, key) {
+            return self.on_action(action);
+        }
+        let plain = key.plain();
+        match self.nav.action(key) {
+            Some(Nav::Up) if plain => {
                 self.buffer.move_up(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            KeyCode::Down | KeyCode::Char('j') if key.plain() => {
+            Some(Nav::Down) if plain => {
                 self.buffer.move_down(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            KeyCode::Left | KeyCode::Char('h') if key.plain() => {
+            Some(Nav::Left) if plain => {
                 self.scroll_h(-8);
                 (Outcome::Changed, None)
             }
-            KeyCode::Right | KeyCode::Char('l') if key.plain() => {
+            Some(Nav::Right) if plain => {
                 self.scroll_h(8);
                 (Outcome::Changed, None)
             }
-            KeyCode::PageUp => {
+            Some(Nav::PageUp) => {
                 self.scroll.page_up();
                 (Outcome::Changed, None)
             }
-            KeyCode::PageDown => {
+            Some(Nav::PageDown) => {
                 self.scroll.page_down();
                 (Outcome::Changed, None)
             }
-            KeyCode::Home | KeyCode::Char('g') if key.plain() => {
+            Some(Nav::Home) if plain => {
                 self.buffer.move_doc_start(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            KeyCode::End | KeyCode::Char('G') => {
+            Some(Nav::End) => {
                 self.buffer.move_doc_end(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
-            KeyCode::Char('{') => {
-                let cur = self.buffer.cursor_offset();
-                if let Some(b) = self.blocks().iter().rev().find(|b| b.start < cur) {
-                    self.jump_to(b.start);
-                }
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
-            }
-            KeyCode::Char('}') => {
-                let cur = self.buffer.cursor_offset();
-                if let Some(b) = self.blocks().iter().find(|b| b.start > cur) {
-                    self.jump_to(b.start);
-                }
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
-            }
-            KeyCode::Char('/') if key.plain() => {
-                self.open_find();
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('n') if key.plain() => {
-                self.goto_match(1);
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
-            }
-            KeyCode::Char('N') => {
-                self.goto_match(-1);
-                (Outcome::Changed, Some(EditorEvent::CursorMoved))
-            }
-            KeyCode::Esc => {
+            _ if key.code == KeyCode::Esc => {
                 if self.find.is_some() {
                     self.find = None;
                     (Outcome::Changed, None)
@@ -546,6 +571,46 @@ impl CodeEditor {
                 }
             }
             _ => (Outcome::Ignored, None),
+        }
+    }
+
+    fn on_action(&mut self, action: CodeAction) -> (Outcome, Option<EditorEvent>) {
+        match action {
+            CodeAction::Edit => {
+                self.begin_edit();
+                (Outcome::Changed, None)
+            }
+            CodeAction::Append => {
+                self.begin_edit();
+                self.buffer.move_right(false);
+                (Outcome::Changed, None)
+            }
+            CodeAction::PrevBlock => {
+                let cur = self.buffer.cursor_offset();
+                if let Some(b) = self.blocks().iter().rev().find(|b| b.start < cur) {
+                    self.jump_to(b.start);
+                }
+                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+            }
+            CodeAction::NextBlock => {
+                let cur = self.buffer.cursor_offset();
+                if let Some(b) = self.blocks().iter().find(|b| b.start > cur) {
+                    self.jump_to(b.start);
+                }
+                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+            }
+            CodeAction::Find => {
+                self.open_find();
+                (Outcome::Changed, None)
+            }
+            CodeAction::NextMatch => {
+                self.goto_match(1);
+                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+            }
+            CodeAction::PrevMatch => {
+                self.goto_match(-1);
+                (Outcome::Changed, Some(EditorEvent::CursorMoved))
+            }
         }
     }
 
