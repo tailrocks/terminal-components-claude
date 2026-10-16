@@ -8,8 +8,9 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerState, Release};
+use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
+use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
 use junie_tui::ui::text::{truncate, truncate_middle, width};
@@ -118,6 +119,10 @@ pub struct App {
     pub hits: HitRegistry,
     /// Hover, press, flash and click-count state.
     pub pointer: PointerState,
+    /// Context menus: the keys that open one at the focused cursor row
+    /// and whether a secondary click moves the cursor. Default
+    /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key; moves).
+    pub context: ContextConfig,
     pub status: Option<(String, Tone, i64)>,
     pub size: (u16, u16),
     pub quit: bool,
@@ -156,6 +161,7 @@ impl App {
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
             pointer: PointerState::default(),
+            context: ContextConfig::DEFAULT,
             status: None,
             size: (0, 0),
             quit: false,
@@ -251,6 +257,12 @@ impl App {
         std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
     }
 
+    /// Whether a menu-bar menu is open (tests).
+    #[cfg(test)]
+    pub fn menu_open(&self) -> bool {
+        self.menu.is_open()
+    }
+
     /// The tab strip's id for tab `i` (tests aim the pointer with it).
     #[cfg(test)]
     pub fn strip_tab_id(&self, i: usize) -> WidgetId {
@@ -286,6 +298,7 @@ impl App {
         let mut cx = Cx {
             focus: &mut self.focus,
             ring: &self.ring,
+            context: self.context,
             requests: vec![],
         };
         let o = match self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
@@ -396,6 +409,7 @@ impl App {
             let mut cx = Cx {
                 focus: &mut self.focus,
                 ring: &self.ring,
+                context: self.context,
                 requests: vec![],
             };
             let mut o = Outcome::Ignored;
@@ -475,6 +489,7 @@ impl App {
             let mut cx = Cx {
                 focus: &mut self.focus,
                 ring: &self.ring,
+                context: self.context,
                 requests: vec![],
             };
             if let Some(s) = self.tabs[ti].stack.last_mut() {
@@ -552,10 +567,19 @@ impl App {
                 return o;
             }
         }
+        // the context key opens the focused cursor row's menu; a page with
+        // none leaves it alone (it never opens the menu bar)
+        let context_key = self.context.keys.matches(&key);
+        if context_key {
+            let o = self.with_top(|s, w, cx| s.on_context_key(w, cx));
+            if o != Outcome::Ignored {
+                return o;
+            }
+        }
         let typing = self.top().is_some_and(|s| s.typing_hot());
         // global chords
         match key.code {
-            KeyCode::F(10) => {
+            KeyCode::F(10) if !context_key => {
                 self.menu.open_menu(0);
                 return Outcome::Changed;
             }
@@ -1177,6 +1201,7 @@ impl App {
         let mut cx = Cx {
             focus: &mut self.focus,
             ring: &self.ring,
+            context: self.context,
             requests: vec![],
         };
         let o = match self.tabs.get_mut(owner).and_then(|t| t.stack.last_mut()) {
@@ -1302,6 +1327,7 @@ impl App {
                 let mut cx = Cx {
                     focus: &mut self.focus,
                     ring: &self.ring,
+                    context: self.context,
                     requests: vec![],
                 };
                 let outcome = self
@@ -1521,6 +1547,15 @@ impl App {
         o.or(Outcome::Changed)
     }
 
+    /// A secondary click on `id`: the page under no modal opens its
+    /// context menu; inside a dialog or menu it is swallowed.
+    fn secondary_at(&mut self, id: WidgetId, pos: Position) -> Outcome {
+        if !self.modals.is_empty() {
+            return Outcome::Consumed;
+        }
+        self.with_top(|s, w, cx| s.on_secondary(id, pos, w, cx))
+    }
+
     fn on_mouse(&mut self, m: Mouse) -> Outcome {
         let before = self.focus.current();
         let out = self.route_mouse(m);
@@ -1598,16 +1633,28 @@ impl App {
                     _ => Outcome::Ignored,
                 }
             }
-            MouseKind::Secondary => {
-                let hit = self.pointer.on_secondary(&self.hits, m.pos);
-                if !self.modals.is_empty() {
-                    return Outcome::Consumed;
+            MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
+                SecondaryRoute::Target(id) => self.secondary_at(id, m.pos),
+                SecondaryRoute::Outside { backdrop, reopen } => {
+                    // the right click lands on an open popup's backdrop:
+                    // click it exactly as a primary release would (the
+                    // popup closes through its own dismiss policy), then
+                    // open the menu of what is beneath at the same spot
+                    self.pointer.press(backdrop);
+                    let out = self.on_release(m, Some(backdrop)).or(Outcome::Changed);
+                    match reopen {
+                        Some(id) => out.or(self.secondary_at(id, m.pos)),
+                        None => out,
+                    }
                 }
-                let Some(id) = hit else {
-                    return Outcome::Ignored;
-                };
-                self.with_top(|s, w, cx| s.on_secondary(id, m.pos, w, cx))
-            }
+                SecondaryRoute::Nothing | SecondaryRoute::Swallowed => {
+                    if self.modals.is_empty() {
+                        Outcome::Ignored
+                    } else {
+                        Outcome::Consumed
+                    }
+                }
+            },
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft
