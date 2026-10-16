@@ -10,10 +10,11 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Position, Rect};
+use ratatui::layout::{Constraint, Margin, Position, Rect};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::scroll::ScrollState;
 use crate::theme::ButtonKind;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::Dismiss;
@@ -21,6 +22,7 @@ use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::input::{InputEvent, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::panel::Panel;
+use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone)]
 pub enum DialogBody {
@@ -65,7 +67,28 @@ pub struct Dialog {
     /// The action a typed acknowledgement arms: disabled, and refused even
     /// if triggered, until the token matches. `None`: nothing is gated.
     pub confirm_index: Option<usize>,
+    /// A body taller than the room scrolls (wheel, ↑↓, PgUp/PgDn,
+    /// Home/End, the scrollbar) and says how much is below. Default on.
+    /// Off: the body is cut at the bottom, as before.
+    pub body_scroll: bool,
+    /// Cap on the dialog's height in rows; the body scrolls past it.
+    /// `None` (default): as tall as the content, up to the bounds.
+    pub max_height: Option<u16>,
+    /// Space kept free between the dialog and the edges of the area it is
+    /// placed in, so its frame never touches a panel border underneath.
+    /// Default 3 columns, 1 row.
+    pub outer_margin: Margin,
+    /// Body scroll position (Text and Facts bodies).
+    pub scroll: ScrollState,
+    /// The scrollbar track drawn last frame (empty when the body fits).
+    track: Rect,
 }
+
+/// Default [`Dialog::outer_margin`].
+pub const OUTER_MARGIN: Margin = Margin {
+    horizontal: 3,
+    vertical: 1,
+};
 
 impl Dialog {
     pub fn confirm(id: WidgetId, title: &str, text: &str, confirm: &str) -> Self {
@@ -84,6 +107,11 @@ impl Dialog {
             initial_focus: ok_id,
             dismiss: Dismiss::LIGHT,
             confirm_index: None,
+            body_scroll: true,
+            max_height: None,
+            outer_margin: OUTER_MARGIN,
+            scroll: ScrollState::default(),
+            track: Rect::ZERO,
         }
     }
 
@@ -103,6 +131,11 @@ impl Dialog {
             initial_focus: cancel_id,
             dismiss: Dismiss::LIGHT,
             confirm_index: None,
+            body_scroll: true,
+            max_height: None,
+            outer_margin: OUTER_MARGIN,
+            scroll: ScrollState::default(),
+            track: Rect::ZERO,
         }
     }
 
@@ -122,6 +155,11 @@ impl Dialog {
             initial_focus: input_id,
             dismiss: Dismiss::LIGHT,
             confirm_index: None,
+            body_scroll: true,
+            max_height: None,
+            outer_margin: OUTER_MARGIN,
+            scroll: ScrollState::default(),
+            track: Rect::ZERO,
         }
     }
 
@@ -137,7 +175,10 @@ impl Dialog {
         let cancel = Button::secondary(id.sub("cancel"), "Cancel");
         let cancel_id = cancel.id;
         let ack = token.map(|tok| AckInput {
-            input: TextInput::new(id.sub("ack"), &format!("Type {tok} to confirm")).plain_label(),
+            // the label is the instruction: it wraps, it is never cut
+            input: TextInput::new(id.sub("ack"), &format!("Type {tok} to confirm"))
+                .plain_label()
+                .wrap_label(true),
             token: tok.to_owned(),
         });
         let initial = ack.as_ref().map(|a| a.input.id).unwrap_or(cancel_id);
@@ -157,6 +198,11 @@ impl Dialog {
                 Dismiss::LIGHT
             },
             confirm_index: token.map(|_| 1),
+            body_scroll: true,
+            max_height: None,
+            outer_margin: OUTER_MARGIN,
+            scroll: ScrollState::default(),
+            track: Rect::ZERO,
         }
     }
 
@@ -242,6 +288,9 @@ impl Dialog {
         {
             v.push(Hint::new("Enter", b.label.clone()));
         }
+        if self.scroll.overflows() {
+            v.push(hint("↑↓", "Scroll"));
+        }
         v.extend(dismiss_hint());
         // the quick answers exist for plain text dialogs only (see on_key)
         if matches!(self.body, DialogBody::Text(_))
@@ -316,25 +365,82 @@ impl Dialog {
         }
     }
 
-    /// Rows the typed acknowledgement takes: the field and the blank row
-    /// above it.
-    fn ack_rows(present: bool) -> u16 {
-        if present { TextInput::HEIGHT + 1 } else { 0 }
+    /// Rows the typed acknowledgement takes in a dialog `width` wide: the
+    /// field with its whole (wrapped) label, and the blank row above it.
+    fn ack_rows(ack: Option<&AckInput>, width: u16) -> u16 {
+        ack.map_or(0, |a| a.input.height_for(Self::field_width(width)) + 1)
     }
 
-    pub fn height(&self, width: u16) -> u16 {
-        let inner_w = width.saturating_sub(6) as usize;
-        let body_h = match &self.body {
-            DialogBody::Text(t) => crate::ui::text::wrap(t, inner_w).len() as u16,
-            DialogBody::Input(_) => TextInput::HEIGHT,
-            DialogBody::Facts { facts, code, ack } => {
-                crate::widgets::props::measure(facts, inner_w as u16)
-                    + Self::code_rows(code)
-                    + Self::ack_rows(ack.is_some())
+    /// Width of an input field: the text column plus the focus gutter to
+    /// its left, so the field's label lines up with the title.
+    fn field_width(width: u16) -> u16 {
+        Self::inner_width(width) + TextInput::GUTTER
+    }
+
+    /// Text column of a dialog `width` wide: inside the border and the
+    /// two-column padding on each side.
+    fn inner_width(width: u16) -> u16 {
+        width.saturating_sub(6)
+    }
+
+    /// Rows the body's scrolling part needs at `width`: every wrapped line
+    /// of a Text body, every fact row of a Facts body. Zero for a prompt.
+    fn scroll_rows(&self, width: u16) -> u16 {
+        let inner_w = Self::inner_width(width);
+        match &self.body {
+            DialogBody::Text(t) => crate::ui::text::wrap(t, inner_w as usize).len() as u16,
+            DialogBody::Input(_) => 0,
+            DialogBody::Facts { facts, .. } => crate::widgets::props::measure(facts, inner_w),
+        }
+    }
+
+    /// Rows the body takes that never scroll: the prompt field, the code
+    /// preview and the typed acknowledgement.
+    fn fixed_rows(&self, width: u16) -> u16 {
+        match &self.body {
+            DialogBody::Text(_) => 0,
+            DialogBody::Input(i) => i.height_for(Self::field_width(width)),
+            DialogBody::Facts { code, ack, .. } => {
+                Self::code_rows(code) + Self::ack_rows(ack.as_ref(), width)
             }
-        };
-        // border(2) + pad(1) + title(1) + gap(1) + body + gap(1) + actions(1) + pad(1)
-        2 + 1 + 1 + 1 + body_h + 1 + 1 + 1
+        }
+    }
+
+    /// Rows around the body: border(2) + pad(1) + title(1) + gap(1) +
+    /// gap(1) + actions(1) + pad(1).
+    const CHROME_ROWS: u16 = 8;
+
+    /// Natural height at `width`: every row of the body shown.
+    pub fn height(&self, width: u16) -> u16 {
+        Self::CHROME_ROWS + self.scroll_rows(width) + self.fixed_rows(width)
+    }
+
+    /// See [`Self::body_scroll`].
+    pub fn body_scroll(mut self, on: bool) -> Self {
+        self.body_scroll = on;
+        self
+    }
+
+    /// See [`Self::max_height`].
+    pub fn max_height(mut self, rows: Option<u16>) -> Self {
+        self.max_height = rows;
+        self
+    }
+
+    /// See [`Self::outer_margin`].
+    pub fn outer_margin(mut self, margin: Margin) -> Self {
+        self.outer_margin = margin;
+        self
+    }
+
+    /// Scroll the body by `delta` rows (the wheel). Consumed either way:
+    /// nothing under a modal scrolls.
+    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        if self.scroll.scroll_by(delta as isize) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     pub fn confirm_index(mut self, index: Option<usize>) -> Self {
@@ -431,6 +537,25 @@ impl Dialog {
                 focus.prev(ring);
                 Outcome::Changed
             }
+            // a body taller than the dialog scrolls under the keyboard too
+            KeyCode::Up if self.scroll.overflows() => self.on_wheel(-1),
+            KeyCode::Down if self.scroll.overflows() => self.on_wheel(1),
+            KeyCode::PageUp if self.scroll.overflows() => {
+                self.scroll.page_up();
+                Outcome::Changed
+            }
+            KeyCode::PageDown if self.scroll.overflows() => {
+                self.scroll.page_down();
+                Outcome::Changed
+            }
+            KeyCode::Home if self.scroll.overflows() => {
+                self.scroll.jump_start();
+                Outcome::Changed
+            }
+            KeyCode::End if self.scroll.overflows() => {
+                self.scroll.jump_end();
+                Outcome::Changed
+            }
             KeyCode::Left | KeyCode::Char('h') => {
                 // move between actions
                 if let Some(i) = self.actions.iter().position(|b| Some(b.id) == cur) {
@@ -489,6 +614,15 @@ impl Dialog {
             focus.focus(id);
             return inp.on_click(pos);
         }
+        if id == scrollbar::id_for(self.id) {
+            let moved = scrollbar::press(self.track, pos, &mut self.scroll);
+            self.scroll.release_track();
+            return if moved {
+                Outcome::Changed
+            } else {
+                Outcome::Consumed
+            };
+        }
         for i in 0..self.actions.len() {
             if self.actions[i].id == id {
                 focus.focus(id);
@@ -511,19 +645,37 @@ impl Dialog {
         }
     }
 
+    /// Draw the dialog centred on `screen`. Prefer [`Self::render_in`] with
+    /// the app's body area, so the dialog never covers the app's chrome.
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        self.render_in(screen, screen, buf, ctx);
+    }
+
+    /// Dim `screen` and draw the dialog centred in `bounds` (the app's body:
+    /// below its header, above its status and footer rows), kept
+    /// [`Self::outer_margin`] away from the edges of `bounds`. A body taller
+    /// than the room scrolls ([`Self::body_scroll`]).
+    pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         // dim backdrop; the footer row stays live because its hints belong to the dialog
         ctx.modal_backdrop(buf, screen);
-        // never wider than the screen, however narrow it gets
+        let bounds = bounds.intersection(screen);
+        let bounds = if bounds.is_empty() { screen } else { bounds };
+        let m = self.outer_margin;
+        // never wider than the bounds, however narrow they get
         let width = self
             .width
-            .min(screen.width.saturating_sub(4))
+            .min(bounds.width.saturating_sub(m.horizontal * 2))
             .max(20)
-            .min(screen.width);
-        let height = self.height(width).min(screen.height.saturating_sub(2));
-        let area = screen.centered(Constraint::Length(width), Constraint::Length(height));
+            .min(bounds.width);
+        let room = bounds
+            .height
+            .saturating_sub(m.vertical * 2)
+            .min(self.max_height.unwrap_or(u16::MAX));
+        let height = self.height(width).min(room);
+        let area = bounds.centered(Constraint::Length(width), Constraint::Length(height));
         self.area = area;
+        self.track = Rect::ZERO;
         let bg = t.surface_elevated;
         fill(buf, area, ratatui::style::Style::new().bg(bg));
         let panel = Panel::framed(None).focused(true);
@@ -545,41 +697,53 @@ impl Dialog {
         );
         let body_y = inner.y + 2;
         let actions_y = area.bottom().saturating_sub(3);
+        // the scrolling part of the body ends above the parts anchored over
+        // the actions; the row right below it is a blank separator, where
+        // "↓ N more" goes while there is more below
+        let fixed = self.fixed_rows(width);
+        let scroll_bottom = actions_y.saturating_sub(1 + fixed).max(body_y);
+        let viewport = scroll_bottom - body_y;
+        let content = self.scroll_rows(width);
+        self.scroll.set_content(content as usize);
+        self.scroll.set_viewport(viewport as usize);
+        if !self.body_scroll {
+            self.scroll.offset = 0;
+        }
+        self.scroll.clamp();
+        let offset = self.scroll.offset as u16;
+        let field_x = inner.x.saturating_sub(TextInput::GUTTER);
+        let field_w = inner.width + TextInput::GUTTER;
         match &mut self.body {
             DialogBody::Text(text) => {
                 let lines = crate::ui::text::wrap(text, inner.width as usize);
-                for (i, l) in lines.iter().enumerate() {
-                    let y = body_y + i as u16;
-                    if y >= actions_y.saturating_sub(1) {
-                        break;
-                    }
-                    buf.set_string(inner.x, y, l, t.secondary().bg(bg));
+                for (i, l) in lines
+                    .iter()
+                    .skip(offset as usize)
+                    .take(viewport as usize)
+                    .enumerate()
+                {
+                    buf.set_string(inner.x, body_y + i as u16, l, t.secondary().bg(bg));
                 }
             }
             DialogBody::Input(inp) => {
-                let r = Rect::new(
-                    inner.x.saturating_sub(1),
-                    body_y,
-                    inner.width + 1,
-                    TextInput::HEIGHT,
-                );
+                let r = Rect::new(field_x, body_y, field_w, inp.height_for(field_w));
                 inp.render(r, buf, ctx, bg);
             }
             DialogBody::Facts { facts, code, ack } => {
                 // the acknowledgement and the code preview are anchored above
-                // the actions; the facts get the remaining rows and are the
-                // only part that clips when the screen is too short
-                let fixed = Self::code_rows(code) + Self::ack_rows(ack.is_some());
-                let facts_bottom = actions_y.saturating_sub(1 + fixed);
-                let mut y = body_y;
-                let used = crate::widgets::props::render(
-                    Rect::new(inner.x, y, inner.width, facts_bottom.saturating_sub(y)),
+                // the actions; the facts get the remaining rows and scroll
+                // when the screen is too short
+                let sheet_area = Rect::new(0, 0, inner.width, content);
+                let mut sheet = Buffer::empty(sheet_area);
+                fill(&mut sheet, sheet_area, ratatui::style::Style::new().bg(bg));
+                crate::widgets::props::render(sheet_area, &mut sheet, t, facts, bg);
+                blit_rows(
+                    &sheet,
+                    offset,
                     buf,
-                    t,
-                    facts,
-                    bg,
+                    Rect::new(inner.x, body_y, inner.width, viewport),
                 );
-                y += used;
+                let mut y = scroll_bottom;
                 if !code.is_empty() {
                     y += 1;
                     let max = code.len().min(6);
@@ -602,14 +766,23 @@ impl Dialog {
                 }
                 if let Some(a) = ack {
                     y += 1;
-                    let r = Rect::new(
-                        inner.x.saturating_sub(1),
-                        y,
-                        inner.width + 1,
-                        TextInput::HEIGHT,
-                    );
+                    let r = Rect::new(field_x, y, field_w, a.input.height_for(field_w));
                     a.input.render(r, buf, ctx, bg);
                 }
+            }
+        }
+        if self.scroll.overflows() && viewport > 0 {
+            // the scrollbar sits in the padding just inside the frame, one
+            // column off the text, so the text keeps its width
+            self.track = Rect::new(inner.right() + 1, body_y, 1, viewport);
+            let below = self.scroll.max_offset() - self.scroll.offset;
+            if below > 0 && scroll_bottom < actions_y {
+                buf.set_string(
+                    inner.x,
+                    scroll_bottom,
+                    crate::ui::text::truncate(&format!("↓ {below} more"), inner.width as usize),
+                    t.muted().bg(bg),
+                );
             }
         }
         // the confirming action stays disabled until the acknowledgement matches
@@ -635,6 +808,41 @@ impl Dialog {
         }
         for b in &self.actions {
             ctx.hits.register(b.id, b.area);
+        }
+        if !self.track.is_empty() {
+            scrollbar::render_vertical(self.track, buf, ctx, self.id, &self.scroll, true);
+        }
+    }
+}
+
+/// The area a modal is placed in: `screen` without the app's chrome rows,
+/// `top` rows of header and `bottom` rows of status and footer. Pass it to
+/// [`Dialog::render_in`] so a dialog never covers the header or the hints
+/// that belong to it. Falls back to `screen` when nothing would be left.
+pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
+    let h = screen.height.saturating_sub(top + bottom);
+    if h == 0 {
+        return screen;
+    }
+    Rect::new(screen.x, screen.y + top, screen.width, h)
+}
+
+/// Copy rows `from..` of `src` into `dst` at `at` (as many as fit), so a
+/// part drawn whole off screen can be shown through a scrolled window.
+fn blit_rows(src: &Buffer, from: u16, dst: &mut Buffer, at: Rect) {
+    let at = at.intersection(*dst.area());
+    for dy in 0..at.height {
+        let sy = from + dy;
+        if sy >= src.area.bottom() {
+            break;
+        }
+        for dx in 0..at.width.min(src.area.width) {
+            if let (Some(c), Some(d)) = (
+                src.cell((src.area.x + dx, sy)),
+                dst.cell_mut((at.x + dx, at.y + dy)),
+            ) {
+                *d = c.clone();
+            }
         }
     }
 }
@@ -847,5 +1055,154 @@ mod tests {
             hint_text(&d.hints(Some(d.initial_focus))),
             "←→ Choose · Enter Keep launching · Esc Keep launching · y Cancel launch · n Keep launching"
         );
+    }
+
+    /// Draw `d` in `bounds` on a `screen`, returning the buffer.
+    fn draw(d: &mut Dialog, screen: Rect, bounds: Rect) -> Buffer {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(screen);
+        d.render_in(screen, bounds, &mut buf, &mut ctx);
+        buf
+    }
+
+    fn rows(buf: &Buffer) -> Vec<String> {
+        let a = buf.area;
+        (a.y..a.bottom())
+            .map(|y| {
+                (a.x..a.right())
+                    .map(|x| buf.cell((x, y)).map_or(" ", |c| c.symbol()))
+                    .collect::<String>()
+            })
+            .collect()
+    }
+
+    fn key(code: KeyCode) -> Key {
+        Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        }
+    }
+
+    fn help_text() -> String {
+        (1..=30)
+            .map(|i| format!("line {i:02}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn a_text_body_taller_than_the_screen_scrolls_to_its_last_line() {
+        let screen = Rect::new(0, 0, 72, 20);
+        let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &help_text(), "Close");
+        let buf = draw(&mut d, screen, screen);
+        let text = rows(&buf).join("\n");
+        assert!(text.contains("line 01"), "{text}");
+        assert!(!text.contains("line 30"), "{text}");
+        // the cut is announced, with a scrollbar beside the text
+        assert!(text.contains("more"), "a \"↓ N more\" marker: {text}");
+        assert!(text.contains(scrollbar::THUMB), "{text}");
+        assert!(
+            hint_text(&d.hints(Some(d.initial_focus))).contains("↑↓ Scroll"),
+            "the hints say the body scrolls"
+        );
+        // End reaches the last line, and the marker goes away
+        let mut focus = crate::core::focus::Focus::default();
+        let ring = FocusRing::default();
+        d.on_key(&key(KeyCode::End), &mut focus, &ring);
+        let text = rows(&draw(&mut d, screen, screen)).join("\n");
+        assert!(text.contains("line 30"), "{text}");
+        assert!(!text.contains("more"), "{text}");
+        // the wheel scrolls back up
+        d.on_wheel(-100);
+        let text = rows(&draw(&mut d, screen, screen)).join("\n");
+        assert!(text.contains("line 01"), "{text}");
+    }
+
+    #[test]
+    fn body_scroll_off_cuts_the_body_as_before() {
+        let screen = Rect::new(0, 0, 72, 20);
+        let mut d = Dialog::confirm(WidgetId::of("help"), "Keys", &help_text(), "Close")
+            .body_scroll(false)
+            .max_height(Some(12));
+        let mut focus = crate::core::focus::Focus::default();
+        let ring = FocusRing::default();
+        draw(&mut d, screen, screen);
+        assert_eq!(d.area.height, 12);
+        d.on_key(&key(KeyCode::End), &mut focus, &ring);
+        let text = rows(&draw(&mut d, screen, screen)).join("\n");
+        assert!(text.contains("line 01"), "{text}");
+    }
+
+    #[test]
+    fn every_fact_of_a_short_gate_is_reachable_and_the_typed_phrase_is_whole() {
+        let screen = Rect::new(0, 0, 72, 20);
+        let mut d = gate(66);
+        let text = rows(&draw(&mut d, screen, screen)).join("\n");
+        // the instruction wraps instead of being cut
+        assert!(text.contains("ON mbp to confirm"), "{text}");
+        assert!(!text.contains("confi…"), "{text}");
+        assert!(text.contains("more"), "{text}");
+        let mut focus = crate::core::focus::Focus::default();
+        focus.focus(d.actions[0].id);
+        let ring = FocusRing::default();
+        let mut seen = text;
+        for _ in 0..20 {
+            d.on_key(&key(KeyCode::Down), &mut focus, &ring);
+            seen.push_str(&rows(&draw(&mut d, screen, screen)).join("\n"));
+        }
+        for label in ["Action", "Mode", "Estimate", "Threat model", "Paths"] {
+            assert!(seen.contains(label), "{label} is reachable: {seen}");
+        }
+        // the field has no help, so it takes no empty help row
+        let ack = match &d.body {
+            DialogBody::Facts { ack: Some(a), .. } => a.input.area,
+            _ => unreachable!(),
+        };
+        let actions_y = d.actions[0].area.y;
+        assert_eq!(
+            actions_y,
+            ack.y + 2,
+            "one blank row between the field and the actions"
+        );
+    }
+
+    #[test]
+    fn a_dialog_stays_inside_its_bounds_with_a_margin() {
+        let screen = Rect::new(0, 0, 72, 20);
+        let bounds = body_bounds(screen, 1, 2);
+        let mut d = gate(78);
+        draw(&mut d, screen, bounds);
+        let a = d.area;
+        assert!(a.y > bounds.y, "{a:?} below the header in {bounds:?}");
+        assert!(
+            a.bottom() < bounds.bottom(),
+            "{a:?} above the status in {bounds:?}"
+        );
+        assert!(a.x >= bounds.x + OUTER_MARGIN.horizontal, "{a:?}");
+        assert!(
+            a.right() + OUTER_MARGIN.horizontal <= bounds.right(),
+            "{a:?}"
+        );
+        // the margin is the caller's to choose
+        let mut d = gate(78).outer_margin(Margin::new(0, 0));
+        draw(&mut d, screen, bounds);
+        assert_eq!(d.area.width, 72);
+    }
+
+    #[test]
+    fn a_prompt_field_label_lines_up_with_the_title() {
+        let screen = Rect::new(0, 0, 80, 24);
+        let input = TextInput::new(WidgetId::of("name"), "Task name").required(true);
+        let mut d = Dialog::prompt(WidgetId::of("p"), "Rename task", input, "Rename");
+        let r = rows(&draw(&mut d, screen, screen));
+        let col = |needle: &str| {
+            r.iter()
+                .find_map(|l| l.find(needle).map(|b| l[..b].chars().count()))
+                .unwrap()
+        };
+        assert_eq!(col("Rename task"), col("Task name"));
     }
 }
