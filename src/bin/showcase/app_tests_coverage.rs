@@ -985,3 +985,30 @@ fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     h.click(x, y);
     h.assert_status(&format!("Would open the editor for {label}"));
 }
+
+/// Mouse audit #34: a click on blank space right of a checkbox's label
+/// toggled it. Only the box and label take the click.
+#[test]
+fn blank_space_right_of_a_checkbox_label_does_not_toggle_it() {
+    let mut h = Harness::new(160, 40, PageId::Forms);
+    let pr = WidgetId::of("forms").sub("pr");
+    let area = h.area(pr);
+    let label = "Open a pull request when done";
+    assert!(
+        area.width <= label.chars().count() as u16 + 6,
+        "the target is the box and label, not the row: {area:?}"
+    );
+    let beyond = Position::new(area.right() + 4, area.y);
+    assert_ne!(h.app.hits.hit(beyond), Some(pr));
+    let before = h.text();
+    h.click(beyond.x, beyond.y);
+    let row = |t: &str| {
+        t.lines()
+            .nth(area.y as usize)
+            .unwrap_or_default()
+            .to_owned()
+    };
+    assert_eq!(row(&h.text()), row(&before), "the checkbox did not toggle");
+    h.click(area.x + 6, area.y);
+    assert_ne!(row(&h.text()), row(&before), "a click on the label toggles");
+}
