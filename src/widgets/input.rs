@@ -16,6 +16,16 @@ use crate::widgets::field_common::{EditAction, edit_key};
 ///   editing at the pointer in one go.
 /// - **editing**: the hardware cursor is placed in the field, the field bg
 ///   drops to canvas, Enter commits, Esc reverts.
+/// A text validator: `Some(message)` rejects the value.
+#[derive(Clone)]
+pub struct TextValidator(pub std::rc::Rc<dyn Fn(&str) -> Option<String>>);
+
+impl std::fmt::Debug for TextValidator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("TextValidator")
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct TextInput {
     pub id: WidgetId,
@@ -34,7 +44,9 @@ pub struct TextInput {
     pub area: Rect,
     /// Area of the text run (inside the field), for click-to-cursor.
     text_area: Rect,
-    pub validator: Option<fn(&str) -> Option<String>>,
+    /// Validation hook; a closure may capture state (an allowed list, a
+    /// schema).
+    pub validator: Option<TextValidator>,
     /// Hide the "optional" suffix on non-required fields.
     pub plain_label: bool,
     /// Draw every grapheme as `•`. `text()` still returns the raw value,
@@ -109,8 +121,8 @@ impl TextInput {
         self.plain_label = true;
         self
     }
-    pub fn validator(mut self, v: fn(&str) -> Option<String>) -> Self {
-        self.validator = Some(v);
+    pub fn validator(mut self, v: impl Fn(&str) -> Option<String> + 'static) -> Self {
+        self.validator = Some(TextValidator(std::rc::Rc::new(v)));
         self
     }
     pub fn masked(mut self) -> Self {
@@ -186,8 +198,8 @@ impl TextInput {
     /// Recompute validation from the current value. A custom validator owns
     /// validation when supplied; otherwise `required` rejects an empty value.
     pub fn validate(&mut self) -> bool {
-        self.error = if let Some(v) = self.validator {
-            v(self.buffer.text())
+        self.error = if let Some(v) = &self.validator {
+            (v.0)(self.buffer.text())
         } else if self.required && self.buffer.is_empty() {
             Some("Required".to_owned())
         } else {
@@ -558,6 +570,19 @@ mod tests {
         );
         input.render(area, buf, &mut ctx, theme.surface);
         ctx.cursor
+    }
+
+    #[test]
+    fn a_validator_closure_can_capture_state() {
+        let allowed = vec!["admin".to_owned(), "member".to_owned()];
+        let mut i = TextInput::new(WidgetId::of("role"), "Role").validator(move |v| {
+            (!allowed.iter().any(|a| a == v)).then(|| format!("{v} is not a role"))
+        });
+        i = i.value("guest");
+        assert!(!i.validate());
+        assert_eq!(i.error.as_deref(), Some("guest is not a role"));
+        i = i.value("admin");
+        assert!(i.validate());
     }
 
     #[test]
