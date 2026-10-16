@@ -4691,4 +4691,176 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::statusbar::StatusItem::tooltip",
         Demo("popupstooltips", "Region of the connection ⌘R"),
     ),
+    // SC20: Pickers
+    (
+        "widgets::picker::PickerItem",
+        Demo("pickers", "▶ Run query (run.query)"),
+    ),
+    (
+        "widgets::picker::PickerItem::detail",
+        Demo("pickers", "disabled: Run a query first"),
+    ),
+    (
+        "widgets::picker::PickerItem::glyph",
+        Demo("pickers", "▶ Run query"),
+    ),
+    (
+        "widgets::picker::PickerItem::group",
+        Demo("pickers", "Commands"),
+    ),
+    (
+        "widgets::picker::PickerItem::key",
+        Demo("pickers", "(run.query)"),
+    ),
+    (
+        "widgets::picker::PickerItem::disabled",
+        Demo("pickers", "disabled: No open transaction"),
+    ),
+    (
+        "widgets::picker::PickerStatus",
+        StateRow("pickers", "loading"),
+    ),
+    (
+        "widgets::picker::PickerStatus::Ready",
+        StateRow("pickers", "rest"),
+    ),
+    (
+        "widgets::picker::PickerStatus::Loading",
+        StateRow("pickers", "loading"),
+    ),
+    (
+        "widgets::picker::PickerStatus::Error",
+        StateRow("pickers", "error"),
+    ),
+    (
+        "widgets::picker::PickerAction",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::QueryChanged",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::Chosen",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::ChosenAlt",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::Submit",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::Secondary",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::NextScope",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::Cancelled",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::Back",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::PickerAction::PrevScope",
+        Demo(
+            "pickers",
+            "QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled",
+        ),
+    ),
+    (
+        "widgets::picker::Picker::nav",
+        Option("pickers", "pickers.nav"),
+    ),
+    (
+        "widgets::picker::Picker::delete_is_secondary",
+        Option("pickers", "pickers.delete_is_secondary"),
+    ),
+    (
+        "widgets::picker::Picker::width",
+        Option("pickers", "pickers.width"),
+    ),
+    (
+        "widgets::picker::Picker::placement",
+        Option("pickers", "pickers.placement=center"),
+    ),
+    (
+        "widgets::picker::Picker::anchor",
+        Option("pickers", "pickers.placement=below"),
+    ),
+    (
+        "widgets::picker::Picker::fit",
+        Option("pickers", "pickers.fit"),
+    ),
+    (
+        "widgets::picker::Picker::backdrop",
+        Option("pickers", "pickers.backdrop"),
+    ),
+    (
+        "widgets::picker::Picker::hints",
+        Option("pickers", "pickers.hints"),
+    ),
+    (
+        "widgets::picker::Picker::max_rows",
+        Option("pickers", "pickers.max_rows"),
+    ),
+    (
+        "widgets::picker::Picker::placeholder",
+        Option("pickers", "pickers.placeholder"),
+    ),
+    (
+        "widgets::picker::Picker::empty",
+        Option("pickers", "pickers.empty=state"),
+    ),
+    (
+        "widgets::picker::Picker::empty_text",
+        Option("pickers", "pickers.empty=text"),
+    ),
+    (
+        "widgets::picker::Picker::dismiss",
+        Option("pickers", "pickers.dismiss"),
+    ),
+    (
+        "widgets::picker::Picker::cursor_style",
+        Option("pickers", "pickers.cursor_style"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Loading",
+        StateRow("pickers", "loading"),
+    ),
+    ("state::loading", StateRow("pickers", "loading")),
 ];
