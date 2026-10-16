@@ -33,12 +33,12 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `ratatui` (`0.30`, `crossterm_0_29`) | 0.30.2 | 0.30.2 | 0.30.2 | none |
 | `crossterm` (through ratatui) | 0.29.0 | 0.29.0 | 0.29.0 | none |
 | `clap` (`4.6`) | 4.6.6 | 4.6.7 | 4.6.7 | none |
-| `unicode-width` (`0.2`) | 0.2.0 | 0.2.0 | 0.2.2 | tuiscotti `Cargo.toml:32` `=0.2.0` |
+| `unicode-width` (`0.2`) | 0.2.0 | 0.2.2 | 0.2.2 | none; tuiscotti held it at `=0.2.0` until PR 11 (raised 2026-10-17, no width change in our text, below) |
 | `unicode-segmentation` (`1`) | 1.13.3 | 1.13.3 | 1.13.3 | none |
 | `libc` (`0.2`, Unix only) | 0.2.190 | 0.2.190 | 0.2.190 | none; added for the runtime's terminal input re-arm (below) |
 | `libtest-mimic` (dev, `0.8.2`) | 0.8.2 | 0.8.2 | 0.8.2 | none |
-| `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.0 | 0.11.1 | tuiscotti `Cargo.toml:30` `=0.11.0` |
-| `tuiscotti` (dev, git `rev`) | `a47c9aae` | `a47c9aae` | `a47c9aae` (`main`) | none |
+| `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.1 | 0.11.1 | none; tuiscotti held it at `=0.11.0` until PR 11 (raised 2026-10-17) |
+| `tuiscotti` (dev, git `rev`) | `a47c9aae` | `3382e57d` | `3382e57d` (`main`, 2026-10-17) | none; PR 11 merged as `be860d1`, `main` then moved one CI-only commit |
 | velnor-actions | 0.1.8 | 0.1.8 | 0.1.8 (`main` `e34cfb8` untagged) | latest release; `main` has #155 (suites, §8), adopt at the v0.1.9 tag (`docs/ci.md` "Prepared: velnor 0.1.9") |
 | cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | none; velnor v0.1.9 adds `[tools]` overrides |
 | actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | 1.7.12, 0.11.0, 1.31.1, 2.102.0 | zizmor pinned by velnor 0.1.8; v0.1.9 `[tools] zizmor` can raise it |
@@ -48,10 +48,6 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 
 | Crate | Locked | Latest | Held by |
 |---|---|---|---|
-| `insta` | 1.48.0 | 1.49.0 | tuiscotti `Cargo.toml:27` `=1.48.0` |
-| `serde_json` | 1.0.151 | 1.0.154 | tuiscotti `Cargo.toml:29` `=1.0.151` |
-| `ratatui` (second copy) | 0.29.0 | 0.30.2 | tuiscotti `Cargo.toml:31` `=0.29.0` |
-| `crossterm` (second copy) | 0.28.1 | 0.29.0 | tuiscotti `Cargo.toml:22` `=0.28.1` |
 | `generic-array` | 0.14.7 | 0.14.9 | `crypto-common 0.1.7` pins `=0.14.7` (optional `termwiz` path of ratatui, not built) |
 | `psm` | 0.1.24 | 0.1.32 | `pest 2.9.4` pins `=0.1.24` (same optional `termwiz` path, not built) |
 
@@ -64,11 +60,20 @@ when bytes are queued that crossterm has not seen, re-applies the
 terminal's own attributes (`tcsetattr`, `TCSANOW`), which wakes the reader.
 Drop the re-arm once crossterm reads until `WouldBlock`.
 
-The tuiscotti pins are tracked upstream in
-`docs/upstream/tuiscotti-feedback.md` P2. Only `unicode-width` reaches the
-shipped binaries: the lockfile holds one 0.2.x, so the library measures text
-with the 0.2.0 tables. We never vendor or patch upstream crates to get
-around a pin.
+tuiscotti held `unicode-width`, `insta`, `serde_json`, `sha2`, `ratatui`
+and `crossterm` at exact versions until PR 11 (feedback P2,
+`docs/upstream/tuiscotti-feedback.md`). Since the `3382e57d` pin it uses
+ranges, so the lockfile has one `ratatui` (0.30.2), one `crossterm`
+(0.29.0) and one `unicode-width`. `cargo update` on 2026-10-17 then moved
+`unicode-width` 0.2.0 → 0.2.2, `sha2` 0.11.0 → 0.11.1, `insta` 1.48.0 →
+1.49.0 and `serde_json` 1.0.151 → 1.0.154.
+
+Only `unicode-width` reaches the shipped binaries. 0.2.2 changes the width
+of 493 code points against 0.2.0. None of them occurs in `src/`, `tests/`
+or `snapshots/`, and no line there measures differently (checked by
+comparing both versions' `width` and `width_cjk` over every code point and
+every line), so the bump changes no rendered width. We never vendor or
+patch upstream crates to get around a pin.
 
 ## Rust in CI
 
@@ -91,4 +96,6 @@ tag, raise `rust-version` to `1.99` and drop the second clippy run
 
 None. The upgrade changed no rendering: `tests/showcase_baseline.txt`, the
 smoke tier and the approved tuiscotti pilot pass unchanged, and no snapshot
-was re-approved.
+was re-approved. The 2026-10-17 `cargo update` after tuiscotti PR 11 changed
+no rendering either: `cargo xtask visual check-touched` ran every
+re-approved group of all four apps (6,200 captures) green.
