@@ -191,6 +191,12 @@ pub enum TabCmd {
     New,
     /// Activate tab `i` (0-based). Default digits `1`-`9`.
     Jump(usize),
+    /// Open the menu of the tabs the strip hides (what the `+N` button
+    /// opens), with its first row highlighted. Default ↓: the menu-button
+    /// key (WAI-ARIA menu button, macOS pop-up button), which a horizontal
+    /// strip has no other use for. Only while tabs are hidden; otherwise
+    /// the key does what it did.
+    ShowHidden,
 }
 
 impl TabCmd {
@@ -210,6 +216,7 @@ impl Actions for TabCmd {
             .map(|&code| (KeyBinding::key(code), TabCmd::Close))
             .collect();
         map.push((KeyBinding::char('n'), TabCmd::New));
+        map.push((KeyBinding::key(KeyCode::Down), TabCmd::ShowHidden));
         map.extend(Self::digit_keys());
         map
     }
@@ -338,6 +345,16 @@ impl Tabs {
     pub fn overflow_menu(mut self, on: bool) -> Self {
         self.overflow_menu = on;
         self
+    }
+
+    /// The `+N` button's tooltip: `Show hidden` and the first
+    /// [`TabCmd::ShowHidden`] key.
+    fn overflow_tip(&self, t: &crate::theme::Theme) -> Tip {
+        let tip = Tip::new(t.strings.tip_overflow);
+        match crate::core::keymap::label_for(&self.keymap, TabCmd::ShowHidden) {
+            Some(k) => tip.shortcut(&k),
+            None => tip,
+        }
     }
 
     /// See [`Self::more_button`].
@@ -589,6 +606,10 @@ impl Tabs {
             }
             Some(TabCmd::New) if self.allow_new => {
                 return (Outcome::Changed, Some(TabAction::New));
+            }
+            Some(TabCmd::ShowHidden) if self.overflow_menu && !self.hidden_tabs().is_empty() => {
+                self.open_menu();
+                return (Outcome::Changed, None);
             }
             _ => {}
         }
@@ -929,14 +950,7 @@ impl Tabs {
             self.more_button
                 .with_glyph(&format!("+{hidden}"))
                 .part_of(self.id, PartRef::of(Part::OVERFLOW))
-                .render_in(
-                    r,
-                    mx + 1,
-                    buf,
-                    ctx,
-                    host,
-                    Some(Tip::new(t.strings.tip_overflow)),
-                );
+                .render_in(r, mx + 1, buf, ctx, host, Some(self.overflow_tip(t)));
         } else {
             self.more_area = Rect::ZERO;
             // nothing hides any more: the menu has nothing to list

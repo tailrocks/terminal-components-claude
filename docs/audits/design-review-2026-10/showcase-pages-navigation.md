@@ -17,6 +17,13 @@ fix, with the reason.
    only; the keyboard reaches every tab through ←/→, Home/End and the
    digits, so no tab is keyboard-unreachable (WCAG 2.1.1 holds). A key for
    the menu belongs with S5's overflow work, not with this page.
+   **Fixed in S5:** ↓ on a focused strip (`TabCmd::ShowHidden`; chip bars
+   `ChipCmd::ShowHidden`) opens the menu with its first row highlighted,
+   the WAI-ARIA menu-button key, which a horizontal strip has no other use
+   for; only while something is hidden, otherwise ↓ does what it did. The
+   `+N` tooltip names the key from the key map (remappable, shown only when
+   bound). Tests: tablepro `down_on_the_strip_opens_the_overflow_menu`,
+   `chips::overflow_tests::down_opens_the_menu_of_the_hidden_chips`.
 3. **No "selected" or "disabled" row in the Tabs States grid.** Every strip
    has an active tab, so selection shows in every row (the accent rule);
    `Tabs` has no disabled state (`TabItem` has no `disabled`). Adding one is

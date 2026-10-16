@@ -118,6 +118,11 @@ pub enum ChipCmd {
     Add,
     /// Ask to clear every chip. Default `X`.
     ClearAll,
+    /// Open the menu of the chips the bar hides (what the `+N` button
+    /// opens), with its first row highlighted. Default ↓, the menu-button
+    /// key. Only while chips are hidden; otherwise the key does what it
+    /// did.
+    ShowHidden,
 }
 
 impl Actions for ChipCmd {
@@ -128,6 +133,7 @@ impl Actions for ChipCmd {
             (KeyBinding::char('x'), ChipCmd::Remove),
             (KeyBinding::char('+'), ChipCmd::Add),
             (KeyBinding::char('X'), ChipCmd::ClearAll),
+            (KeyBinding::key(KeyCode::Down), ChipCmd::ShowHidden),
         ]
     }
 }
@@ -309,6 +315,12 @@ impl ChipBar {
             }
             Some(ChipCmd::Add) => return (Outcome::Changed, Some(ChipAction::Add)),
             Some(ChipCmd::ClearAll) => return (Outcome::Changed, Some(ChipAction::ClearAll)),
+            Some(ChipCmd::ShowHidden)
+                if self.overflow_menu && self.overflow_marker && self.shown < self.chips.len() =>
+            {
+                self.open_menu();
+                return (Outcome::Changed, None);
+            }
             _ => {}
         }
         let to = match self.nav.action(key).filter(|_| key.plain()) {
@@ -436,7 +448,15 @@ impl ChipBar {
                                 buf,
                                 ctx,
                                 ratatui::style::Style::new().bg(bg),
-                                Some(Tip::new(t.strings.tip_overflow)),
+                                Some(
+                                    match crate::core::keymap::label_for(
+                                        &self.keymap,
+                                        ChipCmd::ShowHidden,
+                                    ) {
+                                        Some(k) => Tip::new(t.strings.tip_overflow).shortcut(&k),
+                                        None => Tip::new(t.strings.tip_overflow),
+                                    },
+                                ),
                             );
                     } else {
                         buf.set_string(x, y, m, t.muted().bg(bg));
@@ -851,6 +871,34 @@ mod overflow_tests {
         let mut plain = bar.clone().overflow_menu(false);
         let (_, hits) = render_hits(&mut plain, 24);
         assert!(hits.area_of(plain.more_id()).is_none());
+    }
+
+    /// SC14 finding: the `+N` menu had no keyboard opener. ↓ (the
+    /// menu-button key, `ChipCmd::ShowHidden`) opens it while chips are
+    /// hidden; the `+N` tooltip names the key.
+    #[test]
+    fn down_opens_the_menu_of_the_hidden_chips() {
+        let key = |code| Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut bar = ChipBar::new(WidgetId::of("c"));
+        bar.add_label = None;
+        bar.chips = vec![Chip::new("alpha")];
+        render_hits(&mut bar, 24);
+        assert_eq!(bar.on_key(&key(KeyCode::Down)).1, None);
+        assert!(!bar.menu_open(), "nothing hidden: no menu");
+        bar.chips = ["alpha", "beta", "gamma", "delta"]
+            .iter()
+            .map(|l| Chip::new(l))
+            .collect();
+        render_hits(&mut bar, 24);
+        assert_eq!(bar.on_key(&key(KeyCode::Down)).0, Outcome::Changed);
+        assert!(bar.menu_open());
+        assert_eq!(
+            crate::core::keymap::label_for(&bar.keymap, ChipCmd::ShowHidden).as_deref(),
+            Some("↓")
+        );
     }
 
     /// AGENTS.md: exactly one `▎`, in the topmost layer. The open `+N`
