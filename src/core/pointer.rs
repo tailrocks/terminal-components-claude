@@ -126,6 +126,8 @@ pub struct PointerState {
     /// Last known pointer position.
     pub pos: Option<Position>,
     flash: Option<(WidgetId, u64)>,
+    /// The scrollbar the held press started on.
+    grab: Option<super::hit::Bar>,
     last_click: Option<LastClick>,
     hover_refresh: Option<Position>,
 }
@@ -174,7 +176,14 @@ impl PointerState {
         let hit = hits.hit(pos);
         self.pressed = hit;
         self.hover = hit;
+        self.grab = hit.and_then(|id| hits.bar(id));
         hit
+    }
+
+    /// The scrollbar the held press started on, if any: drags go to its
+    /// owner on its axis, through [`crate::widgets::scrollbar::apply`].
+    pub fn grabbed(&self) -> Option<super::hit::Bar> {
+        self.grab.filter(|b| self.pressed == Some(b.id))
     }
 
     /// Secondary button: hover lands on the target, no press is held.
@@ -200,6 +209,7 @@ impl PointerState {
     /// Resolve a release over `hit`, consuming the held press.
     pub fn release(&mut self, hit: Option<WidgetId>) -> Release {
         let pressed = self.pressed.take();
+        self.grab = None;
         match hit {
             None if pressed.is_none() => Release::Outside,
             None => Release::Cancelled,
@@ -348,6 +358,25 @@ mod tests {
         p.on_down(&h, Position::new(1, 0));
         assert_eq!(p.release(None), Release::Cancelled);
         let _ = a;
+    }
+
+    #[test]
+    fn a_press_on_a_scrollbar_grabs_it_until_release() {
+        use super::super::hit::{Axis, Bar};
+        let mut h = HitRegistry::default();
+        let owner = WidgetId::of("list");
+        let bar = Bar {
+            id: owner.sub("scrollbar"),
+            owner,
+            axis: Axis::Vertical,
+            track: Rect::new(9, 0, 1, 10),
+        };
+        h.register_bar(bar);
+        let mut p = PointerState::default();
+        p.on_down(&h, Position::new(9, 3));
+        assert_eq!(p.grabbed(), Some(bar));
+        assert_eq!(p.release(Some(bar.id)), Release::Click(bar.id));
+        assert_eq!(p.grabbed(), None);
     }
 
     #[test]

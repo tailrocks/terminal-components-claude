@@ -24,6 +24,24 @@ pub struct HitRegion {
     pub hover_only: bool,
 }
 
+/// Which way a scrollbar moves its content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Axis {
+    Vertical,
+    Horizontal,
+}
+
+/// A scrollbar as drawn this frame: its hit id, the container it scrolls,
+/// its axis and its track. The pointer layer grabs it on press, so a drag
+/// carries the axis and track instead of each widget inferring them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Bar {
+    pub id: WidgetId,
+    pub owner: WidgetId,
+    pub axis: Axis,
+    pub track: Rect,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct HitRegistry {
     regions: Vec<HitRegion>,
@@ -31,6 +49,8 @@ pub struct HitRegistry {
     /// Only the top layer is reachable; the one below it is what a
     /// pass-through backdrop lets a click fall into.
     barriers: Vec<usize>,
+    /// Scrollbars registered this frame.
+    bars: Vec<Bar>,
 }
 
 impl HitRegion {
@@ -51,6 +71,21 @@ impl HitRegistry {
             pass_through: false,
             hover_only: false,
         });
+    }
+
+    /// Register a scrollbar: a clickable region that the pointer layer
+    /// also knows as `owner`'s bar on `axis`.
+    pub fn register_bar(&mut self, bar: Bar) {
+        if bar.track.is_empty() {
+            return;
+        }
+        self.register(bar.id, bar.track);
+        self.bars.push(bar);
+    }
+
+    /// The scrollbar registered under `id` this frame.
+    pub fn bar(&self, id: WidgetId) -> Option<Bar> {
+        self.bars.iter().rev().find(|b| b.id == id).copied()
     }
 
     /// Register a light-dismiss backdrop for a popup layer. With
