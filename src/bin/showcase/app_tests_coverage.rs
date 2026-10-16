@@ -805,7 +805,7 @@ fn diff_router_covers_review_empty_and_copy_states() {
     selected.mouse(MouseKind::Drag, x + 10, y);
     selected.mouse(MouseKind::Up, x + 10, y);
     selected.key(KeyCode::Char('y'));
-    selected.assert_status("Selection copied in demo");
+    selected.assert_status("Selection copied");
 }
 
 #[test]

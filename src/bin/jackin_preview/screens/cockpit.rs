@@ -644,7 +644,7 @@ impl Screen for CockpitScreen {
                 Outcome::Changed
             }
             KeyCode::Esc | KeyCode::Enter if self.run.blocked_at.is_some() => {
-                cx.status("Blocked stage is a modeled state · cancel with c or quit with Ctrl+Q");
+                cx.status("This stage is blocked · c cancels the launch, Ctrl+Q quits");
                 Outcome::Changed
             }
             _ => Outcome::Consumed,
