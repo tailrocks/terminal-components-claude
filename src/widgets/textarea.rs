@@ -370,19 +370,20 @@ impl TextArea {
                 )
             }
             EditAction::None => match key.code {
-                KeyCode::PageUp => {
+                KeyCode::PageUp if !key.chord() => {
                     for _ in 0..self.rows {
                         self.buffer.move_up(false);
                     }
                     (Outcome::Changed, None)
                 }
-                KeyCode::PageDown => {
+                KeyCode::PageDown if !key.chord() => {
                     for _ in 0..self.rows {
                         self.buffer.move_down(false);
                     }
                     (Outcome::Changed, None)
                 }
-                _ => (Outcome::Consumed, None),
+                // an unbound chord passes on (Ctrl+Q, Ctrl+PageDown)
+                _ => (crate::widgets::field_common::unbound_key(key), None),
             },
             action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
                 Some(Applied::Edited) => (Outcome::Changed, Some(InputEvent::Changed)),
@@ -845,6 +846,40 @@ impl PointerField for TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An editing text area consumes only the keys it uses: unbound
+    /// chords (Ctrl+Q, Ctrl+N, Ctrl+PageDown) pass on to the container;
+    /// bound ones (Cmd+A, Ctrl+E) and plain PageDown still act.
+    #[test]
+    fn an_editing_area_passes_unbound_chords_on() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let k = |code, mods| Key { code, mods };
+        let mut a = TextArea::new(WidgetId::of("n"), "Notes", 3)
+            .value("one\ntwo")
+            .edit_entry(EditEntry::Explicit)
+            .field_keys(FieldKeys::Emacs);
+        a.begin_edit();
+        for key in [
+            k(KeyCode::Char('q'), M::CONTROL),
+            k(KeyCode::Char('n'), M::CONTROL),
+            k(KeyCode::PageDown, M::CONTROL),
+            k(KeyCode::Char('x'), M::ALT),
+        ] {
+            assert_eq!(a.on_key(&key), (Outcome::Ignored, None), "{key:?}");
+            assert!(a.editing);
+        }
+        assert_eq!(a.buffer.text(), "one\ntwo");
+        assert_eq!(
+            a.on_key(&k(KeyCode::Char('a'), M::SUPER)).0,
+            Outcome::Changed
+        );
+        assert_eq!(
+            a.on_key(&k(KeyCode::Char('e'), M::CONTROL)).0,
+            Outcome::Changed
+        );
+        assert_eq!(a.on_key(&k(KeyCode::PageDown, M::NONE)).0, Outcome::Changed);
+        assert_eq!(a.on_key(&k(KeyCode::F(5), M::NONE)).0, Outcome::Consumed);
+    }
 
     #[test]
     fn dragging_above_the_area_scrolls_it_and_selects_on() {

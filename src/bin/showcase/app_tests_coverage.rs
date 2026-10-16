@@ -1040,3 +1040,19 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     clean.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
     assert!(clean.app.quit, "a clean quit never asks");
 }
+
+/// Ctrl+Q reaches the quit guard from inside an editing text field and an
+/// editing text area: neither binds it, so each passes it on
+/// (`field_common::unbound_key`).
+#[test]
+fn ctrl_q_reaches_past_editing_text_controls() {
+    let forms = WidgetId::of("forms");
+    for (field, text) in [("name", "abc"), ("desc", "abc")] {
+        let mut h = Harness::new(120, 40, PageId::Forms);
+        h.click_id(forms.sub(field));
+        h.type_str(text);
+        assert!(h.app.pages[PageId::Forms.index()].editing(), "{field}");
+        h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
+        assert!(h.app.quit, "{field}: Ctrl+Q quits\n{}", h.text());
+    }
+}

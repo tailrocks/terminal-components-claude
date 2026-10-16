@@ -618,14 +618,14 @@ impl CodeEditor {
                 (Outcome::Consumed, None)
             }
             EditAction::None => match key.code {
-                KeyCode::PageUp => {
+                KeyCode::PageUp if !key.chord() => {
                     for _ in 0..self.scroll.viewport_len.max(1) {
                         self.buffer.move_up(false);
                     }
                     self.after_change();
                     (Outcome::Changed, Some(EditorEvent::CursorMoved))
                 }
-                KeyCode::PageDown => {
+                KeyCode::PageDown if !key.chord() => {
                     for _ in 0..self.scroll.viewport_len.max(1) {
                         self.buffer.move_down(false);
                     }
