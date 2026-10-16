@@ -2684,7 +2684,7 @@ impl App {
 
     // --------------------------------------------------------- alternatives
 
-    fn open_alternatives(&mut self, id: &str, anchor: Rect) {
+    pub(crate) fn open_alternatives(&mut self, id: &str, anchor: Rect) {
         let Some(it) = self.find_item(id) else {
             return;
         };
@@ -2720,7 +2720,13 @@ impl App {
             last.separator_after = true;
         }
         for a in &it.alternatives {
-            items.push(MenuItem::new(a.label.clone()));
+            let mut item = MenuItem::new(a.label.clone());
+            // an alternative the preview cannot run is shown unavailable up
+            // front instead of failing once chosen
+            if !self.alternative_supported(&a.item) {
+                item = item.reason("Not in this preview");
+            }
+            items.push(item);
             actions.push(MenuAction::Alternative(a.item.clone()));
         }
         if !it.alternatives.is_empty()
@@ -2758,6 +2764,12 @@ impl App {
             Modal::Menu(menu),
             ModalTag::new("alternatives").key(it.id.clone()),
         );
+    }
+
+    /// True when choosing the alternative `alt` does something: it is a row
+    /// of its own, or one [`App::run_derived`] understands.
+    pub(crate) fn alternative_supported(&self, alt: &str) -> bool {
+        self.find_item(alt).is_some() || derived_supported(alt)
     }
 
     /// Alternatives that derive from another row rather than being rows of
@@ -3350,4 +3362,18 @@ fn crumb_fit(label: &str, max: usize) -> String {
         return format!("{first} › … › {}", truncate_middle(last, room.max(6)));
     }
     truncate_middle(label, max)
+}
+
+/// The derived alternatives [`App::run_derived`] runs, by id shape.
+fn derived_supported(alt: &str) -> bool {
+    let mise_dry = alt
+        .strip_prefix("mise.task.")
+        .is_some_and(|s| s.ends_with(".dry"));
+    let ssh = alt
+        .strip_prefix("ssh.")
+        .is_some_and(|s| s.ends_with(".resolve"));
+    let activity = alt
+        .strip_prefix("activity.")
+        .is_some_and(|s| s.ends_with(".stop") || s.ends_with(".restart"));
+    mise_dry || ssh || activity || alt.ends_with(".alias")
 }
