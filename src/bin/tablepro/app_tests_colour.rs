@@ -335,3 +335,51 @@ fn sql_booleans_and_null_take_the_literal_hue() {
     let kw = at(&h, "SELECT NULL", 0);
     assert_eq!(Some(kw.fg), t.syntax(SyntaxTone::Keyword).fg, "SELECT");
 }
+
+/// Every text cell of `needle` (first occurrence) reads at 3:1 or more.
+fn assert_reads(h: &H, needle: &str, why: &str) {
+    let (x, y) = h
+        .find(needle)
+        .unwrap_or_else(|| panic!("{needle:?} not on screen\n{}", h.text()));
+    for dx in 0..needle.chars().count() as u16 {
+        let c = cell(h, (x + dx, y));
+        if c.symbol().trim().is_empty() {
+            continue;
+        }
+        let r = junie_tui::theme::contrast_ratio(c.fg, c.bg).unwrap_or(21.0);
+        assert!(
+            r >= 3.0,
+            "{why}: {:?} of {needle:?} is {:?} on {:?} ({r:.2}:1)",
+            c.symbol(),
+            c.fg,
+            c.bg
+        );
+    }
+}
+
+#[test]
+fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
+    // 16 colours draw the selected tab Black on DarkGray; the backdrop
+    // took that canvas ink for a blank and left it Black on Black
+    let mut h = H::connected(120, 40);
+    h.app.theme = Theme::for_level(junie_tui::theme::ColorLevel::Ansi16);
+    h.draw();
+    h.ctrl('o');
+    assert!(matches!(h.app.modal(), Some(Modal::Picker(..))));
+    assert_reads(&h, "Query 1", "selected tab under the picker");
+}
+
+#[test]
+fn page_text_under_a_modal_dims_but_never_disappears() {
+    // a button label on the raised plane dimmed to the ghost tier, the
+    // colour of the plane itself (1.0:1)
+    let mut h = H::new(160, 50);
+    for _ in 0..7 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Char('d'));
+    assert!(h.find("Delete connection?").is_some(), "{}", h.text());
+    for label in ["Connect", "Edit", "Duplicate", "Delete…"] {
+        assert_reads(&h, label, "detail button under the delete dialog");
+    }
+}

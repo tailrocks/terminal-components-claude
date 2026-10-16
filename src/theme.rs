@@ -1059,9 +1059,15 @@ impl Theme {
             .contains(&c)
         });
         // Preserve cells with no visible foreground when dimming a plane.
+        // A "dark" plane token can still be a light fill at a reduced
+        // level (16 colours draw the raised plane DarkGray, with canvas
+        // ink on it for a selected tab or a button): ink that reads on
+        // its plane is text, never a blank.
+        let reads = |fg: Color, bg: Color| contrast_ratio(fg, bg).is_some_and(|r| r >= 3.0);
+        let plane = style.bg.unwrap_or(self.canvas);
         let blank = match style.fg {
             Some(c) if Some(c) == style.bg => true,
-            Some(c) => (c == self.canvas || c == self.surface) && dark_plane,
+            Some(c) => (c == self.canvas || c == self.surface) && dark_plane && !reads(c, plane),
             None => false,
         };
         let fg = match style.fg {
@@ -1076,6 +1082,19 @@ impl Theme {
             }
             Some(c) if c == self.text_secondary || c == self.text_on_accent => self.text_faint,
             _ => self.text_ghost,
+        };
+        // Dimming keeps the hierarchy but never erases text: ink that read
+        // on its own plane (3:1, the faint floor) still reads on the
+        // backdrop plane, stepping up ghost → faint → muted. Ink that was
+        // already decoration (a ghost rule, a dotted track) stays dim.
+        let fg = match style.fg {
+            Some(c) if !blank && reads(c, plane) && !reads(fg, bg) => {
+                [self.text_faint, self.text_muted, self.text_secondary]
+                    .into_iter()
+                    .find(|&ink| reads(ink, bg))
+                    .unwrap_or(self.text_primary)
+            }
+            _ => fg,
         };
         // 16 colours and monochrome have no tiers left to dim through: the
         // ladder lands on the backdrop's own grey. Keep a readable ink and
@@ -2747,6 +2766,50 @@ mod tests {
         // canvas ink on the canvas is a blank and stays one
         let st = t.backdrop(Style::new().fg(t.canvas).bg(t.canvas));
         assert_eq!(st.fg, st.bg);
+    }
+
+    #[test]
+    fn the_modal_backdrop_dims_text_without_erasing_it() {
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let planes = [
+                t.canvas,
+                t.surface,
+                t.surface_elevated,
+                t.field,
+                t.field_hover,
+                t.surface_overlay,
+                t.popover,
+            ];
+            for bg in planes {
+                // canvas ink on a plane it reads on (16 colours: a selected
+                // tab or a button, Black on the DarkGray raised plane) is
+                // text, not a blank
+                for fg in [
+                    t.canvas,
+                    t.text_ghost,
+                    t.text_faint,
+                    t.text_muted,
+                    t.border_strong,
+                ] {
+                    if contrast_ratio(fg, bg).is_none_or(|r| r < 3.0) {
+                        continue;
+                    }
+                    let st = t.backdrop(Style::new().fg(fg).bg(bg));
+                    let (ink, plane) = (st.fg.unwrap(), st.bg.unwrap());
+                    let r = contrast_ratio(ink, plane).unwrap();
+                    assert!(
+                        r >= 3.0,
+                        "{level:?}: {fg:?} on {bg:?} dims to {ink:?} on {plane:?} ({r:.2})"
+                    );
+                }
+            }
+            // ink that was already decoration stays dim
+            let st = t.backdrop(Style::new().fg(t.text_ghost).bg(t.canvas));
+            if level == ColorLevel::TrueColor {
+                assert_eq!(st.fg, Some(t.text_ghost));
+            }
+        }
     }
 
     #[test]
