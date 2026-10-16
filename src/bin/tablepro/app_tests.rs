@@ -1045,11 +1045,14 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
     let cli =
         crate::Cli::try_parse_from(["tablepro", "--color", "mono", "--connect", "Production"])
             .expect("valid CLI options");
-    assert!(matches!(cli.color, Some(crate::ColorArg::Mono)));
+    assert!(matches!(
+        cli.common.color,
+        Some(junie_tui::cli::ColorArg::Mono)
+    ));
     assert_eq!(cli.connect.as_deref(), Some("Production"));
 
     let defaults = crate::Cli::try_parse_from(["tablepro"]).expect("default CLI options");
-    assert!(defaults.color.is_none());
+    assert!(defaults.common.color.is_none());
     assert!(defaults.connect.is_none());
     assert!(crate::Cli::try_parse_from(["tablepro", "--color"]).is_err());
 
@@ -1060,7 +1063,10 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
         );
     }
     let short = crate::Cli::try_parse_from(["tablepro", "-c", "24bit"]).unwrap();
-    assert!(matches!(short.color, Some(crate::ColorArg::TrueColor)));
+    assert!(matches!(
+        short.common.color,
+        Some(junie_tui::cli::ColorArg::TrueColor)
+    ));
 
     assert!(matches!(
         crate::Cli::try_parse_from(["tablepro", "--color", "invalid"]),

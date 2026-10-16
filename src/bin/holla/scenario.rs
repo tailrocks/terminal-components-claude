@@ -181,28 +181,8 @@ impl Scenario {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Motion {
-    /// Ticks drive discovery, activities and plans.
-    #[default]
-    Full,
-    /// Discovery completes at once; activities and plans still advance.
-    Reduced,
-    /// Ticks never advance; `--frame` selects the exact frame shown.
-    Paused,
-}
-
-impl Motion {
-    /// Explicit CLI motion wins; otherwise `HOLLA_NO_MOTION` selects the
-    /// reduced path.
-    pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
-        match cli {
-            Some(m) => m,
-            None if no_motion_env => Motion::Reduced,
-            None => Motion::Full,
-        }
-    }
-}
+/// Tick delivery (`--motion`): the library's [`Motion`].
+pub use junie_tui::motion::Motion;
 
 #[cfg(test)]
 mod tests {

@@ -104,23 +104,8 @@ impl Cx<'_> {
     }
 }
 
-/// Tick delivery (`--motion`), the same vocabulary as the other binaries.
-///
-/// - `Full`: live ticks advance the world (connect, schema load, query run,
-///   commit) and the decorative phase (activity spinners).
-/// - `Reduced`: the world still advances, the decorative phase stays at its
-///   start, so spinners do not animate.
-/// - `Paused`: the world is fast-forwarded `--frame N` ticks at startup and
-///   never ticks again; the decorative phase is pinned at `N`, the status
-///   line never ages out, and a press flash stays visible. Captures pin
-///   every tick-derived and wall-clock-derived state this way.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Motion {
-    #[default]
-    Full,
-    Reduced,
-    Paused,
-}
+/// Tick delivery (`--motion`): the library's [`Motion`].
+pub use junie_tui::motion::Motion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {

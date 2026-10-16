@@ -8,14 +8,13 @@ use junie_tui::core::event::{Input, Outcome};
 use junie_tui::core::id::WidgetId;
 use ratatui::crossterm::event::KeyCode;
 
+use crate::Cli;
 use crate::app::Motion;
 use crate::app_tests::H;
-use crate::{Cli, options};
 
 fn parse(args: &[&str]) -> Result<(Motion, u64), clap::Error> {
     let cli = Cli::try_parse_from(std::iter::once("tablepro").chain(args.iter().copied()))?;
-    let opts = options(cli);
-    Ok((opts.motion, opts.frame))
+    Ok((cli.common.motion.unwrap_or_default(), cli.common.frame))
 }
 
 /// Connected, with the explorer loading two tables' columns (3 ticks each,
