@@ -11,6 +11,7 @@ use crate::core::hit::Axis;
 use crate::core::hit::PartMap;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::theme::{Theme, Tone};
@@ -380,20 +381,24 @@ impl PropsList {
             }
             return (Outcome::Consumed, None);
         }
-        let page = self.scroll.viewport_len.max(1);
-        match (self.nav.action(key), key.code) {
-            (Some(Nav::Up), _) if key.plain() => self.set_cursor(self.cursor.saturating_sub(1)),
-            (Some(Nav::Down), _) if key.plain() => self.set_cursor(self.cursor + 1),
-            (Some(Nav::PageUp), _) => self.set_cursor(self.cursor.saturating_sub(page)),
-            (Some(Nav::PageDown), _) => self.set_cursor(self.cursor + page),
-            (Some(Nav::Home), _) if key.plain() => self.set_cursor(0),
-            (Some(Nav::End), _) => self.set_cursor(usize::MAX),
-            (_, KeyCode::Enter) => {
-                return (Outcome::Changed, Some(PropsAction::Activate(self.cursor)));
-            }
-            _ => return (Outcome::Ignored, None),
+        let nav = self
+            .nav
+            .action(key)
+            .filter(|n| key.plain() || matches!(n, Nav::PageUp | Nav::PageDown | Nav::End));
+        if let Some(nav) = nav {
+            let moved = self.cursor().apply(nav, self, self.scroll.viewport_len);
+            return match moved.index() {
+                Some(i) => {
+                    self.set_cursor(i);
+                    (Outcome::Changed, None)
+                }
+                None => (Outcome::Ignored, None),
+            };
         }
-        (Outcome::Changed, None)
+        match key.code {
+            KeyCode::Enter => (Outcome::Changed, Some(PropsAction::Activate(self.cursor))),
+            _ => (Outcome::Ignored, None),
+        }
     }
 
     pub fn on_click(&mut self, row: usize) -> (Outcome, Option<PropsAction>) {
@@ -577,6 +582,21 @@ impl Scrollable for PropsList {
             return None;
         }
         self.reveal.on_wheel(delta).map(Response::from)
+    }
+}
+
+impl RowSource for PropsList {
+    fn len(&self) -> usize {
+        self.props.len()
+    }
+    fn label(&self, i: usize) -> &str {
+        &self.props[i].label
+    }
+}
+
+impl Navigable for PropsList {
+    fn cursor(&self) -> Cursor {
+        Cursor::new(self.cursor)
     }
 }
 
