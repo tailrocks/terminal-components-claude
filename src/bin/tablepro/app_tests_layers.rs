@@ -3,6 +3,7 @@
 //! click, the frame's `×`, a refused click that flashes), and closing it
 //! gives the focus back to the control it covered (K9).
 
+use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use junie_tui::core::event::{Input, Key};
@@ -101,7 +102,12 @@ fn a_dialog_closes_on_esc_on_its_close_button_and_on_an_outside_click() {
     assert_eq!(h.focus(), before, "K9");
 
     h.key(KeyCode::Char('?'));
-    let x = h.app.hits.area_of(CLOSE).expect("the frame draws its ×");
+    let x = h
+        .app
+        .shell
+        .hits
+        .area_of(CLOSE)
+        .expect("the frame draws its ×");
     h.click(x.x + 1, x.y);
     assert!(h.app.modal().is_none(), "× closes the help\n{}", h.text());
     assert_eq!(h.focus(), before, "K9");

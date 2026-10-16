@@ -13,7 +13,7 @@ fn the_first_connection_is_created_by_mouse_from_the_empty_list() {
     assert!(!h.text().contains("Save & connect"));
     let (x, y) = h.find("New connection").expect("a New connection button");
     assert_eq!(
-        h.app.hits.hit(ratatui::layout::Position::new(x, y)),
+        h.app.shell.hits.hit(ratatui::layout::Position::new(x, y)),
         Some(crate::connections::NEW_ID)
     );
     h.click(x, y);
@@ -31,15 +31,16 @@ fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
     let at = |h: &H, id| {
         let r = h
             .app
+            .shell
             .hits
             .area_of(id)
             .unwrap_or_else(|| panic!("toolbar button {id:?} missing:\n{}", h.text()));
         (r.x + 1, r.y)
     };
     for id in [TOOLBAR_RUN, TOOLBAR_RUN_ALL, TOOLBAR_EXPLAIN] {
-        assert!(h.app.hits.area_of(id).is_some(), "{}", h.text());
+        assert!(h.app.shell.hits.area_of(id).is_some(), "{}", h.text());
     }
-    assert!(h.app.hits.area_of(TOOLBAR_CANCEL).is_none());
+    assert!(h.app.shell.hits.area_of(TOOLBAR_CANCEL).is_none());
     // Run
     let (x, y) = at(&h, TOOLBAR_RUN);
     h.click(x, y);
@@ -68,11 +69,12 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     let mut h = H::connected(120, 40);
     assert!(h.text().contains("Explorer"));
     assert!(
-        h.app.hits.area_of(EXPLORER_RAIL).is_none(),
+        h.app.shell.hits.area_of(EXPLORER_RAIL).is_none(),
         "no rail while open"
     );
     let collapse = h
         .app
+        .shell
         .hits
         .area_of(EXPLORER_RAIL.part(junie_tui::core::id::PartRef::of(
             junie_tui::core::id::Part::ICON,
@@ -82,6 +84,7 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     assert!(!h.wb().explorer_visible, "{}", h.text());
     let rail = h
         .app
+        .shell
         .hits
         .area_of(EXPLORER_RAIL)
         .expect("a collapsed explorer leaves a rail");
@@ -93,6 +96,7 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     assert!(!h.wb().explorer_visible);
     let rail = h
         .app
+        .shell
         .hits
         .area_of(EXPLORER_RAIL)
         .expect("rail after Ctrl+B");
@@ -109,6 +113,7 @@ fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
     assert_ne!(h.focus(), Some(EXPLORER));
     let rail = h
         .app
+        .shell
         .hits
         .area_of(EXPLORER_RAIL)
         .expect("the closed drawer leaves a rail");
@@ -123,7 +128,12 @@ fn the_app_menu_disconnects_and_quits_by_mouse() {
     use crate::app::STRIP_APP;
     let mut h = H::connected(120, 40);
     let open_menu = |h: &mut H| {
-        let r = h.app.hits.area_of(STRIP_APP).expect("the TablePro segment");
+        let r = h
+            .app
+            .shell
+            .hits
+            .area_of(STRIP_APP)
+            .expect("the TablePro segment");
         h.click(r.x, r.y);
     };
     open_menu(&mut h);
@@ -141,7 +151,7 @@ fn the_app_menu_disconnects_and_quits_by_mouse() {
     assert!(!h.text().contains("Open tabs…"), "{}", h.text());
     let (x, y) = h.find("Quit TablePro").unwrap();
     h.click(x, y);
-    assert!(h.app.quit, "Quit did not quit");
+    assert!(h.app.shell.quit, "Quit did not quit");
 }
 
 // mouse #40: pending work keeps the connection open
@@ -152,7 +162,7 @@ fn disconnect_keeps_an_unsaved_query() {
     h.key(ratatui::crossterm::event::KeyCode::Tab);
     h.type_str("SELECT 1");
     h.key(ratatui::crossterm::event::KeyCode::Esc);
-    let r = h.app.hits.area_of(STRIP_APP).unwrap();
+    let r = h.app.shell.hits.area_of(STRIP_APP).unwrap();
     h.click(r.x, r.y);
     let (x, y) = h.find("Disconnect").unwrap();
     h.click(x, y);
@@ -168,13 +178,13 @@ fn a_query_tab_close_plate_lights_whole_and_closes_the_tab() {
     use junie_tui::core::event::MouseKind;
     let mut h = H::connected(120, 40);
     let new = h.wb().strip.new_id();
-    let plus = h.app.hits.area_of(new).expect("the strip's +");
+    let plus = h.app.shell.hits.area_of(new).expect("the strip's +");
     h.click(plus.x + 1, plus.y);
     let n = h.wb().tabs.len();
     assert!(n >= 2, "{}", h.text());
     let i = h.wb().strip.active;
     let cid = h.wb().strip.close_id(i);
-    let plate = h.app.hits.area_of(cid).expect("the tab's ×");
+    let plate = h.app.shell.hits.area_of(cid).expect("the tab's ×");
     assert_eq!(plate.width, plus.width, "as wide as the +");
     let cell = |h: &H, x: u16| h.term.backend().buffer()[(x, plate.y)].clone();
     assert_eq!(cell(&h, plate.x + 1).symbol(), "×");
