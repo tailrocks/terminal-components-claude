@@ -3,12 +3,12 @@
  [0m[1mComponents[0m           25  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step rail reports a… [0m
                                                                                                                         [0m
     Overview              ╭─ Viewport ───────────────────── 37 lines · following ─╮ │  Step rail                7 of 7  [0m
-  ▸ App shell             │  [0m[2m  layer 03/12   34%                                [0m│ │ │                                   [0m
-  ▸ Inputs & forms        │    layer 04/12   50%                                │ │ │   ✓ 01 Resolve workspace  0.8 s   [0m
-  ▸ Tables                │    layer 05/12   65%                                │ │ │   ✓ 02 Pull base image    2.1 s   [0m
-  ▸ Navigation            │    layer 06/12   80%                                │ │ │   ✓ 03 Build container    3.2 s   [0m
-  ▸ Overlays              │    layer 07/12   96%                                │ │ │     04 Mount sources     cached   [0m
-  ▸ Feedback              │  ✓ Pull base image                                  │ │ │   ✓ 05 Resolve credenti…  1.4 s   [0m
+  ▸ App shell             │  [0m[2m  layer 03/12   34%                                [0m┆ │ │                                   [0m
+  ▸ Inputs & forms        │    layer 04/12   50%                                ┆ │ │   ✓ 01 Resolve workspace  0.8 s   [0m
+  ▸ Tables                │    layer 05/12   65%                                ┆ │ │   ✓ 02 Pull base image    2.1 s   [0m
+  ▸ Navigation            │    layer 06/12   80%                                ┆ │ │   ✓ 03 Build container    3.2 s   [0m
+  ▸ Overlays              │    layer 07/12   96%                                ┆ │ │     04 Mount sources     cached   [0m
+  ▸ Feedback              │  ✓ Pull base image                                  ┆ │ │   ✓ 05 Resolve credenti…  1.4 s   [0m
   ▸ Layout                │  [0m[1m▶ Build container[0m                                  ┃ │ │   ✓ 06 Start agent        1.1 s   [0m
   ▾ Text & code           │    #1 RUN apt-get install -y build-essential        ┃ │ │   ✓ 07 Ready              0.1 s   [0m
       Code editor         │    #2 COPY rust-toolchain.toml ./                   ┃ │ │                                   [0m
@@ -34,7 +34,7 @@
                           │  [0m[1m▶ Ready[0m                                            ┃ │ │                                   [0m
                           │  ✓ Ready                                            ┃ │ │                                   [0m
                           │  [0m[1mpayments-platform ❯ [0m                               ┃ │ │                                   [0m
-                          │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────  │ │   [0m[1;7mRun [0m   Run with a failure       [0m
+                          │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄  │ │   [0m[1;7mRun [0m   Run with a failure       [0m
                           ╰───────────────────────────────────────────────────────╯ │                                   [0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
