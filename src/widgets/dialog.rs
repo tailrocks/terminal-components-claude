@@ -438,6 +438,15 @@ impl Dialog {
         }
     }
 
+    /// Replace the action buttons; `cancel_index` is the one Esc and a
+    /// dismissal resolve to.
+    pub fn actions(mut self, actions: Vec<Button>, cancel_index: Option<usize>) -> Self {
+        self.actions = actions;
+        self.cancel_index = cancel_index;
+        self
+    }
+
+    #[deprecated(note = "renamed to `Dialog::actions`")]
     pub fn with_actions(mut self, actions: Vec<Button>, cancel_index: Option<usize>) -> Self {
         self.actions = actions;
         self.cancel_index = cancel_index;

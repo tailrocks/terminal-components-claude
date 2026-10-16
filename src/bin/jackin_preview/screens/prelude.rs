@@ -193,7 +193,7 @@ impl PreludeScreen {
                     .value(&value);
                 input.error = error;
                 input.begin_edit();
-                let mut d = Dialog::prompt(EDIT, Self::title(step), input, "Next").with_actions(
+                let mut d = Dialog::prompt(EDIT, Self::title(step), input, "Next").actions(
                     vec![
                         Button::subtle(EDIT.sub("back"), "Back"),
                         Button::primary(EDIT.sub("ok"), "Next"),
@@ -239,7 +239,7 @@ impl PreludeScreen {
                     .value(&value);
                 input.error = error;
                 input.begin_edit();
-                let mut d = Dialog::prompt(NAME, Self::title(step), input, "Create").with_actions(
+                let mut d = Dialog::prompt(NAME, Self::title(step), input, "Create").actions(
                     vec![
                         Button::subtle(NAME.sub("back"), "Back"),
                         Button::primary(NAME.sub("ok"), "Create"),
