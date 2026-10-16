@@ -2481,6 +2481,9 @@ impl App {
                 own.push(KeyHint::new("Esc", "Close"));
             }
             dialog_hints = Some(own);
+        } else if let Some(own) = page.layer_hints(self.focus.current()) {
+            // a page's own layer (a picker, a form): its keys
+            dialog_hints = Some(own);
         } else if let Some(own) = inspector_hints {
             let popup = self.insp.options.popup_open();
             hints.extend(own);

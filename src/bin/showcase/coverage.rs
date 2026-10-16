@@ -4213,4 +4213,239 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::dialog::Dialog::confirm_index",
         Option("dialogs", "dialogs.confirm_index"),
     ),
+    // SC18: Dialog kinds
+    (
+        "widgets::choice_dialog::ChoiceDialog",
+        StateRow("dialogkinds", "rest"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::nav",
+        Option("dialogkinds", "dialogkinds.nav"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::buttons",
+        Option("dialogkinds", "dialogkinds.choice_buttons"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::line",
+        Demo("dialogkinds", "width 54 · line · stepper"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::stepper",
+        Option("dialogkinds", "dialogkinds.choice_stepper"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::width",
+        Option("dialogkinds", "dialogkinds.width"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::option_tones",
+        Option("dialogkinds", "dialogkinds.choice_tones"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::close_button",
+        Option("dialogkinds", "dialogkinds.close_button"),
+    ),
+    (
+        "widgets::choice_dialog::ChoiceDialog::button_row",
+        Option("dialogkinds", "dialogkinds.button_wrap"),
+    ),
+    (
+        "widgets::form_dialog::FieldValue",
+        Demo("dialogkinds", "values Text · Choice · Bool"),
+    ),
+    (
+        "widgets::form_dialog::FieldValue::Text",
+        Demo("dialogkinds", "values Text · Choice · Bool"),
+    ),
+    (
+        "widgets::form_dialog::FieldValue::Choice",
+        Demo("dialogkinds", "values Text · Choice · Bool"),
+    ),
+    (
+        "widgets::form_dialog::FieldValue::Bool",
+        Demo("dialogkinds", "values Text · Choice · Bool"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind",
+        Demo("dialogkinds", "Form fields Input · Select"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind::Input",
+        Demo("dialogkinds", "Form fields Input"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind::Select",
+        Demo("dialogkinds", "Input · Select"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind::Check",
+        Demo("dialogkinds", "Radio · Check"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind::Radio",
+        Demo("dialogkinds", "Radio · Check"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind::Chooser",
+        Demo("dialogkinds", "Check · Chooser · Note"),
+    ),
+    (
+        "widgets::form_dialog::FormFieldKind::Note",
+        Demo("dialogkinds", "Chooser · Note · Note"),
+    ),
+    (
+        "widgets::form_dialog::FormField",
+        Demo("dialogkinds", "Form fields"),
+    ),
+    (
+        "widgets::form_dialog::FormField::hidden",
+        Demo("dialogkinds", "hidden key"),
+    ),
+    (
+        "widgets::form_dialog::FormAction",
+        Demo(
+            "dialogkinds",
+            "Form(Save | Cancel | Changed | Choose | Action)",
+        ),
+    ),
+    (
+        "widgets::form_dialog::FormAction::Changed",
+        Demo(
+            "dialogkinds",
+            "Form(Save | Cancel | Changed | Choose | Action)",
+        ),
+    ),
+    (
+        "widgets::form_dialog::FormAction::Choose",
+        Demo(
+            "dialogkinds",
+            "Form(Save | Cancel | Changed | Choose | Action)",
+        ),
+    ),
+    (
+        "widgets::form_dialog::FormAction::Action",
+        Demo(
+            "dialogkinds",
+            "Form(Save | Cancel | Changed | Choose | Action)",
+        ),
+    ),
+    (
+        "widgets::form_dialog::FormAction::Save",
+        Demo(
+            "dialogkinds",
+            "Form(Save | Cancel | Changed | Choose | Action)",
+        ),
+    ),
+    (
+        "widgets::form_dialog::FormAction::Cancel",
+        Demo(
+            "dialogkinds",
+            "Form(Save | Cancel | Changed | Choose | Action)",
+        ),
+    ),
+    (
+        "widgets::form_dialog::FormDialog",
+        Demo("dialogkinds", "Add connection…"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::keep_open_on_save",
+        Option("dialogkinds", "dialogkinds.keep_open"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::action",
+        Demo("dialogkinds", "actions test"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::width",
+        Option("dialogkinds", "dialogkinds.width"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::meta",
+        Option("dialogkinds", "dialogkinds.form_meta"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::nav",
+        Option("dialogkinds", "dialogkinds.nav"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::close_button",
+        Option("dialogkinds", "dialogkinds.close_button"),
+    ),
+    (
+        "widgets::form_dialog::FormDialog::button_row",
+        Option("dialogkinds", "dialogkinds.button_wrap"),
+    ),
+    (
+        "widgets::help::HelpOverlay::close_button",
+        Option("dialogkinds", "dialogkinds.close_button"),
+    ),
+    (
+        "widgets::info_dialog::InfoResult",
+        Demo("dialogkinds", "Info(Closed | Copy | Action)"),
+    ),
+    (
+        "widgets::info_dialog::InfoResult::Closed",
+        Demo("dialogkinds", "Info(Closed | Copy | Action)"),
+    ),
+    (
+        "widgets::info_dialog::InfoResult::Copy",
+        Demo("dialogkinds", "Info(Closed | Copy | Action)"),
+    ),
+    (
+        "widgets::info_dialog::InfoResult::Action",
+        Demo("dialogkinds", "Info(Closed | Copy | Action)"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog",
+        Demo("dialogkinds", "Server info"),
+    ),
+    (
+        "widgets::info_dialog::InfoCmd",
+        Option("dialogkinds", "dialogkinds.info_keymap"),
+    ),
+    (
+        "widgets::info_dialog::InfoCmd::Close",
+        Option("dialogkinds", "dialogkinds.info_keymap"),
+    ),
+    (
+        "widgets::info_dialog::InfoCmd::Copy",
+        Option("dialogkinds", "dialogkinds.info_keymap"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::nav",
+        Option("dialogkinds", "dialogkinds.nav"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::keymap",
+        Option("dialogkinds", "dialogkinds.info_keymap"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::intro",
+        Demo("dialogkinds", "read-only · intro · detail 3 rows"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::detail",
+        Demo("dialogkinds", "detail 3 rows"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::action",
+        Demo("dialogkinds", "detail 3 rows · actions 1"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::width",
+        Option("dialogkinds", "dialogkinds.width"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::meta",
+        Demo("dialogkinds", "meta read-only"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::error",
+        Option("dialogkinds", "dialogkinds.info_error"),
+    ),
+    (
+        "widgets::info_dialog::InfoDialog::close_button",
+        Option("dialogkinds", "dialogkinds.close_button"),
+    ),
 ];

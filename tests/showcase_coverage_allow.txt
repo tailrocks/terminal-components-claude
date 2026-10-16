@@ -305,15 +305,6 @@ widgets::chips::ChipCmd::ShowHidden | Chips & selects page options | SC10
 # widgets::choice
 
 # widgets::choice_dialog
-widgets::choice_dialog::ChoiceDialog | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::nav | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::buttons | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::line | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::stepper | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::width | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::option_tones | Dialog kinds page | SC18
-widgets::choice_dialog::ChoiceDialog::close_button | Dialog kinds page: a custom close button | SC18
-widgets::choice_dialog::ChoiceDialog::button_row | Dialog kinds page: button-row wrap | SC18
 
 # widgets::code
 widgets::code::EditorAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -353,59 +344,14 @@ widgets::field_common::Applied::Edited | widget edit events and outcomes: the In
 widgets::field_common::Applied::Moved | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::form_dialog
-widgets::form_dialog::FieldValue | Dialog kinds page | SC18
-widgets::form_dialog::FieldValue::Text | Dialog kinds page | SC18
-widgets::form_dialog::FieldValue::Choice | Dialog kinds page | SC18
-widgets::form_dialog::FieldValue::Bool | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind::Input | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind::Select | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind::Check | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind::Radio | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind::Chooser | Dialog kinds page | SC18
-widgets::form_dialog::FormFieldKind::Note | Dialog kinds page | SC18
-widgets::form_dialog::FormField | Dialog kinds page | SC18
-widgets::form_dialog::FormField::hidden | Dialog kinds page | SC18
-widgets::form_dialog::FormAction | Dialog kinds page | SC18
-widgets::form_dialog::FormAction::Changed | Dialog kinds page | SC18
-widgets::form_dialog::FormAction::Choose | Dialog kinds page | SC18
-widgets::form_dialog::FormAction::Action | Dialog kinds page | SC18
-widgets::form_dialog::FormAction::Save | Dialog kinds page | SC18
-widgets::form_dialog::FormAction::Cancel | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog::keep_open_on_save | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog::action | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog::width | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog::meta | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog::nav | Dialog kinds page | SC18
-widgets::form_dialog::FormDialog::close_button | Dialog kinds page: a custom close button | SC18
-widgets::form_dialog::FormDialog::button_row | Dialog kinds page: button-row wrap | SC18
 
 # widgets::help
-widgets::help::HelpOverlay::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::hintbar
 
 # widgets::icon_button
 
 # widgets::info_dialog
-widgets::info_dialog::InfoResult | Dialog kinds page | SC18
-widgets::info_dialog::InfoResult::Closed | Dialog kinds page | SC18
-widgets::info_dialog::InfoResult::Copy | Dialog kinds page | SC18
-widgets::info_dialog::InfoResult::Action | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog | Dialog kinds page | SC18
-widgets::info_dialog::InfoCmd | Dialog kinds page | SC18
-widgets::info_dialog::InfoCmd::Close | Dialog kinds page | SC18
-widgets::info_dialog::InfoCmd::Copy | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::nav | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::keymap | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::intro | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::detail | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::action | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::width | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::meta | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::error | Dialog kinds page | SC18
-widgets::info_dialog::InfoDialog::close_button | Dialog kinds page: a custom close button | SC18
 
 # widgets::input
 widgets::input::InputAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
