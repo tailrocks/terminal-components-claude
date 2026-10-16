@@ -12,12 +12,14 @@ use crate::inspector::{self, Inspector};
 use crate::options::{OptSet, ShellOptions};
 use crate::pages::{Page, PageCtx, PageEvent, Request};
 use junie_tui::clock::{Clock, WallClock};
-use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerConfig, PointerState, Release, SecondaryRoute};
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::pointer::{
+    FocusOn, MouseTarget, PointerConfig, PointerEvent, PointerHost, PointerParts, PointerRouter,
+};
+use junie_tui::core::response::Response;
 use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
@@ -25,7 +27,7 @@ use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved,
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::help::HelpOverlay;
-use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::hintbar::{HintBar, HintKeys, HintLayer};
 use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
@@ -604,8 +606,12 @@ pub struct App {
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
-    /// Hover, press, flash and click-count state.
-    pub pointer: PointerState,
+    /// The pointer router: hover, press, flash, click count, drag and
+    /// wheel ([`PointerHost`] below routes what it resolves).
+    pub pointer: PointerRouter,
+    /// The keys of the footer hints drawn last frame: a click on one
+    /// replays its key (M1).
+    footer_keys: HintKeys,
     /// The pointer clock (press flash, hover delay, status expiry).
     pub(crate) clock: WallClock,
     pub dialog: Option<Dialog>,
@@ -658,14 +664,6 @@ pub struct App {
     pointer_mods: KeyModifiers,
     /// Multi-click count of the click being delivered ([`PageCtx::clicks`]).
     pointer_clicks: u8,
-}
-
-/// An input for the open keyboard reference ([`App::help_event`]).
-enum HelpEvent {
-    Key(Key),
-    /// A completed click on `id`, inside or outside the reference.
-    Click(WidgetId),
-    Wheel(i32),
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -778,7 +776,8 @@ impl App {
             focus,
             ring: FocusRing::default(),
             hits: HitRegistry::default(),
-            pointer: PointerState::new(PointerConfig::DEFAULT.focus_on(FocusOn::Release)),
+            pointer: PointerRouter::new(PointerConfig::DEFAULT),
+            footer_keys: HintKeys::default(),
             clock: WallClock::new(),
             dialog: None,
             help: None,
@@ -999,29 +998,14 @@ impl App {
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
-            Input::Mouse(m) => self.on_mouse(m),
-        }
-    }
-
-    /// A due edge-autoscroll step replays the held drag at the pointer
-    /// ([`PointerState::autoscroll_due`](junie_tui::core::pointer::PointerState::autoscroll_due)).
-    /// A due track repeat replays the press held on a scrollbar track, so
-    /// it keeps paging toward the pointer
-    /// ([`PointerState::track_repeat_due`](junie_tui::core::pointer::PointerState::track_repeat_due)).
-    fn autoscroll(&mut self) -> Outcome {
-        let out = match self.pointer.autoscroll_due(self.now_ms()) {
-            Some((_, pos)) => self.on_mouse(Mouse::new(MouseKind::Drag, pos)),
-            None => Outcome::Ignored,
-        };
-        match self.pointer.track_repeat_due(self.now_ms()) {
-            Some(pos) => out.or(self.on_mouse(Mouse::new(MouseKind::Down, pos))),
-            None => out,
+            Input::Mouse(m) => PointerRouter::route(self, m),
         }
     }
 
     fn on_tick(&mut self) -> Outcome {
-        // edge autoscroll is the user's drag, not motion: it runs paused too
-        let auto = self.autoscroll();
+        // edge autoscroll and a held track press are the user's drag,
+        // not motion: they run paused too
+        let auto = PointerRouter::tick(self);
         if self.motion == Motion::Paused {
             return auto;
         }
@@ -1034,7 +1018,8 @@ impl App {
             }
             out = Outcome::Changed;
         }
-        if self.pointer.expire_flash(self.now_ms()) {
+        let now = self.now_ms();
+        if self.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
         if self.status.expire(self.clock.now()) {
@@ -1108,7 +1093,7 @@ impl App {
             return Outcome::Ignored;
         };
         self.focus.set(self.saved_focus.take());
-        if self.leave.owns(d.id) {
+        if d.id == self.leave.id {
             if let Some(result) = d.result
                 && let Resolved::Discard(_) = self.leave.resolve(result)
             {
@@ -1153,7 +1138,7 @@ impl App {
             }
             return out.or(Outcome::Consumed);
         }
-        if let Some(out) = self.help_event(HelpEvent::Key(key)) {
+        if let Some(out) = self.help_key(key) {
             return out;
         }
         if let Some(out) = self.inspector_key(&key) {
@@ -1607,356 +1592,120 @@ impl App {
         Outcome::Changed
     }
 
-    /// The reference's own events while it is open; `None` when it is
-    /// closed. A click outside it closes it under its `Dismiss` policy.
-    fn help_event(&mut self, ev: HelpEvent) -> Option<Outcome> {
+    /// The reference's keys while it is open; `None` when it is closed.
+    fn help_key(&mut self, key: Key) -> Option<Outcome> {
         let h = self.help.as_mut()?;
-        let out = match ev {
-            HelpEvent::Key(key) => h.on_key(&key).or(Outcome::Consumed),
-            HelpEvent::Click(id) => {
-                let inside = id == h.id
-                    || id == h.done.id
-                    || id == junie_tui::ui::modal::CLOSE
-                    || id == scrollbar::id_for(h.id);
-                if inside {
-                    h.on_click(id).or(Outcome::Changed)
-                } else {
-                    junie_tui::ui::layer::dismiss(
-                        h,
-                        junie_tui::core::intent::DismissReason::OutsideClick,
-                    );
-                    Outcome::Changed
-                }
-            }
-            HelpEvent::Wheel(delta) => h.on_wheel(delta),
-        };
+        let out = h.on_key(&key).or(Outcome::Consumed);
         if h.closed {
             return Some(self.close_help().or(out));
         }
         Some(out)
     }
 
-    /// A button release at `m.pos` over `hit`.
-    fn on_release(&mut self, m: Mouse, hit: Option<WidgetId>) -> Outcome {
-        let pressed = self.pointer.pressed;
-        let id = match self.pointer.release(hit) {
-            Release::Click(id) => id,
-            Release::Outside => {
-                if let Some(d) = self.dialog.as_mut() {
-                    let out = d.on_click_outside();
-                    if d.result.is_some() {
-                        return self.close_dialog().or(out);
-                    }
-                    let dismiss = d.dismiss;
-                    let now = self.now_ms();
-                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
-                }
-                if let Some(h) = self.help.as_mut() {
-                    let reason = junie_tui::core::intent::DismissReason::OutsideClick;
-                    if junie_tui::ui::layer::dismiss(h, reason).is_some() {
-                        return self.close_help();
-                    }
-                    let dismiss = h.dismiss;
-                    let now = self.now_ms();
-                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
-                }
-                return Outcome::Changed;
-            }
-            Release::Cancelled => {
-                // the press-drag of a select ends on an option
-                return match pressed {
-                    Some(pressed) if !self.modal_open() && self.insp.owns(pressed) => self
-                        .dispatch_inspector(PageEvent::Release {
-                            pressed,
-                            pos: m.pos,
-                        })
-                        .unwrap_or(Outcome::Ignored)
-                        .or(Outcome::Changed),
-                    Some(pressed) if !self.modal_open() => self
-                        .dispatch(PageEvent::Release {
-                            pressed,
-                            pos: m.pos,
-                        })
-                        .or(Outcome::Changed),
-                    _ => Outcome::Changed,
-                };
-            }
-        };
+    /// The modal layers' share of a pointer event: the open dialog or the
+    /// reference takes every event the router resolved (the page beneath
+    /// is unreachable behind their barrier); `None` when neither is open.
+    fn modal_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if let Some(d) = self.dialog.as_mut() {
-            let out = d.on_click(id, m.pos, &mut self.focus);
+            let out = d.pointer_in(ev, &mut self.focus).outcome();
             if d.result.is_some() {
-                return self.close_dialog().or(out);
+                return Some(self.close_dialog().or(out));
             }
-            return out.or(Outcome::Changed);
+            return Some(out);
         }
-        if let Some(out) = self.help_event(HelpEvent::Click(id)) {
+        let h = self.help.as_mut()?;
+        let out = h.route(ev).map_or(Outcome::Ignored, |r| r.outcome());
+        if h.closed {
+            return Some(self.close_help().or(out));
+        }
+        Some(out)
+    }
+
+    /// The shell's own targets: the header links, the footer hints and the
+    /// sidebar tree. `None` passes the event on to the Inspector and the
+    /// page.
+    fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        use junie_tui::core::id::Part;
+        use junie_tui::core::intent::Phase;
+        if let Some(key) = self.footer_keys.clicked(ev) {
+            // a click on a hint is its key
+            return Some(self.handle_input(Input::Key(key)).or(Outcome::Changed));
+        }
+        if ev.is(Phase::Click) {
+            let done = match ev.owner() {
+                HEADER_HELP => {
+                    self.open_help();
+                    true
+                }
+                HEADER_BRAND => {
+                    self.open_quit();
+                    true
+                }
+                HEADER_INSPECT => {
+                    self.toggle_inspector();
+                    true
+                }
+                _ => false,
+            };
+            if done {
+                return Some(Outcome::Changed);
+            }
+        }
+        if !ev.on(NAV) {
+            return None;
+        }
+        // a press on a row puts the cursor on it; a click on a row or its
+        // disclosure focuses the tree and acts (the press already focused
+        // the tree's own body under `FocusOn::Press`)
+        let row = ev.index_of(Part::ROW).or(ev.index_of(Part::ICON));
+        if ev.is(Phase::Press)
+            && let Some(row) = ev.index_of(Part::ROW)
+        {
+            self.focus.focus(NAV);
+            self.nav.cursor = row;
+            return Some(Outcome::Changed);
+        }
+        if ev.is(Phase::Click) && (row.is_some() || ev.id == NAV) {
+            self.focus.focus(NAV);
+        }
+        let out = self.nav_event(|nav| nav.pointer(ev).into_parts());
+        Some(out)
+    }
+
+    /// The Inspector's share: its overlay's light dismiss and close
+    /// button, then its own controls. `None` passes the event on.
+    fn inspector_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
+        use junie_tui::core::id::Part;
+        use junie_tui::core::intent::Phase;
+        if !self.inspector {
+            return None;
+        }
+        let overlay = self.inspector_overlay();
+        if overlay
+            && ev.is(Phase::Click)
+            && ((ev.on(inspector::ID) && ev.part().part == Part::BACKDROP)
+                || ev.on(junie_tui::ui::modal::CLOSE))
+        {
+            self.close_inspector();
+            return Some(Outcome::Changed);
+        }
+        if let Some(out) = self.dispatch_inspector(PageEvent::Pointer(*ev)) {
+            return Some(out);
+        }
+        // the overlay is a layer: the page beneath it takes nothing
+        overlay.then_some(Outcome::Ignored)
+    }
+
+    /// Deliver a page pointer event; a page not yet on
+    /// [`PageEvent::Pointer`] gets the per-gesture event it handled before.
+    fn page_pointer(&mut self, ev: &PointerEvent) -> Outcome {
+        let out = self.dispatch(PageEvent::Pointer(*ev));
+        if out != Outcome::Ignored {
             return out;
         }
-        if id == HEADER_HELP {
-            self.open_help();
-            return Outcome::Changed;
-        }
-        if id == HEADER_BRAND {
-            self.open_quit();
-            return Outcome::Changed;
-        }
-        if id == scrollbar::id_for(NAV) {
-            // the press already moved the thumb
-            return Outcome::Consumed;
-        }
-        if id == HEADER_INSPECT {
-            self.toggle_inspector();
-            return Outcome::Changed;
-        }
-        if self.inspector {
-            // the overlay's light dismiss and close button
-            if id == junie_tui::ui::popup::backdrop_id(inspector::ID)
-                || id == junie_tui::ui::modal::CLOSE
-            {
-                self.close_inspector();
-                return Outcome::Changed;
-            }
-            if self.insp.owns(id) {
-                return self
-                    .dispatch_inspector(PageEvent::Click { id, pos: m.pos })
-                    .unwrap_or(Outcome::Consumed)
-                    .or(Outcome::Changed);
-            }
-        }
-        if let Some((i, toggle)) = self.nav.locate(id) {
-            self.focus.focus(NAV);
-            self.nav_event(|nav| {
-                if toggle {
-                    nav.on_click_toggle(i)
-                } else {
-                    nav.on_click_row(i)
-                }
-            });
-            return Outcome::Changed;
-        }
-        if id == NAV {
-            // the sidebar below its last row
-            self.focus.focus(NAV);
-            return Outcome::Changed;
-        }
-        self.flash(id);
-        // The page owns the click; a control the page did not
-        // refocus is focused here so keyboard and pointer agree.
-        let before = self.focus.current();
-        self.pointer_clicks = self.pointer.count_click(id, m.pos, self.now_ms());
-        let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
-        self.pointer_clicks = 0;
-        if !self.modal_open()
-            && self.pointer.config.focus_on == FocusOn::Release
-            && self.focus.current() == before
-            && self.ring.contains(id)
-        {
-            self.focus.focus(id);
-        }
-        out.or(Outcome::Changed)
-    }
-
-    fn on_mouse(&mut self, m: Mouse) -> Outcome {
-        let before = self.focus.current();
-        self.pointer_mods = m.mods;
-        let out = self.route_mouse(m);
-        self.pointer_mods = KeyModifiers::NONE;
-        // focus a click moved shows only on controls that want a ring
-        // after a click (FocusVisible)
-        let pressed = m.kind == MouseKind::Down && self.pointer.pressed.is_some();
-        if pressed || (m.kind == MouseKind::Up && self.focus.current() != before) {
-            self.pointer.focused_by_click();
-        }
-        out
-    }
-
-    fn route_mouse(&mut self, m: Mouse) -> Outcome {
-        self.pointer.pos = Some(m.pos);
-        match m.kind {
-            MouseKind::Move => self.pointer.on_move(&self.hits, m.pos),
-            MouseKind::Drag => {
-                if let Some(pressed) = self.pointer.on_drag(&self.hits, m.pos) {
-                    if let Some(d) = self.dialog.as_mut() {
-                        return d.on_drag(pressed, m.pos);
-                    }
-                    if self.help.is_some() {
-                        return Outcome::Consumed;
-                    }
-                    if pressed == scrollbar::id_for(NAV) {
-                        return self.nav.on_scrollbar_drag(m.pos);
-                    }
-                    if self.inspector && self.insp.owns(pressed) {
-                        let ev = PageEvent::Drag {
-                            pressed,
-                            pos: m.pos,
-                        };
-                        return self.dispatch_inspector(ev).unwrap_or(Outcome::Ignored);
-                    }
-                    return self.dispatch(PageEvent::Drag {
-                        pressed,
-                        pos: m.pos,
-                    });
-                }
-                Outcome::Ignored
-            }
-            MouseKind::Down => {
-                let Some(id) = self.pointer.on_down(&self.hits, m.pos) else {
-                    if self.modal_open() {
-                        return Outcome::Consumed;
-                    }
-                    self.pointer.dead_space(&mut self.focus);
-                    return Outcome::Ignored;
-                };
-                // a press on a modal's own body is dead space inside it:
-                // it ends the focused field's edit in place
-                if self.modal_open() {
-                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
-                }
-                if self.modal_open() {
-                    return Outcome::Changed;
-                }
-                if let Some((i, _)) = self.nav.locate(id) {
-                    self.focus.focus(NAV);
-                    self.nav.cursor = i;
-                    return Outcome::Changed;
-                }
-                if id == scrollbar::id_for(NAV) {
-                    return self.nav.on_scrollbar(m.pos).or(Outcome::Changed);
-                }
-                if self.pointer.config.focus_on == FocusOn::Press && self.ring.contains(id) {
-                    self.focus.focus(id);
-                }
-                if self.inspector && self.insp.owns(id) {
-                    let ev = PageEvent::Press { id, pos: m.pos };
-                    return self
-                        .dispatch_inspector(ev)
-                        .unwrap_or(Outcome::Ignored)
-                        .or(Outcome::Changed);
-                }
-                if self.inspector_overlay() {
-                    // the overlay's own body: dead space inside it
-                    self.pointer.surface_press(&self.hits, id, &mut self.focus);
-                    return Outcome::Changed;
-                }
-                // the click count this press starts: the second press of a
-                // double click selects a word in a field
-                self.pointer_clicks = self.pointer.press_count(id, m.pos, self.now_ms());
-                let out = self.dispatch(PageEvent::Press { id, pos: m.pos });
-                self.pointer_clicks = 0;
-                out.or(Outcome::Changed)
-            }
-            MouseKind::Up => {
-                // a pass-through backdrop: the click closes the popup and
-                // then lands on what is beneath it, as a click of its own
-                let (hit, beneath) = self.pointer.on_up(&self.hits, m.pos);
-                let out = self.on_release(m, hit);
-                match beneath {
-                    Some(below) => {
-                        self.pointer.press(below);
-                        out.or(self.on_release(m, Some(below)))
-                    }
-                    None => out,
-                }
-            }
-            MouseKind::SecondaryDrag => self.pointer.on_secondary_drag(&self.hits, m.pos),
-            // press, drag onto a context-menu row, release: the release
-            // chooses it, delivered as a click on the row
-            MouseKind::SecondaryUp => match self.pointer.on_secondary_up(&self.hits, m.pos) {
-                Some(id) => {
-                    self.pointer.press(id);
-                    self.on_release(m, Some(id))
-                }
-                None => Outcome::Ignored,
-            },
-            // a middle click goes to the page under the pointer (a tab
-            // strip closes the tab under it); a modal or the overlay
-            // Inspector swallows it
-            MouseKind::Middle => {
-                if self.modal_open() || self.inspector_overlay() {
-                    return Outcome::Consumed;
-                }
-                match self.hits.hit(m.pos) {
-                    Some(id) => self.dispatch(PageEvent::Middle { id }),
-                    None => Outcome::Ignored,
-                }
-            }
-            MouseKind::Secondary => {
-                let route = self.pointer.route_secondary(&self.hits, m.pos);
-                // a dialog registers no light-dismiss backdrop: a secondary
-                // click inside or outside it stays swallowed
-                if self.modal_open() {
-                    return Outcome::Consumed;
-                }
-                match route {
-                    SecondaryRoute::Nothing => Outcome::Ignored,
-                    SecondaryRoute::Swallowed => Outcome::Consumed,
-                    SecondaryRoute::Target(id) => {
-                        self.dispatch(PageEvent::Secondary { id, pos: m.pos })
-                    }
-                    SecondaryRoute::Outside { backdrop, reopen } => {
-                        // the open popup closes exactly as a primary click
-                        // on its backdrop closes it ...
-                        self.pointer.press(backdrop);
-                        let out = self.on_release(m, Some(backdrop)).or(Outcome::Changed);
-                        // ... then the control beneath gets the secondary
-                        // click, so its menu opens at the new spot
-                        match reopen {
-                            Some(id) if !self.modal_open() => {
-                                out.or(self.dispatch(PageEvent::Secondary { id, pos: m.pos }))
-                            }
-                            _ => out,
-                        }
-                    }
-                }
-            }
-            MouseKind::WheelLeft | MouseKind::WheelRight => {
-                let delta = if m.kind == MouseKind::WheelLeft {
-                    -1
-                } else {
-                    1
-                };
-                if let Some(d) = self.dialog.as_mut() {
-                    return d.on_wheel_h(delta);
-                }
-                if self.help.is_some() {
-                    return Outcome::Consumed;
-                }
-                let Some(id) = self.hits.hit_scroll(m.pos) else {
-                    return Outcome::Ignored;
-                };
-                let out = self.dispatch(PageEvent::WheelH { id, delta });
-                self.pointer.scrolled(m.pos, out);
-                out
-            }
-            MouseKind::WheelUp | MouseKind::WheelDown => {
-                let delta = self.pointer.wheel_delta(m.kind);
-                if let Some(d) = self.dialog.as_mut() {
-                    return d.on_wheel(delta);
-                }
-                if let Some(out) = self.help_event(HelpEvent::Wheel(delta)) {
-                    return out;
-                }
-                // the notch goes to the innermost owner that takes it: a
-                // field (or its label) inside a scrolling stack passes it on
-                let mut out = Outcome::Ignored;
-                for id in self.hits.scroll_stack(m.pos) {
-                    out = if self.nav.owns(id) {
-                        self.nav.on_wheel(delta)
-                    } else if self.inspector && self.insp.owns(id) {
-                        self.dispatch_inspector(PageEvent::Wheel { id, delta })
-                            .unwrap_or(Outcome::Ignored)
-                    } else {
-                        self.dispatch(PageEvent::Wheel { id, delta })
-                    };
-                    if out != Outcome::Ignored {
-                        break;
-                    }
-                }
-                // the rows under the pointer change with the scroll: hover
-                // is re-resolved once the new frame has registered its hits
-                self.pointer.scrolled(m.pos, out);
-                out
-            }
+        match crate::pages::legacy_event(ev) {
+            Some(legacy) => self.dispatch(legacy),
+            None => out,
         }
     }
 
@@ -2463,7 +2212,6 @@ impl App {
     }
 
     fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = self.theme;
         let page = &self.pages[self.page.index()];
         let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
         let mut dialog_hints = None;
@@ -2533,9 +2281,84 @@ impl App {
                 .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
                 .collect()
         });
-        let badge = (page.editing() && !self.modal_open()).then_some(("EDIT", BadgeKind::Edit));
-        junie_tui::widgets::keyhint::render(area, buf, &t, &hints, badge, self.status.text());
-        let _ = ctx;
+        let mut layer = HintLayer::new(hints);
+        layer.badge = (page.editing() && !self.modal_open()).then_some(("EDIT", BadgeKind::Edit));
+        if let Some(status) = self.status.text() {
+            layer = layer.status(status, Tone::Secondary);
+        }
+        // a hint naming one key is a click target that replays it (M1)
+        self.footer_keys = HintBar::render_ctx(area, buf, ctx, &layer);
+    }
+}
+
+/// The showcase on the library's pointer router: every event goes to its
+/// owner, the top layer first (the dialog or the reference), then the
+/// chrome (header, footer, sidebar), then the Inspector, then the page.
+impl PointerHost for App {
+    fn pointer_parts(&mut self) -> PointerParts<'_> {
+        PointerParts {
+            router: &mut self.pointer,
+            hits: &self.hits,
+            focus: &mut self.focus,
+            ring: &self.ring,
+        }
+    }
+
+    fn layer_open(&self) -> bool {
+        self.modal_open() || self.inspector_overlay()
+    }
+
+    fn now_ms(&self) -> u64 {
+        self.clock.now_ms()
+    }
+
+    fn deliver(&mut self, ev: &PointerEvent) -> Response<()> {
+        use junie_tui::core::intent::Phase;
+        // pages read the gesture's modifiers and click count from their
+        // context
+        self.pointer_mods = ev.mods();
+        self.pointer_clicks = if ev.is(Phase::Press) || ev.is(Phase::Click) {
+            ev.count()
+        } else {
+            0
+        };
+        let out = match self.modal_pointer(ev) {
+            Some(out) => out,
+            None => match self.chrome_pointer(ev) {
+                Some(out) => out,
+                None => match self.inspector_pointer(ev) {
+                    Some(out) => out,
+                    None => self.page_pointer(ev),
+                },
+            },
+        };
+        self.pointer_mods = KeyModifiers::NONE;
+        self.pointer_clicks = 0;
+        out.into()
+    }
+
+    /// A click on nothing: outside the open dialog or reference, it
+    /// dismisses it under its `Dismiss` policy (a refused click flashes
+    /// the frame).
+    fn outside(&mut self, _pos: ratatui::layout::Position) -> Response<()> {
+        let now = self.clock.now_ms();
+        if let Some(d) = self.dialog.as_mut() {
+            let out = d.on_click_outside();
+            if d.result.is_some() {
+                return self.close_dialog().or(out).into();
+            }
+            let dismiss = d.dismiss;
+            junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+        }
+        if let Some(h) = self.help.as_mut() {
+            let reason = junie_tui::core::intent::DismissReason::OutsideClick;
+            if junie_tui::ui::layer::dismiss(h, reason).is_some() {
+                return self.close_help().into();
+            }
+            let dismiss = h.dismiss;
+            junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+        }
+        Response::changed()
     }
 }
 
@@ -2577,7 +2400,8 @@ pub(crate) fn describe_key(k: &Key) -> String {
 #[cfg(test)]
 mod click_regressions {
     use super::*;
-    use junie_tui::core::event::Mouse;
+    use junie_tui::core::event::{Mouse, MouseKind};
+    use junie_tui::widgets::scrollbar;
     use ratatui::layout::Position;
     use ratatui::{Terminal, backend::TestBackend};
 
@@ -2650,11 +2474,12 @@ mod click_regressions {
             }
             let area = app.hits.area_of(id).unwrap();
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
-            // the press alone focuses nothing; the completed click focuses
-            // and edits in one go, and a second click only keeps editing
+            // the press focuses the field (`FocusOn::Press`, plan §3 row
+            // 1); the completed click edits, and a second click only keeps
+            // editing
             app.handle(Input::Mouse(Mouse::new(MouseKind::Down, pos)));
+            assert_eq!(app.focus.current(), Some(id), "{page:?}: the press focuses");
             term.draw(|frame| app.render(frame)).unwrap();
-            assert!(!app.pages[page.index()].editing(), "{page:?}: press alone");
             for _click in 0..2 {
                 app.handle(Input::Mouse(Mouse::new(MouseKind::Up, pos)));
                 term.draw(|frame| app.render(frame)).unwrap();
