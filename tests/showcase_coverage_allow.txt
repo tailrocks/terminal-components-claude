@@ -209,6 +209,9 @@ ui::layer::LayerTag::key | layer API (plan S5): ShellLayers, LayerSpec and focus
 ui::layer::LayerTag::n | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layer::LayerEntry | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layer::Dismissed | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerPointer | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerPointer::Handled | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::layer::LayerPointer::Dismissed | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layer::Dismissed::None | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layer::Dismissed::Refused | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layer::Dismissed::Closed | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
