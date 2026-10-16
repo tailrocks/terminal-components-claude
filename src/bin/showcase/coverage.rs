@@ -15,7 +15,7 @@
 //! listed in `tests/showcase_coverage_allow.txt` with a reason.
 
 // The showcase binary reads these declarations once the option tables
-// (SC1) and States grids (SC2) land; until then only the gate does.
+// (SC1) land; until then only the gate does.
 #![cfg_attr(not(test), allow(dead_code))]
 
 /// How one capability is shown.
@@ -29,7 +29,7 @@ pub enum Shown {
     Demo(&'static str, &'static str),
 }
 
-use Shown::Demo;
+use Shown::{Demo, StateRow};
 
 /// Every declared demonstration, keyed by capability id.
 pub static SHOWN: &[(&str, Shown)] = &[
@@ -178,7 +178,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::input::TextInput::disabled",
-        Demo("inputs", "disabled jb_live_••••"),
+        StateRow("inputs", "disabled"),
     ),
     (
         "widgets::textarea::TextArea",
@@ -518,5 +518,93 @@ pub static SHOWN: &[(&str, Shown)] = &[
     (
         "widgets::splitter::Splitter",
         Demo("terminal", "drag the seam"),
+    ),
+    // States grids (SC2): rows the page's States section draws
+    ("ui::ctx::VisualState", StateRow("buttons", "focused")),
+    ("state::rest", StateRow("buttons", "rest")),
+    ("state::hover", StateRow("buttons", "hover")),
+    ("state::pressed", StateRow("buttons", "pressed")),
+    ("state::focused", StateRow("buttons", "focused")),
+    ("state::focused_hover", StateRow("buttons", "focused_hover")),
+    ("state::selected", StateRow("buttons", "selected")),
+    ("state::disabled", StateRow("buttons", "disabled")),
+    ("state::busy", StateRow("buttons", "busy")),
+    ("state::error", StateRow("inputs", "error")),
+    ("state::empty", StateRow("inputs", "empty")),
+    ("state::overflow", StateRow("buttons", "overflow")),
+    ("state::narrow", StateRow("inputs", "narrow")),
+    ("ui::specimen::SpecimenState", StateRow("buttons", "rest")),
+    (
+        "ui::specimen::SpecimenState::Rest",
+        StateRow("buttons", "rest"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Hover",
+        StateRow("buttons", "hover"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Pressed",
+        StateRow("buttons", "pressed"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Focused",
+        StateRow("buttons", "focused"),
+    ),
+    (
+        "ui::specimen::SpecimenState::FocusedHover",
+        StateRow("buttons", "focused_hover"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Selected",
+        StateRow("buttons", "selected"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Disabled",
+        StateRow("buttons", "disabled"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Busy",
+        StateRow("buttons", "busy"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Error",
+        StateRow("inputs", "error"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Editing",
+        StateRow("inputs", "editing"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Empty",
+        StateRow("inputs", "empty"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Overflow",
+        StateRow("buttons", "overflow"),
+    ),
+    (
+        "ui::specimen::SpecimenState::Narrow",
+        StateRow("inputs", "narrow"),
+    ),
+    (
+        "ui::specimen::StateGrid",
+        StateRow("buttons", "focused_hover"),
+    ),
+    (
+        "ui::specimen::StateGrid::row",
+        StateRow("buttons", "overflow"),
+    ),
+    ("ui::specimen::StateGrid::rows", StateRow("inputs", "rest")),
+    (
+        "ui::specimen::StateGrid::narrow_width",
+        StateRow("inputs", "narrow"),
+    ),
+    (
+        "ui::specimen::StateGrid::column",
+        Demo("buttons", "Primary Secondary Subtle Danger Toggle"),
+    ),
+    (
+        "ui::specimen::StateGrid::column_width",
+        Demo("inputs", "Text Masked"),
     ),
 ];

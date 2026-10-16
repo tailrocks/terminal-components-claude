@@ -1,7 +1,11 @@
 120x40 TrueColor Overview f72277c96eb023f4
 120x40 TrueColor Chrome e1d48b474fcc5816
-120x40 TrueColor Buttons 1f6e99530afc3fe3
-120x40 TrueColor Inputs 0dc35b09a70fe40c
+120x40 TrueColor Buttons 755ba6d721b1a442
+120x40 TrueColor Buttons · Options 5b441ca0fd283a8b
+120x40 TrueColor Buttons · States a5fd843fbda6c2c9
+120x40 TrueColor Inputs bb5c0e5893cd4e67
+120x40 TrueColor Inputs · Options 685b0f1c9ced77e4
+120x40 TrueColor Inputs · States d4eea837c6cd941c
 120x40 TrueColor Text areas 24ffbdccc33ef6e0
 120x40 TrueColor Chips & selects 3949e7331865711f
 120x40 TrueColor Forms b640c16a53da835a
@@ -25,8 +29,12 @@
 120x40 TrueColor Task runner a59bdf6c28ba0941
 120x40 Ansi256 Overview 4ef4deade224f21d
 120x40 Ansi256 Chrome 0ee9d3c27402715c
-120x40 Ansi256 Buttons 72216a21ac466367
-120x40 Ansi256 Inputs e5a2c19c6342a1fa
+120x40 Ansi256 Buttons 49c635b98bb3fa6e
+120x40 Ansi256 Buttons · Options e661376160c4651b
+120x40 Ansi256 Buttons · States 55a8b7547007f85d
+120x40 Ansi256 Inputs b1fd20ab51823d89
+120x40 Ansi256 Inputs · Options 31f0f5367ef9a191
+120x40 Ansi256 Inputs · States 6496ce9d6cc7b757
 120x40 Ansi256 Text areas 5ee1babf39a91042
 120x40 Ansi256 Chips & selects 426790b136806e21
 120x40 Ansi256 Forms 6fefae920f31c035
@@ -50,8 +58,12 @@
 120x40 Ansi256 Task runner 8af4a496a91b7439
 120x40 Ansi16 Overview dfd544e755074298
 120x40 Ansi16 Chrome 9a83368620068545
-120x40 Ansi16 Buttons a053575340ce494d
-120x40 Ansi16 Inputs d396150f9a94b0e6
+120x40 Ansi16 Buttons 6646394d18d5fa50
+120x40 Ansi16 Buttons · Options 048a68f05ad133f1
+120x40 Ansi16 Buttons · States d4cb59dcc31ce6fa
+120x40 Ansi16 Inputs 8feb2648149179d9
+120x40 Ansi16 Inputs · Options ae3695b490f862ec
+120x40 Ansi16 Inputs · States bf292829f4a7bb64
 120x40 Ansi16 Text areas 9c18a7f160526224
 120x40 Ansi16 Chips & selects 5218ca82261a726d
 120x40 Ansi16 Forms b531108dd1b14423
@@ -75,8 +87,12 @@
 120x40 Ansi16 Task runner 6c239544acc7dfad
 120x40 Mono Overview 4454e688262f5196
 120x40 Mono Chrome 1b78820a7f9481de
-120x40 Mono Buttons 312dbd7276144f0a
-120x40 Mono Inputs 52607c930ef7f2cf
+120x40 Mono Buttons 945f345bbf2b9025
+120x40 Mono Buttons · Options cf696a5ac827413c
+120x40 Mono Buttons · States 4aef2ffa0497a3db
+120x40 Mono Inputs aca71a571bb172fe
+120x40 Mono Inputs · Options 240169a74aa38e63
+120x40 Mono Inputs · States cab19524e6ad919f
 120x40 Mono Text areas a42e8119c82c3983
 120x40 Mono Chips & selects 49b6b6327fbe4431
 120x40 Mono Forms a211baf222fe802e
@@ -100,8 +116,12 @@
 120x40 Mono Task runner 803b60f22ff280ee
 80x24 TrueColor Overview dae7272d99e4f89d
 80x24 TrueColor Chrome ddae3ca9df733eda
-80x24 TrueColor Buttons 4cc8237c7d320ae9
-80x24 TrueColor Inputs a89d6b246e17a47b
+80x24 TrueColor Buttons dea7c21f2a6786be
+80x24 TrueColor Buttons · Options 3d1e75b59ea61c93
+80x24 TrueColor Buttons · States 2196d472ae10a214
+80x24 TrueColor Inputs 3478af8930bf9ac8
+80x24 TrueColor Inputs · Options 31f7c49d64834cca
+80x24 TrueColor Inputs · States 8636f1c014fd39ab
 80x24 TrueColor Text areas a87d07df458c4b30
 80x24 TrueColor Chips & selects b1b3d4558af97895
 80x24 TrueColor Forms 9b870d8287a6ea5f
@@ -125,8 +145,12 @@
 80x24 TrueColor Task runner 4545dfa88c52d1af
 80x24 Ansi256 Overview 2c1e485c62acd5d6
 80x24 Ansi256 Chrome a5dd2c2190d5142f
-80x24 Ansi256 Buttons 08bd6038bebd7fab
-80x24 Ansi256 Inputs aa7d34c85fa4a9fd
+80x24 Ansi256 Buttons 132547067366dba4
+80x24 Ansi256 Buttons · Options 495cbde18d3d7f53
+80x24 Ansi256 Buttons · States 245eb3ad09d16788
+80x24 Ansi256 Inputs 775e9aff411c31c2
+80x24 Ansi256 Inputs · Options c90bbd67b1e0ec7e
+80x24 Ansi256 Inputs · States f5253280641e9882
 80x24 Ansi256 Text areas 30be6394cdb8bcd2
 80x24 Ansi256 Chips & selects a6fd3ac2a1adb049
 80x24 Ansi256 Forms d044c5646ff5f78d
@@ -150,8 +174,12 @@
 80x24 Ansi256 Task runner 5ac3f387a73adc49
 80x24 Ansi16 Overview cd8f52d79349f53b
 80x24 Ansi16 Chrome 7bf7e777c5d693d0
-80x24 Ansi16 Buttons 13844009123ac718
-80x24 Ansi16 Inputs 73a78ef917656ef0
+80x24 Ansi16 Buttons 3fc10e05a024d8a2
+80x24 Ansi16 Buttons · Options f5d302c2503249ab
+80x24 Ansi16 Buttons · States 10d952fbcae4b88d
+80x24 Ansi16 Inputs 2df269a293475fb0
+80x24 Ansi16 Inputs · Options 0c591c17a075a1c2
+80x24 Ansi16 Inputs · States d79d3abe2689f77e
 80x24 Ansi16 Text areas eb5ba28550f775c4
 80x24 Ansi16 Chips & selects 2ae780d311fbdb20
 80x24 Ansi16 Forms 42458e84e328fd2f
@@ -175,8 +203,12 @@
 80x24 Ansi16 Task runner 5a6bbdcd02067f65
 80x24 Mono Overview aaae95f3eaa9dfe2
 80x24 Mono Chrome ef9227f3a125d01c
-80x24 Mono Buttons 4bbc48fee95aab02
-80x24 Mono Inputs 528dc51120fa0b60
+80x24 Mono Buttons 3ccf72f3a742dfa2
+80x24 Mono Buttons · Options 6e3ff53d736b61d3
+80x24 Mono Buttons · States 733d745028d5e681
+80x24 Mono Inputs 72a804856cf40aca
+80x24 Mono Inputs · Options 27b1dc2b3e8dae20
+80x24 Mono Inputs · States 5669fc08aa972ce0
 80x24 Mono Text areas a95a658e627f38d2
 80x24 Mono Chips & selects 4cde1af0b35455d8
 80x24 Mono Forms 53c534dd59781617
@@ -200,8 +232,12 @@
 80x24 Mono Task runner 0eb88138be62f641
 72x20 TrueColor Overview aa6a9fbdcc6c56de
 72x20 TrueColor Chrome 255dde2bcc6cf8d7
-72x20 TrueColor Buttons 82325076fcaa2766
-72x20 TrueColor Inputs 34ca8ef9e0625b4c
+72x20 TrueColor Buttons 9bbdead081b7d4cf
+72x20 TrueColor Buttons · Options d6088d259d87fcef
+72x20 TrueColor Buttons · States bf27da8f422f5164
+72x20 TrueColor Inputs d29386a7be57583c
+72x20 TrueColor Inputs · Options a3e975db781ae927
+72x20 TrueColor Inputs · States 5ab2843b37cee9b4
 72x20 TrueColor Text areas 1f48b81cfb60bd7e
 72x20 TrueColor Chips & selects 9722b7c6f218c5ac
 72x20 TrueColor Forms 11435d827f5ded49
@@ -225,8 +261,12 @@
 72x20 TrueColor Task runner 419c3af8d7338081
 72x20 Ansi256 Overview e01344364b31f493
 72x20 Ansi256 Chrome ecfb5b0e028df0ae
-72x20 Ansi256 Buttons 072969575a771f3b
-72x20 Ansi256 Inputs d54648f08d30da5f
+72x20 Ansi256 Buttons 57da43fa7fe2055f
+72x20 Ansi256 Buttons · Options a5cd193cfda44bad
+72x20 Ansi256 Buttons · States a8d5c6886b533091
+72x20 Ansi256 Inputs 7b60c2453e883f56
+72x20 Ansi256 Inputs · Options e3ff7df80b93f231
+72x20 Ansi256 Inputs · States fcbc0a84dd7cca19
 72x20 Ansi256 Text areas 7e6d73a5b073f3f9
 72x20 Ansi256 Chips & selects 82eed82adadbbe70
 72x20 Ansi256 Forms bcaf53b07e23f39d
@@ -250,8 +290,12 @@
 72x20 Ansi256 Task runner 411150099de4324e
 72x20 Ansi16 Overview 952703894e85b369
 72x20 Ansi16 Chrome 257d7c795baa16c9
-72x20 Ansi16 Buttons e705f136ee98b530
-72x20 Ansi16 Inputs d02b9082c8e864a1
+72x20 Ansi16 Buttons 452f7ad324c9cfe5
+72x20 Ansi16 Buttons · Options 97d1545bbc24cdd7
+72x20 Ansi16 Buttons · States 173e44af1ed967ee
+72x20 Ansi16 Inputs 512136f8d075b36a
+72x20 Ansi16 Inputs · Options 297a3c3f77d976b5
+72x20 Ansi16 Inputs · States 636389aba89a134a
 72x20 Ansi16 Text areas a12b2c7aa5942c7a
 72x20 Ansi16 Chips & selects 9e4d9c1f699f73b5
 72x20 Ansi16 Forms 251b2ad661559803
@@ -275,8 +319,12 @@
 72x20 Ansi16 Task runner c90b45b5ccf86b41
 72x20 Mono Overview dc4cc976fa01faa7
 72x20 Mono Chrome 28a3803ff814ac23
-72x20 Mono Buttons b24dea18dbf1a7a0
-72x20 Mono Inputs 196e3f48fc8df2a5
+72x20 Mono Buttons be64a95a5d519e13
+72x20 Mono Buttons · Options f2e0a3000e735143
+72x20 Mono Buttons · States 555271d97739767e
+72x20 Mono Inputs 557ffe07b0d8334e
+72x20 Mono Inputs · Options 3c58c193085ab7d9
+72x20 Mono Inputs · States 01256efb50804a58
 72x20 Mono Text areas bc2094853308eea6
 72x20 Mono Chips & selects 38b7c96681a65541
 72x20 Mono Forms 3e3b0aa99c53ada1
@@ -300,8 +348,12 @@
 72x20 Mono Task runner 4d7efb5d4b503bfb
 100x30 TrueColor Overview 49225bcdd86a4b63
 100x30 TrueColor Chrome ab8b2efe8702aae6
-100x30 TrueColor Buttons d2c2d25be464de68
-100x30 TrueColor Inputs 2b92e53f17b76e04
+100x30 TrueColor Buttons f5d547d3966d1322
+100x30 TrueColor Buttons · Options 7c2e85e6122e0047
+100x30 TrueColor Buttons · States 3f688c15615591e2
+100x30 TrueColor Inputs 92ffffcf321a9f30
+100x30 TrueColor Inputs · Options de1d23089c9d9062
+100x30 TrueColor Inputs · States 77dfed28cd9794ba
 100x30 TrueColor Text areas a90db4144c3e6c2b
 100x30 TrueColor Chips & selects 35a258a8478ac8bb
 100x30 TrueColor Forms f55a3c059081e429
@@ -325,8 +377,12 @@
 100x30 TrueColor Task runner 6a2a3df664e6e2a4
 100x30 Ansi256 Overview 9f6e8fd8f676afac
 100x30 Ansi256 Chrome e6dd1c1a51dc2f03
-100x30 Ansi256 Buttons b5c5e6afe549a0c5
-100x30 Ansi256 Inputs 35b0036721adebe5
+100x30 Ansi256 Buttons 23e54bc1f371b306
+100x30 Ansi256 Buttons · Options 9af7f24f37bb7033
+100x30 Ansi256 Buttons · States 1624270e0de9ea75
+100x30 Ansi256 Inputs 9ed22acbbb227757
+100x30 Ansi256 Inputs · Options 4735e0518a2f8835
+100x30 Ansi256 Inputs · States 34ae7aa6a69b8894
 100x30 Ansi256 Text areas b488855ae8800120
 100x30 Ansi256 Chips & selects dd49218f183273b5
 100x30 Ansi256 Forms 70d96e4ae2651bc0
@@ -350,8 +406,12 @@
 100x30 Ansi256 Task runner 5655b0d78c08eb00
 100x30 Ansi16 Overview e87d50855b5a0633
 100x30 Ansi16 Chrome 7ac5389f096a041e
-100x30 Ansi16 Buttons a21b1712c68fa9ae
-100x30 Ansi16 Inputs 346f5cf9894abf74
+100x30 Ansi16 Buttons dfc6d7ab34ae25bd
+100x30 Ansi16 Buttons · Options f5b1624d78a4071c
+100x30 Ansi16 Buttons · States 05b73b9351663006
+100x30 Ansi16 Inputs 742879a4baeff071
+100x30 Ansi16 Inputs · Options c27373fccd309347
+100x30 Ansi16 Inputs · States cd65aa960d9ef2e6
 100x30 Ansi16 Text areas c210cbb8cadf55d3
 100x30 Ansi16 Chips & selects 6e0bc325b2ba0d0d
 100x30 Ansi16 Forms ca5a0a4b380cd97a
@@ -375,8 +435,12 @@
 100x30 Ansi16 Task runner c430cbf3fe44ec4e
 100x30 Mono Overview dcf862c48869a0cf
 100x30 Mono Chrome f3fc5f7a33fb8d25
-100x30 Mono Buttons 16b5d2880ba32d31
-100x30 Mono Inputs 56c0b8cc089cf289
+100x30 Mono Buttons 5a22445a1b56b008
+100x30 Mono Buttons · Options 2ae72c22cc084b49
+100x30 Mono Buttons · States 7ef8b87dc111b273
+100x30 Mono Inputs f790c3e233099c66
+100x30 Mono Inputs · Options 8e1d7c598a28ab00
+100x30 Mono Inputs · States 921f46d5df7d5ee9
 100x30 Mono Text areas b4bb7c04f751f82c
 100x30 Mono Chips & selects f11281582ae1d17a
 100x30 Mono Forms c30b87f358ebf40d
@@ -400,8 +464,12 @@
 100x30 Mono Task runner 8d87a295d102d9bf
 160x50 TrueColor Overview 53d215db0aeb6408
 160x50 TrueColor Chrome 76d29b2d2728e9ff
-160x50 TrueColor Buttons 1c8e5ed4d7cd1940
-160x50 TrueColor Inputs 55010f1d948e69f8
+160x50 TrueColor Buttons 27fb6e2bb74e6ae3
+160x50 TrueColor Buttons · Options 25033ef3c7381436
+160x50 TrueColor Buttons · States fc07bafdfcde53ec
+160x50 TrueColor Inputs 25e604cd953ebe89
+160x50 TrueColor Inputs · Options 3c878e6abf11d9e5
+160x50 TrueColor Inputs · States 4ab511e34a5881f7
 160x50 TrueColor Text areas 2ffca3cc95ea2373
 160x50 TrueColor Chips & selects c425d192f8f64e46
 160x50 TrueColor Forms 115c2ae308f6d325
@@ -425,8 +493,12 @@
 160x50 TrueColor Task runner 2ef07c0d5cafd334
 160x50 Ansi256 Overview d852fd61a7cf0a5c
 160x50 Ansi256 Chrome c17f6ef47945626b
-160x50 Ansi256 Buttons 793e6ce3bc1c2df0
-160x50 Ansi256 Inputs f6c65103eb9f0224
+160x50 Ansi256 Buttons df8aeebcc124fec3
+160x50 Ansi256 Buttons · Options c99cc90d5789b780
+160x50 Ansi256 Buttons · States 0135b1aea3388dec
+160x50 Ansi256 Inputs 7d12a184cab958cf
+160x50 Ansi256 Inputs · Options 9e66b9f12cfa551a
+160x50 Ansi256 Inputs · States 390556ce1048a9f4
 160x50 Ansi256 Text areas 7f1bb9dfd298b97d
 160x50 Ansi256 Chips & selects 8bc44c2fe87bcaf2
 160x50 Ansi256 Forms 4c006f007e585b38
@@ -450,8 +522,12 @@
 160x50 Ansi256 Task runner 6502184f4fe6218a
 160x50 Ansi16 Overview 272cd56ded5b5f15
 160x50 Ansi16 Chrome 066b06532b702dbc
-160x50 Ansi16 Buttons 627aa7575b31dd9c
-160x50 Ansi16 Inputs f64570acff1359a6
+160x50 Ansi16 Buttons ec0fcd4b0484d325
+160x50 Ansi16 Buttons · Options 5199250cd1d83dd2
+160x50 Ansi16 Buttons · States df9d14ac1341eb1f
+160x50 Ansi16 Inputs 3d8ab050f56406c1
+160x50 Ansi16 Inputs · Options 477780272ff21b3b
+160x50 Ansi16 Inputs · States 76b4cb7dd3088aa5
 160x50 Ansi16 Text areas f367298feacb77bb
 160x50 Ansi16 Chips & selects a95cfdab021e6216
 160x50 Ansi16 Forms 1d788724a3f1f738
@@ -475,8 +551,12 @@
 160x50 Ansi16 Task runner 92dff22a997c7032
 160x50 Mono Overview 08e9e3836016f3e3
 160x50 Mono Chrome b077917a4d9c117b
-160x50 Mono Buttons c32b5ea4c743b489
-160x50 Mono Inputs de80ab900ee35e4f
+160x50 Mono Buttons 247cdd1cbdc576e6
+160x50 Mono Buttons · Options 25d1acc20145cb09
+160x50 Mono Buttons · States 3e1b1dc18955411c
+160x50 Mono Inputs e9075d3416a40520
+160x50 Mono Inputs · Options 9b4fdc2aa9bf1eb6
+160x50 Mono Inputs · States cced0dd57953c0ae
 160x50 Mono Text areas b882a57758d75926
 160x50 Mono Chips & selects 0ed13596678c3a14
 160x50 Mono Forms d5e1c3c99dd69b35

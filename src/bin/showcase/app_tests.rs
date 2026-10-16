@@ -203,8 +203,8 @@ fn tab_traversal_is_deterministic_and_wraps() {
         start,
         "focus ring wraps back to start"
     );
-    // nav + 7 enabled buttons (2 disabled are skipped)
-    assert_eq!(seen.len(), 8, "{seen:?}");
+    // nav + the section strip + 7 enabled buttons (2 disabled are skipped)
+    assert_eq!(seen.len(), 9, "{seen:?}");
     // Shift+Tab walks the same ring backwards
     let mut back = vec![];
     for _ in 0..seen.len() {
@@ -364,6 +364,7 @@ fn editable_table_commit_cancel_and_validation() {
 #[test]
 fn input_editing_commit_and_revert() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.key(tab()); // the section strip
     h.key(tab());
     h.key(KeyCode::Enter);
     assert!(h.app.pages[PageId::Inputs.index()].editing());
@@ -497,7 +498,9 @@ fn clicking_dead_space_ends_the_edit_and_keeps_focus() {
     h.click(x + 2, name_row);
     h.type_str("X");
     let focused = h.app.focus.current();
-    let (dx, dy) = h.find("State reference").unwrap();
+    // the blank row under the playground card
+    let (_, py) = h.find("Search files").unwrap();
+    let (dx, dy) = (x, py + 4);
     assert_eq!(h.app.hits.hit(Position::new(dx, dy)), None, "dead space");
     h.click(dx, dy);
     assert!(!h.app.pages[PageId::Inputs.index()].editing(), "edit ended");
@@ -753,6 +756,7 @@ fn quit_keys() {
     h.key(KeyCode::Char('q'));
     assert!(h.app.quit);
     let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.key(tab()); // the section strip
     h.key(tab());
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('q')); // typed into the field, not quit
@@ -997,9 +1001,31 @@ fn showcase_visual_baseline() {
             [TrueColor, Ansi256, Ansi16, Mono].map(|level| (w, h, level))
         })
     {
-        for entry in crate::app::NAV_ENTRIES {
+        // a templated page adds a row per further section (Options, States)
+        let rows = crate::app::NAV_ENTRIES.iter().flat_map(|entry| {
+            let sections: &[Option<crate::pages::template::Section>] =
+                if Harness::new(w, hgt, entry.id).app.pages[entry.id.index()]
+                    .template()
+                    .is_some()
+                {
+                    &[
+                        None,
+                        Some(crate::pages::template::Section::Options),
+                        Some(crate::pages::template::Section::States),
+                    ]
+                } else {
+                    &[None]
+                };
+            sections.iter().map(move |s| (entry, *s))
+        });
+        for (entry, section) in rows {
             let mut h = Harness::new(w, hgt, entry.id);
             h.app.theme = Theme::for_level(level);
+            if let Some(s) = section
+                && let Some(t) = h.app.pages[entry.id.index()].template_mut()
+            {
+                t.set_section(s);
+            }
             h.draw();
             h.key(tab());
             // the navigation sidebar grows whenever a page is added, so the
@@ -1025,7 +1051,11 @@ fn showcase_visual_baseline() {
                     hash = hash.wrapping_mul(0x0100_0000_01b3);
                 }
             }
-            writeln!(out, "{}x{} {:?} {} {hash:016x}", w, hgt, level, entry.label).unwrap();
+            let label = match section {
+                Some(s) => format!("{} · {}", entry.label, s.label()),
+                None => entry.label.to_owned(),
+            };
+            writeln!(out, "{}x{} {:?} {label} {hash:016x}", w, hgt, level).unwrap();
         }
     }
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/showcase_baseline.txt");
