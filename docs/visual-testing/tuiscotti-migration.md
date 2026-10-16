@@ -63,7 +63,8 @@ requires every non-pending scenario, and rejects files outside the tables.
 |---|---|---|
 | `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot): `chrome` for the Shift+F10 hint (abdf895c2), then every page for the tree sidebar, breadcrumb and footer hints (e48c7f75c, ea99e01ec, e0bf4a14b, 3ec122eb2, 85cec55af); gate green on 961abe9b4 |
 | `showcase/flows/selectable` (new) | 50 | re-approved with the pilot; gate green on 961abe9b4 |
-| every other stored group | 7,100 | pending re-approval (tuisnap files) |
+| `tablepro` (every stored root) | 1,100 | re-approved against `visual-baseline`, every difference attributed ([`visual-reapproval.md`](../audits/design-review-2026-10/visual-reapproval.md)) |
+| every other stored group | 6,000 | pending re-approval (tuisnap files) |
 | new coverage rows (`.pending()`: 29 element, 7 overlay and 10 resize roots; 92 overlay dismissals) | 3,450 | no approval yet |
 | narrow tier (`40x12`, `60x18`) | 1,056 | no approval yet |
 
