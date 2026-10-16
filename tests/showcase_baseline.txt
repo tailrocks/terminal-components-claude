@@ -1,5 +1,5 @@
 120x40 TrueColor Overview 58b4ba7c4734c558
-120x40 TrueColor Overview · Options 5f6df4eb96028237
+120x40 TrueColor Overview · Options 84dbeadb68004c85
 120x40 TrueColor Overview · States 3863aad0ab7d161c
 120x40 TrueColor Chrome 6ec32743d403bf70
 120x40 TrueColor Status & hints 670c278b20fe52c4
@@ -65,7 +65,7 @@
 120x40 TrueColor Inspector · State 3460d08fbda40d8f
 120x40 TrueColor Inspector · Options 54611945719e04c3
 120x40 Ansi256 Overview 2e8c1a6c2f0eac69
-120x40 Ansi256 Overview · Options 5935050a5e866040
+120x40 Ansi256 Overview · Options e9fc365a51801320
 120x40 Ansi256 Overview · States 494f77b7b9cf1651
 120x40 Ansi256 Chrome bcdacb979ffefca5
 120x40 Ansi256 Status & hints b100022a773eb950
@@ -131,7 +131,7 @@
 120x40 Ansi256 Inspector · State 338bdd81ea00c892
 120x40 Ansi256 Inspector · Options 507cdf9128cc5edc
 120x40 Ansi16 Overview 11c6179d9b2c00b5
-120x40 Ansi16 Overview · Options 5a64df839b98981b
+120x40 Ansi16 Overview · Options 4951eb11e3701991
 120x40 Ansi16 Overview · States b6380cf3a33b1c9b
 120x40 Ansi16 Chrome 4882e801ebd3d5e2
 120x40 Ansi16 Status & hints e7816ce9fd2f5a6a
@@ -197,7 +197,7 @@
 120x40 Ansi16 Inspector · State ef5dfa431c09ea94
 120x40 Ansi16 Inspector · Options 3d38146b167a0f18
 120x40 Mono Overview 227e016c2e6977a1
-120x40 Mono Overview · Options cd708f2ac770c950
+120x40 Mono Overview · Options 6ca95102e65366ca
 120x40 Mono Overview · States 7b8676967f582156
 120x40 Mono Chrome 47e0017b568770c1
 120x40 Mono Status & hints e7c6dfb4f92ab471
@@ -263,7 +263,7 @@
 120x40 Mono Inspector · State 9018f4e15eccac89
 120x40 Mono Inspector · Options 2a91daced94bca04
 80x24 TrueColor Overview 49887ec7b74897c6
-80x24 TrueColor Overview · Options 8cc40148f86708b9
+80x24 TrueColor Overview · Options 72f2e3bce7759123
 80x24 TrueColor Overview · States 96e32128a1e5b5ac
 80x24 TrueColor Chrome ddae3ca9df733eda
 80x24 TrueColor Status & hints 2a713eb6ec2852fd
@@ -329,7 +329,7 @@
 80x24 TrueColor Inspector · State a6ef72f26e3daeb9
 80x24 TrueColor Inspector · Options 222ea8ed49e5930c
 80x24 Ansi256 Overview 20e7e185c88cc002
-80x24 Ansi256 Overview · Options 18ebc9152409e383
+80x24 Ansi256 Overview · Options b1f51d028f291db3
 80x24 Ansi256 Overview · States d86166108b860bc7
 80x24 Ansi256 Chrome a5dd2c2190d5142f
 80x24 Ansi256 Status & hints 8fb2e8b7554db06e
@@ -395,7 +395,7 @@
 80x24 Ansi256 Inspector · State 5f925320f77db8f1
 80x24 Ansi256 Inspector · Options 1a5ac5a84d2cb7d3
 80x24 Ansi16 Overview e60adb310c3abde5
-80x24 Ansi16 Overview · Options 1f67be365f36a40b
+80x24 Ansi16 Overview · Options cafe64de33ea7f79
 80x24 Ansi16 Overview · States 35b5c42574ce26f1
 80x24 Ansi16 Chrome 7bf7e777c5d693d0
 80x24 Ansi16 Status & hints 2f611fe99e05ad9d
@@ -461,7 +461,7 @@
 80x24 Ansi16 Inspector · State a7cc30dbae0c71ad
 80x24 Ansi16 Inspector · Options c9966de4bfc9f625
 80x24 Mono Overview 88e27245868503c1
-80x24 Mono Overview · Options 7fdfd2702173533e
+80x24 Mono Overview · Options d23e029ca13c4768
 80x24 Mono Overview · States 9d8388852eb1b202
 80x24 Mono Chrome ef9227f3a125d01c
 80x24 Mono Status & hints 510e9f01136dba93
@@ -527,7 +527,7 @@
 80x24 Mono Inspector · State 46b812c62402ec78
 80x24 Mono Inspector · Options 5117f240077ac263
 72x20 TrueColor Overview 119761c74936b8d6
-72x20 TrueColor Overview · Options d787a03368f549ee
+72x20 TrueColor Overview · Options 51ff5f170afb94ac
 72x20 TrueColor Overview · States a54e7cc6cfe50431
 72x20 TrueColor Chrome 255dde2bcc6cf8d7
 72x20 TrueColor Status & hints fd9aa5128ae8fd6b
@@ -593,7 +593,7 @@
 72x20 TrueColor Inspector · State 3a9461b07c2595b3
 72x20 TrueColor Inspector · Options fc54d4aefce70190
 72x20 Ansi256 Overview 9770b8f18aefbd8e
-72x20 Ansi256 Overview · Options e495cc2820df8545
+72x20 Ansi256 Overview · Options d983a581f8221fcd
 72x20 Ansi256 Overview · States 32ad1d2bfa466f89
 72x20 Ansi256 Chrome ecfb5b0e028df0ae
 72x20 Ansi256 Status & hints 2ea7d438e802f54e
@@ -659,7 +659,7 @@
 72x20 Ansi256 Inspector · State fdf67b11b1f53b84
 72x20 Ansi256 Inspector · Options bed3333267231a38
 72x20 Ansi16 Overview 9d1bc774564e0be4
-72x20 Ansi16 Overview · Options c3ecc1fb012adc55
+72x20 Ansi16 Overview · Options 7c63718eeb166e93
 72x20 Ansi16 Overview · States cf17b16e680669c7
 72x20 Ansi16 Chrome 257d7c795baa16c9
 72x20 Ansi16 Status & hints 85df1e04d9e239ed
@@ -725,7 +725,7 @@
 72x20 Ansi16 Inspector · State 769fe79560f6297e
 72x20 Ansi16 Inspector · Options 99d1393ab4db754d
 72x20 Mono Overview ffaa501f315a6fb1
-72x20 Mono Overview · Options 22a2a6be1a19508f
+72x20 Mono Overview · Options 1608561f089c18ed
 72x20 Mono Overview · States a7bd5497cbcf66eb
 72x20 Mono Chrome 28a3803ff814ac23
 72x20 Mono Status & hints 706e644d94dc9c23
@@ -791,7 +791,7 @@
 72x20 Mono Inspector · State 09f4e908fd27a109
 72x20 Mono Inspector · Options 0375f7c364a81f33
 100x30 TrueColor Overview 8c0abf6533b15c6d
-100x30 TrueColor Overview · Options ce4b43094efde033
+100x30 TrueColor Overview · Options b9158a0372a026f5
 100x30 TrueColor Overview · States b9a5e114b4b599b3
 100x30 TrueColor Chrome b90bbbff74c85a8a
 100x30 TrueColor Status & hints 5ce202c1979c4f7f
@@ -857,7 +857,7 @@
 100x30 TrueColor Inspector · State 33ca5512393221d5
 100x30 TrueColor Inspector · Options 82628deee1dc7356
 100x30 Ansi256 Overview 9e8a071912c52d2b
-100x30 Ansi256 Overview · Options ffefa3a76bdfa19c
+100x30 Ansi256 Overview · Options 0b0edd1847f67254
 100x30 Ansi256 Overview · States 94b762769df6dc2d
 100x30 Ansi256 Chrome 3e5dd81f4c97145a
 100x30 Ansi256 Status & hints 41b916cc819a5558
@@ -923,7 +923,7 @@
 100x30 Ansi256 Inspector · State 5603dc4ce372ec3d
 100x30 Ansi256 Inspector · Options 9d6e424b520894a3
 100x30 Ansi16 Overview af079c094eb3fedb
-100x30 Ansi16 Overview · Options 6b35a2b7b0bfdd7c
+100x30 Ansi16 Overview · Options 4b5e259e05e22776
 100x30 Ansi16 Overview · States 38240dcd8efb6afd
 100x30 Ansi16 Chrome 0d15f5fadf534222
 100x30 Ansi16 Status & hints ea09207c2338ffd7
@@ -989,7 +989,7 @@
 100x30 Ansi16 Inspector · State 660eb0c54ee99d7d
 100x30 Ansi16 Inspector · Options 51a49cfd6179c0ec
 100x30 Mono Overview 36e22e0117e21873
-100x30 Mono Overview · Options 6fb76e6bb711fabb
+100x30 Mono Overview · Options f90b94d69de90ab9
 100x30 Mono Overview · States a000e400686b281e
 100x30 Mono Chrome 98aecbd9ed4fc027
 100x30 Mono Status & hints 584ee803fe50d0a2
@@ -1055,7 +1055,7 @@
 100x30 Mono Inspector · State 7aaff8e21e581dce
 100x30 Mono Inspector · Options b24a2a396546f034
 160x50 TrueColor Overview 681ed5bc4a19ab0a
-160x50 TrueColor Overview · Options b5dd34e483fbd0ae
+160x50 TrueColor Overview · Options ff31e9b893a470c8
 160x50 TrueColor Overview · States 74689572a27740eb
 160x50 TrueColor Chrome fa456d026d4be7d5
 160x50 TrueColor Status & hints 19391b3c180713be
@@ -1121,7 +1121,7 @@
 160x50 TrueColor Inspector · State 29e007f6ab2ffd4d
 160x50 TrueColor Inspector · Options 222bbc91dc391d6d
 160x50 Ansi256 Overview a2b0d82a580aa072
-160x50 Ansi256 Overview · Options 4abe3f64c4df35c3
+160x50 Ansi256 Overview · Options f2b5960a7f7984bb
 160x50 Ansi256 Overview · States 58cfe37ffce33e2e
 160x50 Ansi256 Chrome 057f2aa8295453d4
 160x50 Ansi256 Status & hints 8ae9ddc11d0d76c6
@@ -1187,7 +1187,7 @@
 160x50 Ansi256 Inspector · State 96051a73af8b653c
 160x50 Ansi256 Inspector · Options a47f86f58f9f42a5
 160x50 Ansi16 Overview 7499a0420e8f448f
-160x50 Ansi16 Overview · Options 6d5d717c14f15b34
+160x50 Ansi16 Overview · Options 1d3e117df35943d6
 160x50 Ansi16 Overview · States dbab02595408640a
 160x50 Ansi16 Chrome efc425914ec10453
 160x50 Ansi16 Status & hints a9808305bd7b3fde
@@ -1253,7 +1253,7 @@
 160x50 Ansi16 Inspector · State 472c5443e245e704
 160x50 Ansi16 Inspector · Options ddf0914e0364c31d
 160x50 Mono Overview 8c4f2db76aab6833
-160x50 Mono Overview · Options e393aa7060eba22d
+160x50 Mono Overview · Options ed5e6036ea5d563b
 160x50 Mono Overview · States 280c13de1438fd41
 160x50 Mono Chrome 3fe535b92feda3b0
 160x50 Mono Status & hints 4d2de569de0defcd
