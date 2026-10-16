@@ -2,7 +2,7 @@
 name = "xtask"
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.98"
+rust-version = "1.99"
 publish = false
 description = "Repository tasks: `cargo xtask visual {list,accept,render,import}`"
 license = "MIT"

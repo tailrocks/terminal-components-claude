@@ -28,8 +28,8 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 
 | Item | Before | After | Latest | Blocker |
 |---|---|---|---|---|
-| Rust toolchain (`rust-toolchain.toml`) | 1.98.1 | 1.99.1 | 1.99.1 | none locally; CI runs 1.98.1 until velnor v0.1.9 (see below) |
-| `rust-version` (root, xtask) | 1.98 | 1.98 | 1.99 | kept at the CI toolchain until velnor v0.1.9, see below |
+| Rust toolchain (`rust-toolchain.toml`) | 1.98.1 | 1.99.1 | 1.99.1 | none; CI uses it since velnor v0.1.9 (see below) |
+| `rust-version` (root, xtask) | 1.98 | 1.99 | 1.99 | none; raised with velnor v0.1.9 (2026-10-17) |
 | `ratatui` (`0.30`, `crossterm_0_29`) | 0.30.2 | 0.30.2 | 0.30.2 | none |
 | `crossterm` (through ratatui) | 0.29.0 | 0.29.0 | 0.29.0 | none |
 | `clap` (`4.6`) | 4.6.6 | 4.6.7 | 4.6.7 | none |
@@ -39,9 +39,9 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `libtest-mimic` (dev, `0.8.2`) | 0.8.2 | 0.8.2 | 0.8.2 | none |
 | `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.1 | 0.11.1 | none; tuiscotti held it at `=0.11.0` until PR 11 (raised 2026-10-17) |
 | `tuiscotti` (dev, git `rev`) | `a47c9aae` | `3382e57d` | `3382e57d` (`main`, 2026-10-17) | none; PR 11 merged as `be860d1`, `main` then moved one CI-only commit |
-| velnor-actions | 0.1.8 | 0.1.8 | 0.1.8 (`main` `e34cfb8` untagged) | latest release; `main` has #155 (suites, §8), adopt at the v0.1.9 tag (`docs/ci.md` "Prepared: velnor 0.1.9") |
-| cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | none; velnor v0.1.9 adds `[tools]` overrides |
-| actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | 1.7.12, 0.11.0, 1.31.1, 2.102.0 | zizmor pinned by velnor 0.1.8; v0.1.9 `[tools] zizmor` can raise it |
+| velnor-actions | 0.1.8 | 0.1.9 | 0.1.9 (`a7d49aa`, 2026-10-16) | none; adopted 2026-10-17 (`docs/ci.md`) |
+| cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | none; `[tools]` can override it |
+| actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | 1.7.12, 0.11.0, 1.31.1, 2.102.0 | zizmor 1.30.1 is velnor 0.1.9's catalog pin; `[tools] zizmor = "1.31.1"` would raise it, not done yet: velnor only shape-checks `[tools]` versions, so the pin needs a CI run to prove it installs |
 
 `xtask` has no dependencies. `cargo update` moved 42 transitive packages
 (semver-compatible). Transitive crates still behind latest, and why:
@@ -77,20 +77,14 @@ patch upstream crates to get around a pin.
 
 ## Rust in CI
 
-velnor-actions 0.1.8 hardcodes Rust 1.98.1
-(`crates/velnor-actions-mise/src/catalog.rs:50`, `RUST_VERSION`) and sets
-`RUSTUP_TOOLCHAIN: 1.98.1` on every job, so CI ignores
-`rust-toolchain.toml` and a repository `mise.toml` (checked with
-`velnor-actions generate --output-dir`). Local work uses 1.99.1;
-`rust-version` stays `1.98` so CI builds, Cargo's MSRV-aware resolver keeps
-the lockfile buildable on 1.98, and clippy's `incompatible_msrv` flags std
-APIs newer than CI. Mirror CI before pushing with
-`RUSTUP_TOOLCHAIN=1.98.1 cargo clippy --workspace --all-targets -- -D warnings`.
-The upstream fix (honour `rust-toolchain.toml`, `[tools]` version
-overrides; Problem C in `docs/upstream/velnor-new-feedback.md` §8) is merged
-to velnor `main` (`e34cfb8`) and verified, but not released. At the v0.1.9
-tag, raise `rust-version` to `1.99` and drop the second clippy run
-(`docs/ci.md`, "Prepared: velnor 0.1.9").
+Since velnor-actions 0.1.9, CI installs the toolchain from
+`rust-toolchain.toml` (`rust@1.99.1` with clippy and rustfmt) and exports
+no `RUSTUP_TOOLCHAIN`, so local and CI builds use the same compiler and
+`rust-version` is `1.99` in both crates. 0.1.8 hardcoded Rust 1.98.1 and
+forced it with `RUSTUP_TOOLCHAIN`; that and the second clippy run under
+1.98.1 are gone. Keep the channel an exact `X.Y.Z`: velnor 0.1.9 refuses
+`stable` or `1.99` (`invalid_rust_toolchain`). When the channel moves,
+raise `rust-version` with it and regenerate CI (`docs/ci.md`).
 
 ## Visual impact
 
