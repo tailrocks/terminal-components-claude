@@ -63,6 +63,8 @@ pub struct FinderPage {
     scroll: ScrollState,
     preview_scroll: ScrollState,
     explore_cursor: usize,
+    /// Explore chips that do not fit show a `+N` count. Default true.
+    pub explore_overflow_marker: bool,
     /// Preview drawer open (narrow layouts only).
     pub drawer: bool,
     list_area: Rect,
@@ -101,6 +103,7 @@ impl FinderPage {
             scroll: ScrollState::default(),
             preview_scroll: ScrollState::default(),
             explore_cursor: 0,
+            explore_overflow_marker: true,
             drawer: false,
             list_area: Rect::ZERO,
             preview_area: Rect::ZERO,
@@ -909,16 +912,22 @@ impl FinderPage {
                     fill(buf, row, st);
                     buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
                     let mut x = row.x + 3;
-                    for (ci, idx) in cells.iter().enumerate() {
+                    // chips that do not fit are counted, never dropped silently
+                    let widths: Vec<u16> = cells
+                        .iter()
+                        .map(|idx| width(&self.items[*idx].label) as u16 + 2)
+                        .collect();
+                    let (shown, more) = junie_tui::widgets::chips::overflow_run(
+                        &widths,
+                        row.right().saturating_sub(x),
+                        1,
+                    );
+                    for (ci, idx) in cells.iter().enumerate().take(shown) {
                         let it = &self.items[*idx];
                         let cid = EXPLORE_CELL.child(ci);
                         let chosen = is_cursor && ci == self.explore_cursor;
                         let hovered = ctx.interaction.hovered(cid);
-                        let text = format!(" {} ", it.label);
-                        let cw = width(&text) as u16;
-                        if x + cw > row.right() {
-                            break;
-                        }
+                        let cw = widths[ci];
                         let mut cs = st.fg(t.text_primary).remove_modifier(Modifier::BOLD);
                         if hovered {
                             cs = cs.bg(t.lift(st.bg.unwrap_or(bg)));
@@ -931,6 +940,9 @@ impl FinderPage {
                         ctx.clickable(cid, Rect::new(x, y, cw, 1));
                         self.explore_areas.push((cid, Rect::new(x, y, cw, 1), ci));
                         x += cw + 1;
+                    }
+                    if let Some(m) = more.filter(|_| self.explore_overflow_marker) {
+                        buf.set_string(x, y, &m, st.fg(t.text_muted));
                     }
                     ctx.clickable(rid, row);
                 }
