@@ -990,3 +990,34 @@ fn clicking_the_editor_closes_completion_and_places_the_caret() {
         "the same click moved the caret"
     );
 }
+
+fn footer(h: &H) -> String {
+    h.text().lines().last().unwrap_or_default().to_owned()
+}
+
+#[test]
+fn dialog_footers_name_the_focused_button_and_the_typed_token() {
+    // the delete dialog opens on Cancel: Enter cancels, so the footer says so
+    let mut h = H::new(120, 40);
+    h.key(KeyCode::Char('d'));
+    assert!(
+        matches!(h.app.modal, Some(Modal::Dialog(_))),
+        "{}",
+        h.text()
+    );
+    let f = footer(&h);
+    assert!(f.contains("Enter Cancel"), "{f}");
+    assert!(f.contains("y Delete"), "{f}");
+    assert!(!f.contains("Confirm"), "{f}");
+
+    // a typed acknowledgement says what to type, not "Enter Confirm"
+    let mut h = H::connected(120, 40);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Char('i'));
+    h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
+    h.key(KeyCode::Esc);
+    h.ctrl('r');
+    let f = footer(&h);
+    assert!(f.contains("Type \"orders\" to confirm"), "{f}");
+    assert!(f.contains("Enter Next"), "{f}");
+}

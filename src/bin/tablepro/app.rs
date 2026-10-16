@@ -2314,24 +2314,7 @@ impl App {
             Screen::Workbench => self.workbench.as_ref().is_some_and(|w| w.is_editing()),
         };
         let hints: Vec<Hint> = match &self.modal {
-            Some(Modal::Dialog(d)) => {
-                if d.is_editing() {
-                    vec![hint("Enter", "Next"), hint("Esc", "Cancel")]
-                } else if matches!(d.body, DialogBody::Facts { .. }) {
-                    vec![
-                        hint("← →", "Choose"),
-                        hint("Enter", "Confirm"),
-                        hint("Esc", "Cancel"),
-                    ]
-                } else {
-                    vec![
-                        hint("← →", "Choose"),
-                        hint("Enter", "Confirm"),
-                        hint("Esc", "Cancel"),
-                        hint("y / n", "Quick answer"),
-                    ]
-                }
-            }
+            Some(Modal::Dialog(d)) => d.hints(self.focus.current()),
             Some(Modal::Picker(..)) => vec![],
             Some(Modal::Filter(_)) => vec![
                 hint("Tab", "Next field"),
