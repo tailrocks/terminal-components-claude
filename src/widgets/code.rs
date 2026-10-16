@@ -15,7 +15,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
-use crate::core::scroll::ScrollState;
+use crate::core::scroll::{HScroll, ScrollState, ScrollbarVisibility};
 use crate::core::text::TextBuffer;
 use crate::theme::SyntaxTone;
 use crate::ui::ctx::{RenderCtx, fill};
@@ -94,6 +94,17 @@ pub struct CodeEditor {
     /// Blank columns between the text and the scrollbar (default
     /// [`scrollbar::GAP`]).
     pub scrollbar_gap: u16,
+    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
+    pub horizontal: Option<HScroll>,
+    /// The policy resolved at the last render (events use it).
+    h_cfg: HScroll,
+    /// The horizontal position as the bar sees it: `hscroll` against the
+    /// widest line and the text width, settled at render.
+    hbar: ScrollState,
+    /// The horizontal scrollbar track as last drawn.
+    htrack: Rect,
+    /// The last scrollbar press landed on the horizontal bar.
+    h_held: bool,
 }
 
 fn hash_text(s: &str) -> u64 {
@@ -133,6 +144,11 @@ impl CodeEditor {
             cached_for: 0,
             rendered_state: None,
             scrollbar_gap: scrollbar::GAP,
+            horizontal: None,
+            h_cfg: HScroll::default(),
+            hbar: ScrollState::default(),
+            htrack: Rect::ZERO,
+            h_held: false,
         }
     }
 
@@ -140,6 +156,36 @@ impl CodeEditor {
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
+    }
+
+    /// Override the app-wide horizontal scrolling policy.
+    pub fn horizontal(mut self, policy: HScroll) -> Self {
+        self.horizontal = Some(policy);
+        self
+    }
+
+    /// The editor itself or one of its scrollbars.
+    pub fn owns(&self, id: WidgetId) -> bool {
+        id == self.id || scrollbar::is_bar_of(id, self.id)
+    }
+
+    /// The horizontal scroll position: what the bar shows.
+    pub fn hbar(&self) -> &ScrollState {
+        &self.hbar
+    }
+
+    /// Move sideways by `cells`, clamped to the widest line once it has
+    /// been measured. Returns whether the view moved.
+    fn scroll_h(&mut self, cells: isize) -> bool {
+        let before = self.hscroll;
+        let max = if self.hbar.viewport_len > 0 {
+            self.hbar.max_offset()
+        } else {
+            usize::MAX
+        };
+        self.hscroll = self.hscroll.saturating_add_signed(cells).min(max);
+        self.hbar.offset = self.hscroll;
+        self.hscroll != before
     }
 
     pub fn highlighter(mut self, h: Highlighter) -> Self {
@@ -433,11 +479,11 @@ impl CodeEditor {
                 (Outcome::Changed, Some(EditorEvent::CursorMoved))
             }
             KeyCode::Left | KeyCode::Char('h') if key.plain() => {
-                self.hscroll = self.hscroll.saturating_sub(8);
+                self.scroll_h(-8);
                 (Outcome::Changed, None)
             }
             KeyCode::Right | KeyCode::Char('l') if key.plain() => {
-                self.hscroll += 8;
+                self.scroll_h(8);
                 (Outcome::Changed, None)
             }
             KeyCode::PageUp => {
@@ -571,9 +617,11 @@ impl CodeEditor {
 
     pub fn on_wheel(&mut self, delta: i32, horizontal: bool) -> Outcome {
         let moved = if horizontal {
-            let before = self.hscroll;
-            self.hscroll = (self.hscroll as isize + delta as isize * 4).max(0) as usize;
-            self.hscroll != before
+            if !self.h_cfg.enabled {
+                return Outcome::Ignored;
+            }
+            let step = self.h_cfg.step.max(1) as isize;
+            self.scroll_h(delta.signum() as isize * step)
         } else {
             self.scroll.scroll_by(delta as isize)
         };
@@ -597,19 +645,37 @@ impl CodeEditor {
         }
     }
 
-    /// The pointer went down on the scrollbar (or a completed click): a
-    /// press on the thumb grabs it, a press on the track jumps to it.
+    /// The pointer went down on either scrollbar (or a completed click):
+    /// a press on the thumb grabs it, a press on the track jumps to it. A
+    /// press on the horizontal bar ([`scrollbar::h_id_for`]) moves
+    /// sideways.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+        self.h_held = !self.htrack.is_empty() && self.htrack.contains(pos);
+        let moved = if self.h_held {
+            let click = self.h_cfg.track_click;
+            let moved = scrollbar::press_h(self.htrack, pos, &mut self.hbar, click);
+            self.hscroll = self.hbar.offset;
+            moved
+        } else {
+            scrollbar::press(self.track(), pos, &mut self.scroll)
+        };
+        if moved {
             Outcome::Changed
         } else {
             Outcome::Consumed
         }
     }
 
-    /// The pointer dragged along the scrollbar after a press.
+    /// The pointer dragged along the scrollbar it pressed.
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
-        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
+        let moved = if self.h_held && !self.htrack.is_empty() {
+            let moved = scrollbar::drag_h(self.htrack, pos, &mut self.hbar);
+            self.hscroll = self.hbar.offset;
+            moved
+        } else {
+            scrollbar::drag(self.track(), pos, &mut self.scroll)
+        };
+        if moved {
             Outcome::Changed
         } else {
             Outcome::Consumed
@@ -683,31 +749,41 @@ impl CodeEditor {
         };
         fill(buf, area, fs);
         let body_h = area.height.saturating_sub(1);
-        let rows = body_h as usize;
         let spans: Vec<(Range<usize>, SyntaxTone)> = self.spans().to_vec();
         let text_owned = self.buffer.text().to_owned();
         let lines: Vec<&str> = text_owned.split('\n').collect();
         let line_count = lines.len();
-        self.scroll.set_content(line_count);
-        self.scroll.set_viewport(rows);
         let num_w = (line_count.to_string().len() as u16).max(2);
         // gutter: bar(1) marker(1) space(1) numbers(num_w) space(1)
         let gutter_w = (1 + 1 + num_w + 1 + 1).min(area.width);
         self.gutter_w = gutter_w;
-        let has_sb = self.scroll.overflows();
-        let text_area = Rect::new(
-            area.x + gutter_w,
-            area.y,
-            area.width.saturating_sub(
-                gutter_w
-                    + if has_sb {
-                        scrollbar::reserve(self.scrollbar_gap)
-                    } else {
-                        0
-                    },
-            ),
-            body_h,
-        );
+        // both bars are settled before the viewport is set: the horizontal
+        // bar takes the last text row, which can make the lines overflow
+        // and cost a column for the vertical bar
+        self.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        let widest = lines.iter().map(|l| width(l)).max().unwrap_or(0);
+        let gap = self.scrollbar_gap;
+        let text_w = |has_sb: bool| {
+            area.width
+                .saturating_sub(gutter_w + if has_sb { scrollbar::reserve(gap) } else { 0 })
+        };
+        let mut has_sb = line_count > body_h as usize;
+        // one spare cell past the widest line, where the caret can sit
+        self.hbar.offset = self.hscroll;
+        self.hbar.set_content(widest + 1);
+        self.hbar.set_viewport(text_w(has_sb) as usize);
+        let has_hb = self.h_cfg.enabled && body_h > 1 && self.h_cfg.shows_bar(&self.hbar);
+        let rows_h = body_h - u16::from(has_hb);
+        if !has_sb && line_count > rows_h as usize {
+            has_sb = true;
+            self.hbar.set_viewport(text_w(true) as usize);
+        }
+        // never scrolled past the widest line (the arrows used to run on)
+        self.hscroll = self.hbar.offset;
+        let rows = rows_h as usize;
+        self.scroll.set_content(line_count);
+        self.scroll.set_viewport(rows);
+        let text_area = Rect::new(area.x + gutter_w, area.y, text_w(has_sb), rows_h);
         let viewport_changed =
             self.text_area.width != text_area.width || self.text_area.height != text_area.height;
         self.text_area = text_area;
@@ -921,13 +997,30 @@ impl CodeEditor {
                     area.x,
                     area.y,
                     (area.right() - 1).saturating_sub(area.x),
-                    body_h,
+                    rows_h,
                 ),
                 &self.scroll,
             );
-            let sb = Rect::new(area.right() - 1, area.y, 1, body_h);
+            let sb = Rect::new(area.right() - 1, area.y, 1, rows_h);
             self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+        }
+        self.htrack = Rect::ZERO;
+        if has_hb {
+            // under the text, the gutter stays put; the corner stays blank
+            let y = area.y + rows_h;
+            fill(buf, Rect::new(area.x, y, area.width, 1), fs);
+            let hb = Rect::new(text_area.x, y, text_area.width, 1);
+            self.htrack = hb;
+            scrollbar::render_horizontal_with(
+                hb,
+                buf,
+                ctx,
+                self.id,
+                &self.hbar,
+                focused,
+                self.h_cfg.bar == ScrollbarVisibility::Always,
+            );
         }
         // footer row
         let fy = area.y + body_h;
@@ -1231,6 +1324,67 @@ mod tests {
         editor.on_key(&key(KeyCode::Char('x')));
         assert!(render(&mut editor, 40, 8).is_some());
         assert_eq!(editor.scroll.offset, 0);
+    }
+
+    fn draw_buf(editor: &mut CodeEditor, width: u16, height: u16) -> (Buffer, HitRegistry) {
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let area = Rect::new(0, 0, width, height);
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            editor.render(area, &mut buf, &mut ctx, theme.surface);
+        }
+        (buf, hits)
+    }
+
+    #[test]
+    fn a_wide_document_shows_a_horizontal_bar_and_stops_at_its_widest_line() {
+        let text = format!("SELECT {} FROM t;\nshort", "c, ".repeat(30));
+        let mut editor = CodeEditor::new(WidgetId::of("test.wide"), &text).read_only(true);
+        let (buf, hits) = draw_buf(&mut editor, 40, 8);
+        // body rows 0..=6, footer on 7: the bar takes the last body row
+        let y = 6;
+        let thumb = |buf: &Buffer| (0..40).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB);
+        assert!(thumb(&buf).is_some(), "the bar is drawn above the footer");
+        assert_eq!(
+            hits.hit(Position::new(editor.htrack.x + 1, y)),
+            Some(scrollbar::h_id_for(editor.id))
+        );
+        assert!(editor.owns(scrollbar::h_id_for(editor.id)));
+        let start = thumb(&buf).unwrap();
+
+        assert_eq!(editor.on_wheel(1, true), Outcome::Changed);
+        assert_eq!(editor.hscroll, HScroll::default().step);
+        let (buf, _) = draw_buf(&mut editor, 40, 8);
+        assert!(thumb(&buf).unwrap() > start, "the thumb follows");
+
+        // → runs no further than the widest line (it used to run on)
+        for _ in 0..40 {
+            editor.on_key(&key(KeyCode::Right));
+        }
+        draw_buf(&mut editor, 40, 8);
+        assert_eq!(editor.hscroll, editor.hbar().max_offset());
+
+        // the bar drags back to the start
+        let (buf, _) = draw_buf(&mut editor, 40, 8);
+        let grab = thumb(&buf).unwrap();
+        assert_eq!(
+            editor.on_scrollbar(Position::new(grab, y)),
+            Outcome::Consumed
+        );
+        assert_eq!(
+            editor.on_scrollbar_drag(Position::new(0, y)),
+            Outcome::Changed
+        );
+        assert_eq!(editor.hscroll, 0);
+        assert_eq!(editor.scroll.offset, 0);
+
+        let mut off = CodeEditor::new(WidgetId::of("test.off"), &text).horizontal(HScroll::off());
+        let (buf, _) = draw_buf(&mut off, 40, 8);
+        assert!(thumb(&buf).is_none());
+        assert_eq!(off.on_wheel(1, true), Outcome::Ignored);
     }
 
     #[test]
