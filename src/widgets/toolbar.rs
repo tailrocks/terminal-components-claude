@@ -309,16 +309,10 @@ impl Toolbar {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-    /// Which item `id` is.
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
+    /// Which item `id` is (the inverse [`Self::on_click`] needs until S15
+    /// hands it the routed part).
+    fn item_at(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
-            || id == self.more_id()
-            || self.menu.as_ref().is_some_and(|(m, _)| m.owns(id))
-            || self.locate(id).is_some()
     }
 
     /// Cells the toolbar takes with every item shown.
@@ -407,7 +401,7 @@ impl Toolbar {
     /// or closes its menu; a row of the open menu runs its item.
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ToolbarAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
-            && menu.owns(id)
+            && menu.contains_id(id)
         {
             let ev = menu.on_click(id);
             return (Outcome::Changed, self.menu_event(ev));
@@ -421,7 +415,7 @@ impl Toolbar {
         }
         // any other click on the toolbar closes an open overflow menu
         self.menu = None;
-        match self.locate(id) {
+        match self.item_at(id) {
             Some(i) => match self.activate(i) {
                 Some(a) => (Outcome::Changed, Some(a)),
                 None => (Outcome::Consumed, None),

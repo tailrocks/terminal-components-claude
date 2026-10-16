@@ -20,7 +20,8 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 
 use crate::core::event::Key;
-use crate::core::id::WidgetId;
+use crate::core::id::{Part, WidgetId};
+use crate::core::pointer::PointerEvent;
 use crate::widgets::grid::DataGrid;
 use crate::widgets::list::ListBox;
 use crate::widgets::menu::{ContextMenu, MenuItem};
@@ -110,22 +111,21 @@ impl ContextConfig {
         self
     }
 
-    /// A secondary click on hit `id` at `pos`: the request when `id` is
-    /// one of `src`'s rows, cells or tabs (moving the cursor there per
-    /// [`Self::moves_cursor`]).
+    /// A secondary click `ev`: the request when it is on one of `src`'s
+    /// rows, cells or tabs (moving the cursor there per
+    /// [`Self::moves_cursor`]), opening at the pointer.
     pub fn on_secondary<S: ContextSource + ?Sized>(
         &self,
         src: &mut S,
-        id: WidgetId,
-        pos: Position,
+        ev: &PointerEvent,
     ) -> Option<ContextRequest<S::Target>> {
-        let target = src.context_target(id)?;
+        let target = src.context_target(ev)?;
         if self.moves_cursor {
             src.context_select(target);
         }
         Some(ContextRequest {
             target,
-            anchor: ContextAnchor::Pointer(pos),
+            anchor: ContextAnchor::Pointer(ev.pos()),
         })
     }
 
@@ -195,8 +195,9 @@ impl<T> ContextRequest<T> {
 pub trait ContextSource {
     /// What a menu is about: a row index, a `(row, col)` cell, a tab.
     type Target: Copy;
-    /// The target a hit id stands for, if it is one of the widget's items.
-    fn context_target(&self, id: WidgetId) -> Option<Self::Target>;
+    /// The target the part under a pointer event stands for, if it is one
+    /// of the widget's items.
+    fn context_target(&self, ev: &PointerEvent) -> Option<Self::Target>;
     /// Move the cursor onto `target` (through the widget's
     /// [`crate::core::list::Cursor::select`]: a target out of range is
     /// ignored).
@@ -216,8 +217,8 @@ fn row_rect(area: Rect, row: usize, offset: usize) -> Rect {
 
 impl ContextSource for ListBox {
     type Target = usize;
-    fn context_target(&self, id: WidgetId) -> Option<usize> {
-        self.locate(id)
+    fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
+        ev.on(self.id).then(|| ev.index_of(Part::ROW))?
     }
     fn context_select(&mut self, row: usize) {
         if let Some(i) = Navigable::cursor(self).select(row, self).index() {
@@ -237,8 +238,10 @@ impl ContextSource for ListBox {
 
 impl ContextSource for TreeView {
     type Target = usize;
-    fn context_target(&self, id: WidgetId) -> Option<usize> {
-        self.locate(id).map(|(i, _)| i)
+    fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
+        // a row or its disclosure toggle
+        ev.on(self.id)
+            .then(|| ev.index_of(Part::ROW).or_else(|| ev.index_of(Part::ICON)))?
     }
     fn context_select(&mut self, row: usize) {
         if let Some(i) = Navigable::cursor(self).select(row, self).index() {
@@ -261,9 +264,15 @@ impl ContextSource for DataTable {
     /// `(display row, column)`; a click on a row's free space names the
     /// cursor column.
     type Target = (usize, usize);
-    fn context_target(&self, id: WidgetId) -> Option<(usize, usize)> {
-        self.locate(id)
-            .map(|(r, c)| (r, c.unwrap_or(self.cursor_col)))
+    fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
+        if !ev.on(self.id) {
+            return None;
+        }
+        if let Some(r) = ev.index_of(Part::ROW) {
+            return Some((r, self.cursor_col));
+        }
+        let r = ev.index_of(Part::CELL)?;
+        Some((r, self.column_at(ev.pos().x).unwrap_or(self.cursor_col)))
     }
     fn context_select(&mut self, (row, col): (usize, usize)) {
         if let Some(r) = Navigable::cursor(self).select(row, self).index() {
@@ -304,9 +313,15 @@ impl ContextSource for DataGrid {
     /// `(display row, column)`; the row-number gutter names the cursor
     /// column.
     type Target = (usize, usize);
-    fn context_target(&self, id: WidgetId) -> Option<(usize, usize)> {
-        self.locate(id)
-            .or_else(|| self.locate_rownum(id).map(|r| (r, self.cursor.1)))
+    fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
+        if !ev.on(self.id) {
+            return None;
+        }
+        if let Some(r) = ev.index_of(Part::ROW_NUMBER) {
+            return Some((r, self.cursor.1));
+        }
+        let r = ev.index_of(Part::CELL)?;
+        Some((r, self.column_at(ev.pos().x)?))
     }
     fn context_select(&mut self, cell: (usize, usize)) {
         if cell.1 < self.columns.len()
@@ -336,8 +351,8 @@ impl ContextSource for DataGrid {
 
 impl ContextSource for Tabs {
     type Target = usize;
-    fn context_target(&self, id: WidgetId) -> Option<usize> {
-        self.locate(id)
+    fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
+        ev.on(self.id).then(|| ev.index_of(Part::TAB))?
     }
     fn context_select(&mut self, tab: usize) {
         if let Some(i) = Navigable::cursor(self).select(tab, self).index() {
@@ -396,6 +411,18 @@ mod tests {
         hits
     }
 
+    /// A secondary click on the region `id` at `pos`.
+    fn secondary(hits: &HitRegistry, id: WidgetId, pos: Position) -> PointerEvent {
+        PointerEvent::new(
+            hits,
+            crate::core::intent::Phase::Secondary,
+            id,
+            pos,
+            1,
+            KeyModifiers::NONE,
+        )
+    }
+
     fn key(code: KeyCode, mods: KeyModifiers) -> Key {
         Key { code, mods }
     }
@@ -430,8 +457,9 @@ mod tests {
         let hits = frame(&mut l, None);
         let pos = Position::new(9, 7);
         let id = hits.hit(pos).expect("a row");
+        let ev = secondary(&hits, id, pos);
         let req = ContextConfig::DEFAULT
-            .on_secondary(&mut l, id, pos)
+            .on_secondary(&mut l, &ev)
             .expect("a row has a menu");
         assert_eq!(req.target, 5);
         assert_eq!(l.cursor, 5, "the row the menu is about is highlighted");
@@ -447,7 +475,7 @@ mod tests {
         frame(&mut still, None);
         let req = ContextConfig::DEFAULT
             .moves_cursor(false)
-            .on_secondary(&mut still, id, pos)
+            .on_secondary(&mut still, &ev)
             .unwrap();
         assert_eq!((req.target, still.cursor), (5, 0), "knob: cursor stays");
     }
@@ -500,10 +528,14 @@ mod tests {
         let SecondaryRoute::Outside { backdrop, reopen } = p.route_secondary(&hits, row) else {
             panic!("outside the menu");
         };
-        assert!(m.owns(backdrop), "the click closes the open menu");
+        assert_eq!(
+            hits.part_of(backdrop).map(|h| h.owner),
+            Some(MENU),
+            "the click closes the open menu"
+        );
         assert_eq!(m.on_click(backdrop), Some(MenuAction::Dismissed));
         let below = reopen.expect("the row beneath");
-        assert_eq!(l.locate(below), Some(7));
+        assert_eq!(l.context_target(&secondary(&hits, below, row)), Some(7));
         assert_eq!(p.hover, Some(below));
         let inside = Position::new(m.area.x + 2, m.area.y + 1);
         assert!(matches!(
@@ -531,6 +563,14 @@ mod tests {
             .unwrap();
         assert_eq!(req.target, 1);
         assert!(matches!(req.anchor, ContextAnchor::Control { id, .. } if id == tabs.tab_id(1)));
-        assert_eq!(tabs.context_target(tabs.tab_id(0)), Some(0));
+        let mut hits = HitRegistry::default();
+        let tab = hits.register_part(
+            tabs.id,
+            crate::core::id::PartRef::item(Part::TAB, crate::core::id::ItemKey::index(0)),
+            Rect::new(0, 0, 4, 1),
+        );
+        assert_eq!(tab, tabs.tab_id(0));
+        let ev = secondary(&hits, tab, Position::new(1, 0));
+        assert_eq!(tabs.context_target(&ev), Some(0));
     }
 }

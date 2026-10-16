@@ -14,7 +14,6 @@ use crate::core::keymap::NavKeys;
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
-use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum StepState {
@@ -154,14 +153,6 @@ impl StepRail {
 
     fn row_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
-    }
-
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == scrollbar::id_for(self.id) || self.parts.contains(id)
     }
 
     fn set_cursor(&mut self, i: usize) {

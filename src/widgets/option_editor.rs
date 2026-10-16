@@ -421,13 +421,17 @@ impl ChoiceEditor {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The option index a widget id names.
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
+    /// The option index a widget id names (the inverse [`Self::on_click`]
+    /// needs until S15 hands it the routed part).
+    fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
 
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id || id == backdrop_id(self.id) || self.locate(id).is_some()
+    /// Whether `id` is the popup, its backdrop or an option: how the
+    /// table's and grid's id-taking methods (S15) send a click to their
+    /// open editor.
+    pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
+        id == self.id || id == backdrop_id(self.id) || self.option_of(id).is_some()
     }
 
     /// The options the popup lists, in order (Combo: those matching the
@@ -608,7 +612,7 @@ impl ChoiceEditor {
                 (Outcome::Consumed, None)
             };
         }
-        let Some(i) = self.locate(id) else {
+        let Some(i) = self.option_of(id) else {
             return (Outcome::Consumed, None);
         };
         if !self.enabled(i) {

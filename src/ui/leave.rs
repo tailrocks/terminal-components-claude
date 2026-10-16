@@ -174,7 +174,7 @@ pub enum Resolved<T> {
 /// the dialog; when it closes, pass its result to [`Self::resolve`].
 #[derive(Debug, Clone)]
 pub struct LeaveGuard<T> {
-    /// The id of the dialog this guard opens ([`Self::owns`]).
+    /// The id of the dialog this guard opens ([`Self::is_dialog`]).
     pub id: WidgetId,
     /// The request waiting for the dialog's answer.
     pending: Option<(Leave<T>, bool)>,
@@ -236,7 +236,7 @@ impl<T: Clone> LeaveGuard<T> {
     }
 
     /// Whether `dialog` is the one this guard opened.
-    pub fn owns(&self, dialog: WidgetId) -> bool {
+    pub fn is_dialog(&self, dialog: WidgetId) -> bool {
         dialog == self.id
     }
 
@@ -365,7 +365,7 @@ mod tests {
         let d = g
             .request(Leave::To("home"), &Stakes::Unsaved { changes: 2 }, &s)
             .unwrap_err();
-        assert!(g.owns(d.id));
+        assert!(g.is_dialog(d.id));
         let labels: Vec<_> = d.actions.iter().map(|b| b.label.as_str()).collect();
         assert_eq!(labels, ["Cancel", "Discard", "Save"]);
         assert_eq!(d.initial_focus, d.actions[2].id, "Save is the default");

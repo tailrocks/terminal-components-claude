@@ -18,7 +18,7 @@ use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::ui::columns::{self, Col, HeaderLabels};
@@ -344,7 +344,7 @@ impl ColumnsPage {
     /// two specimen tables their cells.
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut PageCtx) -> Outcome {
         if ev.is(Phase::Secondary) {
-            let Some(c) = self.sized.locate_header_menu(ev.id) else {
+            let Some(c) = self.sized.header_menu_at(ev) else {
                 return Outcome::Ignored;
             };
             cx.focus.focus(self.sized.id);
@@ -362,11 +362,12 @@ impl ColumnsPage {
             self.header_menu.open(menu, c);
             return Outcome::Changed;
         }
-        if ev.is(Phase::Press) && self.sized.locate_seam(ev.id).is_some() {
+        if ev.is(Phase::Press) && ev.on(self.sized.id) && ev.index_of(Part::SEAM).is_some() {
             cx.focus.focus(self.sized.id);
         }
         if ev.is(Phase::Click)
-            && let Some(c) = self.sized.locate_header(ev.id)
+            && ev.on(self.sized.id)
+            && let Some(c) = ev.index_of(Part::HEADER)
         {
             self.sized.cursor_col = c;
         }

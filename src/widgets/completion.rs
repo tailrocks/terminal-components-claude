@@ -186,17 +186,6 @@ impl Completion {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    pub fn locate(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::ROW)
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        id == self.id
-            || id == scrollbar::id_for(self.id)
-            || (self.is_open() && id == backdrop_id(self.id))
-            || self.parts.contains(id)
-    }
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<CompletionAction>) {
         if !self.is_open() {
             return (Outcome::Ignored, None);
@@ -230,6 +219,12 @@ impl Completion {
         }
     }
 
+    /// The drawn row `id` is (the inverse [`Self::on_click`] needs until
+    /// S15 hands it the routed part).
+    fn row_of(&self, id: WidgetId) -> Option<usize> {
+        self.parts.index(id, Part::ROW)
+    }
+
     pub fn on_click(&mut self, id: WidgetId) -> Option<CompletionAction> {
         if id == backdrop_id(self.id) {
             if !self.dismiss.outside_click {
@@ -238,7 +233,7 @@ impl Completion {
             self.close();
             return Some(CompletionAction::Dismiss);
         }
-        let i = self.locate(id)?;
+        let i = self.row_of(id)?;
         self.cursor = i;
         Some(CompletionAction::Accept(i))
     }

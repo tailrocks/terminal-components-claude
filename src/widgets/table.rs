@@ -609,11 +609,6 @@ impl DataTable {
         self.id.part(PartRef::of(Part::MARKER))
     }
 
-    /// The display row whose checkbox `id` is.
-    pub fn locate_check(&self, id: WidgetId) -> Option<usize> {
-        self.parts.index(id, Part::MARKER)
-    }
-
     /// A click on a row's checkbox: toggles that row and moves the cursor
     /// there.
     pub fn on_click_check(&mut self, display: usize) -> (Outcome, Option<TableAction>) {
@@ -730,21 +725,27 @@ impl DataTable {
         self.id.part(crate::ui::columns::seam_part(c))
     }
 
-    pub fn locate_seam(&self, id: WidgetId) -> Option<usize> {
+    /// The column whose seam `id` is (the inverse the id-taking press and
+    /// drag need until S15 hands them the routed part).
+    fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
 
-    /// The column whose header menu a secondary click on `id` opens (its
+    /// The column whose header menu the secondary click `ev` opens (its
     /// header or its seam).
-    pub fn locate_header_menu(&self, id: WidgetId) -> Option<usize> {
-        self.locate_header(id).or_else(|| self.locate_seam(id))
+    pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
+        if !ev.on(self.id) {
+            return None;
+        }
+        ev.index_of(Part::HEADER)
+            .or_else(|| ev.index_of(Part::SEAM))
     }
 
     /// Button down on `id` with the click count it starts: a press on a
     /// header seam starts a resize (keeping the grab offset); the second
     /// press of a double click fits the column to its content.
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        let Some(c) = self.locate_seam(id) else {
+        let Some(c) = self.seam_of(id) else {
             return Outcome::Ignored;
         };
         if !self.sizing.resizable {
@@ -763,7 +764,7 @@ impl DataTable {
     /// A drag held since a press on `pressed`: a header seam resizes its
     /// column cell by cell, a scrollbar scrolls.
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if self.locate_seam(pressed).is_some() {
+        if self.seam_of(pressed).is_some() {
             return match self.sizing.drag_to(pos.x) {
                 Some(_) => Outcome::Changed,
                 None => Outcome::Consumed,
@@ -1118,7 +1119,7 @@ impl DataTable {
     /// owner routes it on.
     pub fn on_click_editor(&mut self, id: WidgetId) -> Option<(Outcome, Option<TableAction>)> {
         if let Some(c) = self.choice.as_mut()
-            && c.editor.owns(id)
+            && c.editor.contains_id(id)
         {
             let (out, r) = c.editor.on_click(id, &self.editor_config);
             return Some((out, self.on_choice(r)));
@@ -1958,28 +1959,12 @@ impl DataTable {
         }
     }
 
-    /// Resolve which (display row, col) a widget id refers to.
-    pub fn locate(&self, id: WidgetId) -> Option<(usize, Option<usize>)> {
-        if let Some(di) = self.parts.index(id, Part::ROW) {
-            return Some((di, None));
-        }
-        self.parts
-            .cell(id, Part::CELL)
-            .map(|(di, ci)| (di, Some(ci)))
-    }
-
-    pub fn owns(&self, id: WidgetId) -> bool {
-        self.choice.as_ref().is_some_and(|c| c.editor.owns(id))
-            || id == self.id
-            || scrollbar::is_bar_of(id, self.id)
-            || self.parts.contains(id)
-            || self.locate_header(id).is_some()
-            || self.locate_seam(id).is_some()
-            || id == self.check_all_id()
-    }
-
-    pub fn locate_header(&self, id: WidgetId) -> Option<usize> {
-        self.id.item_of(id, Part::HEADER, 0..self.columns.len())
+    /// The column drawn under screen column `x` this frame (a cell's
+    /// column: the router resolves a cell to its row only).
+    pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
+        self.col_rects
+            .iter()
+            .position(|r| !r.is_empty() && x >= r.x && x < r.right())
     }
 
     pub fn edit_error(&self) -> Option<&str> {
@@ -2119,16 +2104,24 @@ impl crate::core::pointer::MouseTarget for DataTable {
                 if id == self.check_all_id() {
                     return self.on_click_check_all().into();
                 }
-                if let Some(d) = self.locate_check(id) {
+                if !ev.on(self.id) {
+                    return Response::ignored();
+                }
+                if let Some(d) = ev.index_of(Part::MARKER) {
                     return self.on_click_check(d).into();
                 }
-                if let Some(c) = self.locate_header(id) {
+                if let Some(c) = ev.index_of(Part::HEADER) {
                     return self.on_click_header(c).into();
                 }
-                match self.locate(id) {
-                    Some((row, col)) => self
-                        .on_click_cell_with(row, col.unwrap_or(self.cursor_col), pos, ev.mods())
-                        .into(),
+                // a row's free space names the cursor column; a cell its own
+                let col = |t: &Self| t.column_at(pos.x).unwrap_or(t.cursor_col);
+                let at = match (ev.index_of(Part::ROW), ev.index_of(Part::CELL)) {
+                    (Some(row), _) => Some((row, self.cursor_col)),
+                    (None, Some(row)) => Some((row, col(self))),
+                    _ => None,
+                };
+                match at {
+                    Some((row, col)) => self.on_click_cell_with(row, col, pos, ev.mods()).into(),
                     None => Response::ignored(),
                 }
             }
@@ -2223,7 +2216,15 @@ mod tests {
         let (_, hits) = draw(&mut t, area);
         assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 4);
         // the header menu sorts and resets
-        assert_eq!(t.locate_header_menu(sid), Some(0));
+        let ev = crate::core::pointer::PointerEvent::new(
+            &hits,
+            crate::core::intent::Phase::Secondary,
+            sid,
+            Position::new(seam.x, seam.y),
+            1,
+            ratatui::crossterm::event::KeyModifiers::NONE,
+        );
+        assert_eq!(t.header_menu_at(&ev), Some(0));
         t.on_header_action(0, HeaderAction::SortDesc);
         assert_eq!(t.sort, Some((0, SortDir::Desc)));
         t.on_header_action(0, HeaderAction::ClearSort);
@@ -2280,7 +2281,6 @@ mod tests {
             hits.hit(Position::new(t.scroll.h_track().x + 2, y)),
             Some(scrollbar::h_id_for(t.id))
         );
-        assert!(t.owns(scrollbar::h_id_for(t.id)));
 
         assert_eq!(t.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
         assert_eq!(t.scroll.h.offset, 1, "one column per notch");
@@ -2927,11 +2927,15 @@ mod tests {
             Some(t.check_id(4)),
             "a disabled row has no checkbox target"
         );
-        assert!(t.owns(t.check_id(1)) && t.owns(t.check_all_id()));
+        assert_eq!(hits.part_of(t.check_id(1)).map(|h| h.owner), Some(t.id));
+        assert_eq!(hits.part_of(t.check_all_id()).map(|h| h.owner), Some(t.id));
         // cells start after the box
         assert_eq!(buf[(7, 1)].symbol(), "D");
 
-        assert_eq!(t.locate_check(t.check_id(1)), Some(1));
+        assert_eq!(
+            hits.part_of(t.check_id(1)).map(|h| h.part),
+            Some(DataTable::check_part(1))
+        );
         let (_, ev) = t.on_click_check(1);
         assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.cursor_row, 1);

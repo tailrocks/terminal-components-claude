@@ -303,10 +303,6 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
     /// closes it, an event (a picker's query changed, a form's chooser
     /// button) goes to the owner while it stays open.
     fn take_result(&mut self) -> Option<LayerOut<R>>;
-    /// Whether `id` is one of its controls (routes a click to it).
-    fn owns(&self, _id: WidgetId) -> bool {
-        false
-    }
 }
 
 /// What a [`Layer`] reports to its owner.

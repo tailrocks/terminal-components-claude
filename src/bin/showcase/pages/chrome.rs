@@ -641,11 +641,7 @@ impl Page for ChromePage {
                 Outcome::Ignored
             }
             PageEvent::Pointer(ev) if ev.is(Phase::Secondary) => {
-                if let Some(req) =
-                    self.context
-                        .config
-                        .on_secondary(&mut self.sessions, ev.id, ev.pos())
-                {
+                if let Some(req) = self.context.config.on_secondary(&mut self.sessions, ev) {
                     cx.focus.focus(SESSIONS);
                     self.open_context(req);
                     return Outcome::Changed;
