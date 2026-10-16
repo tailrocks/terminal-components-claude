@@ -119,6 +119,9 @@ pub struct Picker {
     /// Optional right-aligned scope label in the query row.
     pub scope: Option<String>,
     pub empty_text: String,
+    /// The theme's strings as of the last render: default text still
+    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+    strings: crate::theme::Strings,
     /// A full empty state (title, hint, error tone) shown instead of
     /// [`Self::empty_text`] when set. Default `None`.
     pub empty: Option<crate::widgets::empty::EmptyState>,
@@ -177,7 +180,7 @@ impl Picker {
             id,
             status: PickerStatus::Ready,
             title: title.to_owned(),
-            placeholder: "Type to search…".into(),
+            placeholder: crate::theme::Strings::DEFAULT.search_placeholder.into(),
             query: String::new(),
             items: vec![],
             cursor: 0,
@@ -190,7 +193,8 @@ impl Picker {
             hints: String::new(),
             backdrop: Backdrop::DEFAULT,
             scope: None,
-            empty_text: "No matches".into(),
+            empty_text: crate::theme::Strings::DEFAULT.no_matches.into(),
+            strings: crate::theme::Strings::DEFAULT,
             empty: None,
             area: Rect::ZERO,
             searchable: true,
@@ -636,6 +640,15 @@ impl Picker {
     }
 
     fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
+        let s = ctx.theme.strings;
+        let old = std::mem::replace(&mut self.strings, s);
+        use crate::theme::Strings;
+        Strings::follow(
+            &mut self.placeholder,
+            old.search_placeholder,
+            s.search_placeholder,
+        );
+        Strings::follow(&mut self.empty_text, old.no_matches, s.no_matches);
         let t = ctx.theme;
         // dim + modal like Dialog
         ctx.modal_backdrop_with(buf, screen, self.backdrop);
