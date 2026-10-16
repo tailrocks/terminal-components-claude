@@ -7,6 +7,7 @@ use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::{Theme, Tone};
+use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::SplitDir;
 use junie_tui::ui::text::{truncate, truncate_middle, width};
@@ -84,6 +85,10 @@ pub struct CapsuleScreen {
     menubar: MenuBar,
     /// Context menu anchored to one agent tab.
     tab_menu: Option<(usize, ContextMenu)>,
+    /// Keys that open the active tab's context menu from the panes
+    /// (Shift+F10 and the Menu key by default; they are not forwarded to
+    /// the pane's program).
+    pub context: ContextConfig,
     pub body: Rect,
     pending_intent: Option<Intent>,
     pending_agent: Option<Agent>,
@@ -145,6 +150,7 @@ impl CapsuleScreen {
             tabs: Tabs::with_items(STRIP, vec![]),
             menubar: Self::build_menubar(),
             tab_menu: None,
+            context: ContextConfig::DEFAULT,
             body: Rect::ZERO,
             pending_intent: None,
             pending_agent: None,
@@ -1923,6 +1929,13 @@ impl Screen for CapsuleScreen {
                 _ => {}
             }
             return o.or(Outcome::Changed);
+        }
+        if self.context.keys.matches(key) {
+            // the context key: the active tab's menu, under its tab
+            self.prefix_until = None;
+            let t = self.daemon(w).map(|d| d.active).unwrap_or(0);
+            self.open_tab_menu(t, w);
+            return Outcome::Changed;
         }
         if key.code == KeyCode::F(10) {
             self.prefix_until = None;

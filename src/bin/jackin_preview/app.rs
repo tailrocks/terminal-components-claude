@@ -6,7 +6,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::pointer::{FocusOn, PointerState, Release};
+use junie_tui::core::pointer::{FocusOn, PointerState, Release, SecondaryRoute};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::ui::modal::{Dismissal, ModalStack};
@@ -575,7 +575,12 @@ impl App {
             return self.modal_key(key);
         }
         let route = self.route;
-        let editing = self.screens.get(route).is_some_and(|s| s.is_editing());
+        // an open page menu owns the keyboard like a text field does: no
+        // global chord reaches past it
+        let editing = self
+            .screens
+            .get(route)
+            .is_some_and(|s| s.is_editing() || s.layer_open());
         // global chords (never while editing, never inside the Capsule/Cockpit)
         let host = matches!(
             route,
@@ -600,7 +605,8 @@ impl App {
                 _ => o.or(Outcome::Changed),
             };
         }
-        if host && !editing && key.code == KeyCode::F(10) {
+        // plain F10 is the menu bar; Shift+F10 is the page's context key
+        if host && !editing && key.code == KeyCode::F(10) && !key.shift() {
             self.sync_host_menu();
             self.host_menu.open_menu(0);
             return Outcome::Changed;
@@ -1713,27 +1719,22 @@ impl App {
                 }
             }
             MouseKind::Middle => Outcome::Ignored,
-            MouseKind::Secondary => {
-                let hit = self.pointer.on_secondary(&self.hits, m.pos);
-                if !self.modals.is_empty() {
-                    return Outcome::Consumed;
+            MouseKind::Secondary => match self.pointer.route_secondary(&self.hits, m.pos) {
+                SecondaryRoute::Nothing if self.modals.is_empty() => Outcome::Ignored,
+                SecondaryRoute::Nothing | SecondaryRoute::Swallowed => Outcome::Consumed,
+                SecondaryRoute::Target(id) => self.secondary_on(id, m.pos),
+                SecondaryRoute::Outside { backdrop, reopen } => {
+                    // a right-click on an open popup's backdrop is first the
+                    // click that closes it, delivered like a primary one ...
+                    self.pointer.press(backdrop);
+                    let out = self.on_release(m, Some(backdrop));
+                    // ... then the same secondary click on what is beneath
+                    match reopen {
+                        Some(id) => out.or(self.secondary_on(id, m.pos)),
+                        None => out,
+                    }
                 }
-                let Some(id) = hit else {
-                    return Outcome::Ignored;
-                };
-                let route = self.route;
-                let mut cx = Cx {
-                    focus: &mut self.focus,
-                    ring: &self.ring,
-                    requests: vec![],
-                };
-                let o = match self.screens.get_mut(route) {
-                    Some(s) => s.on_secondary(id, m.pos, &mut self.world, &mut cx),
-                    None => Outcome::Ignored,
-                };
-                let reqs = std::mem::take(&mut cx.requests);
-                o.or(self.apply_requests(reqs, route))
-            }
+            },
             MouseKind::WheelUp
             | MouseKind::WheelDown
             | MouseKind::WheelLeft
@@ -1777,6 +1778,26 @@ impl App {
                 out
             }
         }
+    }
+
+    /// A secondary click on `id`: the page's context menu. Under a modal
+    /// (a dialog: no light-dismiss backdrop) it is swallowed.
+    fn secondary_on(&mut self, id: WidgetId, pos: Position) -> Outcome {
+        if !self.modals.is_empty() {
+            return Outcome::Consumed;
+        }
+        let route = self.route;
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: vec![],
+        };
+        let o = match self.screens.get_mut(route) {
+            Some(s) => s.on_secondary(id, pos, &mut self.world, &mut cx),
+            None => Outcome::Ignored,
+        };
+        let reqs = std::mem::take(&mut cx.requests);
+        o.or(self.apply_requests(reqs, route))
     }
 
     fn modal_outside_click(&mut self) -> Outcome {
