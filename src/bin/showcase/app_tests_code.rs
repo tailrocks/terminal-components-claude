@@ -54,7 +54,11 @@ fn code_tab_leaves_moves_focus_out_while_editing() {
         let mut h = editor(&[&format!("codeeditor.tab_leaves={value}")]);
         h.key(KeyCode::Char('i'));
         h.key(KeyCode::Tab);
-        assert_eq!(h.app.focus.current() != Some(code()), leaves, "{value}");
+        assert_eq!(
+            h.app.shell.focus.current() != Some(code()),
+            leaves,
+            "{value}"
+        );
     }
 }
 
@@ -147,7 +151,7 @@ fn code_find_button_opens_find_and_counts_matches() {
     h.focus(WidgetId::of("editor").sub("run"));
     let (x, y) = h.at("Find ");
     h.click(x + 1, y);
-    assert_eq!(h.app.focus.current(), Some(code()));
+    assert_eq!(h.app.shell.focus.current(), Some(code()));
     for c in "delay".chars() {
         h.key(KeyCode::Char(c));
     }

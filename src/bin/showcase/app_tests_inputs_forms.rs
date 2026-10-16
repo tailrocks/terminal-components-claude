@@ -3,6 +3,7 @@
 //! selects): options set through `--opt` change the playground, the States
 //! rows render, and the key interactions work.
 
+use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -114,7 +115,7 @@ impl Harness {
     }
 
     fn status(&self) -> String {
-        self.app.status.text().unwrap_or_default().to_owned()
+        self.app.shell.status.text().unwrap_or_default().to_owned()
     }
 }
 
@@ -161,12 +162,12 @@ fn buttons_toolbar_is_off_the_tab_order_until_the_option_puts_it_in() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
     h.at("▶ Run");
     assert!(
-        !h.app.ring.contains(tool_id(0)),
+        !h.app.shell.ring.contains(tool_id(0)),
         "toolbar buttons take clicks only"
     );
     assert!(h.text().contains("not in the Tab order"));
     h.opt("buttons.toolbar_focus=on");
-    assert!(h.app.ring.contains(tool_id(0)));
+    assert!(h.app.shell.ring.contains(tool_id(0)));
     assert!(!h.text().contains("not in the Tab order"));
 }
 
@@ -299,13 +300,17 @@ fn buttons_row_arrows_stop_at_the_ends_unless_wrap_is_on() {
         h.opt(&format!("buttons.row_wrap={wrap}"));
         let (x, y) = h.at("Remove…");
         h.click(x, y);
-        assert_eq!(h.app.focus.current(), Some(row.child(4)));
+        assert_eq!(h.app.shell.focus.current(), Some(row.child(4)));
         h.key(KeyCode::Right);
-        assert_eq!(h.app.focus.current(), Some(row.child(after)), "{wrap}");
+        assert_eq!(
+            h.app.shell.focus.current(),
+            Some(row.child(after)),
+            "{wrap}"
+        );
         h.key(KeyCode::Left);
         h.key(KeyCode::Left);
         let back = if wrap == "on" { 3 } else { 2 };
-        assert_eq!(h.app.focus.current(), Some(row.child(back)), "{wrap}");
+        assert_eq!(h.app.shell.focus.current(), Some(row.child(back)), "{wrap}");
     }
 }
 
@@ -329,7 +334,7 @@ fn tab_to_project(h: &mut Harness) {
     h.click(x + 1, y);
     h.key(KeyCode::Tab);
     assert_eq!(
-        h.app.focus.current(),
+        h.app.shell.focus.current(),
         Some(input_field(h, 0).id),
         "{}",
         h.text()
@@ -427,7 +432,7 @@ fn inputs_label_options_wrap_hide_optional_and_take_clicks() {
         let (x, y) = h.at("Search files");
         h.click(x + 2, y);
         assert_eq!(
-            h.app.focus.current() == Some(input_field(&h, 4).id),
+            h.app.shell.focus.current() == Some(input_field(&h, 4).id),
             focused,
             "label_hit={value}"
         );
@@ -621,7 +626,7 @@ fn sort_select(h: &Harness) -> &junie_tui::widgets::select::Select {
 }
 
 fn focus(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
-    h.app.focus.focus(id);
+    h.app.shell.focus.focus(id);
     h.draw();
 }
 
@@ -761,7 +766,7 @@ fn an_escape_only_select_stays_open_on_a_click_outside() {
     let (x, y) = h.at("Filters");
     h.click(x, y);
     assert!(sort_select(&h).open, "a refused click leaves it open");
-    assert_eq!(h.app.focus.current(), Some(CHIPS.sub("sort")));
+    assert_eq!(h.app.shell.focus.current(), Some(CHIPS.sub("sort")));
     h.key(KeyCode::Esc);
     assert!(!sort_select(&h).open, "Esc closes it");
 }

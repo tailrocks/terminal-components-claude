@@ -3,7 +3,6 @@
 
 use std::time::Duration;
 
-use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -13,21 +12,20 @@ use crate::options::{OptSet, ShellOptions};
 use crate::pages::{Page, PageCtx, PageEvent, Request};
 use junie_tui::clock::{Clock, WallClock};
 use junie_tui::core::event::{Input, Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusRing};
-use junie_tui::core::hit::HitRegistry;
+use junie_tui::core::focus::FocusChange;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::{
     FocusOn, MouseTarget, PointerConfig, PointerEvent, PointerHost, PointerParts, PointerRouter,
 };
 use junie_tui::core::response::Response;
-use junie_tui::shell::StatusLine;
+use junie_tui::shell::{self, Shell};
 use junie_tui::theme::{BadgeKind, Theme, Tone};
-use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
+use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::help::HelpOverlay;
-use junie_tui::widgets::hintbar::{HintBar, HintKeys, HintLayer};
+use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
@@ -43,7 +41,7 @@ const HELP_DIALOG: WidgetId = WidgetId::of("app.help");
 /// The brand lockup in the header: the app menu's Quit (mouse #40).
 pub const HEADER_BRAND: WidgetId = WidgetId::of("app.header.brand");
 /// The quit confirmation the brand opens.
-pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.quit");
+pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.shell.quit");
 
 /// From this width the Inspector docks beside the page; below it, it
 /// opens as an overlay.
@@ -603,15 +601,11 @@ pub struct App {
     /// again when navigation moves to another group
     /// ([`NavExpand::CurrentGroup`]).
     nav_auto: Option<usize>,
-    pub focus: Focus,
-    pub ring: FocusRing,
-    pub hits: HitRegistry,
-    /// The pointer router: hover, press, flash, click count, drag and
-    /// wheel ([`PointerHost`] below routes what it resolves).
-    pub pointer: PointerRouter,
-    /// The keys of the footer hints drawn last frame: a click on one
-    /// replays its key (M1).
-    footer_keys: HintKeys,
+    /// Focus, ring, hit regions, the pointer router ([`PointerHost`]
+    /// below routes what it resolves), the footer status (5 s on the
+    /// pointer clock), the focus fallback (`shell.focus_fallback`), size,
+    /// motion and quit: the library shell's state.
+    pub shell: Shell,
     /// The pointer clock (press flash, hover delay, status expiry).
     pub(crate) clock: WallClock,
     pub dialog: Option<Dialog>,
@@ -635,16 +629,10 @@ pub struct App {
     /// The keyboard-protocol policy the session starts with
     /// (`Application::keyboard_protocol`); read once, at launch.
     pub keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol,
-    /// Where focus goes when the focused control disappears.
-    pub focus_fallback: junie_tui::core::focus::FocusFallback,
     /// Focus to restore when the Inspector overlay closes.
     inspector_focus: Option<WidgetId>,
-    pub size: (u16, u16),
     pub tick: u64,
     pub last_key: Option<String>,
-    /// The footer status ([`StatusLine`]: 5 s on the pointer clock).
-    pub status: StatusLine,
-    pub quit: bool,
     /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Ctrl+C
     /// (after the page), Ctrl+Q and `q` (never over a field or unsaved
     /// edits); Esc never quits.
@@ -652,7 +640,6 @@ pub struct App {
     /// The quit guard: unsaved page edits ask Cancel / Discard (pages
     /// save on their own, so the shell offers no Save).
     leave: LeaveGuard<()>,
-    pub motion: Motion,
     nav_reveal: bool,
     /// Type-to-filter in the sidebar (`/`): the query while filtering.
     pub nav_filter: Option<String>,
@@ -668,7 +655,6 @@ struct ShellLayout {
     main: Rect,
     inspector: Rect,
     footer: Rect,
-    too_small: bool,
 }
 
 impl App {
@@ -749,8 +735,10 @@ impl App {
                 }
             })
             .collect();
-        let mut focus = Focus::default();
-        focus.focus(NAV);
+        let mut shell = Shell::new();
+        shell.focus.focus(NAV);
+        shell.pointer = PointerRouter::new(PointerConfig::DEFAULT);
+        shell.motion = motion;
         let mut options = ShellOptions::default();
         options.set("shell.color", level_index(theme.level));
         options.set(
@@ -768,11 +756,7 @@ impl App {
             nav: nav_tree(),
             nav_expand: NavExpand::default(),
             nav_auto: None,
-            focus,
-            ring: FocusRing::default(),
-            hits: HitRegistry::default(),
-            pointer: PointerRouter::new(PointerConfig::DEFAULT),
-            footer_keys: HintKeys::default(),
+            shell,
             clock: WallClock::new(),
             dialog: None,
             help: None,
@@ -784,16 +768,11 @@ impl App {
             reveal: junie_tui::ui::reveal::Reveal::default(),
             input: junie_tui::core::event::InputConfig::default(),
             keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol::current(),
-            focus_fallback: junie_tui::core::focus::FocusFallback::Nearest,
             inspector_focus: None,
-            size: (0, 0),
             tick: frame,
             last_key: None,
-            status: StatusLine::new(),
-            quit: false,
             quit_keys: QuitKeys::DEFAULT,
             leave: LeaveGuard::new(WidgetId::of("showcase.leave")).save(false),
-            motion,
             nav_reveal: true,
             nav_filter: None,
             layout: ShellLayout::default(),
@@ -813,8 +792,8 @@ impl App {
             for _ in 0..frame {
                 for i in 0..app.pages.len() {
                     let mut cx = PageCtx {
-                        focus: &mut app.focus,
-                        ring: &app.ring,
+                        focus: &mut app.shell.focus,
+                        ring: &app.shell.ring,
                         requests: Vec::new(),
                     };
                     app.pages[i].handle(&PageEvent::Tick, &mut cx);
@@ -877,19 +856,19 @@ impl App {
             self.page = page;
             self.sync_nav(Some(from));
             // focus stays on nav if it was there; otherwise first widget on page
-            if !self.focus.is(NAV) {
-                self.focus.set(None);
+            if !self.shell.focus.is(NAV) {
+                self.shell.focus.set(None);
             }
         }
     }
 
     pub fn animating(&self) -> bool {
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             return false;
         }
         let page = &self.pages[self.page.index()];
         page.animating()
-            || self.pointer.has_flash()
+            || self.shell.pointer.has_flash()
             || self
                 .dialog
                 .as_ref()
@@ -898,12 +877,12 @@ impl App {
 
     pub fn tick_interval(&self) -> Duration {
         // a held drag past a selecting body's edge autoscrolls on the tick
-        if self.pointer.autoscrolling() {
-            return Duration::from_millis(self.pointer.config.autoscroll_ms);
+        if self.shell.pointer.autoscrolling() {
+            return Duration::from_millis(self.shell.pointer.config.autoscroll_ms);
         }
         // a press held on a scrollbar track pages on the tick
-        if self.pointer.track_repeating() {
-            return Duration::from_millis(self.pointer.config.track_repeat_ms);
+        if self.shell.pointer.track_repeating() {
+            return Duration::from_millis(self.shell.pointer.config.track_repeat_ms);
         }
         if self.animating() {
             Duration::from_millis(80)
@@ -912,67 +891,31 @@ impl App {
         }
     }
 
-    fn interaction(&self) -> Interaction {
-        let flash = self.pointer.flashing(self.now_ms());
-        Interaction {
-            focus: self.focus.current(),
-            hover: self.pointer.hover,
-            pressed: self.pointer.pressed,
-            flash,
-            focus_hidden: false,
-            hover_suppressed: self.pointer.hover_suppressed,
-            pointer_focus: self.pointer.pointer_focus,
-            motion_unreported: !self.pointer.reports_motion(),
-            tick: self.tick,
-            // a paused capture has no clock: hover content shows at once
-            hover_ms: (self.motion != Motion::Paused).then(|| self.pointer.hover_ms(self.now_ms())),
-        }
-    }
-
     fn set_status(&mut self, s: String) {
-        self.status.set_at(s, Tone::Secondary, self.clock.now());
+        self.shell
+            .status
+            .set_at(s, Tone::Secondary, self.clock.now());
     }
 
     // ------------------------------------------------------------------ input
 
-    pub fn handle(&mut self, input: Input) -> Outcome {
-        // an error status has been seen once the user acts again
-        let seen = self.status.on_input(&input);
-        let logged = input.clone();
-        let out = self.handle_input(input);
-        let out = if seen { out.or(Outcome::Changed) } else { out };
-        let out = out.or(self.forward_blur());
-        self.insp.record(&logged, out);
-        // the State tab shows the log as it grows
-        if self.inspector && !matches!(logged, Input::Tick) {
-            out.or(Outcome::Changed)
-        } else {
-            out
-        }
-    }
-
     /// Hand every focus change the input caused to the dialog and the
     /// pages, so fields end their edits on the event path.
-    fn forward_blur(&mut self) -> Outcome {
+    fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = Outcome::Ignored;
-        for ch in self.focus.settle(&self.ring) {
-            if let Some(d) = self.dialog.as_mut() {
-                out = out.or(d.on_blur(ch));
-            }
-            out = out.or(self.insp.on_blur(Some(ch.from)));
-            for i in 0..self.pages.len() {
-                out = out.or(self.dispatch_to(i, PageEvent::Blur(ch)));
-            }
+        if let Some(d) = self.dialog.as_mut() {
+            out = out.or(d.on_blur(ch));
+        }
+        out = out.or(self.insp.on_blur(Some(ch.from)));
+        for i in 0..self.pages.len() {
+            out = out.or(self.dispatch_to(i, PageEvent::Blur(ch)));
         }
         out
     }
 
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
-            Input::Resize(w, h) => {
-                self.size = (w, h);
-                Outcome::Changed
-            }
+            Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => {
                 if let Some(d) = self.dialog.as_mut() {
@@ -985,7 +928,7 @@ impl App {
             }
             Input::Key(key) => {
                 self.last_key = Some(describe_key(&key));
-                self.pointer.suppress_hover();
+                self.shell.pointer.suppress_hover();
                 // shortcuts first, then type-ahead (one rule, in the library)
                 junie_tui::core::list::route_key(&key, || self.on_key(key))
             }
@@ -997,23 +940,23 @@ impl App {
         // edge autoscroll and a held track press are the user's drag,
         // not motion: they run paused too
         let auto = PointerRouter::tick(self);
-        if self.motion == Motion::Paused {
+        if self.shell.motion == Motion::Paused {
             return auto;
         }
         let mut out = auto;
         if self.animating() {
             // reduced motion: the pages' work advances, the decorative
             // phase (spinner frames) stays still
-            if self.motion.animates() {
+            if self.shell.motion.animates() {
                 self.tick = self.tick.wrapping_add(1);
             }
             out = Outcome::Changed;
         }
         let now = self.now_ms();
-        if self.pointer.expire_flash(now) {
+        if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
-        if self.status.expire(self.clock.now()) {
+        if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
         if !self.modal_open() {
@@ -1029,8 +972,8 @@ impl App {
 
     fn dispatch_to(&mut self, i: usize, ev: PageEvent) -> Outcome {
         let mut cx = PageCtx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: Vec::new(),
         };
         let out = self.pages[i].handle(&ev, &mut cx);
@@ -1043,7 +986,11 @@ impl App {
                 Request::OpenHelp(h) => self.show_help(*h),
                 Request::RefusedOutsideClick(dismiss) => {
                     let now = self.clock.now_ms();
-                    junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+                    junie_tui::ui::modal::refuse_outside_click(
+                        &mut self.shell.pointer,
+                        dismiss,
+                        now,
+                    );
                 }
             }
         }
@@ -1063,7 +1010,7 @@ impl App {
         let stakes = self.quit_stakes();
         match self.leave.request_quit(&stakes, &self.theme.strings) {
             Ok(_) => {
-                self.quit = true;
+                self.shell.quit = true;
                 Outcome::Consumed
             }
             Err(d) => {
@@ -1074,23 +1021,23 @@ impl App {
     }
 
     fn open_dialog(&mut self, d: Dialog) {
-        self.saved_focus = self.focus.current();
-        self.focus.set(Some(d.initial_focus));
+        self.saved_focus = self.shell.focus.current();
+        self.shell.focus.set(Some(d.initial_focus));
         self.dialog = Some(d);
-        self.pointer.hover = None;
-        self.pointer.pressed = None;
+        self.shell.pointer.hover = None;
+        self.shell.pointer.pressed = None;
     }
 
     fn close_dialog(&mut self) -> Outcome {
         let Some(d) = self.dialog.take() else {
             return Outcome::Ignored;
         };
-        self.focus.set(self.saved_focus.take());
+        self.shell.focus.set(self.saved_focus.take());
         if d.id == self.leave.id {
             if let Some(result) = d.result
                 && let Resolved::Discard(_) = self.leave.resolve(result)
             {
-                self.quit = true;
+                self.shell.quit = true;
             }
             return Outcome::Changed;
         }
@@ -1118,14 +1065,14 @@ impl App {
     }
 
     fn on_key(&mut self, key: Key) -> Outcome {
-        if self.layout.too_small {
+        if self.shell.too_small {
             if key.is_char('q') || key.ctrl_char('c') {
                 return self.request_quit();
             }
             return Outcome::Consumed;
         }
         if let Some(d) = self.dialog.as_mut() {
-            let out = d.on_key(&key, &mut self.focus, &self.ring);
+            let out = d.on_key(&key, &mut self.shell.focus, &self.shell.ring);
             if d.result.is_some() {
                 return self.close_dialog().or(out);
             }
@@ -1141,14 +1088,14 @@ impl App {
         // letter reaches its type-ahead only when neither the page's
         // shortcuts nor the shell's own letters claim it
         // (`core::list::route_key`, around this whole path)
-        if self.focus.is(NAV) && self.nav_filter.is_some() {
+        if self.shell.focus.is(NAV) && self.nav_filter.is_some() {
             return self.on_filter_key(&key);
         }
-        if self.focus.is(NAV) && key.is_char('/') {
+        if self.shell.focus.is(NAV) && key.is_char('/') {
             self.nav_filter = Some(String::new());
             return Outcome::Changed;
         }
-        if self.focus.is(NAV) {
+        if self.shell.focus.is(NAV) {
             self.nav_reveal = true;
             let leaf = self.nav.cursor_path().and_then(PageId::from_nav_path);
             if let Some(target) = leaf
@@ -1157,10 +1104,10 @@ impl App {
             {
                 // → on a page opens it and steps into it
                 self.goto(target);
-                self.focus.set(None);
-                self.focus.next(&self.ring);
-                if self.focus.is(NAV) {
-                    self.focus.next(&self.ring);
+                self.shell.focus.set(None);
+                self.shell.focus.next(&self.shell.ring);
+                if self.shell.focus.is(NAV) {
+                    self.shell.focus.next(&self.shell.ring);
                 }
                 return Outcome::Changed;
             }
@@ -1177,7 +1124,7 @@ impl App {
             if activating
                 && !was_editing
                 && out == Outcome::Changed
-                && let Some(f) = self.focus.current()
+                && let Some(f) = self.shell.focus.current()
             {
                 self.flash(f);
             }
@@ -1200,11 +1147,11 @@ impl App {
         // global keys
         match key.code {
             KeyCode::Tab => {
-                self.focus.next(&self.ring);
+                self.shell.focus.next(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::BackTab => {
-                self.focus.prev(&self.ring);
+                self.shell.focus.prev(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::Char('?') => {
@@ -1228,13 +1175,13 @@ impl App {
                 Outcome::Changed
             }
             KeyCode::Char('0') if key.plain() => {
-                self.focus.focus(NAV);
+                self.shell.focus.focus(NAV);
                 Outcome::Changed
             }
             KeyCode::Esc => {
                 // Esc at top level: return focus to navigation
-                if !self.focus.is(NAV) {
-                    self.focus.focus(NAV);
+                if !self.shell.focus.is(NAV) {
+                    self.shell.focus.focus(NAV);
                     Outcome::Changed
                 } else {
                     Outcome::Consumed
@@ -1249,7 +1196,7 @@ impl App {
     /// Whether the Inspector is open as an overlay (below
     /// [`INSPECTOR_DOCK_MIN`] columns) rather than docked beside the page.
     pub fn inspector_overlay(&self) -> bool {
-        self.inspector && self.size.0 < INSPECTOR_DOCK_MIN
+        self.inspector && self.shell.size.0 < INSPECTOR_DOCK_MIN
     }
 
     /// `i` and the header link: open or close the Inspector. The overlay
@@ -1261,8 +1208,8 @@ impl App {
             self.inspector = true;
             self.insp.for_page(self.page);
             if self.inspector_overlay() {
-                self.inspector_focus = self.focus.current();
-                self.focus.set(Some(self.insp.tabs.id));
+                self.inspector_focus = self.shell.focus.current();
+                self.shell.focus.set(Some(self.insp.tabs.id));
             }
         }
     }
@@ -1271,8 +1218,8 @@ impl App {
         let overlay = self.inspector_overlay();
         self.inspector = false;
         let focus = self.inspector_focus.take();
-        if overlay || self.insp.has_focus(self.focus.current()) {
-            self.focus.set(focus.or(Some(NAV)));
+        if overlay || self.insp.has_focus(self.shell.focus.current()) {
+            self.shell.focus.set(focus.or(Some(NAV)));
         }
     }
 
@@ -1283,7 +1230,7 @@ impl App {
         if !self.inspector {
             return None;
         }
-        if self.insp.has_focus(self.focus.current())
+        if self.insp.has_focus(self.shell.focus.current())
             && let Some(out) = self.dispatch_inspector(PageEvent::Key(*key))
             && out.consumed()
         {
@@ -1302,11 +1249,11 @@ impl App {
                 Outcome::Changed
             }
             KeyCode::Tab => {
-                self.focus.next(&self.ring);
+                self.shell.focus.next(&self.shell.ring);
                 Outcome::Changed
             }
             KeyCode::BackTab => {
-                self.focus.prev(&self.ring);
+                self.shell.focus.prev(&self.shell.ring);
                 Outcome::Changed
             }
             _ => Outcome::Consumed,
@@ -1317,8 +1264,8 @@ impl App {
     /// `None` when the Inspector does not own the event.
     fn dispatch_inspector(&mut self, ev: PageEvent) -> Option<Outcome> {
         let mut cx = PageCtx {
-            focus: &mut self.focus,
-            ring: &self.ring,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
             requests: Vec::new(),
         };
         let (out, set) = self.insp.handle(&ev, &mut cx)?;
@@ -1399,7 +1346,7 @@ impl App {
         self.theme = theme;
         let num = |key: &str| o.value(key).parse::<u64>().unwrap_or(0);
         let (delay, every) = [(150, 25), (300, 50), (500, 100)][o.get("shell.track_repeat_ms")];
-        self.pointer.config = PointerConfig::DEFAULT
+        self.shell.pointer.config = PointerConfig::DEFAULT
             .focus_on([FocusOn::Press, FocusOn::Release][o.get("shell.focus_on")])
             .double_click_ms(num("shell.double_click_ms"))
             .double_click_slop(num("shell.double_click_slop") as u16)
@@ -1428,7 +1375,7 @@ impl App {
                 ][o.get("shell.caret_shape")],
             )
             .click_skips_animation(o.on("shell.click_skips_animation"));
-        self.motion = [Motion::Full, Motion::Reduced, Motion::Paused][o.get("shell.motion")];
+        self.shell.motion = [Motion::Full, Motion::Reduced, Motion::Paused][o.get("shell.motion")];
         self.track_click = [TrackClick::Page, TrackClick::Jump][o.get("shell.track_click")];
         self.tooltips = if o.on("shell.tooltips") {
             Tooltips::default()
@@ -1453,7 +1400,7 @@ impl App {
             self.keyboard_protocol =
                 [P::current(), P::On, P::Off][o.get("shell.keyboard_protocol")];
         }
-        self.focus_fallback = [
+        self.shell.focus_fallback = [
             junie_tui::core::focus::FocusFallback::First,
             junie_tui::core::focus::FocusFallback::Nearest,
         ][o.get("shell.focus_fallback")];
@@ -1476,17 +1423,17 @@ impl App {
     pub fn live_config(&self) -> String {
         format!(
             "{:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
-            self.pointer.config,
+            self.shell.pointer.config,
             self.theme.edit_entry,
             self.theme.field_keys,
             self.theme.strings,
-            self.motion,
+            self.shell.motion,
             self.track_click,
             self.tooltips,
             self.reveal,
             self.input,
             self.keyboard_protocol,
-            self.focus_fallback
+            self.shell.focus_fallback
         )
     }
 
@@ -1559,13 +1506,13 @@ impl App {
             self.set_status("Close the open dialog first".into());
             return;
         }
-        self.saved_focus = self.focus.current();
+        self.saved_focus = self.shell.focus.current();
         // its one focus stop: the Done button (the keys reach the overlay
         // wherever focus is)
-        self.focus.set(Some(h.done.id));
+        self.shell.focus.set(Some(h.done.id));
         self.help = Some(h);
-        self.pointer.hover = None;
-        self.pointer.pressed = None;
+        self.shell.pointer.hover = None;
+        self.shell.pointer.pressed = None;
     }
 
     /// A modal (the dialog or the reference) is open: the page beneath
@@ -1579,7 +1526,7 @@ impl App {
         if self.help.take().is_none() {
             return Outcome::Ignored;
         }
-        self.focus.set(self.saved_focus.take());
+        self.shell.focus.set(self.saved_focus.take());
         Outcome::Changed
     }
 
@@ -1605,7 +1552,7 @@ impl App {
             return Some(PointerHost::outside(self, ev.pos()).outcome());
         }
         if let Some(d) = self.dialog.as_mut() {
-            let out = d.pointer_in(ev, &mut self.focus).outcome();
+            let out = d.pointer_in(ev, &mut self.shell.focus).outcome();
             if d.result.is_some() {
                 return Some(self.close_dialog().or(out));
             }
@@ -1625,7 +1572,7 @@ impl App {
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         use junie_tui::core::id::Part;
         use junie_tui::core::intent::Phase;
-        if let Some(key) = self.footer_keys.clicked(ev) {
+        if let Some(key) = self.shell.footer_keys.clicked(ev) {
             // a click on a hint is its key
             return Some(self.handle_input(Input::Key(key)).or(Outcome::Changed));
         }
@@ -1659,12 +1606,12 @@ impl App {
         if ev.is(Phase::Press)
             && let Some(row) = ev.index_of(Part::ROW)
         {
-            self.focus.focus(NAV);
+            self.shell.focus.focus(NAV);
             self.nav.cursor = row;
             return Some(Outcome::Changed);
         }
         if ev.is(Phase::Click) && (row.is_some() || ev.id == NAV) {
-            self.focus.focus(NAV);
+            self.shell.focus.focus(NAV);
         }
         let out = self.nav_event(|nav| nav.pointer(ev).into_parts());
         Some(out)
@@ -1774,7 +1721,7 @@ impl App {
     /// Flash a widget as pressed (keyboard activation feedback).
     pub fn flash(&mut self, id: WidgetId) {
         let now = self.now_ms();
-        self.pointer.flash(id, now);
+        self.shell.pointer.flash(id, now);
     }
 
     /// Milliseconds on the pointer clock.
@@ -1784,72 +1731,7 @@ impl App {
 
     // ----------------------------------------------------------------- render
 
-    pub fn render(&mut self, frame: &mut Frame) {
-        let area = frame.area();
-        self.size = (area.width, area.height);
-        let theme = self.theme;
-        let mut cursor;
-        // a second pass when the focused control vanished this frame: the
-        // fallback picks the new focus from the ring the first pass built,
-        // and the frame must show it (one focus indicator, never none)
-        let mut pass = 0;
-        loop {
-            let mut hits = HitRegistry::default();
-            let mut ring = FocusRing::default();
-            let interaction = self.interaction();
-            cursor = None;
-            {
-                let buf = frame.buffer_mut();
-                if pass > 0 {
-                    buf.reset();
-                }
-                let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-                // the app-wide defaults the shell options set
-                ctx.track_click = self.track_click;
-                ctx.tooltips = self.tooltips;
-                ctx.reveal = self.reveal;
-                ctx.page_under_layer(
-                    self.modal_open()
-                        || self.inspector_overlay()
-                        || self.pages[self.page.index()].layer_open(),
-                );
-                self.draw(area, buf, &mut ctx);
-                ctx.flush_overlays(buf);
-                cursor = cursor.or(ctx.cursor);
-            }
-            self.hits = hits;
-            self.ring = ring;
-            self.pointer.refresh_hover(&self.hits);
-            // keep focus valid against the freshly built ring
-            let before = self.focus.current();
-            if !self.modal_open() {
-                // focus that lost its control falls back per the shell
-                // option (the ring position is recorded each frame for
-                // `Nearest`)
-                if !self.layout.too_small {
-                    self.focus
-                        .ensure_valid_with(&self.ring, self.focus_fallback);
-                }
-            } else {
-                self.focus.ensure_valid(&self.ring);
-            }
-            pass += 1;
-            if pass > 1 || before.is_none() || self.focus.current() == before {
-                break;
-            }
-        }
-        if let Some(pos) = cursor {
-            frame.set_cursor_position(pos);
-        }
-    }
-
     fn compute_layout(&self, area: Rect) -> ShellLayout {
-        if TooSmall::new(BRAND).applies(area) {
-            return ShellLayout {
-                too_small: true,
-                ..Default::default()
-            };
-        }
         let header = Rect::new(area.x, area.y, area.width, 1);
         let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
         let body = Rect::new(
@@ -1885,19 +1767,12 @@ impl App {
             main,
             inspector,
             footer,
-            too_small: false,
         }
     }
 
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = self.theme;
-        fill(buf, area, t.base());
         let layout = self.compute_layout(area);
         self.layout = layout;
-        if layout.too_small {
-            TooSmall::new(BRAND).render(area, buf, &t);
-            return;
-        }
         self.draw_header(layout.header, buf, ctx);
         self.draw_sidebar(layout.sidebar, buf, ctx);
         self.draw_main(layout.main, buf, ctx);
@@ -1948,7 +1823,12 @@ impl App {
         buf.set_string(x, area.y, "Design system", t.secondary());
         x += 14;
         // right side: capability + actions
-        let cap = format!("{} · {}×{}", t.level.label(), self.size.0, self.size.1);
+        let cap = format!(
+            "{} · {}×{}",
+            t.level.label(),
+            self.shell.size.0,
+            self.shell.size.1
+        );
         let mut rx = area.right().saturating_sub(1);
         let help = " ? Help ";
         let insp = if self.inspector {
@@ -2097,14 +1977,22 @@ impl App {
             Some(r) => format!("{}·{} {}×{}", r.x, r.y, r.width, r.height),
             None => "—".to_owned(),
         };
-        let focus_area = self.focus.current().and_then(|f| self.hits.area_of(f));
-        let hover_area = self.pointer.hover.and_then(|h| self.hits.area_of(h));
+        let focus_area = self
+            .shell
+            .focus
+            .current()
+            .and_then(|f| self.shell.hits.area_of(f));
+        let hover_area = self
+            .shell
+            .pointer
+            .hover
+            .and_then(|h| self.shell.hits.area_of(h));
         vec![
             Prop::new("mode", mode),
             Prop::new("focus", fmt_rect(focus_area)),
             Prop::new(
                 "hover",
-                if self.pointer.hover_suppressed {
+                if self.shell.pointer.hover_suppressed {
                     "suppressed".into()
                 } else {
                     fmt_rect(hover_area)
@@ -2112,11 +2000,17 @@ impl App {
             ),
             Prop::new(
                 "pressed",
-                fmt_rect(self.pointer.pressed.and_then(|p| self.hits.area_of(p))),
+                fmt_rect(
+                    self.shell
+                        .pointer
+                        .pressed
+                        .and_then(|p| self.shell.hits.area_of(p)),
+                ),
             ),
             Prop::new(
                 "mouse",
-                self.pointer
+                self.shell
+                    .pointer
                     .pos
                     .map(|p| format!("{}·{}", p.x, p.y))
                     .unwrap_or("—".into()),
@@ -2124,12 +2018,15 @@ impl App {
             Prop::new("last key", self.last_key.clone().unwrap_or("—".into())),
             Prop::new(
                 "focus ring",
-                format!("{} stops", self.ring.reachable().len()),
+                format!("{} stops", self.shell.ring.reachable().len()),
             ),
             Prop::new("hit regions", format!("{}", self.hits_len())),
             Prop::new("tick", format!("{}", self.tick)),
             Prop::new("colors", self.theme.level.label()),
-            Prop::new("size", format!("{}×{}", self.size.0, self.size.1)),
+            Prop::new(
+                "size",
+                format!("{}×{}", self.shell.size.0, self.shell.size.1),
+            ),
             Prop::new(
                 "inputs",
                 format!("{} · {} ticks", self.insp.inputs, self.insp.ticks),
@@ -2165,7 +2062,7 @@ impl App {
     /// The docked Inspector, beside the page.
     fn draw_inspector(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        let within = self.insp.has_focus(self.focus.current());
+        let within = self.insp.has_focus(self.shell.focus.current());
         let panel = junie_tui::widgets::panel::Panel::card(Some("Inspector")).focused(within);
         let bg = panel.bg(&t);
         let inner = panel.render(area, buf, &t);
@@ -2193,7 +2090,7 @@ impl App {
     }
 
     fn hits_len(&self) -> usize {
-        self.hits.len()
+        self.shell.hits.len()
     }
 
     fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -2202,10 +2099,10 @@ impl App {
         let mut dialog_hints = None;
         let inspector_hints = self
             .inspector
-            .then(|| self.insp.hints(self.focus.current()))
+            .then(|| self.insp.hints(self.shell.focus.current()))
             .flatten();
         if let Some(d) = self.dialog.as_ref() {
-            dialog_hints = Some(d.hints(self.focus.current()));
+            dialog_hints = Some(d.hints(self.shell.focus.current()));
         } else if let Some(h) = self.help.as_ref() {
             // the reference's own keys
             use junie_tui::widgets::keyhint::Hint as KeyHint;
@@ -2214,7 +2111,7 @@ impl App {
                 own.push(KeyHint::new("Esc", "Close"));
             }
             dialog_hints = Some(own);
-        } else if let Some(own) = page.layer_hints(self.focus.current()) {
+        } else if let Some(own) = page.layer_hints(self.shell.focus.current()) {
             // a page's own layer (a picker, a form): its keys
             dialog_hints = Some(own);
         } else if let Some(own) = inspector_hints {
@@ -2228,7 +2125,7 @@ impl App {
                     hints.push(("i", "Close"));
                 }
             }
-        } else if self.focus.is(NAV) {
+        } else if self.shell.focus.is(NAV) {
             if self.nav_filter.is_some() {
                 hints.push(("type", "Filter"));
                 hints.push(("Enter", "Open"));
@@ -2251,7 +2148,7 @@ impl App {
             hints.push(("Tab", "Into page"));
             hints.push(("q", "Quit"));
         } else {
-            for (k, v) in page.hints(self.focus.current()) {
+            for (k, v) in page.hints(self.shell.focus.current()) {
                 hints.push((k, v));
             }
             // the focused cursor row is cut: name the reveal key
@@ -2268,11 +2165,75 @@ impl App {
         });
         let mut layer = HintLayer::new(hints);
         layer.badge = (page.editing() && !self.modal_open()).then_some(("EDIT", BadgeKind::Edit));
-        if let Some(status) = self.status.text() {
+        if let Some(status) = self.shell.status.text() {
             layer = layer.status(status, Tone::Secondary);
         }
         // a hint naming one key is a click target that replays it (M1)
-        self.footer_keys = HintBar::render_ctx(area, buf, ctx, &layer);
+        let spots = HintBar::render_at(area, buf, ctx.theme, &layer);
+        self.shell.footer_drawn(layer.hints, spots);
+    }
+}
+
+impl shell::App for App {
+    type Status = ();
+    fn shell(&self) -> &Shell {
+        &self.shell
+    }
+    fn shell_mut(&mut self) -> &mut Shell {
+        &mut self.shell
+    }
+    fn theme(&self) -> Theme {
+        self.theme
+    }
+    fn too_small(&self) -> TooSmall<'_> {
+        TooSmall::new(BRAND)
+    }
+    fn now_ms(&self) -> u64 {
+        self.clock.now_ms()
+    }
+    fn tick(&self) -> u64 {
+        self.tick
+    }
+    fn tick_interval(&self) -> Duration {
+        App::tick_interval(self)
+    }
+    fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        App::draw(self, area, buf, ctx)
+    }
+    /// The app-wide defaults the shell options set.
+    fn configure(&self, ctx: &mut RenderCtx) {
+        ctx.track_click = self.track_click;
+        ctx.tooltips = self.tooltips;
+        ctx.reveal = self.reveal;
+    }
+    fn on_input(&mut self, input: Input) -> Outcome {
+        self.handle_input(input)
+    }
+    /// Every focus change reaches the dialog, the Inspector and every
+    /// page, so fields end their edits on the event path.
+    fn on_blur(&mut self, ch: FocusChange) -> Outcome {
+        self.blur_all(ch)
+    }
+    fn after_input(&mut self, input: &Input, out: Outcome) -> Outcome {
+        self.insp.record(input, out);
+        // the State tab shows the log as it grows
+        if self.inspector && !matches!(input, Input::Tick) {
+            out.or(Outcome::Changed)
+        } else {
+            out
+        }
+    }
+    fn layer_open(&self) -> bool {
+        self.modal_open()
+    }
+    fn page_under_layer(&self) -> bool {
+        self.modal_open() || self.inspector_overlay() || self.pages[self.page.index()].layer_open()
+    }
+    fn input_config(&self) -> junie_tui::core::event::InputConfig {
+        App::input_config(self)
+    }
+    fn keyboard_protocol(&self) -> junie_tui::core::keyboard::KeyboardProtocol {
+        App::keyboard_protocol(self)
     }
 }
 
@@ -2282,10 +2243,10 @@ impl App {
 impl PointerHost for App {
     fn pointer_parts(&mut self) -> PointerParts<'_> {
         PointerParts {
-            router: &mut self.pointer,
-            hits: &self.hits,
-            focus: &mut self.focus,
-            ring: &self.ring,
+            router: &mut self.shell.pointer,
+            hits: &self.shell.hits,
+            focus: &mut self.shell.focus,
+            ring: &self.shell.ring,
         }
     }
 
@@ -2322,7 +2283,7 @@ impl PointerHost for App {
                 return self.close_dialog().or(out).into();
             }
             let dismiss = d.dismiss;
-            junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+            junie_tui::ui::modal::refuse_outside_click(&mut self.shell.pointer, dismiss, now);
         }
         if let Some(h) = self.help.as_mut() {
             let reason = junie_tui::core::intent::DismissReason::OutsideClick;
@@ -2330,7 +2291,7 @@ impl PointerHost for App {
                 return self.close_help().into();
             }
             let dismiss = h.dismiss;
-            junie_tui::ui::modal::refuse_outside_click(&mut self.pointer, dismiss, now);
+            junie_tui::ui::modal::refuse_outside_click(&mut self.shell.pointer, dismiss, now);
         }
         Response::changed()
     }
@@ -2375,6 +2336,7 @@ pub(crate) fn describe_key(k: &Key) -> String {
 mod click_regressions {
     use super::*;
     use junie_tui::core::event::{Mouse, MouseKind};
+    use junie_tui::runtime::Application;
     use junie_tui::widgets::scrollbar;
     use ratatui::layout::Position;
     use ratatui::{Terminal, backend::TestBackend};
@@ -2389,9 +2351,9 @@ mod click_regressions {
         term.draw(|frame| app.render(frame)).unwrap();
         let last = app.nav.rows().len() - 1;
         assert_eq!(app.nav.cursor, last, "the current page is the last row");
-        assert!(app.hits.area_of(app.nav.row_id(last)).is_some());
+        assert!(app.shell.hits.area_of(app.nav.row_id(last)).is_some());
         assert!(app.nav.scroll.offset > 0);
-        let focus = app.focus.current();
+        let focus = app.shell.focus.current();
         let cursor = app.nav.cursor;
         app.handle(Input::Mouse(Mouse::new(
             MouseKind::WheelUp,
@@ -2403,15 +2365,15 @@ mod click_regressions {
             app.nav.scroll.offset, offset,
             "render must not undo wheel scrolling"
         );
-        assert_eq!(app.focus.current(), focus);
+        assert_eq!(app.shell.focus.current(), focus);
         assert_eq!(app.nav.cursor, cursor);
         app.handle(Input::Key(Key {
             code: KeyCode::End,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         }));
         term.draw(|frame| app.render(frame)).unwrap();
-        assert!(app.hits.area_of(app.nav.row_id(last)).is_some());
-        let track = app.hits.area_of(scrollbar::id_for(NAV)).unwrap();
+        assert!(app.shell.hits.area_of(app.nav.row_id(last)).is_some());
+        let track = app.shell.hits.area_of(scrollbar::id_for(NAV)).unwrap();
         let before = app.nav.scroll.offset;
         for kind in [MouseKind::Down, MouseKind::Up] {
             app.handle(Input::Mouse(Mouse::new(
@@ -2424,7 +2386,7 @@ mod click_regressions {
             app.nav.scroll.offset < before,
             "a track click pages toward the pointer"
         );
-        assert_eq!(app.focus.current(), focus);
+        assert_eq!(app.shell.focus.current(), focus);
     }
 
     #[test]
@@ -2439,25 +2401,29 @@ mod click_regressions {
             app.goto(page);
             let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
             term.draw(|frame| app.render(frame)).unwrap();
-            let mut id = app.ring.next(Some(NAV)).unwrap();
+            let mut id = app.shell.ring.next(Some(NAV)).unwrap();
             // a templated page's first stop is its section strip
             if let Some(t) = app.pages[page.index()].template()
                 && id == t.tabs.id
             {
-                id = app.ring.next(Some(id)).unwrap();
+                id = app.shell.ring.next(Some(id)).unwrap();
             }
-            let area = app.hits.area_of(id).unwrap();
+            let area = app.shell.hits.area_of(id).unwrap();
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
             // the press focuses the field (`FocusOn::Press`, plan §3 row
             // 1); the completed click edits, and a second click only keeps
             // editing
             app.handle(Input::Mouse(Mouse::new(MouseKind::Down, pos)));
-            assert_eq!(app.focus.current(), Some(id), "{page:?}: the press focuses");
+            assert_eq!(
+                app.shell.focus.current(),
+                Some(id),
+                "{page:?}: the press focuses"
+            );
             term.draw(|frame| app.render(frame)).unwrap();
             for _click in 0..2 {
                 app.handle(Input::Mouse(Mouse::new(MouseKind::Up, pos)));
                 term.draw(|frame| app.render(frame)).unwrap();
-                assert_eq!(app.focus.current(), Some(id), "{page:?}");
+                assert_eq!(app.shell.focus.current(), Some(id), "{page:?}");
                 assert!(
                     app.pages[page.index()].editing(),
                     "{page:?}: one click edits"

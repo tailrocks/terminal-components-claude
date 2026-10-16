@@ -149,5 +149,3 @@ fn main() -> std::io::Result<()> {
     }
     junie_tui::shell::run(&mut app)
 }
-
-junie_tui::impl_application!(App, input);

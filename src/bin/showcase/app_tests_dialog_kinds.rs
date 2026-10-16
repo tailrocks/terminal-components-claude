@@ -81,7 +81,7 @@ fn the_form_previews_discloses_tests_and_saves() {
     h.click(x + 1, y);
     assert!(!page(&h).host.is_open());
     assert!(last(&h).contains("Save · billing"), "{}", last(&h));
-    assert_eq!(h.app.focus.current(), Some(page(&h).buttons[0].id));
+    assert_eq!(h.app.shell.focus.current(), Some(page(&h).buttons[0].id));
 }
 
 #[test]
