@@ -1083,3 +1083,88 @@ fn cancel_launch_dialog_names_both_choices_unambiguously() {
     assert!(footer.contains("Enter Keep launching"), "{footer}");
     assert!(footer.contains("y Cancel launch"), "{footer}");
 }
+
+/// hscroll follow-up: a capsule pane with a line wider than itself pans
+/// sideways under the wheel, with ←/→ while scrolled back (no caret then),
+/// and through its own horizontal bar, routed by position.
+#[test]
+fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
+    use junie_tui::widgets::scrollbar;
+    use junie_tui::widgets::viewport::Span;
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let instance = h.app.screens.capsule.as_ref().unwrap().instance.clone();
+    let pid = h.app.world.daemons[&instance].active_tab().unwrap().focused;
+    let wide: String = (0..60).map(|i| format!("col{i:03}-")).collect();
+    {
+        let d = h.app.world.daemons.get_mut(&instance).unwrap();
+        let term = &mut d.pane_mut(pid).unwrap().term;
+        for i in 0..60 {
+            term.push(vec![Span::plain(format!("filler {i}"))]);
+        }
+        term.push(vec![Span::plain(wide)]);
+    }
+    h.draw();
+    let offset = |h: &H| {
+        h.app.world.daemons[&instance]
+            .pane(pid)
+            .unwrap()
+            .term
+            .hscroll
+            .offset
+    };
+    let rect = h
+        .app
+        .screens
+        .capsule
+        .as_ref()
+        .unwrap()
+        .pane_rects
+        .iter()
+        .find(|(p, _)| *p == pid)
+        .map(|(_, r)| *r)
+        .expect("the focused pane is drawn");
+    let (x, y) = (rect.x + rect.width / 2, rect.y + rect.height / 2);
+    assert_eq!(offset(&h), 0);
+    h.mouse(MouseKind::WheelRight, x, y);
+    let panned = offset(&h);
+    assert!(
+        panned > 0,
+        "the sideways wheel panned the pane\n{}",
+        h.text()
+    );
+    h.mouse(MouseKind::WheelLeft, x, y);
+    assert_eq!(offset(&h), 0, "and back");
+
+    // scrolled back there is no caret, so the arrows pan
+    h.mouse(MouseKind::WheelUp, x, y);
+    assert!(
+        !h.app.world.daemons[&instance]
+            .pane(pid)
+            .unwrap()
+            .term
+            .follow,
+        "scrolled back"
+    );
+    h.key(KeyCode::Right);
+    assert!(offset(&h) > 0, "→ pans\n{}", h.text());
+    h.key(KeyCode::Left);
+    assert_eq!(offset(&h), 0, "← pans back");
+    h.key(KeyCode::End);
+
+    // the pane's horizontal bar: a press near its right end pans there
+    let bar = h.app.world.daemons[&instance]
+        .pane(pid)
+        .unwrap()
+        .term
+        .hbar();
+    assert!(!bar.is_empty(), "the wide line shows a bar\n{}", h.text());
+    let buf = h.term.backend().buffer().clone();
+    assert!(
+        bar.positions()
+            .any(|p| buf[(p.x, p.y)].symbol() == scrollbar::H_THUMB),
+        "the bar is drawn in the pane\n{}",
+        h.text()
+    );
+    h.click(bar.right() - 1, bar.y);
+    assert!(offset(&h) > panned, "the track press panned\n{}", h.text());
+}

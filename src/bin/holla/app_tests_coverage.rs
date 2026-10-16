@@ -782,6 +782,75 @@ fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
     assert_ne!(h.text(), before, "the preview does scroll vertically");
 }
 
+/// The first cell of the horizontal thumb drawn inside `area`.
+fn h_thumb(h: &H, area: ratatui::layout::Rect) -> Option<(u16, u16)> {
+    let buf = h.term.backend().buffer();
+    area.positions()
+        .find(|p| buf[(p.x, p.y)].symbol() == scrollbar::H_THUMB)
+        .map(|p| (p.x, p.y))
+}
+
+#[test]
+fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
+    // the line is 4096 cells: enough notches to move the thumb visibly
+    const NOTCHES: usize = 150;
+    // hscroll follow-up: the wrap-off preview takes the sideways wheel and
+    // its own bar, and a newly opened file starts at its first column
+    let mut h = build_browser();
+    open(&mut h, "Browse ~/work/site");
+    h.ticks(8);
+    let (lx, ly) = h.find("long.txt").expect("long.txt row");
+    h.click(lx + 2, ly);
+    h.ticks(2);
+    let area = h
+        .app
+        .hits
+        .area_of(files::PREVIEW)
+        .expect("file preview hit");
+    let bar = h
+        .app
+        .hits
+        .area_of(scrollbar::h_id_for(files::PREVIEW))
+        .unwrap_or_else(|| panic!("the preview has a horizontal bar\n{}", h.text()));
+    let (x0, _) = h_thumb(&h, bar).expect("thumb");
+    let (x, y) = (area.x + 2, area.y + 2);
+    h.mouse(MouseKind::Move, x, y);
+    for _ in 0..NOTCHES {
+        assert_eq!(h.mouse(MouseKind::WheelRight, x, y), Outcome::Changed);
+    }
+    let (x1, _) = h_thumb(&h, bar).expect("bar");
+    assert!(
+        x1 > x0,
+        "the wheel panned right: {x0} -> {x1}\n{}",
+        h.text()
+    );
+    for _ in 0..NOTCHES {
+        h.mouse(MouseKind::WheelLeft, x, y);
+    }
+    assert_eq!(h_thumb(&h, bar).map(|t| t.0), Some(x0), "and back");
+    // a press on the far end of the bar's track moves the thumb there
+    h.click(bar.right() - 1, bar.y);
+    let (x2, _) = h_thumb(&h, bar).expect("bar");
+    assert!(
+        x2 > x0,
+        "the track press panned: {x0} -> {x2}\n{}",
+        h.text()
+    );
+    // another file, then long.txt again: the offset starts over
+    let (ix, iy) = h.find("index.html").expect("index.html row");
+    h.click(ix + 2, iy);
+    h.ticks(2);
+    let (lx, ly) = h.find("long.txt").expect("long.txt row");
+    h.click(lx + 2, ly);
+    h.ticks(2);
+    assert_eq!(
+        h_thumb(&h, bar).map(|t| t.0),
+        Some(x0),
+        "a new file opens at its first column\n{}",
+        h.text()
+    );
+}
+
 #[test]
 fn a_middle_click_on_a_tab_closes_it() {
     // interaction #6: middle click closes a tab, as in browsers and editors
