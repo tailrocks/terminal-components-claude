@@ -1,74 +1,343 @@
+//! Editable tables: a cell-navigating `DataTable` whose text cells edit in
+//! place, a constrained Owner column, validation, and every table knob as a
+//! live option (plan §7, SC13).
+//!
+//! Playground: the task table, the legend, the columns as the table
+//! describes them, and the events each key asks the page for. Options:
+//! the table's knobs, rebuilt through `DataTable`'s builders. States: a
+//! table of text cells and one with a constrained column, drawn by
+//! `DataTable` itself.
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::pages::template::{Section, Template};
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::Outcome;
+use junie_tui::core::focus::BlurAction;
 use junie_tui::core::id::WidgetId;
-use junie_tui::core::scroll::Scrollable;
+use junie_tui::core::keymap::{KeyBinding, KeyMap, NavKeys, hint_key};
+use junie_tui::core::scroll::{HScroll, Scrollable, ScrollbarVisibility, TrackClick};
+use junie_tui::ui::columns::HeaderLabels;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::widgets::option_editor::{ColumnEditor, Options};
+use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::reveal::Reveal;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::widgets::empty::EmptyState;
+use junie_tui::widgets::option_editor::{Affordance, ColumnEditor, EditorConfig, Options};
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
-use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
+use junie_tui::widgets::table::{Align, Cell, Column, DataTable, TableAction, TableCmd, Tone};
 
 const ID: WidgetId = WidgetId::of("editable");
 
 fn validate(col: usize, s: &str) -> Option<String> {
     match col {
         1 if s.trim().is_empty() => Some("Task name cannot be empty".into()),
-        2 if s.trim().is_empty() || s.contains(' ') => Some("Owner is a single handle".into()),
         4 if s.contains(' ') => Some("Branch names cannot contain spaces".into()),
         5 if s.parse::<u32>().is_err() => Some("Changes must be a whole number".into()),
         _ => None,
     }
 }
 
+fn columns() -> Vec<Column> {
+    vec![
+        Column::new("ID", Constraint::Length(5)),
+        Column::new("Task", Constraint::Min(24)).editable(),
+        // only known people: a dropdown (8 values, the option-count
+        // ladder) instead of free text
+        Column::new("Owner", Constraint::Length(8)).editor(ColumnEditor::for_options(
+            Options::values(&[
+                "ana", "jonas", "kai", "lena", "mira", "omar", "priya", "sofia",
+            ]),
+        )),
+        Column::new("Status", Constraint::Length(9)),
+        Column::new("Branch", Constraint::Length(22)).editable(),
+        Column::new("Changes", Constraint::Length(8))
+            .right()
+            .editable(),
+    ]
+}
+
+fn rows(n: usize) -> Vec<Vec<Cell>> {
+    crate::data::tasks()
+        .into_iter()
+        .take(n)
+        .map(|r| {
+            vec![
+                Cell::new(format!("#{}", r.id)).tone(Tone::Muted),
+                Cell::new(r.name),
+                Cell::new(r.owner),
+                crate::pages::tables::status_cell(r.status),
+                Cell::new(r.branch).tone(Tone::Muted),
+                Cell::new(r.changes.to_string()),
+            ]
+        })
+        .collect()
+}
+
+/// Every option of the page, as value indices (`editable.*`), in
+/// [`KEYS`] order.
+const KEYS: [&str; 12] = [
+    "editable.rows",
+    "editable.type_ahead",
+    "editable.affordance",
+    "editable.overflow_marks",
+    "editable.numeric",
+    "editable.nav",
+    "editable.keymap",
+    "editable.horizontal",
+    "editable.reveal",
+    "editable.track_click",
+    "editable.blur_action",
+    "editable.header_labels",
+];
+
+/// An app's own keys: `o` sorts, Ctrl+A alone selects all
+/// (`editable.keymap`).
+fn custom_keymap() -> KeyMap<TableCmd> {
+    vec![
+        (KeyBinding::char('o'), TableCmd::SortByColumn),
+        (KeyBinding::ctrl('a'), TableCmd::SelectAll),
+    ]
+}
+
+/// The table as the options say, through `DataTable`'s builders.
+fn build(k: &[usize; 12]) -> DataTable {
+    let [
+        rows_k,
+        type_ahead,
+        affordance,
+        marks,
+        numeric,
+        nav,
+        keymap,
+        horizontal,
+        reveal,
+        track,
+        blur,
+        labels,
+    ] = *k;
+    let data = if rows_k == 0 { rows(14) } else { Vec::new() };
+    let mut table = DataTable::new(ID.sub("table"), columns(), data)
+        .cell_nav(true)
+        .numeric(if numeric == 1 { &[0, 5] } else { &[] })
+        .validator(validate)
+        .type_ahead(type_ahead > 0)
+        .type_ahead_column((type_ahead == 2).then_some(1))
+        .editor_config(EditorConfig {
+            affordance: [Affordance::Focused, Affordance::Always, Affordance::Never][affordance],
+            ..EditorConfig::default()
+        })
+        .overflow_marks(marks == 1)
+        .nav([NavKeys::DEFAULT, NavKeys::NO_VIM][nav])
+        .empty(EmptyState::new("No tasks yet").hint("Tasks you create show up here"));
+    if keymap == 1 {
+        table = table.keymap(custom_keymap());
+    }
+    if horizontal == 1 {
+        table = table.horizontal(HScroll {
+            bar: ScrollbarVisibility::Never,
+            ..HScroll::default()
+        });
+    }
+    if reveal == 0 {
+        table = table.reveal(Reveal::OFF);
+    }
+    if track > 0 {
+        table = table.track_click([TrackClick::Page, TrackClick::Page, TrackClick::Jump][track]);
+    }
+    table.blur_action = [BlurAction::Commit, BlurAction::Cancel][blur];
+    if labels == 1 {
+        table.header_labels = HeaderLabels {
+            sort_asc: "Sort A to Z",
+            sort_desc: "Sort Z to A",
+            clear_sort: "Unsort",
+            autofit: "Fit Width",
+            reset_widths: "Default Widths",
+        };
+    }
+    if !table.rows.is_empty() {
+        // one pre-existing error to show the cell error state
+        table.rows[2][4].error = Some("Branch names cannot contain spaces".into());
+        table.rows[2][4].text = "fix/checkout flake".into();
+    }
+    table.cursor_col = 1;
+    table
+}
+
+/// The events each key asks the page for.
+const EVENTS: &[(&str, &str)] = &[
+    ("Enter / F2 / click twice", "Edit · Enter again Committed"),
+    ("Esc", "Cancelled"),
+    (
+        "Tab at the last cell",
+        "LeaveForward · Shift+Tab LeaveBackward",
+    ),
+    ("Enter on a row (Basic table)", "Activated"),
+    ("Space (Selection)", "SelectionChanged"),
+    (
+        "s or a header click",
+        "Sort ▴ ascending, again ▾ descending",
+    ),
+];
+
+/// The States grid: text cells, and a constrained column.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let sample = |k: usize, owner: bool| {
+        let mut cols = vec![
+            Column::new("ID", Constraint::Length(5)),
+            Column::new("Task", Constraint::Min(14)).editable(),
+        ];
+        let mut keep = vec![0, 1];
+        if owner {
+            cols.push(Column::new("Owner", Constraint::Length(8)).editor(
+                ColumnEditor::for_options(Options::values(&["ana", "jonas", "kai", "mira"])),
+            ));
+            keep.push(2);
+        } else {
+            cols.push(
+                Column::new("Changes", Constraint::Length(8))
+                    .right()
+                    .editable(),
+            );
+            keep.push(5);
+        }
+        let data = rows(3)
+            .into_iter()
+            .map(|r| keep.iter().map(|&c| r[c].clone()).collect())
+            .collect();
+        let mut t = DataTable::new(id.child(k), cols, data)
+            .cell_nav(true)
+            .numeric(&[0]);
+        if owner {
+            t = t.editor_config(EditorConfig {
+                affordance: Affordance::Always,
+                ..EditorConfig::default()
+            });
+        }
+        t.cursor_col = 1;
+        t
+    };
+    StateGrid::new(id)
+        .rows(&[
+            Rest, Hover, Pressed, Focused, Editing, Error, Disabled, Empty, Overflow, Narrow,
+        ])
+        .column_width(44)
+        .narrow_width(28)
+        .column("Text cells", sample(0, false))
+        .column("Constrained (▾ always)", sample(1, true))
+}
+
 pub struct EditablePage {
-    table: DataTable,
+    template: Template,
+    knobs: [usize; 12],
+    pub table: DataTable,
+    sections: crate::pages::layout::Sections,
     edits: u32,
 }
 
 impl EditablePage {
     pub fn new() -> Self {
-        let columns = vec![
-            Column::new("ID", Constraint::Length(5)),
-            Column::new("Task", Constraint::Min(24)).editable(),
-            // only known people: a dropdown (8 values, the option-count
-            // ladder) instead of free text
-            Column::new("Owner", Constraint::Length(8)).editor(ColumnEditor::for_options(
-                Options::values(&[
-                    "ana", "jonas", "kai", "lena", "mira", "omar", "priya", "sofia",
-                ]),
-            )),
-            Column::new("Status", Constraint::Length(9)),
-            Column::new("Branch", Constraint::Length(22)).editable(),
-            Column::new("Changes", Constraint::Length(8))
-                .right()
-                .editable(),
-        ];
-        let rows: Vec<Vec<Cell>> = crate::data::tasks()
-            .into_iter()
-            .take(14)
-            .map(|r| {
-                vec![
-                    Cell::new(format!("#{}", r.id)).tone(Tone::Muted),
-                    Cell::new(r.name),
-                    Cell::new(r.owner),
-                    crate::pages::tables::status_cell(r.status),
-                    Cell::new(r.branch).tone(Tone::Muted),
-                    Cell::new(r.changes.to_string()),
-                ]
+        let knobs = KEYS.map(|k| crate::options::find(k).map_or(0, |o| o.default));
+        Self {
+            template: Template::new(ID, states_grid()),
+            table: build(&knobs),
+            knobs,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+            edits: 0,
+        }
+    }
+
+    /// The columns as the table describes them.
+    fn column_props(&self) -> Vec<Prop> {
+        self.table
+            .columns
+            .iter()
+            .map(|c| {
+                let mut v = vec![match c.align {
+                    Align::Left => "left",
+                    Align::Right => "right",
+                }];
+                v.push(match &c.editor {
+                    ColumnEditor::Text if c.editable => "editable · text",
+                    ColumnEditor::Text => "read-only",
+                    _ => "editable · ▾ Select",
+                });
+                Prop::new(&c.title, v.join(" · "))
             })
-            .collect();
-        let mut table = DataTable::new(ID.sub("table"), columns, rows)
-            .cell_nav(true)
-            .numeric(&[0, 5])
-            .validator(validate);
-        // one pre-existing error to show the row-level error state
-        table.rows[2][4].error = Some("Branch names cannot contain spaces".into());
-        table.rows[2][4].text = "fix/checkout flake".into();
-        table.cursor_col = 1;
-        Self { table, edits: 0 }
+            .collect()
+    }
+
+    fn on_event(&mut self, tev: Option<TableAction>, cx: &mut PageCtx) {
+        match tev {
+            Some(TableAction::Committed { .. }) => {
+                self.edits += 1;
+                cx.status("Cell saved");
+            }
+            Some(TableAction::Cancelled) => cx.status("Edit cancelled"),
+            Some(TableAction::LeaveForward) => cx.focus_next(),
+            Some(TableAction::LeaveBackward) => cx.focus_prev(),
+            _ => {}
+        }
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let cols = self.column_props();
+        let events: Vec<Prop> = EVENTS.iter().map(|(k, w)| Prop::new(k, *w)).collect();
+        let focus = ctx.interaction.has_focus(self.table.id).then_some(0);
+        let table_h = (self.table.len() as u16 + 4).max(8);
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::flex(8, table_h),
+                StackChild::fixed(4),
+                StackChild::fixed(cols.len() as u16 + 3),
+                StackChild::fixed(events.len() as u16 + 3),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        let err = self.table.edit_error().map(str::to_owned);
+        match l.slot(0) {
+            Some(card) => {
+                let panel =
+                    Panel::card(Some("Tasks")).focused(ctx.interaction.focused(self.table.id));
+                let bg = panel.bg(t);
+                let inner = panel.render(card, buf, t);
+                self.table.render(inner, buf, ctx, bg);
+                let pos = scrollbar::position_label(&self.table.scroll);
+                let meta = match &err {
+                    Some(e) => e.clone(),
+                    None if pos.is_empty() => format!("{} edits", self.edits),
+                    None => format!("{} edits · {pos}", self.edits),
+                };
+                panel.draw_meta(card, buf, t, &meta);
+            }
+            None => ctx.focus_stop(self.table.id),
+        }
+        if let Some(r) = l.slot(1) {
+            let legend = vec![
+                Prop::new("reversed", "cell cursor (navigation)"),
+                Prop::new("▁", "editing cursor + accent underline"),
+                Prop::new("!", "validation error"),
+                Prop::new("▾", "Owner: pick from a list (Enter, Space, Alt+↓)"),
+            ];
+            props::render(r, buf, t, &legend, t.canvas);
+        }
+        for (slot, title, items) in [(2, "Columns", cols), (3, "Events", events)] {
+            if let Some(r) = l.slot(slot) {
+                let panel = Panel::card(Some(title));
+                let bg = panel.bg(t);
+                let inner = panel.render(r, buf, t);
+                props::render(inner, buf, t, &items, bg);
+            }
+        }
     }
 }
 
@@ -81,68 +350,46 @@ impl Page for EditablePage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let err = self.table.edit_error().map(str::to_owned);
-        let panel = Panel::card(Some("Tasks")).focused(ctx.interaction.focused(self.table.id));
-        let bg = panel.bg(t);
-        let card_h = (self.table.len() as u16 + 4).min(area.height.saturating_sub(4));
-        let inner = panel.render(Rect::new(area.x, area.y, area.width, card_h), buf, t);
-        if let Some(e) = &err {
-            // error message drawn in error colour over the meta slot
-            let x = area
-                .right()
-                .saturating_sub(2 + junie_tui::ui::text::width(e) as u16);
-            buf.set_string(x, area.y, e, t.error_fg().bg(bg));
-        }
-        self.table.render(inner, buf, ctx, bg);
-        let pos = scrollbar::position_label(&self.table.scroll);
-        let meta = match &err {
-            Some(e) => e.clone(),
-            None if pos.is_empty() => format!("{} edits", self.edits),
-            None => format!("{} edits · {pos}", self.edits),
-        };
-        panel.draw_meta(Rect::new(area.x, area.y, area.width, card_h), buf, t, &meta);
-        let y = area.y + card_h + 1;
-        let legend = [
-            (
-                "reversed",
-                "cell cursor (navigation)",
-                t.on(t.text_primary).fg(t.canvas),
-            ),
-            ("▁", "editing cursor + accent underline", t.primary()),
-            ("!", "validation error", t.error_fg()),
-            (
-                "▾",
-                "Owner: pick from a list (Enter, Space, Alt+↓)",
-                t.secondary(),
-            ),
-        ];
-        for (i, (g, text, st)) in legend.iter().enumerate() {
-            let yy = y + i as u16;
-            if yy < area.bottom() {
-                buf.set_string(area.x, yy, g, *st);
-                buf.set_string(area.x + 10, yy, text, t.muted());
-            }
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
         }
     }
 
+    fn option_value(&self, key: &str) -> Option<usize> {
+        KEYS.iter().position(|k| *k == key).map(|i| self.knobs[i])
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        let Some(i) = KEYS.iter().position(|k| *k == key) else {
+            return;
+        };
+        let n = crate::options::find(key).map_or(1, |o| o.values.len());
+        self.knobs[i] = value.min(n - 1);
+        self.table = build(&self.knobs);
+    }
+
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
         if let PageEvent::Blur(ch) = ev {
             if ch.from != self.table.id {
                 return Outcome::Ignored;
             }
-            return match self.table.on_blur() {
-                Some(TableAction::Committed { .. }) => {
-                    self.edits += 1;
-                    cx.status("Cell saved");
-                    Outcome::Changed
-                }
-                Some(TableAction::Cancelled) => {
-                    cx.status("Edit cancelled");
-                    Outcome::Changed
-                }
-                _ => Outcome::Ignored,
+            let tev = self.table.on_blur();
+            let changed = tev.is_some();
+            self.on_event(tev, cx);
+            return if changed {
+                Outcome::Changed
+            } else {
+                Outcome::Ignored
             };
+        }
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
         }
         match ev {
             PageEvent::Key(key) => {
@@ -150,30 +397,14 @@ impl Page for EditablePage {
                     return Outcome::Ignored;
                 }
                 let (out, tev) = self.table.on_key(key);
-                match tev {
-                    Some(TableAction::Committed { .. }) => {
-                        self.edits += 1;
-                        cx.status("Cell saved");
-                    }
-                    Some(TableAction::Cancelled) => cx.status("Edit cancelled"),
-                    Some(TableAction::LeaveForward) => cx.focus_next(),
-                    Some(TableAction::LeaveBackward) => cx.focus_prev(),
-                    _ => {}
-                }
+                self.on_event(tev, cx);
                 out
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
             PageEvent::Click { id, pos } => {
                 if let Some((out, tev)) = self.table.on_click_editor(*id) {
                     cx.focus.focus(self.table.id);
-                    match tev {
-                        Some(TableAction::Committed { .. }) => {
-                            self.edits += 1;
-                            cx.status("Cell saved");
-                        }
-                        Some(TableAction::Cancelled) => cx.status("Edit cancelled"),
-                        _ => {}
-                    }
+                    self.on_event(tev, cx);
                     return out;
                 }
                 if let Some(c) = self.table.locate_header(*id) {
@@ -210,16 +441,31 @@ impl Page for EditablePage {
         self.table.is_editing()
     }
 
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
-        if self.table.is_editing() {
-            vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")]
-        } else {
-            vec![
-                ("↑↓←→", "Cell"),
-                ("Enter", "Edit"),
-                ("s", "Sort"),
-                ("click twice", "Edit"),
-            ]
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
         }
+        if self.table.is_editing() {
+            return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
+        }
+        let mut h = vec![("↑↓←→", "Cell"), ("Enter", "Edit")];
+        // the key the table's key map binds now (`editable.keymap`)
+        if let Some(k) = hint_key(&self.table.keymap, TableCmd::SortByColumn) {
+            h.push((k, "Sort"));
+        }
+        h.push(("click twice", "Edit"));
+        h
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
