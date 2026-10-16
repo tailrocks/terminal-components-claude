@@ -149,9 +149,10 @@ pub struct InputConfig {
     /// vertical wheel with Shift held), as on macOS and every desktop.
     pub shift_wheel_horizontal: bool,
     /// Ctrl + primary click is a secondary (context) click, as on macOS.
-    /// On by default on macOS builds only, where Ctrl-click is the
-    /// one-button context click; elsewhere Ctrl-click stays a primary
-    /// click with Ctrl held (toggle selection).
+    /// On by default when the client terminal is on macOS
+    /// ([`ClientPlatform::current`]), where Ctrl-click is the one-button
+    /// context click; elsewhere Ctrl-click stays a primary click with Ctrl
+    /// held (toggle selection).
     pub ctrl_click_secondary: bool,
     /// Terminals using the legacy key encoding report Ctrl+\\, Ctrl+],
     /// Ctrl+^ and Ctrl+_ as Ctrl+4..7 (the same control bytes). Map them
@@ -159,13 +160,94 @@ pub struct InputConfig {
     pub legacy_ctrl_punctuation: bool,
 }
 
-impl Default for InputConfig {
-    fn default() -> Self {
+/// The platform of the terminal the user sits at, whose conventions a
+/// default follows. Defaults that differ by platform (Ctrl+click as a
+/// secondary click, the click modifier that toggles a row) take one, so
+/// both branches can be built and tested on any host.
+///
+/// This is the *client* platform, not the build target: an app running on
+/// Linux over SSH from a Mac is used with macOS conventions, and the other
+/// way round. [`ClientPlatform::current`] is the one shared detector
+/// ([`ClientPlatform::from_env`] on the process environment, read once).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClientPlatform {
+    /// macOS: Ctrl+click is the one-button secondary click.
+    MacOs,
+    /// Linux, Windows and the BSDs: Ctrl+click is a primary click with Ctrl
+    /// held.
+    Other,
+}
+
+impl ClientPlatform {
+    /// The environment variable that overrides detection: `macos` (or
+    /// `mac`, `darwin`) and `other` (or `linux`, `windows`), any case.
+    pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_CLIENT_PLATFORM";
+
+    /// `TERM_PROGRAM` values only macOS terminals set. Cross-platform
+    /// terminals (WezTerm, Ghostty, kitty, VS Code) do not say which OS
+    /// they run on, so they decide nothing.
+    pub const MACOS_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
+
+    /// The build target's platform: the fallback when the environment
+    /// names no client.
+    pub const fn build_target() -> Self {
+        if cfg!(target_os = "macos") {
+            Self::MacOs
+        } else {
+            Self::Other
+        }
+    }
+
+    /// Detect the client platform from environment lookups `get`, in order:
+    /// [`Self::OVERRIDE_ENV`]; `LC_TERMINAL` (`iTerm2` sets it and forwards
+    /// it over SSH); `TERM_PROGRAM` when it names a macOS-only terminal
+    /// ([`Self::MACOS_TERM_PROGRAMS`]); otherwise [`Self::build_target`].
+    pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
+        if let Some(v) = get(Self::OVERRIDE_ENV) {
+            match v.trim().to_ascii_lowercase().as_str() {
+                "macos" | "mac" | "darwin" => return Self::MacOs,
+                "other" | "linux" | "windows" => return Self::Other,
+                _ => {}
+            }
+        }
+        if get("LC_TERMINAL").is_some_and(|v| v == "iTerm2") {
+            return Self::MacOs;
+        }
+        if get("TERM_PROGRAM").is_some_and(|v| Self::MACOS_TERM_PROGRAMS.contains(&v.as_str())) {
+            return Self::MacOs;
+        }
+        Self::build_target()
+    }
+
+    /// The client platform of this process: [`Self::from_env`] on the
+    /// process environment, detected once.
+    pub fn current() -> Self {
+        static CURRENT: std::sync::OnceLock<ClientPlatform> = std::sync::OnceLock::new();
+        *CURRENT.get_or_init(|| Self::from_env(|k| std::env::var(k).ok()))
+    }
+
+    pub const fn is_macos(self) -> bool {
+        matches!(self, Self::MacOs)
+    }
+}
+
+impl InputConfig {
+    /// The defaults for `platform`: Ctrl+click is a secondary click on
+    /// macOS only; the other options are on everywhere. Pass a platform to
+    /// override detection.
+    pub const fn for_platform(platform: ClientPlatform) -> Self {
         Self {
             shift_wheel_horizontal: true,
-            ctrl_click_secondary: cfg!(target_os = "macos"),
+            ctrl_click_secondary: platform.is_macos(),
             legacy_ctrl_punctuation: true,
         }
+    }
+}
+
+impl Default for InputConfig {
+    /// [`InputConfig::for_platform`] for [`ClientPlatform::current`].
+    fn default() -> Self {
+        Self::for_platform(ClientPlatform::current())
     }
 }
 
@@ -311,6 +393,74 @@ mod tests {
             ..on
         };
         assert_eq!(key('4', off), KeyCode::Char('4'));
+    }
+
+    #[test]
+    fn platform_defaults_make_ctrl_click_secondary_on_macos_only() {
+        let mac = InputConfig::for_platform(ClientPlatform::MacOs);
+        let other = InputConfig::for_platform(ClientPlatform::Other);
+        assert!(mac.ctrl_click_secondary);
+        assert!(!other.ctrl_click_secondary);
+        for cfg in [mac, other] {
+            assert!(cfg.shift_wheel_horizontal);
+            assert!(cfg.legacy_ctrl_punctuation);
+        }
+        assert_eq!(
+            InputConfig::default(),
+            InputConfig::for_platform(ClientPlatform::current())
+        );
+    }
+
+    #[test]
+    fn client_platform_follows_the_terminal_not_the_build_target() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| {
+            move |k: &str| {
+                pairs
+                    .iter()
+                    .find(|(n, _)| *n == k)
+                    .map(|(_, v)| (*v).to_owned())
+            }
+        };
+        let mac = ClientPlatform::MacOs;
+        let other = ClientPlatform::Other;
+        // macOS-only terminals, also when the app runs on Linux
+        assert_eq!(
+            ClientPlatform::from_env(env(&[("TERM_PROGRAM", "Apple_Terminal")])),
+            mac
+        );
+        assert_eq!(
+            ClientPlatform::from_env(env(&[("TERM_PROGRAM", "iTerm.app")])),
+            mac
+        );
+        // iTerm2 forwards LC_TERMINAL over SSH
+        assert_eq!(
+            ClientPlatform::from_env(env(&[("LC_TERMINAL", "iTerm2")])),
+            mac
+        );
+        // the override wins either way
+        let forced_other = env(&[
+            ("TERM_PROGRAM", "iTerm.app"),
+            (ClientPlatform::OVERRIDE_ENV, "Linux"),
+        ]);
+        assert_eq!(ClientPlatform::from_env(forced_other), other);
+        let forced_mac = env(&[(ClientPlatform::OVERRIDE_ENV, "macos")]);
+        assert_eq!(ClientPlatform::from_env(forced_mac), mac);
+        // cross-platform terminals, an unknown override or nothing at all
+        // fall back to the build target
+        let fallback = ClientPlatform::build_target();
+        for pairs in [
+            &[("TERM_PROGRAM", "WezTerm")][..],
+            &[("TERM_PROGRAM", "ghostty")][..],
+            &[(ClientPlatform::OVERRIDE_ENV, "amiga")][..],
+            &[][..],
+        ] {
+            let pairs: &'static [(&'static str, &'static str)] = pairs;
+            assert_eq!(ClientPlatform::from_env(env(pairs)), fallback, "{pairs:?}");
+        }
+        assert_eq!(
+            ClientPlatform::build_target() == mac,
+            cfg!(target_os = "macos")
+        );
     }
 
     #[test]
