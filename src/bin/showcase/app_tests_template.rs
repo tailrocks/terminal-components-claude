@@ -6,7 +6,7 @@ use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Position;
 
-use crate::app::{App, PageId};
+use crate::app::{App, NAV_ENTRIES, NAV_GROUPS, PAGE_ALIASES, PageId};
 use crate::pages::template::{FOCUS_LEGEND, Section};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use junie_tui::core::id::WidgetId;
@@ -256,4 +256,132 @@ fn compare_levels_shows_every_colour_level() {
         wheel_down(&mut h, x + 20, y + 4);
     }
     assert!(h.text().contains("no color"), "{}", h.text());
+}
+
+// ------------------------------------------------------------- tree rules --
+
+/// A label or name as `--page` compares it: letters and digits only, lower
+/// case (`PageId::from_name`).
+fn slug(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
+}
+
+const SLUGS: &str = include_str!("../../../tests/showcase_slugs.txt");
+
+/// The golden `--page` names: `name | page label`, comments and blanks
+/// skipped.
+fn golden() -> Vec<(&'static str, &'static str)> {
+    SLUGS
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(|l| {
+            let (name, label) = l.split_once(" | ").expect("`name | label`");
+            (name.trim(), label.trim())
+        })
+        .collect()
+}
+
+/// Plan §7, SCP7: the sidebar is at most two levels deep (Overview, then
+/// groups of leaves); no group holds a leaf with its own name; every page
+/// has one slug of its own that no other page's alias repeats; and the
+/// `--page` names in `tests/showcase_slugs.txt` only ever grow: each still
+/// opens the page it names, and every current slug and alias is listed.
+#[test]
+fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
+    let label_of = |id: PageId| NAV_ENTRIES[id.index()].label;
+    // two levels at most, every leaf under a known group
+    for e in NAV_ENTRIES {
+        let depth = e.id.nav_path().len();
+        assert!(depth <= 2, "{} is {depth} levels deep", e.label);
+        if !e.group.is_empty() {
+            assert!(
+                NAV_GROUPS.contains(&e.group),
+                "{}: group {}",
+                e.label,
+                e.group
+            );
+            assert_ne!(
+                slug(e.label),
+                slug(e.group),
+                "{} repeats its group",
+                e.label
+            );
+        }
+    }
+    let mut app = App::new(Theme::junie());
+    app.nav_expand = crate::app::NavExpand::All;
+    app.goto(PageId::Overview);
+    assert!(app.nav.rows().iter().all(|r| r.depth <= 1), "two levels");
+    // one slug per page, never another page's alias
+    let mut slugs: Vec<(String, PageId)> = Vec::new();
+    for e in NAV_ENTRIES {
+        let s = slug(e.label);
+        assert!(!s.is_empty(), "{}", e.label);
+        if let Some((_, other)) = slugs.iter().find(|(x, _)| *x == s) {
+            panic!("{} and {} share the slug {s:?}", e.label, label_of(*other));
+        }
+        assert_eq!(PageId::from_name(&s), Some(e.id), "{s:?} opens {}", e.label);
+        slugs.push((s, e.id));
+    }
+    let mut aliases: Vec<&str> = Vec::new();
+    for &(alias, id) in PAGE_ALIASES {
+        assert_eq!(alias, slug(alias), "alias {alias:?} is already normalised");
+        assert!(!aliases.contains(&alias), "alias {alias:?} twice");
+        aliases.push(alias);
+        if let Some((_, owner)) = slugs.iter().find(|(s, _)| s == alias) {
+            assert_eq!(
+                *owner,
+                id,
+                "alias {alias:?} of {} is the slug of {}",
+                label_of(id),
+                label_of(*owner)
+            );
+        }
+        assert_eq!(PageId::from_name(alias), Some(id), "{alias:?}");
+    }
+    // the golden list only grows
+    let golden = golden();
+    for &(name, label) in &golden {
+        let page = PageId::from_name(name)
+            .unwrap_or_else(|| panic!("--page {name:?} no longer opens a page (was {label})"));
+        assert_eq!(label_of(page), label, "--page {name:?} moved");
+    }
+    let missing: Vec<String> = slugs
+        .iter()
+        .map(|(s, id)| (s.as_str(), *id))
+        .chain(PAGE_ALIASES.iter().copied())
+        .filter(|(name, _)| !golden.iter().any(|(g, _)| g == name))
+        .map(|(name, id)| format!("{name} | {}", label_of(id)))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "add these --page names to tests/showcase_slugs.txt:\n{}",
+        missing.join("\n")
+    );
+}
+
+/// Every page, planned ones included, opens by its slug; a planned page
+/// names the step that fills it.
+#[test]
+fn every_page_opens_by_its_slug() {
+    let mut stubs = 0;
+    for e in NAV_ENTRIES {
+        let id = PageId::from_name(&slug(e.label)).expect("slug");
+        let h = Harness::new(120, 40, id);
+        assert_eq!(h.app.page, e.id);
+        let text = h.text();
+        assert!(text.contains(e.label), "{}\n{text}", e.label);
+        if text.contains(&format!("{} arrives with SC", e.label)) {
+            stubs += 1;
+            // a stub is not a focus trap: Tab goes back to the sidebar
+            let mut h = h;
+            h.key(KeyCode::Tab);
+            assert_eq!(h.focus_bars(), 1, "{}", e.label);
+        }
+    }
+    assert_eq!(stubs, 29, "the planned pages of plan §7.2");
 }
