@@ -151,7 +151,7 @@ pub const SITES: &[Site] = &[
     rows("showcase/pages/selectable.rs::ask_delete", &["showcase/flows/selectable/delete_confirm"]),
     gap("showcase/pages/selectable.rs::open_menu", NO_ROW),
     gap("showcase/pages/selectable.rs::table_input", NO_ROW),
-    gap("showcase/pages/settings.rs::handle", NO_ROW),
+    gap("showcase/pages/settings.rs::handle_event", NO_ROW),
     gap("showcase/pages/settings.rs::open_add", NO_ROW),
     gap("showcase/pages/settings.rs::open_remove", NO_ROW),
     gap("showcase/pages/taskrunner.rs::handle", NO_ROW),
