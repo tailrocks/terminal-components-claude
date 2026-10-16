@@ -192,8 +192,7 @@ pub fn decode(text: &str, provenance: Provenance) -> Option<Frame> {
     })
 }
 
-#[test]
-fn ansi_cursor_round_trips_cells_and_visible_cursor() {
+pub fn ansi_cursor_round_trips_cells_and_visible_cursor() {
     let provenance = Provenance {
         tool: "tuiscotti".into(),
         tool_version: "test".into(),

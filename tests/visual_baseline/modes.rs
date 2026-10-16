@@ -5,7 +5,8 @@
 //! (2004). A regression here would otherwise surface only indirectly, as
 //! changed hover/click captures or refused pointer input.
 
-use crate::support::{self, Case, Color, HOLLA, JACKIN, SHOWCASE, TABLEPRO};
+use crate::scenarios::Bin;
+use crate::support::{self, Case, Color};
 
 const REQUIRED: [(u16, &str); 4] = [
     (1049, "alternate screen"),
@@ -35,32 +36,38 @@ fn assert_boot_modes(
     );
 }
 
-#[test]
-fn showcase_boot_sets_terminal_modes() {
+pub fn showcase_boot_sets_terminal_modes() {
     assert_boot_modes(
         "modes/showcase/boot/80x24/truecolor",
-        SHOWCASE,
+        Bin::Showcase.path(),
         &[],
         "Junie Design system",
     );
 }
 
-#[test]
-fn tablepro_boot_sets_terminal_modes() {
+pub fn tablepro_boot_sets_terminal_modes() {
     assert_boot_modes(
         "modes/tablepro/boot/80x24/truecolor",
-        TABLEPRO,
+        Bin::Tablepro.path(),
         &[],
         "Production",
     );
 }
 
-#[test]
-fn holla_boot_sets_terminal_modes() {
-    assert_boot_modes("modes/holla/boot/80x24/truecolor", HOLLA, &[], "holla❯");
+pub fn holla_boot_sets_terminal_modes() {
+    assert_boot_modes(
+        "modes/holla/boot/80x24/truecolor",
+        Bin::Holla.path(),
+        &[],
+        "holla❯",
+    );
 }
 
-#[test]
-fn jackin_boot_sets_terminal_modes() {
-    assert_boot_modes("modes/jackin/boot/80x24/truecolor", JACKIN, &[], "jackin❯");
+pub fn jackin_boot_sets_terminal_modes() {
+    assert_boot_modes(
+        "modes/jackin/boot/80x24/truecolor",
+        Bin::Jackin.path(),
+        &[],
+        "jackin❯",
+    );
 }
