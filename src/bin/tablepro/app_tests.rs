@@ -1353,3 +1353,53 @@ fn the_wheel_over_the_tab_strip_scrolls_it() {
     assert_eq!(h.wb().strip.first, 2, "a horizontal notch too");
     assert_eq!(h.wb().active, 0, "the wheel does not switch tabs");
 }
+
+/// Mouse audit #11: the `+N` button of an overflowing strip opens a menu
+/// of the hidden tabs; clicking one activates it, Esc closes the menu.
+#[test]
+fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
+    let mut h = H::connected(80, 24);
+    {
+        let wb = h.app.workbench.as_mut().unwrap();
+        for _ in 0..12 {
+            wb.new_query("");
+        }
+        wb.set_active(0);
+    }
+    h.draw();
+    let more = h
+        .app
+        .hits
+        .area_of(h.wb().strip.more_id())
+        .unwrap_or_else(|| panic!("no +N button\n{}", h.text()));
+    h.click(more.x + 1, more.y);
+    assert!(h.wb().strip.menu_open(), "{}", h.text());
+    let last = h.wb().tabs.len() - 1;
+    let label = h.wb().strip.items[last].label.clone();
+    let text = h.text();
+    let (x, y) = text
+        .lines()
+        .enumerate()
+        .skip(more.y as usize + 1)
+        .filter_map(|(y, line)| {
+            let col = line.find(&label)?;
+            Some((line[..col].chars().count() as u16, y as u16))
+        })
+        .last()
+        .unwrap_or_else(|| panic!("{label} not listed\n{text}"));
+    h.click(x, y);
+    assert!(!h.wb().strip.menu_open());
+    assert_eq!(
+        h.wb().active,
+        last,
+        "the chosen tab is active\n{}",
+        h.text()
+    );
+    // Esc closes a reopened menu without switching
+    let more = h.app.hits.area_of(h.wb().strip.more_id()).unwrap();
+    h.click(more.x + 1, more.y);
+    assert!(h.wb().strip.menu_open());
+    h.key(KeyCode::Esc);
+    assert!(!h.wb().strip.menu_open());
+    assert_eq!(h.wb().active, last);
+}
