@@ -112,6 +112,20 @@ pub struct EditState {
 ///
 /// Selection is keyed by source row, so it survives sorting and scrolling.
 /// Rows in [`DataTable::disabled`] can be read but never selected.
+/// A [`DataTable`] cell validator: `(col, text)` to `Some(message)` to
+/// reject the value.
+#[derive(Clone)]
+pub struct CellValidator(pub std::rc::Rc<CellValidateFn>);
+
+/// The function a [`CellValidator`] wraps.
+pub type CellValidateFn = dyn Fn(usize, &str) -> Option<String>;
+
+impl std::fmt::Debug for CellValidator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("CellValidator")
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DataTable {
     /// The scrollbar track as last drawn: presses and drags map through it.
@@ -131,7 +145,9 @@ pub struct DataTable {
     pub scroll: ScrollState,
     pub hscroll: ScrollState,
     pub edit: Option<EditState>,
-    pub validator: Option<fn(col: usize, &str) -> Option<String>>,
+    /// Checks a cell edit: `Some(message)` rejects the value. A closure,
+    /// so it can capture state (an enum list, a schema).
+    pub validator: Option<CellValidator>,
     /// What a cell edit in progress does when the table loses focus
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
@@ -522,8 +538,9 @@ impl DataTable {
         }
         self
     }
-    pub fn validator(mut self, v: fn(usize, &str) -> Option<String>) -> Self {
-        self.validator = Some(v);
+    /// See [`Self::validator`]: `v(col, text)`.
+    pub fn validator(mut self, v: impl Fn(usize, &str) -> Option<String> + 'static) -> Self {
+        self.validator = Some(CellValidator(std::rc::Rc::new(v)));
         self
     }
     pub fn empty_text(mut self, s: &str) -> Self {
@@ -664,7 +681,7 @@ impl DataTable {
         let e = self.edit.take()?;
         let src = e.row;
         let text = e.buffer.text().to_owned();
-        let err = self.validator.and_then(|v| v(e.col, &text));
+        let err = self.validator.as_ref().and_then(|v| (v.0)(e.col, &text));
         if let Some(err) = err {
             // keep editing, show error
             self.edit = Some(EditState {
@@ -750,7 +767,10 @@ impl DataTable {
                 EditAction::Insert(c) => {
                     e.buffer.insert_char(c);
                     if e.error.is_some() {
-                        e.error = self.validator.and_then(|v| v(e.col, e.buffer.text()));
+                        e.error = self
+                            .validator
+                            .as_ref()
+                            .and_then(|v| (v.0)(e.col, e.buffer.text()));
                     }
                     (Outcome::Changed, None)
                 }
@@ -1679,7 +1699,14 @@ mod tests {
 
     #[test]
     fn rejected_edit_stays_on_its_source_row_after_header_sort() {
-        let mut t = table().validator(|_, value| (value == "!").then(|| "Invalid".to_owned()));
+        // a closure that captures state (the reserved values)
+        let reserved = vec!["!".to_owned()];
+        let mut t = table().validator(move |_, value| {
+            reserved
+                .iter()
+                .any(|r| r == value)
+                .then(|| "Invalid".to_owned())
+        });
         t.begin_edit();
         t.edit.as_mut().unwrap().buffer.set_text("!");
         t.on_click_header(0);
