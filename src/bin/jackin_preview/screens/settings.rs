@@ -827,6 +827,11 @@ impl Screen for SettingsScreen {
         if self.saving {
             return Outcome::Consumed;
         }
+        if self.cfg.menu_open() {
+            let o = self.cfg.menu_key(key, w, cx);
+            self.sync_pending();
+            return o;
+        }
         let focus = cx.focus.current();
         if key.ctrl() && key.code == KeyCode::Char('s') {
             self.open_preview(w, cx);
@@ -972,6 +977,11 @@ impl Screen for SettingsScreen {
         if self.saving {
             return Outcome::Consumed;
         }
+        if self.cfg.menu_open() {
+            let o = self.cfg.menu_click(id, w, cx);
+            self.sync_pending();
+            return o;
+        }
         if self.tabs.owns(id) {
             let (o, ev) = self.tabs.on_click(id);
             if let Some(TabEvent::Activated(i)) = ev {
@@ -1054,6 +1064,20 @@ impl Screen for SettingsScreen {
                 o
             }
         }
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.saving {
+            return Outcome::Consumed;
+        }
+        match self.tab.cfg() {
+            Some(t) => self.cfg.on_secondary(t, id, pos, w, cx),
+            None => Outcome::Ignored,
+        }
+    }
+
+    fn layer_open(&self) -> bool {
+        self.cfg.menu_hides_focus()
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
@@ -1207,11 +1231,15 @@ impl Screen for SettingsScreen {
         );
         self.cancel.render(rects[0], buf, ctx, bg);
         self.save.render(rects[1], buf, ctx, bg);
+        self.cfg.render_menu(area, buf, ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if self.saving {
             return vec![hint("", "Saving…")];
+        }
+        if self.cfg.menu_open() {
+            return super::rowmenu::hints();
         }
         let mut v = vec![];
         if focus == Some(TABS) {

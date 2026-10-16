@@ -1668,6 +1668,11 @@ impl Screen for EditorScreen {
         if self.saving {
             return Outcome::Consumed;
         }
+        if self.cfg.menu_open() {
+            let o = self.cfg.menu_key(key, w, cx);
+            self.sync_pending();
+            return o;
+        }
         let focus = cx.focus.current();
         let editing = self.is_editing();
         // global chords
@@ -1806,6 +1811,11 @@ impl Screen for EditorScreen {
         if self.saving {
             return Outcome::Consumed;
         }
+        if self.cfg.menu_open() {
+            let o = self.cfg.menu_click(id, w, cx);
+            self.sync_pending();
+            return o;
+        }
         if id == scrollbar::id_for(GENERAL) {
             self.general_stack.on_scrollbar(pos);
             return Outcome::Changed;
@@ -1937,6 +1947,20 @@ impl Screen for EditorScreen {
             return Outcome::Changed;
         }
         Outcome::Ignored
+    }
+
+    fn on_secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if self.saving {
+            return Outcome::Consumed;
+        }
+        match self.tab.cfg() {
+            Some(t) => self.cfg.on_secondary(t, id, pos, w, cx),
+            None => Outcome::Ignored,
+        }
+    }
+
+    fn layer_open(&self) -> bool {
+        self.cfg.menu_hides_focus()
     }
 
     fn on_wheel(&mut self, id: WidgetId, delta: i32, _pos: Position, _w: &mut World) -> Outcome {
@@ -2226,11 +2250,15 @@ impl Screen for EditorScreen {
         );
         self.cancel.render(rects[0], buf, ctx, bg);
         self.save.render(rects[1], buf, ctx, bg);
+        self.cfg.render_menu(area, buf, ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
         if self.saving {
             return vec![hint("", "Saving…")];
+        }
+        if self.cfg.menu_open() {
+            return super::rowmenu::hints();
         }
         let mut v = vec![];
         if focus == Some(TABS) {

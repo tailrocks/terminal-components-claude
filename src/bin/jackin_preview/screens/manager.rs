@@ -2631,7 +2631,7 @@ impl Screen for ManagerScreen {
 
     fn hints(&self, focus: Option<WidgetId>, w: &World) -> Vec<Hint> {
         if self.menu.is_open() {
-            return RowMenu::<RowKey, &str>::hints();
+            return super::rowmenu::hints();
         }
         let mut v = vec![];
         if focus == Some(DETAIL) {
