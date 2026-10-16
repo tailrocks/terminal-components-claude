@@ -86,6 +86,16 @@ pub struct PointerConfig {
     /// focused control's edit in place ([`super::focus::Focus::end_edit`]),
     /// as clicking a macOS window background ends field editing.
     pub end_edit_on_dead_space: bool,
+    /// While a press that started inside a drag-selecting body
+    /// ([`HitRegistry::register_autoscroll`]) is held with the pointer
+    /// past that body's edge, the app tick replays the drag so the content
+    /// keeps scrolling and the selection keeps extending without further
+    /// mouse motion (macOS `autoscroll:`; GTK and Windows do the same).
+    pub autoscroll: bool,
+    /// How often an edge autoscroll step repeats. Each step moves as many
+    /// rows or columns as the pointer is past the edge, so the speed
+    /// scales with the distance.
+    pub autoscroll_ms: u64,
 }
 
 impl PointerConfig {
@@ -99,6 +109,8 @@ impl PointerConfig {
         flash_ms: 140,
         secondary_outside: SecondaryOutside::Reopen,
         end_edit_on_dead_space: true,
+        autoscroll: true,
+        autoscroll_ms: 50,
     };
 
     pub const fn focus_on(mut self, focus_on: FocusOn) -> Self {
@@ -131,6 +143,14 @@ impl PointerConfig {
     }
     pub const fn end_edit_on_dead_space(mut self, on: bool) -> Self {
         self.end_edit_on_dead_space = on;
+        self
+    }
+    pub const fn autoscroll(mut self, on: bool) -> Self {
+        self.autoscroll = on;
+        self
+    }
+    pub const fn autoscroll_ms(mut self, ms: u64) -> Self {
+        self.autoscroll_ms = ms;
         self
     }
 }
@@ -180,6 +200,10 @@ pub struct PointerState {
     flash: Option<(WidgetId, u64)>,
     /// The scrollbar the held press started on.
     grab: Option<super::hit::Bar>,
+    /// The autoscroll body the held press started in.
+    edge: Option<ratatui::layout::Rect>,
+    /// When the last autoscroll step ran.
+    autoscroll_at: Option<u64>,
     last_click: Option<LastClick>,
     hover_refresh: Option<Position>,
 }
@@ -235,7 +259,37 @@ impl PointerState {
         self.pressed = hit;
         self.hover = hit;
         self.grab = hit.and_then(|id| hits.bar(id));
+        self.edge = hit.and_then(|_| hits.autoscroll_at(pos));
+        self.autoscroll_at = None;
         hit
+    }
+
+    /// A held press is past the edge of the body it started in, and edge
+    /// autoscroll is on ([`PointerConfig::autoscroll`]): the app ticks at
+    /// [`PointerConfig::autoscroll_ms`] while this holds.
+    pub fn autoscrolling(&self) -> bool {
+        self.config.autoscroll
+            && self.pressed.is_some()
+            && self.grabbed().is_none()
+            && matches!((self.edge, self.pos), (Some(edge), Some(pos)) if !edge.contains(pos))
+    }
+
+    /// On an app tick: when an autoscroll step is due, the pressed control
+    /// and the pointer position to replay as a drag (the drag handler
+    /// scrolls and extends the selection), at most once per
+    /// [`PointerConfig::autoscroll_ms`].
+    pub fn autoscroll_due(&mut self, now_ms: u64) -> Option<(WidgetId, Position)> {
+        if !self.autoscrolling() {
+            self.autoscroll_at = None;
+            return None;
+        }
+        if let Some(at) = self.autoscroll_at
+            && now_ms.saturating_sub(at) < self.config.autoscroll_ms
+        {
+            return None;
+        }
+        self.autoscroll_at = Some(now_ms);
+        Some((self.pressed?, self.pos?))
     }
 
     /// A press on `id` while a modal is open: when `id` is the modal's own
@@ -323,6 +377,7 @@ impl PointerState {
     pub fn release(&mut self, hit: Option<WidgetId>) -> Release {
         let pressed = self.pressed.take();
         self.grab = None;
+        self.edge = None;
         match hit {
             None if pressed.is_none() => Release::Outside,
             None => Release::Cancelled,
@@ -529,5 +584,43 @@ mod tests {
         off.scrolled(Position::new(1, 1), Outcome::Changed);
         off.refresh_hover(&h);
         assert_eq!(off.hover, None);
+    }
+
+    #[test]
+    fn a_held_press_past_its_body_edge_autoscrolls_on_a_timer() {
+        let mut h = HitRegistry::default();
+        let cell = WidgetId::of("cell");
+        h.register(cell, Rect::new(0, 0, 10, 5));
+        h.register_autoscroll(Rect::new(0, 0, 10, 5));
+        let mut p = PointerState::default();
+        p.on_down(&h, Position::new(2, 2));
+        // inside the body: nothing to do
+        p.on_drag(&h, Position::new(3, 4));
+        assert!(!p.autoscrolling());
+        assert_eq!(p.autoscroll_due(0), None);
+        // past the bottom edge: a step now, the next after autoscroll_ms
+        p.on_drag(&h, Position::new(3, 7));
+        assert!(p.autoscrolling());
+        assert_eq!(p.autoscroll_due(100), Some((cell, Position::new(3, 7))));
+        assert_eq!(p.autoscroll_due(120), None);
+        assert_eq!(p.autoscroll_due(150), Some((cell, Position::new(3, 7))));
+        // the release ends it
+        p.release(Some(cell));
+        assert!(!p.autoscrolling());
+        assert_eq!(p.autoscroll_due(500), None);
+        // switched off
+        let mut off = PointerState::new(PointerConfig::DEFAULT.autoscroll(false));
+        off.on_down(&h, Position::new(2, 2));
+        off.on_drag(&h, Position::new(3, 7));
+        assert_eq!(off.autoscroll_due(100), None);
+    }
+
+    #[test]
+    fn autoscroll_areas_under_a_modal_barrier_are_unreachable() {
+        let mut h = HitRegistry::default();
+        h.register_autoscroll(Rect::new(0, 0, 10, 5));
+        assert!(h.autoscroll_at(Position::new(1, 1)).is_some());
+        h.push_barrier();
+        assert_eq!(h.autoscroll_at(Position::new(1, 1)), None);
     }
 }

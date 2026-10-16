@@ -1593,3 +1593,40 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
     assert_eq!(thumb(&h), 0);
     assert!(h.row(y).contains("payments-platform"));
 }
+
+#[test]
+fn a_grid_range_drag_held_below_the_grid_autoscrolls_on_the_tick() {
+    let mut h = Harness::new(120, 30, PageId::Grid);
+    let (x, y) = h.find("1001").unwrap();
+    h.mouse(MouseKind::Down, x, y);
+    // the pointer leaves the grid at the bottom and rests on the last row
+    let rest = h.term.backend().buffer().area.height - 1;
+    h.mouse(MouseKind::Drag, x, rest);
+    assert_eq!(
+        h.app.tick_interval(),
+        std::time::Duration::from_millis(50),
+        "a held drag past the edge ticks at autoscroll_ms"
+    );
+    let shown = |h: &Harness| {
+        (1001..1300)
+            .rev()
+            .find(|id| h.text().contains(&id.to_string()))
+            .unwrap()
+    };
+    let before = shown(&h);
+    for _ in 0..4 {
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        h.app.handle(Input::Tick);
+        h.draw();
+    }
+    let after = shown(&h);
+    assert!(after > before, "the rows scrolled on: {before} -> {after}");
+    // the release ends it
+    h.mouse(MouseKind::Up, x, rest);
+    assert!(h.app.tick_interval() > std::time::Duration::from_millis(50));
+    let stopped = shown(&h);
+    std::thread::sleep(std::time::Duration::from_millis(60));
+    h.app.handle(Input::Tick);
+    h.draw();
+    assert_eq!(shown(&h), stopped);
+}
