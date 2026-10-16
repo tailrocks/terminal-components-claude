@@ -35,7 +35,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use tuiscotti::grouped::{ArtifactSet, GroupedStore};
-use tuiscotti::locate::Locator;
+use tuiscotti::locate::{Locator, Span};
 use tuiscotti::render::{self, Renderer};
 use tuiscotti::tui::{CancelToken, MouseMods, Tui, WaitError, Wheel};
 use tuiscotti::{Frame, Observation, Profile, VENDORED_FACES};
@@ -333,17 +333,6 @@ pub enum Scroll {
 pub struct Screen<'a>(&'a tuiscotti::Screen);
 
 impl Screen<'_> {
-    /// First occurrence of `needle` on one physical row, as `(row, col)`.
-    pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
-        Locator::text(needle)
-            .physical_rows()
-            .resolve(self.0, 0)
-            .ok()?
-            .into_iter()
-            .min_by_key(|span| (span.y, span.x))
-            .map(|span| (span.y, span.x))
-    }
-
     /// Plain text, rows joined with `\n`, trailing blanks trimmed.
     pub fn text(&self) -> String {
         render::frame_from_screen(self.0, "query").text()
@@ -352,10 +341,6 @@ impl Screen<'_> {
     /// `(cols, rows)`.
     pub fn size(&self) -> (u16, u16) {
         (self.0.cols(), self.0.rows())
-    }
-
-    fn is_blank(&self) -> bool {
-        self.text().trim().is_empty()
     }
 }
 
@@ -367,12 +352,9 @@ pub struct Session {
     timeout: Duration,
 }
 
+/// tuiscotti's `WaitError` already ends with the last screen.
 fn wait_failure(what: &str, err: &WaitError) -> String {
-    let evidence = err
-        .evidence()
-        .map(|obs| render::frame_from_screen(&obs.screen, "evidence").text())
-        .unwrap_or_default();
-    format!("{what}: {err}\n--- last screen ---\n{evidence}")
+    format!("{what}: {err}")
 }
 
 impl Session {
@@ -388,29 +370,42 @@ impl Session {
             .map_err(|e| wait_failure("wait_until", &e))
     }
 
-    /// Content-gated readiness: wait for `needle` (tuiscotti text
-    /// `Locator`, physical rows), returning its first `(row, col)`.
-    pub fn find(&mut self, needle: &str) -> Result<(u16, u16), String> {
-        let locator = Locator::text(needle).physical_rows();
-        let obs = self
-            .wait(|obs| {
-                locator
-                    .resolve_obs(obs)
-                    .is_ok_and(|spans| !spans.is_empty())
+    /// Wait (case timeout) until `locator` has a visible match, returning
+    /// the first in row-major order. A timeout carries the last screen.
+    fn expect_visible(&self, locator: Locator, what: &str) -> Result<Span, String> {
+        self.inner
+            .get_by(locator)
+            .any()
+            .expect_visible_within(self.timeout)
+            .map_err(|e| {
+                let screen = self
+                    .inner
+                    .observe_now()
+                    .map(|obs| render::frame_from_screen(&obs.screen, "evidence").text())
+                    .unwrap_or_else(|e| format!("<no observation: {e}>"));
+                format!("{what}: {e}\n--- last screen ---\n{screen}")
             })
-            .map_err(|e| wait_failure(&format!("`{needle}` never appeared"), &e))?;
-        Ok(Screen(&obs.screen)
-            .find(needle)
-            .expect("locator matched on the returned observation"))
+    }
+
+    /// Content-gated readiness: wait for `needle` (tuiscotti text locator,
+    /// physical rows), returning its first `(row, col)`.
+    pub fn find(&mut self, needle: &str) -> Result<(u16, u16), String> {
+        let span = self.expect_visible(
+            Locator::text(needle).physical_rows(),
+            &format!("`{needle}` never appeared"),
+        )?;
+        Ok((span.y, span.x))
     }
 
     pub fn wait_for_text(&mut self, needle: &str) -> Result<(), String> {
         self.find(needle).map(|_| ())
     }
 
-    /// No needle: wait for a non-blank first paint, then a quiet window.
+    /// No needle: wait for a non-blank first paint (any non-whitespace
+    /// cell), then a quiet window.
     pub fn wait_idle(&mut self, quiet: Duration) -> Result<(), String> {
-        self.wait_until(|screen| !screen.is_blank())?;
+        let painted = Locator::regex(r"\S").expect("`\\S` is a valid locator regex");
+        self.expect_visible(painted, "the screen stayed blank")?;
         self.inner
             .wait_stable_quiet(Instant::now() + self.timeout, quiet, &CancelToken::new())
             .map(|_| ())
