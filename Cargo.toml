@@ -49,6 +49,10 @@ ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"
 unicode-segmentation = "1"
 
+[target.'cfg(unix)'.dependencies]
+# terminal input checks crossterm 0.29 lacks (runtime `tty_input`)
+libc = "0.2"
+
 [dev-dependencies]
 libtest-mimic = "0.8.2"
 # Oracle manifest `harness_sha256` (tests/visual_baseline/oracle.rs); the

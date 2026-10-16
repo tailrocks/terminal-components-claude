@@ -386,21 +386,31 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     let before = pty.text().len();
     // 8000 Ctrl+B presses: a single byte each (no escape-sequence boundary
     // ambiguity across pty reads) bound to nothing on the root, so every one
-    // is an ignored event; the queue keeps feeding while the loop drains
+    // is an ignored event; the queue keeps feeding while the loop drains.
+    // The flood is far longer than one terminal read (crossterm reads 1 KiB
+    // per readiness), so the runtime must keep reading what the terminal
+    // still holds without new input arriving: crossterm 0.29 alone leaves
+    // it in the kernel on Linux and the quit behind it is never seen.
     let flood: Vec<u8> = vec![0x02; 8000];
     let start = Instant::now();
     pty.send(&flood);
     // discovery ticks keep landing while the flood drains: the frame changes
     pty.wait_for("a redraw during the flood", |t| t.len() > before + 64);
     // a quit queued behind the flood is honoured once the flood is consumed
-    // (Ctrl+Q: Esc never quits, keyboard audit #21)
+    // (Ctrl+Q: Esc never quits, keyboard audit #21). Its latency is timed on
+    // its own: the redraw wait above follows the app's tick cadence, not
+    // the drain.
+    let quit = Instant::now();
     pty.send(b"\x11");
     let code = pty.wait_exit();
+    let quit_latency = quit.elapsed();
     let elapsed = start.elapsed();
     assert_eq!(code, 0, "clean exit after the flood: {:?}", pty.text());
     assert!(
-        elapsed < Duration::from_secs(10),
-        "8000 ignored events and a quit took {elapsed:?}"
+        quit_latency < Duration::from_secs(3),
+        "the quit behind 8000 ignored events took {quit_latency:?}"
     );
-    eprintln!("F23d pty flood: 8000 ignored events + quit in {elapsed:?}");
+    eprintln!(
+        "F23d pty flood: 8000 ignored events + quit in {elapsed:?} (quit latency {quit_latency:?})"
+    );
 }
