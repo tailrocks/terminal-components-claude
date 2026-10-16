@@ -17,7 +17,7 @@
 [0m[2m │ [0m [0m[2m│    Silent            Writes run without asking. Destructive statements still confirm.                        │─ │ [0m
 [0m[2m │ [0m [0m[2m│    Alert             Every write asks for confirmation before it runs.                                       │  │ [0m
 [0m[2m │ [0m [0m[2m│    Alert (Full)      Every statement, reads included, asks for confirmation.                                 │  │ [0m
-[0m[2m │ [0m [0m[2m│ [0m[1;2;7m [0m[2;7m›[0m[1;2;7m Safe Mode         [0m[2;7mWrites ask for confirmation and a deliberate acknowledgement.[0m[1;2;7m                 [0m[2;7mcurrent[0m[1;2;7m  [0m[2m │  │ [0m
+[0m[2m │ [0m [0m[2m│ [0m[1;2m▎[0m[2m›[0m[1;2m Safe Mode         [0m[2mWrites ask for confirmation and a deliberate acknowledgement.[0m[1;2m                 [0m[2mcurrent[0m[1;2m  [0m[2m │  │ [0m
 [0m[2m │ [0m [0m[2m│    Safe Mode (Full)  Every statement asks for confirmation and a deliberate acknowledgement.                 │  │ [0m
 [0m[2m │ [0m [0m[2m│    Read-Only         Writes are refused. Reads and exports still work.                                       │  │ [0m
 [0m[2m │  │                                                                                                              │  │ [0m
