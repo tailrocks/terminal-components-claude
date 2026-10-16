@@ -48,37 +48,34 @@ core::edit::EditKind::Other | Inputs and Text areas page options | SC8
 core::edit::UndoStack | Inputs and Text areas page options | SC8
 
 # core::event
-core::event::Outcome | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Outcome::Ignored | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Outcome::Consumed | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Outcome::Changed | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Outcome::or | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Input | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Input::Key | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Input::Mouse | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Input::Resize | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Input::Paste | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Input::Tick | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Key | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::Move | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::Down | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::Up | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::Drag | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::Secondary | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::SecondaryDrag | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::SecondaryUp | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::Middle | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::WheelUp | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::WheelDown | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::WheelLeft | Inspector pane: app-wide option or State tab readout | SC1
-core::event::MouseKind::WheelRight | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Mouse | Inspector pane: app-wide option or State tab readout | SC1
-core::event::Mouse::with_mods | Inspector pane: app-wide option or State tab readout | SC1
+core::event::Outcome | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Outcome::Ignored | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Outcome::Consumed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Outcome::Changed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Outcome::or | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Input | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Input::Key | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Input::Mouse | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Input::Resize | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Input::Paste | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Input::Tick | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Key | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::Move | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::Down | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::Up | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::Drag | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::Secondary | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::SecondaryDrag | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::SecondaryUp | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::Middle | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::WheelUp | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::WheelDown | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::WheelLeft | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::MouseKind::WheelRight | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Mouse | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Mouse::with_mods | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::event::InputConfig | Focus & navigation and Toolbars pages | SC28
-core::event::ClientPlatform | Inspector pane: app-wide option or State tab readout | SC1
-core::event::ClientPlatform::MacOs | Inspector pane: app-wide option or State tab readout | SC1
-core::event::ClientPlatform::Other | Inspector pane: app-wide option or State tab readout | SC1
 
 # core::focus
 core::focus::FocusRing | Focus & navigation and Toolbars pages | SC28
@@ -93,68 +90,68 @@ core::focus::FocusChange | Focus & navigation and Toolbars pages | SC28
 core::focus::Focus | Focus & navigation and Toolbars pages | SC28
 
 # core::hit
-core::hit::HitRegion | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::Axis | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::Axis::Vertical | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::Axis::Horizontal | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::Bar | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::HitRegistry | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::ReleaseFrom | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::ReleaseFrom::Press | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::ReleaseFrom::Secondary | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::Hit | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::PartEntry | Inspector pane: app-wide option or State tab readout | SC1
-core::hit::PartMap | Inspector pane: app-wide option or State tab readout | SC1
+core::hit::HitRegion | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::Axis | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::Axis::Vertical | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::Axis::Horizontal | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::Bar | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::HitRegistry | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::ReleaseFrom | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::ReleaseFrom::Press | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::ReleaseFrom::Secondary | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::Hit | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::PartEntry | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::PartMap | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::id
-core::id::WidgetId | Inspector pane: app-wide option or State tab readout | SC1
-core::id::WidgetId::child | Inspector pane: app-wide option or State tab readout | SC1
-core::id::WidgetId::sub | Inspector pane: app-wide option or State tab readout | SC1
-core::id::WidgetId::part | Inspector pane: app-wide option or State tab readout | SC1
-core::id::ItemKey | Inspector pane: app-wide option or State tab readout | SC1
-core::id::ItemKey::Index | Inspector pane: app-wide option or State tab readout | SC1
-core::id::ItemKey::Num | Inspector pane: app-wide option or State tab readout | SC1
-core::id::ItemKey::Text | Inspector pane: app-wide option or State tab readout | SC1
-core::id::Part | Inspector pane: app-wide option or State tab readout | SC1
-core::id::PartRef | Inspector pane: app-wide option or State tab readout | SC1
+core::id::WidgetId | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::WidgetId::child | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::WidgetId::sub | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::WidgetId::part | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::ItemKey | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::ItemKey::Index | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::ItemKey::Num | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::ItemKey::Text | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::Part | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::PartRef | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::intent
-core::intent::Intent | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Key | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Binding | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Paste | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Pointer | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Wheel | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::FocusIn | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::FocusOut | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Layer | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Intent::Cancel | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Move | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Press | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Release | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Click | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Secondary | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::SecondaryRelease | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Middle | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::DragStart | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::Drag | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::Phase::DragEnd | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::FocusVia | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::FocusVia::Keyboard | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::FocusVia::Pointer | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::FocusVia::Programmatic | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::FocusVia::Restore | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::ActionKey | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::DismissReason | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::DismissReason::Esc | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::DismissReason::OutsideClick | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::DismissReason::FocusOut | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::DismissReason::Programmatic | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::LayerEvent | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::LayerEvent::Opened | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::LayerEvent::Dismissed | Inspector pane: app-wide option or State tab readout | SC1
-core::intent::LayerEvent::Closed | Inspector pane: app-wide option or State tab readout | SC1
+core::intent::Intent | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Key | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Binding | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Paste | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Pointer | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Wheel | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::FocusIn | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::FocusOut | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Layer | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::Cancel | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Move | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Press | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Release | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Click | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Secondary | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::SecondaryRelease | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Middle | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::DragStart | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::Drag | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Phase::DragEnd | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::FocusVia | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::FocusVia::Keyboard | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::FocusVia::Pointer | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::FocusVia::Programmatic | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::FocusVia::Restore | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::ActionKey | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::DismissReason | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::DismissReason::Esc | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::DismissReason::OutsideClick | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::DismissReason::FocusOut | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::DismissReason::Programmatic | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::LayerEvent | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::LayerEvent::Opened | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::LayerEvent::Dismissed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::LayerEvent::Closed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::keyboard
 core::keyboard::KeyboardProtocol | Focus & navigation and Toolbars pages | SC28
@@ -182,59 +179,36 @@ core::keymap::KeyBinding | Focus & navigation and Toolbars pages | SC28
 core::keymap::KeyBinding::shift | Focus & navigation and Toolbars pages | SC28
 
 # core::pointer
-core::pointer::FocusOn | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::FocusOn::Press | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::FocusOn::Release | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryOutside | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryOutside::Reopen | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryOutside::Close | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryOutside::Ignore | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryRoute | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryRoute::Nothing | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryRoute::Target | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryRoute::Outside | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::SecondaryRoute::Swallowed | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::focus_on | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::double_click_ms | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::double_click_slop | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::wheel_lines | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::hover_refresh_after_scroll | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::flash_ms | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::secondary_outside | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::pointer_shapes | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::caret_shape | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::end_edit_on_dead_space | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::click_skips_animation | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::autoscroll | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::autoscroll_ms | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::track_repeat | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerConfig::track_repeat_ms | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::Release | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::Release::Click | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::Release::Outside | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::Release::Cancelled | Inspector pane: app-wide option or State tab readout | SC1
-core::pointer::PointerState | Inspector pane: app-wide option or State tab readout | SC1
+core::pointer::SecondaryRoute | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::SecondaryRoute::Nothing | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::SecondaryRoute::Target | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::SecondaryRoute::Outside | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::SecondaryRoute::Swallowed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::Release | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::Release::Click | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::Release::Outside | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::Release::Cancelled | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::PointerState | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::response
-core::response::Flow | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Flow::Ignored | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Flow::Consumed | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Invalidate | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Invalidate::None | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Invalidate::Paint | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Invalidate::Layout | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::repaint | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::relayout | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::no_repaint | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::with_action | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::map_action | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::on_action | Inspector pane: app-wide option or State tab readout | SC1
-core::response::Response::erase | Inspector pane: app-wide option or State tab readout | SC1
-core::response::StateFlags | Inspector pane: app-wide option or State tab readout | SC1
-core::response::StateFlags::union | Inspector pane: app-wide option or State tab readout | SC1
-core::response::StateFlags::with | Inspector pane: app-wide option or State tab readout | SC1
+core::response::Flow | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Flow::Ignored | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Flow::Consumed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Invalidate | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Invalidate::None | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Invalidate::Paint | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Invalidate::Layout | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::repaint | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::relayout | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::no_repaint | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::with_action | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::map_action | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::on_action | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::erase | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::StateFlags | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::StateFlags::union | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::StateFlags::with | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::scroll
 core::scroll::ScrollState | Panels and Scrolling page options | SC22
@@ -266,20 +240,15 @@ core::selection::TriState::All | Columns and Basic table pages | SC11
 core::selection::RowSelection | Columns and Basic table pages | SC11
 
 # core::shape
-core::shape::PointerShape | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::PointerShape::Default | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::PointerShape::Text | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::PointerShape::Pointer | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::PointerShape::ColResize | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::PointerShape::RowResize | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::CaretShape | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::CaretShape::Bar | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::CaretShape::Block | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::CaretShape::Underline | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::CaretShape::Terminal | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::ShapeSupport | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::Shapes | Inspector pane: app-wide option or State tab readout | SC1
-core::shape::ShapeSync | Inspector pane: app-wide option or State tab readout | SC1
+core::shape::PointerShape | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::PointerShape::Default | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::PointerShape::Text | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::PointerShape::Pointer | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::PointerShape::ColResize | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::PointerShape::RowResize | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::ShapeSupport | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::Shapes | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::ShapeSync | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 
 # core::text
 core::text::TextBuffer | Text utilities page | SC26
@@ -317,11 +286,11 @@ ui::context::ContextRequest | Menus page | SC16
 ui::context::ContextRequest::map | Menus page | SC16
 
 # ui::ctx
-ui::ctx::Interaction | Inspector pane: app-wide option or State tab readout | SC1
-ui::ctx::FocusVisible | Inspector pane: app-wide option or State tab readout | SC1
-ui::ctx::FocusVisible::Always | Inspector pane: app-wide option or State tab readout | SC1
-ui::ctx::FocusVisible::KeyboardOnly | Inspector pane: app-wide option or State tab readout | SC1
-ui::ctx::RenderCtx | Inspector pane: app-wide option or State tab readout | SC1
+ui::ctx::Interaction | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+ui::ctx::FocusVisible | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
+ui::ctx::FocusVisible::Always | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
+ui::ctx::FocusVisible::KeyboardOnly | per-widget focus ring policy (Button::focus_visible): the Buttons page option | SC7
+ui::ctx::RenderCtx | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 ui::ctx::Backdrop | Popups & tooltips page | SC19
 ui::ctx::Backdrop::keep_bottom | Popups & tooltips page | SC19
 ui::ctx::Backdrop::keep_top | Popups & tooltips page | SC19
@@ -1269,10 +1238,6 @@ theme::Kind::Seam | Overview theme token tables | SC3
 theme::Ladder | Overview theme token tables | SC3
 theme::Ladders | Overview theme token tables | SC3
 theme::StateModifiers | Overview theme token tables | SC3
-theme::LevelOverrides | Inspector pane: app-wide option or State tab readout | SC1
-theme::ColorLevel::Ansi256 | Inspector pane: app-wide option or State tab readout | SC1
-theme::ColorLevel::Ansi16 | Inspector pane: app-wide option or State tab readout | SC1
-theme::ColorLevel::Mono | Inspector pane: app-wide option or State tab readout | SC1
 theme::Theme::level | Overview theme token tables | SC3
 theme::Theme::field_hover | Overview theme token tables | SC3
 theme::Theme::highlight_danger | Overview theme token tables | SC3
@@ -1292,15 +1257,7 @@ theme::Theme::mods | Overview theme token tables | SC3
 theme::Theme::tint_selection | Overview theme token tables | SC3
 theme::Theme::hintbar | Overview theme token tables | SC3
 theme::Theme::spacing | Overview theme token tables | SC3
-theme::Theme::glyphs | Inspector pane: app-wide option or State tab readout | SC1
-theme::Theme::strings | Inspector pane: app-wide option or State tab readout | SC1
-theme::Theme::edit_entry | Inspector pane: app-wide option or State tab readout | SC1
-theme::Theme::field_keys | Inspector pane: app-wide option or State tab readout | SC1
 theme::Theme::with_ladder | Overview theme token tables | SC3
-theme::Theme::with_glyphs | Inspector pane: app-wide option or State tab readout | SC1
-theme::Theme::with_strings | Inspector pane: app-wide option or State tab readout | SC1
-theme::Theme::with_edit_entry | Inspector pane: app-wide option or State tab readout | SC1
-theme::Theme::with_field_keys | Inspector pane: app-wide option or State tab readout | SC1
 theme::Theme::with_state_modifiers | Overview theme token tables | SC3
 theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
 theme::ButtonKind::Toggle | Overview theme token tables | SC3
@@ -1309,14 +1266,12 @@ theme::BadgeKind::Edit | Overview theme token tables | SC3
 theme::HintAlign | Chrome and Status & hints pages | SC4
 theme::HintAlign::Start | Chrome and Status & hints pages | SC4
 theme::HintAlign::Center | Chrome and Status & hints pages | SC4
-theme::Glyphs | Inspector pane: app-wide option or State tab readout | SC1
-theme::Strings | Inspector pane: app-wide option or State tab readout | SC1
 theme::Insets | Overview theme token tables | SC3
 theme::Spacing | Overview theme token tables | SC3
 theme::HintBarStyle | Chrome and Status & hints pages | SC4
 
 # runtime
-runtime::Coalesce | Inspector pane: app-wide option or State tab readout | SC1
+runtime::Coalesce | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 runtime::TerminalSession | runtime plumbing exercised by every run; no visible surface | permanent
 runtime::SizeWatch | runtime plumbing exercised by every run; no visible surface | permanent
 runtime::InputPump | runtime plumbing exercised by every run; no visible surface | permanent

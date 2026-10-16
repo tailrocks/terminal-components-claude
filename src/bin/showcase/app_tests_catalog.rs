@@ -22,6 +22,8 @@ use ratatui::{Terminal, backend::TestBackend};
 use crate::app::{App, PageId};
 use crate::catalog_scan::{self, Item};
 use crate::coverage::{SHOWN, Shown};
+use crate::inspector::Tab;
+use crate::options::{self, Effect, Opt};
 use crate::pages::template::Section;
 use junie_tui::ui::specimen::SpecimenState;
 
@@ -278,6 +280,100 @@ fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
     Some((rows, text))
 }
 
+/// Every cell of a 220x80 frame of `app`, symbol and style.
+fn frame_cells(app: &mut App) -> Vec<ratatui::buffer::Cell> {
+    let mut term = Terminal::new(TestBackend::new(220, 80)).unwrap();
+    term.draw(|frame| app.render(frame)).unwrap();
+    term.backend().buffer().content().to_vec()
+}
+
+/// What option value `value` shows on `page`: the page's frame, every
+/// section of a templated page, with the Inspector closed; for a
+/// behaviour option, the live configuration and the Inspector's Options
+/// tab instead. `needs` are set first, each through `--opt`.
+fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer::Cell>, String) {
+    let mut app = App::new(Theme::junie());
+    app.goto(page);
+    let set = |app: &mut App, key: &str, value: &str| {
+        let arg = format!("{key}={value}");
+        app.apply_opt(options::parse_opt(&arg).unwrap_or_else(|e| panic!("{arg}: {e}")));
+    };
+    for (k, v) in opt.needs {
+        set(&mut app, k, v);
+    }
+    set(&mut app, opt.key, opt.values[value]);
+    let mut cells = Vec::new();
+    match opt.effect {
+        Effect::Frame if app.pages[page.index()].template().is_some() => {
+            for section in Section::ALL {
+                if let Some(t) = app.pages[page.index()].template_mut() {
+                    t.set_section(section);
+                }
+                cells.extend(frame_cells(&mut app));
+            }
+        }
+        Effect::Frame => cells = frame_cells(&mut app),
+        Effect::Behaviour => {
+            // a first frame sizes the app: at 220 columns the pane docks
+            frame_cells(&mut app);
+            app.toggle_inspector();
+            app.insp.set_tab(Tab::Options);
+            cells = frame_cells(&mut app);
+        }
+    }
+    (cells, app.live_config())
+}
+
+/// `Option(slug, key)` holds when every value it names, set through the
+/// `--opt` path, shows differently from another value of the option.
+/// `key` is `shell.color` (every value) or `shell.color=mono` (one).
+fn option_holds(slug: &str, key: &str) -> Result<(), String> {
+    let page = PageId::from_name(slug).ok_or_else(|| format!("unknown page {slug:?}"))?;
+    let (name, only) = match key.split_once('=') {
+        Some((k, v)) => (k, Some(v)),
+        None => (key, None),
+    };
+    let opt = options::find(name).ok_or_else(|| format!("no option {name:?}"))?;
+    if let Some(owner) = options::page_of(opt.key)
+        && owner != page
+    {
+        return Err(format!("{} is an option of another page", opt.key));
+    }
+    let values: Vec<usize> = match only {
+        Some(v) => vec![
+            opt.index_of(v)
+                .ok_or_else(|| format!("{v:?} is not a value of {}", opt.key))?,
+        ],
+        None => (0..opt.values.len()).collect(),
+    };
+    option_values_hold(page, opt, &values)
+}
+
+/// Each of `values` renders unlike another value of `opt` (the default, or
+/// for the default itself the next value).
+fn option_values_hold(page: PageId, opt: &Opt, values: &[usize]) -> Result<(), String> {
+    for &v in values {
+        let other = if v == opt.default {
+            (opt.default + 1) % opt.values.len()
+        } else {
+            opt.default
+        };
+        let (cells, config) = option_render(page, opt, v);
+        let (base_cells, base_config) = option_render(page, opt, other);
+        let shows = match opt.effect {
+            Effect::Frame => cells != base_cells,
+            Effect::Behaviour => config != base_config && cells != base_cells,
+        };
+        if !shows {
+            return Err(format!(
+                "{}={} shows the same as {}={} ({:?})",
+                opt.key, opt.values[v], opt.key, opt.values[other], opt.effect
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Problems with the declarations themselves: each must hold in the
 /// running showcase.
 fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
@@ -298,11 +394,14 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     ));
                 }
             }
-            // No page has an option table (SC1) yet, so no such
-            // declaration can hold.
-            Shown::Option(slug, key) => problems.push(format!(
-                "{id}: page {slug:?} has no option {key:?} (option tables arrive with SC1)"
-            )),
+            // set through the `--opt` path, the value must change what
+            // the page shows (or, for a behaviour option, the live
+            // configuration and the Options tab)
+            Shown::Option(slug, key) => {
+                if let Err(e) = option_holds(slug, key) {
+                    problems.push(format!("{id}: Option({slug:?}, {key:?}): {e}"));
+                }
+            }
             // the page's States section draws the row whole, under its label
             Shown::StateRow(slug, row) => {
                 let Some(page) = PageId::from_name(slug) else {
@@ -493,6 +592,33 @@ fn gate_fails_when_a_declaration_is_removed() {
             .any(|p| p.contains(&format!("{removed} is neither shown"))),
         "{problems:#?}"
     );
+}
+
+#[test]
+fn gate_sets_an_option_through_opt_and_needs_a_visible_change() {
+    // a real declaration: mono redraws the page; Release (the showcase's
+    // default focus policy) differs from Press in the live configuration
+    assert_eq!(option_holds("overview", "shell.color=mono"), Ok(()));
+    assert_eq!(option_holds("overview", "shell.focus_on=release"), Ok(()));
+    // fixture: the level overrides without the level they override change
+    // nothing, so a declaration of them would not hold
+    let real = options::find("shell.overrides").unwrap();
+    let inert = Opt {
+        needs: &[],
+        ..*real
+    };
+    let err = option_values_hold(PageId::Overview, &inert, &[1]).unwrap_err();
+    assert!(err.contains("shows the same"), "{err}");
+    // with what it needs, the same value holds
+    assert_eq!(option_values_hold(PageId::Overview, real, &[1]), Ok(()));
+    // unknown keys, values and pages
+    for (slug, key) in [
+        ("overview", "shell.glow"),
+        ("overview", "shell.color=purple"),
+        ("nosuchpage", "shell.color"),
+    ] {
+        assert!(option_holds(slug, key).is_err(), "{slug} {key}");
+    }
 }
 
 #[test]

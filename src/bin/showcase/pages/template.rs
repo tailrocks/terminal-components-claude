@@ -2,9 +2,10 @@
 //! sections at the top of the page, then the section's body.
 //!
 //! - **Playground**: the live widget with demo data (the page draws it).
-//! - **Options**: the page's option table. The tables, the Inspector's
-//!   Options tab and `--opt` arrive with SC1; until then the section names
-//!   that step ([`Template::render_options`] is the extension point).
+//! - **Options**: the page's option table (`crate::options::page_options`),
+//!   the same declarations the Inspector's Options tab and `--opt` read.
+//!   [`Template::render_options`] is the extension point: a page with
+//!   options draws an `OptionsView` over its table there.
 //! - **States**: the page's [`StateGrid`], rows = states and columns =
 //!   variants, drawn by the real widget at the current colour level, with a
 //!   "Compare levels" toggle that draws it at all four.
@@ -134,12 +135,13 @@ impl Template {
         Rect::new(area.x, top, area.width, area.bottom() - top)
     }
 
-    /// The Options body until SC1 adds option tables: SC1 draws the page's
-    /// option table here.
+    /// The Options body of a page with no option table yet: its page step
+    /// adds the table (and draws an `OptionsView` here); the shell-wide
+    /// options are in the Inspector meanwhile.
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let e = EmptyState::new("No live options yet")
-            .hint("Option tables, the Inspector's Options tab and --opt arrive with SC1");
+        let e = EmptyState::new("No page options yet")
+            .hint("Shell-wide options: i, then Options · or --opt shell.<key>=<value>");
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
     }
 
