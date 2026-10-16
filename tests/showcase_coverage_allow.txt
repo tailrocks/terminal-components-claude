@@ -587,6 +587,7 @@ widgets::dialog::Dialog::backdrop | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::placement | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::anchor | Dialogs page variants and options | SC17
 widgets::dialog::Dialog::confirm_index | Dialogs page variants and options | SC17
+widgets::dialog::Dialog::title_status | Dialogs page variants and options | SC17
 
 # widgets::diff
 widgets::diff::DiffLineKind | Diff and Terminal page options | SC25
@@ -843,6 +844,7 @@ widgets::keyref::KeyReference::key_max_share | Help & keys and Quit & leave page
 # widgets::list
 widgets::list::ListItem | Lists and Trees page options | SC15
 widgets::list::ListItem::meta | Lists and Trees page options | SC15
+widgets::list::ListItem::meta_tone | Lists and Trees page options | SC15
 widgets::list::ListItem::disabled | Lists and Trees page options | SC15
 widgets::list::ClickAction | Lists and Trees page options | SC15
 widgets::list::ClickAction::Activate | Lists and Trees page options | SC15
@@ -1186,6 +1188,8 @@ widgets::textarea::TextArea::label_hit | Inputs and Text areas page options | SC
 
 # widgets::tree
 widgets::tree::TreeNode::glyph | Lists and Trees page options | SC15
+widgets::tree::TreeNode::glyph_tone | Lists and Trees page options | SC15
+widgets::tree::TreeNode::label_tone | Lists and Trees page options | SC15
 widgets::tree::TreeNode::meta | Lists and Trees page options | SC15
 widgets::tree::FlatRow | Lists and Trees page options | SC15
 widgets::tree::TreeAction | Lists and Trees page options | SC15
