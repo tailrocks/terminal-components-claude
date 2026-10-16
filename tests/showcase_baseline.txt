@@ -81,7 +81,9 @@
 120x40 TrueColor Splits & stacks · States 0a6f08f1ea184cf5
 120x40 TrueColor Master-detail 482403fca54b7665
 120x40 TrueColor Pane tree 1b3370108ff5d148
-120x40 TrueColor Code editor aeb5e5f6136d9194
+120x40 TrueColor Code editor 09aef7f2809b0b93
+120x40 TrueColor Code editor · Options 0e81848254c4f146
+120x40 TrueColor Code editor · States 2bb08aa6f930ce40
 120x40 TrueColor Diff f6861e68523cd537
 120x40 TrueColor Terminal 5bd52c8cb9f8d3fb
 120x40 TrueColor Text utilities 74cf12728f602e6d
@@ -183,7 +185,9 @@
 120x40 Ansi256 Splits & stacks · States 6e0ed1bdaff15ab0
 120x40 Ansi256 Master-detail 85e97741f3b1aad2
 120x40 Ansi256 Pane tree 7613891f83e788de
-120x40 Ansi256 Code editor c9d5ebd367e2bb34
+120x40 Ansi256 Code editor 50a09cf63960de6e
+120x40 Ansi256 Code editor · Options d496ac85ba8fc239
+120x40 Ansi256 Code editor · States 989227b41f29e817
 120x40 Ansi256 Diff 0893877f792d1708
 120x40 Ansi256 Terminal ccaceecae2bada36
 120x40 Ansi256 Text utilities 455c9007286ecaa7
@@ -285,7 +289,9 @@
 120x40 Ansi16 Splits & stacks · States 52053e7324290e8a
 120x40 Ansi16 Master-detail 238becf627a6da7e
 120x40 Ansi16 Pane tree 738a0789a35582db
-120x40 Ansi16 Code editor 30ca1fd99f083435
+120x40 Ansi16 Code editor 0bb8148d923c825a
+120x40 Ansi16 Code editor · Options a542ef664c341efb
+120x40 Ansi16 Code editor · States d38dfe022778137c
 120x40 Ansi16 Diff 0f67136a17506447
 120x40 Ansi16 Terminal 650be876d8f6d0a9
 120x40 Ansi16 Text utilities 51a90955c5d2341a
@@ -387,7 +393,9 @@
 120x40 Mono Splits & stacks · States 39763aa8d3a0f707
 120x40 Mono Master-detail 2b940f0658bea2f9
 120x40 Mono Pane tree 5632a9e2a6ea85c6
-120x40 Mono Code editor f75d6b5230576a9c
+120x40 Mono Code editor 594fb14b2c9f065b
+120x40 Mono Code editor · Options bc9bf7da3a611ee0
+120x40 Mono Code editor · States f367891ef59c6774
 120x40 Mono Diff 6f9d92f1c7e0f9b7
 120x40 Mono Terminal df6118bfce5392da
 120x40 Mono Text utilities 91a1b00b314db958
@@ -489,7 +497,9 @@
 80x24 TrueColor Splits & stacks · States 6472d48823ab7455
 80x24 TrueColor Master-detail 6fadcdbd0820ab55
 80x24 TrueColor Pane tree 6f2136fefcda2fec
-80x24 TrueColor Code editor 7680c6092a685fec
+80x24 TrueColor Code editor 9f7ca5d0f80cd37b
+80x24 TrueColor Code editor · Options cde601464ec7a784
+80x24 TrueColor Code editor · States a356285b4445dba0
 80x24 TrueColor Diff f4a42d4681fc1e7e
 80x24 TrueColor Terminal ab5bb798c114e2e9
 80x24 TrueColor Text utilities c53ed4e3fe385a3c
@@ -591,7 +601,9 @@
 80x24 Ansi256 Splits & stacks · States 283b2836ff679834
 80x24 Ansi256 Master-detail 1176b25f1dffa82e
 80x24 Ansi256 Pane tree 6446c7bd15a5c53f
-80x24 Ansi256 Code editor cd4d925ef8d327c1
+80x24 Ansi256 Code editor 52f3cb90c2000227
+80x24 Ansi256 Code editor · Options d80a67874c4a636b
+80x24 Ansi256 Code editor · States 62eec49ba311929c
 80x24 Ansi256 Diff c0b70f7ad2379652
 80x24 Ansi256 Terminal 6a11546743770b1b
 80x24 Ansi256 Text utilities a0f0908c73410f14
@@ -693,7 +705,9 @@
 80x24 Ansi16 Splits & stacks · States 34edbe3012dbaf80
 80x24 Ansi16 Master-detail ba30063d3ab20e8a
 80x24 Ansi16 Pane tree 812fcdb8278e4d97
-80x24 Ansi16 Code editor 2845d6a76e0c5294
+80x24 Ansi16 Code editor f289c8f6f843b111
+80x24 Ansi16 Code editor · Options bce8e308163c0f5e
+80x24 Ansi16 Code editor · States 09c7ab8563514d3e
 80x24 Ansi16 Diff 4f79dacecda8740f
 80x24 Ansi16 Terminal cccc43d55e039d50
 80x24 Ansi16 Text utilities eb2ffc1484a255b9
@@ -795,7 +809,9 @@
 80x24 Mono Splits & stacks · States 5cbba30b3ba029ee
 80x24 Mono Master-detail f7effc2fb45d953c
 80x24 Mono Pane tree 469f942be5bb6d5d
-80x24 Mono Code editor fa7abd5cf624d8a5
+80x24 Mono Code editor 3ddf6a7239d1b06b
+80x24 Mono Code editor · Options b37085a27ecc758c
+80x24 Mono Code editor · States 0659ae5bb8073a52
 80x24 Mono Diff 37e3a7041ba19660
 80x24 Mono Terminal 1c57b7951fa034da
 80x24 Mono Text utilities 93b27fbb72decdfe
@@ -897,7 +913,9 @@
 72x20 TrueColor Splits & stacks · States e6a0eac61f926dba
 72x20 TrueColor Master-detail f5f941944fd95eeb
 72x20 TrueColor Pane tree 183900da7d005835
-72x20 TrueColor Code editor d623c242d6e3aedb
+72x20 TrueColor Code editor f66e7cd3d954d2d2
+72x20 TrueColor Code editor · Options 800ce4da2daa6f23
+72x20 TrueColor Code editor · States 31c6f7d898e67ff1
 72x20 TrueColor Diff 5cb75d0bd6638e5a
 72x20 TrueColor Terminal 4bf68307afa6da7c
 72x20 TrueColor Text utilities 634a2b73874218b5
@@ -999,7 +1017,9 @@
 72x20 Ansi256 Splits & stacks · States 4c2717bc4d0a1c8b
 72x20 Ansi256 Master-detail 5cd339e7b835f814
 72x20 Ansi256 Pane tree 1ef3956b8c5cf406
-72x20 Ansi256 Code editor 468a16b307938652
+72x20 Ansi256 Code editor 5aec5a376e3ed2ba
+72x20 Ansi256 Code editor · Options 6cce19b34ff886d7
+72x20 Ansi256 Code editor · States b07991c58b52d81a
 72x20 Ansi256 Diff f74f6e7711f4a976
 72x20 Ansi256 Terminal a897c1b89b5c3528
 72x20 Ansi256 Text utilities 1a464876e2b2c526
@@ -1101,7 +1121,9 @@
 72x20 Ansi16 Splits & stacks · States 176fa5117e33fcc7
 72x20 Ansi16 Master-detail fd897839072f8e28
 72x20 Ansi16 Pane tree da823f1fd6e1bd72
-72x20 Ansi16 Code editor efb54834a723906d
+72x20 Ansi16 Code editor 4d179064a8323e07
+72x20 Ansi16 Code editor · Options 876a953e71f43d67
+72x20 Ansi16 Code editor · States f5a46e0848030224
 72x20 Ansi16 Diff 6eff450dd0af432e
 72x20 Ansi16 Terminal 0c1412080e0d4694
 72x20 Ansi16 Text utilities 6e5aafadc8adad6f
@@ -1203,7 +1225,9 @@
 72x20 Mono Splits & stacks · States c7714ec3a1c810ad
 72x20 Mono Master-detail 16a6c64a9ab93a76
 72x20 Mono Pane tree 7c926a64eeba3f64
-72x20 Mono Code editor 9f5cc44ae08238c9
+72x20 Mono Code editor f653bc84ef68a163
+72x20 Mono Code editor · Options 359e92111798a69d
+72x20 Mono Code editor · States c8959647b1d50716
 72x20 Mono Diff 7bae1cc7c91b3639
 72x20 Mono Terminal f1f62c95821abb26
 72x20 Mono Text utilities e09078a379b3c25a
@@ -1305,7 +1329,9 @@
 100x30 TrueColor Splits & stacks · States 9b25f4c3a4851405
 100x30 TrueColor Master-detail fd3fa16ff0f67244
 100x30 TrueColor Pane tree 70ad0bf1cc22ca35
-100x30 TrueColor Code editor 18b6e68f9b0e69fc
+100x30 TrueColor Code editor 486a1eb0647cc148
+100x30 TrueColor Code editor · Options 05ee93645f4abb19
+100x30 TrueColor Code editor · States 51f82c44fa6034a0
 100x30 TrueColor Diff b7abd875237b9088
 100x30 TrueColor Terminal 8a67171d2dd50a0a
 100x30 TrueColor Text utilities ebce088d0d49d385
@@ -1407,7 +1433,9 @@
 100x30 Ansi256 Splits & stacks · States 578b29f4e626b22f
 100x30 Ansi256 Master-detail 00b800566bf37add
 100x30 Ansi256 Pane tree 16e1c8433dde2881
-100x30 Ansi256 Code editor d524357260306835
+100x30 Ansi256 Code editor e5418a887c9457f1
+100x30 Ansi256 Code editor · Options c971e17a144bb978
+100x30 Ansi256 Code editor · States bf1a521b27304ca5
 100x30 Ansi256 Diff b14f4670b0617675
 100x30 Ansi256 Terminal 64ed21eae63b4318
 100x30 Ansi256 Text utilities 1e1b00070b3a8f6f
@@ -1509,7 +1537,9 @@
 100x30 Ansi16 Splits & stacks · States f54661ad52fd8d81
 100x30 Ansi16 Master-detail f04a91ef81d8f9ed
 100x30 Ansi16 Pane tree 5245c3462c59a2b6
-100x30 Ansi16 Code editor a9fe7189db297dfc
+100x30 Ansi16 Code editor 6230af8bc417d046
+100x30 Ansi16 Code editor · Options 0c28c16dd7c50576
+100x30 Ansi16 Code editor · States 252ef9eae2474062
 100x30 Ansi16 Diff b2c6a3b2932857f6
 100x30 Ansi16 Terminal 4afd4c77605644ac
 100x30 Ansi16 Text utilities bc83da20458765f4
@@ -1611,7 +1641,9 @@
 100x30 Mono Splits & stacks · States 6e4634d9d0282cda
 100x30 Mono Master-detail f219f52195938ef6
 100x30 Mono Pane tree 86bbd5a364d2100f
-100x30 Mono Code editor bb0886fb62e19c9f
+100x30 Mono Code editor d74a71600c6e5757
+100x30 Mono Code editor · Options 2515717694225fcf
+100x30 Mono Code editor · States 0ef1810cc6363fdb
 100x30 Mono Diff 5252b5675be4a83c
 100x30 Mono Terminal c2fa3e5c8fbd0403
 100x30 Mono Text utilities 557f29c5767ff1aa
@@ -1713,7 +1745,9 @@
 160x50 TrueColor Splits & stacks · States 3cfe4fe5a60e1e6f
 160x50 TrueColor Master-detail 0d0ee0e3e64ecd32
 160x50 TrueColor Pane tree 9560012405bb3aeb
-160x50 TrueColor Code editor bcce4b810de0cd87
+160x50 TrueColor Code editor 207f880880343a91
+160x50 TrueColor Code editor · Options f1679475effb1f97
+160x50 TrueColor Code editor · States d56e2e4db78e1d1b
 160x50 TrueColor Diff 165cc83734bf1951
 160x50 TrueColor Terminal 2ad30c5a26f06b90
 160x50 TrueColor Text utilities 0d2db94749545f5f
@@ -1815,7 +1849,9 @@
 160x50 Ansi256 Splits & stacks · States d6a30bf63207f33b
 160x50 Ansi256 Master-detail 310fae5c47dffbed
 160x50 Ansi256 Pane tree 47911932e5265e61
-160x50 Ansi256 Code editor bf88f7e94354bf8a
+160x50 Ansi256 Code editor a65728f769883e85
+160x50 Ansi256 Code editor · Options da7294333ff2ba96
+160x50 Ansi256 Code editor · States 7bc87c93b73a6c88
 160x50 Ansi256 Diff 0df67d598456ff2b
 160x50 Ansi256 Terminal b4b01f41e1ef2e01
 160x50 Ansi256 Text utilities 51a1fd7f0fcb8a2b
@@ -1917,7 +1953,9 @@
 160x50 Ansi16 Splits & stacks · States 2d4de111dac9b456
 160x50 Ansi16 Master-detail 04536ac0e9b60375
 160x50 Ansi16 Pane tree 415a35268efc5186
-160x50 Ansi16 Code editor bec459cfab599be3
+160x50 Ansi16 Code editor d5d2fadf80e6c0ff
+160x50 Ansi16 Code editor · Options bb5df1a349bf5adb
+160x50 Ansi16 Code editor · States 9e7851a60c53a837
 160x50 Ansi16 Diff 83d1ec6b15af9872
 160x50 Ansi16 Terminal baf0324ca229d5c4
 160x50 Ansi16 Text utilities b0ccda07a090a6df
@@ -2019,7 +2057,9 @@
 160x50 Mono Splits & stacks · States 20333fb906933e95
 160x50 Mono Master-detail fae2fcfdc80b17a2
 160x50 Mono Pane tree 91114ee98f009617
-160x50 Mono Code editor f44fbf492b9f80da
+160x50 Mono Code editor 25ee79819ab72668
+160x50 Mono Code editor · Options 7e645ceff379518e
+160x50 Mono Code editor · States 7c7c84b8396b166b
 160x50 Mono Diff 7d0e3830bcc6c26a
 160x50 Mono Terminal 86df5fddad6c786b
 160x50 Mono Text utilities 4d328bbaf8f87a5f

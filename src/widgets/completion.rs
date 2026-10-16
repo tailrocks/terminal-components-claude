@@ -35,6 +35,23 @@ pub struct CompletionItem {
     pub matched: Vec<usize>,
 }
 
+impl CompletionItem {
+    /// Accept the item into `buffer`: the `replace_len` bytes typed before
+    /// the cursor (the prefix the popup matched) give way to
+    /// [`Self::insert`]. An insert that opens a call (`fetch(`) gets its
+    /// closing `)` with the cursor between the two, as editors pair
+    /// brackets on a function completion.
+    pub fn apply(&self, buffer: &mut crate::core::text::TextBuffer, replace_len: usize) {
+        let cur = buffer.cursor_offset();
+        buffer.remove_range(cur.saturating_sub(replace_len)..cur);
+        buffer.insert_str(&self.insert);
+        if self.insert.ends_with('(') {
+            buffer.insert_char(')');
+            buffer.move_left(false);
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Completion {
     /// The rows registered in the last render, by id.
@@ -369,6 +386,27 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn applying_an_item_replaces_the_prefix_and_pairs_a_call() {
+        let item = |insert: &str| CompletionItem {
+            label: insert.to_owned(),
+            glyph: "ƒ".into(),
+            detail: String::new(),
+            insert: insert.to_owned(),
+            matched: vec![],
+        };
+        let mut b = crate::core::text::TextBuffer::multi("let x = fe");
+        b.move_end(false);
+        item("fetch(").apply(&mut b, 2);
+        assert_eq!(b.text(), "let x = fetch()");
+        assert_eq!(b.cursor_offset(), "let x = fetch(".len());
+        let mut b = crate::core::text::TextBuffer::multi("Cli");
+        b.move_end(false);
+        item("Client").apply(&mut b, 3);
+        assert_eq!(b.text(), "Client");
+        assert_eq!(b.cursor_offset(), 6);
+    }
 
     #[test]
     fn builders_set_rows_and_width_bounds() {

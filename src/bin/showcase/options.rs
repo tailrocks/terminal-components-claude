@@ -261,6 +261,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::EmptyError => EMPTY_ERROR,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
+        PageId::Editor => CODE_EDITOR,
         _ => &[],
     }
 }
@@ -985,6 +986,82 @@ pub static SPLITS_STACKS: &[Opt] = &[
         "splitsstacks.track_click",
         "Stack track click",
         &["page", "jump"],
+    ),
+];
+
+/// Code editor (SC24): every `CodeEditor` knob, then the completion
+/// popup's.
+pub static CODE_EDITOR: &[Opt] = &[
+    Opt::new("codeeditor.read_only", "Read-only", OFF_ON),
+    Opt::new(
+        "codeeditor.edit_entry",
+        "Edit entry",
+        &["theme", "immediate", "type-to-edit", "explicit"],
+    ),
+    Opt::new("codeeditor.tab_leaves", "Tab leaves the editor", OFF_ON),
+    Opt::new("codeeditor.esc_reverts", "Esc reverts", OFF_ON),
+    Opt::new(
+        "codeeditor.field_keys",
+        "Field keys",
+        &["theme", "emacs", "desktop"],
+    ),
+    Opt::new(
+        "codeeditor.text_keymap",
+        "Text key map",
+        &["preset", "custom"],
+    ),
+    Opt::new(
+        "codeeditor.nav",
+        "Reading keys",
+        &["default", "vim", "no-page"],
+    ),
+    Opt::new("codeeditor.keymap", "Command keys", &["default", "custom"]),
+    Opt::new("codeeditor.indent", "Indent", &["4", "2"]),
+    Opt::new("codeeditor.highlighter", "Syntax tones", OFF_ON).default(1),
+    Opt::new("codeeditor.segmenter", "Blocks", OFF_ON).default(1),
+    Opt::new("codeeditor.document", "Document", &["sample", "empty"]),
+    Opt::new(
+        "codeeditor.horizontal",
+        "Horizontal scroll",
+        &["theme", "on", "off"],
+    ),
+    Opt::new(
+        "codeeditor.scrollbar_gap",
+        "Scrollbar gap",
+        &["1", "0", "2"],
+    ),
+    Opt::new("codeeditor.track_click", "Track click", &["page", "jump"]),
+    // completion
+    Opt::new("codeeditor.completion_rows", "Completion rows", &["8", "4"]),
+    Opt::new(
+        "codeeditor.completion_width",
+        "Completion width",
+        &["default", "wide"],
+    ),
+    Opt::new(
+        "codeeditor.completion_placement",
+        "Completion placement",
+        &["below", "above"],
+    ),
+    Opt::new(
+        "codeeditor.completion_fit",
+        "Completion fit",
+        &["default", "flush"],
+    ),
+    Opt::new(
+        "codeeditor.completion_cursor",
+        "Completion cursor",
+        &["fill", "bar"],
+    ),
+    Opt::new(
+        "codeeditor.completion_dismiss",
+        "Completion dismiss",
+        &["light", "escape"],
+    ),
+    Opt::new(
+        "codeeditor.completion_nav",
+        "Completion keys",
+        &["default", "vim"],
     ),
 ];
 

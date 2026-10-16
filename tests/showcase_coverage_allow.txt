@@ -357,52 +357,16 @@ widgets::choice_dialog::ChoiceDialog::close_button | Dialog kinds page: a custom
 widgets::choice_dialog::ChoiceDialog::button_row | Dialog kinds page: button-row wrap | SC18
 
 # widgets::code
-widgets::code::Severity | Code editor page options | SC24
-widgets::code::Severity::Error | Code editor page options | SC24
-widgets::code::Severity::Warning | Code editor page options | SC24
-widgets::code::Diagnostic | Code editor page options | SC24
-widgets::code::FindState | Code editor page options | SC24
-widgets::code::EditorAction | Code editor page options | SC24
-widgets::code::EditorAction::Changed | Code editor page options | SC24
-widgets::code::EditorAction::CursorMoved | Code editor page options | SC24
-widgets::code::EditorAction::Committed | Code editor page options | SC24
-widgets::code::EditorAction::Leave | Code editor page options | SC24
-widgets::code::CodeCmd | Code editor page options | SC24
-widgets::code::CodeCmd::Edit | Code editor page options | SC24
-widgets::code::CodeCmd::Append | Code editor page options | SC24
-widgets::code::CodeCmd::PrevBlock | Code editor page options | SC24
-widgets::code::CodeCmd::NextBlock | Code editor page options | SC24
-widgets::code::CodeCmd::Find | Code editor page options | SC24
-widgets::code::CodeCmd::NextMatch | Code editor page options | SC24
-widgets::code::CodeCmd::PrevMatch | Code editor page options | SC24
-widgets::code::CodeEditor::edit_entry | Code editor page options | SC24
-widgets::code::CodeEditor::esc_reverts | Code editor page options | SC24
-widgets::code::CodeEditor::tab_leaves | Code editor page options | SC24
-widgets::code::CodeEditor::text_keymap | Code editor page options | SC24
-widgets::code::CodeEditor::field_keys | Code editor page options | SC24
-widgets::code::CodeEditor::nav | Code editor page options | SC24
-widgets::code::CodeEditor::keymap | Code editor page options | SC24
-widgets::code::CodeEditor::scrollbar_gap | Code editor page options | SC24
-widgets::code::CodeEditor::horizontal | Code editor page options | SC24
-widgets::code::CodeEditor::highlighter | Code editor page options | SC24
-widgets::code::CodeEditor::segmenter | Code editor page options | SC24
-widgets::code::CodeEditor::read_only | Code editor page options | SC24
-widgets::code::CodeEditor::placeholder | Code editor page options | SC24
-widgets::code::CodeEditor::track_click | Code editor page options | SC24
+widgets::code::EditorAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::code::EditorAction::Changed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::code::EditorAction::CursorMoved | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::code::EditorAction::Committed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::code::EditorAction::Leave | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::completion
-widgets::completion::CompletionItem | Code editor page options | SC24
-widgets::completion::Completion | Code editor page options | SC24
-widgets::completion::CompletionAction | Code editor page options | SC24
-widgets::completion::CompletionAction::Accept | Code editor page options | SC24
-widgets::completion::CompletionAction::Dismiss | Code editor page options | SC24
-widgets::completion::Completion::nav | Code editor page options | SC24
-widgets::completion::Completion::max_rows | Code editor page options | SC24
-widgets::completion::Completion::popup_width | Code editor page options | SC24
-widgets::completion::Completion::placement | Code editor page options | SC24
-widgets::completion::Completion::fit | Code editor page options | SC24
-widgets::completion::Completion::cursor_style | Code editor page options | SC24
-widgets::completion::Completion::dismiss | Code editor page options | SC24
+widgets::completion::CompletionAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::completion::CompletionAction::Accept | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::completion::CompletionAction::Dismiss | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # widgets::dialog
 widgets::dialog::DialogBody | Dialogs page variants and options | SC17
