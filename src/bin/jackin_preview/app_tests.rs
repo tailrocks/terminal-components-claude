@@ -1601,3 +1601,22 @@ fn a_detail_card_that_holds_focus_shows_the_one_focus_bar() {
     assert_eq!(bars.len(), 1, "{}", h.text());
     assert!(bars[0].contains("▎Claude · Work"), "{}", h.text());
 }
+
+#[test]
+fn the_accounts_health_line_wraps_instead_of_cutting_its_issues() {
+    // the toned Health summary (6348ef7ed) was drawn on one line and cut
+    // (`· 1 refres…`); the baseline wrapped it, so every issue was listed
+    let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    let text = h.text();
+    assert!(text.contains("Health"), "{text}");
+    let joined: String = text
+        .lines()
+        .skip_while(|l| !l.contains("Health"))
+        .take(4)
+        .collect::<Vec<_>>()
+        .join(" ");
+    for part in ["refreshing", "3 failed", "unresolved"] {
+        assert!(joined.contains(part), "{part:?} missing: {text}");
+    }
+    assert!(!joined.contains("refres…"), "{text}");
+}

@@ -147,6 +147,55 @@ pub fn render_spans(
     w
 }
 
+/// Word-wrap a line of spans into lines of at most `w` cells (plain word
+/// wrap, [`crate::ui::text::WrapOpts::PLAIN`]): every wrapped piece keeps
+/// the tone and modifiers of the span its text came from, so a toned
+/// summary (`2 ok · 1 failed`) wraps the way plain text does instead of
+/// being cut by [`render_spans`].
+pub fn wrap_spans(line: &[Span], w: usize) -> Vec<Line> {
+    let full: Vec<(char, usize)> = line
+        .iter()
+        .enumerate()
+        .flat_map(|(i, s)| s.text.chars().map(move |c| (c, i)))
+        .collect();
+    let text: String = full.iter().map(|(c, _)| c).collect();
+    let mut at = 0;
+    let mut out = Vec::new();
+    for part in crate::ui::text::wrap_with(&text, w, crate::ui::text::WrapOpts::PLAIN) {
+        let mut pieces: Line = Vec::new();
+        for pc in part.chars() {
+            // the wrap drops the spaces it breaks at: skip to this char
+            let found = full[at..].iter().position(|(c, _)| *c == pc);
+            let si = match found {
+                Some(k) => {
+                    at += k + 1;
+                    full[at - 1].1
+                }
+                // a stand-in the wrap drew (`…`): the last span's style
+                None => full[at.saturating_sub(1).min(full.len().saturating_sub(1))].1,
+            };
+            let src = &line[si];
+            match pieces.last_mut() {
+                Some(p) if same_style(p, src) => p.text.push(pc),
+                _ => pieces.push(Span {
+                    text: pc.to_string(),
+                    ..src.clone()
+                }),
+            }
+        }
+        out.push(pieces);
+    }
+    out
+}
+
+fn same_style(a: &Span, b: &Span) -> bool {
+    a.tone == b.tone
+        && a.bold == b.bold
+        && a.italic == b.italic
+        && a.underline == b.underline
+        && a.reversed == b.reversed
+}
+
 /// Logical position: line index and display column.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CellPos {
@@ -1952,6 +2001,34 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn toned_spans_wrap_by_word_and_keep_their_tones() {
+        let line = vec![
+            Span::new("degraded", Tone::Warning),
+            Span::new(" · ", Tone::Muted),
+            Span::new("3 failed", Tone::Error).bold(),
+            Span::new(" · 2 identities unresolved", Tone::Muted),
+        ];
+        let rows = wrap_spans(&line, 20);
+        let text: Vec<String> = rows.iter().map(|l| line_text(l)).collect();
+        assert_eq!(
+            text,
+            ["degraded · 3 failed", "· 2 identities", "unresolved"],
+            "{rows:?}"
+        );
+        assert_eq!(rows[0][0].tone, Tone::Warning);
+        let failed = rows[0]
+            .iter()
+            .find(|s| s.text == "3 failed")
+            .expect("its own span");
+        assert!(failed.bold && failed.tone == Tone::Error, "{failed:?}");
+        assert!(
+            rows[1].iter().all(|s| s.tone == Tone::Muted),
+            "{:?}",
+            rows[1]
+        );
+    }
 
     fn lines(n: usize) -> Vec<Line> {
         (0..n)
