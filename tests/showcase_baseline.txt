@@ -104,9 +104,9 @@
 80x24 TrueColor Dialogs 020d62808374ce36
 80x24 TrueColor Progress 8bc7b2c77fe3fb52
 80x24 TrueColor Scrolling 94d848c3125b9eed
-80x24 TrueColor Terminal 54e7ded697cc052e
+80x24 TrueColor Terminal 4f4471ab255f2d05
 80x24 TrueColor Code editor 6068ae2fbd07a6ca
-80x24 TrueColor Diff 48062609055c97b1
+80x24 TrueColor Diff 8005faa0e5633afe
 80x24 TrueColor Data grid 09d5fc3da24cc4c2
 80x24 TrueColor Chips & selects 081dc8ef00ce5ebf
 80x24 TrueColor Pickers 901c4c1e7fca578a
@@ -127,9 +127,9 @@
 80x24 Ansi256 Dialogs 89c470b4098e3117
 80x24 Ansi256 Progress 0cde8a7b9d39a42e
 80x24 Ansi256 Scrolling a781075f6654223b
-80x24 Ansi256 Terminal 1db91260c31c1288
+80x24 Ansi256 Terminal 8c6e5482e174a513
 80x24 Ansi256 Code editor b63eb389367ead23
-80x24 Ansi256 Diff 9175a86b9c6ee9dc
+80x24 Ansi256 Diff b32d7a629d4d811b
 80x24 Ansi256 Data grid 7d5ebc6c068f87e3
 80x24 Ansi256 Chips & selects 64acc9850403a12b
 80x24 Ansi256 Pickers 7a419cd3d0231536
@@ -150,9 +150,9 @@
 80x24 Ansi16 Dialogs c20cb2fde32c9f35
 80x24 Ansi16 Progress baafd53382658e0d
 80x24 Ansi16 Scrolling 664507f1a4de4edf
-80x24 Ansi16 Terminal 7ebcbfd9d9c14bb7
+80x24 Ansi16 Terminal 23308d1c32faf5c8
 80x24 Ansi16 Code editor 81ee31ae5f3907b1
-80x24 Ansi16 Diff 91951c12b69059ce
+80x24 Ansi16 Diff c0a0bc9467e94a93
 80x24 Ansi16 Data grid fa36be243efb842e
 80x24 Ansi16 Chips & selects 36ece3b1adc3cb94
 80x24 Ansi16 Pickers 951ba69688a01506
@@ -173,9 +173,9 @@
 80x24 Mono Dialogs fffe38a361ef376b
 80x24 Mono Progress fe8778141fa838ff
 80x24 Mono Scrolling d075945a83471118
-80x24 Mono Terminal 6ee9dc58d41e4ae7
+80x24 Mono Terminal 1703c46a5b7842e4
 80x24 Mono Code editor 8b932f63fde29775
-80x24 Mono Diff 1ebd42af64f330eb
+80x24 Mono Diff 043f9b95a3eef29e
 80x24 Mono Data grid fad71425bba852d1
 80x24 Mono Chips & selects 4ae03200b4b7f810
 80x24 Mono Pickers 8e2926819c5874ee
@@ -196,9 +196,9 @@
 72x20 TrueColor Dialogs ec43bb40206c4c32
 72x20 TrueColor Progress 2819ee171c789963
 72x20 TrueColor Scrolling 2a5279a06f5d3235
-72x20 TrueColor Terminal 42be214c8be76f1f
+72x20 TrueColor Terminal 2629fd8bdf91e5c8
 72x20 TrueColor Code editor b8cd32834685de04
-72x20 TrueColor Diff 9dc37813b224f347
+72x20 TrueColor Diff ba86208ce886f465
 72x20 TrueColor Data grid d75e2375ad71edc1
 72x20 TrueColor Chips & selects ec91bc93ae3a1572
 72x20 TrueColor Pickers 3f0244b303e89a71
@@ -219,9 +219,9 @@
 72x20 Ansi256 Dialogs a9ddc3d0ee7fdc7e
 72x20 Ansi256 Progress b6d6862e9351314d
 72x20 Ansi256 Scrolling 3c70651638d381d2
-72x20 Ansi256 Terminal dd7dad8d9ba5f76e
+72x20 Ansi256 Terminal 8f20f86418e015b5
 72x20 Ansi256 Code editor 295cc42214892645
-72x20 Ansi256 Diff 166aeaff4c359d52
+72x20 Ansi256 Diff 36469224efde7eca
 72x20 Ansi256 Data grid 0376a81133bd8842
 72x20 Ansi256 Chips & selects cd34019b7bf1d2a8
 72x20 Ansi256 Pickers 577eb8ec3daaea5f
@@ -242,9 +242,9 @@
 72x20 Ansi16 Dialogs 457bacde1072ac37
 72x20 Ansi16 Progress eebcacafe3004a7c
 72x20 Ansi16 Scrolling fdfb0a118c98b1e0
-72x20 Ansi16 Terminal b4eed984d4135e75
+72x20 Ansi16 Terminal 9fb19535d6c5e819
 72x20 Ansi16 Code editor d792a911bd7e080a
-72x20 Ansi16 Diff 0e034bdac5ba0a7e
+72x20 Ansi16 Diff 0cb96484153400d2
 72x20 Ansi16 Data grid 9250e0fe2c6c8ec4
 72x20 Ansi16 Chips & selects 040b4156bdfeaae9
 72x20 Ansi16 Pickers c40780a43fe25b92
@@ -265,9 +265,9 @@
 72x20 Mono Dialogs a866a7351269fab9
 72x20 Mono Progress 2bf162f0afbdffa8
 72x20 Mono Scrolling 4fb16dd703ffd1b4
-72x20 Mono Terminal 003582749fa812d9
+72x20 Mono Terminal a76867f860d33141
 72x20 Mono Code editor 51d0902118cce242
-72x20 Mono Diff 547d51ba2cb62d9f
+72x20 Mono Diff f450a12f27f2e29b
 72x20 Mono Data grid a03034a41c2a528d
 72x20 Mono Chips & selects d69e78f9a5830a5f
 72x20 Mono Pickers 343e14e7db5de330

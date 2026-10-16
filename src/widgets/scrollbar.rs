@@ -245,6 +245,13 @@ pub fn press(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     scroll.press_track(track_row(track, pos), track.height as usize)
 }
 
+/// [`press`] under a track-click policy: with [`TrackClick::Page`] a
+/// press on the bare track moves one page toward the pointer instead of
+/// jumping the thumb under it (the macOS "next page" behaviour).
+pub fn press_with(track: Rect, pos: Position, scroll: &mut ScrollState, click: TrackClick) -> bool {
+    scroll.press_track_with(track_row(track, pos), track.height as usize, click)
+}
+
 /// The pointer moved while held after [`press`]: the thumb follows,
 /// keeping the grabbed row under the pointer. Returns whether the offset
 /// changed.
