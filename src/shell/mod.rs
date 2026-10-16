@@ -5,14 +5,20 @@
 //! - [`Shell`] and [`App`]: the state every app keeps and the trait that
 //!   gives an app [`Application`]: the render prologue and epilogue, focus
 //!   upkeep ([`PageKey`]) and the blur fan-out.
+//! - [`Cx`] and [`Request`]: the event context a page handles input in and
+//!   what it asks of the shell, with the background-request policy
+//!   ([`background`]).
 //! - [`StatusLine`]: the transient status message and its expiry rule.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
 
 mod app;
+mod cx;
 mod status;
 
+pub use crate::ui::layer::LayerTag;
 pub use app::{App, PageKey, Shell, blur_fan_out, handle, render};
+pub use cx::{Cx, Request, background};
 pub use status::StatusLine;
 
 use crate::runtime::Application;
