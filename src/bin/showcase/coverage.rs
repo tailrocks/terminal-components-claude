@@ -341,6 +341,120 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "theme::ButtonKind::Danger",
         Demo("buttons", "Primary Secondary Subtle Danger"),
     ),
+    // SC7 Buttons
+    (
+        "ui::ctx::FocusVisible",
+        Option("buttons", "buttons.focus_visible"),
+    ),
+    (
+        "ui::ctx::FocusVisible::Always",
+        Option("buttons", "buttons.focus_visible=always"),
+    ),
+    (
+        "ui::ctx::FocusVisible::KeyboardOnly",
+        Option("buttons", "buttons.focus_visible=keyboard-only"),
+    ),
+    (
+        "widgets::button::Button::focus_visible",
+        Option("buttons", "buttons.focus_visible"),
+    ),
+    (
+        "widgets::button::Button::focusable",
+        Option("buttons", "buttons.toolbar_focus"),
+    ),
+    (
+        "widgets::button::Button::tooltip",
+        Demo("buttons", "hover a tool for its tooltip"),
+    ),
+    (
+        "widgets::button::Button::shortcut",
+        Demo("buttons", "F5 runs · Shift+F5 cancels"),
+    ),
+    ("widgets::button::ButtonRow", Demo("buttons", "Button row")),
+    (
+        "widgets::button::RowLayout",
+        Demo("buttons", "columns · every button fits"),
+    ),
+    (
+        "widgets::button::RowAlign",
+        Option("buttons", "buttons.row_align"),
+    ),
+    (
+        "widgets::button::RowAlign::Start",
+        Option("buttons", "buttons.row_align=start"),
+    ),
+    (
+        "widgets::button::RowAlign::End",
+        Option("buttons", "buttons.row_align=end"),
+    ),
+    (
+        "widgets::button::ButtonRow::align",
+        Option("buttons", "buttons.row_align"),
+    ),
+    (
+        "widgets::button::RowOverflow",
+        Option("buttons", "buttons.row_overflow"),
+    ),
+    (
+        "widgets::button::RowOverflow::More",
+        Option("buttons", "buttons.row_overflow=more"),
+    ),
+    (
+        "widgets::button::RowOverflow::Wrap",
+        Option("buttons", "buttons.row_overflow=wrap"),
+    ),
+    (
+        "widgets::button::ButtonRow::overflow",
+        Option("buttons", "buttons.row_overflow"),
+    ),
+    (
+        "widgets::button::ButtonRow::gap",
+        Option("buttons", "buttons.row_gap"),
+    ),
+    (
+        "widgets::button::ButtonRow::wrap",
+        Option("buttons", "buttons.row_wrap"),
+    ),
+    (
+        "widgets::icon_button::IconButton",
+        Demo("buttons", "Icon buttons"),
+    ),
+    (
+        "widgets::icon_button::IconLook",
+        Demo("buttons", "Icon buttons"),
+    ),
+    (
+        "widgets::icon_button::IconLook::Close",
+        Demo("buttons", "Close ×"),
+    ),
+    (
+        "widgets::icon_button::IconLook::Title",
+        Demo("buttons", "Title · 5-cell plate"),
+    ),
+    (
+        "widgets::icon_button::IconButton::plate",
+        Demo("buttons", "Title · 5-cell plate"),
+    ),
+    (
+        "widgets::icon_button::IconButton::pad",
+        Option("buttons", "buttons.icon_pad"),
+    ),
+    (
+        "widgets::icon_button::IconButton::danger_hover",
+        Option("buttons", "buttons.icon_danger"),
+    ),
+    (
+        "widgets::icon_button::IconButton::tip",
+        Demo("buttons", "hover a plate for its tooltip"),
+    ),
+    (
+        "ui::specimen::StateGrid::label_width",
+        Option("buttons", "buttons.label_width"),
+    ),
+    (
+        "ui::specimen::StateGrid::focus_mark",
+        Option("buttons", "buttons.focus_mark"),
+    ),
     (
         "widgets::input::TextInput",
         Demo("inputs", "Project name *"),

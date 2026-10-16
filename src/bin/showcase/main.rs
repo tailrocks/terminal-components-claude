@@ -14,6 +14,8 @@ mod app_tests_context;
 #[cfg(test)]
 mod app_tests_coverage;
 #[cfg(test)]
+mod app_tests_inputs_forms;
+#[cfg(test)]
 mod app_tests_menus;
 #[cfg(test)]
 mod app_tests_mouse;
