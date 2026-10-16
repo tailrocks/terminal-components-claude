@@ -1,6 +1,6 @@
 //! Dialog kinds (Overlays, plan §7.5 SC18): the library's purpose-built
 //! modals, `FormDialog`, `InfoDialog`, `ChoiceDialog` and `HelpOverlay`,
-//! opened on the page's layer stack ([`super::layer_host::LayerHost`]).
+//! opened on the shell's layer stack with the page as their owner.
 //!
 //! - **Playground**: an "Add connection" form with every field kind (an
 //!   input, a masked password showing its last four characters, a select,
@@ -21,11 +21,9 @@ use ratatui::layout::Rect;
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
-use crate::pages::layer_host::{LayerHost, Report};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Cx, Hint, Page, PageEvent};
+use crate::pages::{Cx, Hint, Page, PageEvent, Report};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::focus::Focus;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys};
@@ -72,7 +70,9 @@ pub struct DialogKindsPage {
     template: Template,
     opts: PageValues,
     pub buttons: Vec<Button>,
-    pub host: LayerHost,
+    /// The kinds of the layers the page has open on the shell's stack,
+    /// bottom first (the form, the key picker over it).
+    open: Vec<&'static str>,
     /// What the dialogs returned, newest last.
     pub log: Vec<String>,
     channel: usize,
@@ -95,7 +95,7 @@ impl DialogKindsPage {
             template: Template::new(ID, states_grid()),
             opts: PageValues::new(page_options(PageId::DialogKinds)),
             buttons,
-            host: LayerHost::default(),
+            open: vec![],
             log: vec![],
             channel: 0,
         }
@@ -270,18 +270,25 @@ impl DialogKindsPage {
         .close_button(self.close_button())
     }
 
-    fn open(&mut self, i: usize, focus: &mut Focus) {
-        let (layer, kind): (Box<dyn junie_tui::ui::layer::Layer<LayerResult>>, &str) = match i {
-            0 => (Box::new(self.form()), "form"),
-            1 => (Box::new(self.info()), "info"),
-            2 => (Box::new(self.choice()), "choice"),
-            _ => (Box::new(self.help()), "help"),
+    fn open(&mut self, i: usize, cx: &mut Cx) {
+        let kind = match i {
+            0 => "form",
+            1 => "info",
+            2 => "choice",
+            _ => "reference",
         };
-        self.host.open(layer, LayerTag::new(kind), focus);
+        let tag = LayerTag::new(kind);
+        match i {
+            0 => cx.open(self.form(), tag),
+            1 => cx.open(self.info(), tag),
+            2 => cx.open(self.choice(), tag),
+            _ => cx.open(self.help(), tag),
+        }
+        self.open.push(kind);
     }
 
     /// Stack the key picker over the open form (its chooser fired).
-    fn open_key_picker(&mut self, focus: &mut Focus) {
+    fn open_key_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(KEYS, "SSH key");
         p.searchable = false;
         p.width = 48;
@@ -291,14 +298,23 @@ impl DialogKindsPage {
                 .map(|k| PickerItem::new(*k).glyph("⚿"))
                 .collect(),
         );
-        self.host.open(Box::new(p), LayerTag::new("keys"), focus);
+        cx.open(p, LayerTag::new("keys"));
+        self.open.push("keys");
     }
 
-    fn on_report(&mut self, r: Report, cx: &mut Cx) {
-        let kind = r.tag.kind;
-        match r.result {
+    /// What a layer the page opened reported: an event keeps it open (the
+    /// page changes it through `Cx::with_top`), a result closed it.
+    fn on_report(&mut self, kind: &str, r: Report, cx: &mut Cx) {
+        if r.closed.is_some() {
+            self.open.pop();
+        }
+        let Some(result) = r.result.clone() else {
+            return;
+        };
+        match result {
             LayerResult::Form(FormAction::Changed(field)) => {
-                if let Some(f) = self.host.layers.top_as_mut::<FormDialog>() {
+                self.log.push(format!("Form · Changed({field:?})"));
+                cx.with_top::<FormDialog>(move |f| {
                     if field == "tunnel" {
                         let on = matches!(
                             f.field("tunnel").map(|x| x.value()),
@@ -308,58 +324,46 @@ impl DialogKindsPage {
                     }
                     let lines = preview_lines(&f.text("name"), &f.text("host"), f.choice("driver"));
                     f.set_note("preview", lines);
-                }
-                self.log.push(format!("Form · Changed({field:?})"));
+                });
             }
             LayerResult::Form(FormAction::Choose(field)) => {
                 self.log.push(format!(
                     "Form · Choose({field:?}) · a picker stacks over it"
                 ));
-                self.open_key_picker(cx.focus);
+                self.open_key_picker(cx);
             }
             LayerResult::Form(FormAction::Action(name)) => {
-                if name == "test"
-                    && let Some(f) = self.host.layers.top_as_mut::<FormDialog>()
-                {
-                    let ok = !f.text("host").trim().is_empty();
-                    f.set_note(
-                        "result",
-                        vec![if ok {
-                            ("✓ Connected in 42 ms".into(), Tone::Success)
-                        } else {
-                            ("✗ Host is required".into(), Tone::Error)
-                        }],
-                    );
+                if name == "test" {
+                    cx.with_top::<FormDialog>(|f| {
+                        let ok = !f.text("host").trim().is_empty();
+                        f.set_note(
+                            "result",
+                            vec![if ok {
+                                ("✓ Connected in 42 ms".into(), Tone::Success)
+                            } else {
+                                ("✗ Host is required".into(), Tone::Error)
+                            }],
+                        );
+                    });
                 }
                 self.log.push(format!("Form · Action({name:?})"));
                 // keep-open: the owner closes the form once it validates
-                if name == "save" {
-                    let ok = self
-                        .host
-                        .layers
-                        .top_as::<FormDialog>()
-                        .is_some_and(|f| !f.text("name").trim().is_empty());
-                    if ok {
-                        self.host.layers.pop(cx.focus);
-                        self.log.push("Form · saved, closed by the page".into());
-                    }
+                if name == "save" && !r.text("name").trim().is_empty() {
+                    cx.close();
+                    self.open.pop();
+                    self.log.push("Form · saved, closed by the page".into());
                 }
             }
             LayerResult::Form(FormAction::Save) => {
-                let name = r
-                    .closed
-                    .as_ref()
-                    .and_then(|e| e.get::<FormDialog>())
-                    .map(|f| f.text("name"))
-                    .unwrap_or_default();
+                let name = r.text("name");
                 self.log.push(format!("Form · Save · {name}"));
                 cx.status(format!("Saved connection {name}"));
             }
             LayerResult::Form(FormAction::Cancel) => self.log.push("Form · Cancel".into()),
             LayerResult::Picker(PickerAction::Chosen(i)) if kind == "keys" => {
-                if let Some(f) = self.host.layers.top_as_mut::<FormDialog>() {
+                cx.with_top::<FormDialog>(move |f| {
                     f.set_chooser("key", KEY_FILES[i.min(KEY_FILES.len() - 1)], None);
-                }
+                });
                 self.log
                     .push(format!("Picker · Chosen({i}) · back on the form"));
             }
@@ -602,15 +606,13 @@ impl Page for DialogKindsPage {
             Section::Options => self.template.render_options(body, buf, ctx),
             Section::States => self.template.render_states(body, buf, ctx),
         }
-        self.host.render(buf, ctx);
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        if let Some((out, reports)) = self.host.handle(ev, cx) {
-            for r in reports {
-                self.on_report(r, cx);
-            }
-            return out;
+        // the shell routes a layer the page opened; the page underneath
+        // takes nothing meanwhile
+        if !self.open.is_empty() {
+            return Outcome::Ignored;
         }
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
@@ -628,7 +630,7 @@ impl Page for DialogKindsPage {
                 };
                 let (o, act) = self.buttons[i].on_key(key);
                 if act {
-                    self.open(i, cx.focus);
+                    self.open(i, cx);
                 }
                 o
             }
@@ -642,7 +644,7 @@ impl Page for DialogKindsPage {
                     cx.focus.focus(p.id);
                 }
                 if r.action().is_some() {
-                    self.open(i, cx.focus);
+                    self.open(i, cx);
                     return Outcome::Changed;
                 }
                 r.outcome()
@@ -654,8 +656,8 @@ impl Page for DialogKindsPage {
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         // the form, info, choice and help layers have no hints of their
         // own yet (plan S5 deviation 3, S8b): their keys, by kind
-        if let Some(tag) = self.host.top_tag() {
-            return match tag.kind {
+        if let Some(kind) = self.open.last() {
+            return match *kind {
                 "form" => vec![("Tab", "Next field"), ("Enter", "Save"), ("Esc", "Cancel")],
                 "info" if self.opts.value("dialogkinds.info_keymap") == "ctrl" => {
                     vec![("Ctrl+Y", "Copy"), ("Ctrl+W", "Close")]
@@ -672,22 +674,9 @@ impl Page for DialogKindsPage {
         vec![("Enter", "Open")]
     }
 
-    fn layer_hints(
-        &self,
-        focus: Option<WidgetId>,
-    ) -> Option<Vec<junie_tui::widgets::keyhint::Hint>> {
-        self.host.hints(focus)
-    }
-
-    fn editing(&self) -> bool {
-        self.host
-            .layers
-            .top_as::<FormDialog>()
-            .is_some_and(|f| f.is_editing())
-    }
-
-    fn layer_open(&self) -> bool {
-        self.host.hides_page_focus() || self.template.popup_open()
+    fn on_layer(&mut self, tag: &LayerTag, report: Report, cx: &mut Cx) -> Outcome {
+        self.on_report(tag.kind, report, cx);
+        Outcome::Changed
     }
 
     fn option_value(&self, key: &str) -> Option<usize> {
