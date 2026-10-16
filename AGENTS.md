@@ -55,6 +55,30 @@ components work; they are not where behaviour lives.
 - Dismissing a dialog resolves to its cancel action. Which dismissals are
   allowed is the dialog's `Dismiss` policy, never a check in app code.
 
+### Visual states
+
+- Exactly one keyboard-focus indicator is visible at a time (the phosphor
+  `▎` gutter from `Theme::gutter_symbol`/`Theme::gutter`), and it lives in
+  the topmost layer. Content under a modal or popup shows no focus.
+- A list whose focus belongs to an owner (a popup list under a search
+  field, an editor or a select field) marks its cursor row with a fill
+  (`Theme::cursor_row`, `CursorStyle::Fill`), never a second focus bar.
+- Active-but-unfocused items (the active tab, the current page, a chosen
+  value) use a neutral treatment, never the focus accent.
+- Rest, hover and pressed are visibly different from each other, and from
+  focused, selected and disabled, for every interactive element and at
+  every colour level (truecolor, 256, 16, mono). Disabled controls do not
+  react to hover or press.
+- Text stays readable in every state: never the same colour as its
+  background, and at least 4.5:1 contrast for text.
+
+### Way of working
+
+- Use subagents for most of the work: parallel audits by category, and
+  implementation agents in isolated worktrees on disjoint files.
+- Commit small and push often to the working branch; one finding or one
+  coherent group per commit.
+
 ### Proof
 
 - Every behaviour fix ships with a regression test driven through the real
