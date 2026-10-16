@@ -30,6 +30,10 @@ pub struct Button {
     /// What the button does and its shortcut, shown when the pointer rests
     /// on it ([`crate::ui::tooltip`]). Default `None`.
     pub tip: Option<crate::ui::tooltip::Tip>,
+    /// The button is a Tab stop. Default on. Off for a toolbar button
+    /// whose command already has a shortcut (macOS toolbars are not in the
+    /// key loop without Full Keyboard Access); it still takes clicks.
+    pub focusable: bool,
 }
 
 impl Button {
@@ -45,7 +49,14 @@ impl Button {
             focus_visible: crate::ui::ctx::FocusVisible::Always,
             mnemonic: None,
             tip: None,
+            focusable: true,
         }
+    }
+
+    /// See [`Self::focusable`].
+    pub fn focusable(mut self, on: bool) -> Self {
+        self.focusable = on;
+        self
     }
 
     /// A tooltip describing what the button does, shown when the pointer
@@ -230,7 +241,11 @@ impl Button {
             }
         }
         buf.set_string(area.x + w - 1, area.y, " ", style);
-        ctx.control(self.id, area, self.disabled);
+        if self.focusable {
+            ctx.control(self.id, area, self.disabled);
+        } else {
+            ctx.clickable(self.id, area);
+        }
         if let Some(tip) = &self.tip {
             crate::ui::tooltip::show(ctx, self.id, area, tip, None);
         }

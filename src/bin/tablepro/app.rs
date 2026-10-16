@@ -1013,6 +1013,21 @@ impl App {
 
     /// Run the current statement / all / explain in the active query tab,
     /// passing through the Safe Mode gate.
+    /// Cancel the running query, as Esc does while one runs.
+    fn cancel_running(&mut self) -> Outcome {
+        if let Some(w) = self.workbench.as_mut() {
+            for t in w.tabs.iter_mut() {
+                if let WorkTab::Query(q) = t
+                    && q.cancel()
+                {
+                    self.set_status("Query cancelled".into());
+                    return Outcome::Changed;
+                }
+            }
+        }
+        Outcome::Consumed
+    }
+
     pub fn run_active(&mut self, all: bool, explain: Option<bool>) -> Outcome {
         let Some(w) = self.workbench.as_mut() else {
             return Outcome::Ignored;
@@ -2215,6 +2230,16 @@ impl App {
                         }
                     }
                 }
+            };
+        }
+        // the query toolbar (mouse #7)
+        if let Some(action) = crate::tabs::toolbar_action(id) {
+            use crate::tabs::ToolbarAction as A;
+            return match action {
+                A::Run => self.run_active(false, None),
+                A::RunAll => self.run_active(true, None),
+                A::Explain => self.run_active(false, Some(false)),
+                A::Cancel => self.cancel_running(),
             };
         }
         if id == STRIP_HELP {
