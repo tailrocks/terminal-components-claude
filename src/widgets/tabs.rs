@@ -14,6 +14,7 @@ use ratatui::style::{Color, Modifier};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
+use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 
@@ -68,15 +69,14 @@ pub struct Tabs {
     /// A middle click on a closable tab closes it (browsers, editors).
     /// Default `true`.
     pub middle_click_closes: bool,
-    /// Plain digits 1-9 jump to that tab. Default `true`.
-    pub digit_jump: bool,
     /// ←/→ past the last tab lands on the first and back. Default off.
     pub wrap: bool,
-    /// Keys that close the cursor tab. Default `x` and Delete.
-    pub close_keys: &'static [KeyCode],
-    /// The plain letter that asks for a new tab (with
-    /// [`Self::allow_new`]). Default `Some('n')`.
-    pub new_key: Option<char>,
+    /// Which keys move between tabs (default [`NavKeys::DEFAULT`]: ←/→,
+    /// `h`/`l`, Home/End, `g`/`G`).
+    pub nav: NavKeys,
+    /// The strip's action keys (default [`TabAction::default_keymap`]:
+    /// `x`/Delete close, `n` new, digits 1-9 jump).
+    pub keymap: KeyMap<TabAction>,
     /// Number of tabs that fit in the last render.
     fit: usize,
 }
@@ -98,6 +98,39 @@ pub enum TabRule {
 /// The keys that close the cursor tab by default.
 pub const DEFAULT_CLOSE_KEYS: &[KeyCode] = &[KeyCode::Char('x'), KeyCode::Delete];
 
+/// A [`Tabs`] action a key can be bound to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TabAction {
+    /// Close the cursor tab (when it is closable). Default `x` and Delete.
+    Close,
+    /// Ask for a new tab (with [`Tabs::allow_new`]). Default `n`.
+    New,
+    /// Activate tab `i` (0-based). Default digits `1`-`9`.
+    Jump(usize),
+}
+
+impl TabAction {
+    /// The digit bindings `1`-`9` (see [`Tabs::digit_jump`]).
+    pub fn digit_keys() -> KeyMap<Self> {
+        ('1'..='9')
+            .enumerate()
+            .map(|(i, c)| (KeyBinding::char(c), TabAction::Jump(i)))
+            .collect()
+    }
+}
+
+impl Actions for TabAction {
+    fn default_keymap() -> KeyMap<Self> {
+        let mut map: KeyMap<Self> = DEFAULT_CLOSE_KEYS
+            .iter()
+            .map(|&code| (KeyBinding::key(code), TabAction::Close))
+            .collect();
+        map.push((KeyBinding::char('n'), TabAction::New));
+        map.extend(Self::digit_keys());
+        map
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabEvent {
     Activated(usize),
@@ -117,10 +150,9 @@ impl Tabs {
             allow_new: false,
             rule: TabRule::Auto,
             middle_click_closes: true,
-            digit_jump: true,
             wrap: false,
-            close_keys: DEFAULT_CLOSE_KEYS,
-            new_key: Some('n'),
+            nav: NavKeys::DEFAULT,
+            keymap: TabAction::default_keymap(),
             fit: 0,
         }
     }
@@ -136,10 +168,9 @@ impl Tabs {
             allow_new: false,
             rule: TabRule::Auto,
             middle_click_closes: true,
-            digit_jump: true,
             wrap: false,
-            close_keys: DEFAULT_CLOSE_KEYS,
-            new_key: Some('n'),
+            nav: NavKeys::DEFAULT,
+            keymap: TabAction::default_keymap(),
             fit: 0,
         }
     }
@@ -155,18 +186,47 @@ impl Tabs {
         self
     }
 
+    /// See [`Self::nav`].
+    pub fn nav(mut self, nav: NavKeys) -> Self {
+        self.nav = nav;
+        self
+    }
+
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: KeyMap<TabAction>) -> Self {
+        self.keymap = keymap;
+        self
+    }
+
+    /// Digits 1-9 jump to that tab (default on): adds or removes the
+    /// [`TabAction::Jump`] bindings in [`Self::keymap`].
     pub fn digit_jump(mut self, on: bool) -> Self {
-        self.digit_jump = on;
+        self.keymap
+            .retain(|(_, a)| !matches!(a, TabAction::Jump(_)));
+        if on {
+            self.keymap.extend(TabAction::digit_keys());
+        }
         self
     }
 
-    pub fn close_keys(mut self, keys: &'static [KeyCode]) -> Self {
-        self.close_keys = keys;
+    /// The keys that close the cursor tab (default `x` and Delete):
+    /// replaces the [`TabAction::Close`] bindings in [`Self::keymap`].
+    pub fn close_keys(mut self, keys: &[KeyCode]) -> Self {
+        self.keymap.retain(|(_, a)| *a != TabAction::Close);
+        self.keymap.extend(
+            keys.iter()
+                .map(|&code| (KeyBinding::key(code), TabAction::Close)),
+        );
         self
     }
 
+    /// The letter that asks for a new tab (default `Some('n')`): replaces
+    /// the [`TabAction::New`] bindings in [`Self::keymap`].
     pub fn new_key(mut self, key: Option<char>) -> Self {
-        self.new_key = key;
+        self.keymap.retain(|(_, a)| *a != TabAction::New);
+        if let Some(c) = key {
+            self.keymap.push((KeyBinding::char(c), TabAction::New));
+        }
         self
     }
 
@@ -260,69 +320,62 @@ impl Tabs {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TabEvent>) {
-        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+        let action = lookup(&self.keymap, key);
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) && action.is_none() {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
         if self.items.is_empty() {
-            return match key.code {
-                KeyCode::Enter if self.allow_new => (Outcome::Changed, Some(TabEvent::New)),
-                KeyCode::Char(c) if self.allow_new && self.new_key == Some(c) => {
+            return match (action, key.code) {
+                (_, KeyCode::Enter) | (Some(TabAction::New), _) if self.allow_new => {
                     (Outcome::Changed, Some(TabEvent::New))
                 }
                 _ => (Outcome::Ignored, None),
             };
         }
-        match key.code {
-            KeyCode::Left | KeyCode::Char('h') if key.plain() => {
-                self.set_active(crate::core::nav::step_index(
-                    self.cursor,
-                    self.items.len(),
-                    -1,
-                    self.wrap,
-                ));
-                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
-            }
-            KeyCode::Right | KeyCode::Char('l') if key.plain() => {
-                self.set_active(crate::core::nav::step_index(
-                    self.cursor,
-                    self.items.len(),
-                    1,
-                    self.wrap,
-                ));
-                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
-            }
-            KeyCode::Home if key.plain() => {
-                self.set_active(0);
-                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
-            }
-            KeyCode::End if key.plain() => {
-                self.set_active(self.items.len() - 1);
-                (Outcome::Changed, Some(TabEvent::Activated(self.active)))
-            }
-            KeyCode::Char(c)
-                if self.digit_jump && c.is_ascii_digit() && c != '0' && key.plain() =>
-            {
-                let i = c as usize - '1' as usize;
-                if i < self.items.len() {
+        match action {
+            Some(TabAction::Jump(i)) => {
+                return if i < self.items.len() {
                     self.set_active(i);
                     (Outcome::Changed, Some(TabEvent::Activated(i)))
                 } else {
                     (Outcome::Ignored, None)
-                }
+                };
             }
+            Some(TabAction::Close) if self.items[self.cursor].closable => {
+                return (Outcome::Changed, Some(TabEvent::Close(self.cursor)));
+            }
+            Some(TabAction::New) if self.allow_new => {
+                return (Outcome::Changed, Some(TabEvent::New));
+            }
+            _ => {}
+        }
+        let last = self.items.len() - 1;
+        let to = match self.nav.action(key).filter(|_| key.plain()) {
+            Some(Nav::Left) => Some(crate::core::nav::step_index(
+                self.cursor,
+                self.items.len(),
+                -1,
+                self.wrap,
+            )),
+            Some(Nav::Right) => Some(crate::core::nav::step_index(
+                self.cursor,
+                self.items.len(),
+                1,
+                self.wrap,
+            )),
+            Some(Nav::Home) => Some(0),
+            Some(Nav::End) => Some(last),
+            _ => None,
+        };
+        if let Some(to) = to {
+            self.set_active(to);
+            return (Outcome::Changed, Some(TabEvent::Activated(self.active)));
+        }
+        match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
                 self.set_active(self.cursor);
                 (Outcome::Changed, Some(TabEvent::Activated(self.active)))
-            }
-            code if self.close_keys.contains(&code)
-                && key.plain()
-                && self.items[self.cursor].closable =>
-            {
-                (Outcome::Changed, Some(TabEvent::Close(self.cursor)))
-            }
-            KeyCode::Char(c) if key.plain() && self.allow_new && self.new_key == Some(c) => {
-                (Outcome::Changed, Some(TabEvent::New))
             }
             _ => (Outcome::Ignored, None),
         }
