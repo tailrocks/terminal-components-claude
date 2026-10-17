@@ -150,6 +150,13 @@ components work; they are not where behaviour lives.
 - A scrollbar thumb keeps one glyph in every state: rest is a neutral
   grey, hover a lighter grey, pressed (held or dragged) the accent. Where
   colour cannot carry state (`NO_COLOR`), a modifier does.
+- A resize seam (`Splitter`, pane tree, master-detail, table column
+  seams) is a thin rule (`│`/`─`) in the divider grey at rest, the heavy
+  rule (`┃`/`━`) in a brighter grey on hover and the heavy rule in the
+  phosphor accent while dragged (`Theme::ladders.seam`). Hover and drag
+  restyle only the seam's own line of cells: no underline, no padding
+  cells, no other seam or rule. In `NO_COLOR` the thumb modifiers carry
+  hover and drag.
 - Rest, hover and pressed are visibly different from each other, and from
   focused, selected and disabled, for every interactive element and at
   every colour level (truecolor, 256, 16, mono). Disabled controls do not
