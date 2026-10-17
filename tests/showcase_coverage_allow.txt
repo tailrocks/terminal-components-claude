@@ -1037,6 +1037,13 @@ runtime::drain_pending_input | runtime plumbing: the event loop entry, input dra
 
 # shell
 shell::run | runtime plumbing: the shell's run loop entry and the OSC 52 bytes written after a frame; no visible surface | permanent
+shell::reach::Reach | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
+shell::reach::Reveal | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
+shell::reach::Case | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
+shell::reach::Case::reveals | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
+shell::reach::Case::run | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
+shell::reach::check | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
+shell::reach::dump | test plumbing: the reachability gate the apps' tests run (shell::reach); no visible surface | permanent
 shell::clipboard::Copied | application shell (S14): shown once the showcase shell page demonstrates the shell it runs on | SC34
 shell::clipboard::Copied::Copied | application shell (S14): shown once the showcase shell page demonstrates the shell it runs on | SC34
 shell::clipboard::Copied::Unsupported | application shell (S14): shown once the showcase shell page demonstrates the shell it runs on | SC34
