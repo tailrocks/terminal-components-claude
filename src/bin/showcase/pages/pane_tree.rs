@@ -167,8 +167,8 @@ impl PaneTreePage {
         if hint_key(&self.tree.keys, PaneCmd::FocusLeft).is_some() {
             parts.push("Alt+arrows move".to_owned());
         }
-        if self.tree.split_keys.hint(SplitDir::Vertical).is_some() {
-            parts.push("Alt+Shift+arrows resize".to_owned());
+        if let Some(h) = self.tree.split_keys.hint(SplitDir::Vertical) {
+            parts.push(format!("{} resize", h.key.replace("↑↓", "arrows")));
         }
         if let Some(k) = hint_key(&self.tree.keys, PaneCmd::Zoom) {
             parts.push(format!("{k} zoom"));

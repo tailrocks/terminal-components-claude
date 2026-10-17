@@ -542,17 +542,26 @@ impl crate::core::keymap::Actions for SplitCmd {
     /// Alt+Shift+arrows, the pane-resize chord of terminal multiplexers
     /// and editors: plain arrows and Alt+arrows already move a cursor or
     /// a word inside the panes. macOS has no split-view resize chord, so
-    /// this is the closest convention a terminal delivers.
+    /// this is the closest convention a terminal delivers. Where Alt does
+    /// not arrive (macOS Terminal without "Use Option as Meta key", A29)
+    /// Ctrl+Shift+arrows stand in ([`KeyBinding::alt_stand_in`]); where
+    /// it does, they keep selecting by word in the panes.
+    ///
+    /// [`KeyBinding::alt_stand_in`]: crate::core::keymap::KeyBinding::alt_stand_in
     fn default_keymap() -> crate::core::keymap::KeyMap<Self> {
         use crate::core::keymap::KeyBinding;
         use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-        let m = KeyModifiers::ALT.union(KeyModifiers::SHIFT);
-        vec![
-            (KeyBinding::new(KeyCode::Left, m), SplitCmd::Left),
-            (KeyBinding::new(KeyCode::Right, m), SplitCmd::Right),
-            (KeyBinding::new(KeyCode::Up, m), SplitCmd::Up),
-            (KeyBinding::new(KeyCode::Down, m), SplitCmd::Down),
-        ]
+        let alt = KeyModifiers::ALT.union(KeyModifiers::SHIFT);
+        let ctrl = KeyModifiers::CONTROL.union(KeyModifiers::SHIFT);
+        let arrows = [
+            (KeyCode::Left, SplitCmd::Left),
+            (KeyCode::Right, SplitCmd::Right),
+            (KeyCode::Up, SplitCmd::Up),
+            (KeyCode::Down, SplitCmd::Down),
+        ];
+        let alt_chords = arrows.map(|(k, c)| (KeyBinding::new(k, alt), c));
+        let stand_ins = arrows.map(|(k, c)| (KeyBinding::new(k, ctrl).alt_stand_in(), c));
+        alt_chords.into_iter().chain(stand_ins).collect()
     }
 
     fn label(self) -> &'static str {
@@ -643,23 +652,45 @@ impl SplitKeys {
         })
     }
 
-    /// The footer hint for a split laid out in `dir`: `Alt+Shift+←→
-    /// Resize` with the default chords, the first bound deliverable chord
-    /// otherwise; `None` when nothing deliverable is bound.
+    /// The footer hint for a split laid out in `dir`: both directions as
+    /// one key (`Alt+Shift+←→ Resize`, or `Ctrl+Shift+←→` where Alt is
+    /// not delivered) when their first deliverable chords differ only in
+    /// the arrow, the first deliverable chord otherwise; `None` when
+    /// nothing deliverable is bound.
     pub fn hint(&self, dir: SplitDir) -> Option<crate::widgets::keyhint::Hint> {
-        use crate::core::keymap::{Actions, binding_for, hint_key};
-        let (a, b, both) = match dir {
-            SplitDir::Horizontal => (SplitCmd::Left, SplitCmd::Right, "Alt+Shift+←→"),
-            SplitDir::Vertical => (SplitCmd::Up, SplitCmd::Down, "Alt+Shift+↑↓"),
+        use crate::core::keymap::{deliverable_binding_for, hint_key, intern};
+        use ratatui::crossterm::event::KeyCode;
+        let (a, b, ka, kb, pair) = match dir {
+            SplitDir::Horizontal => (
+                SplitCmd::Left,
+                SplitCmd::Right,
+                KeyCode::Left,
+                KeyCode::Right,
+                "←→",
+            ),
+            SplitDir::Vertical => (
+                SplitCmd::Up,
+                SplitCmd::Down,
+                KeyCode::Up,
+                KeyCode::Down,
+                "↑↓",
+            ),
         };
-        let defaults = SplitCmd::default_keymap();
-        let default_pair = [a, b]
-            .iter()
-            .all(|c| binding_for(&self.keymap, *c) == binding_for(&defaults, *c));
-        let key = if default_pair {
-            both
-        } else {
-            hint_key(&self.keymap, a).or_else(|| hint_key(&self.keymap, b))?
+        let both = match (
+            deliverable_binding_for(&self.keymap, a),
+            deliverable_binding_for(&self.keymap, b),
+        ) {
+            (Some(x), Some(y)) if x.code == ka && y.code == kb && x.mods == y.mods => {
+                let label = x.label();
+                label
+                    .strip_suffix(if ka == KeyCode::Left { '←' } else { '↑' })
+                    .map(|prefix| intern(format!("{prefix}{pair}")))
+            }
+            _ => None,
+        };
+        let key = match both {
+            Some(k) => k,
+            None => hint_key(&self.keymap, a).or_else(|| hint_key(&self.keymap, b))?,
         };
         Some(crate::widgets::keyhint::hint(key, "Resize"))
     }
@@ -726,6 +757,8 @@ mod split_keys_tests {
 
     #[test]
     fn the_hint_names_the_bound_chord() {
+        use crate::core::keyboard::{AltKeys, set_alt_keys};
+        set_alt_keys(AltKeys::Delivered);
         let keys = SplitKeys::default();
         assert_eq!(keys.hint(SplitDir::Horizontal).unwrap().key, "Alt+Shift+←→");
         let custom = SplitKeys::default().keymap(vec![(
@@ -738,6 +771,46 @@ mod split_keys_tests {
                 .keymap(vec![])
                 .hint(SplitDir::Vertical)
                 .is_none()
+        );
+    }
+}
+
+#[cfg(test)]
+mod split_keys_alt_tests {
+    use super::*;
+    use crate::core::event::{Key, Outcome};
+    use crate::core::keyboard::{AltKeys, set_alt_keys};
+    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+
+    /// A29: where the terminal keeps Option for typing (macOS Terminal),
+    /// the hint names Ctrl+Shift+arrows and they resize; where Alt
+    /// arrives they stay the panes' (word selection) and the hint names
+    /// Alt+Shift+arrows.
+    #[test]
+    fn ctrl_shift_arrows_stand_in_where_alt_is_not_delivered() {
+        let keys = SplitKeys::default();
+        let ctrl = Key {
+            code: KeyCode::Right,
+            mods: KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+        };
+        let area = Rect::new(0, 0, 81, 10);
+        let mut split = Split::new(50, 10, 10);
+        set_alt_keys(AltKeys::UntilSeen);
+        assert_eq!(
+            keys.hint(SplitDir::Horizontal).unwrap().key,
+            "Ctrl+Shift+←→"
+        );
+        assert_eq!(keys.hint(SplitDir::Vertical).unwrap().key, "Ctrl+Shift+↑↓");
+        assert_eq!(
+            keys.apply(&ctrl, &mut split, SplitDir::Horizontal, area, 1),
+            Some(Outcome::Changed)
+        );
+        set_alt_keys(AltKeys::Delivered);
+        assert_eq!(keys.hint(SplitDir::Horizontal).unwrap().key, "Alt+Shift+←→");
+        assert_eq!(
+            keys.apply(&ctrl, &mut split, SplitDir::Horizontal, area, 1),
+            None,
+            "Ctrl+Shift+→ selects a word in the pane"
         );
     }
 }

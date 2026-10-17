@@ -719,7 +719,13 @@ impl ContextMenu {
                     &item.item.label,
                 );
             }
-            if let Some(sc) = item.shortcut.as_deref() {
+            // a shortcut the terminal does not deliver is not drawn (A29);
+            // the menu keeps its width, so it lays out alike on every terminal
+            if let Some(sc) = item
+                .shortcut
+                .as_deref()
+                .filter(|s| crate::core::keyboard::label_deliverable(s))
+            {
                 let sw = width(sc) as u16;
                 if sw + width(&item.item.label) as u16 + 5 <= rows.width {
                     // a shortcut reads on the cursor fill and at rest alike;

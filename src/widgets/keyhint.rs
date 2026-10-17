@@ -239,6 +239,24 @@ impl Hint {
     }
 }
 
+/// A one-line hint text (`↑↓ Move · Alt+Enter New tab · Esc Close`) with
+/// every ` · ` part whose key (its first word) the terminal does not
+/// deliver left out ([`crate::core::keyboard::label_deliverable`], A29).
+pub fn deliverable_line(line: &str) -> std::borrow::Cow<'_, str> {
+    let keep = |part: &&str| {
+        crate::core::keyboard::label_deliverable(part.split(' ').next().unwrap_or_default())
+    };
+    if line.split(" · ").all(|p| keep(&p)) {
+        return std::borrow::Cow::Borrowed(line);
+    }
+    std::borrow::Cow::Owned(
+        line.split(" · ")
+            .filter(keep)
+            .collect::<Vec<_>>()
+            .join(" · "),
+    )
+}
+
 pub const fn hint(key: &'static str, action: &'static str) -> Hint {
     Hint {
         key,

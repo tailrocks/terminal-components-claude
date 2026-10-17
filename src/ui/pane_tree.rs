@@ -311,9 +311,11 @@ pub enum PaneCmd {
 
 impl Actions for PaneCmd {
     /// F6 and Shift+F6 cycle the panes (the Windows and GNOME pane key);
-    /// Alt+arrows move to the pane that way; Alt+Z zooms. Terminals that
+    /// Alt+arrows move to the pane that way; Alt+Z zooms, and so does
+    /// Ctrl+Shift+F12 (JetBrains' maximize-editor chord). Terminals that
     /// send Option as a character (macOS Terminal without "Use Option as
-    /// Meta") do not deliver the Alt chords; F6 always arrives.
+    /// Meta") do not deliver the Alt chords (A29), so hints name F6 and
+    /// Ctrl+Shift+F12 there; F-keys always arrive.
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::F(6)), PaneCmd::Next),
@@ -338,6 +340,13 @@ impl Actions for PaneCmd {
                 PaneCmd::FocusDown,
             ),
             (KeyBinding::alt('z'), PaneCmd::Zoom),
+            (
+                KeyBinding::new(
+                    KeyCode::F(12),
+                    KeyModifiers::CONTROL.union(KeyModifiers::SHIFT),
+                ),
+                PaneCmd::Zoom,
+            ),
         ]
     }
 
@@ -970,6 +979,29 @@ mod tests {
             tight.resize(Direction::Left, 4),
             Err(PaneRefusal::AtMinimum)
         );
+    }
+
+    /// A29: on macOS Terminal (Option types a character) the hints name
+    /// F6, Ctrl+Shift+arrows and Ctrl+Shift+F12, and Ctrl+Shift+F12
+    /// zooms; with the kitty protocol the Alt chords are named.
+    #[test]
+    fn hints_name_no_alt_chord_where_the_terminal_keeps_option() {
+        use crate::core::keyboard::{self, AltKeys, KeyboardProtocol};
+        let keys_of = |t: &PaneTree| t.hints().iter().map(|h| h.key).collect::<Vec<_>>();
+        let mut t = three();
+        keyboard::set_alt_keys(AltKeys::from_env(
+            crate::core::event::ClientPlatform::MacOs,
+            |k| (k == "TERM_PROGRAM").then(|| "Apple_Terminal".to_owned()),
+        ));
+        assert_eq!(keys_of(&t), ["F6", "Ctrl+Shift+←→", "Ctrl+Shift+F12"]);
+        let zoom = key(KeyCode::F(12), KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        assert_eq!(t.on_key(&zoom), Some(Ok(Outcome::Changed)));
+        assert!(t.zoomed().is_some());
+        t.on_key(&zoom);
+        keyboard::set_alt_keys(AltKeys::WithProtocol);
+        keyboard::session::enter(KeyboardProtocol::On, || false);
+        assert_eq!(keys_of(&t), ["F6", "Alt+Shift+←→", "Alt+Z"]);
+        keyboard::session::leave();
     }
 
     #[test]

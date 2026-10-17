@@ -1334,6 +1334,12 @@ impl CapsuleScreen {
             KeyCode::Char('j') => self.move_focus(Direction::Down, w, cx),
             KeyCode::Char('k') => self.move_focus(Direction::Up, w, cx),
             KeyCode::Char('l') => self.move_focus(Direction::Right, w, cx),
+            // tmux's common H J K L resize: the deliverable stand-in for
+            // Alt+Shift+arrows where the terminal keeps Option (A29)
+            KeyCode::Char('H') => self.resize(Direction::Left, w, cx),
+            KeyCode::Char('J') => self.resize(Direction::Down, w, cx),
+            KeyCode::Char('K') => self.resize(Direction::Up, w, cx),
+            KeyCode::Char('L') => self.resize(Direction::Right, w, cx),
             KeyCode::Char('d') => self.detach(cx),
             KeyCode::Char('u') => self.open_usage(w, cx),
             KeyCode::Char('i') => self.open_container_info(w, cx),
@@ -2395,6 +2401,7 @@ impl Page<Jackin> for CapsuleScreen {
                 hint("n p", "Tabs"),
                 hint("x", "Close pane"),
                 hint("h j k l", "Move between panes"),
+                hint("H J K L", "Resize"),
                 hint("\"", "Split ↕"),
                 hint("%", "Split ↔"),
                 hint("z", "Zoom"),

@@ -833,6 +833,7 @@ impl App {
                         ("\" %", "split below / right"),
                         ("z", "zoom"),
                         ("h j k l", "move focus"),
+                        ("H J K L", "resize split"),
                         ("Ctrl+L", "clear pane"),
                         ("d", "detach"),
                         ("u", "Usage"),
