@@ -673,12 +673,12 @@ impl Overlay for MenuBar {
 impl Overlay for Select {
     type Action = SelectAction;
     fn dismiss(&self) -> Dismiss {
-        self.dismiss
+        self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
         // the field keeps the keyboard; its list marks the cursor with a
         // fill, never a second focus bar
-        LayerSpec::popover(self.dismiss)
+        LayerSpec::popover(self.list.dismiss)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<SelectAction> {
         self.close().into()

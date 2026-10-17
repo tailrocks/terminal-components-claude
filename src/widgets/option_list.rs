@@ -264,7 +264,17 @@ pub struct OptionList {
     /// combo box's text), owned by the list's owner for its keys and
     /// gestures. `None`: the list has no query and its letters
     /// type-select ([`Self::type_ahead`]). Default `None`.
-    pub query: Option<EditField>,
+    /// Boxed: most lists have none, and a select inside a form stays small.
+    pub query: Option<Box<EditField>>,
+    /// The row that stands for the owner's current value (a select's
+    /// choice): it is painted `selected` ([`crate::theme::Theme::chosen`]
+    /// through the row look), apart from the cursor. Default `None`.
+    pub chosen: Option<usize>,
+    /// With [`Self::hover_moves_cursor`], the highlight clears when the
+    /// pointer leaves the rows it moved the cursor over (macOS menus).
+    /// Off, the cursor stays on the last row the pointer was on. Default
+    /// `true`.
+    pub clear_on_leave: bool,
     typeahead: TypeAhead,
     /// The hover last applied to the cursor.
     hover: Option<WidgetId>,
@@ -300,6 +310,8 @@ impl OptionList {
             max_rows: Self::MAX_ROWS,
             width: Self::WIDTH,
             query: None,
+            chosen: None,
+            clear_on_leave: true,
             typeahead: TypeAhead::default(),
             hover: None,
             hovering: false,
@@ -376,7 +388,20 @@ impl OptionList {
 
     /// See [`Self::query`].
     pub fn query(mut self, field: EditField) -> Self {
-        self.query = Some(field);
+        self.query = Some(Box::new(field));
+        self
+    }
+
+    /// See [`Self::clear_on_leave`].
+    pub fn clear_on_leave(mut self, on: bool) -> Self {
+        self.clear_on_leave = on;
+        self
+    }
+
+    /// The pause after which the next letter starts a new type-ahead
+    /// prefix. Default [`TypeAhead::DEFAULT_TIMEOUT`].
+    pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.typeahead.timeout = timeout;
         self
     }
 
@@ -454,6 +479,13 @@ impl OptionList {
             }
             None => Moved::Ignored,
         }
+    }
+
+    /// A type-ahead letter (the owner decided the key types: its
+    /// shortcuts-first order, [`crate::core::list::KeyStep::ordered`]).
+    pub fn type_char<S: RowSource + ?Sized>(&mut self, c: char, src: &S) -> Moved {
+        let moved = self.cursor.type_ahead(c, &mut self.typeahead, src);
+        self.keyed(moved)
     }
 
     /// A navigation step (paging by the viewport).
@@ -548,7 +580,7 @@ impl OptionList {
             // highlighted (macOS menus)
             _ if self.hovering => {
                 self.hovering = false;
-                self.hidden = true;
+                self.hidden = self.clear_on_leave;
             }
             _ => {}
         }
@@ -583,6 +615,7 @@ impl OptionList {
             let mut state = ctx.state(self.row_id(i));
             state.focused = highlighted == Some(i);
             state.disabled = !src.enabled(i);
+            state.selected = self.chosen == Some(i);
             // the cursor follows the pointer: the hover is the cursor
             state.hovered &= !self.hover_moves_cursor;
             let area = Rect::new(inner.x, y, inner.width.saturating_sub(u16::from(has_sb)), 1);

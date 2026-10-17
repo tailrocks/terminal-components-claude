@@ -77,7 +77,7 @@ fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
         .column;
     assert!(sel.open, "the list is open");
     assert!(
-        sel.options.len() > sel.max_rows as usize,
+        sel.options.len() > sel.list.max_rows as usize,
         "orders has more columns than the list shows"
     );
     // a cell of the open list: a row part of the select
@@ -93,7 +93,11 @@ fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
         .expect("the open list's rows are drawn");
     h.mouse(MouseKind::WheelDown, row.x + 1, row.y);
     let sel = &h.app.top_as::<FilterEditor>().unwrap().column;
-    assert!(sel.scroll > 0, "the list scrolled\n{}", h.text());
+    assert!(
+        sel.list.scroll.offset > 0,
+        "the list scrolled\n{}",
+        h.text()
+    );
 }
 
 /// M17 (routing): a press on the switcher picker's scrollbar pages its

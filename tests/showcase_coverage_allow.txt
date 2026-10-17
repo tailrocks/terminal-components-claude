@@ -1023,6 +1023,9 @@ widgets::option_list::OptionList::hover_moves_cursor | OptionList, the one popup
 widgets::option_list::OptionList::nav | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::type_ahead | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::fade_edges | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::clear_on_leave | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::type_ahead_timeout | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::type_char | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::look | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::dismiss | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::placement | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
