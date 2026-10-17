@@ -342,7 +342,6 @@ widgets::viewport::ViewportAction::SelectionChanged | widget actions: the Inspec
 widgets::viewport::ViewportAction::FollowChanged | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 
 # theme
-theme::Theme::centred_hints | Status & hints page: centred footer preset (holla, jackin use it) | SC30
 
 # runtime
 runtime::Coalesce | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -354,7 +353,3 @@ runtime::FocusClickGuard | State tab readout of the library dispatcher: shown on
 # state
 
 # widgets::too_small
-widgets::too_small::TooSmall | TooSmall demo on Status & hints | SC30
-widgets::too_small::TooSmall::brand_style | TooSmall demo on Status & hints | SC30
-widgets::too_small::TooSmall::min | TooSmall demo on Status & hints | SC30
-widgets::too_small::TooSmall::quit_hint | TooSmall demo on Status & hints | SC30

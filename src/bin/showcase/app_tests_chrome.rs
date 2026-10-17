@@ -304,3 +304,148 @@ fn print_chrome_and_status_hints() {
         }
     }
 }
+
+// ------------------------------------------------ the shell pieces (SC30)
+
+impl Harness {
+    /// Age the app's clock by `ms` (the footer's TTL reads it), then tick.
+    fn age(&mut self, ms: u64) {
+        let origin = self.app.clock.origin() - std::time::Duration::from_millis(ms);
+        self.app.clock = junie_tui::clock::WallClock::with_origin(origin);
+        self.app.handle(Input::Tick);
+        self.draw();
+    }
+
+    fn click_label(&mut self, label: &str) {
+        let (x, y) = self
+            .find(label)
+            .unwrap_or_else(|| panic!("{label:?} not on screen"));
+        self.click(x + 1, y);
+    }
+
+    fn footer(&self) -> Option<String> {
+        self.app.shell.status.text().map(str::to_owned)
+    }
+
+    /// The spinner glyph left of the motion demo's label.
+    fn spinner(&self) -> String {
+        let (x, y) = self.find("Indexing").expect("the motion demo");
+        self.term.backend().buffer()[(x - 2, y)].symbol().to_owned()
+    }
+
+    fn job(&self) -> Option<f64> {
+        self.app.pages[PageId::StatusHints.index()]
+            .as_any()
+            .and_then(|p| p.downcast_ref::<crate::pages::status_hints::StatusHintsPage>())
+            .and_then(|p| p.job())
+    }
+}
+
+/// SC30: the page posts to the real footer `StatusLine`. Information goes
+/// after the 5 s TTL, an error stays until the next action, and paused
+/// motion freezes the footer.
+#[test]
+fn status_buttons_post_to_the_footer_and_only_information_expires() {
+    let mut h = Harness::new(220, 80, PageId::StatusHints);
+    h.click_label("Post info");
+    assert_eq!(h.footer().as_deref(), Some("Saved 3 rows"));
+    assert!(h.row_of("Saved 3 rows").contains("Saved 3 rows"));
+    h.age(4_000);
+    assert_eq!(
+        h.footer().as_deref(),
+        Some("Saved 3 rows"),
+        "inside the TTL"
+    );
+    h.age(1_100);
+    assert_eq!(h.footer(), None, "information goes after 5 s");
+
+    h.click_label("Post error");
+    h.age(60_000);
+    assert_eq!(
+        h.footer().as_deref(),
+        Some("Connection lost"),
+        "an error stays"
+    );
+    h.key(KeyCode::Char('z'));
+    assert_eq!(h.footer(), None, "the next action clears it");
+
+    h.opt("shell.motion=paused");
+    h.click_label("Post warning");
+    h.age(60_000);
+    assert_eq!(
+        h.footer().as_deref(),
+        Some("2 rows skipped"),
+        "paused motion never ages the footer"
+    );
+}
+
+/// SC30: `--opt shell.motion` drives the motion demo. Full turns the
+/// spinner and fills the bar; reduced fills the bar with the spinner still
+/// on its first frame; paused moves nothing.
+#[test]
+fn reduced_motion_keeps_the_spinner_still_while_the_job_advances() {
+    for (motion, turns, advances) in [
+        ("full", true, true),
+        ("reduced", false, true),
+        ("paused", false, false),
+    ] {
+        let mut h = Harness::new(220, 80, PageId::StatusHints);
+        h.opt(&format!("shell.motion={motion}"));
+        h.click_label("Run job");
+        let first = h.spinner();
+        let mut frames = vec![first.clone()];
+        for _ in 0..4 {
+            h.app.handle(Input::Tick);
+            h.draw();
+            frames.push(h.spinner());
+        }
+        let job = h.job().expect("the job runs");
+        assert_eq!(job > 0.0, advances, "{motion}: job at {job}");
+        assert_eq!(
+            frames.iter().any(|f| *f != first),
+            turns,
+            "{motion}: spinner frames {frames:?}"
+        );
+        if !turns {
+            assert_eq!(first, "⠋", "{motion}: the first frame");
+        }
+    }
+}
+
+/// SC30: the too-small screen's builders and the centred-hints preset.
+#[test]
+fn too_small_and_centred_hints_follow_their_builders() {
+    let mut h = Harness::new(220, 80, PageId::StatusHints);
+    assert!(h.text().contains("Need 72×20, have 42×5"), "{}", h.text());
+    assert!(h.text().contains("q Quit"));
+    h.opt("statushints.too_small_min=100x30");
+    assert!(h.text().contains("Need 100×30, have 42×5"));
+    h.opt("statushints.quit_hint=custom");
+    assert!(h.text().contains("q Quit · resize to continue"));
+    let (x, y) = h.find("junie showcase").unwrap();
+    let title = h.term.backend().buffer()[(x, y)].style().fg;
+    h.opt("statushints.brand=accent");
+    let accent = h.term.backend().buffer()[(x, y)].style().fg;
+    assert_ne!(title, accent, "brand_style draws the brand as given");
+    assert_eq!(accent, Some(Theme::junie().accent));
+
+    let start = h.row_of("HintAlign::Start").find("↑↓").unwrap();
+    let centred = h.row_of("Theme::centred_hints").find("↑↓").unwrap();
+    assert!(centred > start, "the preset centres the hints");
+}
+
+/// SC30: the command line every app shares, read from `CommonArgs`.
+#[test]
+fn the_common_command_line_is_read_from_clap() {
+    let h = Harness::new(220, 80, PageId::StatusHints);
+    let text = h.text();
+    for needle in [
+        "-c, --color <LEVEL>",
+        "[truecolor | 256 | 16 | none]",
+        "-m, --motion <MOTION>",
+        "[full | reduced | paused]",
+        "-f, --frame <N>",
+    ] {
+        assert!(text.contains(needle), "{needle}");
+    }
+}
