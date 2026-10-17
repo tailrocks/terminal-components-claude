@@ -296,7 +296,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("holla/flows/activities/overlay", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-g"]).dismiss_pending(),
     // H3/H4: F10 opens the File menu, Right crosses to Go (the
     // app_tests_flows.rs menu proof, PTY form).
-    Root::new("holla/flows/menu/file", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "wait:Alternatives…"]).dismiss_pending(),
+    Root::new("holla/flows/menu/file", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "wait:Copy command"]).dismiss_pending(),
     Root::new("holla/flows/menu/go", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "right", "wait:Parent scope"]).dismiss_pending(),
     // H15: Ctrl+Q with live activities opens the quit confirmation.
     Root::new("holla/flows/quit/confirm", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-q", "wait:still running"]).dismiss_pending(),
@@ -346,7 +346,7 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("holla/flows/remote/gate2", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type RESTART PAYMENTS ON prod-eu-1"]).dismiss_pending(),
     // H12: the Go-to-path picker. Reduced: the files page's pending listing
     // only applies on a tick.
-    Root::new("holla/flows/files/jump", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:Go to path"]).dismiss_pending(),
+    Root::new("holla/flows/files/jump", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:type a path or a name"]).dismiss_pending(),
 ];
 
 #[rustfmt::skip]
@@ -357,19 +357,19 @@ pub const JOURNEYS: &[Root] = &[
     // wall-clock relative-time label (`live · N s ago`) that reduced-motion ticks
     // advance — the pinned frame keeps it deterministic (same contract as
     // finder_query-selected below).
-    Root::new("holla/flows/finder/query", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull"]),
-    Root::new("holla/flows/finder/query-selected", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "ctrl-a"]),
-    Root::new("holla/flows/files/results", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "type:readme"]),
-    Root::new("holla/flows/files/unicode", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "ctrl-u", "type:café"]),
-    Root::new("holla/flows/browser/hidden", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "ctrl-h"]),
-    Root::new("holla/flows/browser/preview", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "down", "down", "down"]),
+    Root::new("holla/flows/finder/query", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "wait:▎ pull"]),
+    Root::new("holla/flows/finder/query-selected", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "wait:▎ pull", "ctrl-a"]),
+    Root::new("holla/flows/files/results", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "wait:Files › Find", "type:readme", "wait:▎ readme"]),
+    Root::new("holla/flows/files/unicode", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "wait:Files › Find", "ctrl-u", "type:café", "wait:▎ café"]),
+    Root::new("holla/flows/browser/hidden", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "ctrl-h"]),
+    Root::new("holla/flows/browser/preview", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "down", "down", "down"]),
     // h_hp04_preview_control: same listing as browser_preview (big.log at 3 downs);
     // control.txt is 7 downs (dirs first). Preview sanitises ESC/BEL to �.
     Root::new("holla/flows/files/preview_control", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "down", "down", "down", "down", "down", "down", "down", "sleep:300"]),
     Root::new("holla/flows/cleanup/plan", Bin::Holla, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], "holla❯").sends(&["c"]),
     Root::new("holla/flows/cleanup/gate-1", Bin::Holla, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], "holla❯").sends(&["c", "c"]),
     Root::new("holla/flows/upgrade/excluded", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "reduced"], "holla❯").sends(&["down", "down", "down", "down", "down", "space"]),
-    Root::new("holla/flows/remote/gate-1", Bin::Holla, &["--scenario", "remote-host", "--motion", "reduced"], "holla❯").sends(&["type:restart payments", "enter"]),
+    Root::new("holla/flows/remote/gate-1", Bin::Holla, &["--scenario", "remote-host", "--motion", "reduced"], "holla❯").sends(&["type:restart payments", "wait:▎ restart payments", "enter"]),
     // ------------------------------------------------------- flows (new, H1-H21) --
 
     // H1 (the alternatives menu), H5 (gate 2) and H12 (the Go-to-path
@@ -382,24 +382,24 @@ pub const JOURNEYS: &[Root] = &[
     // review.rs) — the spec's `y` was a misread. Paused: the gate-1 facts
     // render `live · N s ago`. Enter arms the ack field for editing, then the host-bound phrase is
     // typed; the dialog stays open with the armed token visible.
-    Root::new("holla/flows/remote/gate2_typed", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type RESTART PAYMENTS ON prod-eu-1", "enter", "type:RESTART PAYMENTS ON prod-eu-1"]),
+    Root::new("holla/flows/remote/gate2_typed", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type RESTART PAYMENTS ON prod-eu-1", "enter", "type:RESTART PAYMENTS ON prod-eu-1", "wait:▎ RESTART PAYMENTS ON prod-eu-1"]),
     // H7-H9: scope chords from the monorepo root (the scope walk of
     // app_tests_flows.rs). Key-driven, and paused pins the preview panel's
     // `live · N s ago` freshness label (the finder_query lesson; the
     // system-scope preview demonstrably carries it).
     Root::new("holla/flows/scope/parent", Bin::Holla, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-up", "wait:No project root above"]),
-    Root::new("holla/flows/scope/children", Bin::Holla, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-down", "wait:Children · 3 projects"]),
+    Root::new("holla/flows/scope/children", Bin::Holla, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-down", "wait:‹ children ›"]),
     Root::new("holla/flows/scope/system", Bin::Holla, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-up", "ctrl-up", "wait:scope ‹ system ›"]),
     // H10/H11: query undo/redo on the same paused fixture as finder_query (the
     // history preview's `live · N s ago` froze that pair too). Undo is
     // per-keystroke: emptying `pull` takes four Ctrl+Z, restoring it four
     // Ctrl+Y.
-    Root::new("holla/flows/query/undone", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z"]),
-    Root::new("holla/flows/query/redone", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-y", "ctrl-y", "ctrl-y", "ctrl-y"]),
+    Root::new("holla/flows/query/undone", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "wait:▎ pull", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z"]),
+    Root::new("holla/flows/query/redone", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "wait:▎ pull", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-y", "ctrl-y", "ctrl-y", "ctrl-y"]),
     // H13: the Go-to-path picker's validation error. Reduced: the
     // files page's pending listing only applies on a tick (paused would wedge it
     // animating); the picker and the error carry no tick label.
-    Root::new("holla/flows/files/jump_error", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:Go to path", "type:nope", "enter", "wait:no such file or directory"]),
+    Root::new("holla/flows/files/jump_error", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:type a path or a name", "type:nope", "enter", "wait:no such file or directory"]),
     // H14: Ctrl+G with nothing started (the h_flow_activities_empty state, on
     // the spec's first-use fixture).
     Root::new("holla/flows/activities/empty", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["ctrl-g", "wait:Nothing has been started yet"]),
@@ -416,7 +416,7 @@ pub const JOURNEYS: &[Root] = &[
     // H18: docker gate 2 with the target-bound phrase typed (h_p3_docker's
     // gate2_typed state). All key-driven; paused keeps the gate-1 `Provenance ·
     // N s ago` label frozen.
-    Root::new("holla/flows/docker/gate2_typed", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox"]),
+    Root::new("holla/flows/docker/gate2_typed", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "wait:▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox"]),
     // H19: the full run. The first Execute meets the plan drift and bounces back
     // to gate 1 (the docker_cleanup_takes_two_gates flow); the second pass
     // executes and ticks drive the plan to Done. Reduced is required (the run is
@@ -447,13 +447,13 @@ pub const JOURNEYS: &[Root] = &[
     // `blocking`, opened the blocker page, then appended `resources`).
     Root::new("holla/flows/query/empty_preview", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "escape", "escape", "type:blocking", "enter", "wait:Who is blocking", "escape", "type:resources", "wait:No matches for"]),
     // h_flow_remote_query: the remote query typed, not yet run.
-    Root::new("holla/flows/remote/query", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments"]),
+    Root::new("holla/flows/remote/query", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "wait:▎ restart payments"]),
     // h_flow_port_snapshot: the args flow's end state — Ctrl+S takes the
     // defaults (port 5173) and opens the listeners snapshot.
     Root::new("holla/flows/args", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:port", "enter", "wait:Find the process on a port", "ctrl-s", "wait:Port 5173"]),
     // h_flow_upgrade_80_facts: the plan step-facts drawer at the minimum size
     // (`p` toggles it, plan.rs).
-    Root::new("holla/flows/upgrade/facts", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["p", "wait:Preflight"]),
+    Root::new("holla/flows/upgrade/facts", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["p", "wait:Back to outline"]),
     // h_hp01_config_page: the custom-action configuration diagnostics page.
     Root::new("holla/flows/config/page", Bin::Holla, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Custom action configuration", "enter", "wait:sha256:"]),
     // h_hp02_recent: the usage-populated Recent list ("used N times here")
@@ -463,7 +463,7 @@ pub const JOURNEYS: &[Root] = &[
     // h_hp03_actions: Enter on a find result opens its actions popup.
     Root::new("holla/flows/files/actions", Bin::Holla, &["--scenario", "parity-files", "--motion", "reduced"], "holla❯").sends(&["type:Find files under home", "enter", "wait:of 29 indexed", "ctrl-u", "type:todo", "wait:1 result", "enter", "wait:Open in the OS"]),
     // h_hp04_jumped: the browser after a successful Go-to-path jump.
-    Root::new("holla/flows/files/jumped", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:Go to path", "type:~/work", "enter", "wait:Jumped to ~/work"]),
+    Root::new("holla/flows/files/jumped", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:type a path or a name", "type:~/work", "enter", "wait:Jumped to ~/work"]),
     // h_hp05: git-current — the blocked pull preview, the failed merge and the
     // rejected push (push_rejected keeps the merge's failed tab, like the
     // legacy single-session chain).
@@ -477,7 +477,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/task/sources", Bin::Holla, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:yarn", "wait:yarn s00"]),
     Root::new("holla/flows/task/sources_diagnostic", Bin::Holla, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Taskfile", "wait:discovery diagnostic"]),
     // h_hp08: the cargo clean row and its one-confirmation dialog.
-    Root::new("holla/flows/cargo/clean", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "wait:900.0 MiB"]),
+    Root::new("holla/flows/cargo/clean", Bin::Holla, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:cargo clean", "wait:Results · 3"]),
     // h_hp09: the daemon-stage stop-all failure, then the remove-all gates.
     // The gates are taken from a fresh boot under paused: the legacy chain
     // reached them over the failed tab, but that prefix leaves the gate's
@@ -530,15 +530,15 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/disk/tree_selected", Bin::Holla, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "s", "s", "down", "down", "f", "f", "space", "wait:1 selected (176.0"]).timeout(15_000),
     // h_hp20: the categories page (the fade twin captures it scrolled),
     // DerivedData opened, and the cursor jumped to the last category.
-    Root::new("holla/flows/cleanup/categories", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories"]),
-    Root::new("holla/flows/cleanup/derived_data", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories", "right", "wait:▾ Xcode DerivedData"]),
-    Root::new("holla/flows/cleanup/artifacts", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories", "end", "wait:Project artifacts"]),
+    Root::new("holla/flows/cleanup/categories", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:Cleanup review"]),
+    Root::new("holla/flows/cleanup/derived_data", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:Cleanup review", "right", "wait:▾ Xcode DerivedData"]),
+    Root::new("holla/flows/cleanup/artifacts", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:Cleanup review", "end", "wait:older than 7 days"]).compact(100, &["type:Review cleanup candidates", "enter", "wait:Cleanup review", "end", "wait:Project artifacts"]),
     // h_hp21: the delete-safety trash gates (the report is already captured as
     // holla/flows/cleanup_report; the gate facts carry no live-age rows, so
     // reduced is safe once the scan completes).
     Root::new("holla/flows/cleanup/gate1", Bin::Holla, &["--scenario", "parity-delete-safety", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2"]).timeout(15_000),
     Root::new("holla/flows/cleanup/gate2", Bin::Holla, &["--scenario", "parity-delete-safety", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2"]).timeout(15_000),
-    Root::new("holla/flows/cleanup/gate2_typed", Bin::Holla, &["--scenario", "parity-delete-safety", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp"]).timeout(15_000),
+    Root::new("holla/flows/cleanup/gate2_typed", Bin::Holla, &["--scenario", "parity-delete-safety", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp", "wait:▎ TRASH 1 UNDER /Users/alex/Projects/safe ON mbp"]).timeout(15_000),
     // h_hp22: the cleanup history page (one prior record at boot).
     Root::new("holla/flows/cleanup/history", Bin::Holla, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Show cleanup history", "enter", "wait:operation log records"]),
     // h_hp23: Linux without a Trash backend (the gate says every item will
@@ -561,7 +561,7 @@ pub const JOURNEYS: &[Root] = &[
     // The 18 insight categories overflow the list at 120x40. Paused: under
     // reduced motion the review screen redraws every tick, so it never
     // settled.
-    Root::new("holla/fade/cleanup_list_wheel", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories"]).live(interact::cleanup_list_wheel),
+    Root::new("holla/fade/cleanup_list_wheel", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:Cleanup review"]).live(interact::cleanup_list_wheel),
     // 4500 lines in sixteen ticks; after the burst nothing animates.
     Root::new("holla/fade/executor_burst-end", Bin::Holla, &["--scenario", "parity-executor", "--motion", "reduced"], "holla❯").sends(&["type:Emit a burst", "enter", "wait:500 earlier lines dropped"]),
 ];

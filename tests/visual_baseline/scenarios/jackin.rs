@@ -320,7 +320,7 @@ pub const OVERLAYS: &[Root] = &[
         Variant::new(120, 40, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
         Variant::new(80, 24, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
     ]).dismiss_pending(),
-    Root::new("jackin/capsule/new_tab", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:New tab"]).dismiss_pending(),
+    Root::new("jackin/capsule/new_tab", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:Type to search…"]).dismiss_pending(),
 ];
 
 #[rustfmt::skip]
