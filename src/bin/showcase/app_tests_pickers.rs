@@ -113,10 +113,14 @@ fn the_tab_switcher_refreshes_live_and_keeps_its_cursor() {
     assert!(h.text().contains("2 live"), "{}", h.text());
     assert_eq!(picker(&h).items[0].detail, "0s", "a running tab's time");
     h.key(KeyCode::Down);
-    let cursor = picker(&h).cursor;
+    let cursor = picker(&h).list.cursor.index;
     tick(&mut h);
     assert_eq!(picker(&h).items[0].detail, "1s", "it counts up on a tick");
-    assert_eq!(picker(&h).cursor, cursor, "a refresh keeps the cursor row");
+    assert_eq!(
+        picker(&h).list.cursor.index,
+        cursor,
+        "a refresh keeps the cursor row"
+    );
     // Delete closes the highlighted tab
     h.key(KeyCode::Delete);
     assert_eq!(page(&h).last, format!("Secondary({cursor})"));
