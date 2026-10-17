@@ -18,7 +18,7 @@ use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture, SelectionMode, TriState};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::row::{MarkKind, RowLook, RowUi};
+use crate::ui::row::{MarkKind, RowLook, RowMark, RowUi};
 use crate::widgets::edit::{EditExit, EditField, Validator};
 use crate::widgets::option_editor::{
     Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
@@ -47,6 +47,9 @@ pub struct Column {
     /// How an editable cell is edited: free text (default) or a value from
     /// a fixed set ([`ColumnEditor`]).
     pub editor: ColumnEditor,
+    /// A marker column ([`Column::marker`]): its cells show each row's
+    /// [`RowMark`] (`›` pointer, `•` unsaved changes) instead of text.
+    pub marker: bool,
 }
 
 impl Column {
@@ -58,6 +61,18 @@ impl Column {
             editable: false,
             sortable: true,
             editor: ColumnEditor::Text,
+            marker: false,
+        }
+    }
+    /// A two-cell, untitled, unsortable column that shows each row's
+    /// [`RowMark`] ([`DataTable::set_mark`]): the pointer `›` of the
+    /// owner's current row and the `•` of a row with unsaved changes (a
+    /// settings table, a changes list). Its cells' text is ignored.
+    pub fn marker() -> Self {
+        Self {
+            sortable: false,
+            marker: true,
+            ..Self::new("", Constraint::Length(2))
         }
     }
     /// Edit the column with `editor` (and make it editable).
@@ -88,6 +103,9 @@ pub struct Cell {
     pub text: String,
     pub error: Option<String>,
     pub tone: Tone,
+    /// Bold text: a value that stands out in its column (a plan node's
+    /// large share). Default `false`.
+    pub strong: bool,
 }
 
 pub use crate::theme::Tone;
@@ -98,10 +116,16 @@ impl Cell {
             text: text.into(),
             error: None,
             tone: Tone::Normal,
+            strong: false,
         }
     }
     pub fn tone(mut self, tone: Tone) -> Self {
         self.tone = tone;
+        self
+    }
+    /// See [`Cell::strong`].
+    pub fn strong(mut self, on: bool) -> Self {
+        self.strong = on;
         self
     }
 }
@@ -248,6 +272,9 @@ pub struct DataTable {
     typeahead: crate::core::typeahead::TypeAhead,
     /// The constrained editor open on a cell, if any.
     pub choice: Option<ChoiceEdit>,
+    /// Per-row marks keyed by source row ([`DataTable::set_mark`]), drawn
+    /// in a [`Column::marker`] column.
+    pub marks: std::collections::BTreeMap<usize, RowMark>,
     /// Behaviour of every constrained column editor
     /// ([`EditorConfig::default`]: macOS popup conventions).
     pub editor_config: EditorConfig,
@@ -340,7 +367,23 @@ impl DataTable {
             typeahead: Default::default(),
             choice: None,
             editor_config: EditorConfig::default(),
+            marks: Default::default(),
         }
+    }
+
+    /// Set source row `row`'s marks ([`RowMark`]; shown in a
+    /// [`Column::marker`] column). [`RowMark::NONE`] clears them.
+    pub fn set_mark(&mut self, row: usize, mark: RowMark) {
+        if mark == RowMark::NONE {
+            self.marks.remove(&row);
+        } else {
+            self.marks.insert(row, mark);
+        }
+    }
+
+    /// Source row `row`'s marks.
+    pub fn mark(&self, row: usize) -> RowMark {
+        self.marks.get(&row).copied().unwrap_or_default()
     }
 
     /// The pause after which the next letter starts a new type-ahead
@@ -1739,6 +1782,19 @@ impl DataTable {
                     continue;
                 }
                 let cell_rect = Rect::new(r.x, y, r.width, 1);
+                if col.marker {
+                    // the row's marks: the pointer, then the dirty dot
+                    let m = self.mark(src);
+                    if m.pointer {
+                        rp.mark(ctx, buf, r.x, y, MarkKind::Current, focused);
+                    }
+                    if m.dirty && r.width > 1 {
+                        rp.dirty(ctx, buf, r.x + 1, y);
+                    } else if m.dirty {
+                        rp.dirty(ctx, buf, r.x, y);
+                    }
+                    continue;
+                }
                 let cell = &self.rows[src][ci];
                 let is_cursor_cell = self.cell_nav && s.focused && ci == self.cursor_col;
                 let is_edit = editing
@@ -1786,6 +1842,9 @@ impl DataTable {
                 };
                 if s.pressed {
                     st = row_style;
+                }
+                if cell.strong {
+                    st = st.add_modifier(Modifier::BOLD);
                 }
                 if is_edit {
                     let e = self.edit.as_ref().unwrap();

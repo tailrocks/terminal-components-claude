@@ -10,9 +10,10 @@ use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::Tone;
-use crate::ui::ctx::RenderCtx;
+use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::list_core::ListCore;
 use crate::ui::row::{MarkKind, RowLook, RowUi};
+use crate::widgets::table::{Align, Cell, Column};
 
 /// A node in a tree: label, optional trailing metadata, children.
 #[derive(Debug, Clone)]
@@ -37,6 +38,16 @@ pub struct TreeNode {
     pub busy: bool,
     /// Muted, not selectable, e.g. an empty-section note.
     pub note: bool,
+    /// The metadata's tone. Default [`Tone::Muted`]; a value that carries
+    /// meaning (a revoked account, a failing check) takes its own.
+    pub meta_tone: Tone,
+    /// A one-cell glyph at the row's right edge, after the metadata, in
+    /// its tone (a status beside a workspace). Default `None`.
+    pub trailing: Option<(&'static str, Tone)>,
+    /// The node's cells under [`TreeView::columns`] (a tree-table: an
+    /// EXPLAIN plan's cost and rows, a folder's size). Missing cells draw
+    /// blank.
+    pub cells: Vec<Cell>,
 }
 
 impl TreeNode {
@@ -51,6 +62,9 @@ impl TreeNode {
             lazy: false,
             busy: false,
             note: false,
+            meta_tone: Tone::Muted,
+            trailing: None,
+            cells: vec![],
         }
     }
 
@@ -104,6 +118,24 @@ impl TreeNode {
         self.meta = Some(m.to_owned());
         self
     }
+
+    /// The metadata's tone (see [`TreeNode::meta_tone`]).
+    pub fn meta_tone(mut self, tone: Tone) -> Self {
+        self.meta_tone = tone;
+        self
+    }
+
+    /// A trailing glyph in `tone` (see [`TreeNode::trailing`]).
+    pub fn trailing(mut self, glyph: &'static str, tone: Tone) -> Self {
+        self.trailing = Some((glyph, tone));
+        self
+    }
+
+    /// The node's cells (see [`TreeNode::cells`]).
+    pub fn cells(mut self, cells: Vec<Cell>) -> Self {
+        self.cells = cells;
+        self
+    }
 }
 
 /// Path of child indices from the root.
@@ -122,6 +154,9 @@ pub struct FlatRow {
     pub label_tone: Option<Tone>,
     pub busy: bool,
     pub note: bool,
+    pub meta_tone: Tone,
+    pub trailing: Option<(&'static str, Tone)>,
+    pub cells: Vec<Cell>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -198,6 +233,19 @@ pub struct TreeView {
     /// disclosure triangle does in macOS outline views. Default `true`;
     /// off, the modifier is ignored and the click toggles one level.
     pub alt_click_recursive: bool,
+    /// Measured columns at the right of every row: a tree-table (plan S16,
+    /// an EXPLAIN plan, a disk usage tree). Each column is
+    /// [`Column::min_width`] cells wide with one blank before it; a header
+    /// row above the rows names the tree column ([`TreeView::column_title`])
+    /// and each column, and every row draws its [`TreeNode::cells`] under
+    /// them, aligned per [`Column::align`]. The strip is
+    /// [`TreeView::trailing`]; it is dropped (labels take the row) when the
+    /// tree is too narrow to keep [`TreeView::MIN_LABEL`] beside it.
+    /// Default none: no header row.
+    pub columns: Vec<Column>,
+    /// The tree column's header title while [`TreeView::columns`] are set.
+    /// Default empty.
+    pub column_title: String,
 }
 
 impl std::ops::Deref for TreeView {
@@ -278,6 +326,9 @@ fn walk(
             label_tone: n.label_tone,
             busy: n.busy,
             note: n.note,
+            meta_tone: n.meta_tone,
+            trailing: n.trailing,
+            cells: n.cells.clone(),
         });
         if expanded {
             walk(&n.children, path, depth + 1, exp, filter, out);
@@ -307,6 +358,8 @@ impl TreeView {
             divider: false,
             selected_marker: None,
             alt_click_recursive: true,
+            columns: vec![],
+            column_title: String::new(),
         };
         // expand the first level by default
         for i in 0..tv.nodes.len() {
@@ -438,6 +491,29 @@ impl TreeView {
     pub fn reserve_right(mut self, cells: u16) -> Self {
         self.reserve_right = cells;
         self
+    }
+
+    /// See [`TreeView::columns`]: a tree-table with a header row.
+    pub fn columns(mut self, columns: Vec<Column>) -> Self {
+        self.columns = columns;
+        self
+    }
+
+    /// See [`TreeView::column_title`].
+    pub fn column_title(mut self, title: &str) -> Self {
+        self.column_title = title.to_owned();
+        self
+    }
+
+    /// The cells the measured columns take: each column and one blank
+    /// before it, plus [`TreeView::reserve_right`].
+    fn columns_width(&self) -> u16 {
+        self.columns
+            .iter()
+            .map(|c| c.min_width() + 1)
+            .sum::<u16>()
+            .saturating_sub(u16::from(!self.columns.is_empty()))
+            + self.reserve_right
     }
 
     /// Show or hide the per-row trailing metadata.
@@ -981,6 +1057,22 @@ impl TreeView {
         self
     }
 
+    /// Each measured column with its `x` and width, the strip starting at
+    /// `x0` (one blank between columns).
+    fn column_cells(&self, x0: u16) -> Vec<(&Column, u16, usize)> {
+        let mut x = x0;
+        let mut out = Vec::with_capacity(self.columns.len());
+        for (k, c) in self.columns.iter().enumerate() {
+            if k > 0 {
+                x += 1;
+            }
+            let w = c.min_width();
+            out.push((c, x, w as usize));
+            x += w;
+        }
+        out
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.core.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
@@ -990,6 +1082,13 @@ impl TreeView {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
+        // a tree-table's header row sits above the rows
+        let header_y = (!self.columns.is_empty() && area.height >= 2).then_some(area.y);
+        let area = if header_y.is_some() {
+            Rect::new(area.x, area.y + 1, area.width, area.height - 1)
+        } else {
+            area
+        };
         self.core.scroll.set_viewport(area.height as usize);
         let n = self.rows.len();
         // a tree with nothing to act on is no focus stop (K37)
@@ -1010,8 +1109,9 @@ impl TreeView {
             .saturating_sub(if has_sb || self.divider { 1 } else { 0 });
         // the owner's trailing columns keep their strip while a usable label
         // column remains beside them; labels end before the strip
-        let reserve = if self.reserve_right > 0 && full_w >= self.reserve_right + Self::MIN_LABEL {
-            self.reserve_right
+        let want = self.columns_width();
+        let reserve = if want > 0 && full_w >= want + Self::MIN_LABEL {
+            want
         } else {
             0
         };
@@ -1021,6 +1121,22 @@ impl TreeView {
             Rect::ZERO
         };
         let row_w = full_w - reserve;
+        if let Some(hy) = header_y {
+            let hs = t.muted().bg(bg);
+            fill(buf, Rect::new(area.x, hy, full_w, 1), hs);
+            let title_w = row_w.saturating_sub(4) as usize;
+            buf.set_string(
+                area.x + 3,
+                hy,
+                crate::ui::text::truncate(&self.column_title, title_w),
+                hs,
+            );
+            if reserve > 0 {
+                for (col, x, w) in self.column_cells(area.x + row_w) {
+                    buf.set_string(x, hy, align(&col.title, w, col.align), hs);
+                }
+            }
+        }
         // metadata is a column: either every visible row shows it or none does
         let show_meta = self.show_meta
             && self.core.scroll.visible_range().all(|ri| {
@@ -1112,6 +1228,7 @@ impl TreeView {
                 .as_ref()
                 .map(|m| crate::ui::text::width(m))
                 .unwrap_or(0) as u16;
+            let trailing_w: u16 = if row.trailing.is_some() { 2 } else { 0 };
             let avail = rect.right().saturating_sub(x);
             // hide metadata rather than starve the label
             let meta_w = if !show_meta || avail.saturating_sub(meta_w + 2) < 10 {
@@ -1119,7 +1236,7 @@ impl TreeView {
             } else {
                 meta_w
             };
-            let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 });
+            let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 } + trailing_w);
             // the selected node is accent only while the tree has focus;
             // otherwise it is a fact, not a position: primary and bold
             let mut label_style = match (s.selected, focused) {
@@ -1170,12 +1287,38 @@ impl TreeView {
                 && meta_w > 0
                 && meta_w + 4 < avail
             {
+                let ms = if row.meta_tone == Tone::Muted {
+                    st.fg(t.text_muted)
+                } else {
+                    st.fg(t.tone_on(row.meta_tone, st.bg.unwrap_or(t.canvas)))
+                };
                 buf.set_string(
-                    rect.right().saturating_sub(meta_w + 1),
+                    rect.right().saturating_sub(meta_w + 1 + trailing_w),
                     y,
                     m,
-                    st.fg(t.text_muted),
+                    ms.remove_modifier(Modifier::BOLD),
                 );
+            }
+            if let Some((g, tone)) = row.trailing
+                && avail > trailing_w + 4
+            {
+                rp.status(ctx, buf, rect.right().saturating_sub(2), y, g, tone);
+            }
+            if reserve > 0 {
+                for (k, (col, cx, w)) in self.column_cells(rect.right()).into_iter().enumerate() {
+                    let Some(cell) = row.cells.get(k) else {
+                        continue;
+                    };
+                    let mut cs = match cell.tone {
+                        Tone::Normal => st,
+                        tone => st.fg(rp.ink(ctx, t.tone_on(tone, st.bg.unwrap_or(t.canvas)))),
+                    };
+                    cs = cs.remove_modifier(Modifier::BOLD);
+                    if cell.strong {
+                        cs = cs.add_modifier(Modifier::BOLD);
+                    }
+                    buf.set_string(cx, y, align(&cell.text, w, col.align), cs);
+                }
             }
             // toggle region registered after row so it wins hit-testing
             if row.has_children {
@@ -2064,5 +2207,13 @@ mod scroll_tests {
         t.keymap = vec![(KeyBinding::char('e'), TreeCmd::ExpandAll)];
         assert_eq!(row(&t, TreeCmd::ExpandAll).1.as_deref(), Some("e"));
         assert_eq!(row(&t, TreeCmd::CollapseAll).1, None);
+    }
+}
+
+/// `text` cut and padded to `w` cells on `align`'s side.
+fn align(text: &str, w: usize, align: Align) -> String {
+    match align {
+        Align::Left => crate::ui::text::fit(text, w),
+        Align::Right => crate::ui::text::fit_right(text, w),
     }
 }

@@ -17,7 +17,7 @@ use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::list_core::ListCore;
 use crate::ui::reveal::{Reveal, RevealLine};
-use crate::ui::row::{MarkKind, RowLook, RowUi};
+use crate::ui::row::{MarkKind, RowLook, RowMark, RowUi};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone)]
@@ -28,6 +28,17 @@ pub struct ListItem {
     /// meaning (a slow duration) takes its own.
     pub meta_tone: Tone,
     pub disabled: bool,
+    /// A section header ([`ListItem::header`]): a muted bold title the
+    /// cursor, type-ahead, the selection and clicks pass over.
+    pub header: bool,
+    /// A status the row carries ([`ListItem::status`]): a glyph in this
+    /// tone in the mark column (a failed query's `!`). Default `None`.
+    pub status: Option<Tone>,
+    /// The status glyph; `None` takes the tone's default
+    /// ([`ListItem::status_glyph`]).
+    pub status_glyph: Option<&'static str>,
+    /// Pointer, unsaved-changes and partly-checked marks ([`RowMark`]).
+    pub mark: RowMark,
 }
 
 impl ListItem {
@@ -37,6 +48,20 @@ impl ListItem {
             meta: None,
             meta_tone: Tone::Muted,
             disabled: false,
+            header: false,
+            status: None,
+            status_glyph: None,
+            mark: RowMark::NONE,
+        }
+    }
+    /// A section header row: a title over the rows that follow it (a day
+    /// in a history list, a group of settings). It is text, not an item:
+    /// keyboard steps, type-ahead, Select All and clicks pass over it, as
+    /// group rows do in macOS source lists.
+    pub fn header(label: &str) -> Self {
+        Self {
+            header: true,
+            ..Self::new(label)
         }
     }
     pub fn meta(mut self, m: &str) -> Self {
@@ -51,6 +76,41 @@ impl ListItem {
     pub fn disabled(mut self, d: bool) -> Self {
         self.disabled = d;
         self
+    }
+    /// Give the row a status: a glyph in `tone` in its mark column, in
+    /// place of the selection mark (a failed run's `!`, a warning's `▲`).
+    /// The glyph defaults to the tone's ([`Self::default_status_glyph`]);
+    /// [`Self::status_glyph`] picks another. The glyph is the cue without
+    /// colour; an error is bold too.
+    pub fn status(mut self, tone: Tone) -> Self {
+        self.status = Some(tone);
+        self
+    }
+    /// See [`ListItem::status_glyph`].
+    pub fn status_glyph(mut self, glyph: &'static str) -> Self {
+        self.status_glyph = Some(glyph);
+        self
+    }
+    /// See [`ListItem::mark`].
+    pub fn mark(mut self, mark: RowMark) -> Self {
+        self.mark = mark;
+        self
+    }
+    /// The glyph a status in `tone` shows by default: `!` for an error or
+    /// danger, the theme's warning, done and info glyphs for warning,
+    /// success and info, a dot otherwise.
+    pub fn default_status_glyph(t: &crate::theme::Theme, tone: Tone) -> &'static str {
+        match tone {
+            Tone::Error | Tone::Danger => "!",
+            Tone::Warning => t.glyphs.warning,
+            Tone::Success => t.glyphs.done,
+            Tone::Info => t.glyphs.info,
+            _ => t.glyphs.dot_on,
+        }
+    }
+    /// Whether the cursor and the selection can land on the row.
+    fn usable(&self) -> bool {
+        !self.disabled && !self.header
     }
 }
 
@@ -96,6 +156,11 @@ pub struct ListBox {
     pub toggle_mods: KeyModifiers,
     /// The list's own action keys (default [`ListCmd::default_keymap`]).
     pub keymap: KeyMap<ListCmd>,
+    /// Keep a two-cell lane between the mark column and the labels for
+    /// each row's unsaved-changes `•` ([`RowMark::dirty`]), so labels do
+    /// not move when a row becomes dirty. Default `false`: labels start
+    /// right after the mark column and a dirty row shows no dot.
+    pub dirty_lane: bool,
 }
 
 impl std::ops::Deref for ListBox {
@@ -152,6 +217,37 @@ impl ListBox {
             scrollbar_gap: scrollbar::GAP,
             toggle_mods: SelectGesture::toggle_mods(),
             keymap: ListCmd::default_keymap(),
+            dirty_lane: false,
+        }
+    }
+
+    /// See [`ListBox::dirty_lane`].
+    pub fn dirty_lane(mut self, on: bool) -> Self {
+        self.dirty_lane = on;
+        self
+    }
+
+    /// Set row `i`'s marks ([`RowMark`]): an owner that tracks a current
+    /// row, unsaved changes or a partly checked group.
+    pub fn set_mark(&mut self, i: usize, mark: RowMark) {
+        if let Some(it) = self.items.get_mut(i) {
+            it.mark = mark;
+        }
+    }
+
+    /// The first row at or after `from` the cursor can rest on (a header
+    /// never takes it), else the last before it.
+    fn settle_cursor(&mut self) {
+        let n = self.items.len();
+        let at = self.core.cursor.min(n.saturating_sub(1));
+        if n == 0 || !self.items[at].header {
+            return;
+        }
+        if let Some(i) = (at..n)
+            .find(|&i| !self.items[i].header)
+            .or_else(|| (0..at).rev().find(|&i| !self.items[i].header))
+        {
+            self.core.cursor = i;
         }
     }
 
@@ -221,9 +317,9 @@ impl ListBox {
     pub fn select(&mut self, g: SelectGesture, to: usize) -> bool {
         let order = self.order();
         let items = &self.items;
-        self.core.selection.apply(g, to, &order, |i| {
-            items.get(i).is_some_and(|it| !it.disabled)
-        })
+        self.core
+            .selection
+            .apply(g, to, &order, |i| items.get(i).is_some_and(ListItem::usable))
     }
 
     /// Remove `rows` (indices); the selection, the chosen row and the
@@ -299,8 +395,8 @@ impl ListBox {
 
     /// Label and metadata widths of a row in `text_w` cells: the metadata
     /// hides rather than starve the label.
-    fn label_width(item: &ListItem, text_w: usize) -> (usize, usize) {
-        let label_w = text_w.saturating_sub(2);
+    fn label_width(&self, item: &ListItem, text_w: usize) -> (usize, usize) {
+        let label_w = text_w.saturating_sub(2 + self.lane());
         let meta_w = item
             .meta
             .as_ref()
@@ -324,12 +420,17 @@ impl ListBox {
         room: u16,
     ) -> Option<Vec<RevealLine>> {
         let item = self.items.get(self.core.cursor).filter(|it| !it.disabled)?;
-        let (lw, _) = Self::label_width(item, text_w);
+        let (lw, _) = self.label_width(item, text_w);
         let rid = self.row_id(self.core.cursor);
         let label = item.label.clone();
         self.core
             .reveal
             .inline(ctx, rid, lw as u16, &label, true, room)
+    }
+
+    /// The dirty lane's width: 2 when [`ListBox::dirty_lane`] is on.
+    fn lane(&self) -> usize {
+        if self.dirty_lane { 2 } else { 0 }
     }
 
     /// See [`Self::empty`].
@@ -393,7 +494,7 @@ impl ListBox {
     }
 
     pub fn activate(&mut self, i: usize) -> Outcome {
-        if i >= self.items.len() || self.items[i].disabled {
+        if i >= self.items.len() || !self.items[i].usable() {
             return Outcome::Consumed;
         }
         match self.mode {
@@ -431,7 +532,7 @@ impl ListBox {
                     let items = &self.items;
                     self.core
                         .selection
-                        .toggle_all(0..items.len(), |i| !items[i].disabled);
+                        .toggle_all(0..items.len(), |i| items[i].usable());
                     Outcome::Changed
                 }
                 ListCmd::SelectAll => {
@@ -491,7 +592,8 @@ impl ListBox {
         mods: KeyModifiers,
         on_box: bool,
     ) -> Outcome {
-        if row >= self.items.len() {
+        if row >= self.items.len() || self.items[row].header {
+            // a header is text: a click on it moves nothing
             return Outcome::Consumed;
         }
         let from = self.core.cursor;
@@ -536,6 +638,7 @@ impl ListBox {
             return;
         }
         self.area = area;
+        self.settle_cursor();
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
         self.core.reveal.begin(ctx);
@@ -589,6 +692,19 @@ impl ListBox {
                 .clamp(1, area.bottom() - y);
             let row = Rect::new(area.x, y, sp.body.width, h);
             let rid = self.row_id(li);
+            if item.header {
+                // a section title: text on the plane, no state, no target
+                let title = crate::ui::text::truncate(&item.label, text_w);
+                fill(buf, row, ratatui::style::Style::new().bg(bg));
+                buf.set_string(
+                    row.x + 1,
+                    y,
+                    title,
+                    t.muted().bg(bg).add_modifier(ratatui::style::Modifier::BOLD),
+                );
+                y += h;
+                continue;
+            }
             let mut s = ctx.child_state(self.id, rid, li == self.core.cursor);
             if self.mode == SelectMode::Multi {
                 // the row counts its `✓` column's hover and press as its own
@@ -604,25 +720,39 @@ impl ListBox {
             };
             let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
             let st = rp.style();
-            if s.selected {
+            if let Some(tone) = item.status {
+                // a status takes the mark column: it is the row's fact
+                let glyph = item
+                    .status_glyph
+                    .unwrap_or_else(|| ListItem::default_status_glyph(t, tone));
+                rp.status(ctx, buf, row.x + 1, y, glyph, tone);
+            } else if s.selected {
                 let kind = match self.mode {
                     SelectMode::Single => MarkKind::Current,
                     SelectMode::Multi => MarkKind::Tick,
                 };
                 rp.mark(ctx, buf, row.x + 1, y, kind, focused);
+            } else if self.mode == SelectMode::Multi && item.mark.partial {
+                rp.mark(ctx, buf, row.x + 1, y, MarkKind::Glyph(t.glyphs.dash), focused);
+            } else if item.mark.pointer {
+                rp.mark(ctx, buf, row.x + 1, y, MarkKind::Current, focused);
             }
-            let label_w = text_w.saturating_sub(2);
-            let (lw, meta_w) = Self::label_width(item, text_w);
+            let lane = self.lane() as u16;
+            if lane > 0 && item.mark.dirty {
+                rp.dirty(ctx, buf, row.x + 3, y);
+            }
+            let label_w = text_w.saturating_sub(2 + self.lane());
+            let (lw, meta_w) = self.label_width(item, text_w);
             if let Some(rows) = block {
                 // the cursor row wrapped in place: every line, then a
                 // marker when a long text scrolls
                 for (k, line) in rows.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { st };
                     let text = crate::ui::text::fit(&line.text, lw);
-                    buf.set_string(row.x + 3, y + k as u16, text, ls);
+                    buf.set_string(row.x + 3 + lane, y + k as u16, text, ls);
                 }
             } else {
-                let label = Rect::new(row.x + 3, y, lw as u16, 1);
+                let label = Rect::new(row.x + 3 + lane, y, lw as u16, 1);
                 rp.label(ctx, buf, &mut self.core.reveal, rid, label, &item.label, st);
             }
             if let Some(m) = &item.meta
@@ -695,7 +825,10 @@ impl RowSource for [ListItem] {
         <[ListItem]>::len(self)
     }
     fn enabled(&self, i: usize) -> bool {
-        !self[i].disabled
+        self[i].usable()
+    }
+    fn is_header(&self, i: usize) -> bool {
+        self[i].header
     }
     fn label(&self, i: usize) -> &str {
         &self[i].label
@@ -708,6 +841,9 @@ impl RowSource for ListBox {
     }
     fn enabled(&self, i: usize) -> bool {
         self.items[..].enabled(i)
+    }
+    fn is_header(&self, i: usize) -> bool {
+        self.items[i].header
     }
     fn label(&self, i: usize) -> &str {
         &self.items[i].label

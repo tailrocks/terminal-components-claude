@@ -67,6 +67,57 @@ pub enum MarkKind {
     Glyph(&'static str),
 }
 
+/// Per-row marks an owner sets beside the selection (plan S16): the
+/// pointer `›` of a row the app tracks as current (a page in a settings
+/// list), the `•` of a row with unsaved changes, and the mixed `–` of a
+/// multi-select row only part of whose contents are checked (a category
+/// with some of its files checked, the macOS mixed checkbox).
+///
+/// [`crate::widgets::list::ListItem::mark`] carries one per list row and
+/// [`crate::widgets::table::DataTable::set_mark`] one per table row (drawn
+/// in a [`crate::widgets::table::Column::marker`] column). Every field is
+/// off by default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct RowMark {
+    /// The row is the owner's current one: `›` in the mark column
+    /// ([`crate::theme::Glyphs::current`], [`crate::theme::Theme::chosen`]).
+    pub pointer: bool,
+    /// The row has unsaved changes: `•` in warning
+    /// ([`crate::theme::Glyphs::dirty`]).
+    pub dirty: bool,
+    /// Multi-select: the row is partly checked. An unchecked row shows the
+    /// mixed `–` ([`crate::theme::Glyphs::dash`]) where a checked one shows
+    /// `✓`; checking it (Space, a click on the mark) checks it fully.
+    pub partial: bool,
+}
+
+impl RowMark {
+    /// No marks.
+    pub const NONE: RowMark = RowMark {
+        pointer: false,
+        dirty: false,
+        partial: false,
+    };
+
+    /// See [`Self::pointer`](RowMark::pointer).
+    pub const fn pointer(mut self, on: bool) -> Self {
+        self.pointer = on;
+        self
+    }
+
+    /// See [`Self::dirty`](RowMark::dirty).
+    pub const fn dirty(mut self, on: bool) -> Self {
+        self.dirty = on;
+        self
+    }
+
+    /// See [`Self::partial`](RowMark::partial).
+    pub const fn partial(mut self, on: bool) -> Self {
+        self.partial = on;
+        self
+    }
+}
+
 /// The row painter. See the module docs.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct RowUi;
@@ -180,6 +231,43 @@ impl RowPaint {
         } else {
             self.style().fg(t.legible(t.chosen(focused), self.bg()))
         };
+        buf.set_string(x, y, glyph, style);
+    }
+
+    /// Draw the unsaved-changes dot ([`RowMark::dirty`]) at `(x, y)`: `•`
+    /// in warning, readable on the row; a disabled row keeps its ink.
+    pub fn dirty(&self, ctx: &RenderCtx, buf: &mut Buffer, x: u16, y: u16) {
+        let t = ctx.theme;
+        let style = if self.state.disabled {
+            self.style()
+        } else {
+            self.style().fg(t.legible_mark(t.warning, self.bg()))
+        };
+        buf.set_string(x, y, t.glyphs.dirty, style);
+    }
+
+    /// Draw a status glyph at `(x, y)` in `tone`, readable on the row
+    /// (an error is bold too, so colour is never the only cue beside the
+    /// glyph itself). A disabled row keeps its ink.
+    pub fn status(
+        &self,
+        ctx: &RenderCtx,
+        buf: &mut Buffer,
+        x: u16,
+        y: u16,
+        glyph: &str,
+        tone: crate::theme::Tone,
+    ) {
+        use crate::theme::Tone;
+        let t = ctx.theme;
+        let mut style = if self.state.disabled {
+            self.style()
+        } else {
+            self.style().fg(t.tone_on(tone, self.bg()))
+        };
+        if matches!(tone, Tone::Error | Tone::Danger) {
+            style = style.add_modifier(ratatui::style::Modifier::BOLD);
+        }
         buf.set_string(x, y, glyph, style);
     }
 

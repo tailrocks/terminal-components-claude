@@ -46,6 +46,14 @@ pub trait RowSource {
         true
     }
 
+    /// Whether row `i` is a section header: text, never a cursor stop,
+    /// even when [`Cursor::skip_disabled`] is off (a disabled row can
+    /// still be reached then; a header never can). Default `false`.
+    fn is_header(&self, i: usize) -> bool {
+        let _ = i;
+        false
+    }
+
     /// The text type-ahead matches for row `i`.
     fn label(&self, i: usize) -> &str;
 
@@ -191,7 +199,7 @@ impl Cursor {
     }
 
     fn usable<S: RowSource + ?Sized>(&self, src: &S, i: usize) -> bool {
-        !self.skip_disabled || src.enabled(i)
+        !src.is_header(i) && (!self.skip_disabled || src.enabled(i))
     }
 
     fn settle(&mut self, from: usize, to: usize) -> Moved {
