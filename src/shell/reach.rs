@@ -107,10 +107,13 @@ impl Reach {
     }
 }
 
-/// The words of `buf`, rows `0..rows`: whole words and the prefixes of
-/// words cut with `…`.
+/// The words of a screen: whole words and the prefixes of words cut with
+/// `…`. The one word rule of the reach audits (the apps' `Probe` and the
+/// showcase's gate): a word cut with `…` is reached through its reveal,
+/// and so are the items a strip collapsed into its `…`
+/// ([`Words::add_overflowed`]).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct Words {
+pub struct Words {
     pub whole: BTreeSet<String>,
     pub cut: BTreeSet<String>,
 }
@@ -126,7 +129,16 @@ impl Words {
     /// Add the words of `buf` above the footer row.
     pub(crate) fn add(&mut self, buf: &Buffer) {
         let area = buf.area;
-        let rows = area.height.saturating_sub(1);
+        self.add_area(
+            buf,
+            ratatui::layout::Rect::new(area.x, area.y, area.width, area.height.saturating_sub(1)),
+        );
+    }
+
+    /// Add the words of `buf` inside `area`.
+    pub fn add_area(&mut self, buf: &Buffer, area: ratatui::layout::Rect) {
+        let area = area.intersection(buf.area);
+        let rows = area.height;
         for y in 0..rows {
             let mut word = String::new();
             for x in 0..area.width {
@@ -155,14 +167,28 @@ impl Words {
         word.clear();
     }
 
+    /// Add the items the strips drawn in the last frame collapsed into
+    /// their `…` overflow item: reached through its reveal, like text cut
+    /// with `…`.
+    pub fn add_overflowed(&mut self) {
+        for hidden in crate::ui::reveal::overflowed() {
+            for word in hidden.split(|c: char| !c.is_alphanumeric()) {
+                if word.chars().count() >= MIN_WORD {
+                    self.cut.insert(word.to_owned());
+                }
+            }
+        }
+    }
+
     /// Merge `other` in.
-    pub(crate) fn extend(&mut self, other: Self) {
+    pub fn extend(&mut self, other: Self) {
         self.whole.extend(other.whole);
         self.cut.extend(other.cut);
     }
 
-    /// Compare a reference against what was reached.
-    pub(crate) fn against(&self, reached: &Self) -> (BTreeSet<String>, BTreeSet<String>) {
+    /// Compare a reference against what was reached: the words never
+    /// reached, and those reached only cut with `…` (with a reveal).
+    pub fn against(&self, reached: &Self) -> (BTreeSet<String>, BTreeSet<String>) {
         let mut missing = BTreeSet::new();
         let mut cut = BTreeSet::new();
         for w in &self.whole {
@@ -251,13 +277,7 @@ impl<A: App + Application> Probe<A> {
     pub(crate) fn explore(&mut self, want: &Words, reached: &mut Words) -> usize {
         // the items a strip collapsed into its `…` overflow item are
         // reached through its reveal, like text cut with `…`
-        for hidden in crate::ui::reveal::overflowed() {
-            for word in hidden.split(|c: char| !c.is_alphanumeric()) {
-                if word.chars().count() >= MIN_WORD {
-                    reached.cut.insert(word.to_owned());
-                }
-            }
-        }
+        reached.add_overflowed();
         let left = want.against(reached).0;
         let mut acc = Acc {
             reached: std::mem::take(reached),
