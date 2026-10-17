@@ -13,10 +13,10 @@
 [0m[38;5;15;48;5;0m  [0m[38;5;0;48;5;0m [0m[38;5;7;48;5;0m [0m[38;5;15;48;5;0m [0m[38;5;3;48;5;0m [0m[38;5;15;48;5;0m OpenCode      [0m[38;5;7;48;5;0msync        [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m★ OpenCode · Go subscription[0m[38;5;15;48;5;0m                  [0m
 [0m[38;5;15;48;5;0m  [0m[38;5;0;48;5;0m [0m[38;5;7;48;5;0m [0m[38;5;15;48;5;0m [0m[38;5;3;48;5;0m [0m[38;5;15;48;5;0m Grok Build    [0m[38;5;7;48;5;0mapi key     [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m★ Grok · Team[0m[38;5;15;48;5;0m                                 [0m
 [0m[38;5;15;48;5;0m                                                                                [0m
-[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0msync mirrors the host login · api key and oauth token take material fro…[0m[38;5;15;48;5;0m    [0m
-[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0mignore starts the agent without credentials and removes it from session…[0m[38;5;15;48;5;0m    [0m
-[0m[38;5;15;48;5;0m                                                                                [0m
-[0m[38;5;15;48;5;0m                                                                                [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0msync mirrors the host login · api key and oauth token take material from[0m[38;5;15;48;5;0m    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0mthe registry account[0m[38;5;15;48;5;0m                                                        [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0mignore starts the agent without credentials and removes it from session[0m[38;5;15;48;5;0m     [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0mpickers[0m[38;5;15;48;5;0m                                                                     [0m
 [0m[38;5;15;48;5;0m                                                                                [0m
 [0m[38;5;15;48;5;0m                                                                                [0m
 [0m[38;5;15;48;5;0m                                                         [0m[38;5;0;48;5;0m [0m[38;5;7;48;5;0mCancel [0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;8m [0m[2;38;5;7;48;5;8mSave… [0m[38;5;15;48;5;0m     [0m
