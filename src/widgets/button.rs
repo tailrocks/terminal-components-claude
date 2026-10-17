@@ -431,6 +431,13 @@ impl ButtonRow {
         lines
     }
 
+    /// The row's natural width (plan §1.4 `Measure`): every button on one
+    /// line with the gap between, so nothing folds behind `…` or wraps.
+    pub fn width(&self, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
+        let n = buttons.len() as u16;
+        buttons.iter().map(Button::width).sum::<u16>() + self.gap_for(theme) * n.saturating_sub(1)
+    }
+
     /// Lines the row takes at `width`: always 1 for [`RowOverflow::More`].
     pub fn rows(&self, width: u16, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         match self.overflow {
@@ -664,6 +671,18 @@ mod tests {
         for (b, r) in buttons.iter().zip(&l.rects) {
             assert_eq!(r.unwrap().width, b.width());
         }
+    }
+
+    /// At its `width` the row folds nothing; one cell less folds.
+    #[test]
+    fn width_is_the_row_that_folds_nothing() {
+        let t = crate::theme::Theme::junie();
+        let row = ButtonRow::new();
+        let buttons = drawer_actions();
+        let w = row.width(&buttons, &t);
+        let at = |w: u16| row.layout(Rect::new(0, 0, w, 1), &buttons, &t).hidden.len();
+        assert_eq!(at(w), 0);
+        assert!(at(w - 1) > 0);
     }
 
     #[test]

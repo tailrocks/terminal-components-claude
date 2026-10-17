@@ -78,6 +78,17 @@ impl ActionRow {
         self
     }
 
+    /// The row's natural width (plan §1.4 `Measure`): every button, the
+    /// gaps and the whole message.
+    pub fn width(&self, buttons: &[&Button]) -> u16 {
+        let n = buttons.len() as u16;
+        let row = buttons.iter().map(|b| b.width()).sum::<u16>() + self.gap * n.saturating_sub(1);
+        match &self.message {
+            Some((text, _)) => row + self.gap + width(text) as u16,
+            None => row,
+        }
+    }
+
     /// Where each button goes in `area` (one row), without drawing.
     pub fn layout(&self, area: Rect, buttons: &[&Button]) -> Vec<Rect> {
         let widths: Vec<u16> = buttons.iter().map(|b| b.width()).collect();
@@ -175,6 +186,27 @@ mod tests {
         let mut buf = Buffer::empty(area);
         let rects = r.render(area, &mut buf, &mut ctx, t.canvas, buttons);
         (buf, rects)
+    }
+
+    /// Drawn at its `width` the row shows every button and the whole
+    /// message; one cell less cuts the message.
+    #[test]
+    fn width_shows_the_buttons_and_the_whole_message() {
+        for align in [RowAlign::Start, RowAlign::End] {
+            let mut a = Button::primary(WidgetId::of("a"), "Save");
+            let mut b = Button::secondary(WidgetId::of("b"), "Cancel");
+            let r = ActionRow::new()
+                .align(align)
+                .message("Saved 2 s ago", Tone::Success);
+            let w = r.width(&[&a, &b]);
+            let (buf, _) = draw(&r, w, &mut [&mut a, &mut b]);
+            let text = row(&buf, 0);
+            for part in ["Save", "Cancel", "Saved 2 s ago"] {
+                assert!(text.contains(part), "{align:?}: {text:?} lacks {part}");
+            }
+            let (buf, _) = draw(&r, w - 1, &mut [&mut a, &mut b]);
+            assert!(!row(&buf, 0).contains("Saved 2 s ago"), "{align:?}");
+        }
     }
 
     #[test]

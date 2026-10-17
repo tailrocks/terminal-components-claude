@@ -3783,6 +3783,14 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Demo("buttons", "Copy run ID"),
     ),
     (
+        "widgets::action_row::ActionRow::width",
+        Demo("buttons", "2 not available yet"),
+    ),
+    (
+        "widgets::button::ButtonRow::width",
+        Demo("buttons", "columns · every button fits"),
+    ),
+    (
         "widgets::action_row::ActionRow::render",
         Demo("buttons", "2 not available yet"),
     ),
