@@ -6,16 +6,21 @@
 //! every row and column; a section whose own layout squeezes instead of
 //! overflowing (its Playground has no `Page::measure` yet) loses words,
 //! and is listed in `tests/showcase_reach_allow.txt` with its
-//! `docs/remaining-work.md` row until its page is fixed. A listed entry
+//! `docs/remaining-work.md` row until its page is fixed. An inner
+//! scroller that shows a scrollbar (a list, a table, a log) holds more
+//! than its window by design: what wheeling it to its end shows counts
+//! as reachable. A listed entry
 //! that passes fails as stale, so the list only shrinks.
 
 use std::collections::BTreeSet;
 
+use junie_tui::core::event::{Input, Mouse, MouseKind};
+use junie_tui::core::hit::{Axis, Bar};
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 
 use crate::app::{App, NAV_ENTRIES};
 use crate::pages::template::Section;
@@ -26,6 +31,9 @@ const SIZES: [(u16, u16); 4] = [(80, 24), (100, 25), (106, 29), (120, 40)];
 
 /// A screen large enough to show every page whole.
 const REFERENCE: (u16, u16) = (220, 70);
+
+/// Wheel notches an inner scroller gets to reach its end.
+const INNER_NOTCHES: usize = 400;
 
 /// Words of three or more letters or digits in `area`: what a reader
 /// would miss when the section cuts it off.
@@ -76,7 +84,7 @@ impl Shot {
 
     /// Words in the section body at every scroll position: a window per
     /// view on each axis, and the end of each.
-    fn reachable(&mut self) -> BTreeSet<String> {
+    fn reachable(&mut self, inner: bool) -> BTreeSet<String> {
         let mut out = BTreeSet::new();
         self.words(&mut out);
         let l = self.view().last_layout();
@@ -94,9 +102,54 @@ impl Shot {
                 self.view().scroll_to(x, y);
                 self.draw();
                 self.words(&mut out);
+                if inner {
+                    self.inner(&mut out);
+                }
             }
         }
         out
+    }
+
+    /// The shared rule for inner scrollers: a scroller in the section
+    /// that shows a scrollbar (a list, a table, a log, a stack of panels)
+    /// says it holds more than its window, so what scrolling it brings
+    /// into view is reachable. Wheel each such scroller in view from its
+    /// bar to its end (until it stops moving, or the notch chains on to
+    /// the section's view), then put the section back where it was.
+    fn inner(&mut self, out: &mut BTreeSet<String>) {
+        let view = self.view().id;
+        let viewport = self.view().last_layout().viewport;
+        let bars: Vec<Bar> = self
+            .app
+            .shell
+            .hits
+            .bars()
+            .iter()
+            .filter(|b| b.owner != view && b.track.intersects(viewport))
+            .copied()
+            .collect();
+        for bar in bars {
+            let at = bar.track.intersection(viewport);
+            let pos = Position::new(at.x, at.y);
+            let kind = match bar.axis {
+                Axis::Vertical => MouseKind::WheelDown,
+                Axis::Horizontal => MouseKind::WheelRight,
+            };
+            let start = self.view().offset();
+            let mut last = text(self.term.backend().buffer());
+            for _ in 0..INNER_NOTCHES {
+                self.app.handle(Input::Mouse(Mouse::new(kind, pos)));
+                self.draw();
+                self.words(out);
+                let now = text(self.term.backend().buffer());
+                if self.view().offset() != start || now == last {
+                    break;
+                }
+                last = now;
+            }
+            self.view().scroll_to(start.0, start.1);
+            self.draw();
+        }
     }
 }
 
@@ -127,10 +180,10 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
             let Some(mut big) = Shot::new(REFERENCE.0, REFERENCE.1, entry.id, section) else {
                 break;
             };
-            let want = big.reachable();
+            let want = big.reachable(false);
             for (w, h) in SIZES {
                 let mut small = Shot::new(w, h, entry.id, section).unwrap();
-                let seen = small.reachable();
+                let seen = small.reachable(true);
                 let missing: Vec<&String> = want.difference(&seen).collect();
                 let key = format!("{:?} | {} | {w}x{h}", entry.id, section.label());
                 if missing.is_empty() {

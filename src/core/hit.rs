@@ -306,6 +306,11 @@ impl HitRegistry {
         self.releases.contains(&(id, from))
     }
 
+    /// Every scrollbar registered this frame, in drawing order.
+    pub fn bars(&self) -> &[Bar] {
+        &self.bars
+    }
+
     /// The scrollbar registered under `id` this frame.
     pub fn bar(&self, id: WidgetId) -> Option<Bar> {
         self.bars.iter().rev().find(|b| b.id == id).copied()
@@ -752,6 +757,11 @@ mod tests {
                 part: PartRef::of(Part::TRACK)
             }),
             "a scrollbar resolves to its owner's track"
+        );
+        assert_eq!(
+            h.bars().iter().map(|b| b.owner).collect::<Vec<_>>(),
+            vec![list],
+            "the frame's scrollbars are listed"
         );
         h.register_thumb(WidgetId::of("list.bar"), list, Rect::new(19, 1, 1, 2));
         assert_eq!(
