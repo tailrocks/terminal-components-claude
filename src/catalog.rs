@@ -2128,7 +2128,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::option_editor::ChoiceEditor::on_key"),
     Capability::function("widgets::option_editor::ChoiceEditor::on_paste"),
     Capability::function("widgets::option_editor::ChoiceEditor::on_click"),
-    Capability::function("widgets::option_editor::ChoiceEditor::on_wheel"),
+    Capability::function("widgets::option_editor::ChoiceEditor::wheel"),
     Capability::function("widgets::option_editor::ChoiceEditor::render"),
     // widgets::option_list
     Capability::ty("widgets::option_list::SelectArrows"),
@@ -2164,6 +2164,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::option_list::OptionList::query"),
     Capability::builder("widgets::option_list::OptionList::clear_on_leave"),
     Capability::builder("widgets::option_list::OptionList::type_ahead_timeout"),
+    Capability::function("widgets::option_list::query_pointer"),
     Capability::function("widgets::option_list::OptionList::reset"),
     Capability::function("widgets::option_list::OptionList::highlighted"),
     Capability::function("widgets::option_list::OptionList::row_part"),

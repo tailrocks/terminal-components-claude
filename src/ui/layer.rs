@@ -700,6 +700,24 @@ impl Overlay for Completion {
     }
 }
 
+/// A table's or grid's cell popup (S12): its policy is the table's
+/// [`EditorConfig`](crate::widgets::option_editor::EditorConfig), copied
+/// into its list when it opens; a dismissal cancels the edit.
+impl Overlay for crate::widgets::option_editor::ChoiceEditor {
+    type Action = crate::widgets::option_editor::ChoiceResult;
+    fn dismiss(&self) -> Dismiss {
+        self.list.dismiss
+    }
+    fn spec(&self) -> LayerSpec {
+        // the table keeps the keyboard; the popup marks its cursor with
+        // a fill, never a second focus bar
+        LayerSpec::popover(self.list.dismiss)
+    }
+    fn on_dismiss(&mut self, _: DismissReason) -> Response<Self::Action> {
+        Response::emit(crate::widgets::option_editor::ChoiceResult::Cancel)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
