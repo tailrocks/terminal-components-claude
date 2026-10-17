@@ -268,12 +268,12 @@ impl TextAreasPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (cards, contents) = self.tiled(area.width, ctx);
-        for k in 0..2 {
+        for (k, content) in contents.iter().enumerate() {
             let panel = Self::panel(k);
             let bg = panel.bg(t);
             let inner = panel.render(cards.at(k, area), buf, t);
             for i in 0..2 {
-                let r = contents[k].at(i, inner);
+                let r = content.at(i, inner);
                 self.areas[2 * k + i].render(r, buf, ctx, bg);
             }
         }
