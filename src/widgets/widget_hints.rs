@@ -5,7 +5,9 @@
 //! The modals' hints live with them (`Dialog`, `Picker`, `ContextMenu`,
 //! `MenuBar`, `ChoiceDialog`, `FormDialog`, `InfoDialog`, `HelpOverlay`).
 
-use crate::core::hints::{HasHints, HintCx, nav_hints};
+use crate::core::hints::{
+    Binding, Bindings, HasHints, HintCx, actions_bindings, nav_bindings, nav_hints,
+};
 use crate::core::keymap::hint_key;
 use crate::widgets::button::Button;
 use crate::widgets::code::CodeEditor;
@@ -135,6 +137,73 @@ impl HasHints for Button {
             return vec![];
         }
         vec![self.hint()]
+    }
+}
+
+// ------------------------------------------------------------ Bindings
+
+/// A list: navigation, activation, and its key map.
+impl Bindings for ListBox {
+    fn bindings(&self) -> Vec<Binding> {
+        let mut v = nav_bindings(&self.nav, self.type_ahead);
+        v.push(Binding::group("Enter", "Activate"));
+        if self.mode == SelectMode::Multi {
+            v.push(Binding::group("Space", "Toggle"));
+            v.extend(actions_bindings(&self.keymap));
+        }
+        v
+    }
+}
+
+/// A tree: navigation, folding, and its key map.
+impl Bindings for TreeView {
+    fn bindings(&self) -> Vec<Binding> {
+        let mut v = nav_bindings(&self.nav, self.type_ahead);
+        v.push(Binding::group("←→", "Fold / unfold"));
+        v.push(Binding::group("Enter", "Activate"));
+        v.extend(actions_bindings(&self.keymap));
+        v
+    }
+}
+
+/// A tab strip: switching, and its key map (close, new, digits).
+impl Bindings for Tabs {
+    fn bindings(&self) -> Vec<Binding> {
+        let mut v = vec![Binding::group("←→", "Switch tab")];
+        v.extend(actions_bindings(&self.keymap));
+        v
+    }
+}
+
+/// A table: navigation and its key map.
+impl Bindings for DataTable {
+    fn bindings(&self) -> Vec<Binding> {
+        let mut v = nav_bindings(&self.nav, self.type_ahead);
+        v.push(Binding::group("Enter", "Activate"));
+        v.extend(actions_bindings(&self.keymap));
+        v
+    }
+}
+
+/// A grid: the cell cursor, editing, and its key map.
+impl Bindings for DataGrid {
+    fn bindings(&self) -> Vec<Binding> {
+        let mut v = vec![Binding::group("↑↓←→", "Cell")];
+        if self.editable {
+            v.push(Binding::group("Enter F2", "Edit"));
+        }
+        v.extend(actions_bindings(&self.keymap));
+        v
+    }
+}
+
+/// A select: open, choose, and the open list's navigation.
+impl Bindings for Select {
+    fn bindings(&self) -> Vec<Binding> {
+        let mut v = vec![Binding::group("Enter Space", "Open")];
+        v.extend(nav_bindings(&self.nav, self.type_ahead));
+        v.push(Binding::group("Esc", "Close"));
+        v
     }
 }
 
