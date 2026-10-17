@@ -1789,9 +1789,11 @@ mod title_reveal_tests {
             let mut buf = Buffer::empty(Rect::new(0, 0, 70, 4));
             {
                 let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
-                Panel::card(Some("Log"))
-                    .meta(META)
-                    .render(Rect::new(0, 0, 20, 4), &mut buf, &theme);
+                Panel::card(Some("Log")).meta(META).render(
+                    Rect::new(0, 0, 20, 4),
+                    &mut buf,
+                    &theme,
+                );
                 ctx.flush_overlays(&mut buf);
             }
             let text = (0..4)
