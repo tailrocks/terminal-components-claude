@@ -88,7 +88,7 @@ never in view at the smallest failing size.
 
 | Id | Page | Section | Fails at | Never in view (sample) |
 |---|---|---|---|---|
-| R1 | Overview | Playground | 80x24, 100x25, 106x29, 120x40 | `0a1c0c 173f1c 19191c 1e5024 256 262626 2e0f0f 2e9a38` |
+| R1 | Overview | Playground | **Done** (reach-a): `measure`: every band of cards at its tallest card's height (the template scrolls instead of the cards' own section stack), never narrower than a card or the theme settings card's facts (`props::width`) | — |
 | R2 | Chrome | Playground | **Done** (reach-a): `measure`: as wide as the menu bar with every title, the sessions card, the identity strip, the status bar with all 8 items (`MenuBar`/`StatusBar`/`HintLayer: Measure`, `segments::width`) and as tall as its rows; the readout wraps; a second status bar at 64 columns keeps the priority demo (the Playground no longer narrows with the terminal); the hint bar is as wide as its hints and status so the status stays in view. The status bar needs ~186 columns, so every checked size scrolls sideways | — |
 | R3 | StatusHints | Playground | **Done** (reach-a): `measure`: width from `keyhint::width` (every layer and the resolved bar whole after the label column) and the captions, height from the sections with their notes wrapped (the notes and the options' help wrap instead of being cut); "all fit" draws at the bar's natural width | — |
 | R4 | BreadcrumbsRails | Playground | **Done** (reach-a): `measure` from `Breadcrumb: Measure`, `Panel::outer`, `props::width`; the Trails card spans the page (the deep trail is ~90 cells, so 80-column screens scroll sideways); captions say `full width` instead of a size-dependent number | — |

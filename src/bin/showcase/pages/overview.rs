@@ -72,6 +72,8 @@ const DEFAULT_KIND: usize = 4;
 
 /// Narrowest card: the contrast table's label and four level columns.
 const CARD_MIN: u16 = 50;
+/// Columns between cards and rows between bands.
+const GAP: u16 = 1;
 
 pub struct OverviewPage {
     template: Template,
@@ -114,16 +116,23 @@ impl OverviewPage {
         }
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let cols = ((area.width + 1) / (CARD_MIN + 1)).clamp(1, 3);
-        let gap = 1;
-        let card_w = (area.width.saturating_sub(gap * (cols - 1))) / cols;
+    /// The cards in bands of up to three at `width`: the columns, each
+    /// card's width and each band's height.
+    fn bands(width: u16) -> (u16, u16, Vec<&'static [Card]>, Vec<u16>) {
+        let cols = ((width + 1) / (CARD_MIN + 1)).clamp(1, 3);
+        let card_w = (width.saturating_sub(GAP * (cols - 1))) / cols;
         let bands: Vec<&[Card]> = CARDS.chunks(cols as usize).collect();
         let heights: Vec<u16> = bands
             .iter()
             .map(|b| b.iter().map(|c| c.height(card_w)).max().unwrap_or(0))
             .collect();
+        (cols, card_w, bands, heights)
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let gap = GAP;
+        let (cols, card_w, bands, heights) = Self::bands(area.width);
         let children: Vec<StackChild> = heights.iter().map(|&h| StackChild::fixed(h)).collect();
         let l = self.sections.layout(area, &children, None, buf, ctx);
         let xt = self.explorer_theme(t);
@@ -616,6 +625,11 @@ fn render_mods(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
 
 /// Theme-wide settings and the level overrides.
 fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
+    props::render(area, buf, t, &settings(t), bg);
+}
+
+/// The theme settings card's facts.
+fn settings(t: &Theme) -> Vec<Prop> {
     let h = t.hintbar;
     let on = |b: bool| if b { "on" } else { "off" };
     let mono = Theme::for_level(ColorLevel::Mono);
@@ -627,7 +641,7 @@ fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
             g.check_on, g.chevron_closed, g.ellipsis, g.done
         )
     };
-    let list = [
+    vec![
         Prop::new("theme.level", t.level.label()),
         Prop::new("theme.tint_selection", on(t.tint_selection)),
         Prop::new(
@@ -643,8 +657,7 @@ fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         Prop::new("edit entry", format!("{:?}", t.edit_entry)),
         Prop::new("for_level(Mono)", sample(&mono)),
         Prop::new("+ ASCII_MONO", sample(&ascii)),
-    ];
-    props::render(area, buf, t, &list, bg);
+    ]
 }
 
 /// What each state looks like, in words.
@@ -780,6 +793,20 @@ impl Page for OverviewPage {
     }
     fn blurb(&self) -> &'static str {
         "Tokens and principles behind every component"
+    }
+
+    /// The cards at their natural size: never narrower than one card,
+    /// every band at its tallest card's height.
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        // the settings card's facts are the widest content
+        let facts = settings(ctx.theme);
+        let settings_w = Panel::card(Some(Card::Settings.title()))
+            .outer(ratatui::layout::Size::new(props::width(&facts), 0))
+            .width;
+        let w = avail.width.max(CARD_MIN).max(settings_w);
+        let (_, _, _, heights) = Self::bands(w);
+        let h = heights.iter().sum::<u16>() + GAP * (heights.len() as u16).saturating_sub(1);
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
