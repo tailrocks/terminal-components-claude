@@ -10,6 +10,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
@@ -779,9 +780,10 @@ impl ShellPage<Holla> for PlanReviewPage {
                 Outcome::Ignored
             }
             Some(Phase::Click) => {
-                // a double click on a step includes or excludes it
-                if ev.count() >= 2
-                    && let Some(i) = step
+                // a step's activation (the library's data-view click: a
+                // double click) includes or excludes it
+                if let Some(i) = step
+                    && ClickPolicy::DATA.activates(ev.count(), self.cursor == i)
                     && let Some(p) = w.plan_mut(&self.plan)
                 {
                     self.cursor = i;
