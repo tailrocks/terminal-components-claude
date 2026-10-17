@@ -931,21 +931,10 @@ impl crate::core::pointer::MouseTarget for Picker {
         // the query field takes the text gestures (M21): a click places
         // the caret, a double click selects a word, a triple click the
         // query, a drag selects what it crosses
-        if ev.part().part == Part::QUERY
-            && let Some(query) = &mut self.list.query
+        if let Some(query) = &mut self.list.query
+            && let Some(r) = crate::widgets::option_list::query_pointer(query, ev)
         {
-            let at = query.line_offset_at(ev.pos());
-            match ev.phase() {
-                Some(Phase::Press) => {
-                    query.press(at, ev.count(), false);
-                }
-                Some(Phase::Drag) => {
-                    query.drag(at);
-                }
-                Some(Phase::Click) => query.click(at, ev.count().max(1), false),
-                _ => return Response::ignored(),
-            }
-            return Response::changed();
+            return r.lift();
         }
         if !ev.is(Phase::Click) {
             return Response::ignored();
