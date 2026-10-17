@@ -265,6 +265,16 @@ pub fn accounts_badge(s: &mut Session, case: &Case) {
     }
 }
 
+/// The capsule's brand lockup opens the application menu, whose first
+/// item opens About: the capsule's Help menu has no About entry and the
+/// brand is reached only by pointer.
+pub fn capsule_brand_about(s: &mut Session, _: &Case) {
+    pointer(s, Pointer::Click("jackin❯"));
+    s.wait_for_text("About jackin-preview")
+        .unwrap_or_else(|e| panic!("{e}"));
+    s.send_key("enter").expect("enter");
+}
+
 // ---------------------------------------------------------------- holla --
 
 pub fn browser_wheel(s: &mut Session, _: &Case) {

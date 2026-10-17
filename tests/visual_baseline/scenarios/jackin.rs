@@ -132,10 +132,6 @@ pub const SURFACES: &[Root] = &[
     // evidence is the third (superseded) instance row.
     Root::new("jackin/manager/tree_expanded", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "space"]),
     Root::new("jackin/manager/detail_drawer", Bin::Jackin, RETURNING, "jackin❯").sends(&["tab"]),
-    Root::new("jackin/manager/new_workspace_prelude", Bin::Jackin, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]).variants(&[
-        Variant::new(120, 40, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
-        Variant::new(80, 24, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
-    ]),
     Root::new("jackin/manager/inspect", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "space", "down", "i", "wait:Container 7f3a"]),
     // ----------------------------------------------------------------- editor --
     Root::new("jackin/editor/general", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General"]),
@@ -146,7 +142,6 @@ pub const SURFACES: &[Root] = &[
     // ---------------------------------------------------------------- cockpit --
     Root::new("jackin/cockpit/debug", Bin::Jackin, LAUNCH, "jackin❯").sends(&["t", "wait:run-2026"]),
     // ---------------------------------------------------------------- capsule --
-    Root::new("jackin/capsule/new_tab", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:New tab"]),
     Root::new("jackin/capsule/split_vertical", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "\"", "wait:Split ↓ Below"]),
     Root::new("jackin/capsule/zoom", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "z", "wait:Zoomed · z restores the layout"]),
     // --------------------------------------------------- accounts/usage/settings --
@@ -254,6 +249,66 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("jackin/capsule/palette", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "space", "wait:Command palette"]).dismiss_pending(),
     // Pending: the menu opened by pointer, with both dismissals.
     Root::new("jackin/overlays/file_menu_click", Bin::Jackin, RETURNING, "jackin❯").click("File").pending().dismiss_pending(),
+    // V4: every overlay site in src/bin/jackin_preview has a row
+    // (overlay_sites). Help › About jackin-preview.
+    Root::new("jackin/overlays/about", Bin::Jackin, RETURNING, "jackin❯").sends(&["f10", "left", "wait:About jackin-preview", "up", "enter", "wait:Design system"]).pending().dismiss_pending(),
+    // Manager: an instance's stop, purge and session picker; a
+    // workspace's delete; the row context menu.
+    Root::new("jackin/overlays/manager_stop", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "space", "down", "t", "wait:Stop instance 7f3a?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/manager_purge", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "space", "down", "p", "wait:Purge instance 7f3a?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/manager_session_picker", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "space", "down", "a", "wait:New session · choose Agent"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/manager_delete", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "d", "wait:Delete workspace payments-platform?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/manager_row_menu", Bin::Jackin, RETURNING, "jackin❯").sends(&["down", "shift-f10", "wait:Open on GitHub"]).pending().dismiss_pending(),
+    // Cockpit: Ctrl+Q asks before quitting a launch; a failed launch
+    // explains itself.
+    Root::new("jackin/overlays/cockpit_quit", Bin::Jackin, LAUNCH, "jackin❯").sends(&["ctrl-q", "wait:Quitting force-stops the launch"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/cockpit_failure", Bin::Jackin, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "240"], "Launch failed").pending().dismiss_pending(),
+    // Capsule (Ctrl+B prefix): the provider picker after the agent, the
+    // palette's split picker, usage, debug info, rename, close, quit and
+    // its discard gate, and the View menu's GitHub context and change
+    // inspector.
+    Root::new("jackin/overlays/capsule_provider", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:New tab", "enter", "wait:Account for Claude Code"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_split_picker", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "space", "wait:Command palette", "type:Split pane", "enter", "wait:→ Right"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_usage", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "u", "wait:read-only projection"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_info", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "i", "wait:Debug info"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_rename", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", ",", "wait:Change tab title"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_close", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "x", "wait:Close pane?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_quit", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-q", "wait:Unsaved work — quit?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_discard", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-q", "wait:quit?", "down", "down", "down", "enter", "wait:Quit and discard changes?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_github", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "f10", "right", "right", "wait:GitHub context", "up", "up", "enter", "wait:Open PR…"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_inspect", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "f10", "right", "right", "wait:Inspect changes", "up", "enter", "wait:Inspect changes ·"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/capsule_about", Bin::Jackin, CAPSULE, "jackin❯").live(interact::capsule_brand_about).pending().dismiss_pending(),
+    // Accounts: the filter prompt, remove, the row menu, and the add
+    // form's 1Password chooser.
+    Root::new("jackin/overlays/accounts_filter", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["/", "wait:Filter accounts"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/accounts_remove", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["down", "down", "down", "down", "wait:Accounts › Claude › Work", "d", "wait:Remove account Work?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/accounts_row_menu", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["down", "down", "down", "down", "wait:Accounts › Claude › Work", "shift-f10", "wait:Show usage"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/accounts_op_picker", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account", "tab", "tab", "tab", "tab", "enter", "wait:Choose 1Password account"]).pending().dismiss_pending(),
+    // Global settings mounts and environment (config.rs).
+    Root::new("jackin/overlays/config_mount_form", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "2", "enter", "a", "wait:New mount"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/config_env_form", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "3", "enter", "wait:GH_TOKEN", "a", "wait:New global environment key"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/config_scope_picker", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "2", "enter", "down", "s", "wait:Scope for"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/config_env_remove", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "3", "enter", "wait:GH_TOKEN", "down", "d", "wait:Delete environment variable EDITOR?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/config_env_op", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "3", "enter", "wait:GH_TOKEN", "down", "p", "wait:Choose 1Password account"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/config_role_picker", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "3", "enter", "wait:GH_TOKEN", "end", "enter", "wait:Add role override"]).pending().dismiss_pending(),
+    // The mount form's host-directory chooser stacks the file browser.
+    Root::new("jackin/overlays/config_mount_browse", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global", "2", "enter", "a", "wait:New mount", "tab", "enter", "wait:Choose the host directory"]).pending().dismiss_pending(),
+    // Editor: the Roles filter, Load role picker and trust gate (data-eng
+    // has a load error), the Accounts filter, and the working-directory
+    // picker (General: Name, then Choose…).
+    Root::new("jackin/overlays/editor_roles_filter", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "3", "enter", "wait:Allowed roles", "/", "wait:Filter roles"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/editor_load_role", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "3", "enter", "wait:Allowed roles", "a", "wait:Load role"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/editor_trust", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "3", "enter", "wait:Allowed roles", "down", "down", "down", "down", "enter", "wait:Trust this role source?"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/editor_accounts_filter", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "5", "enter", "sleep:300", "/", "wait:Filter accounts"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/editor_workdir", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "tab", "tab", "enter", "wait:Type Filter"]).pending().dismiss_pending(),
+    // Surfaces whose state is an open overlay, moved here with both
+    // dismissals (V4; names and approvals unchanged): the new-workspace
+    // prelude's first step and the capsule's new-tab agent picker.
+    Root::new("jackin/manager/new_workspace_prelude", Bin::Jackin, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]).variants(&[
+        Variant::new(120, 40, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
+        Variant::new(80, 24, Color::Truecolor, FIRST_400, "jackin❯").sends(&["n", "wait:step 1 of 5 · Source"]),
+    ]).dismiss_pending(),
+    Root::new("jackin/capsule/new_tab", Bin::Jackin, CAPSULE, "jackin❯").sends(&["ctrl-b", "c", "wait:New tab"]).dismiss_pending(),
 ];
 
 #[rustfmt::skip]

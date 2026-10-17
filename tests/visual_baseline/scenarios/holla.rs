@@ -314,6 +314,39 @@ pub const OVERLAYS: &[Root] = &[
     // Pending: pointer-opened menus, with both dismissals.
     Root::new("holla/overlays/file_menu_click", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").click("File").pending().dismiss_pending(),
     Root::new("holla/overlays/results_context", Bin::Holla, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], "holla❯").right_click("Open btm").pending().dismiss_pending(),
+    // V4: every overlay site in src/bin/holla has a row (overlay_sites).
+    // Help › About holla (the brand click opens the same layer).
+    Root::new("holla/overlays/about", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "right", "right", "wait:About holla", "up", "enter", "wait:Design system"]).pending().dismiss_pending(),
+    // Help › Why is this here? for the selected row.
+    Root::new("holla/overlays/why", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["f10", "right", "right", "wait:Why is this here?", "up", "up", "enter", "wait:Ranking order"]).pending().dismiss_pending(),
+    // Alternatives › Set alias… (the alternatives menu's own actions).
+    Root::new("holla/overlays/alias_prompt", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:\u{1b}\r", "wait:Pin here", "up", "up", "up", "up", "enter", "wait:Set an alias"]).pending().dismiss_pending(),
+    // Ctrl+W on a live activity tab asks before stopping it.
+    Root::new("holla/overlays/close_tab", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["alt-1", "ctrl-w", "wait:Keep running"]).pending().dismiss_pending(),
+    // Context menus (Shift+F10) on the activity output and its stream chips.
+    Root::new("holla/overlays/activity_output_menu", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["alt-1", "shift-f10", "wait:Copy selection"]).pending().dismiss_pending(),
+    Root::new("holla/overlays/activity_chip_menu", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["alt-4", "wait:merged logs", "backtab", "shift-f10", "wait:stream"]).pending().dismiss_pending(),
+    Root::new("holla/overlays/cleanup_row_menu", Bin::Holla, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:selected", "shift-f10"]).pending().dismiss_pending(),
+    Root::new("holla/overlays/disk_row_menu", Bin::Holla, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "shift-f10"]).timeout(15_000).pending().dismiss_pending(),
+    Root::new("holla/overlays/files_actions", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "shift-f10"]).pending().dismiss_pending(),
+    Root::new("holla/overlays/plan_step_menu", Bin::Holla, &["--scenario", "upgrade-plan", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["shift-f10", "wait:step"]).pending().dismiss_pending(),
+    Root::new("holla/overlays/review_sequence_menu", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2"]).right_click("sudo systemctl restart").pending().dismiss_pending(),
+    Root::new("holla/overlays/snapshot_body_menu", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:port", "enter", "wait:Find the process on a port", "ctrl-s", "wait:Port 5173", "shift-f10"]).pending().dismiss_pending(),
+    // Ctrl+C on a running plan tab asks before cancelling the rest.
+    Root::new("holla/overlays/plan_cancel", Bin::Holla, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "wait:Plan changed", "right", "enter", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "ctrl-c", "wait:Cancel the remaining steps?"]).timeout(15_000).pending().dismiss_pending(),
+    // Journeys whose end state is an open overlay, moved here with both
+    // dismissals (V4; names and approvals unchanged).
+    // H1: Alt+Enter alternatives menu. `alt-enter` is not chord-expressible, so
+    // the bytes a real terminal sends for it are typed verbatim in one write
+    // (`\x1b\r`, the pointer.rs verbatim technique). Paused: the preview panel
+    // behind the menu carries a `live · N s ago` label.
+    Root::new("holla/flows/alternatives", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:\u{1b}\r", "wait:Pin here"]).dismiss_pending(),
+    // H5: gate 2 of the two-gate remote action (gate 1 continues with
+    // Right+Enter).
+    Root::new("holla/flows/remote/gate2", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type RESTART PAYMENTS ON prod-eu-1"]).dismiss_pending(),
+    // H12: the Go-to-path picker. Reduced: the files page's pending listing
+    // only applies on a tick.
+    Root::new("holla/flows/files/jump", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:Go to path"]).dismiss_pending(),
 ];
 
 #[rustfmt::skip]
@@ -339,19 +372,15 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("holla/flows/remote/gate-1", Bin::Holla, &["--scenario", "remote-host", "--motion", "reduced"], "holla❯").sends(&["type:restart payments", "enter"]),
     // ------------------------------------------------------- flows (new, H1-H21) --
 
-    // H1: Alt+Enter alternatives menu. `alt-enter` is not chord-expressible, so
-    // the bytes a real terminal sends for it are typed verbatim in one write
-    // (`\x1b\r`, the pointer.rs verbatim technique). Paused: the preview panel
-    // behind the menu carries a `live · N s ago` label.
-    Root::new("holla/flows/alternatives", Bin::Holla, &["--scenario", "rust-dirty", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:\u{1b}\r", "wait:Pin here"]),
+    // H1 (the alternatives menu), H5 (gate 2) and H12 (the Go-to-path
+    // picker) are OVERLAYS rows (V4), names unchanged.
     // H2: Alt+1 jumps to the second tab (frontend dev); the strip's spinner
     // glyphs are tick frames, so the clock stays frozen.
     Root::new("holla/flows/activities/jump", Bin::Holla, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["alt-1"]),
-    // H5/H6: the two-gate remote action. Gate 1 continues with Right+Enter (its
-    // `y` copies the sequence, review.rs) — the spec's `y` was a misread. Paused:
-    // the gate-1 facts render `live · N s ago`.
-    Root::new("holla/flows/remote/gate2", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type RESTART PAYMENTS ON prod-eu-1"]),
-    // H6: Enter arms the ack field for editing, then the host-bound phrase is
+    // H6: the two-gate remote action (gate 2 alone is the H5 OVERLAYS row).
+    // Gate 1 continues with Right+Enter (its `y` copies the sequence,
+    // review.rs) — the spec's `y` was a misread. Paused: the gate-1 facts
+    // render `live · N s ago`. Enter arms the ack field for editing, then the host-bound phrase is
     // typed; the dialog stays open with the armed token visible.
     Root::new("holla/flows/remote/gate2_typed", Bin::Holla, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:restart payments", "enter", "wait:gate 1 of 2", "right", "enter", "wait:Type RESTART PAYMENTS ON prod-eu-1", "enter", "type:RESTART PAYMENTS ON prod-eu-1"]),
     // H7-H9: scope chords from the monorepo root (the scope walk of
@@ -367,10 +396,9 @@ pub const JOURNEYS: &[Root] = &[
     // Ctrl+Y.
     Root::new("holla/flows/query/undone", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z"]),
     Root::new("holla/flows/query/redone", Bin::Holla, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], "holla❯").sends(&["type:pull", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z", "ctrl-y", "ctrl-y", "ctrl-y", "ctrl-y"]),
-    // H12/H13: the Go-to-path picker and its validation error. Reduced: the
+    // H13: the Go-to-path picker's validation error. Reduced: the
     // files page's pending listing only applies on a tick (paused would wedge it
     // animating); the picker and the error carry no tick label.
-    Root::new("holla/flows/files/jump", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:Go to path"]),
     Root::new("holla/flows/files/jump_error", Bin::Holla, &["--scenario", "parity-browser", "--motion", "reduced"], "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "g", "wait:Go to path", "type:nope", "enter", "wait:no such file or directory"]),
     // H14: Ctrl+G with nothing started (the h_flow_activities_empty state, on
     // the spec's first-use fixture).
