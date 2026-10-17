@@ -328,7 +328,9 @@ fn taskrunner_deploy_targets_carry_their_environment() {
 #[test]
 fn chrome_shows_toned_status_parts_spans_and_a_footer_status() {
     let t = Theme::junie();
-    let h = Harness::new(120, 40, PageId::Chrome);
+    // the Chrome Playground is as wide as its status bar (~186 columns):
+    // a screen that shows it whole
+    let h = Harness::new(220, 70, PageId::Chrome);
     let (x, y) = h.find("last: nothing yet");
     assert_ne!(
         h.cell(x, y).fg,
