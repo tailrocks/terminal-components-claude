@@ -352,7 +352,7 @@ impl FileBrowser {
     /// The path field takes its gestures (a press anchors a drag, a drag
     /// selects, a click places the caret or selects a word); the wheel
     /// anywhere scrolls the list and its bar pages and drags it; a click
-    /// picks an entry (again opens it) or presses a control.
+    /// picks an entry (a double click opens it) or presses a control.
     pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus, w: &World) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -381,10 +381,12 @@ impl FileBrowser {
             .flatten()
         {
             focus.focus(self.list.id);
-            let was = self.list.cursor == i;
+            // the list's click policy opens an entry (a double click by
+            // default, as in Finder); one click picks it
+            let open = self.list.click.activates(ev.count(), self.list.cursor == i);
             self.list.cursor = i;
             self.list.chosen = Some(i);
-            if was {
+            if open {
                 return self.open_cursor(w);
             }
             return Outcome::Changed;
