@@ -1304,4 +1304,58 @@ mod tests {
             "mise.toml velnor-actions must be the .velnor/release-manifest.json release"
         );
     }
+
+    /// `mise.lock` (docs/ci.md, "Tool lock") locks every `mise.toml` pin at
+    /// the pinned version, and every tool CI installs from an artifact has a
+    /// `linux-x64` checksum (what velnor's install audit verifies). Refresh
+    /// it with `mise lock --platform linux-x64,macos-arm64` after a pin
+    /// change.
+    #[test]
+    fn mise_lock_covers_every_mise_pin() {
+        let read = |p: &str| std::fs::read_to_string(root().join(p)).unwrap();
+        let mise = read("mise.toml");
+        let lock = read("mise.lock");
+        let pins: Vec<(String, String)> = mise
+            .lines()
+            .skip_while(|l| l.trim() != "[tools]")
+            .skip(1)
+            .filter(|l| !l.trim_start().starts_with('#') && l.contains(" = "))
+            .map(|l| {
+                let (key, rest) = l.split_once(" = ").unwrap();
+                let version = match rest.strip_prefix('{') {
+                    Some(table) => quoted_value(table.trim_start(), "version = "),
+                    None => quoted_value(rest, ""),
+                };
+                (key.to_string(), version)
+            })
+            .collect();
+        assert!(
+            pins.len() >= 8,
+            "parsed the mise.toml [tools] pins: {pins:?}"
+        );
+        for (key, version) in &pins {
+            let header = format!("[[tools.{key}]]");
+            let at = lock
+                .find(&header)
+                .unwrap_or_else(|| panic!("mise.lock has no {header}; run `mise lock`"));
+            assert_eq!(
+                quoted_value(lock[at + header.len()..].trim_start(), "version = "),
+                *version,
+                "mise.lock {key} must lock the mise.toml pin; run `mise lock`"
+            );
+        }
+        for key in [
+            "actionlint",
+            "shellcheck",
+            "zizmor",
+            "gh",
+            "\"aqua:nextest-rs/nextest/cargo-nextest\"",
+        ] {
+            let table = format!("[tools.{key}.\"platforms.linux-x64\"]");
+            assert!(
+                lock.contains(&table),
+                "mise.lock needs {table} (CI platform); run `mise lock --platform linux-x64,macos-arm64`"
+            );
+        }
+    }
 }
