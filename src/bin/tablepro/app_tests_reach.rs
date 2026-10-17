@@ -154,10 +154,72 @@ const SECTIONS: &[Reveal<H>] = &[
     },
 ];
 
+/// The cursor `N` rows down the connections list, then Tab: narrow, the
+/// selected connection's card opens as a drawer (`ui::master_detail`);
+/// wide, Tab focuses its Connect button.
+fn drawer<const N: usize>(h: &mut H) {
+    for _ in 0..N {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Tab);
+}
+
+/// One reveal per connections row, each from the case's fresh state.
+const DRAWERS: &[Reveal<H>] = &[
+    Reveal {
+        step: drawer::<0>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<1>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<2>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<3>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<4>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<5>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<6>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<7>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<8>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<9>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<10>,
+        times: 1,
+    },
+    Reveal {
+        step: drawer::<11>,
+        times: 1,
+    },
+];
+
 fn cases() -> Vec<Case<H>> {
     let mut cases = vec![
         // the connections screen
-        page("connections", |_| {}),
+        page("connections", |_| {}).reveals(DRAWERS),
         page("connections-empty", |h| {
             h.app.connections.connections.clear();
             h.draw();
@@ -167,7 +229,8 @@ fn cases() -> Vec<Case<H>> {
             h.click(x, y);
             h.key(KeyCode::Enter);
             h.ticks(12);
-        }),
+        })
+        .reveals(&DRAWERS[..1]),
         page("conn-form-new", |h| {
             h.ctrl('n');
         }),
