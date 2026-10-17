@@ -235,10 +235,61 @@ impl ButtonsPage {
         row
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let room = area.width.saturating_sub(4);
+    /// The Playground's natural width: every card's buttons on one row,
+    /// its notes and captions whole.
+    fn natural_width(&self, t: &junie_tui::theme::Theme) -> u16 {
+        let w = |s: &str| junie_tui::ui::text::width(s) as u16;
+        let row = |idx: &[usize]| {
+            idx.iter()
+                .map(|&i| self.buttons[i].width() + 2)
+                .sum::<u16>()
+                .saturating_sub(2)
+        };
+        let kinds = GROUPS.iter().map(|(_, idx)| row(idx)).max().unwrap_or(0);
+        let tools = self
+            .tools
+            .iter()
+            .map(|b| b.width() + 1)
+            .sum::<u16>()
+            .saturating_sub(1);
+        let next: Vec<&Button> = self.next.iter().collect();
+        let rows = self
+            .button_row()
+            .width(&self.row, t)
+            .max(5 + self.action_row().width(&next))
+            .max(w("full width · behind …: ") + 40);
+        let icons: u16 = self
+            .icons
+            .iter()
+            .zip(ICON_CAPTIONS)
+            .map(|(b, cap)| w(cap) + 1 + b.width(t) + 4)
+            .sum();
+        let card = |title: &str, meta: &str, content: u16| {
+            Panel::card(Some(title))
+                .meta(meta)
+                .outer(ratatui::layout::Size::new(content, 0))
+                .width
+        };
+        [
+            card("Playground", KINDS_META, kinds),
+            card("Toolbar", "not in the Tab order", tools.max(w(TOOL_NOTE))),
+            card("Button row", ROW_META, rows),
+            card("Icon buttons", ICON_META, icons.max(w(ICON_NOTE))),
+        ]
+        .into_iter()
+        .max()
+        .unwrap_or(0)
+    }
+
+    /// The sections' heights at `width`.
+    fn heights(&self, width: u16, t: &junie_tui::theme::Theme) -> [u16; 4] {
+        let room = width.saturating_sub(4);
         let row_lines = self.button_row().rows(self.row_width(room), &self.row, t);
+        [15, 6, row_lines + 7, 6]
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let heights = self.heights(area.width, ctx.theme);
         let has = |bs: &[Button]| bs.iter().any(|b| ctx.interaction.has_focus(b.id));
         let focus = if has(&self.buttons) {
             Some(0)
@@ -252,18 +303,9 @@ impl ButtonsPage {
         } else {
             None
         };
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(15),
-                StackChild::fixed(6),
-                StackChild::fixed(row_lines + 7),
-                StackChild::fixed(6),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &heights.map(StackChild::fixed), focus, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_kinds(r, buf, ctx),
             None => self.buttons.iter().for_each(|b| ctx.focus_stop(b.id)),
@@ -306,17 +348,11 @@ impl ButtonsPage {
     /// Kinds and states, live.
     fn render_kinds(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Playground")).meta("hover · click · Tab · Enter / Space");
+        let panel = Panel::card(Some("Playground")).meta(KINDS_META);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let mut y = inner.y;
-        let groups: [(&str, &[usize]); 4] = [
-            ("Actions", &[0, 1, 2, 3]),
-            ("Toggles", &[4, 5]),
-            ("Disabled", &[6, 7]),
-            ("Busy", &[8]),
-        ];
-        for (label, idx) in groups {
+        for (label, idx) in GROUPS {
             if y + 1 >= inner.bottom() {
                 break;
             }
@@ -355,11 +391,10 @@ impl ButtonsPage {
             b.render(r, buf, ctx, bg);
         }
         if inner.y + 2 < inner.bottom() {
-            let note = "F5 runs · Shift+F5 cancels · hover a tool for its tooltip";
             buf.set_string(
                 inner.x,
                 inner.y + 2,
-                junie_tui::ui::text::truncate(note, inner.width as usize),
+                junie_tui::ui::text::truncate(TOOL_NOTE, inner.width as usize),
                 t.faint().bg(bg),
             );
         }
@@ -369,7 +404,7 @@ impl ButtonsPage {
     /// what folded behind `…`, and a right-aligned "Next" row.
     fn render_rows(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Button row")).meta("align · gap · overflow in Options");
+        let panel = Panel::card(Some("Button row")).meta(ROW_META);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let w = self.row_width(inner.width);
@@ -385,8 +420,14 @@ impl ButtonsPage {
             t.faint().bg(bg),
         );
         self.layout = row.render(ROW, r, &mut self.row, buf, ctx, bg);
+        // "full" fills the card: its width depends on the screen
+        let width = if self.opts.number("buttons.row_width").is_some() {
+            format!("{w} columns")
+        } else {
+            "full width".to_owned()
+        };
         let readout = if self.layout.hidden.is_empty() {
-            format!("{w} columns · every button fits")
+            format!("{width} · every button fits")
         } else {
             let names: Vec<&str> = self
                 .layout
@@ -394,7 +435,7 @@ impl ButtonsPage {
                 .iter()
                 .map(|&i| self.row[i].label.as_str())
                 .collect();
-            format!("{w} columns · behind …: {}", names.join(", "))
+            format!("{width} · behind …: {}", names.join(", "))
         };
         let y = edge.y + 1;
         if y < inner.bottom() {
@@ -426,13 +467,12 @@ impl ButtonsPage {
     /// plate, and a close with the danger hover.
     fn render_icons(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Icon buttons")).meta("hover · press · click");
+        let panel = Panel::card(Some("Icon buttons")).meta(ICON_META);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let host = Style::default().fg(t.text_secondary).bg(bg);
-        let captions = ["Close", "Title · 5-cell plate", "Danger hover"];
         let mut x = inner.x;
-        for (b, cap) in self.icons.iter().zip(captions) {
+        for (b, cap) in self.icons.iter().zip(ICON_CAPTIONS) {
             if x >= inner.right() {
                 break;
             }
@@ -442,11 +482,10 @@ impl ButtonsPage {
             x += cw + 1 + b.width(t) + 4;
         }
         if inner.y + 2 < inner.bottom() {
-            let note = "hover a plate for its tooltip; focus stays with the owner";
             buf.set_string(
                 inner.x,
                 inner.y + 2,
-                junie_tui::ui::text::truncate(note, inner.width as usize),
+                junie_tui::ui::text::truncate(ICON_NOTE, inner.width as usize),
                 t.faint().bg(bg),
             );
         }
@@ -474,6 +513,20 @@ impl ButtonsPage {
         Some(Outcome::Changed)
     }
 }
+
+/// The kinds card's groups: a caption and the buttons under it.
+const GROUPS: [(&str, &[usize]); 4] = [
+    ("Actions", &[0, 1, 2, 3]),
+    ("Toggles", &[4, 5]),
+    ("Disabled", &[6, 7]),
+    ("Busy", &[8]),
+];
+const KINDS_META: &str = "hover · click · Tab · Enter / Space";
+const ROW_META: &str = "align · gap · overflow in Options";
+const ICON_META: &str = "hover · press · click";
+const TOOL_NOTE: &str = "F5 runs · Shift+F5 cancels · hover a tool for its tooltip";
+const ICON_NOTE: &str = "hover a plate for its tooltip; focus stays with the owner";
+const ICON_CAPTIONS: [&str; 3] = ["Close", "Title · 5-cell plate", "Danger hover"];
 
 /// The States grid: every button kind in every state it has, drawn by
 /// `Button` itself ([`junie_tui::ui::specimen`]), and the close
@@ -516,6 +569,12 @@ impl Page for ButtonsPage {
     }
     fn blurb(&self) -> &'static str {
         "Primary, secondary, subtle, danger, toggle, disabled, busy"
+    }
+
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        let w = avail.width.max(self.natural_width(ctx.theme));
+        let h = self.heights(w, ctx.theme).iter().sum::<u16>() + 3;
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
