@@ -24,8 +24,8 @@
                             [0m[2m   Zig                                [0m┆                                                                                             [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
-                          nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Activate · wrap false · skip_disabled true                             [0m
-                          scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · Ctrl+A ListCmd::SelectAll                                [0m
+                          nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Double, check BoxOnly · wrap false · skip_disabled true                [0m
+                          toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · Ctrl+A ListCmd::SelectAll        [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
