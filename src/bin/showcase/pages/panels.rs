@@ -31,7 +31,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::panel::{Panel, PanelCmd, PanelFocus, ScrollPanel};
+use junie_tui::widgets::panel::{CardHeading, Panel, PanelCmd, PanelFocus, ScrollPanel};
 use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("panels");
@@ -71,7 +71,7 @@ impl PanelsPage {
             SelectMode::Single,
         );
         let mut page = Self {
-            template: Template::new(ID, states_grid()),
+            template: Template::new(ID, states_grid(None)),
             opts: PageValues::new(page_options(PageId::Panels)),
             prose: ScrollPanel::new(ID.sub("prose"), vec![]),
             log: ScrollPanel::new(ID.sub("log"), vec![]),
@@ -140,6 +140,15 @@ impl PanelsPage {
         prose.scroll.v.offset = self.prose.scroll.offset;
         self.prose = prose;
         self.log = log;
+        self.template.grid = states_grid(self.heading());
+    }
+
+    /// The cards' own heading style; `None` follows the theme's
+    /// (`shell.card_heading`).
+    fn heading(&self) -> Option<CardHeading> {
+        CardHeading::ALL
+            .into_iter()
+            .find(|h| h.label() == self.opts.value("panels.heading"))
     }
 
     fn panels(&mut self) -> [&mut ScrollPanel; 2] {
@@ -153,6 +162,9 @@ impl PanelsPage {
             .title_min(self.opts.number("panels.title_min").unwrap_or(12));
         if self.opts.value("panels.focus_mark") == "bar" {
             p = p.focus_mark(PanelFocus::Bar);
+        }
+        if let Some(h) = self.heading() {
+            p = p.heading_style(h);
         }
         p
     }
@@ -296,21 +308,29 @@ impl PanelsPage {
 }
 
 /// The States grid: a card, a card that is itself the focus stop (its
-/// title carries the bar) and a framed pane, each drawn by `Panel`.
-fn states_grid() -> StateGrid {
+/// title carries the bar) and a framed pane, each drawn by `Panel`. The
+/// cards draw their heading in `heading` (`panels.heading`), or in the
+/// theme's (`shell.card_heading`) when `None`; the frame ignores it.
+fn states_grid(heading: Option<CardHeading>) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
+    let card = |title| match heading {
+        Some(h) => Panel::card(Some(title)).heading_style(h),
+        None => Panel::card(Some(title)),
+    };
+    let label = match heading {
+        Some(h) if h != CardHeading::Plain => format!("Card · {}", h.label()),
+        _ => "Card".to_owned(),
+    };
     StateGrid::new(id)
         .label_width(14)
         .column_width(24)
         .narrow_width(12)
         .rows(&[Rest, Focused, Overflow, Narrow])
-        .column("Card", Panel::card(Some("Settings")).meta("3 items"))
+        .column(&label, card("Settings").meta("3 items"))
         .column(
             "Card · bar mark",
-            Panel::card(Some("Log"))
-                .focus_mark(PanelFocus::Bar)
-                .meta("live"),
+            card("Log").focus_mark(PanelFocus::Bar).meta("live"),
         )
         .column("Framed", Panel::framed(Some("Preview")).meta("1–9 of 24"))
 }
