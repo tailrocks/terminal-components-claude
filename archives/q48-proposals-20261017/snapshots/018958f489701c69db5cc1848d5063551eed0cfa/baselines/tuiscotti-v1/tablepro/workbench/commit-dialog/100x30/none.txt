@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                • 1 pending  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                     +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────────────────────────────────── 14 cols ─╮
+ │   Data  ╭────────────────────────────────────────────────────────────────────────────╮         │
+ │  ━━━━━━━│                                                                            │──────── │
+ │         │  Save changes?                                                             │         │
+ │   ‹3    │                                                                            │    7›   │
+ │    •  1 │  Action       Save changes                                                 │       ┃ │
+ │       2 │  Target       Production · production · acme_prod · public.orders          │       │ │
+ │       3 │  Scope        1 update · 0 inserts · 0 deletes                             │       │ │
+ │       4 │  Transaction  All statements run in one transaction; a failure rolls       │       │ │
+ │       5 │               everything back.                                             │       │ │
+ │       6 │  Safe Mode    Safe Mode · deliberate confirmation required                 │       │ │
+ │       7 │                                                                            │       │ │
+ │       8 │  UPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…  │       │ │
+ │       9 │                                                                            │       │ │
+ │      10 │   Type orders to confirm                                                   │       │ │
+ │      11 │ ▎                                                                          │       │ │
+ │      12 │                                                                            │       │ │
+ │      13 │                                                                            │       │ │
+ │      14 │                                                            Cancel   Save   │       │ │
+ │      15 │                                                                            │       │ │
+ │         ╰────────────────────────────────────────────────────────────────────────────╯         │
+ │   • 1 pending · 1 update                                        Preview SQL   Discard   Save   │
+ │   rows 1–15 of 500 loaded · 1,203,338 total · cols 4–7 of 14                                   │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel                                      Connected to Production

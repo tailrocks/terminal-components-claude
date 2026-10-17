@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help      acme › frontend … · pnpm  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mtest[0m                                                 scope ‹ here ›  [0m
+                                                                        [0m
+    Results · 17                                                      ┃ [0m
+ [0m[1m › Run tests                [0mtask    [0m[1m  [0mhere   [0m[1m                        [0m┃ [0m
+    pnpm test                script    here                           ┃ [0m
+    Run test                 task      parent                         ┃ [0m
+    Run //services/api:test  task      sibling                        │ [0m
+    Run //tools/worker:test  task      sibling                        │ [0m
+    Show Pos[0m[1mt[0mgr[0m[1meS[0mQL ac[0m[1mt[0mivi…  postgres  here                           │ [0m
+    Ro[0m[1mt[0mat[0m[1me[0m local [0m[1ms[0mecre[0m[1mt[0ms     custom    parent             destructive │ [0m
+ [0m[2m   S[0m[1;2mt[0m[2mart d[0m[1;2me[0m[2mvelopment eco[0m[1;2ms[0m[2m…  task      parent                         [0m│ [0m
+                                                                        [0m
+    → mise run //apps/frontend:test · here · mutating                   [0m
+                                                                        [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2             no color · 72×20 [0m
+  [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  …    [0m

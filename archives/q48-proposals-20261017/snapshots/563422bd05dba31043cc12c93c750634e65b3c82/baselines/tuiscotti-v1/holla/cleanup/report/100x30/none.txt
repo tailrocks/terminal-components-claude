@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       safe · Rust project  mbp · local
+
+  Here › Cleanup report
+ ━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────
+  Cleanup report                                                              mbp · live · 1 s ago
+
+  Outcome   1 trashed
+  Mode      trash
+  Bytes     5.9 GiB left the tree · 0 B freed now · the rest returns when the Trash is emptied
+  Log       ~/.cache/holla/ops.log · every record written
+  Revision  10045389c37d8876
+
+ ╭─ Detail ────────────────────────────────────────────────────────────────── 2 lines · y copies ─╮
+ │  outcome            bytes   path · reason                                                      │
+ │  trashed          5.9 GiB   ~/Projects/safe/big                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  Next   Cleanup history
+
+ ~/Projects/safe                       snapshot · read-only                       no color · 100×30
+                          ↑↓ Scroll  y Copy  Tab Next actions  Esc Back                   1 trashed

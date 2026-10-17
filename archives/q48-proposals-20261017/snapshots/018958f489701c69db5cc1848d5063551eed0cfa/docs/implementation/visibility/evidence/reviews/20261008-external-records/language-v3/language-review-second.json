@@ -1,0 +1,58 @@
+{
+  "review": "independent_second_language_pass_v3",
+  "subject": {
+    "parent": "5572f09f57053adb74c886cdab748650452531b6",
+    "tree": "e43045c03728182a875e899560144babe0a407f8",
+    "diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e"
+  },
+  "outcome": "approved_for_scoped_language_review",
+  "blocking_findings": [],
+  "reviewed_v3_changes": [
+    {
+      "path": "tools/visibility/README.md",
+      "lines": "26-34",
+      "assessment": "The corrected prose identifies the candidate branch as the ref that matched local candidate HEAD. It states that the visual-baseline ref was recorded separately and does not claim that its SHA matched the candidate. The distinction is clear and consistent with the recorded identities.",
+      "factual_basis": "source-facts.json records candidate local and remote HEAD as 5572f09f57053adb74c886cdab748650452531b6 and reference HEAD as 91aba5102f5b4dabaff506894f8b19166afb27a6."
+    },
+    {
+      "path": "tools/visibility/README.md",
+      "lines": "29-34",
+      "assessment": "The new CI wording is concise and distinguishes the failed workflow from product-test results. “Its run-page annotation” clearly refers to the linked CI run. The quoted 500 KB annotation is readable and gives the recorded reason without implying that product tests ran.",
+      "factual_basis": "The linked run and source-facts.json record the 500 KB workflow-size annotation, zero jobs, and zero artifacts."
+    },
+    {
+      "path": "STATUS.md",
+      "assessment": "Refreshed candidate/reference identities, CI and DCO identifiers, and the explicit workflow-size reason add no language issue. The relevant status prose preserves the distinction between workflow failure, repository gate status, and product results."
+    }
+  ],
+  "inherited_review_coverage": {
+    "prior_report": "/tmp/termrock-visibility-bootstrap-review-v2/language-review-second.json",
+    "prior_report_sha256": "7ebb5a6899f3676cdb0e642fd61a7db3e9aef5aaac8c84b227b510d9ded38481",
+    "scope": [
+      "new Active Visibility Prerequisite prose and branch-instruction changes in AGENTS.md",
+      "new visibility-prerequisite prose and branch-instruction changes in GOAL.md",
+      "new status link sentence in README.md",
+      "new prose and explanatory text in STATUS.md",
+      "new prose and explanatory text in WORK_QUEUE.md",
+      "new prose and instructions in tools/visibility/README.md"
+    ],
+    "resolution": "The only v2 blocking finding, tools/visibility/README.md:26, is corrected in this frozen v3 subject."
+  },
+  "standard_source": {
+    "name": "ASD-STE100 Issue 9 official PDF",
+    "sha256": "d1f4ea9e7cd6e46b47aa9057209f99e78e0c9cfc4e27a5b07895b05c1a166431",
+    "url": "https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf"
+  },
+  "limitations": {
+    "full_issue_9_conformity_claimed": false,
+    "not_completed": [
+      "all 53 Issue 9 writing rules",
+      "full Section 8 word-count audit",
+      "full 875-word dictionary audit",
+      "formal approval of project-specific technical nouns"
+    ],
+    "note": "The selected vocabulary observations in the v2 report remain applicable. This v3 review covers the correction and added annotation wording; it does not extend the dictionary audit."
+  },
+  "repository_edits": false,
+  "builds_or_tests": false
+}

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local [0m
+                                                                                                                        [0m
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                   [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+   Search actions and resources…                                                                        scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Suggested here                                                               Deploy preview         custom · here   [0m
+    Follow acme-api-1 logs     docker    here   service is unhealthy                                                    [0m
+    Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       push the current branch     [0m
+    Install missing tools · …  task      here   1 tool missing                              to the preview stack        [0m
+    Review cleanup candidates  cleanup   host   10.6 GiB across 4 categories     Runs       tools/deploy-pre…preview    [0m
+  › Deploy preview             custom    here   Current folder…                  In         ~/work/acme                 [0m
+                                                                                 Host       mbp · local                 [0m
+    Recent here                                                                  Scope      here                        [0m
+    nothing used here yet                                                        Why        Current folder · ⚠          [0m
+                                 ╭────────────────────────────────────────────────────╮     unreviewed                  [0m
+    Running                      │                                                    │s    see the command             [0m
+    logs · api worker schedu…  ac│  [0m[1mQuit holla❯?[0m                                      │     mutating                    [0m
+    api dev                    ac│                                                    │     live · 0 s ago              [0m
+    btm                        ac│  4 activities are still running. Quitting stops    │     trust required ·            [0m
+    frontend dev               ac│  what holla started; detached monitors keep        │     ~/work/acme/.holla.toml     [0m
+                                 │  running.                                          │ter  Set an alias… · Show        [0m
+    Explore                      │                                                    │     configuration               [0m
+     Tasks   Git   Files   Disk  │                          ▎[0m[1mCancel [0m  Stop and quit   │     diagnostics · Pin ·         [0m
+    Children · 3 projects      ex│                                                    │     Alias · Why here?           [0m
+    System · mbp               ex╰────────────────────────────────────────────────────╯                                 [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ ~/work/acme   main   ↑1                                                               ⠋ 4 running    no color · 120×40 [0m
+        [0m[1m    [0m         [0m[1m  [0m       [0m[1m← → C[0mhoose  [0m[1mEnter Confi[0mrm  [0m[1mEsc Ca[0mncel  [0m[1my / n Quick[0m answer     api tests finished · exit 0 [0m

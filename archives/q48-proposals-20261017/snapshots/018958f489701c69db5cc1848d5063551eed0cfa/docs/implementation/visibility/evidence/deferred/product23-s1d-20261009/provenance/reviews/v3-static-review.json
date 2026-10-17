@@ -1,0 +1,79 @@
+{
+  "schema": "termrock-vis04-product23-static-review-v2",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "reviewed_at_utc": "2026-10-09T03:03:18.813Z",
+  "verdict": "READY",
+  "scope": "Static review of the exact frozen v3 product23 packet. No Cargo, Nextest, product test, or PTY launch by reviewer.",
+  "pins": {
+    "runplan_sha256": "1e80f9232545a41f3685857603d1d033d2b529878cb9efd443da1d034617b149",
+    "runner_sha256": "310d4ab8a689f45b19ae5ef40cd276c85fe658de039db6f7c57627d08412d267",
+    "manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
+    "launch_sha256": "ee2fc1f463e8348c6777b6ddd14ffeeb577fac8a69b251ac0f47a1c2ea725c47",
+    "ledger_sha256": "17bc0642b4daee1d8f0985a3f8bba1eca0b18c8c3786b2c0f06ae468fc5e90f6",
+    "preflight_sha256": "30d1f5e8a948f0e56fb8feaaa9961b5a39ec98987515d04992b425508210a4f8",
+    "static_preflight_sha256": "3417eb080af2dfe74f8a33afda4d2ef89b514d4db3145b98d23633b1586cdc19",
+    "names_sha256": "0ed0c5112c3c4090c3455dc710b12336db242ecfa62d479d163c9d2c54e21f65",
+    "case_map_sha256": "4b15961a374db0ed0aba07692fd8ee827c1c17b17adad7d4be61b5890a6574bd",
+    "archive_sha256": "a042bfc9e3a861660709fc345937c4ef2cecbebe6bb08c0646fafcdab7643edb"
+  },
+  "verified": {
+    "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "source_root": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/source",
+    "source_file_count": 481,
+    "archive_bytes": 13957120,
+    "contract_reference_count": 3,
+    "all_source_and_contract_file_hashes_verified": true,
+    "no_stale_v2_paths_in_packet_text": true,
+    "selection_count": 23,
+    "normal_count": 22,
+    "ignored_ids": [
+      "BD-21"
+    ],
+    "run_ignored": "all",
+    "expected_failure_treatment": "none",
+    "all_registered_rows": "NOT_RUN",
+    "product_lane": "NOT_RUN",
+    "same_runner_preflight_result": "PASS_RUNTIME_PREFLIGHT_NO_CARGO",
+    "same_runner_preflight_receipt": {
+      "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T02-59-25-036Z-e9847d5f/receipt.json",
+      "sha256": "25099b58461a0341c17176606ec3ade9c9b516baad4e0e74f88646eb3c94ba5b",
+      "run_started": false
+    }
+  },
+  "findings": [
+    {
+      "id": "V04-P23-V3-POSTKILL-CLOSE-BOUNDED",
+      "status": "CLOSED",
+      "detail": "Runner now sends SIGTERM, SIGKILL after the 5s TERM grace, then after a 1s post-KILL grace destroys stdout/stderr and unreferences the child if close is still missing. The forced-close path resolves the stage and proceeds to final receipt; timeout/signal classification stays blocked, so it cannot pass."
+    },
+    {
+      "id": "V04-P23-V3-RUN-ID-REQUIRED",
+      "status": "CLOSED",
+      "detail": "Runner now records a parse error unless exactly one Nextest run ID is present; any parse error prevents PASSED_23."
+    },
+    {
+      "id": "V04-P23-V3-CLEANUP-PROOF-LIMIT",
+      "status": "NON_BLOCKING_LIMITATION",
+      "detail": "Forced close is recorded and leaves the run blocked, but the receipt does not prove the process group is quiescent or separately mark captured logs incomplete. If this branch occurs, treat outputs as incomplete and do not infer process cleanup; consider recording post_kill_grace_ms and an explicit output-incomplete/cleanup-unproved field."
+    }
+  ],
+  "other_reviewed_controls": {
+    "offline": true,
+    "locked": true,
+    "build_jobs": 2,
+    "test_threads": 1,
+    "retries": 0,
+    "no_fail_fast": true,
+    "run_ignored_all": true,
+    "exact_filter_rebuilt_and_compared": true,
+    "source_and_contract_verified_before_list_and_after_stages": true,
+    "log_cap_bytes": 16777216,
+    "separate_ledger_api": true,
+    "ledger_repository_write_performed": false
+  },
+  "limitations": [
+    "READY means the frozen wrapper is statically acceptable for a Root-authorized run; it is not test evidence.",
+    "The only execution evidence in the packet is no-Cargo preflight; the 23 product assertions remain NOT_RUN.",
+    "No repository or frozen packet files were changed."
+  ]
+}

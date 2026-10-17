@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "893fefa1a007a39aae7a44b2cc4b58eb7691397f879682f4dac3958ee2128b50",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9802,
+      "file": "jackin/intro/f300/72x20/16.ansi",
+      "sha256": "893fefa1a007a39aae7a44b2cc4b58eb7691397f879682f4dac3958ee2128b50"
+    },
+    "ascii": {
+      "bytes": 1287,
+      "file": "jackin/intro/f300/72x20/16.ascii",
+      "sha256": "29f91b78778ed25c9f011f5fc4a451665a30f5bcb705ef4911550184e0bb85ff"
+    },
+    "ascii_loss_json": {
+      "bytes": 39061,
+      "file": "jackin/intro/f300/72x20/16.ascii.loss.json",
+      "sha256": "c550536bec843a8686e2668e992d48cd49552be7fba0b2c462cff6b796cd11c6"
+    },
+    "frame_json": {
+      "bytes": 334690,
+      "file": "jackin/intro/f300/72x20/16.frame.json",
+      "sha256": "ec56731074e5ce95c1db90df559aacb721c86f84a28a57b99cfcc52e9e414f4e"
+    },
+    "html": {
+      "bytes": 180620,
+      "file": "jackin/intro/f300/72x20/16.html",
+      "sha256": "98c8766ac203f73623eb39fd9fe6be139edd36ca06f7735cd94e76c49016c161"
+    },
+    "observations_json": {
+      "bytes": 433,
+      "file": "jackin/intro/f300/72x20/16.observations.json",
+      "sha256": "3282d3699ac3ab36845d8573378e8f4a4c6b2c3994a43a45c1d824fc0dbceeda"
+    },
+    "png": {
+      "bytes": 113456,
+      "file": "jackin/intro/f300/72x20/16.png",
+      "sha256": "578bc7d01f79a671b9fd488eeab2822c464872fe070a7a43e91e9049e418d9dd"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/intro/f300/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1876,
+      "file": "jackin/intro/f300/72x20/16.txt",
+      "sha256": "06914aea8700d1b8b032556943b2275a096027178cdfab9dddc4369f095d5be2"
+    }
+  },
+  "ascii_substitutions_count": 425,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 1576118633350519047,
+  "frame_sha256": "ec56731074e5ce95c1db90df559aacb721c86f84a28a57b99cfcc52e9e414f4e",
+  "generation": "8efe1286b9a5d1c5bb1bfd41ea6e8e194c0b3d3536fe384ff20e9933162c9253",
+  "html_sha256": "98c8766ac203f73623eb39fd9fe6be139edd36ca06f7735cd94e76c49016c161",
+  "legacy_name": "jackin/intro/f300/72x20/16",
+  "name": "jackin/intro/f300/72x20/16",
+  "png_sha256": "578bc7d01f79a671b9fd488eeab2822c464872fe070a7a43e91e9049e418d9dd",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:39Z",
+  "txt_sha256": "06914aea8700d1b8b032556943b2275a096027178cdfab9dddc4369f095d5be2"
+}

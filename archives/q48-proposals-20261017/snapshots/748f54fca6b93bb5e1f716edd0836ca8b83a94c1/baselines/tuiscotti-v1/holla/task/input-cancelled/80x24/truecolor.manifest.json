@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "971463df4dafac9061ee5cfc75e0547ab1a999baf3a0fa70e6a5246d70c85f5e",
+  "artifacts": {
+    "ansi": {
+      "bytes": 7192,
+      "file": "holla/task/input-cancelled/80x24/truecolor.ansi",
+      "sha256": "971463df4dafac9061ee5cfc75e0547ab1a999baf3a0fa70e6a5246d70c85f5e"
+    },
+    "ascii": {
+      "bytes": 1602,
+      "file": "holla/task/input-cancelled/80x24/truecolor.ascii",
+      "sha256": "cd285b0d772cfd4cf9d461bfd57c98079b4095ac873b4f2ae229260c1f9e1b13"
+    },
+    "ascii_loss_json": {
+      "bytes": 23867,
+      "file": "holla/task/input-cancelled/80x24/truecolor.ascii.loss.json",
+      "sha256": "2d0a6427e2cdde7b028fa54f9d5b6837b471361e96d4ff97e22efbcf8131d699"
+    },
+    "frame_json": {
+      "bytes": 509659,
+      "file": "holla/task/input-cancelled/80x24/truecolor.frame.json",
+      "sha256": "f9aff84bd865c014a1898c48786e11400b9f176b3257744f187baa35e20d8095"
+    },
+    "html": {
+      "bytes": 272068,
+      "file": "holla/task/input-cancelled/80x24/truecolor.html",
+      "sha256": "4f350fad52228f9502dfddc66df07b79075128f2b003d2f909401c5336008a08"
+    },
+    "observations_json": {
+      "bytes": 471,
+      "file": "holla/task/input-cancelled/80x24/truecolor.observations.json",
+      "sha256": "0e18267b419de13e097b43864f6a7a9638049dd2049dff843ce061c0abad25b9"
+    },
+    "png": {
+      "bytes": 192345,
+      "file": "holla/task/input-cancelled/80x24/truecolor.png",
+      "sha256": "65c30b0fdf3833c113a78a174344c854b0c411cd29744814c81ce939d5ad920d"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/task/input-cancelled/80x24/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2105,
+      "file": "holla/task/input-cancelled/80x24/truecolor.txt",
+      "sha256": "9db4f4ee51075ea0655b86798aa187e4f197d26f4e6d5c063dd96ed0c5d8d49b"
+    }
+  },
+  "ascii_substitutions_count": 258,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 6642441561767822724,
+  "frame_sha256": "f9aff84bd865c014a1898c48786e11400b9f176b3257744f187baa35e20d8095",
+  "generation": "3ff1896dc7da91f06585da95fb98ac127533e6e829d92c852910b9ba4e98d19d",
+  "html_sha256": "4f350fad52228f9502dfddc66df07b79075128f2b003d2f909401c5336008a08",
+  "legacy_name": "holla/flows/task/input_cancelled/80x24/truecolor",
+  "name": "holla/task/input-cancelled/80x24/truecolor",
+  "png_sha256": "65c30b0fdf3833c113a78a174344c854b0c411cd29744814c81ce939d5ad920d",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:28Z",
+  "txt_sha256": "9db4f4ee51075ea0655b86798aa187e4f197d26f4e6d5c063dd96ed0c5d8d49b"
+}

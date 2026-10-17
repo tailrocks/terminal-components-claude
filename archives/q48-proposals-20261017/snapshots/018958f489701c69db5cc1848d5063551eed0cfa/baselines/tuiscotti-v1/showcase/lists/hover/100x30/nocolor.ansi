@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Lists               no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mLists[0m  Single and multiple selection, disabled items, scrolling, empty state   [0m
+   Buttons                                                                                          [0m
+   Inputs              Language   1–13 of 20      Files to … 2 selected      Search results         [0m
+   Text areas                                                                                       [0m
+   Forms               Chosen: Rust               Space toggle · a all…                             [0m
+[0m[1m▎› Lists           [0m                                                                                 [0m
+   Trees                › Rust             ┃       ✓ src/api/auth.rs                                [0m
+   Tables                 TypeScript       ┃       ✓ src/api/billing.rs                             [0m
+   Editable tables        Python           ┃      [0m[2m   src/db/schema.rs  [0m                             [0m
+   Panels                 Kotlin           ┃         tests/checko… new                              [0m
+   Sidebars               Go               ┃      [0m[2m   Cargo.lock        [0m                             [0m
+   Dialogs                Java             ┃         docs/webhooks.md        No results for “retr…  [0m
+   Progress               Swift            ┃         src/workers/maile…                             [0m
+   Scrolling              C#               ┃         src/config.rs                                  [0m
+   Terminal               Ruby             │         README.md                                      [0m
+   Code editor            Scala            │         src/main.rs                                    [0m
+   Diff                   Elixir           │         tests/auth_f… new                              [0m
+   Data grid              Haskell          │         src/db/pool.rs                                 [0m
+   Chips & selects     [0m[2m   Zig              [0m│                                                        [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+   Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

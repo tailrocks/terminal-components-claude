@@ -1,0 +1,20 @@
+ #  TablePro  Connections  6 saved            16 colors . 72x20  ? help
+
+   Edit connection                                        Ctrl+S Save
+
+    Basic    Advanced
+   ????????----------------------------------------------------------
+
+     Name *                                 Environment
+   ? Local PostgreSQL                      (?) local
+                                           ( ) development
+     Engine                                ( ) staging
+     PostgreSQL                     ?      ( ) production
+
+     Host  optional           Port          Group
+     localhost                5432          Personal               ?
+     Blank: driver default
+    Test connection na Cancel    Save    Save & connect
+     acme_dev                              (?) Silent
+     Required for PostgreSQL               ( ) Alert
+ EntersEditme< >pBasic / Advanced  Ctrl+S Save ATabtNextll)

@@ -1,0 +1,22 @@
+{
+  "cell_count": 3000,
+  "cols": 100,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 3709779393381045567,
+  "legacy_name": "tablepro/workbench/explorer_hidden/100x30/256",
+  "name": "tablepro/workbench/explorer-hidden/100x30/256",
+  "non_empty_cells": 606,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 30
+}

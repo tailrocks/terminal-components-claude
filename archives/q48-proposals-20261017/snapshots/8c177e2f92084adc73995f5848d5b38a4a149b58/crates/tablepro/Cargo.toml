@@ -1,0 +1,13 @@
+[package]
+name = "tablepro"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tablepro-ui.workspace = true
+tablepro-demo.workspace = true
+termrock-session.workspace = true
+clap.workspace = true
+ratatui.workspace = true

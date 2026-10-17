@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "cbdba685c2ed20e908c4d265225548e146f1096c656a2b64254b8bcbcc8aeda3",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4061,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.ansi",
+      "sha256": "cbdba685c2ed20e908c4d265225548e146f1096c656a2b64254b8bcbcc8aeda3"
+    },
+    "ascii": {
+      "bytes": 789,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.ascii",
+      "sha256": "36465a8245f5a8b05e1ef5f3b8beff1f501080ce29fa0e9f99da091bbe3f11da"
+    },
+    "ascii_loss_json": {
+      "bytes": 2005,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.ascii.loss.json",
+      "sha256": "feef55fd746a7c789cf7a2830daad5f1356a8244776fb4e1d0e12330307847aa"
+    },
+    "frame_json": {
+      "bytes": 334411,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.frame.json",
+      "sha256": "91e7fcbcffc14a7b64dcc320c75104da0d7902b4c4db2c2464fe0bec862e50fb"
+    },
+    "html": {
+      "bytes": 249199,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.html",
+      "sha256": "759911d9cfb6f5128b728d604b30621ff2f184b3c6d06be8a92bccc7d7cc6aaa"
+    },
+    "observations_json": {
+      "bytes": 469,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.observations.json",
+      "sha256": "d6b774853190a5eb079b8d33f206f65305a45cd8f0d62c7fb4b1516f8f91ddd9"
+    },
+    "png": {
+      "bytes": 178360,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.png",
+      "sha256": "8bcd21064fad33b7f060da7cdbd581a3c257a62ccbb58086ba2ec8e029ee697e"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 825,
+      "file": "jackin/manager/scenario-launch-running/72x20/none.txt",
+      "sha256": "69ee3c683530e8d25e2e9d1349c79609ff82537ebb77c380dde05809ce5f4201"
+    }
+  },
+  "ascii_substitutions_count": 21,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 8714794525530208,
+  "frame_sha256": "91e7fcbcffc14a7b64dcc320c75104da0d7902b4c4db2c2464fe0bec862e50fb",
+  "generation": "f832d3c4fb149fb755db30be72fbbeddd6afba890ac8fd12bdae9da030c86a0f",
+  "html_sha256": "759911d9cfb6f5128b728d604b30621ff2f184b3c6d06be8a92bccc7d7cc6aaa",
+  "legacy_name": "jackin/scenarios/launch-running/72x20/none",
+  "name": "jackin/manager/scenario-launch-running/72x20/none",
+  "png_sha256": "8bcd21064fad33b7f060da7cdbd581a3c257a62ccbb58086ba2ec8e029ee697e",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:40Z",
+  "txt_sha256": "69ee3c683530e8d25e2e9d1349c79609ff82537ebb77c380dde05809ce5f4201"
+}

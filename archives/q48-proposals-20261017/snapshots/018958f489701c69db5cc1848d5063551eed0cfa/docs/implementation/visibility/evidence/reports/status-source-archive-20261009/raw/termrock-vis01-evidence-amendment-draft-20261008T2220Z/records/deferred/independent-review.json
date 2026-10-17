@@ -1,0 +1,70 @@
+{
+  "schema": "termrock-independent-deferred-nextest-receipt-review-v1",
+  "reviewer": "/root/preflight_source_review_luna",
+  "reviewed_at_utc": "2026-10-08T20:08:35Z",
+  "scope": "Read-only integrity and case-coverage review of the sealed mandatory-deferred Nextest retry receipt; no Cargo, test, or product execution by reviewer.",
+  "receipt": {
+    "path": "/private/tmp/termrock-vis04-deferred-nextest-20261009-retry1/final-seal.json",
+    "sha256": "c517a00e2b66d252c18c2c5c7737caff9d6832a4b4764b0dd38e3ed12515c8aa",
+    "source_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+    "source_tree": "409bdc1e80ac33391cb4235eda440caed7942c79",
+    "registry_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+    "registry_rows": 23,
+    "registry_case_references": 25
+  },
+  "verified_artifacts": {
+    "stdout_raw_sha256": "7598ac418da1acf9cbc67a96208974fc97dfd5c3de33e8891369b6edb6793bb1",
+    "stderr_raw_sha256": "98a596e9fd754fe9dd0d910887de811a86eea4676fcb65a9d3fc4dd43699074f",
+    "case_results_sha256": "276daab6ca4bed491189d870a38af17e7f6ff1a6744d18797bd9e2bc77f5e97c",
+    "case_map_sha256": "0bea25ff4b1ee14072c066d2bc2b20cefab87cd6166b817a027e47b2d7b53eaa",
+    "source_hashes_sha256": "785335e3b60bba2344678d22088669a6ff4fc18058be859473278fcd418838d4",
+    "source_pins_sha256": "bd5a3cdffef8211ac4885599176b37f86bb6536ee84cb19438d72c4afa07f691",
+    "argv_sha256": "e0c097d563c2c44ef2b6afe506c8f2bc089ceb1d869249b16589dd9a09e25b31",
+    "exit_code_file_sha256": "eea8254c7500ba3de996aa8ad6af399183f04e17d4a8102fde539dbc93a90012"
+  },
+  "findings": {
+    "verdict": "Receipt is internally consistent for this bounded deferred-obligation run; it records one real assertion failure, not a passing or complete VIS04 qualification.",
+    "test_events": {
+      "started": 23,
+      "terminal": 23,
+      "unique_terminal_names": 23,
+      "ok": 22,
+      "failed": 1,
+      "ignored_or_notrun_test_terminal_events": 0,
+      "case_map_registry_id_mismatches": 0,
+      "case_map_result_vs_terminal_event_mismatches": 0,
+      "registry_rows_mapped": 23,
+      "mapped_case_references": 25,
+      "suite_summary_events": 2,
+      "suite_summary_counts_added_to_test_totals": false
+    },
+    "failure": {
+      "registry_id": "BD-21",
+      "case_ref": "W13-05",
+      "test": "w13_filter_wide_trail_cells_clear",
+      "source_annotation": "#[ignore = \"PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints\"]",
+      "assertion_file_line": "crates/termrock-conformance/tests/control_states.rs:6137",
+      "observed_residue_message_matches_raw_stderr": true,
+      "rerun": false,
+      "status_mutation": false
+    },
+    "source_integrity": {
+      "commit_tree_registry_pins_match_receipt_and_source_hash_file": true,
+      "control_states_rs_sha256": "9263ad0130180b9ce3651936b67de99cc533a588e7ad43f42961ed88a0bf86ae",
+      "deferred_obligations_json_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+      "cargo_lock_sha256": "6ce8eab6040704d9eadb71349aa0f382e232ffeb657c84fe4f266e93660b5a4a",
+      "execution_receipt_reports_inputs_rechecked_after_run": true
+    },
+    "separate_initial_attempt": {
+      "path": "/private/tmp/termrock-vis04-deferred-nextest-20261009-PfcTrH/attempt-seal.json",
+      "sha256": "ab5d56dfa0a3f242406517ea0bf325ba982e60e720c63e43c699ca99b6def144",
+      "classification": "Nextest CLI argument-parse failure; zero build/tests; exit 2",
+      "retry_was_limited_to": "Replacing --jobs 2 with --build-jobs 2 while retaining --test-threads 1; filter unchanged; retry count 0"
+    },
+    "limits": [
+      "This receipt establishes only the 23 mapped deferred assertions and their observed outcomes.",
+      "It does not establish PTY/API/ownership coverage beyond those assertions, visual qualification, or overall VIS04 readiness.",
+      "The two suite summaries contain ignored metadata; test-level event counts were used so the selected ignored W13-05 test is counted by its actual failed terminal event rather than summary metadata."
+    ]
+  }
+}

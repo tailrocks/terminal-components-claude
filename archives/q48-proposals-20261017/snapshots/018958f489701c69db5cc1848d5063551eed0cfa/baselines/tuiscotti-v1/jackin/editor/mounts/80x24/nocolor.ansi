@@ -1,0 +1,24 @@
+ [0m[1m jackin❯ [0m   File   Go   Help             Workspaces › payments-platform › edit [0m
+                                                                                [0m
+                                                                                [0m
+   General   [0m[1m Mounts  [0m  Roles    Environments    Accounts                       [0m
+  ───────────━━━━━━━━━────────────────────────────────────────────────────────  [0m
+                                                                                [0m
+        Destination                                   Mode  Isolation  Kind 1›  [0m
+  [0m[1m▎›    /workspace/payments-platform                  rw    worktree   host   [0m  [0m
+        /workspace/libs                               ro    shared     host     [0m
+        + Add mount                                                             [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                          Cancel     [0m[2mSave… [0m     [0m
+                                                                                [0m
+       [0m[1mEnter[0m Edit…  [0m[1mr[0m Read-only  [0m[1mi[0m Isolation  [0m[1mo[0m Open source  [0m[1md[0m Remove  …        [0m

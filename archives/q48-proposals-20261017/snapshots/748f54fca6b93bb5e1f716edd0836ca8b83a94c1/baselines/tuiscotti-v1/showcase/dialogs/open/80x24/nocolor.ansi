@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Dialogs             i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  Dialogs  Focus is trapped, the page dims, Esc always canc… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Open a dialog                                            [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     Confirm run    Rename task…    Three choices…    Del…   [0m
+   Lists     ╭────────────────────────────────────────────────────╮             [0m
+   Trees     │                                                    │n answer d…  [0m
+   Tables    │  [0m[1mRun task now?[0m                                     │s, validat…  [0m
+   Editable t│                                                    │ danger st…  [0m
+   Panels    │  Junie will check out chore/uuid-sessions, apply   │             [0m
+   Sidebars  │  the plan and run the test suite. You can pause    │             [0m
+ › Dialogs   │  at any step.                                      │             [0m
+   Progress  │                                                    │             [0m
+   Scrolling │                                     Cancel  ▎[0m[1mRun [0m  │             [0m
+   Terminal  │                                                    │             [0m
+   Code edito╰────────────────────────────────────────────────────╯             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │                                                             [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel  [0m[1my / n[0m Quick answer                      [0m

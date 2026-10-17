@@ -1,0 +1,40 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                                            Workspaces  inside the Construct  no instances [0m
+                                                                                                                        [0m
+ ╭─[0m[1m Workspaces [0m─────── no instances ─╮ │  Current directory                                                 not saved   [0m
+ │ [0m[1m▎   Current directory            [0m │ │                                                                                [0m
+ │     + New workspace               │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                    Create a workspace from this directory.                     [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │         ~/src/payments-platform is mounted at its own path inside the          [0m
+ │                                   │ │     Construct. Enter launches with defaults; n creates a saved workspace.      [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Launch    Create workspace                                                    [0m
+ ╰───────────────────────────────────╯ │                                                                                [0m
+                                                                                                                        [0m
+                  [0m[1mEnter[0m Launch  [0m[1mn[0m New  [0m[1mTab[0m Details  [0m[1mc[0m Accounts  [0m[1mu[0m Usage  [0m[1ms[0m Settings  [0m[1m?[0m Help  [0m[1mq[0m Quit                     [0m

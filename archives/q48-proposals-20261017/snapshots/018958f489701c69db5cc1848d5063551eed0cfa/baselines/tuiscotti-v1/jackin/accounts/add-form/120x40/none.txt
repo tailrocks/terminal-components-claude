@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                      Accounts › Overview  ⠋ refreshing 1  inside the Construct  2 running
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                        12 accounts · 8 providers
+ │     Overview                        │ │
+ │   ▾ Claude                      !   │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1         ┃
+ │     ★ Personal        ╭─ New account ───────────────────────────────────── form · unsaved ─╮isible · 2 identities┃
+ │       Archived contrac│   Display name *                                                   │                     ┃
+ │       Work            │ ▎ Personal, Work, Team…                                            │ · 8 providers       ┃
+ │   ▾ Codex             │                                                                    │rd available         ┃
+ │     ★ Primary         │                                                                    │                     ┃
+ │       Experiments     │   Purpose label  optional                                          │, window and unit onl┃
+ │   ▾ Amp               │   personal · work · experiments                                    │remaining (1 last    ┃
+ │       discovered      │                                                                    │                     ┃
+ │   ▾ Grok              │                                                                    │7% remaining (1 last ┃
+ │     ★ Team            │   Provider                                                         │                     ┃
+ │   ▾ Z.AI              │   Claude Code · Anthropic / Claude                             ▾   │ining (1 last good)  ┃
+ │       discovered      │                                                                    │ last good)          ┃
+ │   ▾ Kimi              │                                                                    │aining (1 last good) ┃
+ │       discovered      │   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │ning (1 last good)   ┃
+ │   ▾ MiniMax           │                                                                    │                     ┃
+ │       discovered      │   Credential source                                                │                     ┃
+ │   ▾ OpenCode          │  (●) 1Password item / field  (recommended)                         │ngle account or      ┃
+ │     ★ Go subscription │  ( ) Local agent folder                                            │ent windows) ·       ┃
+ │       ci-bot · discove│  ( ) Plain-text API key                                            │nCode (single        ┃
+ │     Unsupported       │                                                                    │                     ┃
+ │     + Add account…    │   1Password reference                                              │                     ┃
+ │                       │   not chosen                                            Choose…    │                     ┃
+ │                       │                                                                    │s in 1 h 5 min       ┃
+ │                       │                                                                    │sets Sun 19:14       │
+ │                       │                                                                    │Sun 19:14            │
+ │                       │                                                                    │                     │
+ │                       │                                                                    │sets in 10 h         │
+ │                       │                                                                    │09:14                │
+ │                       │              Enter plain text instead   Validate   Cancel   Save   │                     │
+ │                       ╰────────────────────────────────────────────────────────────────────╯has no api key       │
+ │                                     │ │
+ │                                     │ │  Refresh all    Add account…
+ ╰─────────────────────────────────────╯ │
+
+                                    Tab Next field  Enter Edit / Save  Esc Cancel

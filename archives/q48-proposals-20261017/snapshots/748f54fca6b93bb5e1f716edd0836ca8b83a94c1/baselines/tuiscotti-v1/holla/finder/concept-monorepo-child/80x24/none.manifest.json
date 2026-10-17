@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "391b9c660339b466c0df52ef489ad31dcdf5e4c3743fb7125e32dad7c6a9d6a4",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5248,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.ansi",
+      "sha256": "391b9c660339b466c0df52ef489ad31dcdf5e4c3743fb7125e32dad7c6a9d6a4"
+    },
+    "ascii": {
+      "bytes": 1499,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.ascii",
+      "sha256": "e6515160164a6f41bcd24bf9300f0f590898cb40f3487670d47bcf56df471122"
+    },
+    "ascii_loss_json": {
+      "bytes": 11207,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.ascii.loss.json",
+      "sha256": "40466f8787682c69fea2b881e11d3024f95120ce6f23c83c5037c04096de039e"
+    },
+    "frame_json": {
+      "bytes": 445978,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.frame.json",
+      "sha256": "66bfb60fa1efc3cc9ce2fa9c0c6b96384aa2f8bbc50f3f454be390207e829dd9"
+    },
+    "html": {
+      "bytes": 421179,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.html",
+      "sha256": "b20569042efd67a35604f6380d830079a43d418063811a62807b23c4c3de6227"
+    },
+    "observations_json": {
+      "bytes": 466,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.observations.json",
+      "sha256": "a3ced5c3572dbe33b1b6fd58057c5f57747e47e51b437c650385e72f69c54642"
+    },
+    "png": {
+      "bytes": 304993,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.png",
+      "sha256": "7d9f45a3ac5a567e7b39f14625ae99fdf5ad647000c88a5c7ab63ac626b00aea"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1731,
+      "file": "holla/finder/concept-monorepo-child/80x24/none.txt",
+      "sha256": "24b5cddbdde37e79b6b38251cf934f0196de8d38b7678f2623e8e3d87a47107a"
+    }
+  },
+  "ascii_substitutions_count": 121,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 2752413193797058277,
+  "frame_sha256": "66bfb60fa1efc3cc9ce2fa9c0c6b96384aa2f8bbc50f3f454be390207e829dd9",
+  "generation": "3a690ea99dfcadfcedf5c852c66c1fbf08a39f1acf28b0ba1cbc182d5ac2ce8a",
+  "html_sha256": "b20569042efd67a35604f6380d830079a43d418063811a62807b23c4c3de6227",
+  "legacy_name": "holla/concept/monorepo-child/80x24/none",
+  "name": "holla/finder/concept-monorepo-child/80x24/none",
+  "png_sha256": "7d9f45a3ac5a567e7b39f14625ae99fdf5ad647000c88a5c7ab63ac626b00aea",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:08Z",
+  "txt_sha256": "24b5cddbdde37e79b6b38251cf934f0196de8d38b7678f2623e8e3d87a47107a"
+}

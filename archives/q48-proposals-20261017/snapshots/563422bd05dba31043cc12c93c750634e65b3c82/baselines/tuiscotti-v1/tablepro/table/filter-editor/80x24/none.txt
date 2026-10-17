@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 ×    T orders ×                                                 +
+ ───────╭──────────────────────────────────────────────────────────────╮───────
+ ╭─ publ│  Add filter                                                  │cols ─╮
+ │   Dat│                                                              │      │
+ │  ━━━━│   Column                        Operator                     │───── │
+ │      │   id                      ▾     =                        ▾   │      │
+ │      │                                 Operators that fit the col…  │ 12›  │
+ │      │   Value                                                      │    ┃ │
+ │      │ ▎ value                                                      │    │ │
+ │      │                                                              │    │ │
+ │      │                                                              │    │ │
+ │      │  WHERE id = ''                                               │    │ │
+ │      │                                                              │    │ │
+ │      │                                                              │    │ │
+ │      │                                        Cancel   Add filter   │    │ │
+ │      ╰──────────────────────────────────────────────────────────────╯    │ │
+ │      10 3a51e6b3-97f9-429c-b204-1d21d17d6a7f           10009  dd2c…6→    │ │
+ │      11 1df94d71-f415-4c62-a174-35b8102d68ce           10010  d875…9→    │ │
+ │   rows 1–11 of 500 loaded · 1,203,338 total · cols 1–2 of 14               │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ Tab Next field  Enter Apply  Esc Cancel                Connected to Production

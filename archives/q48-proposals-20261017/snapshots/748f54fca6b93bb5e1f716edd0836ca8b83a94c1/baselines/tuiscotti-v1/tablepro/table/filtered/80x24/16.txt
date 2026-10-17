@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 ×    T orders ×                                                 +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                        │
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │
+ │                                                                            │
+ │   match all ▾   status = 'pending' ×    + Add filter                       │
+ │                                                                            │
+ │   ‹4    status ∇     total_amount  currency    shipping_address       7›   │
+ │  ▎    1 pending           1617.64  USD         {"line1": "87 Nevsky …    ┃ │
+ │       2 pending           2236.65  EUR         {"line1": "78 Via Rom…    │ │
+ │       3 pending           2376.57  EUR         {"line1": "152 Market…    │ │
+ │       4 pending            550.69  USD         {"line1": "196 Market…    │ │
+ │       5 pending            290.26  EUR         {"line1": "164 Nevsky…    │ │
+ │       6 pending           2326.75  USD         {"line1": "139 Kungsg…    │ │
+ │       7 pending           2392.98  USD         {"line1": "125 Rue de…    │ │
+ │       8 pending            497.22  EUR         {"line1": "115 Kungsg…    │ │
+ │       9 pending           1326.92  USD         {"line1": "10 Via Rom…    │ │
+ │   filtered (1) · rows 1–9 of 335 loaded · ~201,559 total · cols 5–7 of 14  │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓←→ Cell  Enter Edit  Alt+D Duplicate row  s Sort  …         1 filter applied

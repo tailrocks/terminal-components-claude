@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      payments · s…eckout  ◆ prod-eu-1 · production
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here
+    Who is blocking the datab…  postgres  here          2 sessions blocked fo…
+  › Follow payments-worker jo…  system    on prod-eu-1  unit is restarting
+    Open btm                    system    on prod-eu-1  sustained pressure…
+    Show payments-worker stat…  system    on prod-eu-1  3 restarts in 10 min
+    Show system resources       system    on prod-eu-1  CPU 34% for 11 min
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · prod-eu-1          explore   on prod-eu-1  available on this host
+
+    → journalctl -u payments-worker -f -n 200 · on prod-eu-1 · read-only
+
+ /srv/payments   detached @ v2.14.3                           truecolor · 80×24
+ Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  …

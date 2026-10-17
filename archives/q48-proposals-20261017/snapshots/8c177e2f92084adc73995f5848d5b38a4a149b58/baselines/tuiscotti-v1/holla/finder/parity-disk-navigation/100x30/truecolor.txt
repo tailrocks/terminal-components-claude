@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                        big · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested here
+  › cargo build            cargo    here  Cargo.toml here
+    cargo check            cargo    here  Cargo.toml here
+    cargo clean · 2.0 MiB  cleanup  here  2.0 MiB of generated artifacts               destructive
+    cargo clippy           cargo    here  Cargo.toml here
+    cargo fmt --check      cargo    here  Cargo.toml here
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp           explore  host  available on this host
+
+
+
+
+
+
+
+    → cargo build · here · mutating
+
+ ~/work/big                                                                      truecolor · 100×30
+  Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

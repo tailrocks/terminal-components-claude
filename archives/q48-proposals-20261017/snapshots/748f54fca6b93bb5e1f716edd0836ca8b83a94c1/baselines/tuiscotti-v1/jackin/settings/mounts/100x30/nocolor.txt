@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help           Settings › global › Mounts  inside the Construct  2 running
+
+
+   General    Mounts    Environments    Agents    Trust
+  ───────────━━━━━━━━━────────────────────────────────────────────────────────────────────────────
+
+        Destination                                       Scope           Mode  Isolation  Kind 1›
+  ▎›    /home/agent/.gitconfig                            global          ro    shared     host
+        /home/agent/.cargo/registry                       global          rw    shared     host
+        /home/agent/.kube                                 role sre        ro    shared     host
+        + Add mount
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                              Cancel     Save…
+
+     Enter Edit…  r Read-only  i Isolation  o Open source  d Remove  s Scope…  a Add mount…  …

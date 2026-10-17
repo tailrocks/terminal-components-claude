@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "3c98a4495a6d15a3ff1ebd1d145594cb44697ff8ec39ede950fb3d6a05a28d2f",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5444,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.ansi",
+      "sha256": "3c98a4495a6d15a3ff1ebd1d145594cb44697ff8ec39ede950fb3d6a05a28d2f"
+    },
+    "ascii": {
+      "bytes": 2089,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.ascii",
+      "sha256": "0823b79d421d857ffc208bb3652818c65d3752ddb46599fafd15d9e7d68dd56f"
+    },
+    "ascii_loss_json": {
+      "bytes": 13637,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.ascii.loss.json",
+      "sha256": "ff2798d46d3d984f9eec57c76722670d9eefd52b8c1a4551e8e0427e7ae66ebd"
+    },
+    "frame_json": {
+      "bytes": 1074837,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.frame.json",
+      "sha256": "bdac75975ef8e6d2343a88e2e511ba7ccbe30c2bb68c52cb29ee8f385c6e6a12"
+    },
+    "html": {
+      "bytes": 396394,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.html",
+      "sha256": "4de68f01184b52e196b3449a3c6ddb527459d7f92613966dcd3dfc998e25b243"
+    },
+    "observations_json": {
+      "bytes": 474,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.observations.json",
+      "sha256": "34a66566ae16b23c857e5b7774ab041e6735dbba8b24e70c0c2c68b5e37e1ce0"
+    },
+    "png": {
+      "bytes": 287547,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.png",
+      "sha256": "6706c4524bd846841b89454e1a02c902c83e33f159612fdfe54e391d415f2101"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2377,
+      "file": "tablepro/connections/duplicated/120x40/nocolor.txt",
+      "sha256": "51a7ae292b42555d9891c45fc9e806588e863bbdb0bf897396dcebe09809d191"
+    }
+  },
+  "ascii_substitutions_count": 147,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 9738449250412845900,
+  "frame_sha256": "bdac75975ef8e6d2343a88e2e511ba7ccbe30c2bb68c52cb29ee8f385c6e6a12",
+  "generation": "8438455f9de872f094c4f5c70e47565fd4049f6f39c79c752b2f95f150dc4d97",
+  "html_sha256": "4de68f01184b52e196b3449a3c6ddb527459d7f92613966dcd3dfc998e25b243",
+  "legacy_name": "tablepro/connections/duplicated/120x40/nocolor",
+  "name": "tablepro/connections/duplicated/120x40/nocolor",
+  "png_sha256": "6706c4524bd846841b89454e1a02c902c83e33f159612fdfe54e391d415f2101",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:27Z",
+  "txt_sha256": "51a7ae292b42555d9891c45fc9e806588e863bbdb0bf897396dcebe09809d191"
+}

@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 ×    ≡ Query 2 ×                                                +
+ ───────────────━━━━━━━━━━━━━━─────────────────────────────────────────────────
+ ╭─ Query 2 ───────────────────────────────────────────────────────────────  ─╮
+ │   ›  1 x                                                                   │
+ │                                                                            │
+ │           ╭────────────────────────────────────────────────────╮           │
+ │           │                                                    │           │
+ │           │  Close tab with unsaved work?                      │           │
+ │           │                                                    │           │
+ │           │  Pending row edits and unsaved query text in this  │           │
+ │           │  tab will be lost.                                 │           │
+ │           │                                                    │           │
+ │           │                           ▎Cancel   Close anyway   │           │
+ │           │                                                    │           │
+ │         Ct╰────────────────────────────────────────────────────╯all        │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel  …               Connected to Production

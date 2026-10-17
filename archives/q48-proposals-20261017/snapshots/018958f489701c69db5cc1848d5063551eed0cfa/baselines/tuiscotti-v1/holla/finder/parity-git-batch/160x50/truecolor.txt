@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                            repos · project collection  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›
+
+    Suggested here                                                                                               Status across 5 child projects   git · child
+  › Status across 5 child projects  git      child  0 dirty · 1 behind
+                                                                                                                 Does       inspect every discovered Git
+    Recent here                                                                                                             project · worktrees
+    nothing used here yet                                                                                                   deduplicated, submodules marked
+                                                                                                                 Runs       git -C /Users/alex/wo…2 --branch
+    Explore                                                                                                                 git -C /Users/alex/wo…2 --branch
+     Tasks   Git   Files   Disk   Services   System                                                                         git -C /Users/alex/wo…2 --branch
+    Children · 4 projects           explore  child  4 child projects discovered                                             git -C /Users/alex/wo…2 --branch
+    System · mbp                    explore  host   available on this host                                                  git -C /Users/alex/wo…2 --branch
+                                                                                                                 In         ~/work/repos
+                                                                                                                 Host       mbp · local
+                                                                                                                 Scope      child
+                                                                                                                 Why        0 dirty · 1 behind
+                                                                                                                 Changes    none · read-only
+                                                                                                                 Risk       read-only
+                                                                                                                 Data       live · 2 s ago
+                                                                                                                 Gate       runs directly
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/repos                                                                                                                                truecolor · 160×50
+                               Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

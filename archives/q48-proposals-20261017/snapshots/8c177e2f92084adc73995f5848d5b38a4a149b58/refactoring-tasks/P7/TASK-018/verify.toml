@@ -1,0 +1,44 @@
+schema = "verify/v2"
+task_id = "TASK-018"
+writable_paths = ["Cargo.toml", "src/lib.rs", "src/core", "src/runtime.rs", "src/theme.rs", "src/ui", "src/widgets", "tests/termrock", "tests/conformance", "benches/termrock"]
+forbidden_paths = ["src/bin", "snapshots", "tests/visual_baseline", "Cargo.lock", ".config", ".github", "scripts", "tools", "xtask"]
+
+[[checks]]
+id = "CHK-001"
+phase = "focused"
+argv = ["rtk", "cargo", "nextest", "run", "--workspace", "--test", "termrock_release"]
+expected = { exit = 0 }
+requirements = ["R-001"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-002"
+phase = "regression"
+argv = ["rtk", "cargo", "nextest", "run", "--workspace", "--test", "termrock_conformance"]
+expected = { exit = 0 }
+requirements = ["R-002"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-003"
+phase = "regression"
+argv = ["rtk", "cargo", "nextest", "run", "--workspace", "--test", "termrock_performance"]
+expected = { exit = 0 }
+requirements = ["R-006"]
+acceptance = ["AC-005"]
+
+[[checks]]
+id = "CHK-004"
+phase = "lint"
+argv = ["rtk", "cargo", "nextest", "run", "--workspace", "--test", "termrock_conformance", "--", "--exact", "protected_paths"]
+expected = { exit = 0 }
+requirements = ["R-003", "R-004"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-005"
+phase = "gate"
+argv = ["rtk", "cargo", "nextest", "run", "--workspace"]
+expected = { exit = 0 }
+requirements = ["R-005"]
+acceptance = ["AC-004"]

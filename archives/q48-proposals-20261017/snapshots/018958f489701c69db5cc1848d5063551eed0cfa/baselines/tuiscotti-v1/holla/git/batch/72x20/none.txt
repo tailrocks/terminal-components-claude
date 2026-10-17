@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      repos · project …lection  mbp · local
+
+  Here    pull alpha ✓ ×
+ ────────━━━━━━━━━━━━━━━━━─────────────────────────────────────────────
+  pull alpha · succeeded · 0 s · exit 0
+  $ git -C /Users/alex/work/repos/alpha pull · started by Pull 4 sibl…
+
+ ╭─ output ─────────────────────────────────────────────── following ─╮
+ │  $ git -C /Users/alex/work/repos/alpha pull                        │
+ │  From github.com:acme/alpha                                        │
+ │     a1b2c3d..a9c0f1e  main -> origin/main                          │
+ │  Updating a1b2c3d..a9c0f1e                                         │
+ │  Fast-forward                                                      │
+ │   6 files changed, 39 insertions(+)                                │
+ │                                                                    │
+ │                                                                    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ~/work/repos             succeeded · 0 s              no color · 72×20
+      …   ! Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled

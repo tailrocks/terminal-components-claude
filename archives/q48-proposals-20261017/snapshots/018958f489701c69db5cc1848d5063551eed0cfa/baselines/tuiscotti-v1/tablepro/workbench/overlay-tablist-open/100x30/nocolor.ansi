@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe          no color · 100×30  ? help [0m
+                                                                                                    [0m
+  ≡ Query 1 ×                                                                                   +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ──────────────────────────────────────────────────────────────────────────── public ─╮ [0m
+ │                                                                                                │ [0m
+ │   Filter objects                                                                               │ [0m
+ │  ▾ D acme_prod ╭──────────────────────────────────────────────────────────────╮                │ [0m
+ │ ▎  ▾ S public  │ [0m[1mOpen tabs[0m                                                    │                │ [0m
+ │      ▾ Tables  │ ▎ Filter tabs…                                               │             7  │ [0m
+ │        ▸ T orga│                                                              │         1.2 k  │ [0m
+ │        ▸ T cust│ [0m[1m▎[0m≡[0m[1m Query 1  [0mquery[0m[1m                                   [0mactive[0m[1m  [0m │        48.9 k  │ [0m
+ │        ▸ T prod│                                                              │           312  │ [0m
+ │        ▸ T orde│ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │         1.2 M  │ [0m
+ │        ▸ T orde╰──────────────────────────────────────────────────────────────╯         3.8 M  │ [0m
+ │        ▸ T payments                                                                     1.2 M  │ [0m
+ │        ▸ T subscriptions                                                                1.1 k  │ [0m
+ │      ▸ Views                                                                                2  │ [0m
+ │      ▸ Functions                                                                            1  │ [0m
+ │      ▸ Sequences                                                                            1  │ [0m
+ │    ▸ S analytics                                                                               │ [0m
+ │    ▸ S audit                                                                                   │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+                                                                            Connected to Production [0m

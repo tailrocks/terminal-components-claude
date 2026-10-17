@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "c70b2a664e05ebb8b0b119cc0363b2905a0c5560d1a3e71f774bb7caaa159ee5",
+  "artifacts": {
+    "ansi": {
+      "bytes": 11375,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.ansi",
+      "sha256": "c70b2a664e05ebb8b0b119cc0363b2905a0c5560d1a3e71f774bb7caaa159ee5"
+    },
+    "ascii": {
+      "bytes": 1709,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.ascii",
+      "sha256": "fdbef6052e51ae39b732108a5c26e8503999688548382a3a9bb4b015e4b3e45d"
+    },
+    "ascii_loss_json": {
+      "bytes": 19048,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.ascii.loss.json",
+      "sha256": "5dd033d0d606fc4aaa66d72be02e1d1aad1a32b59dd5cb5896b44870198991ca"
+    },
+    "frame_json": {
+      "bytes": 1128934,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.frame.json",
+      "sha256": "d38a75d62a1ef7aed69fa5f9443dbddfd4fd0771ce14efe4415ea282107b493a"
+    },
+    "html": {
+      "bytes": 489723,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.html",
+      "sha256": "028738465311863405c2003a21abd001c01298b5212d96cb43842a0e15b29fe1"
+    },
+    "observations_json": {
+      "bytes": 463,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.observations.json",
+      "sha256": "86e629fa60d90c22263feb012080f384c30c20e99870a9340abe923cb8c5caa4"
+    },
+    "png": {
+      "bytes": 345182,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.png",
+      "sha256": "8af26bc7876d6b3d0db87685e9bdcf50a5100707fdbb7d49e0995e25ff31a319"
+    },
+    "png_fidelity_json": {
+      "bytes": 1083,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.png.fidelity.json",
+      "sha256": "8fd1e5dda13b06e1377ee5abf60e2df6afdc862bb0df45cb8afc46904ea0aa07"
+    },
+    "txt": {
+      "bytes": 2100,
+      "file": "holla/finder/concept-disk-cleanup/120x40/256.txt",
+      "sha256": "b6891bc6d4b308fd07565b6ed6f90e2a376a70c346b6cbf138384b7ad0528d7f"
+    }
+  },
+  "ascii_substitutions_count": 206,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 7768902905117758871,
+  "frame_sha256": "d38a75d62a1ef7aed69fa5f9443dbddfd4fd0771ce14efe4415ea282107b493a",
+  "generation": "6eb8d1f71de38ab3f35e2ac5738630546b7229cfb937aab0f1d9a3262468d7a7",
+  "html_sha256": "028738465311863405c2003a21abd001c01298b5212d96cb43842a0e15b29fe1",
+  "legacy_name": "holla/concept/disk-cleanup/120x40/256",
+  "name": "holla/finder/concept-disk-cleanup/120x40/256",
+  "png_sha256": "8af26bc7876d6b3d0db87685e9bdcf50a5100707fdbb7d49e0995e25ff31a319",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:39Z",
+  "txt_sha256": "b6891bc6d4b308fd07565b6ed6f90e2a376a70c346b6cbf138384b7ad0528d7f"
+}

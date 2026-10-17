@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  safe                • 1 pending
+
+  ≡ Query 1 ×    T orders ×                                         +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                │
+ │  ━━━━━━━────────────────────────────────────────────────────────── │
+ │                                                                    │
+ │         ⚷ id                                    order_number  12›  │
+ │     495 fa70b703-caef-4854-9997-6a5ffc4309f9           10494     │ │
+ │     496 12afd08f-4342-47c5-a0b6-ad06a18e0c1c           10495     │ │
+ │     497 dce6f3f6-ff9d-4d2e-8c35-bfb812cc2d50           10496     │ │
+ │     498 c3ad24b1-ad5f-419d-8a25-cf181b6f0a7a           10497     │ │
+ │     499 ea3426ef-d76a-47d4-9acf-2f938e2a6096           10498     ┃ │
+ │                                                                    │
+ │   • 1 pending · 1 insert            Preview SQL   Discard   Save   │
+ │   rows 495–499 of 501 loaded · 1,203,338 total · cols 1–2 of 14    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ↑↓←→ Cell  Enter Edit  …                       Connected to Production

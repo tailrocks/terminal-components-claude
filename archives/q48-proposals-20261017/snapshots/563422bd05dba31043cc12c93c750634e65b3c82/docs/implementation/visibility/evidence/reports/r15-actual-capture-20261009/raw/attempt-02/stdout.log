@@ -1,0 +1,6 @@
+{"type":"suite","event":"started","test_count":1,"nextest":{"crate":"termrock-e2e","test_binary":"holla_tag_capture","kind":"test"}}
+{"type":"test","event":"started","name":"termrock-e2e::holla_tag_capture$captures_holla_from_pinned_immutable_tag"}
+{"type":"suite","event":"ok","passed":0,"failed":0,"ignored":1,"measured":0,"filtered_out":0,"exec_time":0,"nextest":{"crate":"termrock-e2e","test_binary":"holla_tag_capture","kind":"test"}}
+{"type":"suite","event":"started","test_count":1,"nextest":{"crate":"termrock-e2e","test_binary":"holla_tag_capture","kind":"test"}}
+{"type":"test","event":"ok","name":"termrock-e2e::holla_tag_capture$captures_holla_from_pinned_immutable_tag","exec_time":18.0306975}
+{"type":"suite","event":"ok","passed":1,"failed":0,"ignored":1,"measured":0,"filtered_out":18446744073709551615,"exec_time":18.0306975,"nextest":{"crate":"termrock-e2e","test_binary":"holla_tag_capture","kind":"test"}}

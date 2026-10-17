@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                    scope ‹ children ›
+
+    Children · 3 projects · 11 entries                                ┃
+  › Clean developer artifa…  plan  child  2 candidates …  destructive ┃
+    Run //apps/frontend:bu…  task  child  defined by ~/…              ┃
+    Run //apps/frontend:dev  task  child  defined by ~/…              ┃
+    Run //apps/frontend:li…  task  child  defined by ~/…              ┃
+    Run //apps/frontend:te…  task  child  defined by ~/…              ┃
+    Run //services/api:dev   task  child  defined by ~/…              ┃
+    Run //services/api:mig…  task  child  defined by ~/…              │
+    Run //services/api:test  task  child  defined by ~/…              │
+
+    → cargo clean · child · destructive
+
+ ~/work/acme   main   ↑1          scope children · 3 projects
+   Type Search  ↑↓ Move  Enter Review…  …   Scope children · 3 projects

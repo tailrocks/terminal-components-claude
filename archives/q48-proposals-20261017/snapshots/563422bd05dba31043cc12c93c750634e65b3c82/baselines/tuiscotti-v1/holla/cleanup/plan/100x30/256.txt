@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                 work · project collection  mbp · local
+
+  Here › … › Clean developer artifact…nder ~/work
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────
+  Clean developer artifacts under ~/work · mbp            4 steps · 4 included · 0 excluded · ~9 s
+  remove selected build artifacts and caches under /Users/alex/work
+
+         step                           needs     lane  note
+ ▎[✓] 01 Trash frontend › node_modules  –         a     optional
+  [✓] 02 cargo clean · backend          –         b     optional
+  [✓] 03 ./gradlew clean · android      –         c     optional
+  [✓] 04 Rescan and report              01 02 03  join
+
+    1 required · 3 optional · 3 branches run in parallel where independent
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                              Cancel    Continue…
+
+ ~/work      review · 4 steps · 3 branches parallel       / ━━━━━━━━━━─ 91%     256 colors · 100×30
+                  ↑↓ Step  Space Toggle  u Undo  c Confirm  p Facts  Esc Discard

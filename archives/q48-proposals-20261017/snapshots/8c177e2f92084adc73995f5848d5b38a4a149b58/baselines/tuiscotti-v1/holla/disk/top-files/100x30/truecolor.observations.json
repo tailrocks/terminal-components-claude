@@ -1,0 +1,22 @@
+{
+  "cell_count": 3000,
+  "cols": 100,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 4025691836386415274,
+  "legacy_name": "holla/flows/disk/top_files/100x30/truecolor",
+  "name": "holla/disk/top-files/100x30/truecolor",
+  "non_empty_cells": 430,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 30
+}

@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help                          Usage › Overview
+
+ ╭─ Usage · read-only ─────────────────────────────── ⠋ refreshing 1 ─╮
+ │  ▎› Overview                                                     ┃ │
+ │    Anthropic                                                     ┃ │
+ │       Personal  ★                                                ┃ │
+ │       Archived contractor laptop profile — do not use … disabled ┃ │
+ │       Work                                                     ! ┃ │
+ │    OpenAI                                                        ┃ │
+ │       Primary  ★                                                 ┃ │
+ │       Experiments                                              ⠋ ┃ │
+ │    Amp                                                           │ │
+ │       discovered                                               ▲ │ │
+ │    xAI                                                           │ │
+ │       Team  ★                                                    │ │
+ │    Z.AI                                                          │ │
+ │       discovered                                               ▲ │ │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+  ↑↓ Move  Enter Detail  r Refresh  m Manage in Accounts  Esc Close

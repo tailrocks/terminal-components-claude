@@ -1,0 +1,164 @@
+{
+  "schema": "termrock-vis13-fresh-clone-status-run-archive/v1",
+  "archive_revision": "R2",
+  "created_at_utc": "2026-10-09T09:20:03.837Z",
+  "proposed_repository_path": "docs/implementation/visibility/evidence/reports/fresh-clone-status-1d66-r10-20261009",
+  "task_scope": {
+    "work_id": "VIS-13",
+    "claim_token": "visibility-status-archive-q34-20261009-01",
+    "accepted_queue_revision": 35,
+    "observed_queue_revision": 46,
+    "allowed_paths": [
+      "docs/implementation/visibility/evidence/reports/**"
+    ],
+    "task_record_sha256": "89f43f7303c771631b5b54603b12db79b348f9b54919b57b6192643639a57d1b",
+    "work_queue_sha256": "90e3040151071d1b2a2c6438d7da0cdc37830959f74606ffee4572c20d049ddd"
+  },
+  "execution": {
+    "runner_revision": "R10",
+    "source_commit": "1d66f444f5962414b7c33734fa37376471e5f853",
+    "source_tree": "0ae9e285e8f771b8e250c63bf80f902d112dcd95",
+    "selected_test": "checked_in_records_render_from_exact_copies",
+    "nextest_run_id": "bfb656c6-7304-47ee-81e5-2a5ae70aef29",
+    "summary": "1 test passed; 45 skipped",
+    "exit_code": 0,
+    "timeout": false,
+    "close_deadline_exceeded": false,
+    "output_limit_exceeded": false,
+    "retries": 0,
+    "product_qualified": false,
+    "full_suite_qualified": false
+  },
+  "publication": {
+    "commit": "1d66f444f5962414b7c33734fa37376471e5f853",
+    "tree": "0ae9e285e8f771b8e250c63bf80f902d112dcd95",
+    "root_observation_sha256": "4c466a15ab072e50f8a8d0a39fbb3276219b6ab36ac24e613309729110ade0fc"
+  },
+  "reviews": {
+    "static_verdict": "READY_FOR_ROOT_EXECUTION_REVIEW",
+    "static_review_sha256": "8842679c44c2c7ea0708a51d9f1a34a1a1148798e04cf1f394e5d72dbcc3e0c6",
+    "actual_review_sha256": "4fdfcb8b7397291c79c7ca500dcae0b20560c7ed12a874bc96c4898dc353dfe5"
+  },
+  "scope_snapshot": {
+    "captured_at_utc": "2026-10-09T09:18:12Z",
+    "repository_branch": "termrock-implementation",
+    "repository_head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "scoped_status_stdout": " M STATUS.md\n M WORK_QUEUE.md\n M docs/implementation/visibility/tasks.json\n",
+    "task_record_working_tree_sha256": "89f43f7303c771631b5b54603b12db79b348f9b54919b57b6192643639a57d1b",
+    "work_queue_working_tree_sha256": "90e3040151071d1b2a2c6438d7da0cdc37830959f74606ffee4572c20d049ddd",
+    "state": "claimed",
+    "priority": "P0",
+    "owner": "/root/tag_capture_boundary_luna",
+    "claim_token": "visibility-status-archive-q34-20261009-01",
+    "accepted_queue_revision": 35,
+    "observed_queue_revision": 46,
+    "requested_destination_within_allowed_path": true,
+    "vis01_vis13_paths_disjoint": true
+  },
+  "member_count": 17,
+  "total_member_bytes": 53554,
+  "files": [
+    {
+      "path": "raw/runner/runner.cjs",
+      "bytes": 13611,
+      "sha256": "21b1c22023c24cf364af0edebb76d1e966377d418f2208b898bb8296f9bb3c2e",
+      "label": "exact R10 supervisor source"
+    },
+    {
+      "path": "raw/runner/preflight.json",
+      "bytes": 12374,
+      "sha256": "25466196c8b8a62c2a15d16da7e3034994b3cac1c25f84c19b9232d67584fb9b",
+      "label": "R10 no-Cargo preflight output"
+    },
+    {
+      "path": "raw/runner/README.md",
+      "bytes": 5945,
+      "sha256": "7576a0b2615589c61031495e43ef6eaf140a7615e7befbb0704d005497c7fcfa",
+      "label": "R10 execution scope and instructions"
+    },
+    {
+      "path": "raw/runner/review-request.json",
+      "bytes": 2474,
+      "sha256": "9b92ae937154acbe7de3c03bb3a38f30d15c3e00a259fe166175319144167acb",
+      "label": "R10 static review request"
+    },
+    {
+      "path": "raw/execution/run-result.json",
+      "bytes": 2643,
+      "sha256": "f5de87380b9f05dd99a70861a68767a6d73d60fb1a7adcd259ca73be49ba929a",
+      "label": "R10 supervisor run result"
+    },
+    {
+      "path": "raw/execution/supervisor.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "label": "R10 supervisor exit marker"
+    },
+    {
+      "path": "raw/execution/stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "label": "unmodified R10 child stdout stream (empty)"
+    },
+    {
+      "path": "raw/execution/stderr.raw",
+      "bytes": 1259,
+      "sha256": "527d81e65c32aaa66804ab55947d2ed9a16d2666b0ea6bb11097ceb44a0c9a69",
+      "label": "unmodified R10 child stderr stream with Nextest output"
+    },
+    {
+      "path": "raw/reviews/static-review.json",
+      "bytes": 4358,
+      "sha256": "8842679c44c2c7ea0708a51d9f1a34a1a1148798e04cf1f394e5d72dbcc3e0c6",
+      "label": "independent static runner review"
+    },
+    {
+      "path": "raw/reviews/actual-review-request.json",
+      "bytes": 3565,
+      "sha256": "198eb7aa85983f8da085bd7190f37398b7411f84fc9ed78f476c39e2234e3dca",
+      "label": "read-only actual-result review request"
+    },
+    {
+      "path": "raw/reviews/actual-review.json",
+      "bytes": 3743,
+      "sha256": "4fdfcb8b7397291c79c7ca500dcae0b20560c7ed12a874bc96c4898dc353dfe5",
+      "label": "independent actual-result review"
+    },
+    {
+      "path": "raw/publication/root-publication-observation.json",
+      "bytes": 1305,
+      "sha256": "4c466a15ab072e50f8a8d0a39fbb3276219b6ab36ac24e613309729110ade0fc",
+      "label": "Root saved publication observation for commit 1d66"
+    },
+    {
+      "path": "raw/worktree-sync/operation-note.md",
+      "bytes": 1703,
+      "sha256": "7778276338288b3e323f5ae4a440c7900e581bed600cb757b8ba48db8f03a141",
+      "label": "derivative sync note; explicitly not a raw Root execution receipt"
+    },
+    {
+      "path": "raw/worktree-sync/independent-after-guard.json",
+      "bytes": 432,
+      "sha256": "f57bfa40095b963bb464715a134ebe270841324f10a1d72f3f9af68ec129853c",
+      "label": "saved independent post-sync guard output"
+    },
+    {
+      "path": "raw/scope/repository-head.stdout.raw",
+      "bytes": 41,
+      "sha256": "45a7e8f273c4866ef321d5cfa98ae6f745a7181ec7c1c5e62ba0a8bfe98e30ec",
+      "label": "exact stdout from read-only Git HEAD query"
+    },
+    {
+      "path": "raw/scope/repository-branch.stdout.raw",
+      "bytes": 24,
+      "sha256": "f4cc7815914e89d4a04231e0b7e1eec7a046bd08d5778779dccdfca0cbd1b143",
+      "label": "exact stdout from read-only Git branch query"
+    },
+    {
+      "path": "raw/scope/task-scope-status.stdout.raw",
+      "bytes": 75,
+      "sha256": "fb158bac7a10c0411f6ce34bf554b5f91a006b974fa0f6ba942a49c34ed51675",
+      "label": "exact stdout from path-limited read-only Git status query"
+    }
+  ]
+}

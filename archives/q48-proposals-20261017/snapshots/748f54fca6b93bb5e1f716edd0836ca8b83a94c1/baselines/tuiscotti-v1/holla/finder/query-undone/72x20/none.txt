@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › Run check     task     here  defined by ~/work/holla/mise.toml    ┃
+    Run fmt       task     here  defined by ~/work/holla/mise.toml    ┃
+    Run lint      task     here  defined by ~/work/holla/mise.toml    ┃
+    Run shots     task     here  defined by ~/work/holla/mise.toml    ┃
+    Run tests     task     here  defined by ~/work/holla/mise.toml    ┃
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → mise run check · here · mutating
+
+ ~/work/holla   main                                   no color · 72×20
+          Type Search  ↑↓ Move  Enter Run  Alt+Enter More  …     Undone

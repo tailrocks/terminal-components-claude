@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help          acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                    scope ‹ children ›  [0m
+                                                                        [0m
+    Children · 3 projects · 11 entries                                ┃ [0m
+ [0m[1m › Clean developer artifa…  [0mplan[0m[1m  [0mchild[0m[1m  [0m2 candidates …[0m[1m  [0mdestructive[0m[1m [0m┃ [0m
+    Run //apps/frontend:bu…  task  child  defined by ~/…              ┃ [0m
+    Run //apps/frontend:dev  task  child  defined by ~/…              ┃ [0m
+    Run //apps/frontend:li…  task  child  defined by ~/…              ┃ [0m
+    Run //apps/frontend:te…  task  child  defined by ~/…              ┃ [0m
+    Run //services/api:dev   task  child  defined by ~/…              ┃ [0m
+    Run //services/api:mig…  task  child  defined by ~/…              │ [0m
+ [0m[2m   Run //services/api:test  task  child  defined by ~/…              [0m│ [0m
+                                                                        [0m
+    → cargo clean · child · destructive                                 [0m
+                                                                        [0m
+ [0m[1m~/work/acme[0m   main   ↑1          scope children · 3 projects           [0m
+   [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  …   Scope children · 3 projects [0m

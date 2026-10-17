@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local
+
+  Here › Files › site
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────
+  Files · ~/work/site
+  1╭────────────────────────────────────────────────────────────────────────╮
+   │ Go to path                                                 ~/work/site │
+  ▸│ ▎ nope                                                                 │ ┃
+  ▸│                                                                        │ ┃
+   │             ! ~/work/site/nope: no such file or directory              │ ┃
+   │                                                                        │ ┃
+  →│                  edit the path or choose a suggestion                  │ ┃
+   │                                                                        │ ┃
+   ╰────────────────────────────────────────────────────────────────────────╯ ┃
+    control.txt                              13 B  2026-09-07 08:41  file     ┃
+  → current                                   0 B  2026-09-09 08:41  symlink  ┃
+    empty.txt                                 0 B  2026-09-09 08:41  file     ┃
+    index.html                               34 B  2026-09-09 08:41  file     ┃
+    logo.png                                  6 B  2026-09-07 08:41  file     ┃
+    long.txt                              4.9 KiB  2026-09-08 08:41  file     │
+    package.json                             85 B  2026-09-08 08:41  file     │
+
+ ~/work/site             ~/work/site · hidden off              no color · 80×24
+                Type Filter  ↑↓ Move  Enter Switch  Esc Cancel

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      batch · project …lection  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+    Status across 3 child …  git      child  0 dirty · 1 behind       ┃
+  › Emit a burst             custom   here   Current folder · trusted ┃
+    Emit a mixed stream      custom   here   Current folder · trusted ┃
+                                                                      ┃
+    Recent here                                                       ┃
+    nothing used here yet                                             │
+                                                                      │
+    Explore                                                           │
+
+    → ./emit-burst · here · read-only
+
+ ~/work/batch                                         truecolor · 72×20
+    Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …

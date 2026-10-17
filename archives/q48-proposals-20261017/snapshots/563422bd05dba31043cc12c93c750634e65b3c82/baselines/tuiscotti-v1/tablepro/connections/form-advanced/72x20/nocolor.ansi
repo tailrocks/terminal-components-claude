@@ -1,0 +1,20 @@
+ ▪  [0m[1mTablePro[0m  Connections  6 saved             no color · 72×20  ? help [0m
+                                                                        [0m
+   Edit connection                                        Ctrl+S Save   [0m
+                                                                        [0m
+    Basic   [0m[1m Advanced  [0m                                                 [0m
+   ─────────━━━━━━━━━━━──────────────────────────────────────────────   [0m
+                                                                        [0m
+    ──● Use SSL / TLS on                    Startup commands            [0m
+                                            SET statement_timeout …     [0m
+    ──● SSH tunnel on                                                   [0m
+     SSH host  optional                                                 [0m
+     bastion.acme.io                        Run after every connect,…   [0m
+                                                                        [0m
+     SSH user  optional                     External clients: read only [0m
+     deploy                                                             [0m
+                                                                        [0m
+    Test connection no Cancel sy Save    [0m[1mSave & connect [0m                [0m
+                                                                        [0m
+                                                                        [0m
+ [0m[1mEnter[0m Edit  [0m[1m← →[0m Basic / Advanced  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next                [0m

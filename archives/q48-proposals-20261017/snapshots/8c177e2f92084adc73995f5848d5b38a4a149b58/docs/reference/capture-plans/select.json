@@ -1,0 +1,169 @@
+{
+  "schema": "termrock-spec/capture-plan-v1",
+  "component_id": "W10",
+  "component": "Select",
+  "oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "status": "planned_not_captured",
+  "authority_policy": "Classify and bind expected output before candidate testing. Existing/ExtractedOracle preserve old behavior; newly introduced robustness or API behavior is Extension. Source directory links are discovery roots, not proof of all-state coverage.",
+  "source_urls": [
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/widgets/select.rs"
+  ],
+  "snapshot_discovery_roots": [
+    "https://github.com/donbeave/terminal-components-claude/tree/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/snapshots/showcase"
+  ],
+  "dimensions": [
+    [
+      72,
+      20
+    ],
+    [
+      80,
+      24
+    ],
+    [
+      100,
+      30
+    ],
+    [
+      120,
+      40
+    ],
+    [
+      160,
+      50
+    ]
+  ],
+  "capabilities": [
+    "truecolor",
+    "256",
+    "16",
+    "none",
+    "nocolor"
+  ],
+  "state_axes": [
+    {
+      "axis": "geometry",
+      "applies_to": "component",
+      "states": [
+        "normal",
+        "zero_area",
+        "tiny_area",
+        "nonzero_origin",
+        "exact_fit",
+        "one_cell_short",
+        "unicode_long_content",
+        "narrow_then_wide"
+      ]
+    },
+    {
+      "axis": "focus_hover",
+      "applies_to": "interactive owner or child; Brand only in interactive mode; Steps only in navigable mode; no decorative focus stop",
+      "states": [
+        "unfocused",
+        "focused",
+        "hovered",
+        "focus_and_hover",
+        "keyboard_suppresses_hover",
+        "pointer_motion_restores_hover"
+      ]
+    },
+    {
+      "axis": "activation",
+      "applies_to": "eligible actionable part; composite uses real child action controls",
+      "states": [
+        "pointer_down",
+        "held_press",
+        "release_inside",
+        "release_outside",
+        "removed_target",
+        "disabled_target",
+        "keyboard_activate",
+        "activation_feedback",
+        "feedback_expired"
+      ]
+    },
+    {
+      "axis": "source",
+      "applies_to": "keyed records; chosen/cursor distinction only when both exist",
+      "states": [
+        "empty",
+        "ready",
+        "selected_differs_from_cursor",
+        "disabled_entry",
+        "reorder",
+        "insert",
+        "remove",
+        "filter",
+        "stale_target"
+      ]
+    },
+    {
+      "axis": "scroll",
+      "applies_to": "component scroll region; horizontal strips use start/end; fade/protection only on applicable content rows",
+      "states": [
+        "no_overflow",
+        "start",
+        "middle",
+        "end",
+        "wheel_boundary",
+        "thumb_drag",
+        "resize_while_scrolled",
+        "edge_fade",
+        "protected_row"
+      ]
+    },
+    {
+      "axis": "layer",
+      "applies_to": "runtime-owned overlay",
+      "states": [
+        "closed",
+        "open",
+        "nested",
+        "escape",
+        "outside",
+        "owner_removed",
+        "resize_reanchor",
+        "focus_restore",
+        "modal_first_paste"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "W10-01",
+      "requirement": "closed selected/placeholder, focused and disabled",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W10-02",
+      "requirement": "open at top/bottom edge and after resize",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W10-03",
+      "requirement": "highlight differs from committed option; Escape preserves chosen value",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W10-04",
+      "requirement": "reorder/delete options while open; click uses stable key",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    },
+    {
+      "id": "W10-05",
+      "requirement": "empty/all-disabled options; popup scrollbar and edge fade",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "bind_existing_or_extract_oracle_before_candidate"
+    }
+  ],
+  "expected_artifacts": null
+}

@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform › 7f3a  inside the Construct  2 running [0m
+                                                                                                                        [0m
+ ╭─ Workspaces ────────── 2 running ─╮ │  7f3a · payments-platform                                 instance · running   [0m
+ │     Current directory             │ │                                                                                [0m
+ │   ▾ payments-platform             │ │  Workspace     payments-platform › role the-architect                          [0m
+ │     ◉ 7f3a  the-archite…ude Code  │ │  Agent         Claude Code · account Claude · Personal (provider default)      [0m
+ │     ◌ c41e  reviewer · Codex   •  │ │  Container     jackin-payments-platform-7f3a                                   [0m
+ │   ▸ infra-control-plane           │ │  Started       2 h ago · last seen 3 s ago                                     [0m
+ │   ▸ release-automation            │ │  Lifecycle     running · Container and Capsule daemon are live.                [0m
+ │   ▸ customer-portal               │ │  Working tree  2 uncommitted · 1 unpushed                                      [0m
+ │     + New workspace               │ │  Branch        feature/settlement-backoff · PR #482 · Settlement retry back…   [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Live topology                                              daemon · 3 s ago   [0m
+ │                         ╭─[0m[1m Container 7f3a [0m─────────────────────────────────── read-only ─╮                           [0m
+ │                         │ [0m[1m▎ [0mContainer[0m[1m  jackin-payments-platform-7f3a            [0my copy[0m[1m [0m  │                           [0m
+ │                         │   Image      jackin/derived:payments-platform-7f3a             │                           [0m
+ │                         │   Workspace  payments-platform › role the-architect            │                           [0m
+ │                         │   Agent      Claude Code · account Claude · Personal           │                           [0m
+ │                         │   Target     /workspace/payments-platform · 2 mounts           │                           [0m
+ │                         │   Run id     run-7f3a                                          │                           [0m
+ │                         │   Lifecycle  running                                           │                           [0m
+ │                         │   Daemon     attached · 3 tabs · 3 s ago                       │   manifest · 2 recorded   [0m
+ │                         │                                                                │                           [0m
+ │                         │                                                                │                           [0m
+ │                         │                                                                │                           [0m
+ │                         │                                                        Close   │                           [0m
+ │                         ╰────────────────────────────────────────────────────────────────╯                           [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Reconnect    New session    Shell    Inspect    Stop    Purge…                [0m
+ ╰───────────────────────────────────╯ │                                                                                [0m
+                                                                                                                        [0m
+   [0m[1m     [0m            [0m[1m [0m              [0m[1m [0m        [0m[1m [0m [0m[1m↑↓[0m Mov[0m[1me[0m  [0m[1my[0m Copy  [0m[1mEsc[0m Close [0m[1m [0m       [0m[1m   [0m          [0m[1m [0m           [0m[1m [0m             [0m

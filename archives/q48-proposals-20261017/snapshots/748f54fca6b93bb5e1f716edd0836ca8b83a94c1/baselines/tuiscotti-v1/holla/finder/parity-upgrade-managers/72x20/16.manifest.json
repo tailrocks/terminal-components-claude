@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "0e64bf1fd3f3c39a34c8fa0976d843d65410213a25e4bdde9bdaf5744514babb",
+  "artifacts": {
+    "ansi": {
+      "bytes": 3781,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.ansi",
+      "sha256": "0e64bf1fd3f3c39a34c8fa0976d843d65410213a25e4bdde9bdaf5744514babb"
+    },
+    "ascii": {
+      "bytes": 575,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.ascii",
+      "sha256": "836e9aa5d05c972548700e21bacd0534b91e60b394c44b2a86e9009c1ead49ba"
+    },
+    "ascii_loss_json": {
+      "bytes": 8068,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.ascii.loss.json",
+      "sha256": "06ec3a3c89a4ff0ba37a5c17d76b86b131b197343d3a1a9feb7050fd2a97964a"
+    },
+    "frame_json": {
+      "bytes": 334623,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.frame.json",
+      "sha256": "1149495039dc97ecf3b48848cd23d3de8bec77ef781ce7a8d1025250d3804056"
+    },
+    "html": {
+      "bytes": 200955,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.html",
+      "sha256": "85018ae1e9c9d6ddfd88b64e9482941dfb1c91bb6625d6fb5c66983ab1d88b10"
+    },
+    "observations_json": {
+      "bytes": 464,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.observations.json",
+      "sha256": "c7f45154cad839b387a03cae55354d7d7497f2572baba098a5c8a8285ea3f56e"
+    },
+    "png": {
+      "bytes": 143110,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.png",
+      "sha256": "a068bb38b4ac9f7167fe11647b7af1328f7e024d258ecf1b16d20d74291c3a1c"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 743,
+      "file": "holla/finder/parity-upgrade-managers/72x20/16.txt",
+      "sha256": "e83b0f008a6a4cefe127ad34f826002b1feea40b637f98b835e207d1739d013f"
+    }
+  },
+  "ascii_substitutions_count": 87,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 7165093764023644751,
+  "frame_sha256": "1149495039dc97ecf3b48848cd23d3de8bec77ef781ce7a8d1025250d3804056",
+  "generation": "511da40702be1e47fd9b56e54934296b2ab37641c0f6dc2e9eef6bfbedce787a",
+  "html_sha256": "85018ae1e9c9d6ddfd88b64e9482941dfb1c91bb6625d6fb5c66983ab1d88b10",
+  "legacy_name": "holla/parity/upgrade-managers/72x20/16",
+  "name": "holla/finder/parity-upgrade-managers/72x20/16",
+  "png_sha256": "a068bb38b4ac9f7167fe11647b7af1328f7e024d258ecf1b16d20d74291c3a1c",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:09Z",
+  "txt_sha256": "e83b0f008a6a4cefe127ad34f826002b1feea40b637f98b835e207d1739d013f"
+}

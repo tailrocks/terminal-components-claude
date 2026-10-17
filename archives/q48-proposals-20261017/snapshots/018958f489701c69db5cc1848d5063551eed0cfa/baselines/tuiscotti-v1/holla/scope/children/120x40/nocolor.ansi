@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                          acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                    scope ‹ children ›  [0m
+                                                                                                                        [0m
+    Children · 3 projects · 11 entries                                           Clean developer artifa… plan · child   [0m
+ [0m[1m › Clean developer artifact…  [0mplan[0m[1m  [0mchild[0m[1m  [0m2 candidates in 3 …[0m[1m  [0mdestructive[0m[1m [0m                                           [0m
+    Run //apps/frontend:build  task  child  defined by ~/work/…                  Does       Cargo targets, Gradle       [0m
+    Run //apps/frontend:dev    task  child  defined by ~/work/…                             outputs and Node            [0m
+    Run //apps/frontend:lint   task  child  defined by ~/work/…                             dependency trees beneath    [0m
+    Run //apps/frontend:test   task  child  defined by ~/work/…                             their owning projects as    [0m
+    Run //services/api:dev     task  child  defined by ~/work/…                             a plan · shared targets     [0m
+    Run //services/api:migra…  task  child  defined by ~/work/…                             serialised, independent     [0m
+    Run //services/api:test    task  child  defined by ~/work/…                             projects in parallel        [0m
+    Run //tools/worker:dev     task  child  defined by ~/work/…                  Runs       cargo clean                 [0m
+    Run //tools/worker:test    task  child  defined by ~/work/…                             ./gradlew clean             [0m
+                                                                                            trash '<node_modules>'      [0m
+                                                                                            pnpm store prune            [0m
+                                                                                 In         ~/work/acme                 [0m
+                                                                                 Host       mbp · local                 [0m
+                                                                                 Scope      child                       [0m
+                                                                                 Why        2 candidates in 3           [0m
+                                                                                            projects                    [0m
+                                                                                 Changes    ~6.9 GB reclaimable ·       [0m
+                                                                                            recent and unverifiable     [0m
+                                                                                            data stays unselected       [0m
+                                                                                 Risk       destructive                 [0m
+                                                                                 Data       live · 0 s ago              [0m
+                                                                                 Gate       two gates · type REMOVE     [0m
+                                                                                            ALL BUILD ARTIFACTS         [0m
+                                                                                            UNDER                       [0m
+                                                                                            /Users/alex/work/acme       [0m
+                                                                                 Alt+Enter  Pin · Alias · Why here?     [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/acme[0m   main   ↑1                         scope children · 3 projects                          no color · 120×40 [0m
+       [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  …   Scope children · 3 projects [0m

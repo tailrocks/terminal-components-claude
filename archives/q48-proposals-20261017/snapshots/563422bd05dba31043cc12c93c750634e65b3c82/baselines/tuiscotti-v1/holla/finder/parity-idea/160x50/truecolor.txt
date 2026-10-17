@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                            no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›
+
+    Suggested here                                                                                               Clean IntelliJ metadata under ~… idea · here
+  › Clean IntelliJ metadata under ~/work…  idea     here  4 candidates                           destructive
+                                                                                                                 Does       move every .idea directory and
+    Recent here                                                                                                             lowercase .iml file below this
+    nothing used here yet                                                                                                   folder (depth 5, no symlinks, no
+                                                                                                                            node_modules, nothing nested) to
+    Explore                                                                                                                 the Trash · 4 candidates · no
+     Tasks   Git   Files   Disk   Services   System                                                                         IDE shutdown step exists in the
+    System · mbp                           explore  host  available on this host                                            baseline
+                                                                                                                 Runs       no command · opens inside holla
+                                                                                                                 In         ~/work/ide
+                                                                                                                 Host       mbp · local
+                                                                                                                 Scope      here
+                                                                                                                 Why        4 candidates
+                                                                                                                 Changes    see the command
+                                                                                                                 Risk       destructive
+                                                                                                                 Data       live · 0 s ago
+                                                                                                                 Gate       opens a review · the deletion is
+                                                                                                                            gated there (typed phrase)
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/ide                                                                                                                                  truecolor · 160×50
+                             Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

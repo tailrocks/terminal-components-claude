@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "ab5a349a913c5ed84997ccc635579671bb80e351b7b7dfb365292581096b2486",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9047,
+      "file": "holla/finder/concept-first-use/120x40/none.ansi",
+      "sha256": "ab5a349a913c5ed84997ccc635579671bb80e351b7b7dfb365292581096b2486"
+    },
+    "ascii": {
+      "bytes": 2640,
+      "file": "holla/finder/concept-first-use/120x40/none.ascii",
+      "sha256": "77de27be03d52d105936526a8a7aa49995e0d6822d6347922934f1e625a42cf4"
+    },
+    "ascii_loss_json": {
+      "bytes": 14179,
+      "file": "holla/finder/concept-first-use/120x40/none.ascii.loss.json",
+      "sha256": "5a60f60d634fff1932eaa07b7e85b4be179642c44b166815df97e2bcd32dbde1"
+    },
+    "frame_json": {
+      "bytes": 1117375,
+      "file": "holla/finder/concept-first-use/120x40/none.frame.json",
+      "sha256": "6e5bd240e57f27c2beb7a1b7de706672f947ad5dbc49c3644a59f7d65b0b417d"
+    },
+    "html": {
+      "bytes": 539633,
+      "file": "holla/finder/concept-first-use/120x40/none.html",
+      "sha256": "a14e9a29848900440bd5a60b3fbeaa880af406cecad79262b7766bcb116418fa"
+    },
+    "observations_json": {
+      "bytes": 460,
+      "file": "holla/finder/concept-first-use/120x40/none.observations.json",
+      "sha256": "deb291b16f9102009d6810c3e029d9c7a7d84bb625ba95a42c6838d28eef302c"
+    },
+    "png": {
+      "bytes": 388820,
+      "file": "holla/finder/concept-first-use/120x40/none.png",
+      "sha256": "f65c72705effa639875f1323446b8798320a31803c64fc7e229e03b8ed5fdb37"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-first-use/120x40/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2933,
+      "file": "holla/finder/concept-first-use/120x40/none.txt",
+      "sha256": "b741dca84716806a09cbeef7f6004f97c9cc3454f32b893ac8591a1e90d89d1a"
+    }
+  },
+  "ascii_substitutions_count": 153,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 10990105778512496272,
+  "frame_sha256": "6e5bd240e57f27c2beb7a1b7de706672f947ad5dbc49c3644a59f7d65b0b417d",
+  "generation": "c78e1ae6e214108c396e3c53ed0ada814e849bd718bec66ad38bd3f2407f3f0d",
+  "html_sha256": "a14e9a29848900440bd5a60b3fbeaa880af406cecad79262b7766bcb116418fa",
+  "legacy_name": "holla/concept/first-use/120x40/none",
+  "name": "holla/finder/concept-first-use/120x40/none",
+  "png_sha256": "f65c72705effa639875f1323446b8798320a31803c64fc7e229e03b8ed5fdb37",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:50Z",
+  "txt_sha256": "b741dca84716806a09cbeef7f6004f97c9cc3454f32b893ac8591a1e90d89d1a"
+}

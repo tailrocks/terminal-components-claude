@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Chrome                                  no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mChrome[0m  Brand lockup · menu bar with anchored menus · status bar planes and priorities · con… [0m
+   Overview                                                                                                             [0m
+                           [0m[1m app❯ [0m   File   View   Help                                                                  [0m
+   Components                                                                                                           [0m
+   Buttons                  Sessions                                                 right-click or m for the tab menu  [0m
+   Inputs                                                                                                               [0m
+   Text areas                  1 Claude Code (Work)                 working     The status bar below sits on its own …  [0m
+   Forms                       2 Codex (Primary)                       idle     separator glyphs, and items leave by …  [0m
+   Lists                       3 Shell                                          narrow — resize the terminal to watch…  [0m
+   Trees                       4 docs                               blocked                                             [0m
+   Tables                                                                       Brand: one lockup, accent-filled, the…  [0m
+   Editable tables                                                                                                      [0m
+   Panels                                                                                                               [0m
+   Sidebars                                                                                                             [0m
+   Dialogs                                                                                                              [0m
+   Progress                                                                                                             [0m
+   Scrolling                                                                                                            [0m
+   Terminal                                                                                                             [0m
+   Code editor                                                                                                          [0m
+   Diff                                                                                                                 [0m
+   Data grid                                                                                                            [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                                                                                                              [0m
+[0m[1m▎› Chrome               [0m                                                                                                [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff                                 Weekly 59%  [0m
+                           hint bar · topmost layer wins:                                                               [0m
+                           [0m[1m↑↓[0m Move  [0m[1mm[0m Context menu  [0m[1mright-click[0m Context menu  [0m[1mTab[0m Next                last: nothing yet [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

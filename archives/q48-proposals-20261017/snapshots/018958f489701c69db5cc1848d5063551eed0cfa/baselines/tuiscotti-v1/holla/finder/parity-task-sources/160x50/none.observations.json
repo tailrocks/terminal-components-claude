@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 4806796262580609708,
+  "legacy_name": "holla/parity/task-sources/160x50/none",
+  "name": "holla/finder/parity-task-sources/160x50/none",
+  "non_empty_cells": 844,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}
