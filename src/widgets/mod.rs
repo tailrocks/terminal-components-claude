@@ -13,6 +13,7 @@ mod code_specimen;
 pub mod completion;
 pub mod dialog;
 pub mod diff;
+pub mod edit;
 pub mod empty;
 pub mod field_common;
 pub mod form_dialog;

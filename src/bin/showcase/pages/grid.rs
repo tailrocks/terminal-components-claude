@@ -275,8 +275,7 @@ fn custom_keymap() -> KeyMap<GridCmd> {
 
 /// Seats must stay within the plan limit (`datagrid.validator=strict`).
 fn strict(spec: &ColumnSpec, text: &str) -> Result<CellValue, String> {
-    let v = junie_tui::widgets::grid::Validator::default();
-    let parsed = (v.0)(spec, text)?;
+    let parsed = junie_tui::widgets::grid::default_validator(spec, text)?;
     match (&*spec.name, &parsed) {
         ("seats", CellValue::Int(n)) if *n > 500 => Err("Seats above the plan limit (500)".into()),
         ("customer", CellValue::Text(s)) if s.trim().len() < 3 => {
