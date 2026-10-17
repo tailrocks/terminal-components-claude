@@ -441,10 +441,8 @@ impl TreesPage {
         }
 
         // the built trees, read back
-        let mut y = area.y + self.top_h() + 1;
-        for l in self.readout_lines(area.width) {
+        for (y, l) in (area.y + self.top_h() + 1..).zip(self.readout_lines(area.width)) {
             buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
-            y += 1;
         }
         self.menu.render(area, buf, ctx);
     }
