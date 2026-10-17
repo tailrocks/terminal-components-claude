@@ -29,13 +29,13 @@
                                 ▏ disabled                                                                  DarkGray   ┆[0m
                                                                                                                        ┆[0m
                                                                                                                        ┆[0m
+                            Tokens · accent and status                                                                 ┆[0m
                                                                                                                        ┆[0m
-                                                                                                                       ┆[0m
-                                                                                                                       ┆[0m
-                                                                                                                       ┆[0m
-                                                                                                                       ┆[0m
-                                                                                                                       ┆[0m
-                                                                                                                       ┆[0m
+                                ▏ accent                                                                       White   ┆[0m
+                                ▏ accent.hover                                                                 White   ┆[0m
+                                ▏ accent.pressed                                                               White   ┆[0m
+                                ▏ accent.bg                                                                    Black   ┆[0m
+                                ▏ accent.bg.subtle                                                             Black   ┆[0m
                                                                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
 [?25l
