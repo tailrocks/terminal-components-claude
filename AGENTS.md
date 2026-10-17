@@ -165,6 +165,9 @@ components work; they are not where behaviour lives.
 - No single command runs longer than 4 minutes: set an explicit timeout
   and split long jobs (nextest partitions, visual groups) into parts that
   fit.
+- No command runs longer than 5 minutes without the agent acting on it:
+  split long jobs into parts under 4 minutes, so the prompt cache stays
+  warm.
 - Deliver in small portions: commit and push to the working branch after
   every coherent step (one finding or one small group of related changes),
   as soon as the full gate passes. Never keep work uncommitted or unpushed
