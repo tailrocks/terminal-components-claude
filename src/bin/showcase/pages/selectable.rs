@@ -24,7 +24,7 @@ use junie_tui::core::event::{ClientPlatform, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
-use junie_tui::core::selection::SelectionMode;
+use junie_tui::core::selection::{Activate, ClickPolicy, SelectionMode};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -232,17 +232,26 @@ fn shared<T: PartialEq + Clone>(mut it: impl Iterator<Item = T>) -> Option<T> {
 }
 
 /// `selection.*` option keys, in the order of `SelectablePage::knobs`.
-const KEYS: [&str; 4] = [
+const KEYS: [&str; 5] = [
     "selection.esc_clears",
     "selection.toggle_mods",
     "selection.disabled_rows",
     "selection.check_column",
+    "selection.activate",
+];
+
+/// The `selection.activate` values, in option order.
+const ACTIVATE: [Activate; 4] = [
+    Activate::Double,
+    Activate::ClickAgain,
+    Activate::Single,
+    Activate::Never,
 ];
 
 /// The members table as the options say, through `DataTable`'s builders.
-fn members_table(members: &[Member], k: &[usize; 4], platform: ClientPlatform) -> DataTable {
+fn members_table(members: &[Member], k: &[usize; 5], platform: ClientPlatform) -> DataTable {
     use ratatui::crossterm::event::KeyModifiers;
-    let [esc, mods, disabled, checks] = *k;
+    let [esc, mods, disabled, checks, activate] = *k;
     let toggle = match mods {
         1 => KeyModifiers::CONTROL,
         2 => KeyModifiers::ALT,
@@ -259,6 +268,7 @@ fn members_table(members: &[Member], k: &[usize; 4], platform: ClientPlatform) -
     .disabled_rows(if disabled == 0 { &[0] } else { &[] })
     .esc_clears(esc == 1)
     .toggle_mods(toggle)
+    .click(ClickPolicy::DATA.activate(ACTIVATE[activate.min(3)]))
     .empty_text("No members yet")
 }
 
@@ -305,7 +315,7 @@ fn states_grid() -> StateGrid {
 pub struct SelectablePage {
     template: Template,
     /// The `selection.*` option values, in [`KEYS`] order.
-    knobs: [usize; 4],
+    knobs: [usize; 5],
     pub members: Vec<Member>,
     pub table: DataTable,
     pub name: TextInput,
@@ -748,11 +758,9 @@ impl SelectablePage {
             RowAction::Edit => self.edit_row(src, cx),
             RowAction::Delete => {
                 self.table_input(cx, |t| {
-                    if t.selection.contains(src) {
-                        return (Outcome::Consumed, None);
-                    }
-                    let disabled = t.disabled.clone();
-                    let changed = t.selection.select_only(src, |r| !disabled.contains(&r));
+                    // the library's right-click rule (M10): a row outside
+                    // the selection becomes the selection
+                    let changed = t.context_selection(cell.0);
                     (
                         Outcome::Changed,
                         changed.then_some(TableAction::SelectionChanged),
@@ -890,15 +898,30 @@ impl SelectablePage {
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let cfg = self.menu.config;
-            let Some(req) = cfg.on_secondary(&mut self.table, ev) else {
+            // the right click's selection rule (M10) is a selection change
+            // like any other: the editor's unsaved edits are settled first
+            let mut req = None;
+            self.table_input(cx, |t| {
+                let before = t.selection.clone();
+                req = cfg.on_secondary(t, ev);
+                let changed = t.selection != before;
+                (
+                    Outcome::Changed,
+                    changed.then_some(TableAction::SelectionChanged),
+                )
+            });
+            let Some(req) = req else {
                 return Outcome::Ignored;
             };
             cx.focus.focus(self.table.id);
-            self.open_menu(req);
+            if self.pending.is_none() {
+                self.open_menu(req);
+            }
             return Outcome::Changed;
         }
         let click = ev.is(Phase::Click);
         let mut routed = false;
+        let before = cx.focus.current();
         let out = self.table_input(cx, |t| match t.route(ev) {
             Some(r) => {
                 routed = true;
@@ -907,7 +930,10 @@ impl SelectablePage {
             None => (Outcome::Ignored, None),
         });
         if routed {
-            if click && ev.bar.is_none() && out != Outcome::Ignored {
+            // a click focuses the table, unless it opened a row in the
+            // editor (a double click), which took the focus there
+            if click && ev.bar.is_none() && out != Outcome::Ignored && cx.focus.current() == before
+            {
                 cx.focus.focus(self.table.id);
             }
             return out;
