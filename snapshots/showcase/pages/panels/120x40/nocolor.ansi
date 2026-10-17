@@ -27,9 +27,9 @@
                                CLI                                             0.37s  info   Fetching crates.io ind… ┃  [0m
                             [0m[2m   Cloud                      [0m                     0.74s  info   Compiling proc-macro2 … ┆  [0m
                                                                                1.11s  info   Compiling serde v1.0.2… ┆  [0m
-                                                                               1.48s  warn   unused import: `std::f… ┆  [0m
-                                                                               1.85s  info   Compiling tokio v1.40.0 ┆  [0m
-                                                                               2.22s  info   Running unittests src/… ┆  [0m
+                            A group inside a card is a muted label             1.48s  warn   unused import: `std::f… ┆  [0m
+                            plus indent. The focus bar stays on the            1.85s  info   Compiling tokio v1.40.0 ┆  [0m
+                            control.                                           2.22s  info   Running unittests src/… ┆  [0m
                                                                                2.59s  info   test api::auth::tests:… ┆  [0m
                                                                                2.96s  info   test db::pool::tests::… ┆  [0m
                                                                                3.33s  error  test checkout::places_… ┆  [0m

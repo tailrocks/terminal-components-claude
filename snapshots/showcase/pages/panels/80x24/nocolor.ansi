@@ -5,21 +5,21 @@
     Overview         [0m[1m Playground  [0m  Options    States                           [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                              [0m
-  ▸ Tables             Titled card    surface   ┃  ╭─ Framed · s…   1–5 of 41 ─╮[0m
-  ▸ Navigation                                  ┃  │  Junie works through a  ┃ │[0m
-  ▸ Overlays           A card is a filled       ┃  │  task the way a careful ┆ │[0m
-  ▸ Feedback           surface. Its title       ┃  │  engineer would: it     ┆ │[0m
-  ▾ Layout             sits in the top-left     ┃  │  reads the relevant     ┆ │[0m
- [0m[1m▎  › Panels       [0m    and metadata on the      ┃  │  [0m[2mcode, forms a plan,    [0m┆ │[0m
-      Scrolling                                 ┃  ╰───────────────────────────╯[0m
-      Splits & st…                              ┃                               [0m
-      Master-deta…                              ┃    Card · scrolla… 1–3 of 60  [0m
-      Pane tree        Untitled card. Same      ┃                               [0m
-  ▸ Text & code        surface, content         ┆       0.00s  info   Resol… ┃  [0m
-  ▸ Screens            starts at the padding    ┆       0.37s  info   Fetch… ┆  [0m
-                       edge.                    ┆       0.74s  info   Compi… ┆  [0m
-                                                ┆    ━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
-                                                ┆                               [0m
+  ▸ Tables             Titled card                                   surface   ┃[0m
+  ▸ Navigation                                                                 ┃[0m
+  ▸ Overlays           A card is a filled surface. Its title sits in the       ┃[0m
+  ▸ Feedback           top-left and metadata on the right. It never has a      ┃[0m
+  ▾ Layout             border.                                                 ┃[0m
+ [0m[1m▎  › Panels       [0m                                                            ┆[0m
+      Scrolling                                                                ┆[0m
+      Splits & st…                                                             ┆[0m
+      Master-deta…                                                             ┆[0m
+      Pane tree        Untitled card. Same surface, content starts at the      ┆[0m
+  ▸ Text & code        padding edge.                                           ┆[0m
+  ▸ Screens                                                                    ┆[0m
+                                                                               ┆[0m
+                                                                               ┆[0m
+                                                                               ┆[0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l
