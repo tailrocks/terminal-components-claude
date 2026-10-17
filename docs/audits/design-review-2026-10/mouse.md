@@ -267,7 +267,7 @@ and "Left for later" items.
 | Open from this pass: jackin tab-strip wheel | Fixed | 18647f61c | S6: jackin tab strips route through `MouseTarget` (pointer-router #14 row). |
 | Open from this pass: I-beam | Open → A3 | — | The I-beam still shows over a field's label; TextViewport and diff text declare no `PointerShape::Text`. |
 | Open from this pass: visual | Fixed | 4be166d38 | tablepro re-approved against `visual-baseline` with the splitter seams (c4847ed22) and `+N` overflow (c9c4c8475) attributed (`visual-reapproval.md`). |
-| Left for later: #13 | Open → A4 | — | holla `TextModal` (help, why, about) draws no close button. |
+| Left for later: #13 | Partial (S8b) | holla help commit | holla's key reference is the library `HelpOverlay` (close button, Done, light dismiss). Why and About are still `TextModal`s without a close button (A4). |
 | Left for later: #24 | Open → A4 | — | tablepro filter editor flashes nothing on a refused click until it moves onto `Frame` (S18). |
 | Left for later: #6 | Open → A4 | — | jackin cockpit's blocked stage explains itself only in the status line. |
 | Left for later: #5 | Open → A4 | — | A two-part crumb (`Disk › Usage`) is one link in the trail. |
