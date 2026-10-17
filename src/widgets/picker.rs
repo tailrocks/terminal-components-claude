@@ -1533,4 +1533,47 @@ mod tests {
         assert!(r.is_consumed());
         assert_eq!(r.into_action(), None, "it stays open");
     }
+
+    /// A wheel notch on a row, routed the way the app routes it: through
+    /// the picker's [`MouseTarget`](crate::core::pointer::MouseTarget) and
+    /// its list's shared wheel.
+    fn wheel_on_row(p: &mut Picker, delta: i32) -> Outcome {
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        use ratatui::crossterm::event::KeyModifiers;
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+        p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
+        drop(ctx);
+        let row = p.row_id(p.list.scroll.offset);
+        let pos = hits.area_of(row).expect("a visible row").as_position();
+        let ev = PointerEvent::wheel_on(&hits, row, Axis::Vertical, delta, pos, KeyModifiers::NONE);
+        p.pointer(&ev).outcome()
+    }
+
+    /// The wheel over the rows goes through the shared list body per its
+    /// [`WheelMode`](crate::widgets::option_list::WheelMode): `Viewport`
+    /// (the default) scrolls the rows and keeps the cursor, and the next
+    /// render keeps the scroll; `Cursor` moves the cursor and the view
+    /// follows it.
+    #[test]
+    fn the_wheel_over_the_rows_follows_the_lists_wheel_mode() {
+        use crate::widgets::option_list::WheelMode;
+        let mut p = picker(30);
+        assert_eq!(p.list.wheel, WheelMode::Viewport);
+        assert_eq!(wheel_on_row(&mut p, 3), Outcome::Changed);
+        assert_eq!((p.list.scroll.offset, p.list.cursor.index), (3, 0));
+        render(&mut p);
+        assert_eq!(p.list.scroll.offset, 3, "a render keeps the scroll");
+        assert_eq!(wheel_on_row(&mut p, -3), Outcome::Changed);
+        assert_eq!(wheel_on_row(&mut p, -3), Outcome::Consumed, "at the top");
+        let mut by_cursor = picker(30);
+        by_cursor.list.wheel = WheelMode::Cursor;
+        assert_eq!(wheel_on_row(&mut by_cursor, 9), Outcome::Changed);
+        assert_eq!(by_cursor.list.cursor.index, 9);
+        render(&mut by_cursor);
+        assert!(by_cursor.list.scroll.visible_range().contains(&9));
+    }
 }
