@@ -17,21 +17,21 @@
   argv[3]      "$(whoami)"                                                                                              [0m
   Diagnostic   /Users/alex/work/team/.holla.toml action[2]: id "shared" is already defined by the global configuration  [0m
   Diagnostic   /Users/alex/work/team/.holla.toml action[3]: invalid id "Bad Id": lowercase ASCII letters, digits, `.`,  [0m
+               `_`, `-` only                                                                                            [0m
+  Then         run deploy.preview exactly as declared                                                                   [0m
                                                                                                                         [0m
  ╭─ Definition ─────────────────────────────────────────────────────────────────────────────────────── exact content ─╮ [0m
  │  [0m[2mdescription = "push the current branch to the preview stack"                                                    [0m┆ │ [0m
  │  keywords = ["deploy", "preview"]                                                                                ┆ │ [0m
- │                                                                                                                  ┆ │ [0m
+ │                                                                                                                  ┃ │ [0m
  │  [[action]]                                                                                                      ┃ │ [0m
  │  id = "wipe"                                                                                                     ┃ │ [0m
- │  label = "Wipe local caches"                                                                                     ┃ │ [0m
- │  command = ["sh", "-c", "rm -rf .cache && echo done"]                                                            ┃ │ [0m
+ │  label = "Wipe local caches"                                                                                     ┆ │ [0m
+ │  command = ["sh", "-c", "rm -rf .cache && echo done"]                                                            ┆ │ [0m
  │  danger = "destructive"                                                                                          ┆ │ [0m
  │  confirm = true                                                                                                  ┆ │ [0m
  │  group = "Maintenance"                                                                                           ┆ │ [0m
- │                                                                                                                  ┆ │ [0m
- │  [[action]]                                                                                                      ┆ │ [0m
- │  [0m[2mid = "shared"                                                                                                   [0m┆ │ [0m
+ │  [0m[2m                                                                                                                [0m┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                                                         [0m
                                                                                            ▎[0m[1mCancel [0m   [0m[1;7mTrust this file [0m  [0m

@@ -4,14 +4,14 @@
 [0m[2m ━━│                                                                │── [0m
 [0m[2m  R│  [0m[1;2mStop and remove all containers · gate 2 of 2[0m[2m                  │…  [0m
 [0m[2m   │                                                                │   [0m
-[0m[2m  A│  [0mAction   stop the running containers, then remove every     [0m[2m ┃│d  [0m
-[0m[2m   │  ↓ 9 more                                                      │   [0m
-[0m[2m   │  docker stop acme-db-1 acme-redis-1 acme-api-1 a… … 1 more     │   [0m
-[0m[2m  H│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │   [0m
-[0m[2m  I│                                                                │   [0m
-[0m[2m  S│  [0m[1;2mType REMOVE ALL CONTAINERS ON mbp to confirm                [0m[2m  │   [0m
-[0m[2m   │[0m[1;2;7m▎                                                             [0m[2m  │   [0m
+[0m[2m  A│  [0mAction   stop the running containers, then remove every     [0m[2m ┃│┃  [0m
+[0m[2m   │  ↓ 9 more                                                      │┆  [0m
+[0m[2m   │  docker stop acme-db-1 acme-redis-1 acme-api-1 a… … 1 more     │┆  [0m
+[0m[2m   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │   [0m
 [0m[2m ╭─│                                                                │─╮ [0m
+[0m[2m │ │  [0m[1;2mType REMOVE ALL CONTAINERS ON mbp to confirm                [0m[2m  │ │ [0m
+[0m[2m │ │[0m[1;2;7m▎                                                             [0m[2m  │ │ [0m
+[0m[2m │ │                                                                │ │ [0m
 [0m[2m ╰─│                                            Cancel    Execute   │─╯ [0m
 [0m[2m   │                                                                │   [0m
 [0m[2m   ╰─────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m

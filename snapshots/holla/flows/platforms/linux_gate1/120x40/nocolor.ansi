@@ -17,10 +17,10 @@
   Paths         ~/Projects/app/node_modules                                                                             [0m
   Recoverable   yes · until the Trash is emptied                                                                        [0m
   Provenance    holla cleanup · paths validated at review and again at commit                                           [0m
+  Gate          second gate types the target-bound phrase                                                               [0m
                                                                                                                         [0m
  ╭─ Sequence · 1 command ────────────────────────────────────────────────────────────────────────────────── y copies ─╮ [0m
  │  01  trash /home/alex/Projects/app/node_modules  # 124.0 KiB · project.artifacts                                   │ [0m
- │                                                                                                                    │ [0m
  │                                                                                                                    │ [0m
  │                                                                                                                    │ [0m
  │                                                                                                                    │ [0m

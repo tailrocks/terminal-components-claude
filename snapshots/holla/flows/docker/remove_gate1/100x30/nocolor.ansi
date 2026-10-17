@@ -15,11 +15,11 @@
   Includes     stopped containers and dangling resources · named volumes when volumes are pruned    [0m
   Recoverable  no · permanent                                                                       [0m
   Provenance   built-in action · resolved from live state                                           [0m
+  Gate         second gate types the target-bound phrase                                            [0m
                                                                                                     [0m
  ╭─ Sequence · 2 commands ───────────────────────────────────────────────────────────── y copies ─╮ [0m
  │  01  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1              │ [0m
  │  02  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1 pgadmin        │ [0m
- │                                                                                                │ [0m
  │                                                                                                │ [0m
  │                                                                                                │ [0m
  ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m

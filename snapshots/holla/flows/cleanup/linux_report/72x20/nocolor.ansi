@@ -4,14 +4,14 @@
  ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────── [0m
   [0m[1mCleanup report[0m                               devbox · live · 1 s ago  [0m
                                                                         [0m
-  Outcome   1 failed                                                    [0m
-  Mode      trash                                                       [0m
-  Bytes     0 B left the tree · 0 B freed now · the rest returns when   [0m
-            the Trash is emptied                                        [0m
-  Log       ~/.cache/holla/ops.log · every record written               [0m
-  Revision  c4d729e20ca0805b                                            [0m
+  Outcome   1 failed                                                 ┃  [0m
+  Mode      trash                                                    ┆  [0m
+  Bytes     0 B left the tree · 0 B freed now · the rest returns     ┆  [0m
                                                                         [0m
  ╭─[0m[1m Detail [0m────────────────────────────────────── 2 lines · y copies ─╮ [0m
+ │  outcome            bytes   path · reason                          │ [0m
+ │  failed               0 B   ~/Projects/app/node_modules · Trash u… │ [0m
+ │                                                                    │ [0m
  ╰────────────────────────────────────────────────────────────────────╯ [0m
                                                                         [0m
   Next   Cleanup history                                                [0m

@@ -4,14 +4,14 @@
  ━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────── [0m
   [0m[1mHomebrew services[0m                               mbp · live · 1 s ago  [0m
                                                                         [0m
-  Source       brew services list --json · live                         [0m
-  Cache        brew-services-v1 · 6 min ago · 1 names · hint for the    [0m
-               next start                                               [0m
-  Services     11                                                       [0m
-  Cache write  fails on this host · listings still work · nothing is    [0m
-               retried                                                  [0m
+  Source       brew services list --json · live                      ┃  [0m
+  Cache        brew-services-v1 · 6 min ago · 1 names · hint for the ┆  [0m
+               next start                                            ┆  [0m
                                                                         [0m
  ╭─[0m[1m Detail [0m───────────────────────────────────── 12 lines · y copies ─╮ [0m
+ │  service                     status      actions                 ┃ │ [0m
+ │  svc00                       started     start · stop · restart  ┆ │ [0m
+ │  svc01                       stopped     start · stop · restart  ┆ │ [0m
  ╰────────────────────────────────────────────────────────────────────╯ [0m
                                                                         [0m
   Next   Restart svc00    Restart svc01    Restart svc02                [0m
