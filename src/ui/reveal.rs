@@ -419,6 +419,9 @@ impl RevealState {
         cursor: bool,
     ) -> bool {
         let cut = is_cut(area, full);
+        if cut && !ctx.inert && (self.effective.hover || self.effective.keyboard.is_some()) {
+            revealable(full);
+        }
         if cut && cursor && !ctx.inert {
             self.available = true;
             self.advertise(ctx);
@@ -564,8 +567,7 @@ pub fn truncated(
     let cfg = config.unwrap_or(ctx.reveal);
     let cut = is_cut(area, full);
     if cut && cfg.hover && !ctx.inert {
-        // its full text is a hover away: reached, as an overflow item's is
-        OVERFLOWS.with(|o| o.borrow_mut().push(full.to_owned()));
+        revealable(full);
     }
     if cfg.hover
         && cut
@@ -604,9 +606,8 @@ pub(crate) fn overflow_id(area: Rect) -> WidgetId {
 }
 
 thread_local! {
-    /// The hidden text of every overflow item drawn this frame, and the
-    /// full text of every cut text that reveals itself on hover
-    /// ([`truncated`]).
+    /// The full text of everything drawn this frame with a reveal
+    /// ([`revealable`]).
     static OVERFLOWS: std::cell::RefCell<Vec<String>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
@@ -642,19 +643,32 @@ pub(crate) fn overflow(
     if ctx.inert {
         return;
     }
-    if !ctx.reveal.hover {
-        // no hover reveal: `truncated` below records nothing either
-        OVERFLOWS.with(|o| o.borrow_mut().push(hidden.to_owned()));
-    }
+    revealable(hidden);
     if ctx.reveal.hover {
         ctx.hits.register_hover(id, area);
     }
     truncated(ctx, None, id, area, hidden);
 }
 
-/// The hidden text of the overflow items drawn in the last frame
-/// ([`overflow`]) and the full text of the cut texts that reveal on hover
-/// ([`truncated`]): what their reveals show.
+/// Record `full` as text this frame reveals in full: an overflow item's
+/// hidden items, a cut cell with a pointer or keyboard reveal, a peek
+/// line value.
+fn revealable(full: &str) {
+    OVERFLOWS.with(|o| {
+        let mut o = o.borrow_mut();
+        if o.len() < REVEALED_MAX && !o.iter().any(|t| t == full) {
+            o.push(full.to_owned());
+        }
+    });
+}
+
+/// Most revealable texts recorded per frame.
+const REVEALED_MAX: usize = 4096;
+
+/// The full text of everything the last frame drew cut or hidden with a
+/// reveal ([`overflow`] items, [`truncated`] and [`RevealState::cell`]
+/// cells, [`peek`] values): what the reachability audit counts as reached
+/// through a reveal, like text cut with `…`.
 pub(crate) fn overflowed() -> Vec<String> {
     OVERFLOWS.with(|o| o.borrow().clone())
 }
@@ -774,7 +788,11 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
 /// a [`RevealState`] publish through [`RevealState::cell`]; a table or grid
 /// calls this for its cursor cell (K12, SI8).
 pub fn peek(ctx: &mut RenderCtx, full: &str) {
-    if ctx.inert || ctx.peek.is_some() {
+    if ctx.inert {
+        return;
+    }
+    revealable(full);
+    if ctx.peek.is_some() {
         return;
     }
     // one line: a value's line breaks read as spaces
