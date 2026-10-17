@@ -3540,7 +3540,7 @@ fn custom_items(w: &World, out: &mut Vec<Item>) {
                 origin.label(),
                 w.location.short(&cfg.path),
                 a.index,
-                &cfg.digest[..12]
+                junie_tui::ui::text::clip(&cfg.digest, 12)
             ))
             .launch(Launch::Activity {
                 script: Some(a.argv.join(" ")),

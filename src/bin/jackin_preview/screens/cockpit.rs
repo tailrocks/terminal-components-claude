@@ -89,11 +89,13 @@ impl CockpitScreen {
         let container = format!("jackin-{wsname}-{suffix}");
         let run_id = format!(
             "run-{}-{suffix}",
-            crate::scenario::CLOCK
-                .stamp(w.now_secs())
-                .replace([' ', ':'], "-")
-                .replace('-', "")[..12]
-                .to_owned()
+            junie_tui::ui::text::clip(
+                &crate::scenario::CLOCK
+                    .stamp(w.now_secs())
+                    .replace([' ', ':'], "-")
+                    .replace('-', ""),
+                12,
+            )
         );
         let run = LaunchRun::new(plan, agent, &container, &run_id);
         let steps = Stage::ALL.iter().map(|s| Step::new(s.label())).collect();
