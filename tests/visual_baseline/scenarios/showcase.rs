@@ -186,7 +186,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/diskcleanup/scanning", Bin::Showcase, &["--page", "diskcleanup", "--motion", "paused", "--opt", "diskcleanup.scan=scanning"], BOOT).sends(&["wait:scanning ~/work"]).pending(),
     Root::new("showcase/flows/diskcleanup/permanent", Bin::Showcase, &["--page", "diskcleanup", "--opt", "diskcleanup.mode=permanent"], BOOT).sends(&["wait:DELETE 4"]).pending(),
     Root::new("showcase/flows/diskcleanup/gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending(),
-    Root::new("showcase/planned/activity", Bin::Showcase, &["--page", "activity"], BOOT).sends(&["wait:arrives with SC51"]).pending(),
+    // SC51 filled Activity: the page, its sections, a failed run with
+    // find marks, and a stopped run with a hidden stream
+    Root::new("showcase/pages/activity", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["wait:following"]).pending(),
+    Root::new("showcase/sections/activity-options", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["tab", "2", "wait:Retained lines"]).pending(),
+    Root::new("showcase/sections/activity-states", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Streams"]).pending(),
+    Root::new("showcase/flows/activity/failed-find", Bin::Showcase, &["--page", "activity", "--opt", "activity.state=failed", "--opt", "activity.find=error"], BOOT).sends(&["wait:Free the port"]).pending(),
+    Root::new("showcase/flows/activity/stopped-hidden-stream", Bin::Showcase, &["--page", "activity", "--opt", "activity.state=stopped"], BOOT).sends(&["wait:stopped · exit 143", "tab", "tab", "3", "wait:3 of 4 streams"]).pending(),
     Root::new("showcase/planned/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:arrives with SC52"]).pending(),
     Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
     Root::new("showcase/planned/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:arrives with SC55"]).pending(),
