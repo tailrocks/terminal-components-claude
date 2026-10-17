@@ -113,9 +113,9 @@ Each finding was checked against `src/theme.rs` and the named widgets at HEAD, a
 | 2 | Fixed | 5bf3f4311, 45521da32 | `backdrop()` treats canvas ink as blank only where it does not read on its plane. Tests `the_modal_backdrop_keeps_reversed_text_readable`, `the_modal_backdrop_dims_text_without_erasing_it`. |
 | 3 | Fixed | e40c2c08f, 45521da32 | At 16 colours and mono the backdrop keeps a readable ink plus `DIM`. Test `backdrop_text_never_lands_on_the_backdrop_grey_at_reduced_levels`. |
 | 4 | Fixed | fd58bb7c9, 0a965d6b4 | Busy ink comes from `Theme::interactive` (`text_on_accent` on a fill); the spinner takes the label ink. Test `a_busy_primary_button_keeps_its_label_and_spinner_visible` (`src/widgets/button.rs`). |
-| 5 | Fixed | e40c2c08f | `apply_mono` table plus `StateModifiers::MONO` (hover underlined, pressed and fills reversed); `LevelOverrides` is the per-level hook. Popup frames at `none` are A1. |
+| 5 | Fixed | e40c2c08f, 8d76d112e | `apply_mono` table plus `StateModifiers::MONO` (hover underlined, pressed and fills reversed); `LevelOverrides` is the per-level hook. Popup frames at `none` read at 3.2:1 (A1, below). |
 | 6 | Fixed | e40c2c08f, 3aad1f2ef | Mono menu cursor is a REVERSED fill; 256 `highlight_danger` pinned to 88. Tests `no_color_buttons_and_menu_cursors_carry_state_in_modifiers`, `reduced_levels_pin_state_tokens_instead_of_snapping_to_greys`. |
-| 7 | Fixed; remainder Open → A1 | e40c2c08f, 3aad1f2ef | Hand-mapped `apply_16` table; `border_strong` Gray; `rule_on` for separators on the popover. Remainder: popup frames still DarkGray on the DarkGray popover (A1). |
+| 7 | Fixed | e40c2c08f, 3aad1f2ef, 8d76d112e | Hand-mapped `apply_16` table; `border_strong` Gray; `rule_on` for separators on the popover; popup frames through `Theme::frame_on` (A1, below). |
 | 8 | Fixed | 189734f49, e40c2c08f | Hover on a focused-selected row walks `accent_bg` to `accent_bg_hover` (#1e5024, 256 index 28) instead of replacing the tint. Held by `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. |
 | 9 | Fixed | 189734f49, 3aad1f2ef | `lift()` and the resolver walk explicit per-plane ladders (popover hover #4f4f58); rest, hover and pressed asserted apart at every level by `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. |
 | 10 | Fixed | 189734f49, e40c2c08f | `accent_bg` #173f1c, 256 index 22. Row ink is primary and `legible` steps muted text up on the tint. |
@@ -133,4 +133,70 @@ Each finding was checked against `src/theme.rs` and the named widgets at HEAD, a
 | 22 | Fixed | 3aad1f2ef, d37f14b61 | Segments keep their tone on hover through `legible` (`src/widgets/segments.rs`); the tab `×` rests in secondary ink (`Theme::close_glyph`). Test `every_tab_shows_rest_hover_and_press_and_the_close_glyph_its_own` (`src/widgets/tabs.rs`). |
 | Note 1 (overrides) | Fixed | e40c2c08f | `LevelOverrides` and `Theme::for_level_with` pin any token per level; built-in 256, 16 and mono tables replace nearest-match for state tokens. |
 | Note 2 (new tokens) | Fixed | 189734f49, 3aad1f2ef, f387b8498 | `popover_hover` is the popover ladder's hover step (`Ladders::popover`, #4f4f58), `match_current` a `Theme` method; `disabled` and `success` are separate tokens. |
-| Note 3 (contrast test) | Open → T | — | `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart` asserts text ≥ 4.5:1 and glyphs ≥ 3:1 only at truecolor, and only fg ≠ bg at 256, 16 and mono; gutter ink is not measured. 16/none frames are A1. |
+| Note 3 (contrast test) | Open → T | 8d76d112e (A1 part) | `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart` asserts text ≥ 4.5:1 and glyphs ≥ 3:1 only at truecolor, and only fg ≠ bg at 256, 16 and mono; gutter ink is not measured. A1 added `frames_focus_bars_and_tab_marks_read_on_their_plane_at_every_level`, which measures the popover frame and separator and every selected-tab ink at all four levels; the general per-token sweep stays with T. |
+
+## A1: 16-colour and `none` readability pass (2026-10-17)
+
+Measured against the xterm default palette (`theme::contrast_ratio`:
+DarkGray `#7f7f7f`, Gray `#e5e5e5`, LightGreen `#00ff00`, Yellow
+`#cdcd00`, LightYellow `#ffff00`). `none` is the four-grey capture
+palette (the same grey slots). Text needs 4.5:1, graphics and frames
+3:1 (WCAG 1.4.3, 1.4.11).
+
+| Pair | Level | Before | After | How |
+|---|---|---|---|---|
+| menu frame on the popover plane | 16, `none` | DarkGray on DarkGray, 1.0:1 | Gray on DarkGray, 3.2:1 | `Theme::frame_on` (ContextMenu) |
+| active tab prefix (capsule tab number) | 16, `none` | Gray, 3.2:1 | the label's ink, Black, 5.2:1 | `Theme::beside_label` |
+| active tab prefix | truecolor | muted #8a8a8a on #27272a, 4.3:1 (hover 3.4:1) | secondary #b3b3b3, 7.1:1 (hover 5.6:1) | `Theme::beside_label` steps up the text ladder |
+| active tab prefix | 256 | 245 on 235, 4.4:1 (hover on 238, 2.8:1) | 249, 7.1:1 (hover 4.6:1) | same |
+| busy spinner `⠋` on the active tab | 16 | LightGreen, 2.9:1 | White, 4.0:1 | `Theme::legible_mark` |
+| unsaved dot `•` on the active tab | 16 | Yellow, 2.4:1 | LightYellow, 3.7:1 (hue kept) | `Theme::legible_mark` (bright step) |
+| suffix `○` on the active tab | 16, `none` | Gray, 3.2:1 | unchanged (graphic, ≥ 3:1) | `Theme::legible_mark` |
+| spinner and dot on the active tab | `none` | White 4.0:1, Gray 3.2:1 | unchanged | already ≥ 3:1 |
+| focus bar `▎` on a DarkGray plane (raised button, selected or hovered row) | 16 | LightGreen, 2.9:1 | White, 4.0:1 | `Theme::interactive` / `Theme::gutter` through `Theme::legible_mark`; the accent stays wherever it reads (every black plane) |
+| status-bar busy chip spinner (holla `⠋ 4 running`) | 16 | LightGreen on the DarkGray chip, 2.9:1 | White, 4.0:1 | `StatusBar` through `Theme::legible_mark` |
+| step glyphs on a hovered or pressed row (spinner, `✓`, `!`) | 16 | LightGreen 2.9:1, Green 1.9:1 | White 4.0:1 | `StepRail` through `Theme::legible_mark` |
+| busy tree node spinner on a hovered row | 16 | LightGreen, 2.9:1 | White, 4.0:1 | `TreeView` through `Theme::legible_mark` |
+| `progress::render_spinner` on a raised or popover plane | 16 | spinner 2.9:1, label Gray 3.2:1 | spinner White 4.0:1, label Black 5.2:1 | `Theme::legible_mark`, `Theme::legible` |
+
+Scan of every accepted 16-colour and `none` capture of the four apps
+after the pass (render each `.ansi` to frame JSON, compare `fg` with
+`bg` and measure non-space, non-DIM cells on the xterm palette): no
+`fg == bg` cell and no cell under 3:1 remains. Before it, every popup
+menu frame was `fg == bg` (holla, jackin) and the focus bar on a
+DarkGray plane was 2.9:1 (80 cells: holla 60, jackin 10, tablepro 10), and so was holla's status-bar busy spinner (15 cells).
+The showcase captures are still the legacy (tuisnap) approvals until V1
+and were not scanned as evidence; the showcase is held by its digest.
+
+Recorded, not changed:
+
+- Truecolor and 256 keep the soft menu frame (`border_subtle` on the
+  popover, 1.1:1 and 1.2:1) and separator (`border_strong`, 1.2:1): the
+  popover plane lifts off the page and carries the edge, as a macOS
+  menu's does, and a 3:1 frame there is a visible change to every
+  truecolor capture with a menu. `Theme::frame_on` keeps them; a product
+  decision to harden them is one line in `frame_on` plus a re-approval.
+- `StatusBar` busy chip: the cell between the spinner and the label is
+  never drawn with the chip's style, so the bar's plane shows through
+  (`⠋` then a bar-coloured gap, then ` 4 running `) at every level. A
+  layout bug, not a contrast one; fixing it moves every busy-chip capture
+  at every level, so it is left for the next status-bar step (S-track
+  owner of `src/widgets/statusbar.rs`).
+- At 16 colours no light ink reaches 4.5:1 on xterm's DarkGray (White is
+  4.0:1); `Theme::legible` already gives text on that plane Black
+  (5.2:1), and the prefix follows the label. Graphic marks take White
+  (4.0:1 ≥ 3:1) so they stay light glyphs beside the label.
+
+Test: `frames_focus_bars_and_tab_marks_read_on_their_plane_at_every_level`
+(`src/theme.rs`); through the widgets
+`the_focus_bar_reads_on_a_focused_button_at_every_level`
+(`src/widgets/button.rs`),
+`a_busy_chips_spinner_reads_on_the_chip_at_every_level` (`statusbar.rs`),
+`a_steps_state_glyph_reads_on_its_row_at_every_level` (`steps.rs`),
+`a_busy_nodes_spinner_reads_on_its_row_at_every_level` (`tree.rs`),
+`the_activity_spinner_and_label_read_on_every_plane_at_every_level`
+(`progress.rs`),
+`the_menu_frame_stands_off_the_popover_plane_at_every_level`
+(`src/widgets/menu.rs`) and
+`the_active_tabs_prefix_and_marks_read_on_its_fill_at_every_level`
+(`src/widgets/tabs.rs`), each failing on the parent.
