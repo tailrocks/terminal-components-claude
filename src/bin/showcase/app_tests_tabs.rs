@@ -280,6 +280,26 @@ fn options_rebuild_the_editor_strip_through_its_builders() {
     assert_eq!(rule(&h), Theme::junie().border_strong);
 }
 
+/// SC-G2: the readout names the `+N` menu's keyboard opener
+/// (`TabCmd::ShowHidden`, ↓ by default), the key really opens the menu,
+/// and the readout drops it when the strip has no overflow menu.
+#[test]
+fn the_keys_readout_names_the_hidden_tabs_key_while_the_strip_has_a_menu() {
+    let mut h = Harness::new(160, 40);
+    assert!(h.text().contains("↓ hidden tabs"), "{}", h.text());
+    let strip = h.page().editor.id;
+    h.focus(strip);
+    assert!(
+        h.page().editor.hidden() != (0, 0),
+        "the default strip overflows"
+    );
+    h.key(KeyCode::Down);
+    assert!(h.page().editor.menu_open(), "↓ opens the hidden tabs");
+    h.key(KeyCode::Esc);
+    h.opt("tabs.overflow_menu=off");
+    assert!(!h.text().contains("hidden tabs"), "{}", h.text());
+}
+
 #[test]
 fn the_vim_nav_profile_adds_h_and_l_to_the_strip() {
     let mut h = Harness::new(120, 40);
