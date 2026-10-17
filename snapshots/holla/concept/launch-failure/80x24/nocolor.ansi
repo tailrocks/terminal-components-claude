@@ -6,9 +6,8 @@
   started by Start frontend dev                                                 [0m
                                                                                 [0m
  ╭─[0m[1m output [0m─────────────────────────────────────────────────────── following ─╮ [0m
- │  [0m[2m> frontend@2.4.0 dev /Users/alex/work/acme/apps/frontend                [0m┆ │ [0m
- │  > vite --host                                                           ┃ │ [0m
- │                                                                          ┃ │ [0m
+ │  [0m[2m> vite --host                                                           [0m┆ │ [0m
+ │                                                                          ┆ │ [0m
  │  [0m[1m! [0merror when starting dev server:                                       ┃ │ [0m
  │  [0m[1m! [0mError: listen EADDRINUSE: address already in use :::5173              ┃ │ [0m
  │      at Server.setupListenHandle [as _listen2] (node:net:1908:16)        ┃ │ [0m
@@ -19,6 +18,7 @@
  ╰────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                 [0m
   Next   Find the process on port 5173    Retry frontend dev                    [0m
+         Open the mise task definition                                          [0m
                                                                                 [0m
  [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2          ! exit 1 · 1 s          … [0m
  [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  …          [0m[1m![0m frontend dev failed · exit 1 [0m
