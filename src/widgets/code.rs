@@ -490,7 +490,7 @@ impl CodeEditor {
         // Ctrl+C copies only a selection; with nothing selected it is not
         // the editor's, so it reaches the app's quit guard (as in
         // TextInput and TextArea), editing or not
-        if key.ctrl_char('c') && self.buffer.selected_text().is_none() {
+        if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
         // find bar
