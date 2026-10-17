@@ -148,6 +148,19 @@ impl Words {
         }
     }
 
+    /// Add the words of the text the last frame drew with a reveal (a
+    /// strip's `…` overflow item, a cut cell's expansion tooltip or peek
+    /// line): reached through that reveal, like text cut with `…`.
+    pub(crate) fn revealed(&mut self) {
+        for full in crate::ui::reveal::overflowed() {
+            for word in full.split(|c: char| !c.is_alphanumeric()) {
+                if word.chars().count() >= MIN_WORD {
+                    self.cut.insert(word.to_owned());
+                }
+            }
+        }
+    }
+
     fn push(&mut self, word: &mut String) {
         if word.chars().count() >= MIN_WORD {
             self.whole.insert(word.clone());
@@ -249,15 +262,6 @@ impl<A: App + Application> Probe<A> {
     /// Stops early once every word of `want` is reached. Returns the
     /// containers explored.
     pub(crate) fn explore(&mut self, want: &Words, reached: &mut Words) -> usize {
-        // the items a strip collapsed into its `…` overflow item are
-        // reached through its reveal, like text cut with `…`
-        for hidden in crate::ui::reveal::overflowed() {
-            for word in hidden.split(|c: char| !c.is_alphanumeric()) {
-                if word.chars().count() >= MIN_WORD {
-                    reached.cut.insert(word.to_owned());
-                }
-            }
-        }
         let left = want.against(reached).0;
         let mut acc = Acc {
             reached: std::mem::take(reached),
@@ -455,7 +459,8 @@ impl Acc {
     /// viewport hold none, so paging through them stalls; rows already
     /// reached by an earlier exploration still count as progress).
     fn add(&mut self, buf: &Buffer) -> bool {
-        let frame = Words::read(buf);
+        let mut frame = Words::read(buf);
+        frame.revealed();
         let fresh = frame
             .whole
             .iter()
@@ -825,6 +830,40 @@ mod tests {
             b.set_string(0, y as u16, l, ratatui::style::Style::default());
         }
         b
+    }
+
+    /// R-apps-8: a cut cell with a reveal (hover tooltip or the cursor
+    /// row's peek line) counts as reached through it, words past the cut
+    /// included; a cut with no reveal does not.
+    #[test]
+    fn a_cut_cell_with_a_reveal_counts_as_reached() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        let theme = crate::theme::Theme::junie();
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let mut ctx = crate::ui::ctx::RenderCtx::new(
+            &theme,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        crate::ui::reveal::begin_frame();
+        let id = WidgetId::of("cell");
+        crate::ui::reveal::truncated(&mut ctx, None, id, Rect::new(0, 0, 8, 1), "shown hidden");
+        crate::ui::reveal::peek(&mut ctx, "cursor value");
+        let off = crate::ui::reveal::Reveal::OFF;
+        crate::ui::reveal::truncated(
+            &mut ctx,
+            Some(off),
+            id,
+            Rect::new(0, 1, 8, 1),
+            "nothing reveals",
+        );
+        let mut w = Words::default();
+        w.revealed();
+        for word in ["shown", "hidden", "cursor", "value"] {
+            assert!(w.cut.contains(word), "{word}: {w:?}");
+        }
+        assert!(!w.cut.contains("reveals"), "{w:?}");
     }
 
     #[test]
