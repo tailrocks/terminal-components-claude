@@ -24,7 +24,7 @@
                        [0m[2m   Cargo.toml                      1.4 KB [0m┆      [0m[2m     replica-eu          [0m┆  [0m
                                                                                                     [0m
                                                                                                     [0m
-                     branch_activate Toggle · row_click_toggles true · indent 2 · divider false ·   [0m
+                     branch_activate Toggle · click Double · indent 2 · divider false ·             [0m
                      alt_click_recursive true · reserve_right 0 · show_meta true                    [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
