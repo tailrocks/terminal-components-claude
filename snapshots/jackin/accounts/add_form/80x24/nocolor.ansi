@@ -15,7 +15,7 @@
 [0m[2m ╰───│                                                                   ┆│───╯ [0m
 [0m[2m     │   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ┆│     [0m
 [0m[2m   Ov│                                                                   ┆│ls   [0m
-[0m[2m     │   Credential source                                               ┆│     [0m
+[0m[2m   ──│   Credential source                                               ┆│──   [0m
 [0m[2m   He│                                                                    │ …   [0m
 [0m[2m   Re│                                                                    │     [0m
 [0m[2m   So│              Enter plain text instead   Validate   Cancel   [0m[1;2;7mSave [0m[2m  │     [0m

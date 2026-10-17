@@ -5,7 +5,7 @@
   ──────────────────────────────━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
                                                                                                                                                                 [0m
       [0m[1mWorkspace[0m                                                                              4 vars     Variable · DATABASE_URL                    workspace    [0m
-  [0m[1m▎›    DATABASE_URL        ****************          plain                                         [0m                                                            [0m
+  [0m[1m▎›    DATABASE_URL        ****************          plain                                         [0m    ────────────────────────────────────────────────────    [0m
         STRIPE_KEY          ****************          [op] Engineering › Stripe · sandbox › creden…     Pending       plain text                                [0m
         LOG_LEVEL           *****                     plain                                             Original      plain text                                [0m
         GH_TOKEN            $GH_TOKEN                 host env                                          Resolution    resolved at launch · never stored in …    [0m

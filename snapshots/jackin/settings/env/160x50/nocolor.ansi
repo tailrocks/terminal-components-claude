@@ -5,7 +5,7 @@
   ─────────────────────━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
                                                                                                                                                                 [0m
       [0m[1mGlobal[0m                                                                                 3 vars     Variable · GH_TOKEN                           global    [0m
-  [0m[1m▎›    GH_TOKEN            global          ****************  [op] Engineering › GitHub · CLI toke… [0m                                                            [0m
+  [0m[1m▎›    GH_TOKEN            global          ****************  [op] Engineering › GitHub · CLI toke… [0m    ────────────────────────────────────────────────────    [0m
         EDITOR              global          ****              plain                                     Pending       1Password                                 [0m
         CARGO_NET_GIT_FET…  global          ****              plain                                     Original      1Password                                 [0m
         + Add environment variable                                                                      Reference     op://v_eng01/it_gh01/credential           [0m
