@@ -29,7 +29,7 @@ use junie_tui::ui::layer::{
     Taken,
 };
 use junie_tui::ui::layers::LayerResult;
-use junie_tui::ui::leave::{KeyContext, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes};
+use junie_tui::ui::leave::{LeaveGuard, Resolved, Stakes};
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
@@ -644,10 +644,12 @@ pub struct App {
     inspector_focus: Option<WidgetId>,
     pub tick: u64,
     pub last_key: Option<String>,
-    /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Ctrl+C
-    /// (after the page), Ctrl+Q and `q` (never over a field or unsaved
-    /// edits); Esc never quits.
-    pub quit_keys: QuitKeys,
+    /// The shell's keys ([`shell::KeyRouter`]): the quit keys
+    /// ([`junie_tui::ui::leave::QuitKeys::DEFAULT`]: Ctrl+C after the page's first refusal,
+    /// Ctrl+Q, and `q` never over a field or unsaved edits; Esc never
+    /// quits), help, page order (`[`/`]`, Ctrl+PgUp/PgDn), `i` the
+    /// Inspector and `0` the sidebar.
+    pub keys: shell::ShellKeys<ShowCmd>,
     /// The quit guard: unsaved page edits ask Cancel / Discard (pages
     /// save on their own, so the shell offers no Save).
     leave: LeaveGuard<()>,
@@ -800,7 +802,7 @@ impl App {
             inspector_focus: None,
             tick: frame,
             last_key: None,
-            quit_keys: QuitKeys::DEFAULT,
+            keys: shell_keys(),
             leave: LeaveGuard::new(WidgetId::of("showcase.leave")).save(false),
             nav_reveal: true,
             nav_filter: None,
@@ -950,9 +952,7 @@ impl App {
             }
             Input::Key(key) => {
                 self.last_key = Some(describe_key(&key));
-                self.shell.pointer.suppress_hover();
-                // shortcuts first, then type-ahead (one rule, in the library)
-                junie_tui::core::list::route_key(&key, || self.on_key(key))
+                shell::KeyRouter::route(self, &key)
             }
             Input::Mouse(m) => PointerRouter::route(self, m),
         }
@@ -1279,124 +1279,45 @@ impl App {
         self.with_page(i, |p, cx| p.on_layer_result(tag, r, &mut (), cx))
     }
 
-    fn on_key(&mut self, key: Key) -> Outcome {
-        if self.shell.too_small {
-            if key.is_char('q') || key.ctrl_char('c') {
-                return self.request_quit();
-            }
-            return Outcome::Consumed;
+    /// A key for the focused sidebar: its filter while one is typed
+    /// (`/` starts it), → on a page opens it and steps into it, and the
+    /// tree's own keys. A typed letter reaches its type-ahead only when no
+    /// shortcut claims it (the router's rule).
+    fn nav_key(&mut self, key: &Key) -> Outcome {
+        if !self.shell.focus.is(NAV) {
+            return Outcome::Ignored;
         }
-        if let Some(out) = self.layer_key(&key) {
-            return out;
+        if self.nav_filter.is_some() {
+            return self.on_filter_key(key);
         }
-        if let Some(out) = self.inspector_key(&key) {
-            return out;
-        }
-        // the sidebar tree owns its navigation keys while focused; a typed
-        // letter reaches its type-ahead only when neither the page's
-        // shortcuts nor the shell's own letters claim it
-        // (`core::list::route_key`, around this whole path)
-        if self.shell.focus.is(NAV) && self.nav_filter.is_some() {
-            return self.on_filter_key(&key);
-        }
-        if self.shell.focus.is(NAV) && key.is_char('/') {
+        if key.is_char('/') {
             self.nav_filter = Some(String::new());
             return Outcome::Changed;
         }
-        if self.shell.focus.is(NAV) {
-            self.nav_reveal = true;
-            let leaf = self.nav.cursor_path().and_then(PageId::from_nav_path);
-            if let Some(target) = leaf
-                && matches!(key.code, KeyCode::Right | KeyCode::Char('l'))
-                && key.plain()
-            {
-                // → on a page opens it and steps into it
-                self.goto(target);
-                self.shell.focus.set(None);
+        self.nav_reveal = true;
+        let leaf = self.nav.cursor_path().and_then(PageId::from_nav_path);
+        if let Some(target) = leaf
+            && matches!(key.code, KeyCode::Right | KeyCode::Char('l'))
+            && key.plain()
+        {
+            self.goto(target);
+            self.shell.focus.set(None);
+            self.shell.focus.next(&self.shell.ring);
+            if self.shell.focus.is(NAV) {
                 self.shell.focus.next(&self.shell.ring);
-                if self.shell.focus.is(NAV) {
-                    self.shell.focus.next(&self.shell.ring);
-                }
-                return Outcome::Changed;
             }
-            let out = self.nav_event(|nav| nav.on_key(&key));
-            if out.consumed() {
-                return out;
-            }
-        }
-        // page first (editing widgets capture everything)
-        let activating = matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) && key.plain();
-        let was_editing = self.pages[self.page.index()].is_editing();
-        let out = self.with_shown(|p, cx| p.on_key(&key, &mut (), cx));
-        if out.consumed() {
-            if activating
-                && !was_editing
-                && out == Outcome::Changed
-                && let Some(f) = self.shell.focus.current()
-            {
-                self.flash(f);
-            }
-            return out;
-        }
-        // the page had the first chance (Ctrl+C copies a selection there);
-        // the quit keys go through the guard
-        let kc = KeyContext {
-            text_focus: was_editing,
-            dirty: !self.quit_stakes().is_clean(),
-            selection: false,
-        };
-        if self.quit_keys.classify(&key, kc) == Some(LeaveKey::Quit) {
-            return self.request_quit();
-        }
-        if key.is_char('q') && kc.dirty {
-            self.set_status("Unsaved changes · Ctrl+Q asks before quitting".into());
             return Outcome::Changed;
         }
-        // global keys
-        match key.code {
-            KeyCode::Tab => {
-                self.shell.focus.next(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::BackTab => {
-                self.shell.focus.prev(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::Char('?') => {
-                self.open_help();
-                Outcome::Changed
-            }
-            KeyCode::Char('i') if key.plain() => {
-                self.toggle_inspector();
-                Outcome::Changed
-            }
-            // tree order: NAV_ENTRIES lists the pages group by group
-            KeyCode::Char(']') => {
-                let next = (self.page.index() + 1) % NAV_ENTRIES.len();
-                self.goto(NAV_ENTRIES[next].id);
-                Outcome::Changed
-            }
-            KeyCode::Char('[') => {
-                let n = NAV_ENTRIES.len();
-                let prev = (self.page.index() + n - 1) % n;
-                self.goto(NAV_ENTRIES[prev].id);
-                Outcome::Changed
-            }
-            KeyCode::Char('0') if key.plain() => {
-                self.shell.focus.focus(NAV);
-                Outcome::Changed
-            }
-            KeyCode::Esc => {
-                // Esc at top level: return focus to navigation
-                if !self.shell.focus.is(NAV) {
-                    self.shell.focus.focus(NAV);
-                    Outcome::Changed
-                } else {
-                    Outcome::Consumed
-                }
-            }
-            _ => Outcome::Ignored,
-        }
+        self.nav_event(|nav| nav.on_key(key))
+    }
+
+    /// Show the page `step` places away in sidebar order (NAV_ENTRIES
+    /// lists the pages group by group), wrapping.
+    fn step_page(&mut self, step: isize) -> Outcome {
+        let n = NAV_ENTRIES.len() as isize;
+        let i = (self.page.index() as isize + step).rem_euclid(n) as usize;
+        self.goto(NAV_ENTRIES[i].id);
+        Outcome::Changed
     }
 
     // -------------------------------------------------------------- inspector
@@ -1893,12 +1814,6 @@ impl App {
             return Outcome::Changed;
         }
         out
-    }
-
-    /// Flash a widget as pressed (keyboard activation feedback).
-    pub fn flash(&mut self, id: WidgetId) {
-        let now = self.now_ms();
-        self.shell.pointer.flash(id, now);
     }
 
     /// Milliseconds on the pointer clock.
@@ -2500,6 +2415,106 @@ pub(crate) fn describe_key(k: &Key) -> String {
         other => s.push_str(&format!("{other:?}")),
     }
     s
+}
+
+/// The showcase's own shell commands ([`shell::ShellAction::App`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShowCmd {
+    /// `i`: open or close the Inspector.
+    Inspector,
+    /// `0`: focus the sidebar.
+    Sidebar,
+}
+
+/// The showcase's shell keys: the standard set, `[`/`]` page order and
+/// `i`/`0` after the page (a page's own letters come first).
+pub fn shell_keys() -> shell::ShellKeys<ShowCmd> {
+    use junie_tui::core::keymap::KeyBinding;
+    use shell::ShellAction;
+    shell::ShellKeys::new()
+        .bind_fallback(KeyBinding::char(']'), ShellAction::NextPage)
+        .bind_fallback(KeyBinding::char('['), ShellAction::PrevPage)
+        .bind_fallback(KeyBinding::char('i'), ShellAction::App(ShowCmd::Inspector))
+        .bind_fallback(KeyBinding::char('0'), ShellAction::App(ShowCmd::Sidebar))
+}
+
+impl shell::KeyHost for App {
+    type Cmd = ShowCmd;
+
+    fn shell_keys(&self) -> &shell::ShellKeys<ShowCmd> {
+        &self.keys
+    }
+
+    fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
+        if self.layers.top().is_some() {
+            return App::layer_key(self, key);
+        }
+        self.inspector_key(key)
+    }
+
+    fn capturing(&self) -> bool {
+        self.pages[self.page.index()].is_editing()
+    }
+
+    /// The page had the first chance at Ctrl+C before quitting (a
+    /// selection copies there).
+    fn interrupt(&mut self) -> Outcome {
+        let key = Key {
+            code: KeyCode::Char('c'),
+            mods: KeyModifiers::CONTROL,
+        };
+        self.with_shown(|p, cx| p.on_key(&key, &mut (), cx))
+    }
+
+    fn dirty(&mut self) -> bool {
+        !self.quit_stakes().is_clean()
+    }
+
+    fn shell_action(&mut self, action: shell::ShellAction<ShowCmd>, _key: &Key) -> Outcome {
+        use shell::ShellAction;
+        match action {
+            ShellAction::Help => {
+                self.open_help();
+                Outcome::Changed
+            }
+            ShellAction::NextPage => self.step_page(1),
+            ShellAction::PrevPage => self.step_page(-1),
+            ShellAction::App(ShowCmd::Inspector) => {
+                self.toggle_inspector();
+                Outcome::Changed
+            }
+            ShellAction::App(ShowCmd::Sidebar) => {
+                self.shell.focus.focus(NAV);
+                Outcome::Changed
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn chrome_key(&mut self, key: &Key) -> Outcome {
+        self.nav_key(key)
+    }
+
+    fn page_key(&mut self, key: &Key) -> Outcome {
+        self.with_shown(|p, cx| p.on_key(key, &mut (), cx))
+    }
+
+    /// Esc at the top of a page returns focus to the sidebar.
+    fn esc_top(&mut self) -> Outcome {
+        if self.shell.focus.is(NAV) {
+            return Outcome::Consumed;
+        }
+        self.shell.focus.focus(NAV);
+        Outcome::Changed
+    }
+
+    fn request_quit(&mut self) -> Outcome {
+        App::request_quit(self)
+    }
+
+    fn note(&mut self, text: &str) {
+        self.set_status(text.into());
+    }
 }
 
 #[cfg(test)]

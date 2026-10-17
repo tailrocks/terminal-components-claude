@@ -776,6 +776,20 @@ fn scrollbar_click_and_drag_move_the_view() {
     let _ = y0;
 }
 
+/// The shell's standard keys reach the showcase through the library
+/// router (S8a): Ctrl+PgDn/PgUp step pages like `]`/`[` (SI23) and F1
+/// opens the keyboard reference wherever focus is.
+#[test]
+fn ctrl_page_keys_step_pages_and_f1_opens_help() {
+    let mut h = Harness::new(120, 40, PageId::Overview);
+    h.key_mod(KeyCode::PageDown, KeyModifiers::CONTROL);
+    assert_eq!(h.app.page, PageId::Chrome);
+    h.key_mod(KeyCode::PageUp, KeyModifiers::CONTROL);
+    assert_eq!(h.app.page, PageId::Overview);
+    h.key(KeyCode::F(1));
+    assert!(h.app.help().is_some(), "F1 opens the keyboard reference");
+}
+
 #[test]
 fn keyboard_navigation_between_pages() {
     // pages follow the sidebar tree: Overview, App shell's Chrome, then
