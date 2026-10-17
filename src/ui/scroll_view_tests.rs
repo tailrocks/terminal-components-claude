@@ -411,3 +411,48 @@ fn fit_leaves_room_for_the_vertical_bar() {
     // content wider than the view is left as it is
     assert_eq!(view.fit(area, |_| Size::new(60, 30)), Size::new(60, 30));
 }
+
+/// A `▎` drawn outside the focused control (a legend explaining the mark)
+/// is not its gutter: the view follows the gutter inside the control.
+#[test]
+fn the_gutter_followed_is_the_focused_controls_own() {
+    let t = theme();
+    let mut v = ScrollView::new(VIEW);
+    let area = Rect::new(0, 0, 20, 8);
+    let list = WidgetId::of("list");
+    for cursor in [1u16, 20] {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 10));
+        let interaction = Interaction {
+            focus: Some(list),
+            ..Interaction::default()
+        };
+        let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+        v.render(
+            area,
+            Size::new(18, 30),
+            &mut buf,
+            &mut ctx,
+            |inner, buf, ctx| {
+                // a legend beside the list shows the mark at its top
+                buf.set_string(
+                    inner.x + 10,
+                    inner.y,
+                    t.glyphs.focus_bar,
+                    ratatui::style::Style::new(),
+                );
+                let rect = Rect::new(inner.x, inner.y + 2, 8, 26);
+                ctx.control(list, rect, false);
+                buf.set_string(
+                    rect.x,
+                    rect.y + cursor,
+                    t.glyphs.focus_bar,
+                    ratatui::style::Style::new(),
+                );
+            },
+        );
+    }
+    // the list's row 20 (content row 22) and a row of context end the view
+    assert_eq!(v.offset().1, 22 + 1 + 1 - 8);
+}
