@@ -5,7 +5,7 @@
 //! a task's progress bar.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -391,6 +391,22 @@ impl Page for TaskRunnerPage {
     }
     fn blurb(&self) -> &'static str {
         "Composed: tree, live progress, following log, busy states"
+    }
+
+    /// The targets beside the pipeline and the log: the pipeline card as
+    /// wide as its two buttons side by side (or a task's state word after
+    /// its name), the columns as tall as the tree, or the pipeline over a
+    /// log of five rows.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        let buttons = self.run.width() + 2 + self.cancel.width();
+        let tasks = 14 + junie_tui::ui::text::width("cancelled") as u16;
+        let pipe = Panel::card(Some("Pipeline · running"))
+            .meta("99 of 99 done")
+            .outer(Size::new(buttons.max(tasks), 0))
+            .width;
+        let tree_h = self.tree.rows().len() as u16 + 3;
+        let pipe_h = self.tasks.len() as u16 + 5;
+        Size::new(32 + pipe, tree_h.max(pipe_h + 1 + 5))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
