@@ -1312,27 +1312,33 @@ fn cell_edit_footer_says_apply_not_commit() {
     assert!(!f.contains("Commit"), "{f}");
 }
 
-/// The keyboard reference wraps its descriptions under their own column,
-/// never back to the dialog's left edge (layout audit #11).
+/// K23: the keyboard reference is the library `HelpOverlay` built from
+/// the live key maps: every workbench chord `ShellKeys` binds is listed
+/// with its `TpCmd` label (Ctrl+D was hand-listed before, beside other
+/// keys), and the shell's own keys (F1, Ctrl+PgDn) are there too.
 #[test]
-fn help_descriptions_hang_under_their_column_when_they_wrap() {
-    let mut h = H::connected(72, 40);
+fn the_keyboard_reference_lists_the_live_shell_keys() {
+    let mut h = H::connected(120, 40);
     h.key(KeyCode::Char('?'));
-    let text = h.text();
-    let lines: Vec<&str> = text.lines().collect();
-    let first = lines
-        .iter()
-        .position(|l| l.contains("Ctrl+D") && l.contains("Data / Structure"))
-        .unwrap_or_else(|| panic!("help shows Ctrl+D:\n{text}"));
-    let desc_col = lines[first].find("Data").unwrap();
-    let next = lines[first + 1];
-    let cont_col = next
-        .find(|c: char| c.is_alphanumeric() || c == '(')
-        .unwrap();
-    assert_eq!(
-        cont_col, desc_col,
-        "the wrapped part of Ctrl+D's description hangs under it:\n{text}"
+    assert!(
+        h.app
+            .top_as::<junie_tui::widgets::help::HelpOverlay>()
+            .is_some(),
+        "{}",
+        h.text()
     );
+    let text = h.text();
+    for (key, label) in [
+        ("Ctrl+D", "Data / Structure"),
+        ("Ctrl+O", "Open Quickly"),
+        ("F1", "This reference"),
+        ("Ctrl+PgDn", "Next page"),
+    ] {
+        assert!(
+            text.lines().any(|l| l.contains(key) && l.contains(label)),
+            "{key} {label}:\n{text}"
+        );
+    }
 }
 
 #[test]
