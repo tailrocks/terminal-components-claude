@@ -110,6 +110,12 @@ fn master_detail_options_drive_the_layout() {
     h.key_mod(KeyCode::Right, KeyModifiers::ALT | KeyModifiers::SHIFT);
     assert_eq!(tables_width(&h), w);
     assert!(!h.text().contains("Resize"), "{}", h.text());
+    // sized by the master: a third of the frame, clamped to 26..40
+    h.opt("masterdetail.size=master");
+    let m = tables_width(&h);
+    assert_ne!(m, w, "the master share moved the seam");
+    h.key_mod(KeyCode::Right, KeyModifiers::ALT | KeyModifiers::SHIFT);
+    assert_eq!(tables_width(&h), m);
     // collapsing above the frame width
     h.opt("masterdetail.size=resizable");
     h.opt("masterdetail.collapse=140");

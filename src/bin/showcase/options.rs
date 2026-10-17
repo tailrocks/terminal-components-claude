@@ -1714,7 +1714,11 @@ pub static MASTER_DETAIL: &[Opt] = &[
         "Collapses below",
         &["80", "108", "140"],
     ),
-    Opt::new("masterdetail.size", "Detail size", &["resizable", "share"]),
+    Opt::new(
+        "masterdetail.size",
+        "Detail size",
+        &["resizable", "share", "master"],
+    ),
     Opt::new(
         "masterdetail.summary",
         "Narrow summary rows",
