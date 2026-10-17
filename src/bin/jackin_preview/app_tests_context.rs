@@ -553,3 +553,23 @@ fn the_capsule_prefix_waits_until_esc() {
     h.ticks(200);
     assert!(!waiting(&h), "a configured timeout still expires");
 }
+
+/// CO7: the Capsule's pane (and tab) menu routes the pointer by the
+/// event's part through the menu's `MouseTarget`: a click on its disabled
+/// row neither chooses nor closes it, a click outside closes it per its
+/// `Dismiss`.
+#[test]
+fn capsule_pane_menu_routes_the_pointer_by_part() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    shift_f10(&mut h);
+    let (cx, cy) = h.find("Copy selection").expect("the pane menu");
+    h.click(cx + 1, cy);
+    assert!(
+        h.text().contains("Copy selection"),
+        "a disabled row keeps the menu open\n{}",
+        h.text()
+    );
+    // a click outside closes it
+    h.click(2, 30);
+    assert!(!h.text().contains("Copy selection"), "{}", h.text());
+}
