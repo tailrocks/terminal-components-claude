@@ -141,6 +141,14 @@ fn the_shell_input_and_protocol_options_reach_the_runtime_hooks() {
     assert!(!junie_tui::core::keyboard::alt_delivered());
     h.opt("shell.alt_keys=delivered");
     assert!(junie_tui::core::keyboard::alt_delivered());
+    // the keys card sits below the fold: the body scrolls to it
+    let i = h.app.page().index();
+    h.app.pages[i]
+        .template_mut()
+        .unwrap()
+        .view
+        .scroll_to(0, usize::MAX);
+    h.draw();
     assert!(h.text().contains("Alt keys"), "{}", h.text());
 }
 
