@@ -1464,6 +1464,89 @@ impl Theme {
             .0
     }
 
+    /// Ink for a graphic mark (a spinner, a state dot, a check) on `bg`:
+    /// `fg` if it stands off the plane at the non-text minimum (3:1, WCAG
+    /// 1.4.11). Otherwise the same hue's bright step where the terminal
+    /// palette has one that does (Yellow → LightYellow), the strong step of
+    /// an error or success hue, and only then primary text (or the
+    /// on-accent ink on a light fill). The glyph keeps its shape, so a mark
+    /// that loses its hue on a grey plane still reads as itself. Colours the
+    /// terminal resolves are measured against the xterm defaults.
+    pub fn legible_mark(&self, fg: Color, bg: Color) -> Color {
+        const MARK: f64 = 3.0;
+        let reads = |ink: Color| contrast_ratio(ink, bg).is_none_or(|r| r >= MARK);
+        if reads(fg) {
+            return fg;
+        }
+        let strong = if fg == self.error || fg == self.danger_label {
+            Some(self.error_strong)
+        } else if fg == self.success {
+            Some(self.success_strong)
+        } else {
+            None
+        };
+        if let Some(ink) = bright(fg).into_iter().chain(strong).find(|&c| reads(c)) {
+            return ink;
+        }
+        if reads(self.text_primary) {
+            return self.text_primary;
+        }
+        [self.text_primary, self.text_on_accent]
+            .into_iter()
+            .filter_map(|ink| contrast_ratio(ink, bg).map(|c| (ink, c)))
+            .fold(
+                (fg, 0.0),
+                |best, cand| {
+                    if cand.1 > best.1 { cand } else { best }
+                },
+            )
+            .0
+    }
+
+    /// Secondary text beside a label of ink `label` on `bg` (a tab's
+    /// prefix, a count beside a chip label): `ink` stepped up the text
+    /// ladder until it reads at 4.5:1 ([`Self::legible`]). Where no ladder
+    /// step reads (the 16-colour grey plane, where xterm's DarkGray leaves
+    /// every grey under 4.5:1) it takes the label's own ink, so the label
+    /// and its companion read alike and hierarchy rides on weight, as on a
+    /// cursor row ([`Self::row_ink`]).
+    pub fn beside_label(&self, ink: Color, bg: Color, label: Color) -> Color {
+        let reads = |c: Color| contrast_ratio(c, bg).is_none_or(|r| r >= 4.5);
+        if reads(ink) {
+            return ink;
+        }
+        let ladder = [self.text_faint, self.text_muted, self.text_secondary];
+        ladder
+            .iter()
+            .position(|&c| c == ink)
+            .and_then(|pos| ladder[pos + 1..].iter().copied().find(|&c| reads(c)))
+            .unwrap_or(label)
+    }
+
+    /// The frame ink of a floating surface (a menu, a popover) drawn on
+    /// `bg`. At truecolor and 256 colours the subtle border: the lifted
+    /// plane carries the edge and the frame stays soft, as a macOS menu's
+    /// does. At 16 colours and `none` the popover plane and the subtle
+    /// border are the same `DarkGray`, so the frame would vanish; there it
+    /// takes the first of the strong border, muted and primary inks that
+    /// stands off the plane at 3:1 (WCAG 1.4.11).
+    pub fn frame_on(&self, bg: Color) -> Color {
+        let subtle = self.border_subtle;
+        if matches!(self.level, ColorLevel::TrueColor | ColorLevel::Ansi256) && subtle != bg {
+            return subtle;
+        }
+        let reads = |c: Color| c != bg && contrast_ratio(c, bg).is_none_or(|r| r >= 3.0);
+        [
+            subtle,
+            self.border_strong,
+            self.text_muted,
+            self.text_primary,
+        ]
+        .into_iter()
+        .find(|&c| reads(c))
+        .unwrap_or(self.text_primary)
+    }
+
     /// Row-like control (nav item, list item, table row, tree node).
     pub fn row(&self, s: VisualState, bg: Color) -> Style {
         self.interactive(Kind::Row, s, self.plane_of(bg)).style
@@ -2646,6 +2729,21 @@ fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     })
 }
 
+/// The bright step of a named terminal colour (Yellow → LightYellow, Gray →
+/// White): the same hue one palette slot lighter.
+fn bright(c: Color) -> Option<Color> {
+    Some(match c {
+        Color::Red => Color::LightRed,
+        Color::Green => Color::LightGreen,
+        Color::Yellow => Color::LightYellow,
+        Color::Blue => Color::LightBlue,
+        Color::Magenta => Color::LightMagenta,
+        Color::Cyan => Color::LightCyan,
+        Color::Gray => Color::White,
+        _ => return None,
+    })
+}
+
 /// WCAG relative luminance.
 fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     let ch = |v: u8| {
@@ -3331,6 +3429,81 @@ mod tests {
         assert_eq!(t.tone_on(Tone::Error, t.popover), t.error_strong);
         assert_eq!(t.tone_on(Tone::Success, t.popover), t.success_strong);
         assert_eq!(t.tone_on(Tone::Error, t.surface_elevated), t.error);
+    }
+
+    /// A1: the pairs a 16-colour or `none` screen draws on its grey planes,
+    /// measured at every level against the xterm palette: text 4.5:1,
+    /// graphics and frames 3:1.
+    #[test]
+    fn frames_and_selected_tab_marks_read_on_their_plane_at_every_level() {
+        let states = [
+            VisualState {
+                selected: true,
+                ..Default::default()
+            },
+            VisualState {
+                selected: true,
+                hovered: true,
+                ..Default::default()
+            },
+            VisualState {
+                selected: true,
+                hovered: true,
+                pressed: true,
+                ..Default::default()
+            },
+        ];
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let ratio = |a, b| contrast_ratio(a, b).unwrap();
+            // the popover frame and its separators against the popover plane
+            let frame = t.frame_on(t.popover);
+            assert_ne!(frame, t.popover, "{level:?}: frame vanishes");
+            let rule = t.rule_on(t.popover);
+            assert_ne!(rule, t.popover, "{level:?}: separator vanishes");
+            // truecolor and 256 keep the soft frame and rule on purpose
+            // (the lifted plane carries the edge; recorded in color.md)
+            if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
+                for (name, ink) in [("frame", frame), ("separator", rule)] {
+                    let r = ratio(ink, t.popover);
+                    assert!(r >= 3.0, "{level:?}: popover {name} {r:.2}");
+                }
+            }
+            // the selected tab's lifted fill and every ink a tab draws on it
+            for s in states {
+                for strip in [Plane::Canvas, Plane::Surface, Plane::Card] {
+                    let look = t.interactive(Kind::Tab, s, strip).style;
+                    let (fill, label) = (look.bg.unwrap(), look.fg.unwrap());
+                    let at = format!("{level:?} {strip:?} {s:?}");
+                    let text = [
+                        ("label", label),
+                        ("prefix", t.beside_label(t.text_muted, fill, label)),
+                        ("error", t.tone_on(Tone::Error, fill)),
+                    ];
+                    for (name, ink) in text {
+                        let r = ratio(ink, fill);
+                        assert!(r >= 4.5, "{at}: {name} {r:.2}");
+                    }
+                    let marks = [
+                        ("spinner", t.legible_mark(t.accent, fill)),
+                        ("dirty", t.legible_mark(t.warning, fill)),
+                        ("suffix", t.legible_mark(t.text_secondary, fill)),
+                        ("done", t.tone_on(Tone::Success, fill)),
+                    ];
+                    for (name, ink) in marks {
+                        let r = ratio(ink, fill);
+                        assert!(r >= 3.0, "{at}: {name} {r:.2}");
+                    }
+                }
+            }
+        }
+        // the marks keep their hue wherever the palette allows it
+        let t = Theme::for_level(ColorLevel::Ansi16);
+        assert_eq!(t.legible_mark(t.warning, t.popover), Color::LightYellow);
+        assert_eq!(t.legible_mark(t.accent, t.canvas), t.accent);
+        let t = Theme::junie();
+        assert_eq!(t.legible_mark(t.accent, t.surface_overlay), t.accent);
+        assert_eq!(t.frame_on(t.popover), t.border_subtle);
     }
 
     #[test]
