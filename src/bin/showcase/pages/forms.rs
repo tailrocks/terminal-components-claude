@@ -101,7 +101,7 @@ impl FormsPage {
         }
         if !self.validate() {
             cx.status("Fix the highlighted fields");
-            if self.name.error.is_some() {
+            if self.name.field.error.is_some() {
                 cx.focus.focus(self.name.id);
             } else {
                 cx.focus.focus(self.reviewer.id);
@@ -270,7 +270,7 @@ impl Page for FormsPage {
         let msg = match self.state {
             Submit::Idle
                 if self.attempted
-                    && (self.name.error.is_some() || self.reviewer.error.is_some()) =>
+                    && (self.name.field.error.is_some() || self.reviewer.field.error.is_some()) =>
             {
                 Some(("Fix the highlighted fields", t.error_fg()))
             }
