@@ -776,19 +776,13 @@ impl TableTab {
         bg: ratatui::style::Color,
     ) {
         let t = ctx.theme;
-        self.mode_tabs
-            .render(Rect::new(area.x, area.y, area.width, 2), buf, ctx, bg);
+        let (strip, body) = Tabs::layout(area);
+        self.mode_tabs.render(strip, buf, ctx, bg);
         self.mode = if self.mode_tabs.active == 0 {
             TableMode::Data
         } else {
             TableMode::Structure
         };
-        let body = Rect::new(
-            area.x,
-            area.y + 3,
-            area.width,
-            area.height.saturating_sub(3),
-        );
         match self.mode {
             TableMode::Data => {
                 let mut y = body.y;
@@ -853,14 +847,8 @@ impl TableTab {
                 );
             }
             TableMode::Structure => {
-                self.structure_tabs
-                    .render(Rect::new(body.x, body.y, body.width, 2), buf, ctx, bg);
-                let inner = Rect::new(
-                    body.x,
-                    body.y + 3,
-                    body.width,
-                    body.height.saturating_sub(3),
-                );
+                let (strip, inner) = Tabs::layout(body);
+                self.structure_tabs.render(strip, buf, ctx, bg);
                 if self.structure_tabs.active == 5 {
                     let focused = ctx.interaction.focused(self.ddl.id);
                     let pos = scrollbar::position_label(&self.ddl.scroll);

@@ -1379,14 +1379,8 @@ impl Workbench {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, history: &History) {
         let t = ctx.theme;
         // tab strip
-        self.strip
-            .render(Rect::new(area.x, area.y, area.width, 2), buf, ctx, t.canvas);
-        let body = Rect::new(
-            area.x,
-            area.y + 2,
-            area.width,
-            area.height.saturating_sub(2),
-        );
+        let (strip, body) = Tabs::layout_gap(area, 0);
+        self.strip.render(strip, buf, ctx, t.canvas);
         // Below 100 columns the explorer becomes a drawer: it takes the whole
         // body while it has focus and steps aside as soon as focus leaves.
         let narrow = area.width < 100;
