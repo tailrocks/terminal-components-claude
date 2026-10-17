@@ -23,8 +23,8 @@
                      │  ✓ Start agent                            ┃ │ │  viewport work: 38 lines s…  [0m
                      │  [0m[1m▶ Ready[0m                                  ┃ │ │                              [0m
                      │  ✓ Ready                                  ┃ │ │                              [0m
-                     │  [0m[1mpayments-platform ❯ [0m                     ┃ │ │                              [0m
-                     │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ │   [0m[1;7mRun [0m   Run with a failu…   [0m
+                     │  [0m[1mpayments-platform ❯ [0m                     ┃ │ │   [0m[1;7mRun [0m                       [0m
+                     │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ │   Run with a failure         [0m
                      ╰─────────────────────────────────────────────╯ │                              [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m

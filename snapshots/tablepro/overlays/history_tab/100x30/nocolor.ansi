@@ -16,8 +16,8 @@
    │     EXPLAIN ANALYZE SELEC… 15 min ago · 9 ms  │  Duration    5 ms                            │ [0m
    │     SELECT count(*) FRO… 12 min ago · 412 ms  │  Rows        3                               │ [0m
    │     SELECT * FROM orders … 4 min ago · 38 ms  │                                              │ [0m
-   │                                               │   [0m[1;7mOpen in new tab [0m   Run in new tab    C…    │ [0m
-   │                                               │                                              │ [0m
+   │                                               │   [0m[1;7mOpen in new tab [0m   Run in new tab          │ [0m
+   │                                               │   Copy                                       │ [0m
    │                                               │                                              │ [0m
    │                                               │                                              │ [0m
    │                                               │                                              │ [0m

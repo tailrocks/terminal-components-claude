@@ -17,7 +17,7 @@
  │        ▸ T subscriptions  │││     SELECT count(*)… 12 min ago · 412 ms  │  Rows        3                           │ [0m
  │      ▸ Views              │││     SELECT * FROM ord… 4 min ago · 38 ms  │                                          │ [0m
  │      ▸ Functions          │││                                           │   [0m[1;7mOpen in new tab [0m   Run in new tab      │ [0m
- │      ▸ Sequences          │││                                           │                                          │ [0m
+ │      ▸ Sequences          │││                                           │   Copy                                   │ [0m
  │    ▸ S analytics          │││                                           │                                          │ [0m
  │    ▸ S audit              │││                                           │                                          │ [0m
  │                           │││                                           │                                          │ [0m
