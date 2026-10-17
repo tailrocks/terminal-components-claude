@@ -232,6 +232,15 @@ impl std::fmt::Debug for StateGrid {
     }
 }
 
+/// The grid's natural size: every column and row, the header included
+/// ([`StateGrid::size`]).
+impl crate::ui::measure::Measure for StateGrid {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let (w, h) = self.size();
+        ratatui::layout::Size::new(w, h)
+    }
+}
+
 impl StateGrid {
     pub fn new(id: WidgetId) -> Self {
         Self {

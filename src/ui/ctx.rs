@@ -184,6 +184,82 @@ pub struct RenderCtx<'a> {
     /// there (the peek line, SI8), so a cut value reads in full on focus,
     /// with no key and no pointer.
     pub peek: Option<String>,
+    /// The scroll offsets of the [`ScrollView`](crate::ui::scroll_view::ScrollView)s
+    /// drawing now, innermost last. A view fills its cell once its offset
+    /// is final (after its content is drawn); overlays queued inside it
+    /// read the cells when they are flushed, so they land where their
+    /// anchor is on screen.
+    pub(crate) shifts: Vec<Shift>,
+}
+
+/// One scrolled view's offset (columns, rows), filled in when the view
+/// ends ([`RenderCtx::shifts`]).
+pub(crate) type Shift = std::rc::Rc<std::cell::Cell<(u16, u16)>>;
+
+/// The summed offset of nested views.
+pub(crate) fn total_shift(shifts: &[Shift]) -> (u16, u16) {
+    shifts.iter().fold((0, 0), |(x, y), s| {
+        let (a, b) = s.get();
+        (x.saturating_add(a), y.saturating_add(b))
+    })
+}
+
+/// `draw`, queued inside scrolled views with offsets `shifts`, run so its
+/// content coordinates land on screen: it draws into a copy of the screen
+/// placed at the content's coordinates, its cells are copied back, and
+/// the hit regions, cursor and overlays it adds are moved with them.
+fn shifted(shifts: Vec<Shift>, draw: OverlayFn) -> OverlayFn {
+    Box::new(move |buf: &mut Buffer, ctx: &mut RenderCtx| {
+        let (dx, dy) = total_shift(&shifts);
+        if dx == 0 && dy == 0 {
+            draw(buf, ctx);
+            return;
+        }
+        let screen = buf.area;
+        let view = Rect::new(
+            screen.x.saturating_add(dx),
+            screen.y.saturating_add(dy),
+            screen.width,
+            screen.height,
+        );
+        let mut off = Buffer::empty(view);
+        copy_cells(buf, screen, &mut off, view.as_position());
+        let mark = ctx.hits.mark();
+        let cursor = ctx.cursor;
+        let queued = ctx.overlays.len();
+        draw(&mut off, ctx);
+        copy_cells(&off, view, buf, screen.as_position());
+        ctx.hits
+            .scroll_since(mark, view, view, screen.as_position());
+        if ctx.cursor != cursor {
+            ctx.cursor = ctx
+                .cursor
+                .and_then(|p| view.contains(p).then(|| Position::new(p.x - dx, p.y - dy)));
+        }
+        // overlays it queued are in the same coordinates
+        for item in ctx.overlays.iter_mut().skip(queued) {
+            let f = std::mem::replace(&mut item.1, Box::new(|_, _| {}));
+            item.1 = shifted(shifts.clone(), f);
+        }
+    })
+}
+
+/// Copy the cells of `from` in `area` to `to` with `area`'s top-left at
+/// `at`; cells outside either buffer are skipped.
+pub(crate) fn copy_cells(from: &Buffer, area: Rect, to: &mut Buffer, at: Position) {
+    let area = area.intersection(from.area);
+    for y in 0..area.height {
+        for x in 0..area.width {
+            let (tx, ty) = (at.x as u32 + x as u32, at.y as u32 + y as u32);
+            if tx > u16::MAX as u32 || ty > u16::MAX as u32 {
+                continue;
+            }
+            let p = Position::new(tx as u16, ty as u16);
+            if to.area.contains(p) {
+                to[(p.x, p.y)] = from[(area.x + x, area.y + y)].clone();
+            }
+        }
+    }
 }
 
 impl<'a> RenderCtx<'a> {
@@ -207,6 +283,7 @@ impl<'a> RenderCtx<'a> {
             track_click: crate::core::scroll::TrackClick::Page,
             reveal_hint: None,
             peek: None,
+            shifts: Vec::new(),
             reveal_slot: {
                 crate::ui::reveal::clear_cuts();
                 crate::ui::reveal::begin_frame();
@@ -241,6 +318,7 @@ impl<'a> RenderCtx<'a> {
             track_click: crate::core::scroll::TrackClick::Page,
             reveal_hint: None,
             peek: None,
+            shifts: Vec::new(),
             reveal_slot: crate::ui::reveal::Slot::default(),
         }
     }
@@ -397,7 +475,26 @@ impl<'a> RenderCtx<'a> {
     /// Queue drawing that must sit above everything rendered so far in this
     /// layer: it runs when the layer closes (a modal begins or the frame
     /// ends), so its pixels and hit regions are always on top of the page.
+    ///
+    /// Inside a [`ScrollView`](crate::ui::scroll_view::ScrollView) the
+    /// drawing keeps the content's coordinates it was queued with: it is
+    /// moved by the view's final offset when it runs.
     pub fn overlay(
+        &mut self,
+        draw: impl for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>) + 'static,
+    ) {
+        let draw: OverlayFn = Box::new(draw);
+        let draw = if self.shifts.is_empty() {
+            draw
+        } else {
+            shifted(self.shifts.clone(), draw)
+        };
+        self.overlays.push((self.inert, draw));
+    }
+
+    /// [`Self::overlay`] in screen coordinates whatever view queues it:
+    /// for drawing that places itself (the frame's reveal slot).
+    pub(crate) fn overlay_unshifted(
         &mut self,
         draw: impl for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>) + 'static,
     ) {

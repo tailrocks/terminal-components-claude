@@ -308,6 +308,8 @@ impl StackScroll {
         };
         if let Some((axis, delta)) = ev.wheel() {
             return Some(match axis {
+                // a stack that fits passes the notch on (scroll chaining)
+                crate::core::hit::Axis::Vertical if !self.scroll.overflows() => Outcome::Ignored,
                 crate::core::hit::Axis::Vertical => moved(self.on_wheel(delta)),
                 crate::core::hit::Axis::Horizontal => Outcome::Ignored,
             });
