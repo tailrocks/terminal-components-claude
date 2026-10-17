@@ -58,7 +58,7 @@ drive (hover, `→`, an overflow menu); **c** audit limitation.
 
 | Id | Kind | Cause | Where (examples) | Shared fix |
 |---|---|---|---|---|
-| R-apps-1 | a | Chrome strips drop whole items by priority with no `…` and no reveal: the top strip / header segments and the status bar. | `widgets/segments.rs:104` (tablepro `app.rs:2137`, jackin `app.rs:1919`), `widgets/statusbar.rs:199-226` (jackin capsule, holla) | Dropped segments and status items collapse into one `…` item that reveals them (`ui::reveal`). |
+| R-apps-1 | a | **Fixed** (rapps-6-1): chrome strips dropped whole items by priority with no `…` and no reveal: the top strip / header segments and the status bar. Now the dropped items collapse into one `…` overflow item (`ui::reveal::overflow`, first of the right side) whose expansion tooltip shows them on hover; the audit counts them as reached through that reveal, like text cut with `…` (`ui::reveal::overflowed`). 46 allow lines gone, 58 shrank. Tests `dropped_segments_collapse_into_an_overflow_item_that_reveals_them`, `dropped_items_collapse_into_an_overflow_item_that_reveals_them`. Open: the `…` is pointer-only; strips are chrome outside the focus ring, so the keyboard path is A11 (focusable status bar peek line). Allow lines still tagged R-apps-1 hold words of other classes (re-triage). | `widgets/segments.rs:104` (tablepro `app.rs:2137`, jackin `app.rs:1919`), `widgets/statusbar.rs:199-226` (jackin capsule, holla) | Dropped segments and status items collapse into one `…` item that reveals them (`ui::reveal`). |
 | R-apps-2 | a | Hand-rolled master-detail drops the detail (or a third column) below a width instead of collapsing into the library's summary and drawer. | tablepro connections `connections.rs:1230` (<80), EXPLAIN node card `tabs.rs:1880` (<110); jackin manager aside `manager.rs:2488` (<150), editor/settings detail `config.rs:768` (<150), usage `usage.rs:939`; holla plan summary drawn over the drawer `plan.rs:993` | `ui::master_detail::MasterDetail` (drawer when narrow; an aside pane that stacks under the detail). |
 | R-apps-3 | a | A metadata column is dropped (all rows or per row) without `…`, or a hand-rolled table zeroes columns. | `widgets/tree.rs:980,1073` (explorer counts "312"), `widgets/list.rs:309` (history "412 ms"); holla files `files.rs:762-800`, plan headings `plan.rs:1646`; jackin mounts `config.rs:2556` | Tree / List cut the meta with `…` and reveal it; tables move onto `widgets::table` (column priority, horizontal bar, cell reveal). |
 | R-apps-4 | a | Text cut with `…` but no reveal registered. | `widgets/input.rs:877,944`, `widgets/picker.rs:708`, `widgets/page_header.rs:120-150`, `Heading` (`page_header.rs:197`); holla `review.rs:521`, `snapshot.rs:1497`, `disk.rs:1635`; jackin `manager.rs:1812`, `cockpit.rs:911` | One `ui::text` cut that registers its reveal, so no caller can cut without one. |
@@ -88,7 +88,7 @@ holds the exact words.
 | Screen | 72x20 | 80x24 | 100x25 | 106x29 | 120x40 | 160x50 |
 |---|---|---|---|---|---|---|
 | holla activity | 4 11 | 4 11 | 4 11 |  |  |  |
-| holla activity-failed | 1 7 | 1 7 |  |  |  |  |
+| holla activity-failed | 7 | 7 |  |  |  |  |
 | holla activity-merged | 4 11 | 4 11 | 4 11 |  |  |  |
 | holla args | 4 |  |  |  |  |  |
 | holla cleanup | 4 | 4 |  | 4 | 4 |  |
@@ -97,40 +97,33 @@ holds the exact words.
 | holla disk-overview | 4 | 4 | 4 |  |  |  |
 | holla files | 3 | 3 | 3 | 3 | 3 | 3 |
 | holla finder | 8 |  |  |  | 12 |  |
-| holla finder-children | 1 8 12 | 8 12 |  |  | 8 12 |  |
+| holla finder-children | 8 12 | 8 12 |  |  | 8 12 |  |
 | holla finder-page | 8 | 8 |  |  |  |  |
 | holla gate-plan | 4 6 | 4 6 | 4 6 | 4 6 | 4 6 |  |
-| holla plan-review | 1 2 4 |  | 2 4 | 2 4 |  |  |
+| holla plan-review | 2 4 |  | 2 4 | 2 4 |  |  |
 | holla plan-running | 3 | 3 | 3 | 3 |  |  |
-| holla snapshot | 1 |  |  |  |  |  |
 | holla start-plan | 14 |  |  |  |  |  |
-| holla top-files | 1 4 | 1 4 | 4 | 4 |  |  |
-| holla trust | 1 6 | 1 6 |  |  |  |  |
+| holla top-files | 4 | 4 | 4 | 4 |  |  |
+| holla trust | 6 | 6 |  |  |  |  |
 | holla upgrade-plan | 2 4 |  |  | 2 4 |  |  |
-| jackin accounts | 1 8 | 1 | 1 |  |  |  |
-| jackin capsule | 1 6 | 1 6 | 1 6 | 1 6 | 1 6 | 1 6 |
-| jackin capsule-zoom | 1 6 | 1 6 | 1 6 | 1 6 | 1 | 1 |
-| jackin cockpit | 1 4 6 | 1 4 6 | 1 4 6 | 1 4 6 | 4 6 | 4 6 |
+| jackin capsule | 6 | 6 | 6 | 6 | 6 | 6 |
+| jackin capsule-zoom | 6 | 6 | 6 | 6 |  |  |
+| jackin cockpit | 4 6 | 4 6 | 4 6 | 4 6 | 4 6 | 4 6 |
 | jackin cockpit-failure | 12 | 12 | 12 |  |  |  |
-| jackin editor | 1 | 1 | 1 | 1 |  |  |
-| jackin editor-accounts | 1 4 | 1 4 | 1 | 1 |  |  |
-| jackin editor-env | 1 2 | 1 2 | 1 2 | 1 2 | 2 |  |
-| jackin editor-mounts | 1 3 | 1 3 | 1 3 | 1 |  |  |
-| jackin editor-roles | 1 4 | 1 4 | 1 | 1 |  |  |
+| jackin editor-accounts | 4 | 4 |  |  |  |  |
+| jackin editor-env | 2 | 2 | 2 | 2 | 2 |  |
+| jackin editor-mounts | 3 | 3 | 3 |  |  |  |
+| jackin editor-roles | 4 | 4 |  |  |  |  |
 | jackin launch-picker | 8 | 8 |  |  |  |  |
-| jackin manager | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 |
-| jackin manager-detail | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 |
-| jackin manager-expanded | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 |
-| jackin manager-hard | 1 2 6 8 | 1 2 6 8 | 1 2 6 8 | 1 2 6 8 | 1 2 6 8 | 2 6 8 |
-| jackin prelude | 1 | 1 |  |  |  |  |
-| jackin prelude-source | 1 | 1 |  |  |  |  |
-| jackin settings | 1 4 | 1 4 |  |  |  |  |
-| jackin settings-agents | 1 6 | 1 6 |  |  |  |  |
-| jackin settings-env | 1 2 | 1 2 | 1 2 | 2 | 2 |  |
-| jackin settings-mounts | 1 3 | 1 3 | 3 | 3 |  |  |
-| jackin settings-trust | 1 | 1 |  |  |  |  |
-| jackin usage | 1 4 | 1 4 | 4 | 4 | 4 | 4 |
-| jackin usage-detail | 1 | 1 |  |  |  |  |
+| jackin manager | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 |
+| jackin manager-detail | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 |
+| jackin manager-expanded | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 |
+| jackin manager-hard | 2 6 8 | 2 6 8 | 2 6 8 | 2 6 8 | 2 6 8 | 2 6 8 |
+| jackin settings | 4 | 4 |  |  |  |  |
+| jackin settings-agents | 6 | 6 |  |  |  |  |
+| jackin settings-env | 2 | 2 | 2 | 2 | 2 |  |
+| jackin settings-mounts | 3 | 3 | 3 | 3 |  |  |
+| jackin usage | 4 | 4 | 4 | 4 | 4 | 4 |
 | tablepro conn-failed | 2 | 2 |  |  |  |  |
 | tablepro conn-form-advanced | 2 4 | 2 4 | 2 4 | 2 4 |  |  |
 | tablepro conn-form-edit | 2 4 5 | 2 4 5 | 2 4 5 | 2 4 5 | 2 4 5 |  |
@@ -138,19 +131,14 @@ holds the exact words.
 | tablepro conn-form-new | 2 4 5 | 2 4 5 | 2 4 5 | 2 4 5 | 2 4 5 |  |
 | tablepro connections | 2 | 2 |  |  |  |  |
 | tablepro connections-empty | 2 | 2 |  |  |  |  |
-| tablepro explorer-hidden | 1 | 1 |  |  |  |  |
-| tablepro history | 1 3 4 6 7 | 1 4 6 7 |  | 3 4 6 7 | 3 4 6 7 |  |
-| tablepro maximized | 1 | 1 |  |  |  |  |
-| tablepro query-editing | 1 | 1 |  | 3 | 3 |  |
-| tablepro result-affected | 1 6 | 1 |  | 3 | 3 |  |
-| tablepro result-error | 1 5 6 | 1 5 6 |  | 3 5 6 | 3 5 6 |  |
-| tablepro result-multi | 1 | 1 |  | 3 | 3 |  |
-| tablepro result-plan | 1 2 | 1 2 | 2 | 2 3 | 2 3 |  |
-| tablepro result-rows | 1 12 | 1 |  |  |  |  |
+| tablepro history | 3 4 6 7 | 4 6 7 |  | 3 4 6 7 | 3 4 6 7 |  |
+| tablepro query-editing |  |  |  | 3 | 3 |  |
+| tablepro result-affected | 6 |  |  | 3 | 3 |  |
+| tablepro result-error | 5 6 | 5 6 |  | 3 5 6 | 3 5 6 |  |
+| tablepro result-multi |  |  |  | 3 | 3 |  |
+| tablepro result-plan | 2 | 2 | 2 | 2 3 | 2 3 |  |
+| tablepro result-rows | 12 |  |  |  |  |  |
 | tablepro safe-mode | 8 | 8 |  |  |  |  |
-| tablepro table-data | 1 | 1 |  |  |  |  |
-| tablepro table-ddl | 1 | 1 |  | 3 | 3 |  |
-| tablepro table-filtered | 1 | 1 |  |  |  |  |
-| tablepro table-pending | 1 | 1 |  | 1 |  |  |
-| tablepro table-structure | 1 | 1 |  | 3 | 3 |  |
-| tablepro workbench | 1 | 1 |  | 3 | 3 |  |
+| tablepro table-ddl |  |  |  | 3 | 3 |  |
+| tablepro table-structure |  |  |  | 3 | 3 |  |
+| tablepro workbench |  |  |  | 3 | 3 |  |
