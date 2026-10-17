@@ -110,7 +110,6 @@ pub struct DiskPage {
     top_state: Option<String>,
     /// The tree or list beside the details; a drawer when narrow.
     md: MasterDetail,
-    compact: bool,
     last_tick: u64,
     last_revealed: usize,
     generation: u64,
@@ -142,7 +141,6 @@ impl DiskPage {
             top: vec![],
             top_state: None,
             md: MasterDetail::new(TREE, DETAIL).detail_share(38, 34, 50),
-            compact: false,
             last_tick: u64::MAX,
             last_revealed: usize::MAX,
             generation: 0,
@@ -1544,10 +1542,6 @@ impl ShellPage<Holla> for DiskPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
-        let compact = area.height < 22;
-        if compact != self.compact {
-            self.compact = compact;
-        }
         let t = ctx.theme;
         let title = match self.view {
             View::Tree => format!("Disk usage · {}", w.location.short(&self.path)),
@@ -1635,7 +1629,9 @@ impl ShellPage<Holla> for DiskPage {
             }
         }
         let mut body_y = area.y + 3;
-        if self.view == View::Tree && !self.compact && !w.disk.filesystems.is_empty() {
+        // the filesystems keep their rows at every height: the tree below
+        // scrolls, so nothing is dropped on a short screen (R-apps-6)
+        if self.view == View::Tree && !w.disk.filesystems.is_empty() {
             Heading::new("Filesystems").render(
                 Rect::new(area.x + 3, body_y, area.width.saturating_sub(3), 1),
                 buf,

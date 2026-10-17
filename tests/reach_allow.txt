@@ -26,9 +26,6 @@ holla cleanup-history 120x40 4089446400 size # R-apps-4 R-apps-6
 holla config 72x20 80de150cfec6235763ee88135d6e8abf9c8de43ddebf148135b5eb42ea710dad ASCII configuration defined digits letters lowercase whoami # R-apps-4 R-apps-6
 holla config 80x24 80de150cfec6235763ee88135d6e8abf9c8de43ddebf148135b5eb42ea710dad ASCII configuration digits letters # R-apps-4 R-apps-6
 holla config 100x25 digits # R-apps-4 R-apps-6
-holla disk 72x20 611 926 Filesystems # R-apps-6
-holla disk 80x24 611 926 Filesystems # R-apps-6
-holla disk 100x25 611 926 Filesystems # R-apps-6
 holla disk-overview 72x20 age analyses caches hints logs their with # R-apps-4
 holla disk-overview 80x24 age analyses their # R-apps-4
 holla disk-overview 100x25 analyses # R-apps-4
