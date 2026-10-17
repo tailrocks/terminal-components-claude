@@ -6,7 +6,7 @@
 //! `crate::options::FILE_BROWSER`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -66,6 +66,16 @@ fn fixture() -> MemorySource {
     ])
     .home(HOME)
 }
+
+/// The New mount card's two lines of prose.
+const INTRO: [&str; 2] = [
+    "The folder mounted into the workspace. Browse… opens the modal over this page;",
+    "Esc, the × or (with Dismiss light) a click outside cancels it.",
+];
+const NEW_META: &str = "FileBrowser on the layer stack · LayerResult::File";
+const SOURCE_HEAD: &str =
+    "FileEntry rows of ~ (folders first in the browser; hidden ones wait for the toggle):";
+const RESULTS_META: &str = "FileBrowserResult: Chosen { path, checked } · Url · Cancelled";
 
 /// The repositories the URL entry resolves.
 const REPOS: [&str; 2] = ["acme/payments-platform", "acme/customer-portal"];
@@ -170,63 +180,80 @@ impl FileBrowserPage {
         b
     }
 
+    /// The commands the Keys card lists.
+    const CMDS: [FileCmd; 7] = [
+        FileCmd::Open,
+        FileCmd::Parent,
+        FileCmd::Choose,
+        FileCmd::ToggleHidden,
+        FileCmd::GoTo,
+        FileCmd::Filter,
+        FileCmd::Url,
+    ];
+
+    /// The rows of the Source card: the fixture's home listing.
+    fn source_rows() -> Vec<String> {
+        let home = fixture().list(HOME).unwrap_or_default();
+        home.iter()
+            .map(|e| {
+                let kind = if e.dir { "folder" } else { "file" };
+                let hidden = if e.hidden { "hidden" } else { "" };
+                format!("{:<12} {:<7} {:<10} {hidden}", e.name(), kind, e.meta)
+            })
+            .collect()
+    }
+
+    /// The rows of the Keys card: each command and its key.
+    fn key_rows(&self) -> Vec<String> {
+        let keys = self.keymap();
+        Self::CMDS
+            .iter()
+            .map(|c| {
+                let k = label_for(&keys, *c).unwrap_or_else(|| "unbound".into());
+                format!("{k:<10} {}", c.label())
+            })
+            .collect()
+    }
+
+    fn source_meta() -> String {
+        format!("MemorySource · home {HOME} · FsSource reads the real disk")
+    }
+
+    fn keys_meta(&self) -> String {
+        format!("FileCmd · {} key map", self.opts.value("filebrowser.keys"))
+    }
+
+    /// The Playground's cards, top to bottom, at their natural heights.
+    fn children(&self) -> [StackChild; 4] {
+        [
+            StackChild::fixed(9),
+            StackChild::fixed(self.log.len().clamp(1, 4) as u16 + 3),
+            StackChild::fixed(Self::source_rows().len() as u16 + 5),
+            StackChild::fixed(Self::CMDS.len() as u16 + 3),
+        ]
+    }
+
     fn open(&mut self, cx: &mut Cx) {
         cx.open(self.browser(), LayerTag::new("browser"));
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let focus = ctx.interaction.has_focus(self.browse.id).then_some(0);
-        let source = fixture();
-        let home = source.list(HOME).unwrap_or_default();
-        let keys = self.keymap();
-        let cmds = [
-            FileCmd::Open,
-            FileCmd::Parent,
-            FileCmd::Choose,
-            FileCmd::ToggleHidden,
-            FileCmd::GoTo,
-            FileCmd::Filter,
-            FileCmd::Url,
-        ];
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(9),
-                StackChild::fixed(self.log.len().clamp(1, 4) as u16 + 3),
-                StackChild::fixed(home.len() as u16 + 5),
-                StackChild::fixed(cmds.len() as u16 + 3),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &self.children(), focus, buf, ctx);
         let t = ctx.theme;
         let line = |buf: &mut Buffer, x: u16, y: u16, w: u16, s: &str, style| {
             buf.set_string(x, y, truncate(s, w as usize), style);
         };
         match l.slot(0) {
             Some(r) => {
-                let panel = Panel::card(Some("New mount"))
-                    .meta("FileBrowser on the layer stack · LayerResult::File");
+                let panel = Panel::card(Some("New mount")).meta(NEW_META);
                 let bg = panel.bg(t);
                 let inner = panel.render(r, buf, t);
                 let w = inner.width;
-                line(
-                    buf,
-                    inner.x,
-                    inner.y,
-                    w,
-                    "The folder mounted into the workspace. Browse… opens the modal over this page;",
-                    t.secondary().bg(bg),
-                );
-                line(
-                    buf,
-                    inner.x,
-                    inner.y + 1,
-                    w,
-                    "Esc, the × or (with Dismiss light) a click outside cancels it.",
-                    t.secondary().bg(bg),
-                );
+                line(buf, inner.x, inner.y, w, INTRO[0], t.secondary().bg(bg));
+                line(buf, inner.x, inner.y + 1, w, INTRO[1], t.secondary().bg(bg));
                 line(
                     buf,
                     inner.x,
@@ -245,7 +272,7 @@ impl FileBrowserPage {
             None => ctx.focus_stop(self.browse.id),
         }
         if let Some(r) = l.slot(2) {
-            let meta = format!("MemorySource · home {HOME} · FsSource reads the real disk");
+            let meta = Self::source_meta();
             let panel = Panel::card(Some("Source")).meta(&meta);
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
@@ -254,50 +281,32 @@ impl FileBrowserPage {
                 inner.x,
                 inner.y,
                 inner.width,
-                "FileEntry rows of ~ (folders first in the browser; hidden ones wait for the toggle):",
+                SOURCE_HEAD,
                 t.secondary().bg(bg),
             );
-            for (i, e) in home.iter().enumerate() {
+            for (i, row) in Self::source_rows().iter().enumerate() {
                 let y = inner.y + 2 + i as u16;
                 if y >= inner.bottom() {
                     break;
                 }
-                let kind = if e.dir { "folder" } else { "file" };
-                let hidden = if e.hidden { "hidden" } else { "" };
-                line(
-                    buf,
-                    inner.x,
-                    y,
-                    inner.width,
-                    &format!("{:<12} {:<7} {:<10} {hidden}", e.name(), kind, e.meta),
-                    t.primary().bg(bg),
-                );
+                line(buf, inner.x, y, inner.width, row, t.primary().bg(bg));
             }
         }
         if let Some(r) = l.slot(3) {
-            let meta = format!("FileCmd · {} key map", self.opts.value("filebrowser.keys"));
+            let meta = self.keys_meta();
             let panel = Panel::card(Some("Keys")).meta(&meta);
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
-            for (i, c) in cmds.iter().enumerate() {
+            for (i, row) in self.key_rows().iter().enumerate() {
                 let y = inner.y + i as u16;
                 if y >= inner.bottom() {
                     break;
                 }
-                let k = label_for(&keys, *c).unwrap_or_else(|| "unbound".into());
-                line(
-                    buf,
-                    inner.x,
-                    y,
-                    inner.width,
-                    &format!("{k:<10} {}", c.label()),
-                    t.primary().bg(bg),
-                );
+                line(buf, inner.x, y, inner.width, row, t.primary().bg(bg));
             }
         }
         if let Some(r) = l.slot(1) {
-            let panel = Panel::card(Some("Results"))
-                .meta("FileBrowserResult: Chosen { path, checked } · Url · Cancelled");
+            let panel = Panel::card(Some("Results")).meta(RESULTS_META);
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
             if self.log.is_empty() {
@@ -370,6 +379,44 @@ impl Page for FileBrowserPage {
     }
     fn blurb(&self) -> &'static str {
         "FileBrowser: choose a file or folder from a FileSource, with a path bar, filter, type-ahead and hidden files"
+    }
+
+    /// Every card whole: the widest line or title row, the cards'
+    /// stacked heights.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        let w = |s: &str| junie_tui::ui::text::width(s) as u16;
+        let widest = |rows: &[String]| rows.iter().map(|r| w(r)).max().unwrap_or(0);
+        let host = format!("Host folder   {}", self.chosen);
+        let new = INTRO
+            .iter()
+            .map(|s| w(s))
+            .chain([w(&host), self.browse.width()]);
+        let keys_meta = self.keys_meta();
+        let source_meta = Self::source_meta();
+        let mut log = self.log.clone();
+        log.push("none yet".into());
+        let width = [
+            Panel::card(Some("New mount"))
+                .meta(NEW_META)
+                .outer(Size::new(new.max().unwrap_or(0), 0)),
+            Panel::card(Some("Results"))
+                .meta(RESULTS_META)
+                .outer(Size::new(widest(&log), 0)),
+            Panel::card(Some("Source"))
+                .meta(&source_meta)
+                .outer(Size::new(
+                    w(SOURCE_HEAD).max(widest(&Self::source_rows())),
+                    0,
+                )),
+            Panel::card(Some("Keys"))
+                .meta(&keys_meta)
+                .outer(Size::new(widest(&self.key_rows()), 0)),
+        ]
+        .iter()
+        .map(|s| s.width)
+        .max()
+        .unwrap_or(0);
+        Size::new(width, self.sections.stack.measure(&self.children()))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
