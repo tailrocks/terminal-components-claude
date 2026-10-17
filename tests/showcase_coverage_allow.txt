@@ -106,6 +106,7 @@ core::hit::HitRegistry::bar | covered by the demo of its owner HitRegistry (cove
 core::hit::HitRegistry::register_backdrop | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::register_backdrop_of | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::register_scroll | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitRegistry::register_scroll_under | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::register_hover | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::register_autoscroll | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::autoscroll_at | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
@@ -365,6 +366,7 @@ ui::ctx::RenderCtx::clickable_under | covered by the demo of its owner RenderCtx
 ui::ctx::RenderCtx::scrollbar | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::scrollbar_thumb | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::scrollable | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
+ui::ctx::RenderCtx::scrollable_under | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::autoscroll | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::state | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::child_state | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34

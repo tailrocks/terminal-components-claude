@@ -217,6 +217,25 @@ impl HitRegistry {
         self.regions.insert(at, HitRegion::plain(id, area));
     }
 
+    /// [`Self::register_scroll`] at the bottom of the current layer: a
+    /// scroll container's whole body takes the wheel wherever nothing
+    /// above it does (its fields, labels, padding and the dead space of a
+    /// modal surface), as a macOS scroll view does, while every region
+    /// registered in it still comes first.
+    pub fn register_scroll_under(&mut self, id: WidgetId, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        let at = self.barriers.last().copied().unwrap_or(0);
+        self.regions.insert(
+            at,
+            HitRegion {
+                scroll_only: true,
+                ..HitRegion::plain(id, area)
+            },
+        );
+    }
+
     /// Register a modal's body (a dialog's or a modal frame's surface): it
     /// blocks presses from falling through like [`Self::register`], and
     /// [`Self::is_surface`] tells the pointer layer a press on it is dead
