@@ -724,6 +724,42 @@ mod tests {
         }
     }
 
+    /// A1: the focus bar stands off the button's plane (3:1) at every
+    /// level; at 16 colours a raised button is xterm's DarkGray, where the
+    /// LightGreen bar was 2.9:1.
+    #[test]
+    fn the_focus_bar_reads_on_a_focused_button_at_every_level() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            for kind in ["secondary", "subtle", "danger", "primary"] {
+                let id = WidgetId::of("b");
+                let mut b = match kind {
+                    "secondary" => Button::secondary(id, "Save"),
+                    "subtle" => Button::subtle(id, "Save"),
+                    "danger" => Button::danger(id, "Save"),
+                    _ => Button::primary(id, "Save"),
+                };
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let i = Interaction {
+                    focus: Some(id),
+                    ..Default::default()
+                };
+                let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
+                let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
+                let w = b.width();
+                b.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+                let bar = (0..w)
+                    .map(|x| &buf[(x, 0)])
+                    .find(|c| c.symbol() == t.glyphs.focus_bar)
+                    .unwrap_or_else(|| panic!("{level:?} {kind}: no focus bar"));
+                let r = contrast_ratio(bar.fg, bar.bg).unwrap();
+                assert!(r >= 3.0, "{level:?} {kind}: focus bar {r:.2}");
+            }
+        }
+    }
+
     #[test]
     fn keyboard_only_focus_hides_the_ring_after_a_click() {
         use crate::ui::ctx::FocusVisible;
