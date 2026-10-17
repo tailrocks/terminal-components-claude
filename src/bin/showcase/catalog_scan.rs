@@ -9,6 +9,9 @@
 //!   a public enum;
 //! - builders: `pub fn`/`pub const fn` in an inherent `impl`, taking
 //!   `self` or `mut self` and returning `Self` (or the impl's own type);
+//! - functions: every other `pub fn`/`pub const fn`, free (in a module) or
+//!   in an inherent `impl` of a public type, except constructors (no
+//!   by-value `self`, returning `Self` or the impl's own type);
 //! - the public fields of `theme::Theme` (theme tokens).
 //!
 //! Private inline modules, `#[cfg(test)]` items, function bodies, trait
@@ -83,8 +86,10 @@ struct RawItem {
     at: String,
 }
 
-/// Builds ids. A builder in an `impl` outside the type's own module is
-/// filed under the module that defines the type when that is unambiguous.
+/// Builds ids. A builder or method in an `impl` outside the type's own
+/// module is filed under the module that defines the type when that is
+/// unambiguous. A method of a type that is not public (no `pub struct` or
+/// `pub enum` of that name) is not a capability.
 fn resolve(raw: Vec<RawItem>) -> Vec<Item> {
     let mut homes: HashMap<&str, Vec<&[String]>> = HashMap::new();
     for item in raw.iter().filter(|i| i.kind == CapKind::Type) {
@@ -92,8 +97,14 @@ fn resolve(raw: Vec<RawItem>) -> Vec<Item> {
     }
     let mut out: Vec<Item> = Vec::new();
     for item in &raw {
+        if item.kind == CapKind::Function
+            && let Some(owner) = &item.owner
+            && !homes.contains_key(owner.as_str())
+        {
+            continue;
+        }
         let module = match (&item.owner, item.kind) {
-            (Some(owner), CapKind::Builder) => {
+            (Some(owner), CapKind::Builder | CapKind::Function) => {
                 let here = homes
                     .get(owner.as_str())
                     .is_some_and(|m| m.contains(&item.module.as_slice()));
@@ -524,6 +535,12 @@ fn walk_items(
                     walk_impl(toks, stop + 1, body_end - 1, module, &ty, ctx);
                 }
             }
+            // a free function (its body was skipped above)
+            (Some("fn"), true) if vis == Vis::Pub => {
+                if let Some(n) = name {
+                    ctx.push(module, None, n, CapKind::Function, line);
+                }
+            }
             // `const X: T = T { .. };` and the like: the brace was an
             // initializer; the `;` after it reads as an empty header.
             _ => {}
@@ -572,52 +589,71 @@ fn walk_impl(toks: &[Token], start: usize, end: usize, module: &[String], ty: &s
         if vis != Vis::Pub || header.get(k).and_then(ident) != Some("fn") {
             continue;
         }
-        if let Some(name) = header.get(k + 1).and_then(ident)
-            && is_builder(&header[k + 2..], ty)
-        {
-            ctx.push(module, Some(ty), name, CapKind::Builder, header[k].line);
-        }
+        let Some(name) = header.get(k + 1).and_then(ident) else {
+            continue;
+        };
+        let kind = match fn_shape(&header[k + 2..], ty) {
+            FnShape::Builder => CapKind::Builder,
+            FnShape::Constructor => continue,
+            FnShape::Other => CapKind::Function,
+        };
+        ctx.push(module, Some(ty), name, kind, header[k].line);
     }
 }
 
-/// `<generics>? (self | mut self, ..) -> Self | Type<..>`.
-fn is_builder(sig: &[Token], ty: &str) -> bool {
+/// What an inherent `pub fn` is, by its signature.
+#[derive(Debug, PartialEq, Eq)]
+enum FnShape {
+    /// `self` or `mut self` in, `Self` (or the impl's own type) out.
+    Builder,
+    /// `Self` out without a by-value `self` (`new`, `&self -> Self`).
+    Constructor,
+    /// Anything else: a method or an associated function.
+    Other,
+}
+
+/// `<generics>? (params) -> ret`.
+fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
     let mut i = 0;
     if sig.first().is_some_and(|t| is_punct(t, '<')) {
         i = skip_angles(sig, 0);
     }
     if !sig.get(i).is_some_and(|t| is_punct(t, '(')) {
-        return false;
+        return FnShape::Other;
     }
     let close = skip_group(sig, i);
     let params: Vec<&Token> = sig[i + 1..close.saturating_sub(1)].iter().collect();
     let takes_self = match params.first().and_then(|t| ident(t)) {
-        Some("self") => true,
-        Some("mut") => params.get(1).and_then(|t| ident(t)) == Some("self"),
-        _ => false,
-    };
-    if !takes_self || params.get(1).is_some_and(|t| is_punct(t, ':')) {
-        // `self: Box<Self>` and friends are not builders.
-        return false;
-    }
-    let ret = &sig[close..];
-    if !(ret.first().is_some_and(|t| is_punct(t, '-'))
-        && ret.get(1).is_some_and(|t| is_punct(t, '>')))
-    {
-        return false;
-    }
-    let ret = &ret[2..];
-    let ret_end = ret
-        .iter()
-        .position(|t| ident(t) == Some("where"))
-        .unwrap_or(ret.len());
-    let ret = &ret[..ret_end];
-    match ret.first().and_then(ident) {
-        Some("Self") => ret.len() == 1,
-        Some(name) if name == ty => {
-            ret.len() == 1 || (is_punct(&ret[1], '<') && skip_angles(ret, 1) == ret.len())
+        Some("self") => !params.get(1).is_some_and(|t| is_punct(t, ':')),
+        Some("mut") => {
+            params.get(1).and_then(|t| ident(t)) == Some("self")
+                // `self: Box<Self>` and friends are not builders.
+                && !params.get(2).is_some_and(|t| is_punct(t, ':'))
         }
         _ => false,
+    };
+    let ret = &sig[close..];
+    let returns_self = ret.first().is_some_and(|t| is_punct(t, '-'))
+        && ret.get(1).is_some_and(|t| is_punct(t, '>'))
+        && {
+            let ret = &ret[2..];
+            let ret_end = ret
+                .iter()
+                .position(|t| ident(t) == Some("where"))
+                .unwrap_or(ret.len());
+            let ret = &ret[..ret_end];
+            match ret.first().and_then(ident) {
+                Some("Self") => ret.len() == 1,
+                Some(name) if name == ty => {
+                    ret.len() == 1 || (is_punct(&ret[1], '<') && skip_angles(ret, 1) == ret.len())
+                }
+                _ => false,
+            }
+        };
+    match (returns_self, takes_self) {
+        (true, true) => FnShape::Builder,
+        (true, false) => FnShape::Constructor,
+        (false, _) => FnShape::Other,
     }
 }
 
@@ -730,7 +766,47 @@ mod tests {
                 "variant:widgets::demo::Mode::D",
                 "builder:widgets::demo::Demo::label",
                 "builder:widgets::demo::Demo::wide",
+                "function:widgets::demo::Demo::get",
+                "function:widgets::demo::Demo::into_mode",
                 "type:widgets::demo::open::Seen",
+            ]
+        );
+    }
+
+    #[test]
+    fn finds_free_functions_and_methods_but_not_constructors() {
+        let src = r#"
+            pub fn render_status(area: Rect) -> usize { 0 }
+            pub const fn width() -> u16 { 3 }
+            pub(crate) fn hidden() {}
+            fn private() {}
+            pub struct Seen;
+            struct Hidden;
+            impl Seen {
+                pub fn new() -> Self { Seen }
+                pub fn default_for(&self) -> Self { Seen }
+                pub fn boxed(self: Box<Self>) -> Self { *self }
+                pub fn parse(s: &str) -> Option<Self> { None }
+                pub fn status(&self, kind: u8) -> &str { "" }
+                pub fn set(&mut self) {}
+                fn private(&self) {}
+            }
+            impl Hidden { pub fn not_public(&self) {} }
+            impl std::fmt::Display for Seen { fn fmt(&self) -> u8 { 0 } }
+            pub mod inner { pub fn nested() {} }
+            #[cfg(test)]
+            pub fn in_test() {}
+        "#;
+        assert_eq!(
+            ids(src),
+            [
+                "function:widgets::demo::render_status",
+                "function:widgets::demo::width",
+                "type:widgets::demo::Seen",
+                "function:widgets::demo::Seen::parse",
+                "function:widgets::demo::Seen::status",
+                "function:widgets::demo::Seen::set",
+                "function:widgets::demo::inner::nested",
             ]
         );
     }

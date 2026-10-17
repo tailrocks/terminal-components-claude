@@ -16,6 +16,19 @@ app::jackin_preview::outro | jackin-only brand animation, product owner decision
 app::jackin_preview::handoff_fade | jackin-only transition, owner decision 2026-10-17 | permanent
 
 # core::edit
+core::edit::FocusSelect::apply | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::FieldKeys::text_keymap | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::record | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::seal | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::clear | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::can_undo | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::can_redo | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::undo | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::UndoStack::redo | core::edit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::edit::clipboard::copy | clipboard plumbing: truthful clipboard results on the showcase shell | SC34
+core::edit::clipboard::text | clipboard plumbing: truthful clipboard results on the showcase shell | SC34
+core::edit::clipboard::set_hook | clipboard plumbing: truthful clipboard results on the showcase shell | SC34
+core::edit::clipboard::clear_hook | clipboard plumbing: truthful clipboard results on the showcase shell | SC34
 
 # core::event
 core::event::Outcome | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -45,8 +58,50 @@ core::event::MouseKind::WheelLeft | State tab readout of the library dispatcher:
 core::event::MouseKind::WheelRight | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::event::Mouse | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::event::Mouse::with_mods | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::event::Outcome::consumed | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::ctrl | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::shift | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::alt | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::cmd | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::chord | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::plain | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::is | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::is_char | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Key::ctrl_char | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Mouse::shift | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Mouse::ctrl | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Mouse::alt | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Mouse::wheel | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::ClientPlatform::is_macos | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Input::from_crossterm | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::event::Input::from_crossterm_with | core::event plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::focus
+core::focus::FocusRing::register | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::len | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::is_empty | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::sort_from | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::push_barrier | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::reachable | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::contains | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::first | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::next | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::FocusRing::prev | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::forward_blur | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::cancel_focus_request | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::current | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::is | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::set | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::focus | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::next | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::prev | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::moves | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::apply_request | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::settle | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::end_edit | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::take_changes | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::ensure_valid | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::focus::Focus::ensure_valid_with | core::focus plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::hit
 core::hit::HitRegion | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -59,6 +114,41 @@ core::hit::ReleaseFrom | State tab readout of the library dispatcher: shown once
 core::hit::ReleaseFrom::Press | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::hit::ReleaseFrom::Secondary | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::hit::Hit | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::hit::HitRegion::hit | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_part | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_part_as | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::resolve | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::part_of | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::raise | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::regions | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_under | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_surface | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::is_surface | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::set_shape | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::shape_of | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_bar | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_thumb | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::accept_release | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::accepts_release | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::bar | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_backdrop | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_backdrop_of | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_scroll | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_hover | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::register_autoscroll | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::autoscroll_at | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::push_barrier | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::pass_through_target | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::backdrop_at | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::hit | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::hover_at | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::hit_scroll | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::scroll_stack | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::len | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::is_empty | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::clip_since | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::hit::HitRegistry::area_of | core::hit plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::id
 core::id::WidgetId | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -71,6 +161,10 @@ core::id::ItemKey::Num | State tab readout of the library dispatcher: shown once
 core::id::ItemKey::Text | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::id::Part | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::id::PartRef | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::id::WidgetId::item_of | core::id plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::id::custom_hash16 | core::id plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::id::ItemKey::as_index | core::id plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::id::Part::raw | core::id plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::intent
 core::intent::Intent | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -110,10 +204,45 @@ core::intent::LayerEvent | State tab readout of the library dispatcher: shown on
 core::intent::LayerEvent::Opened | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::intent::LayerEvent::Dismissed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::intent::LayerEvent::Closed | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::intent::Intent::part | core::intent plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::intent::Intent::pos | core::intent plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::intent::ActionKey::raw | core::intent plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::keyboard
+core::keyboard::push | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::parse_flags_reply | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::modifiers | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::modifier_param | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::encode | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::decode | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::ProtocolState::enter | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::ProtocolState::leave | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::ProtocolState::resume | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::session::enter | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::session::leave | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::session::resume | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::active | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::super_delivered | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::set_super_delivered | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::keyboard::observe | core::keyboard plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::keymap
+core::keymap::NavKeys::action | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::NavKeys::move_hint | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::NavKeys::page_hint | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::NavKeys::ends_hint | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::NavKeys::is_vim_letter | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::KeyBinding::deliverable | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::KeyBinding::matches | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::KeyBinding::label | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::KeyBinding::label_on | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::lookup | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::unassigned_chord | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::binding_for | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::deliverable_binding_for | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::label_for | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::select_all_bindings | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::hint_key | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
 
 # core::pointer
 core::pointer::SecondaryRoute | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -129,6 +258,50 @@ core::pointer::PointerState | State tab readout of the library dispatcher: shown
 core::pointer::PointerEvent | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::pointer::PointerParts | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::pointer::PointerRouter | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::pointer::PointerState::suppress_hover | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::focused_by_click | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_move | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_drag | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_down | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::autoscrolling | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::autoscroll_due | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::track_repeating | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::track_repeat_due | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::surface_press | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::dead_space | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::grabbed | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::reports_motion | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_secondary | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::route_secondary | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_secondary_drag | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_secondary_up | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::on_up | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::release | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::press | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::count_click | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::press_count | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::hover_ms | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::reset_clicks | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::flash | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::flashing | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::has_flash | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::expire_flash | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::wheel_delta | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::scrolled | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerState::refresh_hover | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::owner | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::on | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::part | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::index_of | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::phase | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::is | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::pos | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::count | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::mods | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerEvent::wheel | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::scroll_input | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerRouter::route | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::pointer::PointerRouter::tick | core::pointer plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::response
 core::response::Flow | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -150,8 +323,80 @@ core::response::Response::lift | State tab readout of the library dispatcher: sh
 core::response::StateFlags | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::response::StateFlags::union | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::response::StateFlags::with | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::response::Response::flow | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::is_consumed | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::invalidate | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::is_changed | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::outcome | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::action | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::take_action | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::into_action | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::Response::into_parts | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::bits | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::is_empty | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::contains | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::intersects | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::insert | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::remove | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::response::StateFlags::set | core::response plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::scroll
+core::scroll::ScrollState::max_offset | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::overflows | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::at_end | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::set_viewport | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::set_content | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::clamp | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::scroll_by | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::scroll_to | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::page_up | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::page_down | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::jump_start | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::jump_end | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::pointer_move | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::ensure_visible | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::follow | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::visible_range | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::thumb | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::offset_for_thumb_start | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::offset_for_track_pos | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::press_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::drag_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::release_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollState::press_track_with | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollbarVisibility::shows | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::HScroll::shows_bar | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::set_content | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::set_viewport | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::scroll_by | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::scroll_to | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::ensure_visible | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::follow | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::begin | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::v_click | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::v_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::h_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::set_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::clear_track | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::held | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::axis | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::layout_columns | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::reveal_column | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::h_step | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::h_scrolls | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::wheel | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::press | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::press_on | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::drag | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::drag_on | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::release | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::axis_of | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::bar_of | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::bar | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::draw_v | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::draw_divider | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::draw_h | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::scroll::ScrollPane::draw_with_fade | core::scroll plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::shape
 core::shape::PointerShape | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -163,14 +408,117 @@ core::shape::PointerShape::RowResize | State tab readout of the library dispatch
 core::shape::ShapeSupport | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::shape::Shapes | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::shape::ShapeSync | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+core::shape::PointerShape::css_name | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::PointerShape::osc22 | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::CaretShape::decscusr | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::under | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::shapes_for | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::ShapeSync::apply | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::ShapeSync::forget | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::shape::reset_sequence | core::shape plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # core::text
+core::text::TextBuffer::text | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::is_empty | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::cursor_offset | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::select_range | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::selection_lines | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::has_selection_lines | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::insert_at | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::remove_range | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::set_text | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::selection | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::select_all | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::clear_selection | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::select_to | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::word_range_at | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::select_word_at | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::select_line_at | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::selected_text | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_left | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_right | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_word_left | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_word_right | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_home | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_end | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_doc_start | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_doc_end | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_up | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::move_down | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::set_cursor_line_col | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::insert_char | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::insert_str | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::backspace | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::delete | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::delete_word_left | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::delete_to_line_end | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::delete_to_line_start | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::line_count | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::cursor_pos | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::pos_of | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::offset_at | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::text::TextBuffer::width | core::text plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # ui::ctx
 ui::ctx::Interaction | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 ui::ctx::RenderCtx | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+ui::ctx::Interaction::focused | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::focused_under | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::shown_focus | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::has_focus | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::live_hover | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::focus_visible | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::hovered | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::pressed | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::pressed_any | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::hovered_any | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::Interaction::flash_within | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::control | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::focus_stop | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::clickable | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::register_part | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::register_part_as | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::pointer_shape | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::clickable_under | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::scrollbar | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::scrollbar_thumb | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::scrollable | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::autoscroll | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::state | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::child_state | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::title_style | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::set_cursor | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::overlay | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::clip | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::flush_overlays | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::page_under_layer | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::begin_modal | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::visual_order | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::cover | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::modal_backdrop | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::RenderCtx::modal_backdrop_with | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::legible_on_fill | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::ctx::fill | ui::ctx plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # ui::layout
+ui::layout::Split::reset | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::Split::toggle_max | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::Split::grow | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::Split::layout | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::Split::handle | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::Split::drag_to | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::Split::nudge | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::Split::vertical | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::Split::horizontal | split panes: SplitKeys on Splits & stacks and the master-detail page | SC38
+ui::layout::StackScroll::on_wheel | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::StackScroll::on_scrollbar | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::StackScroll::on_scrollbar_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::StackScroll::pointer | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::layout::StackScroll::reset | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::layout::StackLayout::slot | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::layout::Stack::measure | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::Stack::layout | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::layout::Stack::chrome | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # ui::modal
 ui::modal::Dismissal | stacked modals on Dialog kinds (after S5, S7) | SC31
@@ -182,13 +530,67 @@ ui::modal::FramePlacement | deprecated: converts to popup::Placement::Center, sh
 ui::modal::FramePlacement::Upper | deprecated: converts to popup::Placement::Center, shown through popupstooltips.frame_placement | permanent
 ui::modal::FramePlacement::Middle | deprecated: converts to popup::Placement::Center, shown through popupstooltips.frame_placement | permanent
 ui::modal::Frame::overlay | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::modal::ModalStack::pointer | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::open | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::take | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::dismiss | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::modal::ModalStack::hides_page_focus | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::modal::ModalStack::top_as | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::top_as_mut | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::refuse_outside_click | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::border_style | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::close_button | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::close_button_with | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::push | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::pop | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::clear | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::top | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::top_mut | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::is_empty | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::len | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::iter | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::iter_mut | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::retain | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::outside_click | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ModalStack::escape | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::ensure_focus | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::Frame::area | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::modal::Frame::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # ui::popup
+ui::popup::Dismiss::allows | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::popup::Dismiss::shows_close | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::popup::backdrop_id | ui::popup plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::popup::backdrop | ui::popup plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::popup::place | ui::popup plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::popup::surface | ui::popup plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::popup::surface_for | ui::popup plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # ui::reveal
 ui::reveal::RevealLine | a reveal's row model (a line or a ↑/↓ N more marker), built and drawn by the library's reveal; shown through the popupstooltips Reveal list | permanent
+ui::reveal::Reveal::key_label | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::effective | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::available | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::hint | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::scrolls | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::begin | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::close | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::on_key | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::on_wheel | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::inline | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::RevealState::cell | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::truncated | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::hover_ready | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::hover_wait | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::on_pointer_wheel | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::advertise | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::queue_cut | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::reveal::cut_id | ui::reveal plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # ui::text
+ui::text::wrap | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::text::fuzzy | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # ui::tooltip
 ui::layer::LayerKind | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
@@ -228,8 +630,25 @@ ui::layers::LayerResult::Form | layer API (plan S5): ShellLayers, LayerSpec and 
 ui::layers::LayerResult::Choice | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layers::LayerResult::Info | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
 ui::layers::LayerResult::Help | layer API (plan S5): ShellLayers, LayerSpec and focus_out with stacked modals on Dialog kinds | SC31
+ui::tooltip::tip_id | ui::tooltip plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::tooltip::show | ui::tooltip plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::tooltip::on_input | ui::tooltip plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # widgets::button
+widgets::button::Button::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::button::Button::hint | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::button::Button::can_activate | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::button::Button::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::button::Button::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::button::Button::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::button::row_layout | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::button::row_layout_right | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::button::ButtonRow::step | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::button::ButtonRow::more_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::button::ButtonRow::rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::button::ButtonRow::rows_at_gap | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::button::ButtonRow::layout | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::button::ButtonRow::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::chips
 widgets::chips::ChipAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -240,10 +659,39 @@ widgets::chips::ChipAction::Add | widget actions: the Inspector State log of wid
 widgets::chips::ChipAction::Lead | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::ClearAll | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipCmd::ShowHidden | the +N menu's key is named only in the +N tooltip (hover); the keyboard reference generated from the widgets' key maps lists it | SC33
+widgets::chips::overflow_run | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::chips::ChipBar::more_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::menu_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::menu_open | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::chips::ChipBar::chip_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::close_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::add_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::lead_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::chips::ChipBar::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::choice
+widgets::choice::Checkbox::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::Checkbox::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::Checkbox::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::RadioGroup::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::RadioGroup::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::RadioGroup::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::RadioGroup::option_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::RadioGroup::option_part | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::RadioGroup::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::Toggle::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::Toggle::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice::Toggle::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::choice_dialog
+widgets::choice_dialog::ChoiceDialog::initial_focus | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice_dialog::ChoiceDialog::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice_dialog::ChoiceDialog::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice_dialog::ChoiceDialog::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice_dialog::ChoiceDialog::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::choice_dialog::ChoiceDialog::pointer_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::code
 widgets::code::EditorAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -251,18 +699,100 @@ widgets::code::EditorAction::Changed | widget actions: the Inspector State log o
 widgets::code::EditorAction::CursorMoved | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::code::EditorAction::Committed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::code::EditorAction::Leave | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::code::CodeEditor::entry | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::hints | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::wants_text_input | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::hbar | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::set_text | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::code::CodeEditor::is_empty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::current_block | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::selection_or_block | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::blocks | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::jump_to | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::code::CodeEditor::cursor_offset | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::cursor_cell | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::code::CodeEditor::begin_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::code::CodeEditor::set_running | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::code::CodeEditor::commit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::code::CodeEditor::open_find | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::code::CodeEditor::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::code::CodeEditor::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::completion
 widgets::completion::CompletionAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::completion::CompletionAction::Accept | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::completion::CompletionAction::Dismiss | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::completion::CompletionItem::apply | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::completion::Completion::open | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::completion::Completion::is_open | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::completion::Completion::close | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::completion::Completion::current | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::completion::Completion::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::completion::Completion::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::completion::Completion::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::completion::Completion::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::dialog
 widgets::dialog::Dialog::with_actions | deprecated alias of Dialog::actions, shown through dialogs (Unsaved changes, Push failed) | permanent
+widgets::dialog::Dialog::mnemonic_keys | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::dialog::Dialog::prompt_dirty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::dialog::Dialog::armed | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::dialog::Dialog::hints | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::is_editing | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::on_click_outside | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::Dialog::render_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::dialog::body_bounds | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::dialog::Dialog::pointer_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::diff
+widgets::diff::DiffHunk::old_len | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffHunk::new_len | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffHunk::header | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffStatus::marker | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffStatus::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffStatus::tone | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffFile::additions | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffFile::deletions | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffFile::summary | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffFile::summary_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffFile::header | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffFile::header_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffMode::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffView::id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::diff::DiffView::file | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffView::set_file | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::diff::DiffView::set_mode | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::diff::DiffView::toggle_mode | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::diff::DiffView::layout_mode | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::DiffView::layout | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::diff::DiffView::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::diff::DiffView::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::diff::DiffView::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::diff::DiffView::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::diff::unified_lines | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::unified_lines_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::review_lines | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::diff::review_lines_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::empty
+widgets::empty::EmptyState::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::empty::EmptyState::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::empty::render_ctx | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::empty::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::empty::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::field_common
 widgets::field_common::EditAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -281,16 +811,66 @@ widgets::field_common::EditAction::None | widget edit events and outcomes: the I
 widgets::field_common::Applied | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::field_common::Applied::Edited | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::field_common::Applied::Moved | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::field_common::route_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::field_common::route_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::field_common::route_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::field_common::unbound_key | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+widgets::field_common::edit_key | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+widgets::field_common::edit_key_with | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+widgets::field_common::edit_key_in | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+widgets::field_common::text_cmd_action | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+widgets::field_common::paste_clipboard | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+widgets::field_common::apply_edit | widgets::field_common plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # widgets::form_dialog
+widgets::form_dialog::FormField::value | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::form_dialog::FormDialog::field | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::form_dialog::FormDialog::field_mut | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::form_dialog::FormDialog::set_visible | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::form_dialog::FormDialog::text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::form_dialog::FormDialog::choice | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::form_dialog::FormDialog::set_text | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::form_dialog::FormDialog::set_chooser | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::form_dialog::FormDialog::set_note | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::form_dialog::FormDialog::values | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::form_dialog::FormDialog::initial_focus | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::is_editing | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_release | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::form_dialog::FormDialog::pointer_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::help
+widgets::help::HelpOverlay::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::help::HelpOverlay::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::help::HelpOverlay::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::hintbar
+widgets::hintbar::HintKeys::clicked | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::hintbar::HintBar::render_ctx | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::hintbar::HintBar::render_at | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::hintbar::HintBar::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::icon_button
+widgets::icon_button::IconButton::glyph | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::icon_button::IconButton::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::icon_button::IconButton::style | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::icon_button::IconButton::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::icon_button::IconButton::render_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::info_dialog
+widgets::info_dialog::InfoDialog::initial_focus | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::info_dialog::InfoDialog::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::info_dialog::InfoDialog::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::info_dialog::InfoDialog::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::info_dialog::InfoDialog::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::info_dialog::InfoDialog::pointer_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::input
 widgets::input::InputAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -303,45 +883,662 @@ widgets::input::TextInput::validate_on | validation timing shows with ValidateWh
 widgets::input::ValidateOn | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
 widgets::input::ValidateOn::Change | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
 widgets::input::ValidateOn::EveryCommit | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
+widgets::input::TextInput::set_edit_entry | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::entry | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::wants_text_input | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::is_dirty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::input::TextInput::can_undo | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::input::TextInput::hints | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::clear | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::input::TextInput::begin_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::commit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::cancel | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::resume | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::validate | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::input::TextInput::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::height_for | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_press_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::input::TextInput::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::keyhint
+widgets::keyhint::range | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyhint::normalize_key | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyhint::modifier_click | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyhint::Hint::is_pinned | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyhint::hint | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyhint::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::keyhint::render_aligned | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::keyhint::render_status_at | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::keyhint::render_styled | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::keyhint::render_parts | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::keyhint::render_parts_at | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::keyhint::key_of | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
 
 # widgets::menu
 widgets::menu::ContextMenu::type_ahead_timeout | a menu's type-ahead pause belongs on the Menus page, which opens the menus; its next step (SC41) adds the option | SC41
 widgets::menu::MenuBar::type_ahead_timeout | the menu bar's type-ahead pause belongs on Chrome, which shows the bar; its next step (SC34) adds the option | SC34
+widgets::menu::ContextMenu::more_above_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::more_below_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::highlighted | menus: CommandMenu with key replay on Menus | SC41
+widgets::menu::ContextMenu::on_wheel | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::hides_page_focus | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::size | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::on_click_outside | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::ContextMenu::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::more_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::hidden | menus: CommandMenu with key replay on Menus | SC41
+widgets::menu::MenuBar::hides_page_focus | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::label_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::brand_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::is_open | menus: CommandMenu with key replay on Menus | SC41
+widgets::menu::MenuBar::open_index | menus: CommandMenu with key replay on Menus | SC41
+widgets::menu::MenuBar::open_menu | menus: CommandMenu with key replay on Menus | SC41
+widgets::menu::MenuBar::close | menus: CommandMenu with key replay on Menus | SC41
+widgets::menu::MenuBar::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::on_hover | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::menu::MenuBar::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::panel
+widgets::panel::Panel::bg | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::panel::Panel::draw_meta | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::panel::Panel::mark_clipped | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::panel::Panel::try_render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::panel::Panel::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::panel::ScrollPanel::push | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::panel::ScrollPanel::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::panel::ScrollPanel::measure | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::panel::ScrollPanel::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::picker
+widgets::picker::Picker::caret | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::picker::Picker::on_click_outside | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::set_items | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::picker::Picker::refresh_items | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::picker::Picker::eligible | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::picker::Picker::current_key | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::picker::Picker::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::set_cursor | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::picker::Picker::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::draw | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::picker::Picker::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::progress
+widgets::progress::spinner_frame | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::progress::render_bar | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::render_bar_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::MeterTone::level | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::progress::Meter::is_stale | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::progress::Meter::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::render_meter | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::render_indeterminate | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::render_indeterminate_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::render_spinner | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::ProgressBar::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::progress::Tally::text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::progress::Tally::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::props
+widgets::props::measure | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::measure_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::props::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::PropsList::set_props | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::props::PropsList::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::PropsList::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::PropsList::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::PropsList::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::scrollbar
+widgets::scrollbar::id_for | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::h_id_for | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::is_bar_of | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::render_divider | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::scrollbar::render_vertical | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::scrollbar::render_horizontal | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::scrollbar::render_horizontal_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::scrollbar::reserve | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::split | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::offset_for_click | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::press | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::press_with | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::drag | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::press_h | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::drag_h | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::apply | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::apply_with | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::scrollbar::render_with_fade | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::scrollbar::render_with_fade_except | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::scrollbar::position_label | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
 
 # widgets::segments
+widgets::segments::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::select
 widgets::select::SelectAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::select::SelectAction::Changed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::select::Select::bar_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::set_mixed | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::select::Select::value | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::select::Select::option_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::close | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::select::Select::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_click_outside | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_release | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::on_wheel | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::select::Select::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::splitter
+widgets::splitter::Splitter::hit_area | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::splitter::Splitter::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::splitter::Splitter::render_held | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::splitter::Splitter::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::splitter::Splitter::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::splitter::Splitter::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::statusbar
+widgets::statusbar::StatusItem::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::statusbar::reveal_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::statusbar::StatusBar::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::steps
+widgets::steps::StepState::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::steps::StepState::terminal | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::steps::StepRail::set_state | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::steps::StepRail::set_meta | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::steps::StepRail::frontier | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::steps::StepRail::counts | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::steps::StepRail::failed | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::steps::StepRail::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::steps::StepRail::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::steps::StepRail::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::steps::StepRail::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 
 # widgets::textarea
+widgets::textarea::TextArea::entry | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::wants_text_input | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::is_dirty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::textarea::TextArea::hints | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::height | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::begin_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::textarea::TextArea::commit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::textarea::TextArea::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_press_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::textarea::TextArea::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::viewport
 widgets::viewport::ViewportAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::viewport::ViewportAction::Copy | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::viewport::ViewportAction::SelectionChanged | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::viewport::ViewportAction::FollowChanged | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
+widgets::viewport::line_text | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::render_spans | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::viewport::wrap_spans | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::h_enabled | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::reveal_cols | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::reveal_mark | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::revision | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::work_counters | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::retention | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::len | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::is_empty | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::lines | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::line | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::line_text | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::last | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::set_lines | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::push | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::extend | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::replace_last | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::pop | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::clear | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::set_max_lines | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::set_marks | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::clear_marks | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::marks | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::reveal_line | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::set_area | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::has_anchor | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::has_selection | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::selection | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::select_all | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::clear_selection | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::is_at_tail | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::scrollback_depth | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::set_follow | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::pos_at | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::selected_text | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::select_word_at | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::viewport::TextViewport::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::viewport::TextViewport::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::viewport::TextViewport::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::viewport::TextViewport::screen_pos | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::context_point | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::hbar | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+
+# core::list
+core::list::Moved::index | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Moved::moved | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Moved::outcome | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Cursor::apply | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Cursor::step | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Cursor::first | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Cursor::last | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Cursor::select | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::Cursor::type_ahead | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::KeyStep::of | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::KeyStep::ordered | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::TypeAheadPrecedence::install | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::route_key | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::NavProfile::nav | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::NavProfile::type_ahead | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::list::NavProfile::install | core::list plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# core::nav
+core::nav::step_index | core::nav plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# core::selection
+core::selection::TriState::glyph | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::TriState::glyph_in | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::len | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::is_empty | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::contains | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::iter | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::to_vec | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::anchor | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::clear | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::select_only | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::toggle | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::extend | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::select_all | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::toggle_all | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::tri_state | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::retain | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::remap | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# core::typeahead
+core::typeahead::TypeAhead::char_of | core::typeahead plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::typeahead::TypeAhead::feed | core::typeahead plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::typeahead::TypeAhead::feed_at | core::typeahead plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::typeahead::TypeAhead::reset | core::typeahead plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::typeahead::TypeAhead::find | core::typeahead plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# ui::columns
+ui::columns::ColumnSizing::user | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::columns::ColumnSizing::set | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::clear | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::reset | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::is_default | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::press | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::dragging | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::drag_to | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::release | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::apply | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::ColumnSizing::seam_rect | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::columns::render_seam | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::columns::seam_part | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+ui::columns::header_menu | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+
+# ui::context
+ui::context::ContextKeys::matches | ui::context plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::context::ContextConfig::on_secondary | ui::context plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::context::ContextConfig::on_key | ui::context plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::context::ContextAnchor::apply | ui::context plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::context::ContextRequest::menu | ui::context plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# ui::fade
+ui::fade::scroll_edges | ui::fade plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::fade::scroll_edges_except | ui::fade plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# ui::layer
+ui::layer::dismiss | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::layer::LayerOut::into_inner | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::layer::LayerOut::closes | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::layer::LayerEntry::get | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+ui::layer::LayerEntry::get_mut | modal plumbing: stacked modals through ShellLayers/ModalStack and Dismiss on Dialog kinds | SC31
+
+# ui::leave
+ui::leave::Stakes::is_clean | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::leave::letters_allowed | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::leave::LeaveGuard::request | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::leave::LeaveGuard::request_quit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::leave::LeaveGuard::is_dialog | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::leave::LeaveGuard::pending | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::leave::LeaveGuard::resolve | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+ui::leave::unsaved_dialog | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::leave::discard_dialog | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+ui::leave::running_dialog | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+
+# ui::specimen
+ui::specimen::SpecimenState::slug | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::SpecimenState::label | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::SpecimenState::from_slug | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::SpecimenState::visual | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::column_labels | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::rendered_rows | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::size | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::mark | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::render | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::row_heights | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::render_rows | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::levels_height | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::render_levels | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::StateGrid::render_level | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+ui::specimen::KindSample::draw | ui::specimen plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+
+# widgets::brand
+widgets::brand::Lockup::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::brand::Lockup::style | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::brand::Lockup::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::brand::Lockup::render_clickable | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::breadcrumb
+widgets::breadcrumb::Breadcrumb::segment_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::breadcrumb::Breadcrumb::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::breadcrumb::Breadcrumb::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::grid
+widgets::grid::CellValue::text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::CellValue::text_ref | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::CellValue::edit_text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::PendingChanges::is_empty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::PendingChanges::dirty_rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::PendingChanges::counts | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::PendingChanges::total | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::PendingChanges::is_dirty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::PendingChanges::value | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::default_validator | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::choice_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::open_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::out_of_set | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::autofit | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::header_menu | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::on_header_action | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::len | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::is_empty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::source_row | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::value | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::set_rows | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::append_rows | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::set_loading | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::row_state | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::is_editing | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::edit_error | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::read_only_reason_at_cursor | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::cell_editable | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::begin_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::commit_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::cancel_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::record_cell | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::toggle_delete | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::insert_row | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::duplicate_row | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::undo | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::apply_commit_result | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::discard | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::header_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::cell_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::seam_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::header_menu_at | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::rownum_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::more_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::left_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::right_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::position_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::rows_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::cols_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::pending_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::DataGrid::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::bar_ids | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::on_bar_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::cell_text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::grid::cell_text_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+
+# widgets::keyref
+widgets::keyref::KeyReference::text | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyref::KeyReference::lines | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+
+# widgets::list
+widgets::list::ListBox::reveal_hint | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::list::ListBox::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::checked_count | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::list::ListBox::activate | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::list::ListBox::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::option_editor
+widgets::option_editor::OptionItem::is_disabled | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::Options::len | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::Options::is_empty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::Options::get | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::Options::find | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::options | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::is_constrained | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::has_popup | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::checked | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::display | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::out_of_set | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::tone | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ColumnEditor::toggled | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::option_editor::ChoiceEditor::open | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::option_editor::ChoiceEditor::option_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::option_editor::ChoiceEditor::shown | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ChoiceEditor::blur_value | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::option_editor::ChoiceEditor::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::option_editor::ChoiceEditor::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::option_editor::ChoiceEditor::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::option_editor::ChoiceEditor::on_wheel | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::option_editor::ChoiceEditor::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::rail
+widgets::rail::SidebarRail::collapse_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::rail::SidebarRail::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::rail::SidebarRail::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::rail::SidebarRail::render_rail | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::rail::SidebarRail::render_collapse | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::table
+widgets::table::Column::min_width | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::choice_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::open_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::out_of_set | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::out_of_set_cells | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::toggle_mods_for | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::set_row_disabled | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::is_disabled | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::selected_rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::selection_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::selection_state | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::select_all | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::clear_selection | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::toggle_row | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::set_row | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::remove_rows | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::check_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::check_all_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_click_check | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_click_check_all | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::seam_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::header_menu_at | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::autofit | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::header_menu | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::on_header_action | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::len | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::is_empty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::is_editing | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::source_row | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::header_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::cell_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::set_rows | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::sort_by | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::begin_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::start_edit | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::table::DataTable::on_click_editor | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::commit_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::cancel_edit | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::table::DataTable::on_blur | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_click_header | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_click_cell | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_click_cell_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::edit_error | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+
+# widgets::tabs
+widgets::tabs::TabCmd::digit_keys | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tabs::Tabs::menu_open | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tabs::Tabs::more_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::menu_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::set_items | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tabs::Tabs::on_wheel | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::on_middle_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::tab_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::close_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::new_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::left_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::right_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::hidden | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tabs::Tabs::set_active | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tabs::Tabs::remove | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tabs::Tabs::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tabs::Tabs::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::toolbar
+widgets::toolbar::Toolbar::more_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::menu_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::menu_open | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::toolbar::Toolbar::hidden | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::toolbar::Toolbar::on_more | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::item_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::width | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::toolbar::Toolbar::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+
+# widgets::tree
+widgets::tree::TreeView::rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tree::TreeView::trailing | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tree::TreeView::flatten | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tree::TreeView::cursor_path | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tree::TreeView::node | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::tree::TreeView::node_mut | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::set_children | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::set_busy | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::set_filter | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::reveal | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::toggle_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::toggle | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::expand_all | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::collapse_all | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::on_click_row | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::on_click_toggle | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::on_click_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::toggle_recursive | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::tree::TreeView::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # theme
+theme::Theme::change_glyph | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Plane::is_fill | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Kind::is_glyph | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Ladder::step | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+theme::ascii_glyphs | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::ascii | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::ColorLevel::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::base | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::on | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::primary | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::secondary | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::muted | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::faint | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::accent_fg | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::error_fg | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::title | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::key_hint_key | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::key_hint_action | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::border | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::backdrop | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::disabled_style | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::ladder | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::plane_of | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::row | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::cursor_row | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::row_ink | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::chosen | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::lift | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::gutter_symbol | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::gutter | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::button | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::field_style | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::placeholder | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::close_glyph | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::close_plate | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::danger_plate | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::cell_cursor | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::rule_on | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::match_current | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::selection | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::scrollbar_track | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::scrollbar_thumb | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::tone | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::tone_on | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::link_style | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::status | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::status_at | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::status_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::env | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::syntax | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::badge | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::StatusKind::tone | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::EnvKind::tone | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Glyphs::env | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Glyphs::spinner_frame | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Glyphs::key_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Strings::fill | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Strings::follow | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
 
 # runtime
 runtime::Coalesce | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -349,7 +1546,29 @@ runtime::TerminalSession | runtime plumbing exercised by every run; no visible s
 runtime::SizeWatch | runtime plumbing exercised by every run; no visible surface | permanent
 runtime::InputPump | runtime plumbing exercised by every run; no visible surface | permanent
 runtime::FocusClickGuard | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
+runtime::Coalesce::folds | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::TerminalSession::enter | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::TerminalSession::enter_with | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::TerminalSession::terminal | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::TerminalSession::leave | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::TerminalSession::suspend | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::job_control::install | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::job_control::take_request | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::job_control::stop_self | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::run | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::SizeWatch::observe | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::SizeWatch::check | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::FocusClickGuard::drops | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::set_focus_click_guard | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::drain_ready_inputs | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::InputPump::set_policy | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::InputPump::has_pending | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::InputPump::drain | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::InputPump::settle | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+runtime::drain_pending_input | runtime plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 
 # state
 
 # widgets::too_small
+widgets::too_small::TooSmall::applies | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::too_small::TooSmall::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent

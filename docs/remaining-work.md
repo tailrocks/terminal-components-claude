@@ -27,9 +27,9 @@ The branch is done when all of these hold:
 1. Every S-step (S8a–S27) and the theme track T in the plan's §4 / §7.3
    table is "Done" in "Step status" / §7.8, with its `rg` contract checks
    at 0 hits and its deviations recorded.
-2. Every SC-step (SC30–SC57) is "Done" and
+2. Every SC-step (SC30–SC58) is "Done" and
    `tests/showcase_coverage_allow.txt` holds only `permanent` lines
-   (today: 221 pending, 12 permanent).
+   (today: 544 pending, 866 permanent).
 3. Every finding in `docs/audits/design-review-2026-10/` is "Fixed" or
    recorded with a reason the owner accepted; no "open", "recorded, not
    fixed" or "owner question" entry is left without a decision (§2).
@@ -145,12 +145,12 @@ rows for new surfaces, the step's allowlist lines deleted with the gate
 green, no app-local code in `src/bin/showcase`, and the §7.8 row updated.
 
 Allowlist today (`tests/showcase_coverage_allow.txt`, `id | reason | step`):
-233 lines, 12 `permanent`, 221 pending: SC34 172, SC31 43, SC32 4, SC33 1,
-SC41 1.
+1410 lines, 866 `permanent`, 544 pending: SC58 210, SC34 176, SC31 74, SC41 47,
+SC33 26, SC38 7, SC32 4.
 
 | Id | What | Depends on | Allowlist lines | Source |
 |---|---|---|---|---|
-| SC-G1 | Extend the coverage-gate scan (`src/bin/showcase/catalog_scan.rs`) to public non-builder functions and methods: free `pub fn` (e.g. `keyhint::render_status`, `src/widgets/keyhint.rs:355`; `keyhint::render_toned`, `columns::solve`, `ui::text::*`) and `&self` methods (e.g. `Theme::status`, `src/theme.rs:1712`) fall into the scanner's `_ => {}` arm today. Add a `CapKind` for them, list them in `src/catalog.rs`, declare or allowlist each. | — | adds lines | owner brief; plan "SC0 outcome" (scan scope) |
+| SC-G1 | **Done.** The scan lists free `pub fn`s and inherent methods of public types (not constructors) as `CapKind::Function`; 1207 entries registered; 30 declared as existing demos, 854 `permanent` (widget protocol, widget operations, plumbing), the rest pending on SC31/SC33/SC34/SC38/SC41 or the new SC58; plan "SC-G1 outcome". | — | +1177 | owner brief; plan "SC0 outcome" (scan scope) |
 | SC-G2 | **Done.** `TabCmd::ShowHidden` is shown (the Tabs keys readout names "↓ hidden tabs" while the strip has an overflow menu; `the_keys_readout_names_the_hidden_tabs_key_while_the_strip_has_a_menu`). Re-pointed with reasons: `TextInput::validate_on`, `ValidateOn` and its two variants to SC32 (no playground field is an untouched empty required field, so the two variants look the same until `ValidateWhen` lands on Inputs); `ChipCmd::ShowHidden` to SC33 (named only in the `+N` tooltip; the generated keyboard reference lists it; the Chips playground has approved captures). `Theme::centred_hints` stays on SC30, which shows it on Status & hints. The `type_ahead_timeout` lines moved under `# widgets::menu`; `# core::list` is gone. | — | 7 → 0 on finished steps | allowlist |
 | SC30 | **Done.** Status & hints shows the footer `StatusLine` (TTL, error, paused), the `Motion` levels on a running job, `Theme::centred_hints`, `TooSmall` with its builders as options and `CommonArgs` read from clap; plan "SC30 outcome". | S2 (done) | 5 → 0 | §7.5 SC-F table |
 | SC31 | Stacked modals through `ShellLayers`/`ModalStack`, `Dismiss::{focus_out, refuse_feedback}`, `Frame::close_button`, `DismissReason` in the State log; fix the recorded SC10 finding (a select's list closes on dead space under `Dismiss::ESCAPE` because `Select::close_on_blur`, not `Dismiss::focus_out`, decides blur) | S5, S7 (done): can run now | 43 | §7.5; "SC10 outcome" recorded finding; `interaction.md` "SC10 finding" |
@@ -169,6 +169,7 @@ SC41 1.
 | SC44 | `PickerChain` | S25 | — | §7.5 |
 | SC45 | Pane tree page (no cross-fade) | S26 | — | §7.5 |
 | SC57 | Strategy B options on Focus & navigation and Toolbars, `toolbars.adjacent` | S27 | — | §7.3, §7.5 |
+| SC58 | Function coverage added by SC-G1: theme style roles, widget queries and labels, render helpers on their finished pages (plan §7.5 SC58) | SC-G1 (done) | 210 | plan "SC-G1 outcome" |
 | SC46 | Screen: query workbench | S8a, S16, S17, S19, S21, S23 | — | §7.5 "Screens" |
 | SC47 | Screen: connections | S17, S18, S19, S21 | — | same |
 | SC48 | Screen: finder | S11, S17, S19, S24 | — | same |
