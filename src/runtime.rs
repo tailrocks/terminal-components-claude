@@ -76,6 +76,11 @@ pub trait Application {
     fn keyboard_protocol(&self) -> KeyboardProtocol {
         KeyboardProtocol::current()
     }
+    /// Escape sequences to write to the terminal after the frame (an
+    /// OSC 52 clipboard write, [`crate::shell::Clipboard`]). Default none.
+    fn take_output(&mut self) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// Input coalescing policy of the event loop.
@@ -585,6 +590,14 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         }
         // the pointer and caret shapes of what the last frame drew
         if shapes.apply(app.shapes(), terminal.backend_mut())? {
+            terminal.backend_mut().flush()?;
+        }
+        // what the app asked to write besides the frame (a clipboard copy)
+        let output = app.take_output();
+        if !output.is_empty() {
+            for seq in output {
+                terminal.backend_mut().write_all(seq.as_bytes())?;
+            }
             terminal.backend_mut().flush()?;
         }
         // a tick-driven transition may have asked to quit without any input
