@@ -6814,7 +6814,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::panel::Panel",
         Protocol,
-        &["draw_meta", "try_render", "render"],
+        &["draw_meta", "try_render", "render", "outer", "inner"],
     ),
     ("widgets::panel::ScrollPanel", Operation, &["push"]),
     (
@@ -6871,7 +6871,11 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::props::Prop",
         Protocol,
-        &["widgets::props::measure", "widgets::props::render"],
+        &[
+            "widgets::props::measure",
+            "widgets::props::width",
+            "widgets::props::render",
+        ],
     ),
     ("widgets::props::PropsList", Operation, &["set_props"]),
     (
