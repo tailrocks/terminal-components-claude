@@ -36,7 +36,6 @@ MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Pag
 MasterDetail | Playground | 120x40 | R36 squeezes instead of overflowing: no Page::measure yet
 PaneTree | Playground | 80x24 | R37 squeezes instead of overflowing: no Page::measure yet
 PaneTree | Playground | 100x25 | R37 squeezes instead of overflowing: no Page::measure yet
-PaneTree | Playground | 106x29 | R37 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 80x24 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 100x25 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 106x29 | R38 squeezes instead of overflowing: no Page::measure yet
@@ -68,7 +67,6 @@ Activity | Playground | 120x40 | R46 squeezes instead of overflowing: no Page::m
 Workspaces | Playground | 80x24 | R47 squeezes instead of overflowing: no Page::measure yet
 Workspaces | Playground | 100x25 | R47 squeezes instead of overflowing: no Page::measure yet
 Workspaces | Playground | 106x29 | R47 squeezes instead of overflowing: no Page::measure yet
-Workspaces | Playground | 120x40 | R47 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 80x24 | R48 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 100x25 | R48 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 106x29 | R48 squeezes instead of overflowing: no Page::measure yet
@@ -76,7 +74,6 @@ AccountsUsage | Playground | 120x40 | R48 squeezes instead of overflowing: no Pa
 LaunchCockpit | Playground | 80x24 | R49 squeezes instead of overflowing: no Page::measure yet
 LaunchCockpit | Playground | 100x25 | R49 squeezes instead of overflowing: no Page::measure yet
 ReadOnlyReport | Playground | 80x24 | R50 squeezes instead of overflowing: no Page::measure yet
-ReadOnlyReport | Playground | 100x25 | R50 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 80x24 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 100x25 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 106x29 | R51 squeezes instead of overflowing: no Page::measure yet
