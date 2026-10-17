@@ -118,6 +118,8 @@ pub const OVERLAYS: &[Root] = &[
     // Pending: context menus (Shift+F10) with both dismissals.
     Root::new("tablepro/overlays/explorer_context", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["wait:S public", "shift-f10"]).pending().dismiss_pending(),
     Root::new("tablepro/overlays/connections_context", Bin::Tablepro, &[], "Production").sends(&["down", "shift-f10"]).pending().dismiss_pending(),
+    // V4: `p` on a grid with a pending edit opens the SQL preview.
+    Root::new("tablepro/overlays/sql_preview", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "enter", "ctrl-l", "type:paid", "enter", "p", "wait:SQL preview"]).pending().dismiss_pending(),
     // Pending: the connection form's leave guard (Save / Discard / Cancel).
     // Tab commits the typed name (Esc inside the field would revert it);
     // then Esc closes, `e` edits another connection, Ctrl+N starts a new
