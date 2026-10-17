@@ -6501,7 +6501,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::choice::Toggle",
         Protocol,
-        &["on_key", "on_click", "render"],
+        &["on_key", "on_click", "render", "width"],
     ),
     (
         "widgets::choice_dialog::ChoiceDialog",
