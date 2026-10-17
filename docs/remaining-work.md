@@ -1,6 +1,42 @@
 # Remaining work on `design/interaction-polish`
 
-Restart entry point: [docs/GOAL.md](GOAL.md).
+Restart entry point: [docs/GOAL.md](GOAL.md). Unfinished work on `wip/*`
+branches and how to continue it: [docs/handoff/README.md](handoff/README.md)
+(read it first on every restart).
+
+## Live status (handoff, 2026-10-18)
+
+The session stopped on 2026-10-18 and handed over. Base:
+`origin/design/interaction-polish` at `6f8a4b3af` plus the handoff docs.
+
+Done this session (landed):
+
+- Priority 0b reach: R33-R54 except the rows below (R33, R35-R39,
+  R45-R54 done; R45 DiskCleanup, R46 Activity, R47 Workspaces, R48
+  AccountsUsage and R51 Forms landed 2026-10-18, `4ce6bd5c1`..`6f8a4b3af`).
+  R34 and R40-R44 are on `wip/reach-pages-a`, not gated; next: rebase,
+  gate, land per row (check the branch log for the tip; row in the
+  handoff).
+- Footer peek: the peek line never drops the primary hint or costs a key
+  hint (`270ea65d3`, `f3cb3bbd5`); the holla finder peeks only while it has
+  focus (`941fd8c23`).
+- Splitter states: seam hover is a brighter heavy rule, drag the accent
+  (`2ea7940a6`, `2d4262375`).
+- R-apps-7: button rows wrap instead of dropping buttons (`6e19572c0`,
+  `5629775d9`).
+- R-apps-14: a dialog's code preview joins the body scroll (`a2f397f1b`,
+  `3144afba9`).
+
+Unfinished, each on a `wip/*` branch with exact next steps in the
+[handoff](handoff/README.md):
+
+| Item | Branch | Tip |
+|---|---|---|
+| R34, R40-R44 (not gated; next: rebase, gate, land per row) | `wip/reach-pages-a` | check the branch log (`f5b538137` at writing) |
+| R-apps-3 | `wip/rapps-3-7-14` | `81be99a79` (not gated) |
+| S16 (S16a library) | `wip/plan-s16` | `b249a81be` (builds only) |
+| S14 follow-ups (task 2 clipboard; tasks 3 K6 and 4 P0-G6 not started) | `wip/s14-followups` | `95f62ca33` |
+| V1 (not started) and the D10 holla flake fix | `wip/v1-showcase` | `c1a49af0f` |
 
 ## Priority 0 (owner, 2026-10-17): fill every empty showcase page
 
@@ -125,17 +161,17 @@ never in view at the smallest failing size.
 | R31 | Meters | Playground | done: Page::measure (PageHeader, Heading, MeterList Measure) | — |
 | R32 | Notices | Playground | done: Page::measure (notices at their option width, cards whole) | — |
 | R33 | Panels | Playground | done: Page::measure (cards wrap to their column, the nested note under its group when narrow, panes under the cards below 74 columns) | — |
-| R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 | `008 009 010 011 012 013 014 015` |
+| R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 (in progress on `wip/reach-pages-a`, see [handoff](handoff/README.md)) | `008 009 010 011 012 013 014 015` |
 | R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::natural_extent, the starting ratio: a drag never resizes the page; the stack with its note) | — |
 | R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width at the starting ratio, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size at the starting ratios) | — |
 | R38 | Editor | Playground | done: Page::measure (right column at its need with EmptyState::min_width, the editor gives way down to 40 and scrolls itself; stacked under the editor when narrower) | — |
 | R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
-| R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
-| R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
-| R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 | `10312 10319 10326 10333 10340 10347 10354 10361` |
-| R43 | Connections | Playground | 80x24, 100x25 | `5432 Last SSH SSL ago bastion connections hour` |
-| R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 | `Alternatives Data Gate Host Risk Runs State Why` |
+| R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 (in progress on `wip/reach-pages-a`, see [handoff](handoff/README.md)) | `LIVE Viewport container credentials failure image launch queued` |
+| R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 (in progress on `wip/reach-pages-a`, see [handoff](handoff/README.md)) | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
+| R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 (in progress on `wip/reach-pages-a`, see [handoff](handoff/README.md)) | `10312 10319 10326 10333 10340 10347 10354 10361` |
+| R43 | Connections | Playground | 80x24, 100x25 (in progress on `wip/reach-pages-a`, see [handoff](handoff/README.md)) | `5432 Last SSH SSL ago bastion connections hour` |
+| R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 (in progress on `wip/reach-pages-a`, see [handoff](handoff/README.md)) | `Alternatives Data Gate Host Risk Runs State Why` |
 | R45 | DiskCleanup | Playground | done: Page::measure (sections at their natural heights, each master-detail pair at `MasterDetail::panes_width`, so neither collapses and the reclaim card keeps its notice; heights at the pane widths through `MasterDetail::split_rects`; a collapse threshold set above the panes' need still shows the drawer) | — |
 | R46 | Activity | Playground | done: Page::measure (the log at `TextViewport: Measure`, every line on one row so its char wrap never splits a word; beside the side column when both fit, else over the Steps and Run cards, side by side when both fit; `StepRail: Measure` keeps every label and meta whole) | — |
 | R47 | Workspaces | Playground | done: Page::measure (tree beside the detail card at `MasterDetail::panes_width`, the card as wide as its facts' longest word (long facts wrap), its actions or a 40-column roster that cuts and reveals its own rows; heights at the pane widths; below a collapse threshold set above the panes' need, one pane at its own width, `MasterDetail::collapsed_mode` says which). 120x40 scrolls 5 columns sideways: the tree's metas need them | — |
@@ -329,9 +365,9 @@ below is the dependency each step must wait for.
 | S11 | **Done** 2026-10-17 (plan "S11 outcome"): `widgets::edit::{EditField, Validate, Validator, ValidateWhen, FieldError, Editable}`; `PointerField` once for every `Editable`; TextInput, TextArea, CodeEditor, table and grid cells, Picker, Combo, find and holla finder queries on `EditField`; `TextValidator`, `table::CellValidator`, `grid::Validator` deleted. Left: the Combo query's pointer gestures (S12), holla Files query (S22), F6 hint (S8b), the new API allowlisted for SC32 | M2, M21, M31, M39, K1 walk, K5, K7, K17, K36, SI6, SIg5, SIg9; Select All in picker/combo/find queries; D3 unchanged (owner) | S4, S6 (done) | the K1 walk, the M2 CodeEditor drag test (both landed) | SC32 |
 | S12 | **Done** 2026-10-17 (plan "S12 outcome"): `OptionList`, `Item`, and the bodies of Completion, Picker, ContextMenu, Select and ChoiceEditor on it; SI13, SI21/SV15, K38 (chip lead), A23, CO15, the tablepro tab list, the cell-popup wheel and the Combo query pointer. Left: the popup peek line (K12, S10 deviation 4) and the deviations in the plan. `widgets::option_list::OptionList`, `Item`; bodies of Select, OptionEditor, Picker, Completion, ContextMenu; tablepro `PickerItem`/`CompletionItem` literals | M19, M38, SI13, SI21/SV15; tablepro tab-list glyph mismatch (`app.rs:1655` vs `1682`); CO6, CO7 | S3, S4, S5 (done) | popup journeys; wheel tests in all five | SC32 |
 | S13 | **Done** 2026-10-17 (plan "S13 outcome" and "S13 (Edit menu part) outcome"): `ListCore`, `ContentState`, List, Tree, Props, Steps on `ListCore`, K37; the standard Edit context menu on every text widget (M3, `ui::edit_menu`; a right click now focuses the control, `PointerConfig::secondary_focuses`); default context menus from key maps (M22: `command_items`, DataGrid, ChipBar, TreeView Expand/Collapse all); M6 and M30 were already fixed. Left: tablepro/holla text panes and tablepro's hand-listed grid menu (S22), PropsList "Copy value" (S15), page options (SC34). | M3, M6, M22, M30, K37 | S9, S10, S11 | a right-click test on every text widget | SC34 (States grids: Lists, Trees, Text utilities done) |
-| S14 | **Done** 2026-10-17 (plan "S14 outcome"; deviations 1–7 there): `shell::{Router, Nav, Chrome, Breadcrumb, Clipboard}`, `App::stakes`, typed menu `Cmd`; delete S `goto`, T `Screen`, H `go`, J `go`/`Screens`/`ROUTES`, label-string re-dispatch (H:1569, J:1667), `copy_osc52`, `request_quit`/`open_quit_confirm` ×3 | M5, M7, M8, M23, M40, K4, K6, SI17, SIg3 | S7, S8a | quit and leave journeys per app | SC34 |
+| S14 | **Done** 2026-10-17 (plan "S14 outcome"; deviations 1–7 there). Follow-ups: SI17 copy-first landed (`95ac0ca05`); the real clipboard everywhere is on `wip/s14-followups` (`95f62ca33`), K6 (tablepro query leave guard) and P0-G6 (`PageHeader` adoption) not started, see the [handoff](handoff/README.md). `shell::{Router, Nav, Chrome, Breadcrumb, Clipboard}`, `App::stakes`, typed menu `Cmd`; delete S `goto`, T `Screen`, H `go`, J `go`/`Screens`/`ROUTES`, label-string re-dispatch (H:1569, J:1667), `copy_osc52`, `request_quit`/`open_quit_confirm` ×3 | M5, M7, M8, M23, M40, K4, K6, SI17, SIg3 | S7, S8a | quit and leave journeys per app | SC34 |
 | S15 | `Component`, `Draw`, `Measure`, `Container::visit`, `AnyComponent`; builder renames; delete `MouseTarget` adapters, the `Outcome` adapter, free render fns (`empty::render`, `props::render`, `keyhint::render*`), per-widget `on_*` | M28, K19; CO8 | S6–S13 | `rg 'fn on_click\b\|fn on_wheel\b' src/widgets` = 0; `WidgetDoc` required by `Component` (§5) | — |
-| S16 | `Column::marker`, `RowMark`, `ListItem::{header, status}`, `TreeNode::{meta_tone, trailing, label_tone}`, `TreeView::columns`; S16a library, S16b holla rows, S16c jackin rows and trees, S16d tablepro EXPLAIN tree-table | 69 screen list-key arms; CO11; CO1 (page key maps, then one router guard); page help sections from `Page::bindings` (plan "S8b deviations" 2) | S10, S13 | per-app captures pixel-equal; the jackin tree hit test | SC35 |
+| S16 | **In progress**: S16a library on `wip/plan-s16` (`b249a81be`, builds only; next steps in the [handoff](handoff/README.md)). `Column::marker`, `RowMark`, `ListItem::{header, status}`, `TreeNode::{meta_tone, trailing, label_tone}`, `TreeView::columns`; S16a library, S16b holla rows, S16c jackin rows and trees, S16d tablepro EXPLAIN tree-table | 69 screen list-key arms; CO11; CO1 (page key maps, then one router guard); page help sections from `Page::bindings` (plan "S8b deviations" 2) | S10, S13 | per-app captures pixel-equal; the jackin tree hit test | SC35 |
 | S17 | **Done 2026-10-17** (P0; plan-s17 branch): `MeterList`, `Notice` (earlier), then `Tabs::{layout, layout_gap, passive, passive_focused}` (tablepro table sections, Structure sub-tabs, connection form, workbench strip, jackin capsule usage dialog, showcase Settings / Query workbench / Tabs), `TextInput::{readout, readout_link, set_readout}` (Inputs page, Finder scope), `NavList` moved into `widgets::nav_list` (Sidebars page, with `SidebarRail`), `PageHeader` / `Heading` (`widgets::page_header`; holla `screens::heading` deleted, activity, cleanup, plan, review gate 1 and snapshot headers), `ActionRow` (holla review ×3 and plan confirm rows, tablepro connection form footer and filter editor), `DetailCard` (tablepro connection card, showcase Connections). `Item` builder: already landed with S12 (`Item::value`); the string-index parsing left (`TreeNode::meta` in the EXPLAIN tree, `LayerTag::key` in holla plan/disk menus) belongs to S16d and S22. Captures of the four apps unchanged. Left by hand, moved to CO17: holla disk header (its subtitle switches per view), plan runner and review gate 2 / run headers, about 17 jackin headings, the showcase app header, tablepro result sub-tabs (`y += 2` inside a running cursor), the connection form's test result (a status glyph and label after the buttons) and the jackin capsule usage dialog's undrawn per-row detail (see the MeterList note). | M34; CO12 | S8b, S10 | captures unchanged | SC36 |
 | S18 | `FormPanel`, `FormField::pair`; tablepro connections form and filter editor, showcase forms | K6 | S11, S17 | form journeys | SC37 |
 | S19 | `MasterDetail` (14 sites, `SPLIT_MIN`). Library part done with SC38 (`ui::master_detail`, `SplitKeys`, K18); holla finder/cleanup/disk/files and jackin accounts/manager migrated; open: `SplitKeys` in the app screens, holla plan (review, runner zoom with S26); the rest are not master-details (plan "S19 outcome (partial)") | M20, K18 | S17 | narrow-tier captures | SC38 |
@@ -434,7 +470,7 @@ doc's status table carries these counts since V9.
 
 | Id | What | Depends on | Acceptance | Source |
 |---|---|---|---|---|
-| V1 | Re-approve the 1,650 legacy showcase scenarios group by group (`flows/*` per page: datagrid 100, chrome 100, settings, pickers, editor, diff, dialogs 75 each, …; `fade`, `audit`, `hover`, `resize`) with `VISUAL_FULL=1`, review, attribute every changed cell, `tuiscotti accept`; never rewrite files in bulk. Their `.html` files carry absolute paths (tuiscotti P7) and go with them. | ideally after the S-steps that move showcase pages, to approve once | `find snapshots -name '*.txt'` empty | `tuiscotti-migration.md` "Legacy four-file scenarios"; `tuiscotti-feedback.md` P3, P7 |
+| V1 | **Not started** (0 of 66 roots; scripts and method in the [handoff](handoff/README.md), D10 fix on `wip/v1-showcase` `c1a49af0f`). Re-approve the 1,650 legacy showcase scenarios group by group (`flows/*` per page: datagrid 100, chrome 100, settings, pickers, editor, diff, dialogs 75 each, …; `fade`, `audit`, `hover`, `resize`) with `VISUAL_FULL=1`, review, attribute every changed cell, `tuiscotti accept`; never rewrite files in bulk. Their `.html` files carry absolute paths (tuiscotti P7) and go with them. | ideally after the S-steps that move showcase pages, to approve once | `find snapshots -name '*.txt'` empty | `tuiscotti-migration.md` "Legacy four-file scenarios"; `tuiscotti-feedback.md` P3, P7 |
 | V2 | Approve the `.pending()` coverage rows: 29 element, 7 overlay and 10 resize roots, 92 overlay dismissals (3,450 captures), including the quit-guard `OVERLAYS` rows and the 15 stale-step roots. | V1 for showcase rows | rows gate (no `.pending()` left, or deleted with a reason) | `tuiscotti-migration.md` status table, "stale steps", quit-guard rows |
 | V3 | Narrow tier (`40x12`, `60x18`, 1,056 captures): fix the targets it misses (`jackin/cockpit/debug`, `jackin/accounts/filter` and others), then approve. | S19 (narrow layouts) | narrow tier approved; `visual-narrow` suite green | `tuiscotti-migration.md` narrow tier; plan T12–T16 row |
 | V4 | **Done** (visual-v4-v6, 2026-10-17): 121 of 125 overlay sites have rows (pending `OVERLAYS` rows with both dismissals, each run and read at 120x40; five journeys and surfaces moved to `OVERLAYS`, names and approvals unchanged). The 4 sites left (jackin F2/F3, layers that open only from a job on virtual time) got rows in V12: 0 gaps. Approving the rows is V2. Was: 67 of 108 overlay sites had no `OVERLAYS` row. | — | `overlay_sites` reports 0 gaps (4 left, each a recorded finding) | plan Progress T15; §C2; `visual-reapproval.md` "Overlay coverage (V4)" |
@@ -529,7 +565,7 @@ known gap with its row id here, and a fix drops its lines. Branch
 |---|---|---|---|---|
 | R-apps-1 | **Done 2026-10-17** (rapps-6-1): Segments and StatusBar collapse the items they drop into one `…` overflow item (`ui::reveal::overflow`) that reveals them on hover; the reach audit reads them through that reveal; 46 allow lines gone; the 68 lines still tagged R-apps-1 re-triaged to their other classes (rapps-6b-2). Residual: keyboard access to the `…` (strips are outside the focus ring) goes with A11. | — | done | `responsive.md` R-apps-1 |
 | R-apps-2 | Hand-rolled master-detail drops the detail or aside below a width (tablepro connections and EXPLAIN card, jackin manager aside, editor/settings detail, usage swap; holla plan summary over the drawer). Holla plan: the consequence line no longer covers the details drawer (rapps-6b-2). **2026-10-17 (rapps-2b):** `DetailSize::MasterShare` (`master_share`, the master's share clamped; showcase Detail size = master); jackin editor/settings variable card on `MasterDetail` (a focus stop, drawer below 150); tablepro connections on `MasterDetail` (`master_share(33, 26, 40)`, drawer below 80, Tab to Connect). Next: tablepro EXPLAIN node card (needs a card focus stop), jackin manager aside (a third pane: the roster, needs an aside that stacks under the detail), usage swap (list and detail take turns below 100: already reachable by Enter, move onto the drawer for consistency). connections-empty keeps `Select moves` by design (the narrow empty master says Ctrl+N; the empty detail has no focus stop to open). | `MasterDetail` | screens on `MasterDetail`; allow lines gone | `responsive.md` R-apps-2 |
-| R-apps-3 | Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
+| R-apps-3 | **In progress** on `wip/rapps-3-7-14` (`81be99a79`, not gated; next steps in the [handoff](handoff/README.md)). Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
 | R-apps-4 | Text cut with `…` but no reveal. **Mostly done 2026-10-17** (rapps-458): `reveal::cut` / `reveal::fit` (hover tooltip; peek line when focused); TextInput, PageHeader, Heading and 68 app one-line cuts use them; 43 allow lines gone, 13 shrank. Next: the cuts listed open in `responsive.md` R-apps-4 (multi-step draws: holla activity strip, plan summary, config hash, cleanup toggles; jackin cockpit, editor-accounts, manager aside, usage; tablepro connection-form list, open-quickly). | — | one cut helper that registers the reveal | `responsive.md` R-apps-4 |
 | R-apps-5 | **Done 2026-10-17** (rapps-458): Notice reveals a clamped message/detail on hover; `reveal::clamp` (marked ` …`, hover and peek reveal) for the tablepro safe-mode description; tablepro error card and jackin blockers mark their cut. | — | done | `responsive.md` R-apps-5 |
 | R-apps-6 | Fixed-size bodies drop rows with no scrollbar. Holla disk compact mode **done 2026-10-17** (rapps-6-1). Fact sheets and detail cards **done 2026-10-17** (rapps-6b-2): `props::render_in` (a sheet through a vertical `ScrollView`), holla gate/trust/snapshot facts, tablepro history detail and statement card, jackin settings Agents; a wheel notch moves at most one view. Next: jackin manager detail and cockpit credentials, holla config and cleanup-history bodies, tablepro error card. | responsive-lib (scroll container) | bodies scroll; allow lines gone | `responsive.md` R-apps-6 |
