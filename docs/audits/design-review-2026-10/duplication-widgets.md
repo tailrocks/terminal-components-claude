@@ -113,10 +113,10 @@ Every row is consolidated into the plan ([`shared-components-plan.md`](../../arc
 |---|---|---|---|
 | 1 Cursor stepping, NavKeys | Fixed (S4) | `7c35fe986`, `bce2a2080`, `78241eebf`, `33f217bf3`, `0cb707165`, `40cb73b1d` | `core::list::{Cursor, RowSource}`; 21 `nav.action` blocks step through `Cursor`; `tests/navigable.rs`. Widgets keep `cursor: usize` until `ListCore` (S13). |
 | 2 Type-ahead, chord guard | Fixed (S4) | `7c35fe986`, `bce2a2080`, `78241eebf` | `Cursor::type_ahead`, miss = Consumed, enabled-row predicate everywhere. Guard is `keymap::unassigned_chord` per widget; one call in `KeyRouter` is CO1 (S8a). |
-| 3 Multi-selection model | Open → S9 | — | `SelectGesture`, `RowSelection::apply` not built; List `checked`/`anchor`, Grid `selected_rows` remain. |
+| 3 Multi-selection model | Fixed (S9) | S9 commits | One `RowSelection` (through `RowSelection::apply` and `SelectGesture`) in Table, List, Grid and the tags editor; List `checked`/`anchor`, Grid `selected_rows` and the editor's `checked` are gone. |
 | 4 Scroll pane | Fixed (S3, S6) | `d2f591b80`, `72af0091c`, `3760a4dff`, `f81a86465`, `780e4f18a`, `7efcf8e45` | 17 widgets embed `ScrollPane`; h-step and dead bars fixed (`tests/scroll_panes.rs`). Select, OptionEditor, ContextMenu wait for S12 (CO6). |
 | 5 Popup option lists | Open → S12, CO6 | — | `OptionList` not built; wheel policy decided in plan §3 (scroll the view). |
-| 6 Click count, activation | Open → S9, S11 | `d821cd98e` (count) | `PointerEvent::count()` reaches every widget (S6). `ClickPolicy`/`Activate` is S9 (CO10); CodeEditor multi-click is M2 (S11). |
+| 6 Click count, activation | Fixed (S9); CodeEditor → S11 | `d821cd98e` (count); S9 commits | One `ClickPolicy`/`Activate` rule in List, Tree, Table, Grid and PropsList (CO10: screens ask it too); CodeEditor multi-click is M2 (S11). |
 | 7 Text editing outside `TextBuffer` | Open → S11 | — | `EditField` not built; picker and combo queries, table/grid cell editors still separate. |
 | 8 Validation | Open → S11 | — | `Validate`/`Validator`/`ValidateWhen` not built; three validator types remain. |
 | 9 Row painting | Open → S10 | — | `RowUi`/`RowPaint` not built. |
