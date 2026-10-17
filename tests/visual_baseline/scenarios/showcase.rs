@@ -365,6 +365,10 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/audit/buttons", Bin::Showcase, &["--page", "buttons"], BOOT),
     Root::new("showcase/audit/diff", Bin::Showcase, &["--page", "diff"], BOOT),
     Root::new("showcase/audit/forms", Bin::Showcase, &["--page", "forms"], BOOT),
+    // Priority 0: the Forms page on the template
+    Root::new("showcase/sections/forms-options", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "2", "wait:Managed toggle"]).pending(),
+    Root::new("showcase/sections/forms-states", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "3", "wait:Required field"]).pending(),
+    Root::new("showcase/flows/forms/plain", Bin::Showcase, &["--page", "forms", "--opt", "forms.help=off", "--opt", "forms.placeholders=off", "--opt", "forms.managed=off"], BOOT).sends(&["wait:Task name"]).pending(),
     Root::new("showcase/audit/inputs", Bin::Showcase, &["--page", "inputs"], BOOT),
     Root::new("showcase/audit/textareas", Bin::Showcase, &["--page", "textareas"], BOOT),
 ];
@@ -568,7 +572,8 @@ pub const JOURNEYS: &[Root] = &[
     // S3: required field filled, Ctrl+S, then wait out the 1.8 s wall-clock
     // Busy window — the Done message is the stable end state (the bash
     // `sleep:1200` predates the 1800 ms busy constant; `wait:` is exact).
-    Root::new("showcase/flows/forms/valid", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "enter", "type:Fix the login redirect loop", "enter", "ctrl-s", "wait:Task created ✓"]),
+    // the template's section strip is the first stop, the task name the next
+    Root::new("showcase/flows/forms/valid", Bin::Showcase, &["--page", "forms"], BOOT).sends(&["tab", "tab", "enter", "type:Fix the login redirect loop", "enter", "ctrl-s", "wait:Task created ✓"]),
     // S4: `]` cycles to the next page in sidebar tree order; the header
     // crumb (group / page) is the unique proof.
     Root::new("showcase/flows/nav/cycled", Bin::Showcase, &["--page", "overview"], BOOT).sends(&["]", "wait:App shell › Chrome"]),
