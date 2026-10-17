@@ -237,6 +237,7 @@ fn roles() -> Vec<RoleEntry> {
         in_registry: true,
         description: desc.into(),
         load_error: None,
+        fetch_error: None,
     };
     vec![
         git(
@@ -262,6 +263,7 @@ fn roles() -> Vec<RoleEntry> {
             in_registry: true,
             description: "Notebook and pipeline tooling (untrusted source)".into(),
             load_error: Some("trust required".into()),
+            fetch_error: None,
         },
         RoleEntry {
             namespace: "local".into(),
@@ -273,6 +275,7 @@ fn roles() -> Vec<RoleEntry> {
             in_registry: false,
             description: "Docs and release notes".into(),
             load_error: None,
+            fetch_error: None,
         },
     ]
 }
@@ -294,6 +297,7 @@ fn generated_roles(n: usize) -> Vec<RoleEntry> {
             in_registry: true,
             description: format!("{} service agent #{i}", AREAS[i % AREAS.len()]),
             load_error: None,
+            fetch_error: None,
         })
         .collect()
 }
@@ -1651,6 +1655,13 @@ pub fn world_for(scenario: Scenario) -> World {
             w.daemon_health = DaemonHealth::Stale;
             w.refresh_fails = true;
             w.save_fails_once = true;
+            // a trusted Role whose load still fails: the manifest does not
+            // parse (A26, the editor's role-load error dialog)
+            if let Some(r) = w.roles.iter_mut().find(|r| r.name == "writer") {
+                r.fetch_error = Some(
+                    "~/roles/writer/role.toml: parse error at line 4: unknown key `toolz`".into(),
+                );
+            }
             w.arbiter.discovery = Err(DiscoveryError::IndexUnreadable);
             w.arbiter.entered_at_ms = None;
             w.takeover_at_ms = Some(45_000);
