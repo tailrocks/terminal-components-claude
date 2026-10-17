@@ -65,6 +65,15 @@ pub(crate) fn assert_below_row(h: &H, id: WidgetId, y: u16) {
 }
 
 /// Choose the menu row labelled `label` with the pointer.
+/// Rest the pointer on the open menu's row `label`: a disabled row says
+/// why in the menu's status row (its bottom border, SI21).
+pub(crate) fn point(h: &mut H, label: &str) {
+    let (x, y) = h
+        .find(label)
+        .unwrap_or_else(|| panic!("no {label:?} in the menu\n{}", h.text()));
+    h.mouse(MouseKind::Move, x + 1, y);
+}
+
 pub(crate) fn choose(h: &mut H, label: &str) {
     let (x, y) = h
         .find(label)

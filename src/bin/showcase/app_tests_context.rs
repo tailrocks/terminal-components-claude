@@ -50,6 +50,12 @@ impl Harness {
         self.send(Input::Mouse(Mouse::new(kind, Position::new(x, y))))
     }
 
+    /// Rest the pointer at `at` (a disabled menu row says why in the
+    /// menu's status row, SI21).
+    fn point(&mut self, at: (u16, u16)) -> Outcome {
+        self.mouse(MouseKind::Move, at)
+    }
+
     fn right_click(&mut self, at: (u16, u16)) -> Outcome {
         self.mouse(MouseKind::Secondary, at)
     }
@@ -250,6 +256,9 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     let lock = h.at("Cargo.lock");
     h.right_click((lock.0 + 1, lock.1));
     let menu = h.menu(LISTS_MENU).expect("the row menu");
+    assert!(!h.text_in(menu).contains("locked file"), "not until asked");
+    let include = h.at("Include");
+    h.point((include.0 + 1, include.1));
     assert!(h.text_in(menu).contains("locked file"));
     // the cursor starts on the first available item
     h.key(KeyCode::Enter);
@@ -377,7 +386,14 @@ fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
         "titled by the task\n{shown}"
     );
     assert!(shown.contains("Sort by owner"));
-    assert!(shown.contains("Read-only"), "edit is unavailable here");
+    // edit is unavailable here: the pointer on it says why
+    assert!(!shown.contains("Read-only"), "{shown}");
+    let edit = h.at("Edit cell");
+    h.point((edit.0 + 1, edit.1));
+    assert!(
+        h.text_in(menu).contains("Read-only"),
+        "edit is unavailable here"
+    );
 
     h.click(h.at("Sort by owner"));
     assert!(h.text().contains("sorted by owner ▴"), "{}", h.text());

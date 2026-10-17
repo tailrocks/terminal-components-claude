@@ -73,6 +73,10 @@ fn a_right_click_on_a_read_only_file_shows_reasons_and_no_danger() {
     let (x, y) = h.find("README.md").expect("the row");
     h.mouse(MouseKind::Secondary, x, y);
     assert!(menus(&h).row_menu.is_open());
+    assert!(!h.text().contains("Read-only file"), "not until asked");
+    // the pointer on the disabled Rename says why in the status row
+    let (rx, ry) = h.find("Rename").expect("the Rename row");
+    h.mouse(MouseKind::Move, rx + 1, ry);
     assert!(h.text().contains("Read-only file"), "the reason is shown");
     assert!(menus(&h).request.contains("README.md · at the pointer"));
     assert_eq!(menus(&h).files.cursor, 5, "the click moved the cursor");
@@ -171,5 +175,9 @@ fn the_states_grid_draws_every_menu_state() {
     for s in [Rest, Hover, Pressed, Disabled] {
         assert!(rows.contains(&s), "{s:?} row drawn");
     }
-    assert!(h.text().contains("Share…    Off"), "a reason in its column");
+    // a disabled row keeps its row; its reason shows in the status row
+    // (the bottom border) of the hovered sample, never in a column
+    assert!(h.text().contains("Share…"), "a disabled row drawn");
+    assert!(!h.text().contains("Share…    Off"), "no reason column");
+    assert!(h.text().contains("╰─ Off ─"), "the hovered sample says why");
 }
