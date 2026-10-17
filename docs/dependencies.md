@@ -38,7 +38,7 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `libc` (`0.2`, Unix only) | 0.2.190 | 0.2.190 | 0.2.190 | none; added for the runtime's terminal input re-arm (below) |
 | `libtest-mimic` (dev, `0.8.2`) | 0.8.2 | 0.8.2 | 0.8.2 | none |
 | `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.1 | 0.11.1 | none; tuiscotti held it at `=0.11.0` until PR 11 (raised 2026-10-17) |
-| `tuiscotti` (dev, git `rev`) | `a47c9aae` | `3382e57d` | `3382e57d` (`main`, 2026-10-17) | none; PR 11 merged as `be860d1`, `main` then moved one CI-only commit |
+| `tuiscotti` (dev, git `rev`) | `3382e57d` | `a1ea27f7` | `a1ea27f7` (`main`, 2026-10-17) | none; `3382e57d..a1ea27f7` is two CI-only commits (#13, #14: velnor-actions 0.1.10 and 0.1.12), no library or API change |
 | velnor-actions | 0.1.8 | 0.1.9 | 0.1.9 (`a7d49aa`, 2026-10-16) | none; adopted 2026-10-17 (`docs/ci.md`) |
 | cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | none; `[tools]` can override it |
 | actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | 1.7.12, 0.11.0, 1.31.1, 2.102.0 | zizmor 1.30.1 is velnor 0.1.9's catalog pin; `[tools] zizmor = "1.31.1"` would raise it, not done yet: velnor only shape-checks `[tools]` versions, so the pin needs a CI run to prove it installs |
@@ -62,7 +62,7 @@ Drop the re-arm once crossterm reads until `WouldBlock`.
 
 tuiscotti held `unicode-width`, `insta`, `serde_json`, `sha2`, `ratatui`
 and `crossterm` at exact versions until PR 11 (feedback P2,
-`docs/upstream/tuiscotti-feedback.md`). Since the `3382e57d` pin it uses
+`docs/upstream/tuiscotti-feedback.md`). Since the `3382e57d` pin (PR 11) it uses
 ranges, so the lockfile has one `ratatui` (0.30.2), one `crossterm`
 (0.29.0) and one `unicode-width`. `cargo update` on 2026-10-17 then moved
 `unicode-width` 0.2.0 → 0.2.2, `sha2` 0.11.0 → 0.11.1, `insta` 1.48.0 →
@@ -98,10 +98,7 @@ release in `.velnor/release-manifest.json`) and the tuiscotti CLI
   `mise_pins_match_the_repository_pins` fails when Rust, tuiscotti or
   velnor-actions drift. The other tools match the versions CI installs
   (`docs/ci.md`); zizmor stays at CI's 1.30.1 (1.31.1 is out) until the
-  velnor `[tools]` raise above lands. On 2026-10-17 velnor-actions 0.1.12
-  and tuiscotti `main` `a1ea27f` were already out; `mise.toml` follows the
-  adopted 0.1.10 and `3382e57d` until those upgrades land (regenerate CI,
-  bump `Cargo.toml`), which the mise switch did not do.
+  velnor `[tools]` raise above lands.
 - A `minimum_release_age` in someone's mise settings hides young releases
   from `latest` (`mise ls-remote rust` warns "newer rust releases hidden"),
   but not from an exact pin: on 2026-10-17 the `1.99.1` pin resolved while
