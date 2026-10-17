@@ -601,6 +601,28 @@ impl ChipBar {
     }
 }
 
+/// The bar with every chip shown (nothing behind `+n`) and its add
+/// button: the lead, each chip and the gap after it, the add button.
+impl crate::ui::measure::Measure for ChipBar {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let lead = self.lead.as_ref().map_or(0, |l| width(l) as u16 + 3);
+        let chips: u16 = self
+            .chips
+            .iter()
+            .map(|c| 1 + width(&c.label) as u16 + 1 + if c.removable { 2 } else { 0 } + 1 + 1)
+            .sum();
+        let add = self.add_label.as_ref().map_or(0, |a| width(a) as u16 + 2);
+        // the gap after the last chip only counts before the add button
+        let w = lead
+            + if add > 0 {
+                chips + add
+            } else {
+                chips.saturating_sub(1)
+            };
+        ratatui::layout::Size::new(w, 1)
+    }
+}
+
 /// The chips, then the add button when there is one.
 impl RowSource for ChipBar {
     fn len(&self) -> usize {
@@ -728,6 +750,40 @@ enum BarMenu {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drawn at its measured width the bar shows every chip and its add
+    /// button; one cell less gives one up.
+    #[test]
+    fn measure_shows_every_chip_and_the_add_button() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = crate::theme::Theme::junie();
+        let mut bar = ChipBar::new(WidgetId::of("bar"));
+        bar.chips = vec![Chip::new("status = 'ok'"), Chip::new("total > 9")];
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let w = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            bar.measure(ratatui::layout::Size::new(1, 1), &ctx).width
+        };
+        let draw = |bar: &mut ChipBar, w: u16, hits: &mut HitRegistry, ring: &mut FocusRing| {
+            let mut ctx = RenderCtx::new(&t, crate::ui::ctx::Interaction::default(), hits, ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, w, 1));
+            bar.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+            (0..w).map(|x| buf[(x, 0)].symbol()).collect::<String>()
+        };
+        let add = bar.add_label.clone().expect("an add button");
+        let row = draw(&mut bar, w, &mut hits, &mut ring);
+        assert_eq!(bar.shown, 2, "{row:?}");
+        assert!(row.contains(add.as_str()), "{row:?}");
+        let row = draw(&mut bar, w - 1, &mut hits, &mut ring);
+        assert!(bar.shown < 2 || !row.contains(add.as_str()), "{row:?}");
+    }
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::{ColorLevel, Plane, Theme};
     use crate::ui::ctx::Interaction;
