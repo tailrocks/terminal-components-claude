@@ -106,18 +106,18 @@ Every row is consolidated into the plan ([`shared-components-plan.md`](../../arc
 | F9 Hand-rolled tree rows | Open → S16 | — | S16c (jackin manager/accounts, double toggle hit), S16d (tablepro EXPLAIN). |
 | F10 Editor shell twice in jackin | Open → S20 | — | `EditorShell` not built. |
 | F11 Filter input over tree/list | Open → S21 | — | `FilterTree`/`FilterList` not built. |
-| F12 NavList kept in showcase | Open → S17 | — | Still `src/bin/showcase/pages/sidebars.rs:32`. |
-| F13 Text fields drawn by hand | Open → S11, S17 | — | holla finder query is K36 (S11); `TextInput::readout` and the showcase fake input are S17. |
+| F12 NavList kept in showcase | Fixed (S17) | feat(nav_list) | `widgets::nav_list::NavList`; the Sidebars page uses it. |
+| F13 Text fields drawn by hand | Fixed in part (S11, S17) | feat(input) | `TextInput::readout` built (the showcase Finder scope); holla finder and files fields remain hand drawn (CO11). |
 | F14 Help three ways | Open → S8b | — | `HelpOverlay::from_keymaps` not built. |
-| F15 Key/value detail panels | Open → S17, CO11 | — | `DetailCard` (S17); holla screens moving onto widgets are CO11. |
+| F15 Key/value detail panels | Fixed in part (S17) | feat(action_row, detail_card) | `DetailCard` built; the tablepro connection card and the showcase Connections screen use it; tablepro history, affected rows and plan cards remain (CO11). |
 | F16 Panel bodies scrolled by hand | Open → CO11 (S16/S17) | — | holla review/snapshot and jackin capsule panes are listed in CO11. |
-| F17 Page headers | Open → S17 | — | `PageHeader`/`Heading` not built. |
+| F17 Page headers | Fixed in part (S17) | feat(page_header) | `PageHeader`/`Heading` built; holla heading helper and five headers moved; the rest is `remaining-work.md` CO17. |
 | F18 Find inside a viewport | Open → S22 | — | `TextViewport::find` + `FindState` not built. |
-| F19 Button rows by hand | Open → S17 | — | `ActionRow` not built; button-row navigation rule is already one (`ButtonRow::step`, K32, S5). |
+| F19 Button rows by hand | Fixed in part (S17) | feat(action_row, detail_card) | `ActionRow` built; holla review and plan, tablepro connection form, card and filter editor, the showcase Buttons Next row moved; holla snapshot and activity, showcase forms, settings and selectable rows remain (CO17, CO11). |
 | F20 Library modal hints in apps | Open → S8b, CO4 | — | jackin's empty `modal_hints` was deleted in S5 (`521e1437e`); fallback hints sit in `layer_hints` (CO4). |
 | F21 Context anchor, app menu type | Open → S22 | — | `CommandMenu`, `ContextAnchor::row`; holla row helpers moved to `shell` in S7 (`fb7df2aa2`). |
 | F22 Too-small screen, frame regions | Open → A17 for regions; too-small Fixed (S2) | `96af80573` | `TooSmall` in all apps. Header/body/footer `Rect` arithmetic still per app; no step names `AppShell` regions; suggested owner S14 (`Chrome`). |
-| F23 Tab strip body offset | Open → S17 | — | `Tabs::{layout, passive}` not built. |
+| F23 Tab strip body offset | Fixed (S17) | feat(tabs) | `Tabs::{layout, layout_gap, passive}`; tablepro, jackin capsule and showcase strips moved; the tablepro result sub-tabs remain (CO17). |
 | F24 Spinners on the wall clock | Open → S22 | — | 12 wall-clock spinner sites (also SVg8 under reduced motion). |
 | F25 Text formatting in apps | Fixed (S2; `describe_key` S8b, A18) | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::{plural, truncate_sep, duration, bytes, crumb_fit}`, `Theme::centred_hints`. S8b removed the showcase's `describe_key`: keys are spelled by `KeyBinding::label` (`the_last_key_is_spelled_by_the_library`). |
 | F26 Text centred by hand | Open → CO12 (S17/S22) | — | `ui::text::center_x` exists (S2); jackin capsule, cockpit, prelude, rain still centre by `chars().count()`. |
