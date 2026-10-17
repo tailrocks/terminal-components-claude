@@ -1102,6 +1102,7 @@ pub static DIALOGS: &[Opt] = &[
         &["submit", "next-field"],
     ),
     Opt::new("dialogs.guard_dirty", "Guard edited prompt", OFF_ON).default(1),
+    Opt::new("dialogs.guard_destructive", "Guard danger cancel", OFF_ON).default(1),
     Opt::new(
         "dialogs.edit_entry",
         "Field edit entry",
