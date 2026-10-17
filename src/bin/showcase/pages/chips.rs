@@ -171,8 +171,8 @@ impl ChipsPage {
                 s.selected,
             )
             .arrows(match o.value("chipsselects.arrows") {
-                "open" => SelectArrows::Open,
-                _ => SelectArrows::Step,
+                "step" => SelectArrows::Step,
+                _ => SelectArrows::Open,
             })
             .wheel(match o.value("chipsselects.wheel") {
                 "cursor" => WheelMode::Cursor,
