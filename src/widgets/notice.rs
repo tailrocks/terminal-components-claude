@@ -192,22 +192,33 @@ impl Notice {
                 *y += 1;
             }
         };
+        // a text cut at its line limit reveals in full from its last line
+        // (R-apps-5): the expansion tooltip on hover
+        let reveal = |y: u16, text: &str, max: usize| {
+            if max > 0 && y > area.y && y <= area.bottom() && wrap(text, w.max(1)).len() > max {
+                crate::ui::reveal::queue_cut(Rect::new(x, y - 1, w as u16, 1), text);
+            }
+        };
         let message = Style::new().fg(t.tone(self.kind.message_tone()));
-        let lines = self.lines(&self.message, w, self.message_lines.max(1));
+        let max = self.message_lines.max(1);
+        let lines = self.lines(&self.message, w, max);
         if lines.is_empty() {
             y += 1;
         }
         for l in &lines {
             put(&mut y, l, message);
         }
+        reveal(y, &self.message, max);
         if let Some(d) = &self.detail {
             let style = Style::new().fg(t.tone(self.detail_tone));
             for l in self.lines(d, w, self.max_lines) {
                 put(&mut y, &l, style);
             }
+            reveal(y, d, self.max_lines);
         }
         if let Some(h) = &self.hint {
-            put(&mut y, &truncate(h, w), t.muted());
+            let row = Rect::new(x, y, w as u16, 1);
+            put(&mut y, &crate::ui::reveal::cut(row, h), t.muted());
         }
         y.min(area.bottom()) - area.y
     }
@@ -292,6 +303,32 @@ mod tests {
             .collect::<String>()
             .trim_end()
             .to_owned()
+    }
+
+    /// R-apps-5: a message cut at its line limit ends in ` …` and its last
+    /// line reveals the full message on hover.
+    #[test]
+    fn a_message_cut_at_its_line_limit_reveals_on_hover() {
+        let t = Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let msg = "FATAL: password authentication failed for user acme_app on the replica";
+        let n = Notice::error(msg).message_lines(1);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 2));
+        let mut ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        n.render(buf.area, &mut buf, &mut ctx, t.canvas);
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        assert!(text(&buf, 0).ends_with('…'), "{:?}", text(&buf, 0));
+        assert_eq!(
+            hits.hover_at(ratatui::layout::Position::new(5, 0)),
+            Some(crate::ui::reveal::cut_id(Rect::new(2, 0, 28, 1))),
+        );
     }
 
     /// At its measure a notice shows its message, detail and hint whole,

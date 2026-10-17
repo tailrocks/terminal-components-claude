@@ -873,6 +873,35 @@ pub fn fit(ctx: &mut RenderCtx, area: Rect, full: &str, focused: bool) -> String
     cut(area, full)
 }
 
+/// `full` wrapped to the width of `area` in at most its height in lines
+/// (a line clamp), keeping its reveal (R-apps-5): when lines are left
+/// over, the last one shown ends in ` …` and reveals the full text on
+/// hover ([`queue_cut`]) and, when `focused`, on the peek line ([`peek`]).
+/// Line `i` is drawn at `area.y + i`.
+pub fn clamp(ctx: &mut RenderCtx, area: Rect, full: &str, focused: bool) -> Vec<String> {
+    let w = area.width as usize;
+    let max = area.height as usize;
+    if w == 0 || max == 0 {
+        return Vec::new();
+    }
+    let wrapped = wrap(full, w);
+    if wrapped.len() <= max {
+        return wrapped;
+    }
+    let mut lines: Vec<String> = wrapped.into_iter().take(max).collect();
+    if let Some(last) = lines.last_mut() {
+        *last = truncate(&format!("{last} …"), w);
+    }
+    queue_cut(
+        Rect::new(area.x, area.y + max as u16 - 1, area.width, 1),
+        full,
+    );
+    if focused {
+        peek(ctx, full);
+    }
+    lines
+}
+
 /// Cut text queued so far this frame (a
 /// [`ScrollView`](crate::ui::scroll_view::ScrollView) marks where its
 /// content's start).
@@ -1150,6 +1179,36 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    /// R-apps-5: a line clamp marks its cut with ` …` and reveals the full
+    /// text: on hover from its last line, on the peek line when focused.
+    #[test]
+    fn a_clamp_marks_its_cut_and_reveals_the_text() {
+        let theme = Theme::junie();
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let full = "statements that change data still run after a deliberate acknowledgement";
+        let area = Rect::new(2, 1, 20, 2);
+        let lines = clamp(&mut ctx, area, full, true);
+        assert_eq!(lines.len(), 2);
+        assert!(lines[1].ends_with('…'), "{lines:?}");
+        assert_eq!(ctx.peek.as_deref(), Some(full));
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 4));
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        assert_eq!(
+            hits.hover_at(Position::new(5, 2)),
+            Some(cut_id(Rect::new(2, 2, 20, 1)))
+        );
+        // text that fits is returned whole, unmarked
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        assert_eq!(
+            clamp(&mut ctx, area, "short", true),
+            vec!["short".to_owned()]
+        );
+        assert_eq!(ctx.peek, None);
+    }
 
     fn row_text(buf: &Buffer, y: u16) -> String {
         (0..buf.area.width)
