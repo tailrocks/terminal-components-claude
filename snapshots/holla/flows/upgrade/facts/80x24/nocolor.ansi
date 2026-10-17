@@ -6,7 +6,7 @@
   upgrade Debian packages and global mise tools on devbox                       [0m
                                                                                 [0m
    [0m[1m01 Preflight[0m                                                      required   [0m
-                                                                                [0m
+   ──────────────────────────────────────────────────────────────────────────   [0m
    Runs       cat /etc/os-release                                           ┃   [0m
               sudo -n true                                                  ┃   [0m
               fuser /var/lib/dpkg/lock-frontend                             ┃   [0m

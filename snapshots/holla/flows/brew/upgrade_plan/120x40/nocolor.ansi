@@ -6,7 +6,7 @@
   upgrade every detected manager on mbp: Homebrew, mise, amp, Oh My Zsh                                                 [0m
                                                                                                                         [0m
          step                 needs           lane  note                  01 brew update                     required   [0m
- [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m brew update          [0m–             [0m[1m  [0ma   [0m[1m  [0mrequired[0m[1m          [0m                                                  [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m brew update          [0m–             [0m[1m  [0ma   [0m[1m  [0mrequired[0m[1m          [0m    ───────────────────────────────────────────   [0m
   [✓] 02 brew upgrade         01              a     required              Runs     brew update                          [0m
   [✓] 03 brew cleanup         02              a     optional              In       / · mbp                              [0m
   [✓] 04 brew doctor          03              a     optional              Needs    nothing · starts first               [0m

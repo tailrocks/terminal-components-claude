@@ -6,7 +6,7 @@
 [0m[2;38;5;7;48;5;0m  upgrade Debian packages and global mise tools on devbox                                                                                                       [0m
 [0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
 [0m[2;38;5;7;48;5;0m         step                         needs  lane  note                                                    06 Upgrade selected mise tools            optional   [0m
-[0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m[✓] 01 Preflight                    –      ·     required · sudo                                                                                              [0m
+[0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m[✓] 01 Preflight                    –      ·     required · sudo                                         ──────────────────────────────────────────────────   [0m
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m[✓] 02 Refresh Debian metadata      01     a     required · sudo                                         Runs     mise upgrade --exclude go                   [0m
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m[✓] 03 Review Debian upgrades       02     a     required                                                In       / · devbox                                  [0m
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m[✓] 04 Apply Debian upgrades        03     a     required · sudo                                         Needs    05 Inspect global mise tools                [0m

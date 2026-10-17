@@ -6,7 +6,7 @@
   18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                                                                     [0m
                                                                                                                                                                 [0m
   [–] ▸ Xcode DerivedData                     810.0 MiB  rebuilt on demand · 1 candidate · Xcode running       Project artifacts                     category   [0m
-                                                                                                                                                                [0m
+                                                                                                               ──────────────────────────────────────────────   [0m
   [✓] ▸ Xcode device support                    2.4 GiB  safe if old · 2 candidates · ≥ 90 d                   Safety      review first                         [0m
                                                                                                                Age rule    older than 7 days · unknown or       [0m
   [ ] ▸ Xcode archives                        300.0 MiB  review first · 1 candidate · any age                              future age counts as recent          [0m

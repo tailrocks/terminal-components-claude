@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
                                                                                                                         [0m
     Suggested here                                                               Inspect 3 GB of generat… disk · here   [0m
- [0m[1;7m › Inspect 3 GB of generate…  [0m[7mdisk   [0m[1;7m  [0m[7mhere  [0m[1;7m  [0m[7m3 GB generated artifacts[0m[1;7m     [0m                                           [0m
+ [0m[1;7m › Inspect 3 GB of generate…  [0m[7mdisk   [0m[1;7m  [0m[7mhere  [0m[1;7m  [0m[7m3 GB generated artifacts[0m[1;7m     [0m    ────────────────────────────────────   [0m
     Install missing tools · …  task     here    1 tool missing                   Does       1 rebuildable candidate     [0m
     Run tests                  task     here    2 files changed since the l…                below this folder · 0       [0m
     Follow acme-api-1 logs     docker   parent  service is unhealthy                        stale enough to start       [0m

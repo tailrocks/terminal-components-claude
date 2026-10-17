@@ -6,7 +6,7 @@
   18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                             [0m
                                                                                                                         [0m
  [0m[1m▎[0m[–][0m[1m [0m▸[0m[1m Xcode DerivedData         [0m810.0 MiB[0m[1m  [0mrebuilt on demand…[0m[1m         [0m┃    Xcode DerivedData               category   [0m
-                                                                        ┃                                               [0m
+                                                                        ┃    ────────────────────────────────────────   [0m
   [✓] ▸ Xcode device support        2.4 GiB  safe if old…               ┃    Safety     rebuilt on demand               [0m
                                                                         ┃    Age rule   any age                         [0m
   [ ] ▸ Xcode archives            300.0 MiB  review first…              ┃    Platform   macOS only                      [0m

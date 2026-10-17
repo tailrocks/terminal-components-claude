@@ -6,7 +6,7 @@
   18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                             [0m
                                                                                                                         [0m
  [0m[2m [✓] ▸ Simulator caches          900.0 MiB  rebuilt on demand…         [0m┆    Project artifacts               category   [0m
-                                                                        ┆                                               [0m
+                                                                        ┆    ────────────────────────────────────────   [0m
   [✓] ▸ Homebrew cache            100.0 MiB  rebuilt on demand…         ┆    Safety      review first                   [0m
                                                                         ┆    Age rule    older than 7 days · unknown    [0m
   [✓] ▸ npm cache                 201.0 MiB  rebuilt on demand…         ┆                or future age counts as        [0m

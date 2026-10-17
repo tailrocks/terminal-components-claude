@@ -5,7 +5,7 @@
  ▎ [0m[4mrestart payments[0m                                                                                                                             scope ‹ here ›  [0m
                                                                                                                                                                 [0m
     Results · 2                                                                                                  Restart payments       system · on prod-eu-1   [0m
- [0m[1;7m › Restart payments         [0m[7msystem[0m[1;7m  [0m[7mon prod-eu-1[0m[1;7m  [0m[7mproduction host · two gates[0m[1;7m                    [0m[7mprivileged[0m[1;7m [0m                                                   [0m
+ [0m[1;7m › Restart payments         [0m[7msystem[0m[1;7m  [0m[7mon prod-eu-1[0m[1;7m  [0m[7mproduction host · two gates[0m[1;7m                    [0m[7mprivileged[0m[1;7m [0m    ────────────────────────────────────────────   [0m
     [0m[1mRestart[0m payments-worker  system  on prod-eu-1  production host · two gates                    privileged     Does       systemctl restart payments on       [0m
                                                                                                                             prod-eu-1 · production ·            [0m
                                                                                                                             in-flight requests are dropped      [0m

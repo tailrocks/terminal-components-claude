@@ -5,7 +5,7 @@
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m cargo clean                                                                                                                                  scope ‹ here ›  [0m
 [0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
 [0m[2;38;5;7;48;5;0m    Results · 3                                                                                                  cargo clean · 900.0 MiB       cleanup · here   [0m
-[0m[2;38;5;7;48;5;0m  › cargo clean · 900.0 MiB           cleanup  here  900.0 MiB of generated artifacts            destructive                                                    [0m
+[0m[2;38;5;7;48;5;0m  › cargo clean · 900.0 MiB           cleanup  here  900.0 MiB of generated artifacts            destructive     ────────────────────────────────────────────   [0m
 [0m[2;38;5;7;48;5;0m    cargo clean dry run               cargo    here  read-only                                                   Does       remove the resolved target          [0m
 [0m[2;38;5;7;48;5;0m    Clean Cargo registry cache · 0 B  cleanup  host  safe if old · all platforms                                            directory ~/work/engine/target ·    [0m
 [0m[2;38;5;7;48;5;0m                                                                                                                            2 files · tool-native permanent     [0m
