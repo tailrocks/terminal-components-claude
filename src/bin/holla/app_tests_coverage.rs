@@ -442,11 +442,22 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dismiss_modal(&mut dialog, "Dialog/gate2", dialog_owner);
 }
 
+/// A cell outside the top layer: nothing registered there, or the
+/// light-dismiss backdrop a layer registers (the key reference's).
 fn outside(h: &H) -> Position {
+    use junie_tui::core::id::Part;
+    let backdrop = |hit| {
+        h.app
+            .shell
+            .hits
+            .part_of(hit)
+            .is_some_and(|x| x.part.part == Part::BACKDROP)
+    };
     for y in 0..h.app.shell.size.1 {
         for x in 0..h.app.shell.size.0 {
             let p = Position::new(x, y);
-            if h.app.shell.hits.hit(p).is_none() {
+            let hit = h.app.shell.hits.hit(p);
+            if hit.is_none_or(backdrop) {
                 return p;
             }
         }
