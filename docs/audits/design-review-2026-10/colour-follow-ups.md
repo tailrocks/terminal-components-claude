@@ -220,14 +220,15 @@ All done; the regression tests are in `src/bin/holla/app_tests_colour.rs`.
 | Disk filesystem meter | `src/bin/holla/screens/disk.rs:1670` | `MeterTone::Level { warn: 80, crit: 95 }` | Done: `disk::FS_METER`, also on the status-bar root filesystem meter (`a_filesystem_meter_warns_at_its_own_thresholds`) |
 | Activity tabs | `src/bin/holla/app.rs:3389-3401` | `Succeeded` sets `TabItem::done` instead of the `✓` suffix | Done: also finished plan tabs (`a_succeeded_activity_tab_is_done`) |
 
-Visual (holla and jackin): every holla and jackin capture is still a
-legacy tuisnap approval pending tuiscotti re-approval (`cargo xtask visual
-list`: 3,125 holla and 1,200 jackin `stored legacy`, none
-`reapproved`), skipped unless `VISUAL_FULL=1`. Those approvals predate
-much other product work, so re-approving a group now would fold drift
-that is not this change into the approval; no holla or jackin capture
-was re-approved, and none gates these rows. The showcase captures that
-the library additions could reach stayed green under `cargo xtask visual
+Visual (holla and jackin), corrected 2026-10-17 (T19 sync): when these
+rows landed every holla and jackin capture was a legacy tuisnap approval,
+so none gated them. Both apps have since been re-approved against
+`visual-baseline` with these colour changes attributed
+([`visual-reapproval.md`](visual-reapproval.md)): holla 3,125 of 3,125
+captures (054e5eefa), jackin 1,200 of 1,200 (c12eccdfa). These rows are
+now gated in both apps; only the narrow tier and the `.pending()`
+coverage rows stay pending. The showcase captures that the library
+additions could reach stayed green under `cargo xtask visual
 check-touched`.
 
 ### jackin
@@ -246,3 +247,56 @@ All done; the regression tests are in `src/bin/jackin_preview/app_tests_colour.r
 | Run-id chip in warning | `src/bin/jackin_preview/screens/cockpit.rs:971-976` | `Theme::link_style` / info | Done: `Theme::link_style` (underlined on hover or focus) over the chip's title ladder (`the_debug_run_id_chip_is_a_link_not_a_warning`) |
 | Session meter while stale | `src/bin/jackin_preview/screens/capsule.rs:1826, 1843-1845` | library done (stale keeps the level, dashed run); pass the quota tone with `Meter::stale(true)` to keep a domain warning | Done: one `accounts::quota_tone` (a `QuotaTone`: the domain tone plus a stale flag) replaces the three `MeterTone::Stale` mappings (accounts detail, usage overview and detail, capsule usage dialog and status bar; the capsule dialog's own copy is gone). A stale or failed refresh keeps the window's domain level (`Warning`, `Exhausted`) and draws it stale, so a stale 90% quota warning is a warning (`▲`, dashed `╍` run in the status bar, italic warning block in the detail) rather than the shared thresholds' danger `!`. `StatusItem::meter_stale` (new) carries the flag to the status-bar meter. Showcase keeps `MeterTone::Stale` as the tone's own demo; holla and tablepro have no stale meters (`a_stale_quota_warning_keeps_its_warning_level`) |
 | Capsule tab suffixes | `src/bin/jackin_preview/screens/capsule.rs:1512-1528` | finished agents use `TabItem::done` (today `○` for Done) | Done: `AgentState::Done` sets `TabItem::done` (`a_finished_capsule_tab_is_done`) |
+
+## Status (T19 sync, 2026-10-17)
+
+Method: each per-app row was matched to the commit that added its
+`app_tests_colour.rs` test (tests named in the rows above) and checked
+at HEAD; open remainders inside a Done row are named with their owner.
+The "Visual (holla and jackin)" paragraph above was corrected in this
+sync to the state in `visual-reapproval.md`.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| tablepro: header env badge | Fixed | 67ddac8a8 | `Theme::env`. |
+| tablepro: `env_tone` | Fixed | 67ddac8a8 | `Environment::kind().tone()`. |
+| tablepro: tree env glyphs | Fixed | 67ddac8a8 | `TreeNode::glyph_tone`. |
+| tablepro: detail Environment | Fixed | 67ddac8a8 | — |
+| tablepro: write gate title | Fixed | 67ddac8a8 | `Dialog::title_status`. |
+| tablepro: write gate Target | Fixed | 67ddac8a8 | — |
+| tablepro: write gate Execute | Fixed | 67ddac8a8 | `Button::danger` on production. |
+| tablepro: `set_status` kinds | Fixed; Fail caller Open → A10 | 67ddac8a8 | `StatusKind::Fail` exists but no footer status uses it yet. |
+| tablepro: statement ok / failed | Fixed | 67ddac8a8 | — |
+| tablepro: toolbar Run | Fixed | 67ddac8a8 | `Button::primary`. |
+| tablepro: test connection result | Fixed | 67ddac8a8 | — |
+| tablepro: SSL on/off | Fixed | 67ddac8a8 | — |
+| tablepro: EXPLAIN hot node | Fixed | 67ddac8a8 | `TreeNode::label_tone`. |
+| tablepro: history slow durations | Fixed | 67ddac8a8 | `HistoryTab::slow_ms`. |
+| tablepro: Safe badge | Fixed | 67ddac8a8 | — |
+| tablepro: brand `▪` | Fixed | 67ddac8a8 | `Tone::Active`. |
+| tablepro: SQL booleans and NULL | Fixed | 67ddac8a8 | `SyntaxTone::Literal`. |
+| showcase: Task runner states | Fixed | 8fa0e7d45 | — |
+| showcase: Progress meters | Fixed | 8fa0e7d45 | — |
+| showcase: editor booleans | Fixed | 8fa0e7d45 | — |
+| showcase: `TabItem::done` demo | Fixed | 8194455e3 | Was "recorded, not shown yet". The Tabs page (SC14) shows `Export ✓`; declared in `src/bin/showcase/coverage.rs` (`Demo("tabs", ...)`), no allowlist line. |
+| holla: batch toast | Fixed | 299b941d2 | — |
+| holla: output line tones | Fixed | 299b941d2 | — |
+| holla: "succeeded" meta | Fixed | 299b941d2 | — |
+| holla: required plan steps | Fixed | 299b941d2 | — |
+| holla: cleanup "trashed" | Fixed | 299b941d2 | — |
+| holla: checked boxes | Fixed | 299b941d2 | — |
+| holla: status bar git counts | Fixed | 299b941d2 | — |
+| holla: finder headings | Fixed | 299b941d2 | — |
+| holla: disk meter | Fixed | 299b941d2 | — |
+| holla: activity tabs `done` | Fixed | 299b941d2 | — |
+| jackin: usage provider rows | Fixed | 6348ef7ed | — |
+| jackin: usage Health line | Fixed | 6348ef7ed | — |
+| jackin: accounts Health line | Fixed | 6348ef7ed, a570ca0f2 | a570ca0f2 wraps the line instead of cutting it. |
+| jackin: accounts warnings rows | Fixed | 6348ef7ed | — |
+| jackin: provider group labels | Fixed | 6348ef7ed | — |
+| jackin: running instance | Fixed; panel metas Open → A10 | 6348ef7ed | `manager.rs` panel metas stay one faint string until `Panel::meta` takes per-part tones. |
+| jackin: "N running" counts | Fixed | 6348ef7ed | `Segment::lead`. |
+| jackin: run-id chip | Fixed | 6348ef7ed | `Theme::link_style`. |
+| jackin: stale session meter | Fixed; rule placement Open → S23-Q (D5) | 6348ef7ed, 57562ede2 | 57562ede2: available windows are always healthy. Moving `QuotaTone` into the library waits for owner decision D5. |
+| jackin: capsule tab `done` | Fixed | 6348ef7ed | — |
+| Visual (holla and jackin) paragraph | Fixed (doc corrected) | 054e5eefa, c12eccdfa | Both apps re-approved; paragraph rewritten above. |
