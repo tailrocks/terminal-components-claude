@@ -1509,14 +1509,14 @@ impl App {
         };
         let scopes = ["All", "Tables", "Schemas", "Queries"];
         p.scope = Some(format!("{} · Tab scope", scopes[self.scope]));
-        let mut results = index.query(&p.query);
+        let mut results = index.query(p.query.text());
         results.retain(|r| match self.scope {
             1 => r.group == "Tables" || r.group == "Views",
             2 => r.group == "Schemas" || r.group == "Databases",
             3 => r.group == "Recent queries",
             _ => true,
         });
-        if p.query.is_empty() && self.scope == 0 {
+        if p.query.text().is_empty() && self.scope == 0 {
             // empty query: recent objects first, keep it short
             results.truncate(24);
         }
@@ -1816,7 +1816,7 @@ impl App {
         let Some(p) = self.layers.top_as_mut::<Picker>() else {
             return;
         };
-        let q = p.query.to_lowercase();
+        let q = p.query.text().to_lowercase();
         let items: Vec<PickerItem> = w
             .tabs
             .iter()

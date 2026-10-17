@@ -313,7 +313,7 @@ impl EditorScreen {
         }
         let name = self.name.text().trim().to_owned();
         if let Some(other) = self.taken_by(&name) {
-            self.name.error = Some(format!("A workspace named {name} already exists"));
+            self.name.field.error = Some(format!("A workspace named {name} already exists").into());
             self.set_tab(0, cx);
             cx.focus.focus(NAME);
             cx.error(format!(
@@ -1535,7 +1535,7 @@ impl EditorScreen {
             let (o, ev) = self.name.on_key(key);
             match ev {
                 Some(InputAction::Committed) => {
-                    self.name.error = None;
+                    self.name.field.error = None;
                     self.name.validate();
                     self.sync_pending();
                     cx.status(format!("Name {} · save to apply", self.pending.name));
@@ -1776,8 +1776,8 @@ impl Page<Jackin> for EditorScreen {
         }
         match key.code {
             KeyCode::Esc => {
-                if self.name.error.is_some() {
-                    self.name.error = None;
+                if self.name.field.error.is_some() {
+                    self.name.field.error = None;
                 }
                 cx.focus.focus(TABS);
                 Outcome::Changed
@@ -1873,7 +1873,7 @@ impl Page<Jackin> for EditorScreen {
         }
         match self.name.on_blur() {
             Some(InputAction::Committed) => {
-                self.name.error = None;
+                self.name.field.error = None;
                 self.name.validate();
                 self.sync_pending();
                 cx.status(format!("Name {} · save to apply", self.pending.name));
@@ -2059,7 +2059,7 @@ impl Page<Jackin> for EditorScreen {
                     t => self.cfg.tab_dirty(t.cfg().unwrap()),
                 };
                 it.error = match tab {
-                    EdTab::General => self.name.error.is_some(),
+                    EdTab::General => self.name.field.error.is_some(),
                     EdTab::Roles | EdTab::Accounts => false,
                     t => self.cfg.tab_error(t.cfg().unwrap()),
                 };

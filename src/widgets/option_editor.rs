@@ -23,7 +23,7 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Position, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
@@ -37,6 +37,7 @@ use crate::theme::{CursorStyle, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id, place_with, surface_for};
 use crate::ui::text::{truncate, width};
+use crate::widgets::edit::EditField;
 
 /// One allowed value of a constrained column.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -357,8 +358,9 @@ pub struct ChoiceEditor {
     /// Tags: the checked options (a checklist: a click or Space toggles
     /// one, [`RowSelection::apply`] with [`SelectGesture::Toggle`]).
     pub selection: RowSelection,
-    /// Combo: the search text.
-    pub query: String,
+    /// Combo: the search field (the shared [`EditField`]: caret, Select
+    /// All, the clipboard keys and undo, as in every text field).
+    pub query: EditField,
     /// A validator rejected the last commit; the popup stays open.
     pub error: Option<String>,
     scroll: usize,
@@ -410,7 +412,7 @@ impl ChoiceEditor {
             cursor,
             current,
             selection: checked,
-            query: String::new(),
+            query: EditField::single(""),
             error: None,
             scroll: 0,
             visible_rows: cfg.max_rows as usize,
@@ -442,7 +444,7 @@ impl ChoiceEditor {
     /// The options the popup lists, in order (Combo: those matching the
     /// query).
     pub fn shown(&self) -> Vec<usize> {
-        let q = self.query.trim().to_lowercase();
+        let q = self.query.text().trim().to_lowercase();
         (0..self.options.len())
             .filter(|&i| {
                 q.is_empty()
@@ -497,6 +499,22 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
+        // a Combo's search line edits like every text field: typing, the
+        // caret keys, Select All, the clipboard keys and undo; Enter, Esc,
+        // Tab and the list keys (↑↓, paging) stay with the popup
+        if self.kind == Kind::Combo {
+            use crate::widgets::field_common::EditAction;
+            let action = self.query.action(key);
+            if !matches!(
+                action,
+                EditAction::Commit | EditAction::Cancel | EditAction::Tab { .. } | EditAction::None
+            ) {
+                if self.query.apply(action, key).edited {
+                    self.after_query();
+                }
+                return (Outcome::Changed, None);
+            }
+        }
         if unassigned_chord::<()>(key, &[]) {
             // the popup is modal: a chord reaches nothing under it
             return (Outcome::Consumed, None);
@@ -532,16 +550,6 @@ impl ChoiceEditor {
                     Some(v) => (Outcome::Changed, Some(ChoiceResult::Commit(v))),
                     None => (Outcome::Consumed, None),
                 };
-            }
-            KeyCode::Backspace if combo => {
-                self.query.pop();
-                self.after_query();
-                return (Outcome::Changed, None);
-            }
-            KeyCode::Char(c) if combo => {
-                self.query.push(c);
-                self.after_query();
-                return (Outcome::Changed, None);
             }
             _ => {}
         }
@@ -598,8 +606,9 @@ impl ChoiceEditor {
         if self.kind != Kind::Combo {
             return Outcome::Consumed;
         }
-        self.query.push_str(text.trim());
-        self.after_query();
+        if self.query.paste(text.trim()) {
+            self.after_query();
+        }
         Outcome::Changed
     }
 
@@ -748,17 +757,30 @@ impl ChoiceEditor {
             });
             fill(buf, q, fs);
             buf.set_string(q.x + 1, q.y, "⌕", fs.fg(t.text_muted));
-            let shown_q = truncate(&self.query, q.width.saturating_sub(4) as usize);
-            buf.set_string(q.x + 3, q.y, &shown_q, fs);
-            if self.query.is_empty() {
+            // the text and the cell after it, where the caret can sit
+            let line = Rect::new(q.x + 3, q.y, q.width.saturating_sub(3), 1);
+            let caret = if self.query.text().is_empty() {
                 buf.set_string(
-                    q.x + 3,
-                    q.y,
+                    line.x,
+                    line.y,
                     "Search",
                     fs.patch(t.placeholder(Default::default())),
                 );
-            }
-            ctx.set_cursor(Position::new(q.x + 3 + width(&shown_q) as u16, q.y));
+                line.as_position()
+            } else {
+                let look = crate::widgets::edit::LineLook {
+                    text: fs,
+                    selection: t.selection(),
+                    ellipsis: fs.fg(t.text_muted),
+                    ellipsis_glyph: t.glyphs.ellipsis,
+                    underline: None,
+                    follow_caret: true,
+                };
+                // the popup draws from an overlay snapshot: the line scrolls by
+                // the caret each frame
+                self.query.clone().draw_line(buf, line, &look)
+            };
+            ctx.set_cursor(caret);
         }
         let list = Rect::new(
             inner.x,
@@ -1131,6 +1153,37 @@ mod tests {
         c.on_key(&key(KeyCode::Backspace), &cfg);
         assert_eq!(c.shown(), vec![2]);
         assert_eq!(c.on_paste(" "), Outcome::Changed);
+    }
+
+    /// S11: the Combo search line is the shared text field: ← moves the
+    /// caret and typing lands there (it always appended), Cmd+A selects
+    /// the query so typing replaces it (Cmd+A was swallowed), Ctrl+Z
+    /// undoes (nothing undid).
+    #[test]
+    fn the_combo_search_edits_at_the_caret_selects_all_and_undoes() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let cfg = EditorConfig::default();
+        let mut c =
+            ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Combo(envs()), "dev", &cfg)
+                .unwrap();
+        for ch in "prd".chars() {
+            c.on_key(&key(KeyCode::Char(ch)), &cfg);
+        }
+        c.on_key(&key(KeyCode::Left), &cfg);
+        c.on_key(&key(KeyCode::Char('o')), &cfg);
+        assert_eq!(c.query.text(), "prod");
+        assert_eq!(c.shown(), vec![2]);
+        let k = |ch, mods| Key {
+            code: KeyCode::Char(ch),
+            mods,
+        };
+        c.on_key(&k('a', M::SUPER), &cfg);
+        assert_eq!(c.query.buffer.selected_text(), Some("prod"));
+        c.on_key(&key(KeyCode::Char('d')), &cfg);
+        assert_eq!(c.query.text(), "d");
+        c.on_key(&k('z', M::CONTROL), &cfg);
+        assert_eq!(c.query.text(), "prod", "Ctrl+Z");
+        assert_eq!(c.shown(), vec![2], "the list follows the undone query");
     }
 
     #[test]

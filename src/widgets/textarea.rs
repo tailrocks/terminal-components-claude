@@ -3,20 +3,18 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
-use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect, UndoStack};
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{BlurAction, request_focus_next};
 use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
-use crate::core::text::{CursorPos, TextBuffer};
+use crate::core::text::CursorPos;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
-use crate::widgets::field_common::{
-    Applied, EditAction, PointerField, PointerSelect, PressState, apply_edit, click_select,
-    drag_select, edit_key_with, paste_clipboard, press_select,
-};
+use crate::widgets::edit::{EditField, Editable};
+use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, paste_clipboard};
 use crate::widgets::input::InputAction;
 use crate::widgets::scrollbar;
 
@@ -35,9 +33,11 @@ pub struct TextArea {
     pub id: WidgetId,
     pub label: String,
     pub placeholder: String,
-    pub buffer: TextBuffer,
+    /// The text: caret and selection, undo history, keys, pointer
+    /// selection and the error shown under the area (the shared
+    /// [`EditField`]).
+    pub field: EditField,
     pub disabled: bool,
-    pub error: Option<String>,
     pub help: String,
     pub editing: bool,
     /// The rows and the bar; `scroll.h` mirrors the sideways position
@@ -55,10 +55,6 @@ pub struct TextArea {
     pub blur_action: BlurAction,
     /// Text before editing began, for [`BlurAction::Cancel`].
     snapshot: String,
-    /// What a drag, double click and triple click select.
-    /// Default [`PointerSelect::DEFAULT`].
-    pub pointer_select: PointerSelect,
-    press: PressState,
     /// Which keys scroll the area while it is not being edited (default
     /// [`NavKeys::default`]). Editing keys are the text buffer's own.
     pub nav: NavKeys,
@@ -76,11 +72,6 @@ pub struct TextArea {
     /// The control-key preset. `None` (default) follows the theme's
     /// [`crate::theme::Theme::field_keys`].
     pub field_keys: Option<FieldKeys>,
-    keys: FieldKeys,
-    /// The text commands' keys (Select All). `None` (default) uses the
-    /// preset's ([`FieldKeys::text_keymap`]: Cmd+A, plus Ctrl+A or Ctrl+L).
-    pub text_keymap: Option<crate::core::keymap::KeyMap<crate::core::edit::TextCmd>>,
-    undo: UndoStack,
     focus_seen: bool,
     /// Horizontal scrolling of long lines. `None` (default) follows
     /// [`RenderCtx::hscroll`]; the wheel moves [`HScroll::step`] cells
@@ -105,9 +96,8 @@ impl TextArea {
             id,
             label: label.to_owned(),
             placeholder: String::new(),
-            buffer: TextBuffer::multi(""),
+            field: EditField::multi(""),
             disabled: false,
-            error: None,
             help: String::new(),
             editing: false,
             scroll: ScrollPane::default(),
@@ -119,17 +109,12 @@ impl TextArea {
             rows,
             blur_action: BlurAction::Commit,
             snapshot: String::new(),
-            pointer_select: PointerSelect::DEFAULT,
-            press: PressState::default(),
             nav: NavKeys::default(),
             edit_entry: None,
             entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
             focus_select: FocusSelect::CaretEnd,
             esc_reverts: false,
             field_keys: None,
-            keys: FieldKeys::default(),
-            text_keymap: None,
-            undo: UndoStack::new(),
             focus_seen: false,
             horizontal: None,
             content_cols: 0,
@@ -160,20 +145,17 @@ impl TextArea {
         mut self,
         keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
     ) -> Self {
-        self.text_keymap = Some(keymap);
+        self.field.text_keymap = Some(keymap);
         self
     }
     /// The edit action `key` means under the resolved preset and text keys.
     fn edit_action(&self, key: &Key) -> EditAction {
-        match &self.text_keymap {
-            Some(map) => crate::widgets::field_common::edit_key_in(key, true, self.keys, map),
-            None => edit_key_with(key, true, self.keys),
-        }
+        self.field.action(key)
     }
     /// See [`Self::field_keys`].
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
         self.field_keys = Some(keys);
-        self.keys = keys;
+        self.field.keys = keys;
         self
     }
     /// The entry policy in effect.
@@ -187,7 +169,7 @@ impl TextArea {
     }
     /// The text differs from the one the edit began with.
     pub fn is_dirty(&self) -> bool {
-        self.editing && self.buffer.text() != self.snapshot
+        self.editing && self.field.buffer.text() != self.snapshot
     }
     /// The footer hints for this area while it holds focus:
     /// [`crate::widgets::keyhint::EDIT_TEXT`] while editing (Esc
@@ -214,7 +196,7 @@ impl TextArea {
     }
 
     pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
-        self.pointer_select = sel;
+        self.field.sel = sel;
         self
     }
 
@@ -244,7 +226,7 @@ impl TextArea {
             BlurAction::Cancel => {
                 self.editing = false;
                 let snap = std::mem::take(&mut self.snapshot);
-                self.buffer.set_text(snap);
+                self.field.buffer.set_text(snap);
                 Some(InputAction::Cancelled)
             }
             BlurAction::Keep => None,
@@ -252,9 +234,8 @@ impl TextArea {
     }
 
     pub fn value(mut self, v: &str) -> Self {
-        self.buffer.set_text(v);
-        self.buffer.move_doc_start(false);
-        self.undo.clear();
+        self.field.set_text(v);
+        self.field.buffer.move_doc_start(false);
         self
     }
     pub fn placeholder(mut self, p: &str) -> Self {
@@ -266,7 +247,7 @@ impl TextArea {
         self
     }
     pub fn error(mut self, e: Option<&str>) -> Self {
-        self.error = e.map(str::to_owned);
+        self.field.error = e.map(crate::widgets::edit::FieldError::from);
         self
     }
     pub fn help(mut self, h: &str) -> Self {
@@ -281,7 +262,7 @@ impl TextArea {
     pub fn begin_edit(&mut self) {
         if !self.disabled {
             if !self.editing {
-                self.snapshot = self.buffer.text().to_owned();
+                self.snapshot = self.field.buffer.text().to_owned();
                 self.focus_edit = false;
             }
             self.editing = true;
@@ -291,7 +272,7 @@ impl TextArea {
 
     pub fn commit(&mut self) {
         self.editing = false;
-        self.buffer.clear_selection();
+        self.field.buffer.clear_selection();
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputAction>) {
@@ -300,7 +281,7 @@ impl TextArea {
         }
         // Ctrl+C copies only a selection; with nothing selected it is not
         // the field's, so it reaches the app's quit guard
-        if key.ctrl_char('c') && self.buffer.selected_text().is_none() {
+        if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
         let entry = self.entry();
@@ -308,14 +289,14 @@ impl TextArea {
             if entry == EditEntry::Immediate && !self.focus_seen {
                 // focus arrived and this key beat the first render
                 self.begin_edit();
-                self.focus_select.apply(&mut self.buffer);
+                self.focus_select.apply(&mut self.field.buffer);
             } else if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
                 self.begin_edit();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::SelectAll) {
                 // Select All picks the edit up with the whole text selected
                 self.begin_edit();
-                self.buffer.select_all();
+                self.field.buffer.select_all();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::Paste) {
                 // Paste (Cmd+V, the preset's key) goes the bracketed-paste
@@ -328,8 +309,8 @@ impl TextArea {
             {
                 // typing after Esc ("Done") picks the edit up again
                 self.begin_edit();
-                self.undo.record(&self.buffer, EditKind::Typing);
-                self.buffer.insert_char(c);
+                self.field.record(EditKind::Typing);
+                self.field.buffer.insert_char(c);
                 return (Outcome::Changed, Some(InputAction::Changed));
             } else {
                 let _moved = match self.nav.action(key) {
@@ -373,35 +354,38 @@ impl TextArea {
             EditAction::None => match key.code {
                 KeyCode::PageUp if !key.chord() => {
                     for _ in 0..self.rows {
-                        self.buffer.move_up(false);
+                        self.field.buffer.move_up(false);
                     }
                     (Outcome::Changed, None)
                 }
                 KeyCode::PageDown if !key.chord() => {
                     for _ in 0..self.rows {
-                        self.buffer.move_down(false);
+                        self.field.buffer.move_down(false);
                     }
                     (Outcome::Changed, None)
                 }
                 // an unbound chord passes on (Ctrl+Q, Ctrl+PageDown)
                 _ => (crate::widgets::field_common::unbound_key(key), None),
             },
-            action => match apply_edit(&mut self.buffer, &mut self.undo, action, key.code, false) {
-                Some(Applied::Edited) => (Outcome::Changed, Some(InputAction::Changed)),
-                _ => (Outcome::Changed, None),
-            },
+            action => {
+                if self.field.apply(action, key).edited {
+                    (Outcome::Changed, Some(InputAction::Changed))
+                } else {
+                    (Outcome::Changed, None)
+                }
+            }
         }
     }
 
     /// End the edit restoring the text it began with (Esc under
     /// [`Self::esc_reverts`]); the revert is itself undoable.
     fn revert(&mut self) {
-        if self.buffer.text() != self.snapshot {
-            self.undo.record(&self.buffer, EditKind::Other);
+        if self.field.buffer.text() != self.snapshot {
+            self.field.record(EditKind::Other);
         }
         self.editing = false;
         let snap = std::mem::take(&mut self.snapshot);
-        self.buffer.set_text(snap);
+        self.field.buffer.set_text(snap);
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
@@ -409,8 +393,7 @@ impl TextArea {
             return Outcome::Ignored;
         }
         self.begin_edit();
-        self.undo.record(&self.buffer, EditKind::Other);
-        self.buffer.insert_str(text);
+        self.field.paste(text);
         self.follow_cursor = true;
         Outcome::Changed
     }
@@ -428,8 +411,8 @@ impl TextArea {
             .max(0) as usize;
         let col =
             (self.hscroll as isize + (pos.x as isize - self.text_area.x as isize)).max(0) as usize;
-        let line = line.min(self.buffer.line_count().saturating_sub(1));
-        self.buffer.offset_at(line, col)
+        let line = line.min(self.field.buffer.line_count().saturating_sub(1));
+        self.field.buffer.offset_at(line, col)
     }
 
     /// A click enters editing (one click, never two) and places the cursor
@@ -442,30 +425,7 @@ impl TextArea {
     /// 2 selects the word, 3 the line, per [`Self::pointer_select`]. The
     /// release that ends a drag keeps the dragged selection.
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
-        if self.disabled {
-            return Outcome::Consumed;
-        }
-        if self.on_label(pos) {
-            // a label click edits without moving the caret
-            if !self.editing {
-                self.begin_edit();
-                self.focus_select.apply(&mut self.buffer);
-            }
-            self.follow_cursor = true;
-            return Outcome::Changed;
-        }
-        self.begin_edit();
-        let offset = self.offset_at(pos);
-        click_select(
-            &mut self.buffer,
-            &mut self.press,
-            self.pointer_select,
-            offset,
-            count,
-            false,
-        );
-        self.follow_cursor = true;
-        Outcome::Changed
+        PointerField::on_click_count(self, pos, count)
     }
 
     /// Button down on the area: remembers where, so a drag selects from
@@ -479,26 +439,7 @@ impl TextArea {
     /// double click selects the word, and a drag from it extends by words
     /// ([`PointerSelect::drag_by_word`]).
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
-        if self.disabled || self.on_label(pos) {
-            return Outcome::Consumed;
-        }
-        // the pointer owns this focus: the click places the caret
-        self.focus_seen = true;
-        self.focus_edit = false;
-        let offset = self.offset_at(pos);
-        if press_select(
-            &mut self.buffer,
-            &mut self.press,
-            self.pointer_select,
-            offset,
-            count,
-            false,
-        ) {
-            self.begin_edit();
-            self.follow_cursor = true;
-            return Outcome::Changed;
-        }
-        Outcome::Consumed
+        PointerField::on_press_count(self, pos, count)
     }
 
     /// Drag with the button held since a press on the area: starts
@@ -506,14 +447,7 @@ impl TextArea {
     /// ([`PointerSelect::drag`]). Past an edge the selection runs on and
     /// the area scrolls to follow it.
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
-        if self.disabled || !self.pointer_select.drag {
-            return Outcome::Ignored;
-        }
-        let offset = self.offset_at(pos);
-        self.begin_edit();
-        drag_select(&mut self.buffer, &mut self.press, offset);
-        self.follow_cursor = true;
-        Outcome::Changed
+        PointerField::on_drag(self, pos)
     }
 
     /// See [`Self::horizontal`].
@@ -530,7 +464,7 @@ impl TextArea {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
-        self.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
+        self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.begin(ctx.track_click);
         // focus newly gained starts an immediate edit: the caret shows the
@@ -538,7 +472,7 @@ impl TextArea {
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate && !self.editing {
             self.begin_edit();
-            self.focus_select.apply(&mut self.buffer);
+            self.focus_select.apply(&mut self.field.buffer);
             self.focus_edit = true;
         } else if !ctx.interaction.has_focus(self.id)
             && self.entry == EditEntry::Immediate
@@ -561,7 +495,7 @@ impl TextArea {
         let mut s = ctx.state(self.id);
         s.disabled = self.disabled;
         s.editing = self.editing && s.focused;
-        s.error = self.error.is_some();
+        s.error = self.field.error.is_some();
         if self.disabled {
             s.hovered = false;
         }
@@ -616,16 +550,16 @@ impl TextArea {
             rows,
         );
         self.text_area = inner;
-        if !self.disabled && self.pointer_select.drag {
+        if !self.disabled && self.field.sel.drag {
             ctx.autoscroll(inner);
         }
 
-        let text = self.buffer.text();
+        let text = self.field.buffer.text();
         let lines: Vec<&str> = text.split('\n').collect();
         self.content_cols = lines.iter().map(|l| width(l)).max().unwrap_or(0);
         self.scroll.set_content(lines.len());
         self.scroll.set_viewport(rows as usize);
-        let cur = self.buffer.cursor_pos();
+        let cur = self.field.buffer.cursor_pos();
         if s.editing && (self.follow_cursor || self.last_cursor != Some(cur) || resized) {
             self.scroll.ensure_visible(cur.line);
             let width = inner.width as usize;
@@ -655,7 +589,7 @@ impl TextArea {
                 ctx.set_cursor(Position::new(inner.x, inner.y));
             }
         } else {
-            let sel = self.buffer.selection();
+            let sel = self.field.buffer.selection();
             let mut line_start = 0usize;
             for (li, line) in lines.iter().enumerate() {
                 let visible = li >= self.scroll.offset && li < self.scroll.offset + rows as usize;
@@ -725,7 +659,7 @@ impl TextArea {
         let rows_area = Rect::new(body.x, body.y, body.width, rows);
         self.scroll
             .draw_with_fade(rows_area, buf, ctx, self.id, s.focused, &[]);
-        if self.error.is_some() && body.width >= 2 {
+        if self.field.error.is_some() && body.width >= 2 {
             buf.set_string(
                 body.right() - 2,
                 body.y,
@@ -751,7 +685,7 @@ impl TextArea {
                 crate::ui::text::width(&pos) as u16 + 3
             };
             let msg_w = area.width.saturating_sub(2 + pos_w) as usize;
-            if let Some(e) = &self.error {
+            if let Some(e) = &self.field.error {
                 buf.set_string(
                     area.x + 2,
                     fy,
@@ -788,18 +722,41 @@ impl crate::core::focus::BlurTarget for TextArea {
     }
 }
 
-impl PointerField for TextArea {
-    fn pointer_id(&self) -> WidgetId {
+/// The text for the pointer ([`PointerField`] through [`Editable`]): a
+/// press anchors a drag (the pointer owns this focus), a label click
+/// edits as focus would, every gesture keeps the caret in view.
+impl Editable for TextArea {
+    fn field(&mut self) -> &mut EditField {
+        &mut self.field
+    }
+    fn edit_id(&self) -> WidgetId {
         self.id
     }
-    fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
-        TextArea::on_press_count(self, pos, count)
+    fn offset_at(&self, pos: Position) -> usize {
+        TextArea::offset_at(self, pos)
     }
-    fn on_drag(&mut self, pos: Position) -> Outcome {
-        TextArea::on_drag(self, pos)
+    fn pointer_enabled(&self) -> bool {
+        !self.disabled
     }
-    fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
-        TextArea::on_click_count(self, pos, count)
+    fn on_label(&self, pos: Position) -> bool {
+        TextArea::on_label(self, pos)
+    }
+    fn label_click(&mut self) {
+        // a label click edits without moving the caret
+        if !self.editing {
+            self.begin_edit();
+            self.focus_select.apply(&mut self.field.buffer);
+        }
+    }
+    fn pointer_begin(&mut self) {
+        self.begin_edit();
+    }
+    fn pointer_focus(&mut self) {
+        self.focus_seen = true;
+        self.focus_edit = false;
+    }
+    fn pointer_after(&mut self) {
+        self.follow_cursor = true;
     }
 }
 
@@ -838,8 +795,8 @@ impl crate::ui::specimen::Specimen for TextArea {
         let v = state.visual();
         a.disabled |= v.disabled;
         a.editing = v.editing;
-        if v.error && a.error.is_none() {
-            a.error = Some("Explain why, in the imperative".into());
+        if v.error && a.field.error.is_none() {
+            a.field.error = Some("Explain why, in the imperative".into());
         }
         match state {
             SpecimenState::Empty => {
@@ -851,7 +808,7 @@ impl crate::ui::specimen::Specimen for TextArea {
             SpecimenState::Overflow => {
                 let long = format!(
                     "{} and a line longer than the area",
-                    a.buffer.text().lines().next().unwrap_or_default()
+                    a.field.buffer.text().lines().next().unwrap_or_default()
                 );
                 a = a.value(&long);
             }
@@ -859,7 +816,7 @@ impl crate::ui::specimen::Specimen for TextArea {
         }
         a.render(area, buf, ctx, bg);
         if v.editing && a.text_area.width > 1 {
-            let first = a.buffer.text().lines().next().unwrap_or_default();
+            let first = a.field.buffer.text().lines().next().unwrap_or_default();
             let x = (a.text_area.x + width(first) as u16).min(a.text_area.right() - 1);
             if let Some(c) = buf.cell_mut(Position::new(x, a.text_area.y)) {
                 c.bg = ctx.theme.text_primary;
@@ -943,7 +900,7 @@ mod tests {
             assert_eq!(a.on_key(&key), (Outcome::Ignored, None), "{key:?}");
             assert!(a.editing);
         }
-        assert_eq!(a.buffer.text(), "one\ntwo");
+        assert_eq!(a.field.buffer.text(), "one\ntwo");
         assert_eq!(
             a.on_key(&k(KeyCode::Char('a'), M::SUPER)).0,
             Outcome::Changed
@@ -979,11 +936,12 @@ mod tests {
             a.scroll.offset
         );
         assert!(
-            a.buffer
+            a.field
+                .buffer
                 .selected_text()
                 .is_some_and(|s| s.starts_with("ne 7\nline 8")),
             "{:?}",
-            a.buffer.selected_text()
+            a.field.buffer.selected_text()
         );
     }
 
@@ -1002,25 +960,29 @@ mod tests {
         assert!(!a.editing, "the press alone changes nothing");
         assert_eq!(a.on_drag(d), Outcome::Changed);
         assert!(a.editing, "the drag edits");
-        assert_eq!(a.buffer.selected_text(), Some("two\nthree"));
+        assert_eq!(a.field.buffer.selected_text(), Some("two\nthree"));
         a.on_click_count(d, 1);
         assert_eq!(
-            a.buffer.selected_text(),
+            a.field.buffer.selected_text(),
             Some("two\nthree"),
             "release keeps it"
         );
         let (w, l) = (at(7, 1), at(1, 1));
         a.on_click_count(w, 2);
-        assert_eq!(a.buffer.selected_text(), Some("four"));
+        assert_eq!(a.field.buffer.selected_text(), Some("four"));
         a.on_click_count(l, 3);
-        assert_eq!(a.buffer.selected_text(), Some("three four"), "one line");
+        assert_eq!(
+            a.field.buffer.selected_text(),
+            Some("three four"),
+            "one line"
+        );
         let mut off = TextArea::new(WidgetId::of("o"), "Notes", 4)
             .value("one two")
             .pointer_select(crate::widgets::field_common::PointerSelect::OFF);
         render(&mut off, area, &mut buf, ColorLevel::TrueColor);
         let p = Position::new(off.text_area.x + 5, off.text_area.y);
         off.on_click_count(p, 2);
-        assert_eq!(off.buffer.selected_text(), None);
+        assert_eq!(off.field.buffer.selected_text(), None);
     }
 
     #[test]
@@ -1035,7 +997,7 @@ mod tests {
         let mut a = TextArea::new(WidgetId::of("r"), "Notes", 3).value("v");
         a.begin_edit();
         // dirty: a clean immediate edit ends quietly with the focus
-        a.buffer.insert_str("w");
+        a.field.buffer.insert_str("w");
         let area = Rect::new(0, 0, 30, 5);
         let mut buf = Buffer::empty(area);
         a.render(area, &mut buf, &mut ctx, theme.canvas);
@@ -1056,18 +1018,18 @@ mod tests {
                 "an area that is not editing ignores blur"
             );
             a.begin_edit();
-            a.buffer.move_doc_end(false);
-            a.buffer.insert_str("\nnew");
+            a.field.buffer.move_doc_end(false);
+            a.field.buffer.insert_str("\nnew");
             a
         };
         let mut commit = edited(BlurAction::default());
         assert_eq!(commit.on_blur(), Some(InputAction::Committed));
         assert!(!commit.editing);
-        assert_eq!(commit.buffer.text(), "old\nnew");
+        assert_eq!(commit.field.buffer.text(), "old\nnew");
         let mut cancel = edited(BlurAction::Cancel);
         assert_eq!(cancel.on_blur(), Some(InputAction::Cancelled));
         assert!(!cancel.editing);
-        assert_eq!(cancel.buffer.text(), "old");
+        assert_eq!(cancel.field.buffer.text(), "old");
         let mut keep = edited(BlurAction::Keep);
         assert_eq!(keep.on_blur(), None);
         assert!(keep.editing);
@@ -1155,13 +1117,17 @@ mod tests {
         a.on_key(&key(KeyCode::Enter));
         a.on_key(&key(KeyCode::Char('x')));
         assert_eq!(
-            a.buffer.text(),
+            a.field.buffer.text(),
             "one\nx",
             "caret at the end, Enter a newline"
         );
         assert_eq!(a.on_key(&key(KeyCode::Esc)).1, Some(InputAction::Committed));
         assert!(!a.editing);
-        assert_eq!(a.buffer.text(), "one\nx", "Esc is Done: the text stays");
+        assert_eq!(
+            a.field.buffer.text(),
+            "one\nx",
+            "Esc is Done: the text stays"
+        );
         a.on_key(&key(KeyCode::Char('y')));
         assert!(a.editing, "typing picks the edit up again");
         assert_eq!(
@@ -1174,7 +1140,7 @@ mod tests {
         render(&mut r, area, &mut buf, ColorLevel::TrueColor);
         r.on_key(&key(KeyCode::Char('x')));
         assert_eq!(r.on_key(&key(KeyCode::Esc)).1, Some(InputAction::Cancelled));
-        assert_eq!(r.buffer.text(), "keep");
+        assert_eq!(r.field.buffer.text(), "keep");
     }
 
     #[test]
@@ -1190,7 +1156,10 @@ mod tests {
             assert!(input.text_area.contains(cursor));
             assert!(input.hscroll > 0);
             input.on_click(cursor);
-            assert_eq!(input.buffer.cursor_offset(), input.buffer.text().len());
+            assert_eq!(
+                input.field.buffer.cursor_offset(),
+                input.field.buffer.text().len()
+            );
             input.on_paste("🙂");
             let cursor = render(&mut input, area, &mut buf, level).unwrap();
             assert!(input.text_area.contains(cursor));
@@ -1248,7 +1217,7 @@ mod tests {
                         .help("Some help")
                         .error(Some("Invalid"));
                     input.begin_edit();
-                    input.buffer.move_doc_end(false);
+                    input.field.buffer.move_doc_end(false);
                     let area = Rect::new(3, 2, width, height);
                     let mut buf = Buffer::empty(Rect::new(0, 0, 20, 10));
                     let cursor = render(&mut input, area, &mut buf, level);
@@ -1364,8 +1333,8 @@ mod tests {
         input.on_click(Position::new(3, 0));
         assert!(input.editing);
         assert_eq!(
-            input.buffer.cursor_offset(),
-            input.buffer.text().len(),
+            input.field.buffer.cursor_offset(),
+            input.field.buffer.text().len(),
             "the caret goes where focus puts it, not under the label"
         );
         let mut off = TextArea::new(WidgetId::of("n"), "Notes", 2).label_hit(false);
