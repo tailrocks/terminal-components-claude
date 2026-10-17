@@ -1758,3 +1758,28 @@ fn the_frame_that_hides_the_focused_explorer_shows_where_focus_went() {
     assert!(focus.is_some() && focus != Some(explorer));
     assert!(h.text().contains('▎'), "one focus indicator\n{}", h.text());
 }
+
+/// The library router's page keys reach the workbench (S8a, SI23):
+/// Ctrl+PgDn/PgUp step the open tabs even while the query editor edits,
+/// where `]`/`[` type.
+#[test]
+fn ctrl_page_keys_step_workbench_tabs_over_an_editing_field() {
+    let mut h = H::connected(120, 40);
+    h.ctrl('t');
+    assert_eq!(h.wb().active, 1);
+    assert!(
+        junie_tui::shell::KeyHost::capturing(&h.app),
+        "the new query edits"
+    );
+    let step = |h: &mut H, code| {
+        h.app.handle(Input::Key(Key {
+            code,
+            mods: KeyModifiers::CONTROL,
+        }));
+        h.draw();
+    };
+    step(&mut h, KeyCode::PageUp);
+    assert_eq!(h.wb().active, 0);
+    step(&mut h, KeyCode::PageDown);
+    assert_eq!(h.wb().active, 1);
+}
