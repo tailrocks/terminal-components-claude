@@ -933,3 +933,43 @@ runtime::drain_pending_input | runtime plumbing: the event loop entry, input dra
 
 # widgets::too_small
 widgets::too_small::TooSmall::applies | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+
+# widgets::edit
+widgets::edit::FieldError | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::FieldError::message | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::FieldError::into_message | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::Validator | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::Validator::validate_in | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::ValidateWhen | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::ValidateWhen::Commit | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::ValidateWhen::AfterError | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::ValidateWhen::Live | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditExit | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditExit::Commit | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditExit::Cancel | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditExit::Tab | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditResult | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::validator | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::validate_when | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::keys | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::text | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::set_text | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::action | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::text_cmd | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::on_key | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::apply | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::paste | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::record | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::seal | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::clear_history | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::can_undo | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::can_redo | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::after_edit | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::validate | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::set_error | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::error_message | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::press | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::drag | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::click | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::pressed | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32

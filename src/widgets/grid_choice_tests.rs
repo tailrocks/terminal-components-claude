@@ -172,7 +172,7 @@ fn an_out_of_set_value_is_flagged_and_the_validator_still_decides() {
     );
     // a validator that rejects a plan keeps the popup open
     let mut g = grid();
-    g.validator = Validator::new(|_, v| {
+    g.validator = crate::widgets::grid::cell_validator(|_, v| {
         if v == "edu" {
             Err("Not for this account".into())
         } else {

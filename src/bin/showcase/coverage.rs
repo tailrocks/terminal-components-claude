@@ -1888,10 +1888,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     ("widgets::table::EditState", StateRow("editable", "editing")),
     (
-        "widgets::table::CellValidator",
-        StateRow("editable", "error"),
-    ),
-    (
         "widgets::table::TableCmd",
         Option("editable", "editable.keymap"),
     ),
@@ -2272,7 +2268,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Demo("datagrid", "ReadOnly says why not"),
     ),
     (
-        "widgets::grid::Validator",
+        "widgets::grid::cell_validator",
         Option("datagrid", "datagrid.validator"),
     ),
     (
