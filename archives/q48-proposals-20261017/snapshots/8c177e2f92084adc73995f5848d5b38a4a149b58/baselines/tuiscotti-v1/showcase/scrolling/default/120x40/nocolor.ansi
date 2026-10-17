@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling                               no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are… [0m
+   Overview                                                                                                             [0m
+                            Wrapped text   1–31 of 120      Long list      1–31 of 120      Log 1970–2000 of 2000 · f…  [0m
+   Components                                                                                                           [0m
+   Buttons                  Junie works through a    ┃         Row 001               ┃      [0m[2m 728.53s  info   Fetchi… [0m│  [0m
+   Inputs                   task the way a careful   ┃         Row 002               ┃       728.90s  info   Compil… │  [0m
+   Text areas               engineer would: it reads ┃         Row 003               ┃       729.27s  info   Compil… │  [0m
+   Forms                    the relevant code, forms ┃         Row 004               ┃       729.64s  warn   unused… │  [0m
+   Lists                    a plan, makes focused    ┃         Row 005               ┃       730.01s  info   Compil… │  [0m
+   Trees                    changes, runs the tests, ┃         Row 006               ┃       730.38s  info   Runnin… │  [0m
+   Tables                   and reports back with a  ┃         Row 007       flagged ┃       730.75s  info   test a… │  [0m
+   Editable tables          summary you can review   ┃         Row 008               ┃       731.12s  info   test d… │  [0m
+   Panels                   before anything is       │         Row 009               │       731.49s  error  test c… │  [0m
+   Sidebars                 merged.                  │         Row 010               │       731.86s  info   test w… │  [0m
+   Dialogs                                           │         Row 011               │       732.23s  info   Linkin… │  [0m
+   Progress                 Each step is visible.    │         Row 012               │       732.60s  info   Resolv… │  [0m
+[0m[1m▎› Scrolling            [0m    You can pause, redirect, │         Row 013               │       732.97s  info   Fetchi… │  [0m
+   Terminal                 or take over at any      │         Row 014       flagged │       733.34s  info   Compil… │  [0m
+   Code editor              point, and every change  │         Row 015               │       733.71s  info   Compil… │  [0m
+   Diff                     lands as an ordinary     │         Row 016               │       734.08s  warn   unused… │  [0m
+   Data grid                diff in your working     │         Row 017               │       734.45s  info   Compil… │  [0m
+   Chips & selects          tree.                    │         Row 018               │       734.82s  info   Runnin… │  [0m
+   Pickers                                           │         Row 019               │       735.19s  info   test a… │  [0m
+   Chrome                   The design system in     │         Row 020               │       735.56s  info   test d… │  [0m
+                            this prototype exists so │         Row 021       flagged │       735.93s  error  test c… │  [0m
+   Screens                  that the terminal        │         Row 022               │       736.30s  info   test w… │  [0m
+   Settings                 version of that          │         Row 023               │       736.67s  info   Linkin… │  [0m
+   Task runner              experience feels as      │         Row 024               │       737.04s  info   Resolv… │  [0m
+                            deliberate as the web    │         Row 025               │       737.41s  info   Fetchi… │  [0m
+                            version: quiet surfaces, │         Row 026               │       737.78s  info   Compil… │  [0m
+                            one accent, clear focus, │         Row 027               │       738.15s  info   Compil… │  [0m
+                            and no decoration that   │         Row 028       flagged │       738.52s  warn   unused… │  [0m
+                            does not carry           │         Row 029               │       738.89s  info   Compil… │  [0m
+                            information.             │         Row 030               │       739.26s  info   Runnin… │  [0m
+                            [0m[2m                         [0m│      [0m[2m   Row 031               [0m│       739.63s  info   test a… ┃  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

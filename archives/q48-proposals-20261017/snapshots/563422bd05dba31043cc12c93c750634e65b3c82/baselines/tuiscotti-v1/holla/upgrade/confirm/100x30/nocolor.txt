@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       no project  devbox · development
+
+  Here › Upgrade everything
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────
+  Upgrade ev╭──────────────────────────────────────────────────────────────────────────╮ed · ~16 s
+  upgrade De│                                                                          │
+            │  Start upgrade everything?                                               │
+         ste│                                                                          │
+  [✓] 01 Pre│  Plan       Upgrade everything · upgrade Debian packages and global      │
+  [✓] 02 Ref│             mise tools on devbox                                         │
+  [✓] 03 Rev│  Host       devbox                                                       │
+  [✓] 04 App│  Steps      7 included · 1 excluded · ~16 s                              │
+  [✓] 05 Ins│  Privilege  sudo · cached for this session                               │
+  [ ] 06 Upg│  Debian     14 upgradable · 2 security                                   │
+  [✓] 07 Pac│  mise       4 outdated global tools · go excluded                        │
+  [✓] 08 Fin│  Reboot     required after the kernel upgrade                            │ise tools
+            │                                                                          │
+    08 Final│  cat /etc/os-release                                                     │
+            │  sudo -n true                                                            │
+            │  fuser /var/lib/dpkg/lock-frontend                                       │
+            │  df -h /                                                                 │
+            │  test -f /var/run/reboot-required                                        │
+            │  sudo apt-get update … 8 more                                            │
+            │                                                                          │
+            │                                                   ▎Cancel   Start plan   │
+            │                                                                          │
+            ╰──────────────────────────────────────────────────────────────────────────╯firm plan
+
+ ~                     review · 7 steps · 2 branches parallel                     no color · 100×30
+                              ← → Choose  Enter Confirm  Esc Cancel    06 excluded · 08 now blocked

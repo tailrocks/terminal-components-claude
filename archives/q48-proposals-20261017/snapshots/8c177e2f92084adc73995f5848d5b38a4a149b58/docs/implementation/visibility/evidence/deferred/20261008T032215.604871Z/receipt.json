@@ -1,0 +1,83 @@
+{
+  "artifacts": {
+    "list_json": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-list.stdout.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "list_stderr": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-list.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "stderr": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-run.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "stdout": {
+      "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-run.stdout.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    }
+  },
+  "execution": {
+    "block_reason": "VIS-04 accepted base cc3ce8f6ac149aaee406047c5180d1a658d6bb9c differs from HEAD 5572f09f57053adb74c886cdab748650452531b6",
+    "counts": {
+      "executed": 0,
+      "expected": 23,
+      "failed": 0,
+      "listed": 0,
+      "not_run": 23,
+      "passed": 0,
+      "skipped": 0
+    },
+    "executed_tests": [],
+    "exit_code": null,
+    "expected_failure_treatment": "none",
+    "nextest_list_exit_code": null,
+    "result": "blocked"
+  },
+  "finished_at": "2026-10-08T03:22:15.644618Z",
+  "run_id": "20261008T032215.604871Z",
+  "schema": "termrock-deferred-run/v1",
+  "schema_version": 1,
+  "selection": {
+    "binary": "control_states",
+    "count": 23,
+    "expected_tests": [],
+    "filterset": null,
+    "ignored_only": true,
+    "lane": "deferred-behavior",
+    "listed_test_names": [],
+    "listed_tests": [],
+    "listed_total_count": null,
+    "package": "termrock-conformance",
+    "writer_exclusion": "test(/(?i)(admission|approve|baseline|capture|snapshot|publish|write)/)"
+  },
+  "started_at": "2026-10-08T03:22:15.604634Z",
+  "subject": {
+    "branch": null,
+    "commit": null,
+    "repository": "tailrocks/terminal-components-claude",
+    "source_inputs_sha256": null,
+    "working_tree": null
+  },
+  "tool": {
+    "cargo_nextest_path": "/Users/donbeave/.local/share/mise/shims/cargo-nextest",
+    "cargo_path": "/Users/donbeave/Library/Application Support/mbx/bin/cargo",
+    "environment_inputs": {},
+    "list_argv": null,
+    "name": "cargo nextest",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python_version": "3.9.6",
+    "run_argv": null,
+    "version": null
+  },
+  "tool_inputs": {
+    "claim": null,
+    "inventory_sha256": null,
+    "source_inputs_sha256": null,
+    "work_item": "VIS-04"
+  }
+}

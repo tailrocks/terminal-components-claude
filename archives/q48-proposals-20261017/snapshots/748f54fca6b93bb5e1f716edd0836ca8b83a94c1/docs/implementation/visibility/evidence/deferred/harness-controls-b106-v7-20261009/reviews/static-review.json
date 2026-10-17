@@ -1,0 +1,119 @@
+{
+  "schema": "termrock-vis04-deferred-controls-cache-repair-independent-review/v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "READY_STATIC_REVIEW",
+  "subject": {
+    "packet_root": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13",
+    "request": {
+      "path": "runner/review-request.json",
+      "sha256": "e4c676ff96731bebf12bab8575215a3a33293ffca665baef409df54fcf96432f"
+    },
+    "runner": {
+      "path": "runner/run-controls.cjs",
+      "sha256": "cb637afb80b87910dcbdb6b5601c735773c585f25e906cba9ad0a058b7061ee4"
+    },
+    "runplan": {
+      "path": "runner/runplan.json",
+      "sha256": "834171f244fb72d514192f967a0dbe8a2acb23396bfd9b5282b8c1de71f125f9"
+    },
+    "source_manifest": {
+      "path": "runner/source-manifest.json",
+      "sha256": "3fba61dc932f1cd40f7dd522f5883346a947e96746a2819f30834b88add3133b"
+    },
+    "test_names": {
+      "path": "runner/test-names.json",
+      "sha256": "78d14ca903206f26ee12a6fba4abc24503511d628454ae4a9f7555035520f596"
+    },
+    "launch_script": {
+      "path": "runner/launch.sh",
+      "sha256": "24a17669a1331fa7a2d22f017e659f2f7e46815a2914acfabdca4ca5b7492106"
+    },
+    "preflight_script": {
+      "path": "runner/preflight.cjs",
+      "sha256": "d4db7338f2f52ead2673fee6c32bdeb94f877a4fd5562e2346293fa77a9f3201"
+    },
+    "static_preflight": {
+      "path": "runner/preflight.json",
+      "sha256": "3f78f8e27a41abda8b2df8efb54ce604e4c068edc54fe559b570941a8c685a7e"
+    },
+    "runtime_preflight": {
+      "path": "runner/runs/2026-10-09T04-03-43-016Z-bacadf43/receipt.json",
+      "sha256": "978536fa896851b21ac534743bcd07587c9b5efd2dbc4261651ecdeade14ec84"
+    },
+    "cache_manifest": {
+      "path": "cargo-cache-manifest.json",
+      "sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71"
+    },
+    "prelaunch_audit": {
+      "path": "prelaunch-audit.json",
+      "sha256": "991457df7b72c3ed98202d92c6b03631db1e596e5b56b5333cae8b26e05ba9b8"
+    },
+    "package_inventory": {
+      "path": "PACKAGE-INVENTORY.json",
+      "sha256": "fd3e1f2166ce8f84e9be4990ed5e0f62484b62c9745996a9a046d787697d5624"
+    },
+    "cargo_lock_sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+  },
+  "findings": [],
+  "verified": {
+    "cache": {
+      "locked_registry_packages": 32,
+      "archive_files": 32,
+      "archive_checksums_matching_lock": 32,
+      "sparse_index_entries": 32,
+      "index_file_hashes_matching_manifest": 32,
+      "index_rows_matching_locked_version_and_checksum": 32,
+      "archives_copied": 29,
+      "archives_downloaded_from_exact_static_crates_io_urls": 3,
+      "index_config_sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3",
+      "cargo_home_realpath": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/cargo-home",
+      "packet_root_mode": "0700",
+      "cargo_home_mode": "0755",
+      "cargo_home_symlinks": 0,
+      "credential_like_files": 0,
+      "registry_src_present": false,
+      "total_files": 66
+    },
+    "runner_delta": {
+      "compared_to_reviewed_v6_runner": "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/run-controls.cjs",
+      "difference": "Only the CARGO_HOME constant changes to the packet-local v7 cargo-home; runner semantics are unchanged."
+    },
+    "selection": {
+      "selected_rust_tests": 27,
+      "ignored_selected_tests": 0,
+      "exact_names_bound": true,
+      "run_ignored": "all",
+      "no_fail_fast": true,
+      "retries": 0
+    },
+    "execution_controls": {
+      "locked": true,
+      "offline": true,
+      "environment_inherits_parent": false,
+      "build_jobs": 2,
+      "test_threads": 1,
+      "timeout_ms": 600000,
+      "term_grace_ms": 5000,
+      "post_kill_grace_ms": 1000,
+      "process_group": true,
+      "combined_log_cap_bytes": 16777216
+    },
+    "preflight_records": {
+      "static_result": "PASS_STATIC_PREFLIGHT_NO_CARGO",
+      "runtime_result": "PASS_RUNTIME_PREFLIGHT_NO_CARGO",
+      "runtime_cargo_spawned": false,
+      "prelaunch_audit_reports_normal_runner_launched": false
+    }
+  },
+  "limitations": {
+    "reviewer_ran_cargo": false,
+    "reviewer_ran_nextest": false,
+    "normal_runner_launched_by_reviewer": false,
+    "offline_cargo_resolution": "NOT_RUN",
+    "selected_tests": "NOT_RUN",
+    "extracted_registry_source_cache": "NOT_PRESENT_AND_NOT_CLAIMED",
+    "source_and_product_claims": "This review qualifies only the external 27-test Rust harness-controls cache preparation; it does not claim product or PTY qualification."
+  },
+  "scope_note": "The packet’s NOT_RUN wording is lane-local. Per root-provided status, the separate S1d product23 lane has 22 PASS and BD-21 FAIL; that result is outside this cache review and is not changed or recast here.",
+  "review_summary": "The private cache’s full 32-package archive and sparse-index closure matches the pinned Cargo.lock. The v7 runner changes only CARGO_HOME from reviewed v6. Static/runtime preflight records are hash-bound; v7 offline Cargo resolution and the 27 Rust controls remain unrun."
+}

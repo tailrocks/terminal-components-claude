@@ -1,0 +1,13 @@
+{
+  "schema": "termrock-spec/visual-tag-validator-toolchain-v1",
+  "python": {
+    "path": "/usr/bin/python3",
+    "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "version": "Python 3.9.6"
+  },
+  "git": {
+    "path": "/usr/bin/git",
+    "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+    "version": "git version 2.54.0 (Apple Git-157)"
+  }
+}

@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      payments · s…eckout  ◆ prod-eu-1 · production
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ blockingresources                                            scope ‹ here ›
+
+
+
+
+
+
+                       No matches for “blockingresources”
+
+            Esc clears the query · Ctrl+↑ widens to the parent scope
+
+
+
+
+
+
+
+
+ /srv/payments   detached @ v2.14.3                           16 colors · 80×24
+          Type Search  ↑↓ Move  Enter Run  …   Cancelled · nothing was executed

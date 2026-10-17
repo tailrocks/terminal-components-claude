@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Buttons             no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mButtons[0m  Primary, secondary, subtle, danger, toggle, disabled, busy            [0m
+[0m[1m▎› Buttons         [0m                                                                                 [0m
+   Inputs              Playground                              hover · click · Tab · Enter / Space  [0m
+   Text areas                                                                                       [0m
+   Forms               Actions                                                                      [0m
+   Lists                [0m[1mRun task [0m   Preview    Cancel    Delete branch                              [0m
+   Trees                                                                                            [0m
+   Tables              Toggles                                                                      [0m
+   Editable tables      ○ Auto-approve    ● Verbose                                                 [0m
+   Panels                                                                                           [0m
+   Sidebars            Disabled                                                                     [0m
+   Dialogs              [0m[2mDisabled primary [0m   [0m[2mDisabled [0m                                               [0m
+   Progress                                                                                         [0m
+   Scrolling           Busy                                                                         [0m
+   Terminal             Start long job                                                              [0m
+   Code editor                                                                                      [0m
+   Diff                                                                                             [0m
+   Data grid                                                                                        [0m
+   Chips & selects     State matrix                                            reference rendering  [0m
+   Pickers                                                                                          [0m
+   Chrome                             Primary        Secondary      Subtle         Danger           [0m
+   Settings            default         [0m[1m Label [0m         Label          Label          Label          [0m
+   Task runner         hover           [0m[1m Label [0m         Label          Label          Label          [0m
+                       focus          ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m         [0m
+                       focus + hover  ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m         [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Code editor       256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Code editor  Blocks, tones, diagnostics and completion; the gutter says where…
+   Buttons
+   Inputs             ▎retry.rs                            3 blocks      State
+   Text areas
+   Forms               ▎›  1 cl// Retry a request with exponentia…┃      Mode         editing
+   Lists                   2 ╭─────────────────────────────────────────────╮sor       ln 1 · col 3
+   Trees                   3 │▎T Client                             struct │ck        1 of 3
+   Tables                  4 │ ƒ client(                   fn () -> Client │s         0
+   Editable tables         5 │ ƒ schedule(  fn (attempts: u32) -> Vec<u64> │t run     —
+   Panels                  6 ╰─────────────────────────────────────────────╯gnostics  0
+   Sidebars                7             Err(e) if e.is_transient…┃      Completion   3 items
+   Dialogs                 8                 log::warn!("attempt …┃
+   Progress                9                 sleep(delay).await;  ┃
+   Scrolling              10                 delay *= 2;          ┃
+   Terminal               11             }                        ┃      Diagnostics
+ › Code editor            12             Err(e) => return Err(e), ┃
+   Diff                   13         }                            ┃           Nothing flagged
+   Data grid              14     }                                ┃
+   Chips & selects        15     Err(Error::Exhausted)            ┃        Run the second block:
+   Pickers                16 }                                    │         its unwrap() gets a
+   Chrome                 17                                      │               warning
+   Settings               18 fn client() -> Client {              │
+   Task runner            19     Client::builder().timeout(10).bu…│
+                          20 }                                    │
+                                                   ln 1/26 · col 3
+
+
+  EDIT   ↑ ↓ Move  Enter Accept  Esc Close

@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help                                           [0m
+                                                                        [0m
+ ╭─ Workspaces ─────────────────────────────────────────── 2 running ─╮ [0m
+ │ ╭─[0m[1m Container 7f3a [0m─────────────────────────────────── read-only ─╮ │ [0m
+ │ │ [0m[1m▎ [0mContainer[0m[1m  jackin-payments-platform-7f3a            [0my copy[0m[1m [0m  │ │ [0m
+ │ │   Image      jackin/derived:payments-platform-7f3a             │ │ [0m
+ │ │   Workspace  payments-platform › role the-architect            │ │ [0m
+ │ │   Agent      Claude Code · account Claude · Personal           │ │ [0m
+ │ │   Target     /workspace/payments-platform · 2 mounts           │ │ [0m
+ │ │   Run id     run-7f3a                                          │ │ [0m
+ │ │   Lifecycle  running                                           │ │ [0m
+ ╰─│   Daemon     attached · 3 tabs · 3 s ago                       │─╯ [0m
+   │                                                                │   [0m
+   │                                                                │   [0m
+   │                                                                │   [0m
+   │                                                        Close   │   [0m
+   ╰────────────────────────────────────────────────────────────────╯   [0m
+                                                                        [0m
+                                                                        [0m
+     [0m[1m     [0m            [0m[1m↑↓[0m Move  [0m[1my[0m Copy[0m[1m [0m [0m[1mEsc[0m Clo[0m[1ms[0me      [0m[1m [0m                 [0m

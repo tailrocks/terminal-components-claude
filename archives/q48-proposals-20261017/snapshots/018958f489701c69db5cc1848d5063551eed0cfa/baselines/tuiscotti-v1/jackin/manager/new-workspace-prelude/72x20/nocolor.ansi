@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help                Workspaces › new workspace [0m
+                                                                        [0m
+  ╭─[0m[1m New workspace · step 1 of 5 · Source [0m───────────────────────────╮  [0m
+  │  Source · Destination · Edit · Working dir · Name                │  [0m
+  │                                                                  │  [0m
+  │   Path                                                           │  [0m
+  │   ~/src/payments-platform                                        │  [0m
+  │                                                                  │  [0m
+  │ [0m[1m▎  ..                                                  parent [0m┃  │  [0m
+  │    crates/                                            6 items ┃  │  [0m
+  │    docs/                                                  adr │  │  [0m
+  │ [0m[2m   scripts/                                           3 items [0m│  │  [0m
+  │                                                                  │  [0m
+  │  [ ] Mount read-only                                             │  [0m
+  │                                                                  │  [0m
+  │                                                                  │  [0m
+  │                                     Git URL…   Cancel   [0m[1mChoose [0m  │  [0m
+  ╰──────────────────────────────────────────────────────────────────╯  [0m
+                                                                        [0m
+    [0m[1m  Enter[0m Open[0m[1m  Space C[0mhoose[0m[1m  g G[0mit URL  [0m[1mTab[0m Next  [0m[1mEsc C[0mancel         [0m

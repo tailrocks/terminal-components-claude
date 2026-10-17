@@ -1,0 +1,50 @@
+ [0m[1m jackin❯ [0m  [0m[1m File [0m  Go   Help                                                                                       Workspaces  inside the Construct  2 running [0m
+            ╭─────────────────────────╮                                                                                                                         [0m
+ ╭─[0m[1m Workspac│  New workspace…       [0mn[0m[1m [0m│ running ─╮ │  Current directory · payments-platform saved workspace      Running                          2 instances   [0m
+ │ [0m[1m▎   Curre│  Edit w[0morkspace…      e │platform[0m[1m [0m │ │                                                                                                            [0m
+ │   ▸ payme│  Launch…          Enter │ running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
+ │   ▸ infra│  Prewarm              w │ running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
+ │   ▸ relea│  Delete workspace…    d │! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m
+ │   ▸ custo│ ─────────────────────── │! failed  │ │  Roles         the-architect ★ · allowed 3 of 46                                                           [0m
+ │     + New│  Refresh             F5 │          │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex      [0m
+ │          │ ─────────────────────── │          │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane             [0m
+ │          │  Quit            Ctrl+Q │          │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments                 [0m
+ │          ╰─────────────────────────╯          │ │                OpenCode · Go subscription ★                                                                [0m
+ │                                               │ │  Policies      git pull enabled · keep awake on · dir…                                                     [0m
+ │                                               │ │                                                             [0m[1mPreserved[0m                          3 records   [0m
+ │                                               │ │  [0m[1mInstances[0m                            daemon · 3 s ago      ◌ c41e  payments-platform · reviewer · pres…   [0m
+ │                                               │ │  ◉ 7f3a  the-architect · Claude Code · running              ◌ a1c0  release-automation · backend · rest…   [0m
+ │                                               │ │  ◌ c41e  reviewer · Codex · preserved · dirty               ◌ 04d7  infra-control-plane · sre · preserv…   [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                             [0m[1mDaemon[0m                     healthy · 3 s ago   [0m
+ │                                               │ │                                                             Refresh      throttled · every 5 s             [0m
+ │                                               │ │                                                             Usage        degraded · 4 warnings · 1 exha…   [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │  Launch    Edit                                                                                            [0m
+ ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+                                                                                                                                                                [0m
+                                                          [0m[1m← →[0m Menu  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close                                                            [0m

@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  holla · Rust project  mbp · local [0m
+  ╭──────────────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                          │  [0m
+ ━│  [0m[1mKey reference[0m                                                     Here  │─ [0m
+  │                                                                          │  [0m
+  │  Finder                                                               ┃  │  [0m
+  │  [0m[1mType[0m             search actions and resources together · @parent     ┃  │  [0m
+  │                   @children @system @all narrow the scope             ┃  │  [0m
+  │  [0m[1m↑↓[0m               move · PgUp PgDn Home End                           ┃  │  [0m
+  │  [0m[1mEnter[0m            primary action · destructive rows open a review     ┃  │  [0m
+  │                   instead                                             ┃  │  [0m
+  │  [0m[1mAlt+Enter[0m        alternatives · run, copy, insert, arguments, pin,   ┃  │  [0m
+  │                   alias, hide, why                                    │  │  [0m
+  │  [0m[1mTab[0m              preview › tab strip › finder                        │  │  [0m
+  │  [0m[1mCtrl+↑ / Ctrl+↓[0m  scope outward (parent, system) / inward (children)  │  │  [0m
+  │  [0m[1mEsc[0m              clear query › scope back to here › back a page › qu…│  │  [0m
+  │  [0m[1mAliases[0m          gp pull · du disk usage · test the test task here ·…│  │  [0m
+  │                   then u · dc docker cleanup                          │  │  [0m
+  │                                                                       │  │  [0m
+  │  [0m[2mPages                                                                [0m│  │  [0m
+  │                                                                          │  [0m
+  ╰──────────────────────────────────────────────────────────────────────────╯  [0m
+ ~/work/holla   main   ↓3 • 5                                  no color · 80×24 [0m
+       [0m[1m    [0m         [0m[1m  [0m       [0m[1m↑↓ Sc[0mroll  [0m[1mEsc Close [0m       [0m[1m   [0m                    [0m

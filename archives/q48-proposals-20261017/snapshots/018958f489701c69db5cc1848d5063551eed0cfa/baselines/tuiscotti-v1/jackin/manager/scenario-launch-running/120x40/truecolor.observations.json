@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 13010253506644600405,
+  "legacy_name": "jackin/scenarios/launch-running/120x40/truecolor",
+  "name": "jackin/manager/scenario-launch-running/120x40/truecolor",
+  "non_empty_cells": 592,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

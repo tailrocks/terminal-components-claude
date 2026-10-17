@@ -1,0 +1,20 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m       [0m
+                                                                        [0m
+ [0m[1m [0m≡[0m[1m Query 1 ×  [0m                                                     +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+ ╭─ Query 1 ───────────────────────────────────────────────────────  ─╮ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                           No results yet                           │ [0m
+ │                                                                    │ [0m
+ │     Ctrl+R runs the statement under the cursor · Alt+R runs all    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1m→[0m Expand  [0m[1m/[0m Filter  …    Connected to Production [0m

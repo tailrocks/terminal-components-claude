@@ -1,0 +1,1175 @@
+{
+  "schema": "termrock-spec/parity-oracle-capture-receipt-v1",
+  "run_id": "tag-20261008T212348Z-25ce63f5a3b7",
+  "state": "capture_recorded",
+  "oracle_identity": {
+    "tag_ref": "refs/tags/visual-baseline",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "git_object_replacement_policy": "disabled-by-option-and-environment",
+    "git_lazy_fetch_policy": "disabled-by-environment",
+    "source_snapshot_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "source_snapshot_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+    "source_snapshot_root": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle",
+    "source_snapshot_included_file_count": 1415,
+    "build_artifact_root": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle",
+    "build": {
+      "package_id": "path+file:///private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle#junie-tui@0.1.0",
+      "target_name": "holla",
+      "features": [],
+      "default_features": true,
+      "target_triple": "aarch64-apple-darwin",
+      "toolchain": "1.98.1",
+      "profile": "release"
+    },
+    "builder_receipt_sha256": "89fd9cc1d03f5278c0bca0480e0dace110c154f0d36aed7bcc9113e2a260ba02",
+    "source_inputs_sha256": "e315bae8a4b6fefea96b139795a0cb5465400370355fab939b6c0d97819f7d58",
+    "build_environment_sha256": "aa7bda1cfc0b76411106cf99375d8af5cea2ed31527efa263a8d0cc8770207b4",
+    "executable": {
+      "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+      "expected_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5",
+      "actual_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+    },
+    "validator_execution": {
+      "repository": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+      "git_dir": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/.git",
+      "git_common_dir": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/.git",
+      "toolchain": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+        "sha256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072"
+      },
+      "python": {
+        "path": "/usr/bin/python3",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "Python 3.9.6"
+      },
+      "git": {
+        "path": "/usr/bin/git",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "git version 2.54.0 (Apple Git-157)"
+      },
+      "helper_transport": "checked-source-absolute-git-dispatch-v1",
+      "executed_helper_sha256": "d18ce18a12d7be88834a336a25f6a5979e1dc4edffeae9a539b984422f95927b",
+      "python_sha256_before": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "python_sha256_after": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "git_sha256_before": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+      "git_sha256_after": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2"
+    }
+  },
+  "builder_evidence": {
+    "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+    "sha256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec"
+  },
+  "builder_run": {
+    "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/run.json",
+    "sha256": "744f22edbe4f35dca773715bc6cf738f5fb0b24c83d5c8dd0edc3e9575a02bb1"
+  },
+  "validator_helper": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+    "sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853"
+  },
+  "suite": {
+    "revision": "termrock-e2e-2026-10-09.2",
+    "digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "compiled_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "case_set_digest": "06d263dba644256f58781d2950b3bf162a692dddb2bdaa423e755dd9672998bd",
+    "profile_digest": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "test_binary_digest": "7014b46f1facde2ac83894702619dec1565453a5163a87eb5289aa56ce3c4060",
+    "dependency_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+    "platform": "macos"
+  },
+  "case": {
+    "id": "HELP-HOLLA-004",
+    "app": "holla",
+    "binary": "holla",
+    "args": [
+      "--scenario",
+      "rust-dirty",
+      "--motion",
+      "paused",
+      "--frame",
+      "40",
+      "--color",
+      "truecolor"
+    ],
+    "geometry": {
+      "cols": 120,
+      "rows": 40
+    },
+    "color_path": "truecolor",
+    "legacy_snapshot_root": "holla/flows/help/overlay",
+    "screen": "finder",
+    "substep": "help-overlay",
+    "case_set_sha256": "06d263dba644256f58781d2950b3bf162a692dddb2bdaa423e755dd9672998bd",
+    "input_program_sha256": "40d5785862c34179116e2fc34beff682f296ee5fa176e4e39007b636f46d04fd",
+    "checkpoints": [
+      {
+        "id": "00-boot",
+        "assertions": [
+          {
+            "id": "boot.placeholder",
+            "kind": "contains",
+            "needle": "Search actions and resources…",
+            "left": null,
+            "right": null,
+            "requires": null
+          },
+          {
+            "id": "boot.finder_footer",
+            "kind": "contains",
+            "needle": "Type Search",
+            "left": null,
+            "right": null,
+            "requires": null
+          },
+          {
+            "id": "boot.disk_cursor",
+            "kind": "same_line",
+            "needle": null,
+            "left": "› Inspect 12 GB of generat…",
+            "right": "12 GB generated artifacts",
+            "requires": null
+          },
+          {
+            "id": "boot.world",
+            "kind": "same_line",
+            "needle": null,
+            "left": "In",
+            "right": "~/work/holla",
+            "requires": null
+          }
+        ]
+      },
+      {
+        "id": "01-help",
+        "assertions": [
+          {
+            "id": "help.title_here",
+            "kind": "same_line",
+            "needle": null,
+            "left": "Key reference",
+            "right": "Here",
+            "requires": null
+          },
+          {
+            "id": "help.finder_row",
+            "kind": "same_line",
+            "needle": null,
+            "left": "Type",
+            "right": "search actions and resources together",
+            "requires": null
+          },
+          {
+            "id": "help.quit_row",
+            "kind": "same_line",
+            "needle": null,
+            "left": "Ctrl+Q",
+            "right": "quit with confirmation",
+            "requires": null
+          },
+          {
+            "id": "help.footer",
+            "kind": "contains",
+            "needle": "↑↓ Scroll  Esc Close",
+            "left": null,
+            "right": null,
+            "requires": null
+          },
+          {
+            "id": "help.finder_footer_absent",
+            "kind": "absent",
+            "needle": "Type Search",
+            "left": null,
+            "right": null,
+            "requires": "boot.finder_footer"
+          }
+        ]
+      },
+      {
+        "id": "02-finder",
+        "assertions": [
+          {
+            "id": "finder.placeholder_restored",
+            "kind": "contains",
+            "needle": "Search actions and resources…",
+            "left": null,
+            "right": null,
+            "requires": null
+          },
+          {
+            "id": "finder.quit_row_absent",
+            "kind": "absent",
+            "needle": "quit with confirmation",
+            "left": null,
+            "right": null,
+            "requires": "help.quit_row"
+          }
+        ]
+      },
+      {
+        "id": "03-help-again",
+        "assertions": [
+          {
+            "id": "reopen.title_here",
+            "kind": "same_line",
+            "needle": null,
+            "left": "Key reference",
+            "right": "Here",
+            "requires": null
+          }
+        ]
+      }
+    ]
+  },
+  "environment": {
+    "cleared": true,
+    "cwd": "/private/tmp/termrock-rust-tool-test-execution",
+    "common": {
+      "COLORTERM": "truecolor",
+      "LC_ALL": "C.UTF-8",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color"
+    },
+    "case_allowlist": [
+      "HOLLA_NO_HISTORY"
+    ],
+    "case_values": {
+      "HOLLA_NO_HISTORY": "1"
+    }
+  },
+  "renderer": {
+    "schema": "termrock-spec/tuiscotti-renderer-identity-v1",
+    "hash": "e25cbd7fc819a7c73d69493755154f03bf8bc1afea3f87c9a426557e637c4db4",
+    "name": "tuiscotti-default",
+    "renderer_version": 1,
+    "font_px": 16.0,
+    "cell_w": 10,
+    "cell_h": 21,
+    "pad": 12,
+    "scale": 2,
+    "default_fg": [
+      208,
+      208,
+      208
+    ],
+    "default_bg": [
+      0,
+      0,
+      0
+    ],
+    "indexed_palette": "Xterm",
+    "face_hashes": [
+      "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+      "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b",
+      "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97",
+      "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31"
+    ],
+    "fallback_order": [
+      {
+        "description": "vendored NotoSansSymbols2 subset (SIL OFL 1.1)",
+        "sha256": "e1d177a40af910100eceb0e825331e55f0cfd005bc0f26087fd4e58fbe60e6c5"
+      },
+      {
+        "description": "vendored NotoSansSymbols subset (SIL OFL 1.1)",
+        "sha256": "6f9cc93e71f8676361c5db286368be046e75d42c0b841afbf3f50da6bb0a2b8a"
+      },
+      {
+        "description": "vendored NotoSansCJKjp subset: kana, JIS X 0208 level-1 kanji, fullwidth forms (SIL OFL 1.1)",
+        "sha256": "777bee41f0c6076c00ad919384359a6e396b8822cf9056041fca8fcf2759d897"
+      }
+    ],
+    "cursor_policy": "Show",
+    "blink_phase": "On",
+    "missing_glyph_policy": "Strict"
+  },
+  "write_policy": {
+    "schema": "termrock-spec/parity-write-policy-v2",
+    "write_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+    "receipt_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+    "subject_cwd": "/private/tmp/termrock-rust-tool-test-execution",
+    "protected_roots": [
+      {
+        "kind": "oracle",
+        "role": null,
+        "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle"
+      },
+      {
+        "kind": "subject_artifact",
+        "role": "oracle",
+        "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle"
+      },
+      {
+        "kind": "subject_executable_parent",
+        "role": "oracle",
+        "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release"
+      },
+      {
+        "kind": "subject_source",
+        "role": "oracle",
+        "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle"
+      },
+      {
+        "kind": "suite_checkout",
+        "role": null,
+        "path": "/private/tmp/termrock-rust-tool-test-execution"
+      },
+      {
+        "kind": "tag_builder_evidence",
+        "role": null,
+        "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json"
+      },
+      {
+        "kind": "tag_builder_evidence_parent",
+        "role": null,
+        "path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7"
+      },
+      {
+        "kind": "tag_validator_helper",
+        "role": null,
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py"
+      },
+      {
+        "kind": "tag_validator_helper_parent",
+        "role": null,
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator"
+      },
+      {
+        "kind": "tag_validator_toolchain",
+        "role": null,
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json"
+      },
+      {
+        "kind": "tag_validator_toolchain_parent",
+        "role": null,
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator"
+      },
+      {
+        "kind": "test_binary_parent",
+        "role": null,
+        "path": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009/debug/deps"
+      }
+    ],
+    "actual_output_roots": [
+      {
+        "role": "oracle",
+        "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual"
+      }
+    ],
+    "sha256": "baaafa0ddb83e28bad5d0c921d6831b803e7494d3ee52c95260dbf34a7527eb0"
+  },
+  "checks": [
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:build",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "build",
+      "status": "PASS",
+      "reason": "verified executable hash",
+      "evidence": [
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:launch",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "launch",
+      "status": "PASS",
+      "reason": "real executable launched in a Tuiscotti PTY",
+      "evidence": [
+        "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:build",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "build",
+      "status": "PASS",
+      "reason": "verified executable hash",
+      "evidence": [
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:launch",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "launch",
+      "status": "PASS",
+      "reason": "real executable launched in a Tuiscotti PTY",
+      "evidence": [
+        "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:build",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "build",
+      "status": "PASS",
+      "reason": "verified executable hash",
+      "evidence": [
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:launch",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "launch",
+      "status": "PASS",
+      "reason": "real executable launched in a Tuiscotti PTY",
+      "evidence": [
+        "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:build",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "build",
+      "status": "PASS",
+      "reason": "verified executable hash",
+      "evidence": [
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:launch",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "launch",
+      "status": "PASS",
+      "reason": "real executable launched in a Tuiscotti PTY",
+      "evidence": [
+        "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+        "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5"
+      ]
+    },
+    {
+      "id": "HELP-HOLLA-004:00-boot:boot.placeholder",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:00-boot:boot.finder_footer",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:00-boot:boot.disk_cursor",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:00-boot:boot.world",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:first_frame",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "first_frame",
+      "status": "PASS",
+      "reason": "readiness predicates held on one captured PTY observation",
+      "evidence": [
+        "120x40"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:interaction",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "checkpoint interaction assertions",
+      "evidence": [
+        "  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local\n\n  Here\n ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────\n ▎ Search actions and resources…                                                                        scope ‹ here ›\n\n    Suggested here                                                               Inspect 12 GB of genera… disk · here\n  › Inspect 12 GB of generat…  disk      here  12 GB generated artifacts\n    Pull                       git       here  branch is 3 commits behind        Does       1 rebuildable candidate\n    Review 5 modified files    git       here  4 modified · 1 untracked                     below this folder · 0\n    Run tests                  task      here  5 files changed since the la…                stale enough to start\n    Who is blocking the data…  postgres  here  2 sessions blocked for 4 min                 selected\n                                                                                 Runs       'holla disk anal…ifacts'\n    Recent here                                                                  In         ~/work/holla\n    nothing used here yet                                                        Host       mbp · local\n                                                                                 Scope      here\n    Explore                                                                      Why        12 GB generated\n     Tasks   Git   Files   Disk   Services   System                                         artifacts\n    System · mbp               explore   host  available on this host            Changes    none · read-only\n                                                                                 Risk       read-only\n                                                                                 Data       live · 3 s ago\n                                                                                 Gate       opens a review · the\n                                                                                            deletion is gated there\n                                                                                            (typed phrase)\n                                                                                 Alt+Enter  Pin · Alias · Why here?\n\n\n\n\n\n\n\n\n\n\n\n\n\n ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40\n           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:visual",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "visual",
+      "status": "BLOCKED",
+      "reason": "immutable-tag actual-only capture has no admitted expected generation; visual comparison remains blocked (alias: none)",
+      "evidence": [
+        "no legacy approved snapshot"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:exit",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "exit",
+      "status": "NOT_APPLICABLE",
+      "reason": "Application process exit is not measured in this checkpoint-driven journey",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:00-boot:restoration",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "dimension": "restoration",
+      "status": "NOT_APPLICABLE",
+      "reason": "HELP-HOLLA-004 runs inside an isolated PTY and does not assert the parent terminal state",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:01-help:help.title_here",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:01-help:help.finder_row",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:01-help:help.quit_row",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:01-help:help.footer",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:01-help:help.finder_footer_absent",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:first_frame",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "first_frame",
+      "status": "PASS",
+      "reason": "readiness predicates held on one captured PTY observation",
+      "evidence": [
+        "120x40"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:interaction",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "checkpoint interaction assertions",
+      "evidence": [
+        "  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local\n                     ╭────────────────────────────────────────────────────────────────────────────╮\n  Here               │                                                                            │\n ━━━━━━━─────────────│  Key reference                                                       Here  │────────────────────\n   Search actions and│                                                                            │     scope ‹ here ›\n                     │  Finder                                                                    │\n    Suggested here   │  Type             search actions and resources together · @parent          │enera… disk · here\n  › Inspect 12 GB of │                   @children @system @all narrow the scope                  │\n    Pull             │  ↑↓               move · PgUp PgDn Home End                                │ldable candidate\n    Review 5 modified│  Enter            primary action · destructive rows open a review instead  │his folder · 0\n    Run tests        │  Alt+Enter        alternatives · run, copy, insert, arguments, pin,        │nough to start\n    Who is blocking t│                   alias, hide, why                                         │d\n                     │  Tab              preview › tab strip › finder                             │disk anal…ifacts'\n    Recent here      │  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward (children)       │holla\n    nothing used here│  Esc              clear query › scope back to here › back a page › quit    │ocal\n                     │  Aliases          gp pull · du disk usage · test the test task here · d    │\n    Explore          │                   then u · dc docker cleanup                               │enerated\n     Tasks   Git   Fi│                                                                            │ts\n    System · mbp     │  Pages                                                                     │read-only\n                     │  Disk             ↑↓ move · Space select · a all · Enter drill · c         │ly\n                     │                   cleanup plan · p details                                 │3 s ago\n                     │  Plan review      Space include or exclude · u undo · Enter step facts ·   │ review · the\n                     │                   c confirm                                                │n is gated there\n                     │  Gates            Gate 1 reviews facts and the full sequence · Gate 2      │phrase)\n                     │                   types the target-bound phrase                            │lias · Why here?\n                     │                                                                            │\n                     │  Everywhere                                                                │\n                     │  F10              menu bar · F1 this reference                             │\n                     │  Ctrl+G           activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close    │\n                     │                   tab                                                      │\n                     │  Ctrl+Q           quit with confirmation · Ctrl+C quit now                 │\n                     │  Mouse            click selects · double-click runs · right-click          │\n                     │                   alternatives · wheel scrolls under the pointer           │\n                     │                                                                            │\n                     │                                                                            │\n                     ╰────────────────────────────────────────────────────────────────────────────╯\n\n\n ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40\n                                                 ↑↓ Scroll  Esc Close"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:visual",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "visual",
+      "status": "BLOCKED",
+      "reason": "immutable-tag actual-only capture has no admitted expected generation; visual comparison remains blocked (alias: holla/flows/help/overlay/120x40/truecolor)",
+      "evidence": [
+        "holla/flows/help/overlay/120x40/truecolor"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:exit",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "exit",
+      "status": "NOT_APPLICABLE",
+      "reason": "Application process exit is not measured in this checkpoint-driven journey",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:01-help:restoration",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "dimension": "restoration",
+      "status": "NOT_APPLICABLE",
+      "reason": "HELP-HOLLA-004 runs inside an isolated PTY and does not assert the parent terminal state",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:02-finder:finder.placeholder_restored",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:02-finder:finder.quit_row_absent",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:first_frame",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "first_frame",
+      "status": "PASS",
+      "reason": "readiness predicates held on one captured PTY observation",
+      "evidence": [
+        "120x40"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:interaction",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "checkpoint interaction assertions",
+      "evidence": [
+        "  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local\n\n  Here\n ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────\n ▎ Search actions and resources…                                                                        scope ‹ here ›\n\n    Suggested here                                                               Inspect 12 GB of genera… disk · here\n  › Inspect 12 GB of generat…  disk      here  12 GB generated artifacts\n    Pull                       git       here  branch is 3 commits behind        Does       1 rebuildable candidate\n    Review 5 modified files    git       here  4 modified · 1 untracked                     below this folder · 0\n    Run tests                  task      here  5 files changed since the la…                stale enough to start\n    Who is blocking the data…  postgres  here  2 sessions blocked for 4 min                 selected\n                                                                                 Runs       'holla disk anal…ifacts'\n    Recent here                                                                  In         ~/work/holla\n    nothing used here yet                                                        Host       mbp · local\n                                                                                 Scope      here\n    Explore                                                                      Why        12 GB generated\n     Tasks   Git   Files   Disk   Services   System                                         artifacts\n    System · mbp               explore   host  available on this host            Changes    none · read-only\n                                                                                 Risk       read-only\n                                                                                 Data       live · 3 s ago\n                                                                                 Gate       opens a review · the\n                                                                                            deletion is gated there\n                                                                                            (typed phrase)\n                                                                                 Alt+Enter  Pin · Alias · Why here?\n\n\n\n\n\n\n\n\n\n\n\n\n\n ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40\n           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:visual",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "visual",
+      "status": "BLOCKED",
+      "reason": "immutable-tag actual-only capture has no admitted expected generation; visual comparison remains blocked (alias: none)",
+      "evidence": [
+        "no legacy approved snapshot"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:exit",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "exit",
+      "status": "NOT_APPLICABLE",
+      "reason": "Application process exit is not measured in this checkpoint-driven journey",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:02-finder:restoration",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "dimension": "restoration",
+      "status": "NOT_APPLICABLE",
+      "reason": "HELP-HOLLA-004 runs inside an isolated PTY and does not assert the parent terminal state",
+      "evidence": []
+    },
+    {
+      "id": "HELP-HOLLA-004:03-help-again:reopen.title_here",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "assertion matched the captured PTY screen",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:first_frame",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "first_frame",
+      "status": "PASS",
+      "reason": "readiness predicates held on one captured PTY observation",
+      "evidence": [
+        "120x40"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:interaction",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "interaction",
+      "status": "PASS",
+      "reason": "checkpoint interaction assertions",
+      "evidence": [
+        "  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local\n                     ╭────────────────────────────────────────────────────────────────────────────╮\n  Here               │                                                                            │\n ━━━━━━━─────────────│  Key reference                                                       Here  │────────────────────\n   Search actions and│                                                                            │     scope ‹ here ›\n                     │  Finder                                                                    │\n    Suggested here   │  Type             search actions and resources together · @parent          │enera… disk · here\n  › Inspect 12 GB of │                   @children @system @all narrow the scope                  │\n    Pull             │  ↑↓               move · PgUp PgDn Home End                                │ldable candidate\n    Review 5 modified│  Enter            primary action · destructive rows open a review instead  │his folder · 0\n    Run tests        │  Alt+Enter        alternatives · run, copy, insert, arguments, pin,        │nough to start\n    Who is blocking t│                   alias, hide, why                                         │d\n                     │  Tab              preview › tab strip › finder                             │disk anal…ifacts'\n    Recent here      │  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward (children)       │holla\n    nothing used here│  Esc              clear query › scope back to here › back a page › quit    │ocal\n                     │  Aliases          gp pull · du disk usage · test the test task here · d    │\n    Explore          │                   then u · dc docker cleanup                               │enerated\n     Tasks   Git   Fi│                                                                            │ts\n    System · mbp     │  Pages                                                                     │read-only\n                     │  Disk             ↑↓ move · Space select · a all · Enter drill · c         │ly\n                     │                   cleanup plan · p details                                 │3 s ago\n                     │  Plan review      Space include or exclude · u undo · Enter step facts ·   │ review · the\n                     │                   c confirm                                                │n is gated there\n                     │  Gates            Gate 1 reviews facts and the full sequence · Gate 2      │phrase)\n                     │                   types the target-bound phrase                            │lias · Why here?\n                     │                                                                            │\n                     │  Everywhere                                                                │\n                     │  F10              menu bar · F1 this reference                             │\n                     │  Ctrl+G           activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close    │\n                     │                   tab                                                      │\n                     │  Ctrl+Q           quit with confirmation · Ctrl+C quit now                 │\n                     │  Mouse            click selects · double-click runs · right-click          │\n                     │                   alternatives · wheel scrolls under the pointer           │\n                     │                                                                            │\n                     │                                                                            │\n                     ╰────────────────────────────────────────────────────────────────────────────╯\n\n\n ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40\n                                                 ↑↓ Scroll  Esc Close"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:visual",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "visual",
+      "status": "BLOCKED",
+      "reason": "immutable-tag actual-only capture has no admitted expected generation; visual comparison remains blocked (alias: none)",
+      "evidence": [
+        "no legacy approved snapshot"
+      ]
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:exit",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "exit",
+      "status": "NOT_APPLICABLE",
+      "reason": "Application process exit is not measured in this checkpoint-driven journey",
+      "evidence": []
+    },
+    {
+      "id": "oracle:HELP-HOLLA-004:03-help-again:restoration",
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "dimension": "restoration",
+      "status": "NOT_APPLICABLE",
+      "reason": "HELP-HOLLA-004 runs inside an isolated PTY and does not assert the parent terminal state",
+      "evidence": []
+    }
+  ],
+  "artifacts": [
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "frame_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+      "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb",
+      "bytes": 1279137
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "ansi",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60",
+      "bytes": 13319
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "html",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/html",
+      "sha256": "3e65fadb63db66cc02a230c5bc885c659c74f9fe1b463de431e01fd0728744ef",
+      "bytes": 586582
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "png",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/png",
+      "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e",
+      "bytes": 417702
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "ascii",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90",
+      "bytes": 2646
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "txt",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/txt",
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd",
+      "bytes": 2930
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "ascii_loss_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15",
+      "bytes": 13774
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "png_fidelity_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "bytes": 273
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "observations_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+      "sha256": "a17c99097f90e7cc0db7a656183284afdbcea87d9543749cff2e5f4806e7b363",
+      "bytes": 1981
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "00-boot",
+      "format": "manifest_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+      "sha256": "7028a7c916ad8202a52d5e72f423c4fb28eaa2bd012e6d7b5ac6ee5d3f92cc2f",
+      "bytes": 3772
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "frame_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/frame.json",
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f",
+      "bytes": 1284301
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "ansi",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ansi",
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1",
+      "bytes": 18842
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "html",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/html",
+      "sha256": "4f54fb79745ed0d4054664f1aa8aac212f8c9dd9604c12190b10488c123b4eae",
+      "bytes": 787462
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "png",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/png",
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537",
+      "bytes": 551174
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "ascii",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ascii",
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448",
+      "bytes": 4019
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "txt",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/txt",
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24",
+      "bytes": 4621
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "ascii_loss_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1",
+      "bytes": 29455
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "png_fidelity_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "bytes": 273
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "observations_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/observations.json",
+      "sha256": "f7562665f9691eb7e618fd7901906360d06681e15c05a7ae89b431a24b1eb87b",
+      "bytes": 2022
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "01-help",
+      "format": "manifest_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/manifest.json",
+      "sha256": "66736bbaf0f94cba53de8b7380d0df0eafe7bfb05f442c99882562e39da096e0",
+      "bytes": 3762
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "frame_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+      "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb",
+      "bytes": 1279137
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "ansi",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60",
+      "bytes": 13319
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "html",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/html",
+      "sha256": "0bb6cf67b2f5683eef9271511e2052657fd397db9533525029d8e32048c627b4",
+      "bytes": 586586
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "png",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/png",
+      "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e",
+      "bytes": 417702
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "ascii",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90",
+      "bytes": 2646
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "txt",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/txt",
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd",
+      "bytes": 2930
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "ascii_loss_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15",
+      "bytes": 13774
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "png_fidelity_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "bytes": 273
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "observations_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+      "sha256": "b3b04ffc809564e3bb0562dbf6549cc913e6cc63be5a4f3172dbc8d6194ff86e",
+      "bytes": 1983
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "02-finder",
+      "format": "manifest_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+      "sha256": "31c96d164b787df1923a8eb986da2bd2082828af894d79f5f84fbd5e47cc7b61",
+      "bytes": 3794
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "frame_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f",
+      "bytes": 1284301
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "ansi",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1",
+      "bytes": 18842
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "html",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/html",
+      "sha256": "a5bd850b0c561d8e8d93bef3f596e66bfef7516ac75793ca754a825e4bb47060",
+      "bytes": 787474
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "png",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/png",
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537",
+      "bytes": 551174
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "ascii",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448",
+      "bytes": 4019
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "txt",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24",
+      "bytes": 4621
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "ascii_loss_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1",
+      "bytes": 29455
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "png_fidelity_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7",
+      "bytes": 273
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "observations_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+      "sha256": "6c3b39ff6c714d9bb725e71ea389acc091fac3967ee4be366111fb765093b905",
+      "bytes": 1989
+    },
+    {
+      "subject_role": "oracle",
+      "case_id": "HELP-HOLLA-004",
+      "checkpoint_id": "03-help-again",
+      "format": "manifest_json",
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+      "sha256": "337aaed60b61caef1a5d230e235e98dc089ecd10953ea32a8201e5ac114f278b",
+      "bytes": 3819
+    }
+  ],
+  "capture_status": "COMPLETE",
+  "execution_anchor_status": "unverified",
+  "qualification": {
+    "status": "blocked",
+    "reason": "immutable-tag capture records actual output only; independent source/build qualification and explicit generation admission remain separate"
+  },
+  "admission_status": "NOT_RUN"
+}

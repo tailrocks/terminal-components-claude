@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                           Workspaces  inside the Construct  2 running [0m
+                                                                                                    [0m
+ ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 2 running ─╮ [0m
+ │     Current directory                                              saved as payments-platform  │ [0m
+ │   ▸ payments-platform                                                               1 running  │ [0m
+ │   ▸ infra-control-plane                                                             1 running  │ [0m
+ │   ▸ release-automation                                                               ! failed  │ [0m
+ │   ▸ customer-portal                                                                  ! failed  │ [0m
+ │     + New workspace                                                                            │ [0m
+ │                                                                                                │ [0m
+ │                     ╭────────────────────────────────────────────────────╮                     │ [0m
+ │                     │                                                    │                     │ [0m
+ │                     │  [0m[1mExit jackin❯?[0m                                     │                     │ [0m
+ │                     │                                                    │                     │ [0m
+ │                     │  2 instances keep running in the Construct. The    │                     │ [0m
+ │                     │  host console closes; reconnect from a new         │                     │ [0m
+ │                     │  terminal.                                         │                     │ [0m
+ │                     │                                                    │                     │ [0m
+ │                     │                                    Cancel  ▎[0m[1mQuit [0m  │                     │ [0m
+ │                     │                                                    │                     │ [0m
+ ╰─────────────────────╰────────────────────────────────────────────────────╯─────────────────────╯ [0m
+                                                                                                    [0m
+   Current directory                                                                  Tab details   [0m
+                                                                                                    [0m
+   /workspace/payments-platform · 2 mounts · 5 vars                                                 [0m
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal                                       [0m
+   ◉ 7f3a  the-architect · Claude Code · running                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+    [0m[1m     [0m         [0m[1m [0m [0m[1m← →[0m C[0m[1mh[0moose  [0m[1mEnter[0m Confirm [0m[1m Esc[0m Cancel [0m[1m y / n[0m Qu[0m[1mi[0mck answer  [0m[1m [0m       [0m[1m [0m            [0m

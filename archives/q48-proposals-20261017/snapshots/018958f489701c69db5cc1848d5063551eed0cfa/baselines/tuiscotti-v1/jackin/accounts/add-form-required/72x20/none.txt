@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help       Accounts › Overview  ⠋ refreshing 1
+  ╭─ New account ─────────────────────────────────── form · unsaved ─╮
+ ╭│   Display name *                                                ┃│╮
+ ││ ▎ Personal, Work, Team…                                      !  ┃││
+ ││   Required                                                      ┃││
+ ││                                                                 ┃││
+ ││   Purpose label  optional                                       ┃││
+ ││   personal · work · experiments                                 ┃││
+ ││                                                                 ┃││
+ ││                                                                 │││
+ ││   Provider                                                      │││
+ ╰│   Claude Code · Anthropic / Claude                           ▾  ││╯
+  │                                                                 ││
+  │                                                                 ││
+  │   Agent runtime Claude Code · provider Anthropic / Claude · u…  ││
+  │                                                                  │
+  │                                                                  │
+  │            Enter plain text instead   Validate   Cancel   Save   │
+  ╰──────────────────────────────────────────────────────────────────╯
+            Tab Next field  Enter Edit / Save  Esc Cancel

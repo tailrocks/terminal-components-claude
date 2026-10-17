@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "d594f1ee40559e7a01523ee4d8f8cabdb022134c17c1c2941b9b7119bd0a7ea7",
+  "artifacts": {
+    "ansi": {
+      "bytes": 12518,
+      "file": "showcase/buttons/hover/120x40/256.ansi",
+      "sha256": "d594f1ee40559e7a01523ee4d8f8cabdb022134c17c1c2941b9b7119bd0a7ea7"
+    },
+    "ascii": {
+      "bytes": 1672,
+      "file": "showcase/buttons/hover/120x40/256.ascii",
+      "sha256": "7ffc9d36c38a306dc45cc502bccea662efe6dc82a7e1ff6f91c4072d096d597b"
+    },
+    "ascii_loss_json": {
+      "bytes": 2288,
+      "file": "showcase/buttons/hover/120x40/256.ascii.loss.json",
+      "sha256": "531993453158cffd496c3a2157b700bb32c6eafee0dc6902871a4468b1dd1cd9"
+    },
+    "frame_json": {
+      "bytes": 1130355,
+      "file": "showcase/buttons/hover/120x40/256.frame.json",
+      "sha256": "29cbd43f7e6d17e9574609787c61bc67cdff974b18eba546f3975ef6f3121327"
+    },
+    "html": {
+      "bytes": 518355,
+      "file": "showcase/buttons/hover/120x40/256.html",
+      "sha256": "b91fca7dc6778141b6d2dc053651de6e55acef3e04ca4b6a4e00d388e0037d11"
+    },
+    "observations_json": {
+      "bytes": 449,
+      "file": "showcase/buttons/hover/120x40/256.observations.json",
+      "sha256": "b64b4ca9aaf372fac24babab5affa296582515d016ef1723703e489a52336b54"
+    },
+    "png": {
+      "bytes": 359246,
+      "file": "showcase/buttons/hover/120x40/256.png",
+      "sha256": "740a0caa27a21a47fbcd0f4a639611746addb739422c089c5d922e7a69ae6513"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/buttons/hover/120x40/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1715,
+      "file": "showcase/buttons/hover/120x40/256.txt",
+      "sha256": "197664c80dec4d81bdc8fd5243b37266b83fd7f612113126f0e24f3af6fd7629"
+    }
+  },
+  "ascii_substitutions_count": 24,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 13185806552869003180,
+  "frame_sha256": "29cbd43f7e6d17e9574609787c61bc67cdff974b18eba546f3975ef6f3121327",
+  "generation": "d4e25f95b783cf5d3188b42bb0fc6a94ff8f5d82dab66b7a952d5f4893112ce9",
+  "html_sha256": "b91fca7dc6778141b6d2dc053651de6e55acef3e04ca4b6a4e00d388e0037d11",
+  "legacy_name": "showcase/hover/buttons/120x40/256",
+  "name": "showcase/buttons/hover/120x40/256",
+  "png_sha256": "740a0caa27a21a47fbcd0f4a639611746addb739422c089c5d922e7a69ae6513",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:08Z",
+  "txt_sha256": "197664c80dec4d81bdc8fd5243b37266b83fd7f612113126f0e24f3af6fd7629"
+}

@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Terminal          256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Terminal  Viewport with scrollback, selection and copy · drag the seam · step…
+   Buttons
+   Inputs            ╭─ Viewport ─────────── 37 lines · following ─╮ │  Step rail           7 of 7
+   Text areas        │    #3 RUN cargo fetch --locked            │ │ │
+   Forms             │    #4 RUN cargo build --release           │ │ │   ✓ 01 Resolve wor…  0.8 s
+   Lists             │    #5 RUN apt-get install -y build-essenti│ │ │   ✓ 02 Pull base i…  2.1 s
+   Trees             │    #6 COPY rust-toolchain.toml ./         │ │ │   ✓ 03 Build conta…  3.2 s
+   Tables            │    #7 RUN cargo fetch --locked            │ │ │     04 Mount sour…  cached
+   Editable tables   │    #8 RUN cargo build --release           │ │ │   ✓ 05 Resolve cre…  1.4 s
+   Panels            │    #9 RUN apt-get install -y build-essenti│ │ │   ✓ 06 Start agent   1.1 s
+   Sidebars          │    #10 COPY rust-toolchain.toml ./        │ │ │   ✓ 07 Ready         0.1 s
+   Dialogs           │    #11 RUN cargo fetch --locked           │ │ │
+   Progress          │    #12 RUN cargo build --release          ┃ │ │
+   Scrolling         │    #13 RUN apt-get install -y build-essent┃ │ │
+▎› Terminal          │    #14 COPY rust-toolchain.toml ./        ┃ │ │
+   Code editor       │  ✓ Build container                        ┃ │ │
+   Diff              │  ▶ Resolve credentials                    ┃ │ │
+   Data grid         │    1Password  Engineering › Anthropic · Wo┃ │ │
+   Chips & selects   │  ✓ Resolve credentials                    ┃ │ │
+   Pickers           │  ▶ Start agent                            ┃ │ │
+   Chrome            │    claude --resume  pid 4188              ┃ │ │
+   Settings          │  ✓ Start agent                            ┃ │ │
+   Task runner       │  ▶ Ready                                  ┃ │ │
+                     │  ✓ Ready                                  ┃ │ │
+                     │  payments-platform ❯                      ┃ │ │   Run    Run with a failu…
+                     ╰─────────────────────────────────────────────╯ │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

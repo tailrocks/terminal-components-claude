@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                     acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+ [0m[1m Here  [0m                                                                                            [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mtest[0m                                                                             scope ‹ here ›  [0m
+                                                                                                    [0m
+    Results · 17                                                                                    [0m
+ [0m[1m › Run tests                          [0mtask    [0m[1m  [0mhere   [0m[1m  [0malias test[0m[1m                               [0m [0m
+    pnpm test                          script    here     package.json here                         [0m
+    Run test                           task      parent   defined by ~/work/acme/mis…               [0m
+    Run //services/api:test            task      sibling  defined by ~/work/acme/ser…               [0m
+    Run //tools/worker:test            task      sibling  defined by ~/work/acme/too…               [0m
+    Show Pos[0m[1mt[0mgr[0m[1meS[0mQL ac[0m[1mt[0mivity           postgres  here     6/100 connections                         [0m
+    Ro[0m[1mt[0mat[0m[1me[0m local [0m[1ms[0mecre[0m[1mt[0ms               custom    parent   Current folder…              destructive  [0m
+    S[0m[1mt[0mart d[0m[1me[0mvelopment eco[0m[1ms[0mys[0m[1mt[0mem        task      parent   defined by ~/work/acme/mis…               [0m
+    S[0m[1mt[0mart d[0m[1me[0mvelopment eco[0m[1ms[0mys[0m[1mt[0mem        task      sibling  defined by ~/work/acme/ser…               [0m
+    S[0m[1mt[0mart d[0m[1me[0mvelopment eco[0m[1ms[0mys[0m[1mt[0mem        task      sibling  defined by ~/work/acme/too…               [0m
+    Upgrade 8 ou[0m[1mt[0mdat[0m[1me[0md mi[0m[1ms[0me [0m[1mt[0mools      task      host     8 tools have newer versions               [0m
+    Clone a Gi[0m[1mt[0mHub r[0m[1me[0mpo[0m[1ms[0mi[0m[1mt[0mory…         git       here     logged in as alex-dev                     [0m
+    Copy [0m[1mt[0mhis fold[0m[1me[0mr'[0m[1ms[0m pa[0m[1mt[0mh            file      here     available                                 [0m
+    Dele[0m[1mte[0m everything in[0m[1ms[0mide [0m[1mt[0mhis fo…  cleanup   here     always available…            destructive  [0m
+    [0m[1mT[0mop fil[0m[1mes[0m on [0m[1mt[0mhis Mac              disk      host     macOS Spotlight                           [0m
+    Find [0m[1mt[0mh[0m[1me[0m proce[0m[1ms[0ms on a por[0m[1mt[0m…        system    host     available on this host                    [0m
+    Garbage-collec[0m[1mt[0m th[0m[1me[0m repo[0m[1ms[0mi[0m[1mt[0mory     git       parent   available                                 [0m
+                                                                                                    [0m
+                                                                                                    [0m
+    → mise run //apps/frontend:test · here · mutating                                               [0m
+                                                                                                    [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2                                        no color · 100×30 [0m
+    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear       [0m

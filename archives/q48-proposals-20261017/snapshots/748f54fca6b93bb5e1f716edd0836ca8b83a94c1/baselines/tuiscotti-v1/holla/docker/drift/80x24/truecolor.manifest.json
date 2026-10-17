@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "74d71a93530788a80aa5fb1c0fcefb56c2020b1ef17f4a0db4e3b60f751068a9",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5852,
+      "file": "holla/docker/drift/80x24/truecolor.ansi",
+      "sha256": "74d71a93530788a80aa5fb1c0fcefb56c2020b1ef17f4a0db4e3b60f751068a9"
+    },
+    "ascii": {
+      "bytes": 1304,
+      "file": "holla/docker/drift/80x24/truecolor.ascii",
+      "sha256": "5964180a26fc7448d9c3a8d802a54df7cf78ae7ed9ceaa60d53d64ea2f50731b"
+    },
+    "ascii_loss_json": {
+      "bytes": 21886,
+      "file": "holla/docker/drift/80x24/truecolor.ascii.loss.json",
+      "sha256": "6a3721e9b2aca595ef06c297963e37446ddb40a0883bad3c294b6d64684ac326"
+    },
+    "frame_json": {
+      "bytes": 509821,
+      "file": "holla/docker/drift/80x24/truecolor.frame.json",
+      "sha256": "b4122a6c56c4b82e26aaf1f85c63e15fb2c22f27c4c8c779896e046a28462ab1"
+    },
+    "html": {
+      "bytes": 447431,
+      "file": "holla/docker/drift/80x24/truecolor.html",
+      "sha256": "5142767205ac7a2fed26bc8daadfb3fc4c1d17775ad1b3068d7ae0a0ccd42d08"
+    },
+    "observations_json": {
+      "bytes": 456,
+      "file": "holla/docker/drift/80x24/truecolor.observations.json",
+      "sha256": "fd363d55d23c074d2fb031c0dba8f0d982db96335f486eb7656f477918e1fe20"
+    },
+    "png": {
+      "bytes": 326208,
+      "file": "holla/docker/drift/80x24/truecolor.png",
+      "sha256": "a4ee0b6cf5fcd0a08ba8ae00da5594a7b23b14129eb0981ae99a69e100ee4681"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/docker/drift/80x24/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1757,
+      "file": "holla/docker/drift/80x24/truecolor.txt",
+      "sha256": "3e319afaef2de0dac13f8d5781e29a7c67aa1db47359507321e4cbad238cd2e5"
+    }
+  },
+  "ascii_substitutions_count": 236,
+  "complete": true,
+  "dimensions": {
+    "cols": 80,
+    "rows": 24
+  },
+  "frame_digest": 14274238331528654292,
+  "frame_sha256": "b4122a6c56c4b82e26aaf1f85c63e15fb2c22f27c4c8c779896e046a28462ab1",
+  "generation": "6be18a987189508bce4b7a7db3411dcedc674da0d5f135f582d9ed07c5f556e7",
+  "html_sha256": "5142767205ac7a2fed26bc8daadfb3fc4c1d17775ad1b3068d7ae0a0ccd42d08",
+  "legacy_name": "holla/flows/docker/drift/80x24/truecolor",
+  "name": "holla/docker/drift/80x24/truecolor",
+  "png_sha256": "a4ee0b6cf5fcd0a08ba8ae00da5594a7b23b14129eb0981ae99a69e100ee4681",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:12Z",
+  "txt_sha256": "3e319afaef2de0dac13f8d5781e29a7c67aa1db47359507321e4cbad238cd2e5"
+}

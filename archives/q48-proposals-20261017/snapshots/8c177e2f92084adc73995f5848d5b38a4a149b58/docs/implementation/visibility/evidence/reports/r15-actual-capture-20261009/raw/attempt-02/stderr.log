@@ -1,0 +1,37 @@
+warning: unused variable: `builder_run_path`
+    --> src/lib.rs:1855:5
+     |
+1855 |     builder_run_path: &Path,
+     |     ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_builder_run_path`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `git_object_replacement_policy` is never read
+   --> src/lib.rs:934:5
+    |
+914 | struct BuilderRunEvidence {
+    |        ------------------ field in this struct
+...
+934 |     git_object_replacement_policy: String,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `BuilderRunEvidence` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `termrock-e2e` (lib) generated 2 warnings (run `cargo fix --lib -p termrock-e2e` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+────────────
+ Nextest run ID 00c75b56-9a85-494b-9e17-6061d3a9c9df with nextest profile: default
+    Starting 1 test across 1 binary
+        PASS [  18.031s] termrock-e2e::holla_tag_capture captures_holla_from_pinned_immutable_tag
+────────────
+     Summary [  18.031s] 1 test run: 1 passed, 0 skipped
+        PASS [  18.031s] termrock-e2e::holla_tag_capture captures_holla_from_pinned_immutable_tag
+── output ──
+
+running 1 test
+test captures_holla_from_pinned_immutable_tag ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.02s
+
+

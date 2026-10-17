@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe    • 1 pending
+
+  ╭──────────────────────────────────────────────────────────────────────────╮
+ ─│                                                                          │─
+ ╭│  Save changes?                                                           │╮
+ ││                                                                          ││
+ ││  Action       Save changes                                               ││
+ ││  Target       Production · production · acme_prod · public.orders        ││
+ ││  Scope        1 update · 0 inserts · 0 deletes                           ││
+ ││  Transaction  All statements run in one transaction; a failure rolls     ││
+ ││               everything back.                                           ││
+ ││  Safe Mode    Safe Mode · deliberate confirmation required               ││
+ ││                                                                          ││
+ ││  UPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-44…  ││
+ ││                                                                          ││
+ ││   Type orders to confirm                                                 ││
+ ││ ▎                                                                        ││
+ ││                                                                          ││
+ ││                                                                          ││
+ ││                                                          Cancel   Save   ││
+ ││                                                                          ││
+ ╰╰──────────────────────────────────────────────────────────────────────────╯╯
+
+ ← → Choose  Enter Confirm  Esc Cancel                  Connected to Production

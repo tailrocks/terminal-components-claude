@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Foundations / Overview         256 colors · 100×30   i Inspector   ? Help
+
+ › Overview          Overview  Tokens and principles behind every component
+   Buttons
+   Inputs              Tokens                                          Principles
+   Text areas
+   Forms       ╭────────────────────────────────────────────────────────────────────╮
+   Lists       │                                                                    │cus, primary
+   Trees       │  Keyboard & mouse                                                  │ction.
+   Tables      │                                                                    │e is
+   Editable tab│  Tab / Shift+Tab   move keyboard focus                             │
+   Panels      │  ↑ ↓ ← →           move inside the focused control                 │
+   Sidebars    │  Enter / Space     activate · start editing                        │
+   Dialogs     │  Esc               cancel editing · back to navigation             │rs step down
+   Progress    │  [ ]               previous / next page                            │ty, never in
+   Scrolling   │  0                 jump to navigation                              │s.
+   Terminal    │  i                 toggle state inspector                          │
+   Code editor │  q                 quit                                            │
+   Diff        │                                                                    │
+   Data grid   │  Mouse: hover to preview, click to focus and activate, wheel to    │
+   Chips & sele│  scroll, drag the scrollbar thumb.                                 │
+   Pickers     │                                                                    │
+   Chrome      │                                                           ▎Close   │ the surface
+   Settings    │                                                                    │hosen
+   Task runner ╰────────────────────────────────────────────────────────────────────╯
+                                                                       !  error
+                                                                       ▁  editing: cursor + underlin
+
+
+ ← → Choose  Enter Confirm  Esc Cancel

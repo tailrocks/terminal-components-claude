@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "f694ce43a9e6cf381809cdd08144eee452bac37e3c508e8d8f7946f87bf8192c",
+  "artifacts": {
+    "ansi": {
+      "bytes": 10731,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.ansi",
+      "sha256": "f694ce43a9e6cf381809cdd08144eee452bac37e3c508e8d8f7946f87bf8192c"
+    },
+    "ascii": {
+      "bytes": 2571,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.ascii",
+      "sha256": "4156b4e49b869816f84435f721ddc421bf71b91af302aa5310547f0849436f19"
+    },
+    "ascii_loss_json": {
+      "bytes": 28139,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.ascii.loss.json",
+      "sha256": "91f57a76a9c690130d3a60b14f589a7ba5320646492d1753dfbaa6e1605aadd6"
+    },
+    "frame_json": {
+      "bytes": 796762,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.frame.json",
+      "sha256": "381d2d24fe62d51c150659da6f8e1f7ac4e641ca0df5a6fe1be541f244740c2b"
+    },
+    "html": {
+      "bytes": 380379,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.html",
+      "sha256": "85935534bf7a7dee1cded227bf1e1651c37912bdc8dd0cccb9e67135f5897deb"
+    },
+    "observations_json": {
+      "bytes": 482,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.observations.json",
+      "sha256": "8e3970b483ebcd17f655f79475759939fe39ad0193ed1c3f5941f7ff404deff4"
+    },
+    "png": {
+      "bytes": 268368,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.png",
+      "sha256": "351109bfd06900518f328e39fa1a1b6f63d3ebe4d529c13606094fc80a9aa339"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3164,
+      "file": "holla/finder/fade-executor-burst-end/100x30/truecolor.txt",
+      "sha256": "e2473a51cf2d76b2d161dad21d6aafa6d4810cc55242a0cf6b6c4ba46f212327"
+    }
+  },
+  "ascii_substitutions_count": 304,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 17228171455853194483,
+  "frame_sha256": "381d2d24fe62d51c150659da6f8e1f7ac4e641ca0df5a6fe1be541f244740c2b",
+  "generation": "b1ec945e4da9af51f40f2c163cfa8e638cdcb379d9fa5c2094a5df63ff7f3e9e",
+  "html_sha256": "85935534bf7a7dee1cded227bf1e1651c37912bdc8dd0cccb9e67135f5897deb",
+  "legacy_name": "holla/fade/executor_burst-end/100x30/truecolor",
+  "name": "holla/finder/fade-executor-burst-end/100x30/truecolor",
+  "png_sha256": "351109bfd06900518f328e39fa1a1b6f63d3ebe4d529c13606094fc80a9aa339",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:17Z",
+  "txt_sha256": "e2473a51cf2d76b2d161dad21d6aafa6d4810cc55242a0cf6b6c4ba46f212327"
+}

@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+
+  ≡ Query 1 ×                                                       +
+ ━╭──────────────────────────────────────────────────────────────────╮─
+ ╭│ Safe Mode · this connection                                      │╮
+ ││    Silent            Writes run without asking. Destr…           ││
+ ││    Alert             Every write asks for confirmatio…           ││
+ ││    Alert (Full)      Every statement, reads included,…           ││
+ ││ ▎› Safe Mode         Writes ask for confirmation and … current   ││
+ ││    Safe Mode (Full)  Every statement asks for confirm…           ││
+ ││    Read-Only         Writes are refused. Reads and ex…           ││
+ ││                                                                  ││
+ ││ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the … ││
+ │╰──────────────────────────────────────────────────────────────────╯│
+ │        ▸ T order_items                                     3.8 M │ │
+ │        ▸ T payments                                        1.2 M │ │
+ │        ▸ T subscriptions                                   1.1 k │ │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                Connected to Production

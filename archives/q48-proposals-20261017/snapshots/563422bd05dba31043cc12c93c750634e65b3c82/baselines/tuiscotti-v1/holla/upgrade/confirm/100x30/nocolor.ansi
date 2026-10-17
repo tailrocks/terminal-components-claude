@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       no project  devbox · development [0m
+                                                                                                    [0m
+  Here › Upgrade everything                                                                         [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────── [0m
+  Upgrade ev╭──────────────────────────────────────────────────────────────────────────╮ed · ~16 s  [0m
+  upgrade De│                                                                          │            [0m
+            │  [0m[1mStart upgrade everything?[0m                                               │            [0m
+         ste│                                                                          │            [0m
+  [✓] 01 Pre│  Plan       Upgrade everything · upgrade Debian packages and global      │            [0m
+  [✓] 02 Ref│             mise tools on devbox                                         │            [0m
+  [✓] 03 Rev│  Host       devbox                                                       │            [0m
+  [✓] 04 App│  Steps      7 included · 1 excluded · ~16 s                              │            [0m
+  [✓] 05 Ins│  Privilege  sudo · cached for this session                               │            [0m
+  [ ] 06 Upg│  Debian     14 upgradable · 2 security                                   │            [0m
+  [✓] 07 Pac│  mise       4 outdated global tools · go excluded                        │            [0m
+  [✓] 08 Fin│  Reboot     required after the kernel upgrade                            │ise tools   [0m
+            │                                                                          │            [0m
+    08 Final│  cat /etc/os-release                                                     │            [0m
+            │  sudo -n true                                                            │            [0m
+            │  fuser /var/lib/dpkg/lock-frontend                                       │            [0m
+            │  df -h /                                                                 │            [0m
+            │  test -f /var/run/reboot-required                                        │            [0m
+            │  sudo apt-get update … 8 more                                            │            [0m
+            │                                                                          │            [0m
+            │                                                   ▎[0m[1mCancel [0m  [0m[1mStart plan [0m  │            [0m
+            │                                                                          │            [0m
+            ╰──────────────────────────────────────────────────────────────────────────╯firm plan   [0m
+                                                                                                    [0m
+ ~                     review · 7 steps · 2 branches parallel                     no color · 100×30 [0m
+     [0m[1m  [0m       [0m[1m     [0m         [0m[1m [0m [0m[1m← →[0m Ch[0m[1mo[0mose  [0m[1mEnter [0mConfirm [0m[1m Esc[0m Cancel    06 excluded · 08 now blocked [0m

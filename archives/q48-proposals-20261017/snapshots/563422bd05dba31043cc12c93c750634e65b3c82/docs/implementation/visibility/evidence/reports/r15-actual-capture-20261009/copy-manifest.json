@@ -1,0 +1,465 @@
+{
+  "schema": "termrock-vis13-external-archive-copy-manifest-v1",
+  "created_at_utc": "2026-10-09",
+  "archive_path": "/private/tmp/termrock-vis13-r15-archive-proposal-luna-20261009",
+  "purpose": "append-only external copy proposal for reviewed R15 actual-capture evidence",
+  "canonical_repository_modified": false,
+  "test_or_runner_executed_for_archive": false,
+  "expected_corpus_or_suite_source_copied": false,
+  "status_preservation": {
+    "original_wrapper_exit_code": 125,
+    "original_nextest_child_exit_code": 0,
+    "selected_test_passed": true,
+    "input_stable": false,
+    "after_snapshot": null,
+    "original_capture_gate_ok": false,
+    "capture_status": "COMPLETE",
+    "execution_anchor_status": "unverified",
+    "qualification_status": "blocked",
+    "admission_status": "NOT_RUN",
+    "reconstruction": "after-completion point-in-time check; not evidence of continuous original-run stability"
+  },
+  "original_capture_receipt": {
+    "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+    "sha256": "dba8be2ed8c80e6c56418ba9e78b476b65fe027c964b757903daa5c97fd8eea2",
+    "artifact_count": 40
+  },
+  "support_files": [
+    {
+      "role": "original_wrapper_receipt",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/final-receipt.json",
+      "archive_path": "raw/attempt-02/final-receipt.json",
+      "bytes": 9674,
+      "sha256": "bbbaa88c6d00da04f28b3d9237397c42f0bd66b251842921c29dca89e7a09dd3"
+    },
+    {
+      "role": "original_stdout",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/stdout.log",
+      "archive_path": "raw/attempt-02/stdout.log",
+      "bytes": 926,
+      "sha256": "61cae509dcfa8d7185726fe3e256e9c1c7e479235e1b70aaf03d105470e2ec1c"
+    },
+    {
+      "role": "original_stderr",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/stderr.log",
+      "archive_path": "raw/attempt-02/stderr.log",
+      "bytes": 1635,
+      "sha256": "c8729887173fb6daefab7388eb0e473b9b562261ed627878f94a7e07469b2e5d"
+    },
+    {
+      "role": "original_process_events",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/process-events.jsonl",
+      "archive_path": "raw/attempt-02/process-events.jsonl",
+      "bytes": 1342,
+      "sha256": "4fa05c3e8de92bf1375c46bfe62b892b7f7cc650e613711713211a24a5279426"
+    },
+    {
+      "role": "original_before_snapshot",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/preflight.json",
+      "archive_path": "raw/attempt-02/preflight.json",
+      "bytes": 152458,
+      "sha256": "4edd546cc689b1b1db6b7c198906d638bb1e102b971c86e0fb4ea3ec32bc05a3"
+    },
+    {
+      "role": "capture_receipt",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+      "archive_path": "capture/oracle-capture-receipt.json",
+      "bytes": 59919,
+      "sha256": "dba8be2ed8c80e6c56418ba9e78b476b65fe027c964b757903daa5c97fd8eea2"
+    },
+    {
+      "role": "runner",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r4.cjs",
+      "archive_path": "provenance/runner-r4.cjs",
+      "bytes": 71450,
+      "sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425"
+    },
+    {
+      "role": "invocation_source_manifest",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/invocation-manifest-r4.json",
+      "archive_path": "provenance/invocation-manifest-r4.json",
+      "bytes": 24580,
+      "sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3"
+    },
+    {
+      "role": "launch_grant",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.json",
+      "archive_path": "provenance/launch-grant-r4.json",
+      "bytes": 2923,
+      "sha256": "bf71eb369cc1cb03fcbb257d2d3327c5dcb2b58a3130e6d6a7d6b0739191c426"
+    },
+    {
+      "role": "read_only_preflight",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/r4-readonly-preflight.json",
+      "archive_path": "provenance/r4-readonly-preflight.json",
+      "bytes": 11433,
+      "sha256": "76f7c9e562a12262c956daa80543a2160cd6088925ca594584c4021a17ff6e0c"
+    },
+    {
+      "role": "candidate_freeze_metadata",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/candidate-freeze.json",
+      "archive_path": "provenance/candidate-freeze.json",
+      "bytes": 4907,
+      "sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52"
+    },
+    {
+      "role": "validator_source_publication_manifest",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/source-publication.json",
+      "archive_path": "provenance/validator/source-publication.json",
+      "bytes": 1196,
+      "sha256": "10b4744bbcea9a85e623b0db2701598d4563a8b2a243d68593deeff8a0721c86"
+    },
+    {
+      "role": "validator_subjects_tool",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/subjects.py",
+      "archive_path": "provenance/validator/subjects.py",
+      "bytes": 141167,
+      "sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853"
+    },
+    {
+      "role": "validator_toolchain",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/toolchain.json",
+      "archive_path": "provenance/validator/toolchain.json",
+      "bytes": 407,
+      "sha256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072"
+    },
+    {
+      "role": "immutable_tag_builder_receipt",
+      "source_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+      "archive_path": "provenance/tag-builder-receipt.json",
+      "bytes": 7718,
+      "sha256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec"
+    },
+    {
+      "role": "recollector",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-recollection-20261009/recollect-r4.cjs",
+      "archive_path": "reconstruction/recollect-r4.cjs",
+      "bytes": 32890,
+      "sha256": "40d2416361c42091bbb399512692ff01da3466c2c703d75f1216595b51051028"
+    },
+    {
+      "role": "reconstructed_postflight_report",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-recollection-20261009/reconstructed-postflight.json",
+      "archive_path": "reconstruction/reconstructed-postflight.json",
+      "bytes": 157274,
+      "sha256": "5f22d323784917907bcc10a4b9562966efd5a088e87e991b8828908ae435bbfa"
+    },
+    {
+      "role": "actual_capture_review",
+      "source_path": "/private/tmp/termrock-r15-r4-actual-review-luna-20261009.json",
+      "archive_path": "reviews/r15-r4-actual-review.json",
+      "bytes": 9044,
+      "sha256": "779491f0ccdd29c8e5bbd91bde98bfa30de0c608dc80c398c8a51c9daede174a"
+    },
+    {
+      "role": "runner_ready_review",
+      "source_path": "/private/tmp/termrock-vis02-r15-r4-runner-review-luna-20261009.json",
+      "archive_path": "reviews/r15-r4-runner-review.json",
+      "bytes": 7225,
+      "sha256": "ffba3322aa93bd094035a2c4218d8edf1e7e68adaa2f2ed23b56e937542ecf4f"
+    },
+    {
+      "role": "recollector_ready_review",
+      "source_path": "/private/tmp/termrock-r15-r4-recollector-r2-review-luna-20261009.json",
+      "archive_path": "reviews/r15-r4-recollector-review.json",
+      "bytes": 4360,
+      "sha256": "178a9576a63b0b829c395e02cbd98f9af31afb1018616beb424ffd5184fa1677"
+    },
+    {
+      "role": "reconstructed_result_review",
+      "source_path": "/private/tmp/termrock-r15-r4-reconstructed-result-review-luna-20261009.json",
+      "archive_path": "reviews/r15-r4-reconstructed-result-review.json",
+      "bytes": 3157,
+      "sha256": "2e9a3140d8c0b7a7182f3453bcb1695805cc3c2939d0a568019db0c49d58b5e7"
+    },
+    {
+      "role": "source_delta_ready_review",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/d990-helper-pin-source-review.json",
+      "archive_path": "reviews/d990-helper-pin-source-review.json",
+      "bytes": 5304,
+      "sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712"
+    }
+  ],
+  "actual_artifacts": [
+    {
+      "role": "actual_artifact:00-boot:frame_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+      "bytes": 1279137,
+      "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb"
+    },
+    {
+      "role": "actual_artifact:00-boot:ansi",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+      "bytes": 13319,
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+    },
+    {
+      "role": "actual_artifact:00-boot:html",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/html",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/html",
+      "bytes": 586582,
+      "sha256": "3e65fadb63db66cc02a230c5bc885c659c74f9fe1b463de431e01fd0728744ef"
+    },
+    {
+      "role": "actual_artifact:00-boot:png",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/png",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/png",
+      "bytes": 417702,
+      "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e"
+    },
+    {
+      "role": "actual_artifact:00-boot:ascii",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+      "bytes": 2646,
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90"
+    },
+    {
+      "role": "actual_artifact:00-boot:txt",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/txt",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/txt",
+      "bytes": 2930,
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd"
+    },
+    {
+      "role": "actual_artifact:00-boot:ascii_loss_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+      "bytes": 13774,
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15"
+    },
+    {
+      "role": "actual_artifact:00-boot:png_fidelity_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+    },
+    {
+      "role": "actual_artifact:00-boot:observations_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+      "bytes": 1981,
+      "sha256": "a17c99097f90e7cc0db7a656183284afdbcea87d9543749cff2e5f4806e7b363"
+    },
+    {
+      "role": "actual_artifact:00-boot:manifest_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+      "bytes": 3772,
+      "sha256": "7028a7c916ad8202a52d5e72f423c4fb28eaa2bd012e6d7b5ac6ee5d3f92cc2f"
+    },
+    {
+      "role": "actual_artifact:01-help:frame_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/frame.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/frame.json",
+      "bytes": 1284301,
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f"
+    },
+    {
+      "role": "actual_artifact:01-help:ansi",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ansi",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ansi",
+      "bytes": 18842,
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1"
+    },
+    {
+      "role": "actual_artifact:01-help:html",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/html",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/html",
+      "bytes": 787462,
+      "sha256": "4f54fb79745ed0d4054664f1aa8aac212f8c9dd9604c12190b10488c123b4eae"
+    },
+    {
+      "role": "actual_artifact:01-help:png",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/png",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/png",
+      "bytes": 551174,
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537"
+    },
+    {
+      "role": "actual_artifact:01-help:ascii",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ascii",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ascii",
+      "bytes": 4019,
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448"
+    },
+    {
+      "role": "actual_artifact:01-help:txt",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/txt",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/txt",
+      "bytes": 4621,
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24"
+    },
+    {
+      "role": "actual_artifact:01-help:ascii_loss_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+      "bytes": 29455,
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1"
+    },
+    {
+      "role": "actual_artifact:01-help:png_fidelity_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+    },
+    {
+      "role": "actual_artifact:01-help:observations_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/observations.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/observations.json",
+      "bytes": 2022,
+      "sha256": "f7562665f9691eb7e618fd7901906360d06681e15c05a7ae89b431a24b1eb87b"
+    },
+    {
+      "role": "actual_artifact:01-help:manifest_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/120x40/truecolor/manifest.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/120x40/truecolor/manifest.json",
+      "bytes": 3762,
+      "sha256": "66736bbaf0f94cba53de8b7380d0df0eafe7bfb05f442c99882562e39da096e0"
+    },
+    {
+      "role": "actual_artifact:02-finder:frame_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+      "bytes": 1279137,
+      "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb"
+    },
+    {
+      "role": "actual_artifact:02-finder:ansi",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+      "bytes": 13319,
+      "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+    },
+    {
+      "role": "actual_artifact:02-finder:html",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/html",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/html",
+      "bytes": 586586,
+      "sha256": "0bb6cf67b2f5683eef9271511e2052657fd397db9533525029d8e32048c627b4"
+    },
+    {
+      "role": "actual_artifact:02-finder:png",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/png",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/png",
+      "bytes": 417702,
+      "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e"
+    },
+    {
+      "role": "actual_artifact:02-finder:ascii",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+      "bytes": 2646,
+      "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90"
+    },
+    {
+      "role": "actual_artifact:02-finder:txt",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/txt",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/txt",
+      "bytes": 2930,
+      "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd"
+    },
+    {
+      "role": "actual_artifact:02-finder:ascii_loss_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+      "bytes": 13774,
+      "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15"
+    },
+    {
+      "role": "actual_artifact:02-finder:png_fidelity_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+    },
+    {
+      "role": "actual_artifact:02-finder:observations_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+      "bytes": 1983,
+      "sha256": "b3b04ffc809564e3bb0562dbf6549cc913e6cc63be5a4f3172dbc8d6194ff86e"
+    },
+    {
+      "role": "actual_artifact:02-finder:manifest_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+      "bytes": 3794,
+      "sha256": "31c96d164b787df1923a8eb986da2bd2082828af894d79f5f84fbd5e47cc7b61"
+    },
+    {
+      "role": "actual_artifact:03-help-again:frame_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+      "bytes": 1284301,
+      "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f"
+    },
+    {
+      "role": "actual_artifact:03-help-again:ansi",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+      "bytes": 18842,
+      "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1"
+    },
+    {
+      "role": "actual_artifact:03-help-again:html",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/html",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/html",
+      "bytes": 787474,
+      "sha256": "a5bd850b0c561d8e8d93bef3f596e66bfef7516ac75793ca754a825e4bb47060"
+    },
+    {
+      "role": "actual_artifact:03-help-again:png",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/png",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/png",
+      "bytes": 551174,
+      "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537"
+    },
+    {
+      "role": "actual_artifact:03-help-again:ascii",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+      "bytes": 4019,
+      "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448"
+    },
+    {
+      "role": "actual_artifact:03-help-again:txt",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+      "bytes": 4621,
+      "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24"
+    },
+    {
+      "role": "actual_artifact:03-help-again:ascii_loss_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+      "bytes": 29455,
+      "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1"
+    },
+    {
+      "role": "actual_artifact:03-help-again:png_fidelity_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+      "bytes": 273,
+      "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+    },
+    {
+      "role": "actual_artifact:03-help-again:observations_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+      "bytes": 1989,
+      "sha256": "6c3b39ff6c714d9bb725e71ea389acc091fac3967ee4be366111fb765093b905"
+    },
+    {
+      "role": "actual_artifact:03-help-again:manifest_json",
+      "source_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+      "archive_path": "capture/oracle-actual/holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+      "bytes": 3819,
+      "sha256": "337aaed60b61caef1a5d230e235e98dc089ecd10953ea32a8201e5ac114f278b"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                    256 colors · 160×50  ? help
+
+  ≡ Query 1 ×                                                                                                                                               +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ───────────────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────────────────────────────── 2 ms ─╮
+ │                                     │ │  ▎!  1 SELECT * FROM missing_table                                                                                 │
+ │   Filter objects                    │ │                                                                                                                    │
+ │  ▾ D acme_prod                      │ │                                                                                                                    │
+ │    ▾ S public                       │ │                                                                                                                    │
+ │      ▾ Tables                    7  │ │                                                                                                                    │
+ │        ▸ T organizations     1.2 k  │ │                                                                                                                    │
+ │        ▸ T customers        48.9 k  │ │                                                                                                                    │
+ │        ▸ T products            312  │ │                                                                                                                    │
+ │        ▸ T orders            1.2 M  │ │                                                                                                                    │
+ │        ▸ T order_items       3.8 M  │ │                                                                                                                    │
+ │        ▸ T payments          1.2 M  │ │                                                                                                                    │
+ │        ▸ T subscriptions     1.1 k  │ │                                                                                                                    │
+ │      ▸ Views                     2  │ │                                                                                                                    │
+ │      ▸ Functions                 1  │ │                                                                                                                    │
+ │      ▸ Sequences                 1  │ │   relation "missing_table" does not exist                                                         ln 1/1 · col 28  │
+ │    ▸ S analytics                    │ │                                                                                                                    │
+ │    ▸ S audit                        │ │   Error 1 ! ×                                                                                                      │
+ │                                     │ │  ━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────── │
+ │                                     │ │   failed · 2 ms                                                                                                    │
+ │                                     │ │    Error                                                                                                           │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │    ! relation "missing_table" does not exist                                                                       │
+ │                                     │ │      Check the schema search path or qualify the table name.                                                       │
+ │                                     │ │      Enter on the result tab jumps to the statement                                                                │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Edit  Ctrl+R Run  Alt+R Run all  Ctrl+X Explain  / Find  Tab Next                                                                Connected to Production

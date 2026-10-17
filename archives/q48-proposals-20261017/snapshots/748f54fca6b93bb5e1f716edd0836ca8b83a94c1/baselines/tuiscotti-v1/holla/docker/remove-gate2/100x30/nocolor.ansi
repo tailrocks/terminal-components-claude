@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local [0m
+                                                                                                    [0m
+  Here › Review                                                                                     [0m
+ ━━━━━━━━━━╭────────────────────────────────────────────────────────────────────────────╮────────── [0m
+  Review · │                                                                            │ continu…  [0m
+           │  [0m[1mStop and remove all containers · gate 2 of 2[0m                              │           [0m
+  Action   │                                                                            │running    [0m
+           │  Action   stop the running containers, then remove every captured          │           [0m
+  Host     │           container on mbp (running and stopped) · images and volumes      │           [0m
+  In       │           stay · rm runs only after stop succeeds                          │           [0m
+  Scope    │  Host     mbp · local                                                      │           [0m
+  Changes  │  In       mbp · host-wide                                                  │           [0m
+  Risk     │  Scope    host                                                             │           [0m
+  Data     │  Changes  6 containers removed · writable layers lost                      │           [0m
+  Includes │  Risk     destructive                                                      │ pruned    [0m
+  Recoverab│  Data     live · 2 s ago                                                   │           [0m
+  Provenanc│                                                                            │           [0m
+           │  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…  │           [0m
+ ╭─ Sequenc│  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…  │ copies ─╮ [0m
+ │  01  doc│                                                                            │         │ [0m
+ │  02  doc│   [0m[1mType REMOVE ALL CONTAINERS ON mbp to confirm                           [0m  │n        │ [0m
+ │         │ ▎                                                                          │         │ [0m
+ │         │                                                                            │         │ [0m
+ │         │                                                                            │         │ [0m
+ ╰─────────│                                                         Cancel   [0m[2mExecute [0m  │─────────╯ [0m
+           │                                                                            │           [0m
+           ╰────────────────────────────────────────────────────────────────────────────╯ontinue…   [0m
+                                                                                                    [0m
+ ~/work/stack                        review · gate 1 of 2                         no color · 100×30 [0m
+                [0m[1m   [0m         [0m[1m  ← →[0m Choose  [0m[1mEnter[0m Confir[0m[1mm[0m  [0m[1mEsc[0m Cancel    [0m[1m   [0m                          [0m

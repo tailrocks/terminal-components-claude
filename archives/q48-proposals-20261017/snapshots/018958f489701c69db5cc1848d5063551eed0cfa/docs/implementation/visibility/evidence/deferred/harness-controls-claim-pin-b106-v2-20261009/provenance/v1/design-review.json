@@ -1,0 +1,80 @@
+{
+  "bound_artifacts": {
+    "canonical_task_record_observed": {
+      "accepted_queue_revision": 34,
+      "allowed_paths": [
+        "tools/visibility/deferred.py",
+        "tools/visibility/tests/test_deferred.py",
+        "docs/implementation/visibility/evidence/deferred/**",
+        "crates/termrock-visibility-tests/tests/deferred.rs"
+      ],
+      "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+      "branch": "termrock-implementation",
+      "claim_token": "visibility-deferred-root-q33-20261009-01",
+      "owner": "/root",
+      "path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/docs/implementation/visibility/tasks.json",
+      "queue_revision": 38,
+      "sha256": "e34175d3a809eee7df07ed2059eb1e61a21aa4e450d58ed90514316f66f8e19d",
+      "state": "claimed",
+      "work_id": "VIS-04"
+    },
+    "current_source_pins": {
+      "crates/termrock-visibility-tests/tests/deferred.rs": {
+        "bytes": 62489,
+        "path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/crates/termrock-visibility-tests/tests/deferred.rs",
+        "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+      },
+      "tools/visibility/deferred.py": {
+        "bytes": 52726,
+        "path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/tools/visibility/deferred.py",
+        "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+      }
+    },
+    "manifest": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-design-20261009-v1/SHA256SUMS.json",
+      "sha256": "83c7253d8ac7fe33055633f5f7ec579b99fcb5c4800e09217371093bc6f9277d"
+    },
+    "proposal": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-design-20261009-v1/proposal.json",
+      "sha256": "e89f3dbf89311ee15c0819000cea285c6ff0392faec24205a67f3a78ecd154fa"
+    },
+    "readme": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-design-20261009-v1/README.md",
+      "sha256": "3ca9c8311bcbb04c2de1f87b17efa5f4534392e3dfce717777c3392a37f40724"
+    },
+    "review_request": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-design-20261009-v1/review-request.json",
+      "sha256": "42c862e2df15b5a20cf6bd891ea51630966aea37da25ec64e5742a1b56924275"
+    }
+  },
+  "design_assessment": {
+    "canonical_fields_preserved": "Branch, active state, base SHA, and exact allowed-path set remain sourced from and checked against the canonical task row; the pin does not override them. Work ID is explicitly VIS-04.",
+    "coverage": "Positive q38/q34 fixture plus old tuple and isolated wrong-owner, wrong-token, and wrong-accepted-revision negative cases cover the requested migration. Negative cases retain blocked receipts and assert no Nextest list/run and zero executions.",
+    "explicit_caller_pin": "The required --claim-pin path supplies an out-of-band expected work ID, owner, token, and accepted revision; helper compares these against the canonical single VIS-04 row and does not derive them from tasks.json.",
+    "revision_semantics": "Accepted revision 34 is compared to the caller pin and canonical task record; top-level current revision 38 is separately read, checked as integer >= accepted revision, and preserved independently in receipt.",
+    "scope": "Two source files are sufficient for a CLI argument/validator change and its Rust black-box integration controls. The design excludes product code and leaves the existing S1d result untouched."
+  },
+  "findings": [
+    {
+      "finding": "The README promises a mismatched pin is rejected before tool setup, but proposed negative assertions name no Nextest list/run invocation only. Assert the fixture trace contains no tool setup/version probe as well (or narrow the wording). Current call order validates the claim before environment/tool setup, so this is a test precision note, not a design blocker.",
+      "id": "N1",
+      "severity": "non_blocking_test_precision"
+    }
+  ],
+  "limitations": [
+    "The pin is a caller-supplied consistency expectation, not a signature or authentication credential. Its independence depends on the invoking workflow supplying a separately fixed value; the helper must never synthesize it from tasks.json.",
+    "This review approves the design for bounded implementation only. The implementation and new Rust controls remain unreviewed and unrun.",
+    "No product assertions were rerun. The existing S1d 23-test result remains a separate product lane; this proposal changes only the deferred harness and its Rust controls."
+  ],
+  "observations": [
+    "The frozen proposal, README, and packet manifest hashes match the review request; all three manifest file hashes and byte counts verified.",
+    "The proposal-bound production/helper and Rust test source hashes match the current source files.",
+    "At review time, the canonical task registry is q38 and has one VIS-04 row owned by /root with token visibility-deferred-root-q33-20261009-01 and accepted revision 34. Branch, claimed state, accepted base, and all four allowed paths match the proposal.",
+    "The current production helper still pins the obsolete owner /root/current_branch_comparison_luna, token visibility-deferred-recovery-20261008-04, and accepted revision 24. Its validator currently requires exactly one VIS-04 row, checks owner/token, termrock-implementation and claimed/in_progress state, accepted revision, exact allowed-path set, then records top-level queue_revision separately. It validates the claim before environment capture, Nextest version/list/run calls.",
+    "The current Rust fixture uses q24 for both current and accepted revision; the existing positive receipt test asserts both as 24, so it must be updated to q38/q34."
+  ],
+  "record_type": "independent_design_review_v1",
+  "reviewer": "controls_wrapper_review_luna",
+  "scope": "Read-only design review of the frozen VIS-04 explicit claim-pin proposal. No source edits, tests, Cargo, Nextest, or product run.",
+  "verdict": "READY_FOR_BOUNDED_IMPLEMENTATION"
+}

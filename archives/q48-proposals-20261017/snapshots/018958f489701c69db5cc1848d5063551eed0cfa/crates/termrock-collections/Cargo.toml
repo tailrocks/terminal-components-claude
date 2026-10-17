@@ -1,0 +1,11 @@
+[package]
+name = "termrock-collections"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+termrock-core.workspace = true
+termrock-layout.workspace = true
+termrock-text.workspace = true

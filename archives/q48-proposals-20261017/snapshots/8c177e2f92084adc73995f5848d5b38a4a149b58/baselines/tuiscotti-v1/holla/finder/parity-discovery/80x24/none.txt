@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  probe · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here
+    Pull                        git      here  branch is 1 commi…
+  › Clean IntelliJ metadata u…  idea     here  1 candidates        destructive
+    Deploy                      custom   here  Current folder…
+    Run tests                   task     here  defined by ~/work…
+    Show git status             git      here  on main
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp                explore  host  available on this…
+
+    → opens inside holla · here · destructive
+
+ ~/work/probe   main   ↓1   ! docker, github unavailable    ▲ 4 config warnings
+     Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  …

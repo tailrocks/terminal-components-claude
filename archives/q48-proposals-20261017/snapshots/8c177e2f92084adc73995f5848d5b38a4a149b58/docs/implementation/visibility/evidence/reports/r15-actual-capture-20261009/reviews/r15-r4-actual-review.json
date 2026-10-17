@@ -1,0 +1,179 @@
+{
+  "schema": "termrock-r15-actual-result-independent-review-v1",
+  "reviewed_at_utc": "2026-10-09T10:32:46.967Z",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "review_mode": "read-only; no Cargo, Nextest, product binary, PTY, source edits, or rerun",
+  "verdict": "ACTUAL_ONLY_CAPTURE_DATA_VALID_WITH_LIMITATIONS; ORIGINAL_WRAPPER_GATE_FAILED",
+  "scope": "Independent audit of the preserved R15 attempt-02 actual result, raw process outputs, capture receipt and artifacts, plus a separately timestamped present-source revalidation. This review does not reconstruct a missing postflight or change the historical wrapper result.",
+  "pinned_artifacts": {
+    "runner": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r4.cjs",
+      "sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425"
+    },
+    "invocation_manifest": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/invocation-manifest-r4.json",
+      "sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3"
+    },
+    "launch_grant": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.json",
+      "sha256": "bf71eb369cc1cb03fcbb257d2d3327c5dcb2b58a3130e6d6a7d6b0739191c426"
+    },
+    "candidate_freeze": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/candidate-freeze.json",
+      "sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52",
+      "suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+      "package_files": 28
+    },
+    "source_review": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/d990-helper-pin-source-review.json",
+      "sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+      "verdict": "READY_SOURCE_DELTA_ONLY"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/preflight.json",
+      "sha256": "4edd546cc689b1b1db6b7c198906d638bb1e102b971c86e0fb4ea3ec32bc05a"
+    },
+    "final_receipt": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/final-receipt.json",
+      "sha256": "bbbaa88c6d00da04f28b3d9237397c42f0bd66b251842921c29dca89e7a09dd3"
+    },
+    "raw_stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/stdout.log",
+      "sha256": "61cae509dcfa8d7185726fe3e256e9c1c7e479235e1b70aaf03d105470e2ec1c",
+      "bytes": 926
+    },
+    "raw_stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/stderr.log",
+      "sha256": "c8729887173fb6daefab7388eb0e473b9b562261ed627878f94a7e07469b2e5d",
+      "bytes": 1635
+    },
+    "process_events": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/process-events.jsonl",
+      "sha256": "4fa05c3e8de92bf1375c46bfe62b892b7f7cc650e613711713211a24a5279426"
+    },
+    "capture_receipt": {
+      "path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+      "sha256": "dba8be2ed8c80e6c56418ba9e78b476b65fe027c964b757903daa5c97fd8eea2"
+    }
+  },
+  "rust_test_result": {
+    "command_scope": "one locked/offline Nextest selection: termrock-e2e / holla_tag_capture / captures_holla_from_pinned_immutable_tag; ignored-only lane",
+    "nextest_run_id": "00c75b56-9a85-494b-9e17-6061d3a9c9df",
+    "nextest_summary": "1 test run: 1 passed, 0 skipped",
+    "child_exit_code": 0,
+    "wrapper_exit_code": 125,
+    "timed_out": false,
+    "output_limit_exceeded": false,
+    "selection_count_ok": true,
+    "product_oracle_test": "PASS (one Rust capture test)",
+    "wrapper_gate": "FAIL; captureContext postflight validation threw",
+    "input_stable_field": false,
+    "input_stable_interpretation": "Not evidence of input drift: the runner failed to create the after snapshot because captureContext threw first. No postflight.json or after snapshot exists.",
+    "error": "capture receipt does not satisfy the immutable-tag actual-only contract at runner-r4.cjs:493; finish() recorded wrapper exit 125."
+  },
+  "actual_capture": {
+    "run_id": "tag-20261008T212348Z-25ce63f5a3b7",
+    "case_id": "HELP-HOLLA-004",
+    "suite_revision": "termrock-e2e-2026-10-09.2",
+    "suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "case_set_digest": "06d263dba644256f58781d2950b3bf162a692dddb2bdaa423e755dd9672998bd",
+    "profile_digest": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+    "capture_test_binary_sha256": "7014b46f1facde2ac83894702619dec1565453a5163a87eb5289aa56ce3c4060",
+    "immutable_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "tag_binary_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5",
+    "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+    "status": {
+      "capture_status": "COMPLETE",
+      "execution_anchor_status": "unverified",
+      "qualification": "blocked",
+      "admission_status": "NOT_RUN"
+    },
+    "checkpoints": [
+      {
+        "id": "00-boot",
+        "assertions": [
+          "boot.placeholder",
+          "boot.finder_footer",
+          "boot.disk_cursor",
+          "boot.world"
+        ]
+      },
+      {
+        "id": "01-help",
+        "assertions": [
+          "help.title_here",
+          "help.finder_row",
+          "help.quit_row",
+          "help.footer",
+          "help.finder_footer_absent"
+        ]
+      },
+      {
+        "id": "02-finder",
+        "assertions": [
+          "finder.placeholder_restored",
+          "finder.quit_row_absent"
+        ]
+      },
+      {
+        "id": "03-help-again",
+        "assertions": [
+          "reopen.title_here"
+        ]
+      }
+    ],
+    "interaction_rows": {
+      "assertion_level_pass": 12,
+      "aggregate_checkpoint_pass": 4,
+      "total_pass_rows": 16,
+      "all_12_assertions_pass": true,
+      "all_4_aggregates_pass": true
+    },
+    "source_test_selection_rule": "tests/holla_tag_capture.rs SHA-256 255f840b9f6953e462a67aabb7afbbeffb92214e5bcb6f5f860e513043dff31e counts oracle/case/interaction rows whose id.split(':').count()==3; the four aggregate rows have four-part IDs and are excluded. The test expects exactly 12.",
+    "artifacts": {
+      "count": 40,
+      "per_checkpoint": 10,
+      "all_current_paths_regular_non_symlink_unique_and_under_output_root": true,
+      "all_sizes_and_sha256_match_receipt": true
+    },
+    "visuals": {
+      "blocked": 4,
+      "pass": 0
+    },
+    "unqualified_scopes": [
+      "No expected snapshot comparison",
+      "No paired execution or parity claim",
+      "No source/build qualification",
+      "No admission",
+      "No visual PASS"
+    ]
+  },
+  "stale_collector_expectations": {
+    "manifest_suite_revision_expected": "termrock-e2e-2026-10-09.1",
+    "actual_suite_revision": "termrock-e2e-2026-10-09.2",
+    "manifest_case_set_digest_expected": "bd786b32e08bb1c88254caaa2e1203077363683ca3dcac0838b07dc7250cc8b5",
+    "actual_case_set_digest": "06d263dba644256f58781d2950b3bf162a692dddb2bdaa423e755dd9672998bd",
+    "manifest_expected_interaction_assertions": 12,
+    "runner_collector_counts": "all PASS rows with dimension interaction (16), including 4 aggregate checkpoint rows",
+    "source_test_counts": "12 assertion rows with 3-part IDs; 4 aggregate rows have 4-part IDs",
+    "consequence": "These stale identity expectations and broad interaction-row count cause captureContext to throw after the Rust test and capture complete. They do not show a failed Rust assertion or observed source drift."
+  },
+  "independent_read_only_revalidation": {
+    "checked_at_utc": "2026-10-09T10:32:46.968Z",
+    "package_root": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package",
+    "candidate_freeze_sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52",
+    "frozen_package_file_count": 28,
+    "files_matching_freeze": 28,
+    "freeze_mismatches": 0,
+    "files_matching_preflight_before_snapshot": 28,
+    "preflight_mismatches": 0,
+    "capture_files_checked": 40,
+    "capture_files_matching_current_size_and_sha256": 40,
+    "capture_artifact_mismatches": 0,
+    "test_binary_current_sha256_matches_manifest": true,
+    "tag_binary_current_sha256_matches_manifest": true,
+    "helper_current_sha256_matches_capture_receipt": true,
+    "limitation": "This is a present-time revalidation against the saved preflight/freeze and capture inventory. The original runner did not persist an after snapshot; this audit does not synthesize or claim one."
+  }
+}

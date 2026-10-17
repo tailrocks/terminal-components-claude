@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      holla · Rust project  mbp · local [0m
+           ╭────────────────────────────────────────────────────────────────────────────╮           [0m
+  Here     │                                                                            │           [0m
+ ━━━━━━━───│  [0m[1mKey reference[0m                                                       Here  │────────── [0m
+   Search a│                                                                            │ ‹ here ›  [0m
+           │  Finder                                                                 ┃  │           [0m
+    Suggest│  [0m[1mType[0m             search actions and resources together · @parent       ┃  │           [0m
+  › Inspect│                   @children @system @all narrow the scope               ┃  │           [0m
+    Pull   │  [0m[1m↑↓[0m               move · PgUp PgDn Home End                             ┃  │           [0m
+    Review │  [0m[1mEnter[0m            primary action · destructive rows open a review inste…┃  │           [0m
+    Run tes│  [0m[1mAlt+Enter[0m        alternatives · run, copy, insert, arguments, pin,     ┃  │           [0m
+    Who is │                   alias, hide, why                                      ┃  │           [0m
+           │  [0m[1mTab[0m              preview › tab strip › finder                          ┃  │           [0m
+    Recent │  [0m[1mCtrl+↑ / Ctrl+↓[0m  scope outward (parent, system) / inward (children)    ┃  │           [0m
+    nothing│  [0m[1mEsc[0m              clear query › scope back to here › back a page › quit ┃  │           [0m
+           │  [0m[1mAliases[0m          gp pull · du disk usage · test the test task here · d ┃  │           [0m
+    Explore│                   then u · dc docker cleanup                            ┃  │           [0m
+     Tasks │                                                                         ┃  │           [0m
+    System │  Pages                                                                  ┃  │           [0m
+           │  [0m[1mDisk[0m             ↑↓ move · Space select · a all · Enter drill · c      ┃  │           [0m
+           │                   cleanup plan · p details                              │  │           [0m
+           │  [0m[1mPlan review[0m      Space include or exclude · u undo · Enter step facts ·│  │           [0m
+           │                   c confirm                                             │  │           [0m
+           │  [0m[1mGates[0m            Gate 1 reviews facts and the full sequence · Gate 2   │  │           [0m
+           │                   types the target-bound phrase                         │  │           [0m
+           │  [0m[2m                                                                       [0m│  │           [0m
+    → 'holl│                                                                            │           [0m
+           ╰────────────────────────────────────────────────────────────────────────────╯           [0m
+ ~/work/holla   main   ↓3 • 5                                                     no color · 100×30 [0m
+ [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m       [0m[1m    ↑↓ Sc[0mroll  [0m[1mEsc [0mClose     [0m[1m       [0m        [0m[1m      [0m               [0m

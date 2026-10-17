@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Lists       i Inspector   ? Help
+
+   Overview       ┃  Lists  Single and multiple selection, disabled it…
+   Buttons        ┃
+   Inputs         ┃    Lan… 1–9 of…      Fil… 2 sele…      Search res…
+   Text areas     ┃
+   Forms          ┃    Chosen: Rust      Space toggl…
+▎› Lists          ┃
+   Trees          ┃     › Rust    ┃       ✓ src/api…┃
+   Tables         ┃       TypeScr…┃       ✓ src/api…┃
+   Editable tabl… ┃       Python  ┃         src/db/…┃
+   Panels         ┃       Kotlin  ┃         tests/c…┃      No results…
+   Sidebars       ┃       Go      │         Cargo.l…┃
+   Dialogs        │       Java    │         docs/we…┃
+   Progress       │       Swift   │         src/wor…│
+   Scrolling      │       C#      │         src/con…│
+   Terminal       │       Ruby    │         README.…│
+   Code editor    │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

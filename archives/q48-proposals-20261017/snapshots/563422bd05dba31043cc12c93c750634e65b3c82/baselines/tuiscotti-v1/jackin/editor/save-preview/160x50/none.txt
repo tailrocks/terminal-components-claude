@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                Workspaces › payments-platform › edit  • 1 change  inside the Construct  2 running
+
+
+   General •    Mounts    Roles    Environments    Accounts
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      Name *
+      payments-platform
+      Directory basename by default
+
+    Working directory *
+    /workspace/payments-platform                                  Choose…
+    Inside the Construct
+
+     [ ] Keep awake               macOS only
+     [✓] Git pull before launch
+
+      On dirty exit
+      ask · show the exit dialog                  ▾
+                                               ╭────────────────────────────────────────────────────────────────╮
+                                               │                                                                │
+                                               │  Save workspace                                                │
+                                               │                                                                │
+                                               │  Workspace  payments-platform                                  │
+                                               │  Scope      workspace config · ~/.jackin/workspaces/payments…  │
+                                               │  Changes    1 change                                           │
+                                               │                                                                │
+                                               │  ~ keep_awake true → false                                     │
+                                               │                                                                │
+                                               │                                               ▎Cancel   Save   │
+                                               │                                                                │
+                                               ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                          Cancel     Save…
+
+                                                            ← → Choose  Enter Confirm  Esc Cancel

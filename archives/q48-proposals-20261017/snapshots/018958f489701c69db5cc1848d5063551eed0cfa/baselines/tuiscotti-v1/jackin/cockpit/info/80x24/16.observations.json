@@ -1,0 +1,22 @@
+{
+  "cell_count": 1920,
+  "cols": 80,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 10602130300902328568,
+  "legacy_name": "jackin/cockpit/info/80x24/16",
+  "name": "jackin/cockpit/info/80x24/16",
+  "non_empty_cells": 523,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 24
+}

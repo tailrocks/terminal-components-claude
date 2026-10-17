@@ -1,0 +1,24 @@
+{
+  "status": "preflight_ok",
+  "package_manifest_sha256": "1379c02550e90e43fac9f315a8eeda46211b8b4ae956ad1047220ce0fee1a672",
+  "audit_sha256": "aa5fbc8b7303ea9bb4e344c1b77da7ff6a4f11c7b1260356c539c0cf8fd66b31",
+  "map_sha256": "0c231c4c85234ac60d6ab78fa68ab5bd49d2b3f433b84ace196c47a092b8cf87",
+  "source_commit_count": 473,
+  "trailer_counts": {
+    "signed": 453,
+    "missing": 20,
+    "wrong": 0
+  },
+  "projected_object_count": 83,
+  "projected_head_oid": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+  "git_object_writes": 0,
+  "refs_before": [
+    "28058beecf63acee3b65bab847e507fe8e1c539d refs/archive/pr17-original-q31-20261009",
+    "e44d5504e91d90f8404a5488d8539ed71001e31f refs/heads/termrock-implementation"
+  ],
+  "refs_after": [
+    "28058beecf63acee3b65bab847e507fe8e1c539d refs/archive/pr17-original-q31-20261009",
+    "e44d5504e91d90f8404a5488d8539ed71001e31f refs/heads/termrock-implementation"
+  ],
+  "remote_push_performed": false
+}

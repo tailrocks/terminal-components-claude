@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "8dba90c9e8d2c0bc2f4fb9192d7bfc220fbdf7ad8ef6b359e579969fdf73dbc1",
+  "artifacts": {
+    "ansi": {
+      "bytes": 13492,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.ansi",
+      "sha256": "8dba90c9e8d2c0bc2f4fb9192d7bfc220fbdf7ad8ef6b359e579969fdf73dbc1"
+    },
+    "ascii": {
+      "bytes": 4279,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.ascii",
+      "sha256": "4e9bd7e8ac7909506d0e7034f9633f7ac4f4b5a7dbdafd9f6e21f594beb9ad95"
+    },
+    "ascii_loss_json": {
+      "bytes": 37529,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.ascii.loss.json",
+      "sha256": "08f7fe28218d46a9f8c1ce8becb4830b40032113bb8bca7861b6b7bd187ff7fe"
+    },
+    "frame_json": {
+      "bytes": 1275547,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.frame.json",
+      "sha256": "36b687d8cfbb0c7e5d99cc57267d945d3546b5d4219f136cc03870aaff276c3b"
+    },
+    "html": {
+      "bytes": 336709,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.html",
+      "sha256": "35230ff330284e35b0793ec046b922ed7dc098cf271a2ba09a0c5dd8b7539421"
+    },
+    "observations_json": {
+      "bytes": 484,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.observations.json",
+      "sha256": "f92ffabc31b4bbaf0195944bd9efa5287f82e3dbfbade12ad852a3b94e3ec2eb"
+    },
+    "png": {
+      "bytes": 231560,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.png",
+      "sha256": "963636abbc13d1c9499938562539b32f27f0ae8d484b7b9d94fb0f555262c003"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 5079,
+      "file": "holla/brew/services-stop-failed/120x40/truecolor.txt",
+      "sha256": "62e55171c436ae8cf9d7de15b65c08a3090b05bc6fc9e0674e46b5d3ecae3087"
+    }
+  },
+  "ascii_substitutions_count": 405,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 4123649378337128278,
+  "frame_sha256": "36b687d8cfbb0c7e5d99cc57267d945d3546b5d4219f136cc03870aaff276c3b",
+  "generation": "4e4507804a902c75f7223ac54ffe507eaa7834c5a417206a6a3c0321643df7d3",
+  "html_sha256": "35230ff330284e35b0793ec046b922ed7dc098cf271a2ba09a0c5dd8b7539421",
+  "legacy_name": "holla/flows/brew/services_stop_failed/120x40/truecolor",
+  "name": "holla/brew/services-stop-failed/120x40/truecolor",
+  "png_sha256": "963636abbc13d1c9499938562539b32f27f0ae8d484b7b9d94fb0f555262c003",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:08:35Z",
+  "txt_sha256": "62e55171c436ae8cf9d7de15b65c08a3090b05bc6fc9e0674e46b5d3ecae3087"
+}

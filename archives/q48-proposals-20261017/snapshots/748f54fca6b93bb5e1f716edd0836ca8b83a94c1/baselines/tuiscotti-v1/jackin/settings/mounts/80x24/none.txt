@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help                        Settings › global › Mounts
+
+
+   General    Mounts    Environments    Agents    Trust
+  ───────────━━━━━━━━━────────────────────────────────────────────────────────
+
+        Destination                           Scope           Mode  Isolatio2›
+  ▎›    /home/agent/.gitconfig                global          ro    shared
+        /home/agent/.cargo/registry           global          rw    shared
+        /home/agent/.kube                     role sre        ro    shared
+        + Add mount
+
+
+
+
+
+
+
+
+
+
+                                                          Cancel     Save…
+
+  Enter Edit…  r Read-only  i Isolation  o Open source  d Remove  s Scope…  …

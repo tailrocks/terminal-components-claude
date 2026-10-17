@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                      app · service checkout  [0m[1m◆ devbox · production[0m [0m
+                                                                                                                                                                [0m
+  Here    deploy the release ! ×   [0m[1m the stubborn worker [0m○[0m[1m ×  [0m                                                                                                   [0m
+ ──────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mthe stubborn worker[0m · stopped · 1 s · exit 137                                                                                      here · /srv/app · devbox  [0m
+  $ ./stubborn · started by Run the stubborn worker                                                                                                             [0m
+                                                                                                                                                                [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ ./stubborn                                                                                                                                              │ [0m
+ │  ignoring SIGTERM…                                                                                                                                         │ [0m
+ │  stop requested by holla · SIGTERM to the process group                                                                                                    │ [0m
+ │  no exit after SIGTERM for 750 ms · SIGKILL to the process group                                                                                           │ [0m
+ │  killed (SIGKILL) · descendants reaped                                                                                                                     │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m/srv/app[0m                                                            stopped · 1 s                                                            no color · 160×50 [0m
+                                              [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  [0m[1mr[0m Restart  [0m[1mx[0m Close  [0m[1mEsc[0m Here          the stubborn worker stopped · exit 137 [0m

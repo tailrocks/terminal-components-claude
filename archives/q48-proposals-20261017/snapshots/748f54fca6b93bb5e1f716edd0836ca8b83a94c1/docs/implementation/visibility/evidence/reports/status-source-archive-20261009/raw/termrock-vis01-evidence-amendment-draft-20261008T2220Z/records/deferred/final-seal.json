@@ -1,0 +1,97 @@
+{
+  "schema": "termrock-deferred-nextest-execution-v1",
+  "kind": "actual-execution",
+  "run_root": "/private/tmp/termrock-vis04-deferred-nextest-20261009-retry1",
+  "source": {
+    "candidate_root": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/source/candidate",
+    "commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+    "tree": "409bdc1e80ac33391cb4235eda440caed7942c79",
+    "registry_sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464",
+    "registry_rows": 23,
+    "registry_case_references": 25,
+    "registry_rows_updated": false,
+    "source_inputs_rechecked_after_run": true,
+    "source_input_hashes_file": "source-hashes.txt"
+  },
+  "execution": {
+    "start_utc": "2026-10-08T19:47:52Z",
+    "end_utc": "2026-10-08T19:54:20Z",
+    "elapsed_seconds": 388,
+    "launcher_pid": 58600,
+    "nextest_pid": 58603,
+    "cargo_pid": 58652,
+    "cargo_version": "1.98.1",
+    "rustc_version": "1.98.1",
+    "nextest_version": "0.9.146",
+    "offline": true,
+    "build_jobs": 2,
+    "test_threads": 1,
+    "retries": 0,
+    "expected_failure_inversion": false,
+    "build_completed": true,
+    "exit_code": 100,
+    "exit_classification": "real assertion failure after test execution",
+    "argv_file": "argv.json",
+    "filterset_file": "filterset.txt",
+    "environment_file": "environment.txt"
+  },
+  "results": {
+    "selected_filter_names": 23,
+    "test_started_events": 23,
+    "terminal_test_events": 23,
+    "passed": 22,
+    "failed": 1,
+    "test_level_ignored_events": 0,
+    "registry_rows_mapped": 23,
+    "registry_rows_missing": 0,
+    "suite_events": [
+      {"event":"failed","passed":21,"failed":1,"ignored":1,"filtered_out":87},
+      {"event":"ok","passed":1,"failed":0,"ignored":1,"filtered_out":108}
+    ],
+    "suite_event_counts_are_not_added_to_test_level_counts": true,
+    "case_results_file": "case-results.json",
+    "case_map_file": "case-map.json"
+  },
+  "failure": {
+    "registry_id": "BD-21",
+    "case_refs": ["W13-05"],
+    "legacy_test": "w13_filter_wide_trail_cells_clear",
+    "source_ignore_annotation": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints",
+    "assertion_location": "crates/termrock-conformance/tests/control_states.rs:6137",
+    "observed_message": "W13-05: no earlier-paint glyph may leak into 旧日本, got [\" \", \" \", \" \", \"旧\", \"界\", \"日\", \"y\", \"本\", \" \", \" \"]",
+    "status_mutation": false,
+    "rerun": false
+  },
+  "nonmutating_execution": {
+    "source_writes_by_this_lane": false,
+    "build_target_outside_candidate": true,
+    "locked_offline": true,
+    "git_optional_locks_disabled": true,
+    "no_retry": true
+  },
+  "attempts": [
+    {
+      "run_root": "/private/tmp/termrock-vis04-deferred-nextest-20261009-PfcTrH",
+      "start_utc": "2026-10-08T19:46:29Z",
+      "end_utc": "2026-10-08T19:46:29Z",
+      "exit_code": 2,
+      "classification": "Nextest argument parse failure; no compile or tests executed",
+      "cause": "--jobs aliases --test-threads in Nextest 0.9.146; both were supplied",
+      "corrected_argv_change": "replace --jobs 2 with --build-jobs 2; retain --test-threads 1",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "9d3b897e8b959ba8448962ae85e424f5ce5d53630f19b7306b8565ebe2f30c42",
+      "cases_executed": 0
+    }
+  ],
+  "artifacts": {
+    "stdout_raw": {"path":"logs/stdout.raw","sha256":"7598ac418da1acf9cbc67a96208974fc97dfd5c3de33e8891369b6edb6793bb1"},
+    "stderr_raw": {"path":"logs/stderr.raw","sha256":"98a596e9fd754fe9dd0d910887de811a86eea4676fcb65a9d3fc4dd43699074f"},
+    "case_results": {"path":"case-results.json","sha256":"276daab6ca4bed491189d870a38af17e7f6ff1a6744d18797bd9e2bc77f5e97c"},
+    "case_map": {"path":"case-map.json","sha256":"0bea25ff4b1ee14072c066d2bc2b20cefab87cd6166b817a027e47b2d7b53eaa"},
+    "filterset": {"path":"filterset.txt","sha256":"0d44e13cacf04d3f0f1872281c2fcdc9342511e0738062bf23a0c30fe3ddb8b8"},
+    "command_description": {"path":"command.txt","sha256":"964c6fbad72b50c7aec7ac7d6f4aa1bbb51e3708228c3a3b5a63daaa5641d99f"},
+    "argv": {"path":"argv.json"},
+    "environment": {"path":"environment.txt"},
+    "tool_hashes": {"path":"tool-hashes.txt","sha256":"0a504387b80535cf2b66a3249d3afd216c0b95d8d69b9215d761393702981954"}
+  }
+}

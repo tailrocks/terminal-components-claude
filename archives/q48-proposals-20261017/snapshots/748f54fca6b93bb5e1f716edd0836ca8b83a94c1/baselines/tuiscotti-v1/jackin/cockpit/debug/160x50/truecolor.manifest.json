@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "f0ef62b803f80731fa8bde1d89e5b986f68bf595e31d9731464bc46169a52334",
+  "artifacts": {
+    "ansi": {
+      "bytes": 18053,
+      "file": "jackin/cockpit/debug/160x50/truecolor.ansi",
+      "sha256": "f0ef62b803f80731fa8bde1d89e5b986f68bf595e31d9731464bc46169a52334"
+    },
+    "ascii": {
+      "bytes": 5190,
+      "file": "jackin/cockpit/debug/160x50/truecolor.ascii",
+      "sha256": "b92f1f2ea41438d2806c6d07be36dda2c12fd2c864392b12afa2c3b09a2086ce"
+    },
+    "ascii_loss_json": {
+      "bytes": 2376,
+      "file": "jackin/cockpit/debug/160x50/truecolor.ascii.loss.json",
+      "sha256": "08fd4cafe9e4beccbf3f69c8a5a99786c921393c19d0ddc1737024b62e3b5bac"
+    },
+    "frame_json": {
+      "bytes": 2128564,
+      "file": "jackin/cockpit/debug/160x50/truecolor.frame.json",
+      "sha256": "2e0f2451d2e340addbbe460c5eb0d628e5940d587edd532506e2917008915d6e"
+    },
+    "html": {
+      "bytes": 540730,
+      "file": "jackin/cockpit/debug/160x50/truecolor.html",
+      "sha256": "cc3505396b22ae652c0ab5fa5e229b6c2c9c20ba5ad284dc40fa2af311b3ec25"
+    },
+    "observations_json": {
+      "bytes": 456,
+      "file": "jackin/cockpit/debug/160x50/truecolor.observations.json",
+      "sha256": "23cca934f9973aaedaa62c7932120b8113f7184250d5288700a76d74ea38efee"
+    },
+    "png": {
+      "bytes": 379986,
+      "file": "jackin/cockpit/debug/160x50/truecolor.png",
+      "sha256": "a4802b721dcc5be908d581847579f43edaeee19c2918d8bc0c7ec0d7f879c04a"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/cockpit/debug/160x50/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 5225,
+      "file": "jackin/cockpit/debug/160x50/truecolor.txt",
+      "sha256": "22e31e1ea2e147d770faf458bcf52b72e22280c66066c85984e43290aa9049a5"
+    }
+  },
+  "ascii_substitutions_count": 25,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 2583107533205565674,
+  "frame_sha256": "2e0f2451d2e340addbbe460c5eb0d628e5940d587edd532506e2917008915d6e",
+  "generation": "068a0accc86a57c1aa34c6921143f95b75747dbd90052d42a88d48bb5718a95f",
+  "html_sha256": "cc3505396b22ae652c0ab5fa5e229b6c2c9c20ba5ad284dc40fa2af311b3ec25",
+  "legacy_name": "jackin/cockpit/debug/160x50/truecolor",
+  "name": "jackin/cockpit/debug/160x50/truecolor",
+  "png_sha256": "a4802b721dcc5be908d581847579f43edaeee19c2918d8bc0c7ec0d7f879c04a",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:37Z",
+  "txt_sha256": "22e31e1ea2e147d770faf458bcf52b72e22280c66066c85984e43290aa9049a5"
+}

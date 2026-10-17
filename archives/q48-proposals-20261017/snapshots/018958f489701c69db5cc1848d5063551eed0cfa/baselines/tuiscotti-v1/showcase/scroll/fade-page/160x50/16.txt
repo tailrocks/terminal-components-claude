@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Scrolling                                                                      16 colors · 160×50   i Inspector   ? Help
+
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows
+   Overview
+                           ▎Wrapped text                38–78 of 78      Long list                   1–41 of 120      Log        1960–2000 of 2000 · following
+   Components
+   Buttons                                                        │         Row 001                            ┃       724.83s  info   Compiling serde v1.0… │
+   Inputs                   The design system in this prototype   │         Row 002                            ┃       725.20s  warn   unused import: `std:… │
+   Text areas               exists so that the terminal version   │         Row 003                            ┃       725.57s  info   Compiling tokio v1.4… │
+   Forms                    of that experience feels as           │         Row 004                            ┃       725.94s  info   Running unittests sr… │
+   Lists                    deliberate as the web version: quiet  │         Row 005                            ┃       726.31s  info   test api::auth::test… │
+   Trees                    surfaces, one accent, clear focus,    │         Row 006                            ┃       726.68s  info   test db::pool::tests… │
+   Tables                   and no decoration that does not carry │         Row 007                    flagged ┃       727.05s  error  test checkout::place… │
+   Editable tables          information.                          │         Row 008                            ┃       727.42s  info   test workers::schedu… │
+   Panels                                                         │         Row 009                            ┃       727.79s  info   Linking target/debug… │
+   Sidebars                 Scroll with the mouse wheel,          │         Row 010                            ┃       728.16s  info   Resolving workspace … │
+   Dialogs                  PageUp/PageDown, or the arrow keys    │         Row 011                            ┃       728.53s  info   Fetching crates.io i… │
+   Progress                 while this panel has focus. The       │         Row 012                            ┃       728.90s  info   Compiling proc-macro… │
+ › Scrolling                scrollbar on the right shows where    │         Row 013                            ┃       729.27s  info   Compiling serde v1.0… │
+   Terminal                 you are and how much remains.         │         Row 014                    flagged ┃       729.64s  warn   unused import: `std:… │
+   Code editor                                                    │         Row 015                            │       730.01s  info   Compiling tokio v1.4… │
+   Diff                     Junie works through a task the way a  │         Row 016                            │       730.38s  info   Running unittests sr… │
+   Data grid                careful engineer would: it reads the  │         Row 017                            │       730.75s  info   test api::auth::test… │
+   Chips & selects          relevant code, forms a plan, makes    │         Row 018                            │       731.12s  info   test db::pool::tests… │
+   Pickers                  focused changes, runs the tests, and  │         Row 019                            │       731.49s  error  test checkout::place… │
+   Chrome                   reports back with a summary you can   │         Row 020                            │       731.86s  info   test workers::schedu… │
+                            review before anything is merged.     ┃         Row 021                    flagged │       732.23s  info   Linking target/debug… │
+   Screens                                                        ┃         Row 022                            │       732.60s  info   Resolving workspace … │
+   Settings                 Each step is visible. You can pause,  ┃         Row 023                            │       732.97s  info   Fetching crates.io i… │
+   Task runner              redirect, or take over at any point,  ┃         Row 024                            │       733.34s  info   Compiling proc-macro… │
+                            and every change lands as an ordinary ┃         Row 025                            │       733.71s  info   Compiling serde v1.0… │
+                            diff in your working tree.            ┃         Row 026                            │       734.08s  warn   unused import: `std:… │
+                                                                  ┃         Row 027                            │       734.45s  info   Compiling tokio v1.4… │
+                            The design system in this prototype   ┃         Row 028                    flagged │       734.82s  info   Running unittests sr… │
+                            exists so that the terminal version   ┃         Row 029                            │       735.19s  info   test api::auth::test… │
+                            of that experience feels as           ┃         Row 030                            │       735.56s  info   test db::pool::tests… │
+                            deliberate as the web version: quiet  ┃         Row 031                            │       735.93s  error  test checkout::place… │
+                            surfaces, one accent, clear focus,    ┃         Row 032                            │       736.30s  info   test workers::schedu… │
+                            and no decoration that does not carry ┃         Row 033                            │       736.67s  info   Linking target/debug… │
+                            information.                          ┃         Row 034                            │       737.04s  info   Resolving workspace … │
+                                                                  ┃         Row 035                    flagged │       737.41s  info   Fetching crates.io i… │
+                            Scroll with the mouse wheel,          ┃         Row 036                            │       737.78s  info   Compiling proc-macro… │
+                            PageUp/PageDown, or the arrow keys    ┃         Row 037                            │       738.15s  info   Compiling serde v1.0… │
+                            while this panel has focus. The       ┃         Row 038                            │       738.52s  warn   unused import: `std:… │
+                            scrollbar on the right shows where    ┃         Row 039                            │       738.89s  info   Compiling tokio v1.4… │
+                            you are and how much remains.         ┃         Row 040                            │       739.26s  info   Running unittests sr… │
+                                                                  ┃         Row 041                            │       739.63s  info   test api::auth::test… ┃
+
+
+ ↑ ↓ Scroll  PgUp PgDn Page  g G Ends  Tab Next

@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Trees       i Inspector   ? Help
+
+   Overview       ┃  Trees  Indent carries hierarchy; the focus bar ne…
+   Buttons        ┃
+   Inputs         ┃    Project                               1–4 of 16
+   Text areas     ┃
+   Forms          ┃     ▾ src                                        ┃
+   Lists          ┃       ▸ api                                      │
+▎› Trees          ┃       ▸ db                                       │
+   Tables         ┃       ▸ workers                                  │
+   Editable tabl… ┃
+   Panels         ┃    Selection
+   Sidebars       ┃
+   Dialogs        │    Nothing selected
+   Progress       │    Enter on a file selects it
+   Scrolling      │
+   Terminal       │    cursor  src
+   Code editor    │    visible 16 rows
+                       open    5 folders
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -1,0 +1,33 @@
+{
+  "schema": "termrock-pr17-dco-materializer-preflight-receipt/v1",
+  "observed_at": "2026-10-09 02:21:53 UTC",
+  "command": [
+    "/usr/bin/env",
+    "-i",
+    "PATH=/usr/bin:/bin",
+    "LC_ALL=C",
+    "GIT_CONFIG_NOSYSTEM=1",
+    "GIT_CONFIG_GLOBAL=/dev/null",
+    "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+    "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/materialize.cjs",
+    "--preflight-only"
+  ],
+  "exit_code": 0,
+  "stdout_path": "preflight.stdout.raw",
+  "stdout_sha256": "660a79d6ff408668914dc55bce835a87bb33fb4a0dd8d36b2618cb2fa7c106c3",
+  "stderr": "",
+  "summary": {
+    "status": "preflight_ok",
+    "source_commit_count": 473,
+    "trailer_counts": {
+      "signed": 453,
+      "missing": 20,
+      "wrong": 0
+    },
+    "projected_object_count": 83,
+    "projected_head_oid": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "git_object_writes": 0,
+    "refs_unchanged": true,
+    "remote_push_performed": false
+  }
+}

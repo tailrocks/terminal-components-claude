@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local
+
+  Here › Review
+ ━━━━━━━━━━╭────────────────────────────────────────────────────────────────────────────╮──────────
+  Review · │                                                                            │ continu…
+           │  Stop and remove all containers · gate 2 of 2                              │
+  Action   │                                                                            │running
+           │  Action   stop the running containers, then remove every captured          │
+  Host     │           container on mbp (running and stopped) · images and volumes      │
+  In       │           stay · rm runs only after stop succeeds                          │
+  Scope    │  Host     mbp · local                                                      │
+  Changes  │  In       mbp · host-wide                                                  │
+  Risk     │  Scope    host                                                             │
+  Data     │  Changes  6 containers removed · writable layers lost                      │
+  Includes │  Risk     destructive                                                      │ pruned
+  Recoverab│  Data     live · 2 s ago                                                   │
+  Provenanc│                                                                            │
+           │  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…  │
+ ╭─ Sequenc│  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…  │ copies ─╮
+ │  01  doc│                                                                            │         │
+ │  02  doc│   Type REMOVE ALL CONTAINERS ON mbp to confirm                             │n        │
+ │         │ ▎                                                                          │         │
+ │         │                                                                            │         │
+ │         │                                                                            │         │
+ ╰─────────│                                                         Cancel   Execute   │─────────╯
+           │                                                                            │
+           ╰────────────────────────────────────────────────────────────────────────────╯ontinue…
+
+ ~/work/stack                        review · gate 1 of 2                        truecolor · 100×30
+                              ← → Choose  Enter Confirm  Esc Cancel

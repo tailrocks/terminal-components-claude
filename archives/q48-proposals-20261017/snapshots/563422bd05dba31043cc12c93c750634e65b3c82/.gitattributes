@@ -1,0 +1,4 @@
+# Terminal dumps keep trailing cells on purpose: a trailing space is content
+# the HTML and PNG tools lay out, not noise.
+snapshots/**/*.txt -whitespace
+snapshots/**/*.ansi -whitespace

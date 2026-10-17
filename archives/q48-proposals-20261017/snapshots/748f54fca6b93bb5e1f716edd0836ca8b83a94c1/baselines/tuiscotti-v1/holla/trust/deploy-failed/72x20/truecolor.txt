@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           team · Rust project  mbp · local
+
+  Here    deploy preview ! ×
+ ────────━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────
+  deploy preview · failed · 0 s · exit 127
+  $ tools/deploy-preview.sh --env 'preview stack' '$(whoami)' · start…
+
+ ╭─ output ─────────────────────────────────────────────── following ─╮
+ │  $ tools/deploy-preview.sh --env 'preview stack' '$(whoami)'       │
+ │  holla: no simulated outcome for `tools/deploy-preview.sh --env 'p │
+ │  review stack' '$(whoami)'` in this preview                        │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ~/work/team   main         ! exit 127 · 0 s          truecolor · 72×20
+    ↑↓ Scroll  f Follow  / Find  …   ! deploy preview failed · exit 127

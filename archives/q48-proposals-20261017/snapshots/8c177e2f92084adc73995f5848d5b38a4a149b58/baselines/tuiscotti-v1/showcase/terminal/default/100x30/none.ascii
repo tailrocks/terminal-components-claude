@@ -1,0 +1,30 @@
+ # Junie Design system / Components / Terminal            no color . 100x30   i Inspector   ? Help
+
+   Overview          Terminal  Viewport with scrollback, selection and copy . drag the seam . step.
+   Buttons
+   Inputs            +- Viewport ----------- 37 lines . following -+ |  Step rail           7 of 7
+   Text areas        |    #3 RUN cargo fetch --locked            | | |
+   Forms             |    #4 RUN cargo build --release           | | |   v 01 Resolve wor.  0.8 s
+   Lists             |    #5 RUN apt-get install -y build-essenti| | |   v 02 Pull base i.  2.1 s
+   Trees             |    #6 COPY rust-toolchain.toml ./         | | |   v 03 Build conta.  3.2 s
+   Tables            |    #7 RUN cargo fetch --locked            | | |     04 Mount sour.  cached
+   Editable tables   |    #8 RUN cargo build --release           | | |   v 05 Resolve cre.  1.4 s
+   Panels            |    #9 RUN apt-get install -y build-essenti| | |   v 06 Start agent   1.1 s
+   Sidebars          |    #10 COPY rust-toolchain.toml ./        | | |   v 07 Ready         0.1 s
+   Dialogs           |    #11 RUN cargo fetch --locked           | | |
+   Progress          |    #12 RUN cargo build --release          ? | |
+   Scrolling         |    #13 RUN apt-get install -y build-essent? | |
+?? Terminal          |    #14 COPY rust-toolchain.toml ./        ? | |
+   Code editor       |  v Build container                        ? | |
+   Diff              |  ? Resolve credentials                    ? | |
+   Data grid         |    1Password  Engineering ? Anthropic . Wo? | |
+   Chips & selects   |  v Resolve credentials                    ? | |
+   Pickers           |  ? Start agent                            ? | |
+   Chrome            |    claude --resume  pid 4188              ? | |
+   Settings          |  v Start agent                            ? | |
+   Task runner       |  ? Ready                                  ? | |
+                     |  v Ready                                  ? | |
+                     |  payments-platform ?                      ? | |   Run    Run with a failu.
+                     +---------------------------------------------+ |
+
+ ^ v Move  Enter Open  Tab Into page  q Quit

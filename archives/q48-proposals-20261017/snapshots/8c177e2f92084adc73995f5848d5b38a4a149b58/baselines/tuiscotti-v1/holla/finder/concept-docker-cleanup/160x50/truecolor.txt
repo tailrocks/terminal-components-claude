@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                   no project  devbox · development
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ docker clean                                                                                                                                 scope ‹ here ›
+
+    Results · 7                                                                                                  Clean Docker completely     plan · on devbox
+  › Clean Docker completely         plan    on devbox  18.4 GB reclaimable on devbox             destructive
+    Prune builder cache             docker  on devbox  6.1 GB of build cache                     destructive     Does       remove all user-removable Docker
+    Stop all containers             docker  on devbox  5 running on devbox                                                  state on devbox: containers, all
+    Prune unused networks           docker  on devbox  available on this host                                               images, networks, system data,
+    Prune unused volumes            docker  on devbox  7 volumes                                 destructive                volumes, build cache · as a
+    Remove all unused images        docker  on devbox  12 dangling                               destructive                reviewable plan
+    Stop and remove all containers  docker  on devbox  12 containers on devbox                   destructive     Runs       docker stop acme-api-…me-redis-1
+                                                                                                                            docker rm acme-api-1 …afana loki
+                                                                                                                            docker image prune -a --force
+                                                                                                                            docker network prune --force
+                                                                                                                            docker system prune --force
+                                                                                                                            docker volume prune -a --force
+                                                                                                                            … 2 more
+                                                                                                                 In         devbox · host-wide
+                                                                                                                 Host       devbox · development · over SSH
+                                                                                                                 Scope      on devbox
+                                                                                                                 Why        18.4 GB reclaimable on devbox
+                                                                                                                 Changes    12 containers · 41 images · 7
+                                                                                                                            volumes · ~18.4 GB reclaimed ·
+                                                                                                                            permanent
+                                                                                                                 Risk       destructive
+                                                                                                                 Data       live · 2 s ago
+                                                                                                                 Gate       two gates · type I UNDERSTAND:
+                                                                                                                            REMOVE ALL DOCKER DATA ON devbox
+                                                                                                                 Alt+Enter  Stop all containers only · Prune
+                                                                                                                            builder cache only · Pin · Alias
+                                                                                                                            · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ /work/scratch                                                                                                                               truecolor · 160×50
+                                  Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

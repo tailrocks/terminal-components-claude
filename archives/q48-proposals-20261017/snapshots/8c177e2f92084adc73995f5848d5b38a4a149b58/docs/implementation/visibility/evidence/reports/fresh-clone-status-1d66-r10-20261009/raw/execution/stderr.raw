@@ -1,0 +1,30 @@
+   Compiling libc v0.2.190
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.5
+   Compiling rustix v1.1.5
+   Compiling zmij v1.0.23
+   Compiling getrandom v0.4.3
+   Compiling serde_core v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling errno v0.3.14
+   Compiling serde_json v1.0.151
+   Compiling bitflags v2.13.2
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling once_cell v1.21.4
+   Compiling fastrand v2.5.0
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling tempfile v3.27.0
+   Compiling sha2 v0.10.9
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/repo/crates/termrock-visibility-tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.03s
+────────────
+ Nextest run ID bfb656c6-7304-47ee-81e5-2a5ae70aef29 with nextest profile: default
+    Starting 1 test across 1 binary (45 tests skipped)
+        PASS [   0.990s] (1/1) termrock-visibility-tests::status checked_in_records_render_from_exact_copies
+────────────
+     Summary [   0.990s] 1 test run: 1 passed, 45 skipped

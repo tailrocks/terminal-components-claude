@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "8bf05d69947bbef2ef5e084c06737d94bd2ea022730418f1feb88b4be6d6da25",
+  "artifacts": {
+    "ansi": {
+      "bytes": 1909,
+      "file": "holla/finder/audit-rust/72x20/nocolor.ansi",
+      "sha256": "8bf05d69947bbef2ef5e084c06737d94bd2ea022730418f1feb88b4be6d6da25"
+    },
+    "ascii": {
+      "bytes": 1071,
+      "file": "holla/finder/audit-rust/72x20/nocolor.ascii",
+      "sha256": "c7cc4c08c3f0cc7f47e925ef27f6849c5489183a24204136765083c8f3009132"
+    },
+    "ascii_loss_json": {
+      "bytes": 9640,
+      "file": "holla/finder/audit-rust/72x20/nocolor.ascii.loss.json",
+      "sha256": "fd1ed040886441de8cde41b469f8b72ea49fba28075189a470d272e775b2f965"
+    },
+    "frame_json": {
+      "bytes": 321915,
+      "file": "holla/finder/audit-rust/72x20/nocolor.frame.json",
+      "sha256": "1ce426693429c501d1422a1e4f725dcc4b647d8019259bd7a80f667aa9a40690"
+    },
+    "html": {
+      "bytes": 304050,
+      "file": "holla/finder/audit-rust/72x20/nocolor.html",
+      "sha256": "d815334c3eacf446c0aafc977d99a151a2e257acaef11ac4d5b9f2c6b376af23"
+    },
+    "observations_json": {
+      "bytes": 449,
+      "file": "holla/finder/audit-rust/72x20/nocolor.observations.json",
+      "sha256": "5d621d52a2914a746a253c242f3b6641f22748062c5cb56ce37244dd6f4c249e"
+    },
+    "png": {
+      "bytes": 222597,
+      "file": "holla/finder/audit-rust/72x20/nocolor.png",
+      "sha256": "317a1d578bda6d40340ceb4fdd25109e0c18b92f46c03f07b8ca8e9a544ffcae"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/audit-rust/72x20/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1272,
+      "file": "holla/finder/audit-rust/72x20/nocolor.txt",
+      "sha256": "2f448792da19e3be4d85c8dd3a9e0662a407781a7cdd963f50e5af3bbaea07d8"
+    }
+  },
+  "ascii_substitutions_count": 104,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 12055544643818085869,
+  "frame_sha256": "1ce426693429c501d1422a1e4f725dcc4b647d8019259bd7a80f667aa9a40690",
+  "generation": "a8559628e069e7e0cf019280f1ffa73f9858d71a202f2090b1585d2a54ef443d",
+  "html_sha256": "d815334c3eacf446c0aafc977d99a151a2e257acaef11ac4d5b9f2c6b376af23",
+  "legacy_name": "holla/audit/rust/72x20/nocolor",
+  "name": "holla/finder/audit-rust/72x20/nocolor",
+  "png_sha256": "317a1d578bda6d40340ceb4fdd25109e0c18b92f46c03f07b8ca8e9a544ffcae",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:26Z",
+  "txt_sha256": "2f448792da19e3be4d85c8dd3a9e0662a407781a7cdd963f50e5af3bbaea07d8"
+}

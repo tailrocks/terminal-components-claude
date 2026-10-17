@@ -1,0 +1,719 @@
+{
+  "schema": "termrock-status-source-evidence-archive/v1",
+  "archive_root": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009",
+  "raw_root": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw",
+  "inventory_method": "Pinned raw source inputs consumed by the current status renderer plus retained historical raw captures. Every listed member is checked for a safe repository-relative path, byte count, and SHA-256; retained superseded observations remain labeled as historical and are not rendered as current.",
+  "file_count": 59,
+  "total_bytes": 5554254,
+  "files": [
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw",
+      "bytes": 115,
+      "sha256": "93f527c9bc302895be4790c48d0a99671d03cadd567d900b48e33bcc8fa39fd3",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "R12 Nextest stderr"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "R12 Nextest stdout"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/runner-result.json",
+      "bytes": 230898,
+      "sha256": "066581e710b4ded6da368fb42f8ee95f63f7416d058d7b93da73ed79883a00b2",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "R12 runner result"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/runner-result.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw",
+      "bytes": 2813,
+      "sha256": "31ad4063cbc971d8ccf08cd4b3411ab9fa9d79959ef4e85c452f35154de1012b",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "R13 Nextest stderr"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw",
+      "bytes": 1292,
+      "sha256": "d9b2d4278077ad358195d7dce6798d28a7bd8814624c332e056b18fc7f05b70d",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "R13 Nextest stdout"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json",
+      "bytes": 238247,
+      "sha256": "1be308a35db06a42b65f5988646df8b88019577b528e377234e3d51c47e05e14",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "R13 runner result"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/logs/nextest.stderr.raw",
+      "bytes": 2642,
+      "sha256": "4a016c6251f1201153e6f4b505cc550a41f8a6d06d04904da1ee3851b38b34d2",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "tag validator regression stderr"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/logs/nextest.stderr.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/runner-result.json",
+      "bytes": 53721,
+      "sha256": "8ad749ee5dfb35eee4d27b22746baa66b5d819f31e0e602b1a48460c9c73f676",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "tag validator regression receipt"
+      ],
+      "original_relative_path": "termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/runner-result.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/receipt.json",
+      "bytes": 23435,
+      "sha256": "604036be9c3c75168abe0a9d4ae561ce5ea61dbb8bdc374978a3ee0f100b1a80",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Velnor actual receipt"
+      ],
+      "original_relative_path": "termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/receipt.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-velnor-ca3ef-current-rollout-gate-r5-actual-review-20261009.json",
+      "bytes": 6493,
+      "sha256": "ec897eee4da2f5f50f85bc558f3ef93c5262e7c3c54eae8c614e7d545f4e7a11",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Velnor actual run review"
+      ],
+      "original_relative_path": "termrock-velnor-ca3ef-current-rollout-gate-r5-actual-review-20261009.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/jobs.body",
+      "bytes": 41,
+      "sha256": "d232081185de70f0bf26e44b5c2a069ca080bf9da48bbc3a067d8670f67d052a",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "publication_ci_observations[1] b9 jobs response"
+      ],
+      "original_relative_path": "termrock-vis01-b9-ci-observation-20261009T0028Z/jobs.body"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/manifest.json",
+      "bytes": 2955,
+      "sha256": "591bf6e3de2c7aedbd68d5e59c822a5f3c4b32b5c7b5adcd7b4f159a3ba5104b",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "publication_ci_observations[1] manifest"
+      ],
+      "original_relative_path": "termrock-vis01-b9-ci-observation-20261009T0028Z/manifest.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/run.body",
+      "bytes": 15847,
+      "sha256": "3839008a3268a757e69cbb34eaef3c97280b84dfe4276ea8d388b64c95cce8a9",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "publication_ci_observations[1] b9 run response"
+      ],
+      "original_relative_path": "termrock-vis01-b9-ci-observation-20261009T0028Z/run.body"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/2b-check-runs.json",
+      "bytes": 57571,
+      "sha256": "36cbbdbbee25573042dba08b1ff7d76c3d32830e3b9b2c32d00a80e20204f8d8",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded DCO check-runs response for 2b03630605035c6871f03fd4ed78f1f3cd5918bf"
+      ],
+      "original_relative_path": "termrock-vis01-branch-b106-observation-20261009-luna-r1/2b-check-runs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/b106-check-runs.json",
+      "bytes": 57554,
+      "sha256": "927477b8b9e65cdf8f3ef1cbe2eabbebd0e2361a33b7a90870b6b7f9ba3ede34",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded DCO check-runs response for b106b2426cfce016381c58b3d380e762a454c7a6"
+      ],
+      "original_relative_path": "termrock-vis01-branch-b106-observation-20261009-luna-r1/b106-check-runs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/b106-workflow-runs.json",
+      "bytes": 14291,
+      "sha256": "4993be6db995f9139ab0af76c53a65fd7389956d33e83e9e3fbd1e3930fbdf24",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded branch workflow-runs response for b106b2426cfce016381c58b3d380e762a454c7a6"
+      ],
+      "original_relative_path": "termrock-vis01-branch-b106-observation-20261009-luna-r1/b106-workflow-runs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/branch.json",
+      "bytes": 3949,
+      "sha256": "a86518e1b9d1fc847d8902e9f565ef423bd4016276846572a6fa4a76993ae01f",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded branch API response for b106b2426cfce016381c58b3d380e762a454c7a6"
+      ],
+      "original_relative_path": "termrock-vis01-branch-b106-observation-20261009-luna-r1/branch.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/artifacts.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded workflow run 37875373092: workflow_run_observations[0] artifacts response"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/artifacts.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/jobs.json",
+      "bytes": 27,
+      "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded workflow run 37875373092: workflow_run_observations[0] jobs response"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/jobs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/provider-page.html",
+      "bytes": 191368,
+      "sha256": "f77463d5bfbcad31ee157933890b8872469cf5049b989d516e2700d75bc2a841",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "superseded workflow run 37875373092: workflow_run_observations[0] provider run page"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/provider-page.html"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/run-detail.json",
+      "bytes": 14493,
+      "sha256": "51d1eb1b188462d8e7516229e0162365364cb495c6e1798d84253b4a2744a4fd",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded workflow run 37875373092: workflow_run_observations[0] run detail"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/run-detail.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/artifacts.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded workflow run 37877649904: workflow_run_observations[1] artifacts response"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/artifacts.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/jobs.json",
+      "bytes": 27,
+      "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded workflow run 37877649904: workflow_run_observations[1] jobs response"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/jobs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/provider-page.html",
+      "bytes": 191302,
+      "sha256": "86af6685bcb65cb059b4605678cf835a675cd117dca60a12cff42b60f43847ee",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "superseded workflow run 37877649904: workflow_run_observations[1] provider run page"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/provider-page.html"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/run-detail.json",
+      "bytes": 14255,
+      "sha256": "94f09d8e1a5f4fa3c4a60046428016ad31e1da63e9cd15e89fcf404c36e86f47",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "superseded workflow run 37877649904: workflow_run_observations[1] run detail"
+      ],
+      "original_relative_path": "termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/run-detail.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-map.json",
+      "bytes": 3354,
+      "sha256": "0bea25ff4b1ee14072c066d2bc2b20cefab87cd6166b817a027e47b2d7b53eaa",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "deferred Nextest case map"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-map.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-results.json",
+      "bytes": 3519,
+      "sha256": "276daab6ca4bed491189d870a38af17e7f6ff1a6744d18797bd9e2bc77f5e97c",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "deferred Nextest case results"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-results.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/final-seal.json",
+      "bytes": 4464,
+      "sha256": "c517a00e2b66d252c18c2c5c7737caff9d6832a4b4764b0dd38e3ed12515c8aa",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "deferred Nextest seal"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/final-seal.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/independent-review.json",
+      "bytes": 4099,
+      "sha256": "ca856719c5096aaedae96dbdb223817763d14a517f222788a200ac3da366e270",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "deferred Nextest independent review"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/independent-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/journey/final-seal.json",
+      "bytes": 41091,
+      "sha256": "c2f75d9387a639d7afd05dd4c269f88ef760ab063ca1b6a2c3b635470938ac89",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Holla journey execution seal"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/journey/final-seal.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/build-review.json",
+      "bytes": 8786,
+      "sha256": "b48b6f8083e97d03a258220e6743180e1d6e8c76ae6270d59d5ac628fc4c7259",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Holla paired build review"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/build-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/journey-review.json",
+      "bytes": 8521,
+      "sha256": "ffff027f91e309778aaf8c0b1e261ff8f23a4f88a5291ec33d84d8b46f50ddc3",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Holla diagnostic review"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/journey-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-receipt.json",
+      "bytes": 62529,
+      "sha256": "11bbc2548897ff83126aa6585266e21dd657ce7556dc4195362489d64f81e4a8",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "f307 contract gate receipt"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-receipt.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-review.json",
+      "bytes": 6960,
+      "sha256": "d371e97c7ecb48770b6a04a1f77fc3279085b2115b3f26ca4d324d2873782041",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "f307 contract gate review"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-package-technical-addendum.json",
+      "bytes": 4890,
+      "sha256": "5c45cf6060a154099d5b97dea31066b211ceea3ee985ae80e66c73ba26b4acca",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "f307 package technical review"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-package-technical-addendum.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/r9-cumulative-actual-review.json",
+      "bytes": 4642,
+      "sha256": "65cde1ebac37588ce31983c78bc589242ab7cd3f8be3f9c787537212a9f64d7a",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "cumulative status-control review"
+      ],
+      "original_relative_path": "termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/r9-cumulative-actual-review.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-local-head-766-observation-20261009T0030Z/manifest.json",
+      "bytes": 1879,
+      "sha256": "130a5680c2d87720ddccf2ba84281a92624b64b5c235302f58f78534cb793248",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "latest local checkout observation"
+      ],
+      "original_relative_path": "termrock-vis01-local-head-766-observation-20261009T0030Z/manifest.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/jobs.body.raw",
+      "bytes": 27,
+      "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "publication_ci_observations[0] P169 jobs response"
+      ],
+      "original_relative_path": "termrock-vis01-p169-ci-refresh-20261009T0018Z/jobs.body.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/manifest.json",
+      "bytes": 2681,
+      "sha256": "10ecf34f05dad57d128f273f78cadaebac1089e25d037d688a292d5dced33cd4",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "publication_ci_observations[0] manifest"
+      ],
+      "original_relative_path": "termrock-vis01-p169-ci-refresh-20261009T0018Z/manifest.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/run.body.raw",
+      "bytes": 14277,
+      "sha256": "e95bfcaf85229b3a79af760e06a58f14e12e8ef5b2061e77e15995d44d0ee7a2",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "publication_ci_observations[0] P169 run response"
+      ],
+      "original_relative_path": "termrock-vis01-p169-ci-refresh-20261009T0018Z/run.body.raw"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-2b-20261009-luna-r1/ci.yml",
+      "bytes": 537470,
+      "sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "workflow_run_observations[0] workflow source bytes"
+      ],
+      "original_relative_path": "termrock-vis01-workflow-2b-20261009-luna-r1/ci.yml"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-2b-20261009-luna-r1/content-api.json",
+      "bytes": 741679,
+      "sha256": "9cbe8098009f86ecedd2349b49719efbe7cdc7cb0faf56ea3010e6a7227d13df",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "workflow_run_observations[0] workflow content API response"
+      ],
+      "original_relative_path": "termrock-vis01-workflow-2b-20261009-luna-r1/content-api.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-b106-20261009-luna-r1/ci.yml",
+      "bytes": 537470,
+      "sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "workflow_run_observations[1] workflow source bytes"
+      ],
+      "original_relative_path": "termrock-vis01-workflow-b106-20261009-luna-r1/ci.yml"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-b106-20261009-luna-r1/content-api.json",
+      "bytes": 741679,
+      "sha256": "636116e1ab67ea4fd8d260ff4925e35a89357dee5c976927bd9f4fabab35ec68",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "workflow_run_observations[1] workflow content API response"
+      ],
+      "original_relative_path": "termrock-vis01-workflow-b106-20261009-luna-r1/content-api.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis02-r5-all7-jackin-r5-20261009/source-freeze-r5.json",
+      "bytes": 6382,
+      "sha256": "484e0493b2b24daa4d2bd501f797568c3bd369170fe13592be7c4c8c2b3eba04",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "tag capture source freeze"
+      ],
+      "original_relative_path": "termrock-vis02-r5-all7-jackin-r5-20261009/source-freeze-r5.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-current-source-facts-20261008T233054Z-luna.json",
+      "bytes": 10878,
+      "sha256": "fcf943687ae5c398e58ff67a57eba112ea23310fb6cbe1e08738a559ad3eab3d",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "latest CI source-facts record",
+        "latest source-observation facts record"
+      ],
+      "original_relative_path": "termrock-vis06-current-source-facts-20261008T233054Z-luna.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json",
+      "bytes": 115436,
+      "sha256": "8fa7329ffad3130f03f1c3025bc7e47807c927e66bff61b3c45b52f778619882",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "Holla paired receipt"
+      ],
+      "original_relative_path": "termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-commit-review-technical.json",
+      "bytes": 3543,
+      "sha256": "1130dab37c276cae272a57973f209591720ac1d77d1539cd1db8fe5dde6c19f3",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "report publication precommit review"
+      ],
+      "original_relative_path": "termrock-vis10-foundation-commit-review-technical.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-postcommit-review-technical.json",
+      "bytes": 2936,
+      "sha256": "5591df8eeeb9250f7cc50135d5cdb0ed11d3b569e7f6f591b0fcac63e1a0edd5",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "report publication postcommit review"
+      ],
+      "original_relative_path": "termrock-vis10-foundation-postcommit-review-technical.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-publication-20261009.json",
+      "bytes": 923,
+      "sha256": "6dbaf2e84e7befa9e6eda15f6a4885f706e657d33496bd4f1aa4d36dc64912c2",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "report publication record"
+      ],
+      "original_relative_path": "termrock-vis10-foundation-publication-20261009.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/branch.json",
+      "bytes": 3967,
+      "sha256": "e413588cbca3e672eebc6b31f2a6e51a39d26bc18d2519f353cbc0ba45722964",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "9f1 current implementation branch API response"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/branch.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-runs-by-head.json",
+      "bytes": 14327,
+      "sha256": "8824d842ca87d9058aa55c07b2426266f839320444ebe1c4cb3f3b5f3b4bcc8c",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "9f1 current branch workflow-runs response"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-runs-by-head.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/check-runs.json",
+      "bytes": 57535,
+      "sha256": "1e3a0c386ecf4d95e74f318b2d37715abdee48bc27c25991cf6f145f850bf877",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "9f1 current DCO check-runs response"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/check-runs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951.json",
+      "bytes": 14291,
+      "sha256": "58490532bb647e1e44a990af56a698ffdfc24832c46f3a5ef3202a4d99ad51fd",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "workflow run 37882112951 detail"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-jobs.json",
+      "bytes": 27,
+      "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "workflow run 37882112951 jobs response"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-jobs.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-artifacts.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "workflow run 37882112951 artifacts response"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-artifacts.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-provider-page.html",
+      "bytes": 191411,
+      "sha256": "344bdaf3620ce56ec04b4ced0b1b474cb2cac3b4dd6e1ec96722247b4c93f716",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "workflow run 37882112951 provider page"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-provider-page.html"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-content-api.json",
+      "bytes": 741679,
+      "sha256": "448c61fef301ea9a6add6a8088ec9e5521f957634e4b63e34f25516a0b396006",
+      "read_kinds": [
+        "READ_JSON"
+      ],
+      "labels": [
+        "9f1 workflow content API response"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-content-api.json"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-ci.yml",
+      "bytes": 537470,
+      "sha256": "607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24",
+      "read_kinds": [
+        "READ_BYTES"
+      ],
+      "labels": [
+        "9f1 workflow source bytes"
+      ],
+      "original_relative_path": "termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-ci.yml"
+    }
+  ]
+}

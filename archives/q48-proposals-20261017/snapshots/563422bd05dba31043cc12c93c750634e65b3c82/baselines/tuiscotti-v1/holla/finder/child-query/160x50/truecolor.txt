@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                 acme › frontend · Node project · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ test                                                                                                                                         scope ‹ here ›
+
+    Results · 17                                                                                                 Run tests                        task · here
+  › Run tests                             task      here     alias test
+    pnpm test                             script    here     package.json here                                   Does       vitest after a build · runs in
+    Run test                              task      parent   defined by ~/work/acme/mise.toml                               ~/work/acme/apps/frontend
+    Run //services/api:test               task      sibling  defined by ~/work/acme/services/a…                  Runs       mise run //apps/frontend:test
+    Run //tools/worker:test               task      sibling  defined by ~/work/acme/tools/work…                  In         ~/work/acme/apps/frontend
+    Show PostgreSQL activity              postgres  here     6/100 connections                                   Host       mbp · local
+    Rotate local secrets                  custom    parent   Current folder · ⚠ unreviewed       destructive     Scope      here
+    Start development ecosystem           task      parent   defined by ~/work/acme/mise.toml                    Why        2 files changed since the last
+    Start development ecosystem           task      sibling  defined by ~/work/acme/services/a…                             run · defined by
+    Start development ecosystem           task      sibling  defined by ~/work/acme/tools/work…                             ~/work/acme/apps/frontend/mise.t
+    Upgrade 8 outdated mise tools         task      host     8 tools have newer versions                                    oml
+    Clone a GitHub repository…            git       here     logged in as alex-dev                               Changes    runs `pnpm test` in
+    Copy this folder's path               file      here     available                                                      ~/work/acme/apps/frontend ·
+    Delete everything inside this folder  cleanup   here     always available · two gates        destructive                after //apps/frontend:build
+    Top files on this Mac                 disk      host     macOS Spotlight                                     Risk       mutating
+    Find the process on a port…           system    host     available on this host                              Data       live · 2 s ago
+    Garbage-collect the repository        git       parent   available                                           Gate       trust required ·
+                                                                                                                            ~/work/acme/apps/frontend/mise.t
+                                                                                                                            oml
+                                                                                                                 Args       filter · profile = default
+                                                                                                                 Alt+Enter  Show the task definition · Dry
+                                                                                                                            run · Run with cargo test
+                                                                                                                            instead · Pin · Alias · Why
+                                                                                                                            here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                                                                                                   truecolor · 160×50
+                                  Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

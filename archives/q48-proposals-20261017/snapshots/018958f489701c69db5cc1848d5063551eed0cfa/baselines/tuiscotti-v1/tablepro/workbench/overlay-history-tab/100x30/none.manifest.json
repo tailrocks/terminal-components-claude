@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "59ee89c8849f0a9388424b547ce2cdfbfdbc2c1fa73b81ea04425e25d0c5c454",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9480,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.ansi",
+      "sha256": "59ee89c8849f0a9388424b547ce2cdfbfdbc2c1fa73b81ea04425e25d0c5c454"
+    },
+    "ascii": {
+      "bytes": 2799,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.ascii",
+      "sha256": "0407ff20ff7b054edbc77cb9d3849eb7d8bad7626e97d1f13db5a0f8f2c6ca02"
+    },
+    "ascii_loss_json": {
+      "bytes": 32270,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.ascii.loss.json",
+      "sha256": "e09df2906a9a8d5cd923dd7a11c3c996b39522ce05a25e3885d5bf188acb331a"
+    },
+    "frame_json": {
+      "bytes": 697598,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.frame.json",
+      "sha256": "e907f98aa284de27e55e135a74867f50121f47d862fe4f69be2fa8687b79f779"
+    },
+    "html": {
+      "bytes": 482823,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.html",
+      "sha256": "3c8e22665b10ef738ff1c0ec9c79af9d5f0bbbe04cd4c72f54cd90580ed5870b"
+    },
+    "observations_json": {
+      "bytes": 475,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.observations.json",
+      "sha256": "6fdb773f35fed3a075995ff704f151e0c0cb2c1421fc29545d44751c6e8b7e07"
+    },
+    "png": {
+      "bytes": 342179,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.png",
+      "sha256": "cb699e66ec6f0a576c5a07d22bb85d67796dde3b1ccfaf022d71db8f7f1ab793"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3478,
+      "file": "tablepro/workbench/overlay-history-tab/100x30/none.txt",
+      "sha256": "82d3928b48d25c743e2cb94e243fcdf2c88dff811b890c67b7f70a8e113d5fcc"
+    }
+  },
+  "ascii_substitutions_count": 349,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 10523032817163595574,
+  "frame_sha256": "e907f98aa284de27e55e135a74867f50121f47d862fe4f69be2fa8687b79f779",
+  "generation": "e49d26bd9df951b43f85bdb4c74dbe289407955a95952150e2c87a94f7a2ae26",
+  "html_sha256": "3c8e22665b10ef738ff1c0ec9c79af9d5f0bbbe04cd4c72f54cd90580ed5870b",
+  "legacy_name": "tablepro/overlays/history_tab/100x30/none",
+  "name": "tablepro/workbench/overlay-history-tab/100x30/none",
+  "png_sha256": "cb699e66ec6f0a576c5a07d22bb85d67796dde3b1ccfaf022d71db8f7f1ab793",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:07Z",
+  "txt_sha256": "82d3928b48d25c743e2cb94e243fcdf2c88dff811b890c67b7f70a8e113d5fcc"
+}

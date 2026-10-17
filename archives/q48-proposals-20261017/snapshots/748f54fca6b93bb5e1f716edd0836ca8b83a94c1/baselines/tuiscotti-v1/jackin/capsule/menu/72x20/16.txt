@@ -1,0 +1,20 @@
+  jackin❯    File   Edit   View   Session   Help
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ╭───────────────────────────╮─────────────────────────────────────────
+╭│  Mix (3)                  │────╮│╭─ Codex (Primary) ○───────────────╮
+││  Change title…    2×click │   ││││                                 ││
+││  Split right     Ctrl+B % │nt ││││○ Done · 38 s · 12.4k tokens     ││
+││ ───────────────────────── │(1.││││                                 ││
+││  Close tab       Ctrl+B & │   ││││❯                                ┃│
+│╰───────────────────────────╯   │││╰──────────────────────────────────╯
+│  +  pub use retry::{MAX_ATTEMPT│││────────────────────────────────────
+│                                │││╭─ Shell ──────────────────────────╮
+│● Retries now back off 250 ms → ││││payments-platform ❯ ls docs/adr  ││
+│  One more edit: expose the poli┃│││0001-record-architecture.md  0004││
+│                                ┃│││0002-settlement-batches.md   0005││
+│▶ Allow edit to src/settlement/c┃│││0003-retry-policy.md         0007││
+│❯                               ┃│││payments-platform ❯              ┃│
+╰─────────────────────────────────╯│╰──────────────────────────────────╯
+ PR #482 · Settlement retry backoff           Session ━━━━━━━━─── 76%
+   ↑↓ Move  …   Attached to payments-platform · tabs and panes restored

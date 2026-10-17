@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Task runner            i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Text areas     [0m│  [0m[1mTask runner[0m  Composed: tree, live progress, following log… [0m
+   Forms          │                                                             [0m
+   Lists          │    Targets                         Pipeline    0 of 6 done  [0m
+   Trees          ┃                                                             [0m
+   Tables         ┃     ▾ payments-gateway             compile       queued     [0m
+   Editable tabl… ┃       ▾ build                      lint          queued     [0m
+   Panels         ┃           compile                  typecheck     queued     [0m
+   Sidebars       ┃           lint                     unit          queued     [0m
+   Dialogs        ┃           typecheck                integration   queued     [0m
+   Progress       ┃       ▾ test                       e2e           queued     [0m
+   Scrolling      ┃           unit                                              [0m
+   Terminal       ┃           integration               [0m[1mRun pipeline [0m           [0m
+   Code editor    ┃           e2e                                               [0m
+   Diff           ┃       ▾ deploy                                              [0m
+   Data grid      ┃           staging                  Log         · following  [0m
+   Chips & selec… ┃           production                                        [0m
+   Pickers        ┃     ▾ shared-libs                  Ready. Press r or Ru…    [0m
+   Chrome         ┃         compile                                             [0m
+   Settings       ┃         publish                                             [0m
+[0m[1m▎› Task runner    [0m┃                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
