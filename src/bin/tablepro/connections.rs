@@ -18,6 +18,7 @@ use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
 use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::select::Select;
@@ -1395,23 +1396,14 @@ impl ConnectionsScreen {
                 message,
                 detail,
             } if *name == c.name => {
-                buf.set_string(
-                    inner.x,
-                    sy,
-                    "!",
-                    t.error_fg()
-                        .bg(bg)
-                        .add_modifier(ratatui::style::Modifier::BOLD),
-                );
-                buf.set_string(inner.x + 2, sy, message, t.error_fg().bg(bg));
-                for (i, l) in
-                    junie_tui::ui::text::wrap(detail, inner.width.saturating_sub(2) as usize)
-                        .iter()
-                        .take(2)
-                        .enumerate()
-                {
-                    buf.set_string(inner.x + 2, sy + 1 + i as u16, l, t.muted().bg(bg));
-                }
+                // the message on one row, two muted rows of detail; the cut
+                // is not marked yet (remaining-work: Notice adopters)
+                Notice::error(message.as_str())
+                    .detail(detail.as_str())
+                    .message_lines(1)
+                    .detail_tone(Tone::Muted)
+                    .mark_cut(false)
+                    .render(Rect::new(inner.x, sy, inner.width, 3), buf, ctx, bg);
             }
             _ => {}
         }
