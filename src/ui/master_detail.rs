@@ -218,6 +218,13 @@ impl MasterDetail {
         });
     }
 
+    /// Open the drawer (narrow) and focus the detail: a master row whose
+    /// "open" shows its details.
+    pub fn open_drawer(&mut self, focus: &mut Focus) {
+        self.drawer = true;
+        focus.focus(self.detail);
+    }
+
     /// Close the drawer and give focus back to the master.
     pub fn close_drawer(&mut self, focus: &mut Focus) {
         self.drawer = false;

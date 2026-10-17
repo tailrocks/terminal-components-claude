@@ -891,7 +891,7 @@ impl ShellPage<Holla> for PlanReviewPage {
             truncate(&p.intent, area.width.saturating_sub(2) as usize),
             t.muted(),
         );
-        let split = area.width >= crate::screens::finder::SPLIT_MIN;
+        let split = area.width >= junie_tui::ui::master_detail::SPLIT_MIN;
         let buttons_y = area.bottom().saturating_sub(1);
         let cons = consequences(&p);
         let cons_h = cons.len().min(2) as u16;
@@ -1626,7 +1626,7 @@ impl ShellPage<Holla> for PlanTab {
             area.width,
             area.height.saturating_sub(3 + summary_h),
         );
-        let split = area.width >= crate::screens::finder::SPLIT_MIN && !self.maximized;
+        let split = area.width >= junie_tui::ui::master_detail::SPLIT_MIN && !self.maximized;
         let rail_area = if split {
             Rect::new(body.x, body.y, (body.width * 56 / 100).max(40), body.height)
         } else {
