@@ -143,7 +143,7 @@ never in view at the smallest failing size.
 | R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
 | R52 | Sidebars | Playground | 80x24, 100x25 | `Appearance Ctrl Disabled Keyboard Last and are behind` |
 | R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
-| R54 | TaskRunner | Playground | 80x24, 100x25 | `Cancel Log Press Ready following libs publish shared` |
+| R54 | TaskRunner | Playground | done: Page::measure (pipeline as wide as its two buttons) | — |
 
 ## Priority order (owner, 2026-10-17, budget-constrained)
 
