@@ -118,7 +118,7 @@ never in view at the smallest failing size.
 | R26 | DialogKinds | Playground | 80x24, 100x25, 106x29, 120x40 | `Action Bool Cancel Changed Check Choose Chooser Closed` |
 | R27 | PopupsTooltips | Playground | 80x24, 100x25, 106x29, 120x40 | `300 600 Below Center Chosen Connected Dismiss Dismissed` |
 | R28 | FileBrowser | Playground | done: Page::measure (cards at their widest line, Panel::outer) | — |
-| R29 | Progress | Playground | 80x24, 100x25, 106x29, 120x40 | `100 BarLayout Build Capacity Deploy Error Exhausted High` |
+| R29 | Progress | Playground | done: Page::measure (bars at 70, meter columns at 34, the note on two lines) | — |
 | R30 | EmptyError | Playground | 80x24, 100x25, 106x29 | `1041 1042 1204 Acme Connections Corp EmptyState Enter` |
 | R31 | Meters | Playground | 80x24, 100x25, 106x29 | `1000 310 500 512 840 Backup CPU Data` |
 | R32 | Notices | Playground | 80x24, 100x25, 106x29 | `200 65535 DESC Enter FORM LIMIT LINE New` |
