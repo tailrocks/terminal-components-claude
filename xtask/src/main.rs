@@ -12,6 +12,10 @@
 //! | `sync-oracle --from <c> …` | plan §E3: install `baselines/oracle/` and the harness from an approved commit, hash-checked |
 //! | `check-touched [--base <ref>] [--dry-run]` | pre-push guard: run the re-approved groups of every app the branch touched |
 //!
+//! `cargo xtask docs components` rewrites `docs/components/` from the
+//! widgets' docs, key maps and hints (`src/docs.rs`, plan §5); the default
+//! test `docs_components_fresh` fails when a page is stale.
+//!
 //! Commands that write the store or the progress list (`import`, `seal`,
 //! `ratchet`, `sync-oracle`) refuse to run when `CI` is set: approval is
 //! explicit and local only (AGENTS.md, plan §B5). There is no environment
@@ -31,6 +35,7 @@ use std::process::{Command, ExitCode, Stdio};
 
 const USAGE: &str = "\
 usage: cargo xtask visual <command>
+       cargo xtask docs components   regenerate docs/components/ (plan §5)
 
   list [<filterset>]          list scenarios (TSV), optionally narrowed by a nextest filterset
   import <dir> [--dry-run] [--oracle [--source <commit>]]
@@ -73,6 +78,7 @@ fn main() -> ExitCode {
         ["visual", "ratchet", filter] => ratchet(false, Some(filter)),
         ["visual", "sync-oracle", rest @ ..] => sync_oracle(rest),
         ["visual", "check-touched", rest @ ..] => check_touched(rest),
+        ["docs", "components"] => docs_components(),
         _ => Err(USAGE.to_string()),
     };
     match result {
@@ -113,6 +119,27 @@ fn refuse_in_ci(what: &str) -> Result<(), String> {
              (docs/visual-testing/README.md)"
         )),
         _ => Ok(()),
+    }
+}
+
+/// `docs components`: run the generator's freshness test with
+/// `UPDATE_DOCS=1`, which writes the pages instead of comparing them.
+fn docs_components() -> Result<(), String> {
+    let status = cargo()
+        .args([
+            "nextest",
+            "run",
+            "--lib",
+            "-E",
+            "test(=docs::tests::docs_components_fresh)",
+        ])
+        .env("UPDATE_DOCS", "1")
+        .status()
+        .map_err(|e| format!("cargo nextest run: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err("the docs generator failed".into())
     }
 }
 
