@@ -480,10 +480,19 @@ fn editor_shift_f10_opens_under_the_cursor_row_and_removes() {
     let (_, y) = h.find("/workspace/payments-platform").unwrap();
     shift_f10(&mut h);
     assert_eq!(editor_menu(&h).area.y, y + 1, "under the cursor row");
-    // K14: a key the menu has no use for closes it without choosing
+    // K14: a key the menu has no use for closes it without choosing and
+    // reaches the page (CO15): `]` moves the editor to its next tab
     h.key(KeyCode::Char(']'));
     assert!(!h.text().contains("Make read-only"), "{}", h.text());
+    assert!(
+        !h.text().contains("/workspace/payments-platform"),
+        "the page took `]`: the next tab\n{}",
+        h.text()
+    );
+    // back to the mounts, and into the list again
+    h.key(KeyCode::Char('['));
     assert!(h.text().contains("/workspace/payments-platform"));
+    h.key(KeyCode::Enter);
     shift_f10(&mut h);
     assert!(h.text().contains("Make read-only"), "{}", h.text());
     h.key(KeyCode::End);
@@ -572,4 +581,17 @@ fn capsule_pane_menu_routes_the_pointer_by_part() {
     // a click outside closes it
     h.click(2, 30);
     assert!(!h.text().contains("Copy selection"), "{}", h.text());
+}
+
+/// CO15 (K14): a key the Capsule's pane menu has no use for closes it and
+/// reaches the page: F10 opens the menu bar.
+#[test]
+fn capsule_pane_menu_passes_an_unused_key_to_the_page() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    shift_f10(&mut h);
+    assert!(h.text().contains("Copy selection"));
+    h.key(KeyCode::F(10));
+    let t = h.text();
+    assert!(!t.contains("Copy selection"), "the menu closed\n{t}");
+    assert!(t.contains("Split below"), "the page took F10\n{t}");
 }

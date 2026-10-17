@@ -1606,11 +1606,14 @@ impl ConfigTabs {
         self.menu.hides_page_focus()
     }
 
-    /// A key while the menu is open.
+    /// A key while the menu is open. `Ignored` only when the key closed
+    /// the menu unused and belongs to the page (K14).
     pub fn menu_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let (o, chosen) = self.menu.on_key(key);
         match chosen {
-            Some(((tab, target), code)) => self.run_menu(tab, target, code, w, cx),
+            Some(((tab, target), code)) => {
+                self.run_menu(tab, target, code, w, cx).or(Outcome::Changed)
+            }
             None => o,
         }
     }
