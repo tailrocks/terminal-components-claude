@@ -816,6 +816,8 @@ fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
     use junie_tui::widgets::scrollbar;
     let mut h = Harness::new(80, 24, PageId::Panels);
     let log = WidgetId::of("panels").sub("log");
+    // the panes sit under the cards at 80x24: focus scrolls the log in
+    h.focus(log);
     let bar = h.area(scrollbar::h_id_for(log));
     let thumb_x = |h: &Harness| {
         let buf = h.term.backend().buffer();
