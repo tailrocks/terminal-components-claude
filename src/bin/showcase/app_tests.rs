@@ -511,9 +511,9 @@ fn clicking_dead_space_ends_the_edit_and_keeps_focus() {
     h.click(x + 2, name_row);
     h.type_str("X");
     let focused = h.app.shell.focus.current();
-    // the blank row under the playground card
-    let (_, py) = h.find("Search files").unwrap();
-    let (dx, dy) = (x, py + 4);
+    // the blank row between the playground card and the next one
+    let (_, ty) = h.find("Text commands").unwrap();
+    let (dx, dy) = (x, ty - 1);
     assert_eq!(
         h.app.shell.hits.hit(Position::new(dx, dy)),
         None,
@@ -531,9 +531,7 @@ fn clicking_dead_space_ends_the_edit_and_keeps_focus() {
 
 #[test]
 fn textarea_scrolls_with_wheel_and_keys() {
-    // the areas are as wide as their longest lines: a screen that shows
-    // the first one whole, with its position readout
-    let mut h = Harness::new(220, 50, PageId::TextAreas);
+    let mut h = Harness::new(120, 40, PageId::TextAreas);
     assert!(h.text().contains(" 1. Read"));
     let (x, y) = h.find(" 1. Read").unwrap();
     h.mouse(MouseKind::WheelDown, x, y + 2);
@@ -1693,8 +1691,13 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
 
     // a click outside closes the list, keeps the value and is consumed
     let before = h.text();
-    let outside = Position::new(field.x + 2, 29 - 2);
-    assert!(!rows.iter().any(|r| r.contains(outside)));
+    // a page cell clear of the list and the field (the list opens below
+    // or above the field, wherever the page scrolled it)
+    let outside = [29 - 2, field.y.saturating_sub(2), 8]
+        .into_iter()
+        .map(|y| Position::new(field.x + 2, y))
+        .find(|p| !rows.iter().any(|r| r.contains(*p)) && !field.contains(*p))
+        .expect("a cell outside the list");
     h.click(outside.x, outside.y);
     assert!(
         h.app.shell.hits.area_of(size.child(0)).is_none(),
