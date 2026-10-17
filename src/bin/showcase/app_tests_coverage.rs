@@ -877,6 +877,47 @@ fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
 }
 
 #[test]
+fn the_sidebar_hides_behind_its_rail_and_comes_back() {
+    use crate::pages::sidebars::SidebarsPage;
+    let page = |h: &Harness| -> bool {
+        h.app.pages[PageId::Sidebars.index()]
+            .as_any()
+            .and_then(|a| a.downcast_ref::<SidebarsPage>())
+            .expect("sidebars page")
+            .hidden
+    };
+    let mut h = Harness::new(120, 40, PageId::Sidebars);
+    let rail = WidgetId::of("sidebars").sub("rail");
+    let nav = WidgetId::of("sidebars").sub("nav");
+    // the open sidebar's frame carries the collapse button
+    let collapse = rail.part(junie_tui::core::id::PartRef::of(
+        junie_tui::core::id::Part::ICON,
+    ));
+    h.click_id(collapse);
+    assert!(page(&h), "‹ hides the sidebar");
+    assert!(!h.text().contains("Branches"), "{}", h.text());
+    assert!(h.app.shell.hits.area_of(rail).is_some(), "the rail is left");
+    assert!(h.text().contains("RailAction::Collapse"));
+    h.click_id(rail);
+    assert!(!page(&h), "a click on the rail brings it back");
+    assert_eq!(h.app.shell.focus.current(), Some(nav));
+    assert!(h.text().contains("Branches"));
+    // Ctrl+B toggles it from the keyboard
+    h.key_mod(KeyCode::Char('b'), KeyModifiers::CONTROL);
+    assert!(page(&h));
+    h.key_mod(KeyCode::Char('b'), KeyModifiers::CONTROL);
+    assert!(!page(&h));
+    // a click on an item opens it and reports the NavAction
+    let (x, y) = h.find("Members").expect("item");
+    h.click(x, y);
+    assert!(
+        h.text().contains("NavAction::Activated(3) · Members"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
 fn textareas_paste_and_disabled_state_are_routed() {
     let mut h = Harness::new(120, 40, PageId::TextAreas);
     let first = WidgetId::of("textareas").child(0);
