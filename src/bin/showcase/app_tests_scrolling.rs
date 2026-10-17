@@ -419,3 +419,53 @@ fn the_panels_states_grid_draws_every_panel_state() {
     assert!(h.bars() <= 1);
     let _ = KeyModifiers::NONE;
 }
+
+/// The row under a card's title: blank by default, the rule under
+/// `panels.heading=rule` or the shell-wide `shell.card_heading=rule`; a
+/// page's own style wins over the shell's. The framed pane never changes.
+#[test]
+fn card_heading_options_set_the_heading_apart() {
+    let under = |h: &Harness, title: &str| {
+        let (x, y) = h.find(title).unwrap_or_else(|| panic!("{title}"));
+        let buf = h.term.backend().buffer();
+        (x..x + 10)
+            .map(|x| buf[(x, y + 1)].symbol())
+            .collect::<String>()
+    };
+    let mut h = Harness::on(120, 40, PageId::Panels);
+    assert_eq!(under(&h, "Titled card").trim(), "", "plain by default");
+    let framed = h.row(h.find("Framed · split pane").unwrap().1);
+    h.opt("panels.heading=rule");
+    assert_eq!(under(&h, "Titled card"), "─".repeat(10));
+    assert_eq!(under(&h, "Card · scrollable"), "─".repeat(10));
+    assert_eq!(
+        h.row(h.find("Framed · split pane").unwrap().1),
+        framed,
+        "the frame ignores it"
+    );
+    // the page's own style wins over the shell's
+    h.opt("shell.card_heading=band");
+    assert_eq!(under(&h, "Titled card"), "─".repeat(10));
+    // `theme` follows the shell
+    h.opt("panels.heading=theme");
+    assert_eq!(under(&h, "Titled card").trim(), "");
+    let (x, y) = h.find("Titled card").unwrap();
+    let buf = h.term.backend().buffer();
+    assert_ne!(buf[(x, y)].bg, buf[(x, y + 2)].bg, "the band's plane");
+    h.opt("shell.card_heading=rule");
+    assert_eq!(under(&h, "Titled card"), "─".repeat(10));
+}
+
+/// The States grid's cards draw the chosen style, named in the column.
+#[test]
+fn the_states_grid_draws_the_chosen_heading() {
+    let mut h = Harness::on(120, 40, PageId::Panels);
+    h.section(Section::States);
+    assert!(!h.text().contains("Card · rule"));
+    h.opt("panels.heading=rule");
+    let text = h.text();
+    assert!(text.contains("Card · rule"), "{text}");
+    let (x, y) = h.find("Settings").expect("the card sample");
+    let buf = h.term.backend().buffer();
+    assert_eq!(buf[(x, y + 1)].symbol(), "─", "{text}");
+}

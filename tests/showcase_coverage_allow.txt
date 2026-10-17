@@ -701,15 +701,6 @@ widgets::menu::MenuBar::open_menu | menus: CommandMenu with key replay on Menus 
 widgets::menu::MenuBar::close | menus: CommandMenu with key replay on Menus | SC41
 
 # widgets::panel
-widgets::panel::CardHeading | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-widgets::panel::CardHeading::Plain | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-widgets::panel::CardHeading::Rule | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-widgets::panel::CardHeading::Band | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-widgets::panel::CardHeading::Emphasis | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-widgets::panel::CardHeading::label | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-widgets::panel::Panel::heading_style | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-theme::Theme::card_heading | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
-theme::Theme::with_card_heading | the card heading styles: the Panels page shows them in its own commit (panels.heading, shell.card_heading) | SC22
 widgets::panel::ScrollPanel::context_menu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 widgets::panel::ScrollPanel::pointer_select | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
 widgets::panel::ScrollPanel::selection | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41

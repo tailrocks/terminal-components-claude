@@ -1519,6 +1519,9 @@ impl App {
         if o.get("shell.strings") == 1 {
             theme = theme.with_strings(Charset::Ascii.strings());
         }
+        theme = theme.with_card_heading(
+            junie_tui::widgets::panel::CardHeading::ALL[o.get("shell.card_heading")],
+        );
         theme = theme.with_edit_entry(
             [
                 EditEntry::Immediate,
