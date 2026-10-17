@@ -134,6 +134,32 @@ impl MasterDetail {
         }
     }
 
+    /// The natural width of the layout (plan §1.4 `Measure`): the fewest
+    /// columns that show both panes side by side (never under
+    /// [`Self::collapse_below`]) with the master at least `master` and
+    /// the detail at least `detail` columns wide, at the detail's share
+    /// or the split's ratio and minima. Laid out at it, the layout does
+    /// not collapse and neither pane is squeezed.
+    pub fn natural_width(&self, master: u16, detail: u16) -> u16 {
+        let both = match self.size {
+            DetailSize::Resizable => self.split.extent_for(master, detail, self.gap),
+            DetailSize::Share { pct, min, max } => {
+                // the share never draws the detail wider than its max
+                let detail = detail.min(max.max(min));
+                let fits = |w: u16| {
+                    let dw = ((w as u32 * pct as u32 / 100) as u16).clamp(min, max.max(min));
+                    dw >= detail && w.saturating_sub(dw + self.gap) >= master
+                };
+                let mut w = master.saturating_add(detail).saturating_add(self.gap);
+                while w < u16::MAX && !fits(w) {
+                    w += 1;
+                }
+                w
+            }
+        };
+        both.max(self.collapse_below)
+    }
+
     /// See [`Self::collapse_below`].
     pub fn collapse_below(mut self, width: u16) -> Self {
         self.collapse_below = width;
@@ -512,6 +538,33 @@ mod tests {
 
     fn key(code: KeyCode, mods: KeyModifiers) -> Key {
         Key { code, mods }
+    }
+
+    /// Laid out at its natural width, the layout shows both panes at
+    /// least as wide as asked, resizable or shared, and never collapses.
+    #[test]
+    fn at_its_natural_width_both_panes_get_their_columns() {
+        for mut md in [
+            MasterDetail::new(M, D),
+            MasterDetail::new(M, D).collapse_below(40),
+            MasterDetail::new(M, D).detail_share(40, 20, 50),
+            MasterDetail::new(M, D)
+                .resizable(Split::new(30, 10, 10))
+                .gap(3),
+        ] {
+            for (m, d) in [(30, 44), (60, 20), (12, 12)] {
+                let w = md.natural_width(m, d);
+                let (l, _) = frame(&mut md, w, None);
+                assert_eq!(l.mode, Mode::Split, "{w} for {m},{d}");
+                assert!(l.master.width >= m, "master {:?} for {m}", l.master);
+                // a share draws the detail at most its max
+                let d = match md.size {
+                    DetailSize::Share { max, .. } => d.min(max),
+                    DetailSize::Resizable => d,
+                };
+                assert!(l.detail.width >= d, "detail {:?} for {d}", l.detail);
+            }
+        }
     }
 
     #[test]

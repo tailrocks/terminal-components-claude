@@ -18,7 +18,7 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::{Margin, Rect};
+use ratatui::layout::{Margin, Rect, Size};
 use ratatui::style::Color;
 
 use crate::core::event::{Key, Outcome};
@@ -91,6 +91,36 @@ impl PaneNode {
                 path.push(1);
                 second.layout(b, gap, out, seams, path);
                 path.pop();
+            }
+        }
+    }
+
+    /// The natural size of the subtree (plan §1.4 `Measure`): each pane
+    /// at `pane(id)`, each split at the extent that gives both sides
+    /// theirs ([`Split::extent_for`]) and the larger side across it.
+    pub fn natural_size(&self, gap: u16, pane: &dyn Fn(PaneId) -> Size) -> Size {
+        match self {
+            PaneNode::Leaf(id) => pane(*id),
+            PaneNode::Split {
+                dir,
+                split,
+                first,
+                second,
+            } => {
+                let (a, b) = (
+                    first.natural_size(gap, pane),
+                    second.natural_size(gap, pane),
+                );
+                match dir {
+                    SplitDir::Horizontal => Size::new(
+                        split.extent_for(a.width, b.width, gap),
+                        a.height.max(b.height),
+                    ),
+                    SplitDir::Vertical => Size::new(
+                        a.width.max(b.width),
+                        split.extent_for(a.height, b.height, gap),
+                    ),
+                }
             }
         }
     }
@@ -622,6 +652,22 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
+    /// The natural size of the tree (plan §1.4 `Measure`): the size whose
+    /// [`Self::render`] gives each pane a content rect of at least
+    /// `content(pane)`, its frame included; only the zoomed pane while
+    /// one is zoomed.
+    pub fn natural_size(&self, content: &dyn Fn(PaneId) -> Size) -> Size {
+        let frame = if self.framed() { 2 } else { 0 };
+        let pane = |id: PaneId| {
+            let c = content(id);
+            Size::new(c.width + frame, c.height + frame)
+        };
+        match self.zoomed() {
+            Some(z) => pane(z),
+            None => self.root.natural_size(1, &pane),
+        }
+    }
+
     /// Lay the panes out in `area`: [`Self::panes`] and [`Self::seams`].
     pub fn layout(&mut self, area: Rect) {
         self.rects.clear();
@@ -890,6 +936,30 @@ mod tests {
 
     fn rect(t: &PaneTree, p: PaneId) -> Rect {
         t.panes().iter().find(|(id, _)| *id == p).unwrap().1
+    }
+
+    /// Laid out at its natural size, every pane's content rect is at
+    /// least what it asked for; zoomed, the zoomed pane's alone.
+    #[test]
+    fn a_tree_at_its_natural_size_gives_every_pane_its_content() {
+        let mut t = three();
+        let want = |p: PaneId| Size::new(10 + p as u16 * 7, 3 + p as u16);
+        let size = t.natural_size(&want);
+        t.layout(Rect::new(0, 0, size.width, size.height));
+        let frame = u16::from(t.framed()) * 2;
+        for (p, r) in t.panes().to_vec() {
+            let w = want(p);
+            assert!(
+                r.width >= w.width + frame && r.height >= w.height + frame,
+                "pane {p}: {r:?} for {w:?} in {size:?}"
+            );
+        }
+        t.toggle_zoom().unwrap();
+        let z = t.zoomed().unwrap();
+        assert_eq!(
+            t.natural_size(&want),
+            Size::new(want(z).width + frame, want(z).height + frame)
+        );
     }
 
     #[test]
