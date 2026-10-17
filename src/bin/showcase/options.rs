@@ -269,6 +269,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Meters => METERS,
         PageId::Sidebars => SIDEBARS,
         PageId::Forms => FORMS,
+        PageId::TaskRunner => TASKRUNNER,
         PageId::Notices => NOTICES,
         PageId::DiskCleanup => DISK_CLEANUP,
         PageId::Activity => ACTIVITY,
@@ -1390,6 +1391,18 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.reserve_value", "Reserve the value column", OFF_ON).default(1),
     Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Task runner: the targets `TreeView`'s folds, indent, environment glyphs
+/// and folder metas, and the log `ScrollPanel`'s tail and wrap
+/// (`pages/taskrunner.rs`, `apply`).
+pub static TASKRUNNER: &[Opt] = &[
+    Opt::new("taskrunner.expanded", "Targets expanded", OFF_ON).default(1),
+    Opt::new("taskrunner.indent", "Tree indent", &["2", "3", "4"]),
+    Opt::new("taskrunner.env_glyphs", "Environment glyphs", OFF_ON).default(1),
+    Opt::new("taskrunner.tree_meta", "Folder task counts", OFF_ON),
+    Opt::new("taskrunner.follow", "Log follows its tail", OFF_ON).default(1),
+    Opt::new("taskrunner.wrap", "Log wraps", OFF_ON),
 ];
 
 /// Forms: the fields' validation timing and blur action, whether the task
