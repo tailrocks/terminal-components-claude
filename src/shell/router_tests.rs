@@ -299,6 +299,39 @@ fn the_key_order_table() {
             Took::Page,
         ),
         (
+            "a priority chord acts before an editing field",
+            |h| {
+                h.capture = true;
+                h.page_takes = vec![ctrl('t')];
+                h.keys
+                    .priority
+                    .push((KeyBinding::ctrl('t'), ShellAction::App(Cmd::Run)));
+            },
+            ctrl('t'),
+            Took::Action(ShellAction::App(Cmd::Run)),
+        ),
+        (
+            "a priority letter stays quiet over an editing field",
+            |h| {
+                h.capture = true;
+                h.page_takes = vec![ch('z')];
+                h.keys
+                    .priority
+                    .push((KeyBinding::char('z'), ShellAction::App(Cmd::Run)));
+            },
+            ch('z'),
+            Took::Page,
+        ),
+        (
+            "an idle-only chord stays quiet over an editing field",
+            |h| {
+                h.capture = true;
+                h.keys.idle_only.push(ShellAction::App(Cmd::Run));
+            },
+            ctrl('r'),
+            Took::Nothing,
+        ),
+        (
             "editing field: Ctrl+Q quits",
             |h| h.capture = true,
             ctrl('q'),
