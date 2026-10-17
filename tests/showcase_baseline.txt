@@ -106,7 +106,7 @@
 120x40 TrueColor Scrolling d571f01627743bc2
 120x40 TrueColor Scrolling · Options c921908cbfb30d9c
 120x40 TrueColor Scrolling · States a3702c162b59289c
-120x40 TrueColor Splits & stacks 12df49c2243fe268
+120x40 TrueColor Splits & stacks 40c831777997cea0
 120x40 TrueColor Splits & stacks · Options 67e51da7473a734e
 120x40 TrueColor Splits & stacks · States 0a6f08f1ea184cf5
 120x40 TrueColor Master-detail 82d782dbe48a8759
@@ -270,7 +270,7 @@
 120x40 Ansi256 Scrolling 6550a3b9aa1edba4
 120x40 Ansi256 Scrolling · Options 6e68b763816bba87
 120x40 Ansi256 Scrolling · States 7af1d89b735b1e0d
-120x40 Ansi256 Splits & stacks 147eb2ecf3eb9f59
+120x40 Ansi256 Splits & stacks 58b222198f8f7abb
 120x40 Ansi256 Splits & stacks · Options a94c801faa39dcf4
 120x40 Ansi256 Splits & stacks · States 6e0ed1bdaff15ab0
 120x40 Ansi256 Master-detail 946dfb6d81aca3a0
@@ -434,7 +434,7 @@
 120x40 Ansi16 Scrolling 826ffaca227b5f0a
 120x40 Ansi16 Scrolling · Options 931524ed6d3daea8
 120x40 Ansi16 Scrolling · States 84fba8427485a78b
-120x40 Ansi16 Splits & stacks 711b8aa654103195
+120x40 Ansi16 Splits & stacks f84dceec0fed9a95
 120x40 Ansi16 Splits & stacks · Options d363e4e77cb1a430
 120x40 Ansi16 Splits & stacks · States 584d5c0f34646912
 120x40 Ansi16 Master-detail a29059953c2b40b4
@@ -598,7 +598,7 @@
 120x40 Mono Scrolling e39436eb44857b6b
 120x40 Mono Scrolling · Options 82f59a659b5affd3
 120x40 Mono Scrolling · States 507df304df82e3bb
-120x40 Mono Splits & stacks 92f42c998fa4050e
+120x40 Mono Splits & stacks 01c016af00f40e18
 120x40 Mono Splits & stacks · Options e61ffede910d67b3
 120x40 Mono Splits & stacks · States 39763aa8d3a0f707
 120x40 Mono Master-detail 6ae7000158036829
@@ -762,7 +762,7 @@
 80x24 TrueColor Scrolling a479ee0273cb4c57
 80x24 TrueColor Scrolling · Options cf2ff62317fcf93c
 80x24 TrueColor Scrolling · States 13846a46acce76a3
-80x24 TrueColor Splits & stacks df3c26d721647b5e
+80x24 TrueColor Splits & stacks fc2f4d39dab42ef3
 80x24 TrueColor Splits & stacks · Options 3ae8e13c46fc529d
 80x24 TrueColor Splits & stacks · States 0dda839b0c92208b
 80x24 TrueColor Master-detail 6c4d60073a07d0d1
@@ -926,7 +926,7 @@
 80x24 Ansi256 Scrolling c3fd5d7913cddee1
 80x24 Ansi256 Scrolling · Options 90d0a7acd38471ec
 80x24 Ansi256 Scrolling · States 173e79694ddc2d7d
-80x24 Ansi256 Splits & stacks e027504c5cfec71a
+80x24 Ansi256 Splits & stacks 0c23ada06068b641
 80x24 Ansi256 Splits & stacks · Options d2ed82ccf1c3a561
 80x24 Ansi256 Splits & stacks · States 9a16aa42fb79fec6
 80x24 Ansi256 Master-detail 60bafabfd8539bb6
@@ -1090,7 +1090,7 @@
 80x24 Ansi16 Scrolling 6a8d9a40235c94bc
 80x24 Ansi16 Scrolling · Options 317268a4767693f7
 80x24 Ansi16 Scrolling · States ff99dcea266174f9
-80x24 Ansi16 Splits & stacks adfaeeb157c2a88b
+80x24 Ansi16 Splits & stacks 5f1cca4632293a4d
 80x24 Ansi16 Splits & stacks · Options 153d8074d8c3a23c
 80x24 Ansi16 Splits & stacks · States e018027499be4a4e
 80x24 Ansi16 Master-detail d3bfb7e53035d98d
@@ -1254,7 +1254,7 @@
 80x24 Mono Scrolling aada18bdf7e9b276
 80x24 Mono Scrolling · Options 7c8d0ada61631485
 80x24 Mono Scrolling · States 3c12b73c72f25fcc
-80x24 Mono Splits & stacks 865c59687b59c957
+80x24 Mono Splits & stacks 04f39e204bf19ae1
 80x24 Mono Splits & stacks · Options e9685190ae615f3e
 80x24 Mono Splits & stacks · States a5232fc6746fe2e8
 80x24 Mono Master-detail 71ed512addac64e9
@@ -1418,7 +1418,7 @@
 72x20 TrueColor Scrolling 31d0c6f6c77bed9e
 72x20 TrueColor Scrolling · Options 29e753391e595dfb
 72x20 TrueColor Scrolling · States b67da63a44d06dd3
-72x20 TrueColor Splits & stacks eaf096f5b9efead1
+72x20 TrueColor Splits & stacks 77cca1ea907b4d5f
 72x20 TrueColor Splits & stacks · Options 16b8cc091736cd5d
 72x20 TrueColor Splits & stacks · States f81c63a7184afca1
 72x20 TrueColor Master-detail bbaf2e54263c81d1
@@ -1582,7 +1582,7 @@
 72x20 Ansi256 Scrolling 96a3b4cb8ba5b494
 72x20 Ansi256 Scrolling · Options ce18c7aa797f46f7
 72x20 Ansi256 Scrolling · States f61f1d713de97780
-72x20 Ansi256 Splits & stacks b4ba8f506ea474e2
+72x20 Ansi256 Splits & stacks ba30097f75b95518
 72x20 Ansi256 Splits & stacks · Options 531397c231d5f48e
 72x20 Ansi256 Splits & stacks · States d2b95618c1d1b921
 72x20 Ansi256 Master-detail fc6928d414e0a827
@@ -1746,7 +1746,7 @@
 72x20 Ansi16 Scrolling cb0d57c004a57df9
 72x20 Ansi16 Scrolling · Options 0f3de6efc6cd9a6d
 72x20 Ansi16 Scrolling · States 47d888ba0db9c64c
-72x20 Ansi16 Splits & stacks 6ca180311e1236d3
+72x20 Ansi16 Splits & stacks d1548669408f7779
 72x20 Ansi16 Splits & stacks · Options 4c04d325e9104c47
 72x20 Ansi16 Splits & stacks · States dca10e41ec1ed030
 72x20 Ansi16 Master-detail 49eb371410283317
@@ -1910,7 +1910,7 @@
 72x20 Mono Scrolling 8ce1c637aabe95cb
 72x20 Mono Scrolling · Options 4a419a774c2a4657
 72x20 Mono Scrolling · States f216f2f63f064251
-72x20 Mono Splits & stacks edeb6fe9ef3ffcf9
+72x20 Mono Splits & stacks 570ab0caedd28d0f
 72x20 Mono Splits & stacks · Options f5b4f5b06015c441
 72x20 Mono Splits & stacks · States 9112edae85d22fa8
 72x20 Mono Master-detail 48e4a1f84ac37e47
@@ -2074,7 +2074,7 @@
 100x30 TrueColor Scrolling 4a3323ea65a058a0
 100x30 TrueColor Scrolling · Options e570bf832940628b
 100x30 TrueColor Scrolling · States 31577615cb8c5cb8
-100x30 TrueColor Splits & stacks 093d1040d81ea91d
+100x30 TrueColor Splits & stacks 7806599c89fa0368
 100x30 TrueColor Splits & stacks · Options 40a1a0813bc92b5b
 100x30 TrueColor Splits & stacks · States 9b25f4c3a4851405
 100x30 TrueColor Master-detail 96bc885f009adb48
@@ -2238,7 +2238,7 @@
 100x30 Ansi256 Scrolling 1ee379e37ce37a00
 100x30 Ansi256 Scrolling · Options c18fbfb0fc2329a5
 100x30 Ansi256 Scrolling · States 64bbbd35f0d060d8
-100x30 Ansi256 Splits & stacks 8a79b4303cfe86de
+100x30 Ansi256 Splits & stacks 088758769c9544c3
 100x30 Ansi256 Splits & stacks · Options 25bb7c592fa7581c
 100x30 Ansi256 Splits & stacks · States 578b29f4e626b22f
 100x30 Ansi256 Master-detail 960597002b502792
@@ -2402,7 +2402,7 @@
 100x30 Ansi16 Scrolling 6c5bcb79ecba6767
 100x30 Ansi16 Scrolling · Options ce3b9a666e0253aa
 100x30 Ansi16 Scrolling · States 1fe5272911af17eb
-100x30 Ansi16 Splits & stacks 24aa5244d5f60281
+100x30 Ansi16 Splits & stacks aaf96c840f91e592
 100x30 Ansi16 Splits & stacks · Options 7f4af70b965e08fa
 100x30 Ansi16 Splits & stacks · States 6e80cf1970615243
 100x30 Ansi16 Master-detail 577782e68131dafe
@@ -2566,7 +2566,7 @@
 100x30 Mono Scrolling 3c6d712f1b336620
 100x30 Mono Scrolling · Options 0333d2a54438299d
 100x30 Mono Scrolling · States a063389a7c25bdb2
-100x30 Mono Splits & stacks eee2a658363f31c2
+100x30 Mono Splits & stacks eedd91d4350732b5
 100x30 Mono Splits & stacks · Options 429822d5fba71317
 100x30 Mono Splits & stacks · States 6e4634d9d0282cda
 100x30 Mono Master-detail 81dfd5644a80097b
@@ -2730,7 +2730,7 @@
 160x50 TrueColor Scrolling b96ae88091933c05
 160x50 TrueColor Scrolling · Options eb867024bf3101df
 160x50 TrueColor Scrolling · States 385d5780988accd7
-160x50 TrueColor Splits & stacks 430dc9ca2554e7a2
+160x50 TrueColor Splits & stacks cc1b782cc0c56392
 160x50 TrueColor Splits & stacks · Options 1a13aa71777353b8
 160x50 TrueColor Splits & stacks · States 3cfe4fe5a60e1e6f
 160x50 TrueColor Master-detail 436934c9a04bd2d4
@@ -2894,7 +2894,7 @@
 160x50 Ansi256 Scrolling 3442d24d079cd87b
 160x50 Ansi256 Scrolling · Options 04da28b2aa5b7ee8
 160x50 Ansi256 Scrolling · States a8e85d3d4a97eb0c
-160x50 Ansi256 Splits & stacks 9990098a9227c4cc
+160x50 Ansi256 Splits & stacks 2080b56eac3acb82
 160x50 Ansi256 Splits & stacks · Options b636f2dea9047ebf
 160x50 Ansi256 Splits & stacks · States d6a30bf63207f33b
 160x50 Ansi256 Master-detail 9702fbf5c65364dc
@@ -3058,7 +3058,7 @@
 160x50 Ansi16 Scrolling 170e4fddbf38b130
 160x50 Ansi16 Scrolling · Options a709828c14a10a7b
 160x50 Ansi16 Scrolling · States e1103e3f29985f9a
-160x50 Ansi16 Splits & stacks 99c3522cf0a83591
+160x50 Ansi16 Splits & stacks fbdb37c97f1b8ad8
 160x50 Ansi16 Splits & stacks · Options 1fe91e1294bbae90
 160x50 Ansi16 Splits & stacks · States 621a038ee831df7e
 160x50 Ansi16 Master-detail 6cdfd1b9ca8d4220
@@ -3222,7 +3222,7 @@
 160x50 Mono Scrolling 0def60066d002961
 160x50 Mono Scrolling · Options adc5dbcd871c2b84
 160x50 Mono Scrolling · States e18bfc396af7d6fc
-160x50 Mono Splits & stacks 8c5631460c60e4d4
+160x50 Mono Splits & stacks 3fdf6ae3dce376d5
 160x50 Mono Splits & stacks · Options 88cd8c0efb631431
 160x50 Mono Splits & stacks · States 20333fb906933e95
 160x50 Mono Master-detail d28f27057bb37d5d
