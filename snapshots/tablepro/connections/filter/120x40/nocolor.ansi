@@ -1,7 +1,7 @@
   ▪ [0m[1m TablePro [0m Connections  6 saved                                                          no color · 120×40  ? help  [0m
                                                                                                                         [0m
  ╭─[0m[1m Connections [0m─────────────────── 6 ─╮    Local PostgreSQL                                                            [0m
- │   [0m[1m                                 [0m │                                                                                [0m
+ │   [0m[1m                                 [0m │    ──────────────────────────────────────────────────────────────────          [0m
  │ ▎ [0m[4mstag[0m                              │    Engine       PostgreSQL                                                     [0m
  │  ▾ Acme                             │    Host         localhost:5432                                                 [0m
  │      ◇ Staging                  pg  │    Database     acme_dev                                                       [0m

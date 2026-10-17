@@ -19,7 +19,7 @@
  │      ▸ Functions          │││  ━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────── │ [0m
  │      ▸ Sequences          │││   ✓ UPDATE orders · 8022 rows affected · 42 ms                                       │ [0m
  │    ▸ S analytics          │││    Statement executed                                                                │ [0m
- │    ▸ S audit              │││                                                                                      │ [0m
+ │    ▸ S audit              │││    ────────────────────────────────────────────────────────                          │ [0m
  │                           │││    Statement      UPDATE orders                                                      │ [0m
  │                           │││    Rows affected  8,022                                                              │ [0m
  │                           │││    Duration       42 ms                                                              │ [0m
