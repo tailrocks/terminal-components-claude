@@ -55,7 +55,7 @@
 120x40 TrueColor Cell editors 5eae0acca4fdc004
 120x40 TrueColor Cell editors · Options 761173a038ef0ed5
 120x40 TrueColor Cell editors · States 438ef7c0313e0d0c
-120x40 TrueColor Columns 04b5c47400fcaf51
+120x40 TrueColor Columns 0618f96f1cd9da33
 120x40 TrueColor Columns · Options 00656b2a171cf01d
 120x40 TrueColor Columns · States 55823c07862e90d2
 120x40 TrueColor Lists 5a2122aad5f424af
@@ -219,7 +219,7 @@
 120x40 Ansi256 Cell editors a8d74aa6fbe47767
 120x40 Ansi256 Cell editors · Options ff5308dc06f3b9ad
 120x40 Ansi256 Cell editors · States 45040880d744bfdf
-120x40 Ansi256 Columns 85a05058c8711f0d
+120x40 Ansi256 Columns 5ef6e6c7c9bae5e2
 120x40 Ansi256 Columns · Options 65c7c1ccfa205fbc
 120x40 Ansi256 Columns · States b513dbc8148df41f
 120x40 Ansi256 Lists e9e41c5e1ec1a97c
@@ -383,7 +383,7 @@
 120x40 Ansi16 Cell editors 49666a1abb39e756
 120x40 Ansi16 Cell editors · Options cf4bd25929db24e5
 120x40 Ansi16 Cell editors · States cf457f2916780ba5
-120x40 Ansi16 Columns f38b5285292f9acf
+120x40 Ansi16 Columns 033b8ef6644344c9
 120x40 Ansi16 Columns · Options 4d8a2bef1501b987
 120x40 Ansi16 Columns · States ba5c10739e2f97d2
 120x40 Ansi16 Lists 64b38111940109b2
@@ -547,7 +547,7 @@
 120x40 Mono Cell editors a223640c525aee4f
 120x40 Mono Cell editors · Options 658f3f9e2ec1a9b8
 120x40 Mono Cell editors · States ab8e2dab97806224
-120x40 Mono Columns d84c1d8348194cf8
+120x40 Mono Columns caaf60b38919efb1
 120x40 Mono Columns · Options d8de5e1c804cab0a
 120x40 Mono Columns · States 436c9f7679eb9a1d
 120x40 Mono Lists 2e9506992987dc23
@@ -711,7 +711,7 @@
 80x24 TrueColor Cell editors ece1e83b2fb7efb0
 80x24 TrueColor Cell editors · Options 4db11ea60c849c18
 80x24 TrueColor Cell editors · States 6568c4e6f4305296
-80x24 TrueColor Columns 229fec76903548c9
+80x24 TrueColor Columns d2dec290068c84a8
 80x24 TrueColor Columns · Options 08072f70e9ddd4e8
 80x24 TrueColor Columns · States dc22155131f3a82d
 80x24 TrueColor Lists 85be4c41499cb514
@@ -875,7 +875,7 @@
 80x24 Ansi256 Cell editors 088b3ccf811d8a51
 80x24 Ansi256 Cell editors · Options f131f2fddd1a411a
 80x24 Ansi256 Cell editors · States 7983352bf4984422
-80x24 Ansi256 Columns 0a5b9cc7ef2dddb8
+80x24 Ansi256 Columns 08023b6999ab02ac
 80x24 Ansi256 Columns · Options 6562329e2a7167e0
 80x24 Ansi256 Columns · States dbbe5b8e956927cf
 80x24 Ansi256 Lists 9ad454b3e46b38a9
@@ -1039,7 +1039,7 @@
 80x24 Ansi16 Cell editors a8cdf3d39bdef50a
 80x24 Ansi16 Cell editors · Options 79f34f49e7493120
 80x24 Ansi16 Cell editors · States 409eaf959fab5f54
-80x24 Ansi16 Columns 3294561851dce9a5
+80x24 Ansi16 Columns 76e6a1c3b6fc9d6b
 80x24 Ansi16 Columns · Options 6a7c40d467b7e69f
 80x24 Ansi16 Columns · States 3059ef8541954147
 80x24 Ansi16 Lists c933acefe4666876
@@ -1203,7 +1203,7 @@
 80x24 Mono Cell editors 25f23908637135ac
 80x24 Mono Cell editors · Options 66a3a06e916727ee
 80x24 Mono Cell editors · States cffcd026331a7fc9
-80x24 Mono Columns 558db19ef928c80d
+80x24 Mono Columns ce0d50e610386573
 80x24 Mono Columns · Options e88b98d2467c3905
 80x24 Mono Columns · States 8f30c7a47b22741f
 80x24 Mono Lists b9768ccaea733324
@@ -1367,7 +1367,7 @@
 72x20 TrueColor Cell editors e9a67db5160ec92c
 72x20 TrueColor Cell editors · Options f50b8cee1608e580
 72x20 TrueColor Cell editors · States f9dc02a2b305dd2c
-72x20 TrueColor Columns 4234f03297aa295e
+72x20 TrueColor Columns 0e5ee98a11765a38
 72x20 TrueColor Columns · Options b396cddf603c659c
 72x20 TrueColor Columns · States cde810c9f2ea92ce
 72x20 TrueColor Lists 9d299dc4b5e99536
@@ -1531,7 +1531,7 @@
 72x20 Ansi256 Cell editors a38f6a3bea6fee47
 72x20 Ansi256 Cell editors · Options ca7712e6c6ab3efd
 72x20 Ansi256 Cell editors · States 9972dd29421eb814
-72x20 Ansi256 Columns 948119a65b40342a
+72x20 Ansi256 Columns ce52ca7a0c2b0324
 72x20 Ansi256 Columns · Options 8feffdd12c53f120
 72x20 Ansi256 Columns · States 64f17924bfa64636
 72x20 Ansi256 Lists cb4e58c54ac232c7
@@ -1695,7 +1695,7 @@
 72x20 Ansi16 Cell editors d0d06750a0c0693b
 72x20 Ansi16 Cell editors · Options 7f53eb15e6d24f3c
 72x20 Ansi16 Cell editors · States 5333313ccc54becd
-72x20 Ansi16 Columns a1d43f1a24edb750
+72x20 Ansi16 Columns c58db905660e823f
 72x20 Ansi16 Columns · Options 59f8629c8d817e7f
 72x20 Ansi16 Columns · States 74c0aa5903f8c58b
 72x20 Ansi16 Lists b20abaa8d820e83f
@@ -1859,7 +1859,7 @@
 72x20 Mono Cell editors 73515b353a2db065
 72x20 Mono Cell editors · Options 862b06cc6451d026
 72x20 Mono Cell editors · States 7bc6174f06694304
-72x20 Mono Columns 02eddd33be2d14a8
+72x20 Mono Columns 103f117ba91957e7
 72x20 Mono Columns · Options 4b9a50503a584185
 72x20 Mono Columns · States 0e19eaf5416e46bb
 72x20 Mono Lists bc725cd752a61bc3
@@ -2023,7 +2023,7 @@
 100x30 TrueColor Cell editors d5be1285e150ea21
 100x30 TrueColor Cell editors · Options 28b54538eb514511
 100x30 TrueColor Cell editors · States fc76b4641ca7a3af
-100x30 TrueColor Columns 20ad2a5f465bad4e
+100x30 TrueColor Columns d7972ece9278a23e
 100x30 TrueColor Columns · Options 9bec4190d48f47f9
 100x30 TrueColor Columns · States 5dd284c9213c7639
 100x30 TrueColor Lists 1f6d9378a669d40c
@@ -2187,7 +2187,7 @@
 100x30 Ansi256 Cell editors e04c5e692fc9e4f0
 100x30 Ansi256 Cell editors · Options af412fbfed81e257
 100x30 Ansi256 Cell editors · States 6bca35d8d861f97b
-100x30 Ansi256 Columns 408aae488faa8b7e
+100x30 Ansi256 Columns a0ffb2fe72a02dda
 100x30 Ansi256 Columns · Options 187c49f7fdd8606a
 100x30 Ansi256 Columns · States e1c75057708c9e5b
 100x30 Ansi256 Lists e7acf1bdc4e99084
@@ -2351,7 +2351,7 @@
 100x30 Ansi16 Cell editors 231a208f240df9ed
 100x30 Ansi16 Cell editors · Options cfe3cfd0968d7320
 100x30 Ansi16 Cell editors · States 64a090bbee1e177a
-100x30 Ansi16 Columns 17c58676131354ac
+100x30 Ansi16 Columns 8d9d20b4d0d5ab30
 100x30 Ansi16 Columns · Options 075f05256ef422a2
 100x30 Ansi16 Columns · States 5b62c75068cd9807
 100x30 Ansi16 Lists c2524d338078feff
@@ -2515,7 +2515,7 @@
 100x30 Mono Cell editors f397d8a85a91b4b0
 100x30 Mono Cell editors · Options aaf7c1e13c49b353
 100x30 Mono Cell editors · States 2ffc7003cdef03af
-100x30 Mono Columns bea59d1029be4125
+100x30 Mono Columns 6e80b59799f27c61
 100x30 Mono Columns · Options 2aa507eac5156da1
 100x30 Mono Columns · States 2a3a8abda6e1c594
 100x30 Mono Lists f1dcdd5cf6467246
@@ -2679,7 +2679,7 @@
 160x50 TrueColor Cell editors f74ecc9ce1504981
 160x50 TrueColor Cell editors · Options 84aeb880bc09f2c0
 160x50 TrueColor Cell editors · States 654bc1f1a4c48085
-160x50 TrueColor Columns a933fa72d540ce29
+160x50 TrueColor Columns e751a04a56bb4bb1
 160x50 TrueColor Columns · Options 640e70fe7a03e010
 160x50 TrueColor Columns · States ddf6b7b8df46ddb5
 160x50 TrueColor Lists 0a1c55d5c2d724ce
@@ -2843,7 +2843,7 @@
 160x50 Ansi256 Cell editors 04ad8c0fd39145e1
 160x50 Ansi256 Cell editors · Options b5452b3dec97c506
 160x50 Ansi256 Cell editors · States 7671e6abaedde423
-160x50 Ansi256 Columns beee90e7b0baf523
+160x50 Ansi256 Columns 0f81ea293fa1da38
 160x50 Ansi256 Columns · Options 8c1251d8965c7d25
 160x50 Ansi256 Columns · States d71f4ade77ad6908
 160x50 Ansi256 Lists 853b48bdd6c7f15c
@@ -3007,7 +3007,7 @@
 160x50 Ansi16 Cell editors 5a7dfe407dc75a17
 160x50 Ansi16 Cell editors · Options eb74169e86e1f16a
 160x50 Ansi16 Cell editors · States 71191b9c1a742c30
-160x50 Ansi16 Columns d2f5405527579e88
+160x50 Ansi16 Columns 9dee0d32cb5cc5ca
 160x50 Ansi16 Columns · Options 4fc56a133bc1c36c
 160x50 Ansi16 Columns · States fad490282bb84a7c
 160x50 Ansi16 Lists d6c397a40681983f
@@ -3171,7 +3171,7 @@
 160x50 Mono Cell editors 3106e5e7a047d673
 160x50 Mono Cell editors · Options 4d257fae5f473957
 160x50 Mono Cell editors · States fb67da9d3bb3bc97
-160x50 Mono Columns e6aa079f3aebc004
+160x50 Mono Columns c984b46e6cc62453
 160x50 Mono Columns · Options 798e1b8ad2bdb699
 160x50 Mono Columns · States 344ce6d409dc24f1
 160x50 Mono Lists 427c3ffcb48ad4a0

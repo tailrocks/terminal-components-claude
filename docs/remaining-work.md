@@ -108,7 +108,7 @@ never in view at the smallest failing size.
 | R16 | Grid | Playground | 80x24, 100x25, 106x29, 120x40 | `1011 1012 1013 120 150 1920 201 202` |
 | R17 | Selectable | Playground | 80x24, 100x25, 106x29, 120x40 | `APAC Billing Brandt Contract Ctrl Details Docs Eli` |
 | R18 | CellEditors | Playground | 80x24, 100x25, 106x29, 120x40 | `Ana Aziz Bea Berg Canary Cancel Checkbox Chen` |
-| R19 | Columns | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1040 1041 1042 1043` |
+| R19 | Columns | Playground | **Done** (reach-a): `measure`: the solver's "full" row at every column's ideal (the same at every screen size, so its readout does not change with the screen), every table whole (`DataTable: Measure`), the resizable table at all its rows, the header menu facts wrapped | — |
 | R20 | Lists | Playground | **Done** (reach-a): `measure` through `tiles`: the three list cards side by side when each fits its widest row and caption (stacked otherwise), 18 rows tall (their lists scroll in them), the readout wrapped under them | — |
 | R21 | Trees | Playground | **Done** (reach-a): `measure`: never so narrow that the tree card and its readouts stack, the connections column as wide as its widest row, the connections card shows every row, the readout wraps under the taller column | — |
 | R22 | Tabs | Playground | Partly done (reach-a): `measure` lays the readout (facts wrap) and the nested strips (`Tabs: Measure`) out at their natural size; the editor strip keeps the page width and overflows on purpose (`tabs.count=many`): its hidden tabs are reached by its own window (‹N N›, the wheel) and its +N menu, which the gate does not drive, so its lines stay with that reason | 80x24, 100x25, 106x29, 120x40 |

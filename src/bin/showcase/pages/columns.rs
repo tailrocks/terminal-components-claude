@@ -13,6 +13,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
@@ -253,8 +254,42 @@ impl ColumnsPage {
             .selection_mode(junie_tui::core::selection::SelectionMode::None);
     }
 
+    /// The row every column of the solver reaches its ideal in: what the
+    /// "full" width lays the row out at (the same at every screen size).
+    fn ideal_row() -> u16 {
+        let cols = rules();
+        cols.iter().map(|r| r.col.ideal).sum::<u16>() + GAP * (cols.len() as u16).saturating_sub(1)
+    }
+
+    /// The header menu's facts for the cursor column.
+    fn menu_facts(&self) -> Vec<Prop> {
+        let c = self.sized.cursor_col;
+        self.sized
+            .header_menu(c)
+            .into_iter()
+            .map(|(_, m)| match &m.item.reason {
+                Some(why) => Prop::new(&m.item.label, why.clone())
+                    .tone(Tone::Muted)
+                    .wrap(),
+                None => Prop::new(&m.item.label, "available"),
+            })
+            .collect()
+    }
+
+    /// The sections' heights at `width`: the solver, the resizable table
+    /// (every row), the header menu.
+    fn heights(&self, width: u16) -> [u16; 3] {
+        let menu = Panel::card(Some("Header menu"));
+        [
+            12,
+            3 + 1 + self.sized.rows.len() as u16 + 1,
+            sheet_height(&menu, &self.menu_facts(), width),
+        ]
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
+        let heights = self.heights(area.width);
         let focus = if ctx.interaction.has_focus(self.sized.id) {
             Some(1)
         } else if ctx.interaction.has_focus(self.rules.id) || ctx.interaction.has_focus(self.row.id)
@@ -263,17 +298,9 @@ impl ColumnsPage {
         } else {
             None
         };
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(12),
-                StackChild::flex(9, area.height.saturating_sub(22).max(9)),
-                StackChild::fixed(9),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &heights.map(StackChild::fixed), focus, buf, ctx);
         // the width solver
         if let Some(r) = l.slot(0) {
             let panel = Panel::card(Some("Width solver"));
@@ -281,7 +308,7 @@ impl ColumnsPage {
             let inner = panel.render(r, buf, t);
             // the table's gutter and edge take 5 cells around the row
             let room = inner.width.saturating_sub(5);
-            let avail = WIDTHS[self.width].unwrap_or(room).min(room);
+            let avail = WIDTHS[self.width].unwrap_or(Self::ideal_row()).min(room);
             if avail != self.solved_at {
                 self.solve(avail);
             }
@@ -322,16 +349,7 @@ impl ColumnsPage {
             let panel = Panel::card(Some(&title));
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
-            let items: Vec<Prop> = self
-                .sized
-                .header_menu(c)
-                .into_iter()
-                .map(|(_, m)| match &m.item.reason {
-                    Some(why) => Prop::new(&m.item.label, why.clone()).tone(Tone::Muted),
-                    None => Prop::new(&m.item.label, "available"),
-                })
-                .collect();
-            props::render(inner, buf, t, &items, bg);
+            props::render(inner, buf, t, &self.menu_facts(), bg);
             panel.draw_meta(r, buf, t, "right-click a header");
         }
         self.header_menu.render(area, buf, ctx);
@@ -386,6 +404,24 @@ impl Page for ColumnsPage {
     }
     fn blurb(&self) -> &'static str {
         "Column rules, droppable columns, resizable seams and the header menu"
+    }
+
+    /// The solver's row at its ideal, every table's columns whole, the
+    /// resizable table's rows, the header menu's facts.
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        use junie_tui::ui::measure::Measure;
+        let any = ratatui::layout::Size::new(0, 0);
+        let menu = Panel::card(Some("Header menu"));
+        let w = [
+            Self::ideal_row() + 5 + 4,
+            self.rules.measure(any, ctx).width + 4,
+            self.sized.measure(any, ctx).width + 4,
+            sheet_width(&menu, &self.menu_facts()),
+        ]
+        .into_iter()
+        .fold(avail.width, u16::max);
+        let h = self.heights(w).iter().sum::<u16>() + 2;
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
