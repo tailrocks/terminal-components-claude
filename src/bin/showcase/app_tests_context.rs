@@ -379,7 +379,9 @@ fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
     let at = (owner.0 + 1, owner.1);
     h.right_click(at);
     let menu = h.menu(TABLES_MENU).expect("the cell menu");
-    assert_eq!((menu.x, menu.y), (at.0, at.1 + 1));
+    // under the click, kept on the screen
+    assert_eq!(menu.y, at.1 + 1);
+    assert!(menu.x <= at.0 && menu.right() <= 120, "{menu:?} at {at:?}");
     let shown = h.text_in(menu);
     assert!(
         shown.contains("Migrate sessions"),
