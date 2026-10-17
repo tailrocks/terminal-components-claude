@@ -67,6 +67,10 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/chrome", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT),
     Root::new("showcase/pages/settings", Bin::Showcase, &["--page", "settings"], BOOT),
     Root::new("showcase/pages/taskrunner", Bin::Showcase, &["--page", "taskrunner"], BOOT),
+    // Priority 0: the Task runner on the template
+    Root::new("showcase/sections/taskrunner-options", Bin::Showcase, &["--page", "taskrunner"], BOOT).sends(&["tab", "2", "wait:Log wraps"]).pending(),
+    Root::new("showcase/sections/taskrunner-states", Bin::Showcase, &["--page", "taskrunner"], BOOT).sends(&["tab", "3", "wait:Task bar"]).pending(),
+    Root::new("showcase/flows/taskrunner/plain-tree", Bin::Showcase, &["--page", "taskrunner", "--opt", "taskrunner.env_glyphs=off", "--opt", "taskrunner.tree_meta=on"], BOOT).sends(&["wait:shared-libs"]).pending(),
     // Paused frame 1600 fast-forwards the 400-line log to its deterministic
     // 2000-line endpoint; `wait:739.63s` proves that endpoint on every axis.
     Root::new("showcase/pages/scrolling", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s"]),

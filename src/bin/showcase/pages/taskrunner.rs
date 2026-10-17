@@ -1,8 +1,15 @@
-//! Composed screen: a target tree, per-task progress and a following log.
+//! Composed screen: a target tree, per-task progress and a following log,
+//! on the Playground | Options | States template. Options:
+//! `crate::options::TASKRUNNER` (the tree's folds, indent, glyphs and
+//! metas, the log's tail and wrap); States: the targets tree, the log and
+//! a task's progress bar.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
@@ -11,10 +18,11 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::{EnvKind, Glyphs, StatusKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
-use junie_tui::widgets::progress::{ProgressStatus, render_bar, render_indeterminate};
+use junie_tui::widgets::progress::{ProgressBar, ProgressStatus, render_bar, render_indeterminate};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::tree::TreeNode;
 use junie_tui::widgets::tree::TreeView;
@@ -40,6 +48,8 @@ enum TaskState {
 }
 
 pub struct TaskRunnerPage {
+    template: Template,
+    opts: PageValues,
     tree: TreeView,
     tasks: Vec<Task>,
     log: ScrollPanel,
@@ -50,12 +60,30 @@ pub struct TaskRunnerPage {
     sections: crate::pages::layout::Sections,
 }
 
-fn targets() -> Vec<TreeNode> {
+/// The deploy targets. `glyphs`: the environments' glyphs and tones;
+/// `meta`: each folder's task count.
+fn targets(glyphs: bool, meta: bool) -> Vec<TreeNode> {
+    let env = |name: &str, kind: EnvKind| {
+        if glyphs {
+            env(name, kind)
+        } else {
+            TreeNode::leaf(name)
+        }
+    };
+    let dir = |name: &str, kids: Vec<TreeNode>| {
+        let n = kids.len();
+        let node = TreeNode::dir(name, kids);
+        if meta {
+            node.meta(&n.to_string())
+        } else {
+            node
+        }
+    };
     vec![
-        TreeNode::dir(
+        dir(
             "payments-gateway",
             vec![
-                TreeNode::dir(
+                dir(
                     "build",
                     vec![
                         TreeNode::leaf("compile"),
@@ -63,7 +91,7 @@ fn targets() -> Vec<TreeNode> {
                         TreeNode::leaf("typecheck"),
                     ],
                 ),
-                TreeNode::dir(
+                dir(
                     "test",
                     vec![
                         TreeNode::leaf("unit"),
@@ -71,7 +99,7 @@ fn targets() -> Vec<TreeNode> {
                         TreeNode::leaf("e2e"),
                     ],
                 ),
-                TreeNode::dir(
+                dir(
                     "deploy",
                     vec![
                         env("staging", EnvKind::Staging),
@@ -80,7 +108,7 @@ fn targets() -> Vec<TreeNode> {
                 ),
             ],
         ),
-        TreeNode::dir(
+        dir(
             "shared-libs",
             vec![TreeNode::leaf("compile"), TreeNode::leaf("publish")],
         ),
@@ -103,8 +131,6 @@ fn env(name: &str, kind: EnvKind) -> TreeNode {
 
 impl TaskRunnerPage {
     pub fn new() -> Self {
-        let mut tree = TreeView::new(ID.sub("tree"), targets());
-        tree.expand_all();
         let tasks = ["compile", "lint", "typecheck", "unit", "integration", "e2e"]
             .iter()
             .enumerate()
@@ -120,8 +146,10 @@ impl TaskRunnerPage {
             vec!["Ready. Press r or Run to start the pipeline.".into()],
         )
         .tail(true);
-        Self {
-            tree,
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::TaskRunner)),
+            tree: TreeView::new(ID.sub("tree"), Vec::new()),
             tasks,
             log,
             run: Button::primary(ID.sub("run"), "Run pipeline"),
@@ -129,7 +157,28 @@ impl TaskRunnerPage {
             running: false,
             ticks: 0,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        page.apply();
+        page
+    }
+
+    /// Rebuild the tree and the log from the options through their
+    /// builders; the log keeps its lines.
+    fn apply(&mut self) {
+        let o = &self.opts;
+        let mut tree = TreeView::new(
+            ID.sub("tree"),
+            targets(o.on("taskrunner.env_glyphs"), o.on("taskrunner.tree_meta")),
+        )
+        .indent(o.number("taskrunner.indent").unwrap_or(2))
+        .show_meta(o.on("taskrunner.tree_meta"));
+        if o.on("taskrunner.expanded") {
+            tree.expand_all();
         }
+        self.tree = tree;
+        self.log = ScrollPanel::new(ID.sub("log"), self.log.lines.clone())
+            .tail(o.on("taskrunner.follow"))
+            .wrap(o.on("taskrunner.wrap"));
     }
 
     fn start(&mut self, cx: &mut Cx) {
@@ -225,15 +274,8 @@ impl TaskRunnerPage {
     }
 }
 
-impl Page for TaskRunnerPage {
-    fn title(&self) -> &'static str {
-        "Task runner"
-    }
-    fn blurb(&self) -> &'static str {
-        "Composed: tree, live progress, following log, busy states"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+impl TaskRunnerPage {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         // sections keep their full height and the page scrolls by section
         // on a short terminal: squeezed, the pipeline's rows ran into its
         // own buttons ("Run pipeline qu Cancel")
@@ -313,28 +355,94 @@ impl Page for TaskRunnerPage {
             None => ctx.focus_stop(self.log.id),
         }
     }
+}
+
+/// The States grid: the targets tree, the log and a task's bar.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let mut tree = TreeView::new(ID.sub("states-tree"), targets(true, false));
+    tree.expand_all();
+    let log = ScrollPanel::new(
+        ID.sub("states-log"),
+        vec![
+            "▶ unit started".into(),
+            "  unit: step 6 of 12".into(),
+            "✓ unit finished".into(),
+            "✗ integration failed".into(),
+            "Pipeline finished with 1 failure".into(),
+        ],
+    )
+    .tail(true);
+    StateGrid::new(ID.sub("states"))
+        .label_width(14)
+        .column_width(26)
+        .narrow_width(14)
+        .rows(&[
+            Rest, Hover, Pressed, Focused, Selected, Disabled, Error, Busy, Empty, Overflow, Narrow,
+        ])
+        .column("Targets", tree)
+        .column("Log", log)
+        .column("Task bar", ProgressBar::new("unit", 0.5))
+}
+
+impl Page for TaskRunnerPage {
+    fn title(&self) -> &'static str {
+        "Task runner"
+    }
+    fn blurb(&self) -> &'static str {
+        "Composed: tree, live progress, following log, busy states"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
+        // the pipeline runs on whatever section shows
+        if let PageEvent::Tick = ev {
+            return if self.step(cx) {
+                Outcome::Changed
+            } else {
+                Outcome::Ignored
+            };
+        }
+        if let PageEvent::DialogClosed { id, result, .. } = ev
+            && *id == CANCEL_DLG
+        {
+            if *result == DialogResult::Action(1) {
+                self.cancel_now(cx);
+            }
+            return Outcome::Changed;
+        }
+        let playground = self.template.section() == Section::Playground;
+        // r runs the pipeline from anywhere on the Playground but the
+        // tree and the log (they take letters), the section strip included
+        if let PageEvent::Key(key) = ev
+            && playground
+            && key.is_char('r')
+            && !self.running
+            && !cx.focus.is(self.log.id)
+            && !cx.focus.is(self.tree.id)
+        {
+            self.start(cx);
+            return Outcome::Changed;
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if !playground {
+            return Outcome::Ignored;
+        }
         if let Some(o) = self.sections.handle(ev) {
             return o;
         }
         match ev {
-            PageEvent::Tick => {
-                if self.step(cx) {
-                    Outcome::Changed
-                } else {
-                    Outcome::Ignored
-                }
-            }
             PageEvent::Key(key) => {
-                if key.is_char('r')
-                    && !self.running
-                    && !cx.focus.is(self.log.id)
-                    && !cx.focus.is(self.tree.id)
-                {
-                    self.start(cx);
-                    return Outcome::Changed;
-                }
                 let Some(f) = cx.focus.current() else {
                     return Outcome::Ignored;
                 };
@@ -398,12 +506,6 @@ impl Page for TaskRunnerPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::DialogClosed { id, result, .. } if *id == CANCEL_DLG => {
-                if *result == DialogResult::Action(1) {
-                    self.cancel_now(cx);
-                }
-                Outcome::Changed
-            }
             _ => Outcome::Ignored,
         }
     }
@@ -425,6 +527,9 @@ impl Page for TaskRunnerPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if focus == Some(self.log.id) {
             vec![("↑↓", "Scroll"), ("f", "Follow"), ("r", "Run")]
         } else if focus == Some(self.tree.id) {
@@ -432,6 +537,28 @@ impl Page for TaskRunnerPage {
         } else {
             vec![("r", "Run pipeline"), ("Enter", "Activate")]
         }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.apply();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
 

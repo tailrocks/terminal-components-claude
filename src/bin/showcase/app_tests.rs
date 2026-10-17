@@ -919,7 +919,8 @@ fn task_runner_animates_and_can_be_cancelled() {
     h.draw();
     assert!(h.text().contains("compile started"));
     assert!(h.text().contains("%"));
-    h.key(tab());
+    h.key(tab()); // the section strip, the template's first stop
+    h.key(tab()); // the tree
     h.key(tab()); // cancel button (run is disabled while running, so skipped)
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Cancel pipeline?"));

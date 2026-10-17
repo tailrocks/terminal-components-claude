@@ -3527,6 +3527,28 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tree::TreeNode::label_tone",
         Demo("taskrunner", "◆ production"),
     ),
+    // Task runner on the template (Priority 0): its option table and States
+    (
+        "widgets::panel::ScrollPanel::tail",
+        Option("taskrunner", "taskrunner.follow"),
+    ),
+    (
+        "widgets::panel::ScrollPanel::wrap",
+        Option("taskrunner", "taskrunner.wrap"),
+    ),
+    (
+        "widgets::tree::TreeView::indent",
+        Option("taskrunner", "taskrunner.indent"),
+    ),
+    (
+        "widgets::tree::TreeView::show_meta",
+        Option("taskrunner", "taskrunner.tree_meta"),
+    ),
+    ("widgets::tree::TreeView", StateRow("taskrunner", "focused")),
+    (
+        "widgets::panel::ScrollPanel",
+        StateRow("taskrunner", "overflow"),
+    ),
     (
         "widgets::hintbar::HintLayer::status_parts",
         Demo("chrome", "last: nothing yet"),
