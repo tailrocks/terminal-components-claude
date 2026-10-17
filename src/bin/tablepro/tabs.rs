@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 use ratatui::style::Modifier;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -16,6 +16,7 @@ use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::{StatusKind, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
+use junie_tui::ui::scroll_view::{Axes, ScrollView};
 use junie_tui::ui::text::{DurationStyle, duration};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipCmd};
@@ -970,6 +971,9 @@ pub struct QueryTab {
     pub result_counter: usize,
     pub unseen: bool,
     pub saved_text: String,
+    /// The executed-statement card's facts: their natural height,
+    /// scrolled when the result pane is too short for them (R-apps-6).
+    pub result_facts: ScrollView,
 }
 
 impl QueryTab {
@@ -991,6 +995,7 @@ impl QueryTab {
             completion: Completion::new(id.sub("completion")),
             split: Split::new(38, 4, 6),
             seam: Splitter::new(id.sub("seam"), SplitDir::Vertical),
+            result_facts: ScrollView::new(id.sub("result-facts")).axes(Axes::VERTICAL),
             split_area: Rect::ZERO,
             last_status: None,
             last_duration: None,
@@ -1819,10 +1824,11 @@ impl QueryTab {
                             buf,
                             t,
                         );
-                        props::render(
+                        props::render_in(
+                            &mut self.result_facts,
                             inner,
                             buf,
-                            t,
+                            ctx,
                             &[
                                 Prop::new("Statement", verb.clone()),
                                 Prop::new("Rows affected", junie_tui::ui::text::thousands(*rows)),
@@ -2455,6 +2461,9 @@ pub struct HistoryTab {
     /// The list / detail seam.
     pub seam: Splitter,
     pub split_area: Rect,
+    /// The detail card's body (the query, its facts, the actions) at its
+    /// natural height, scrolled when the card is too short (R-apps-6).
+    pub detail_view: ScrollView,
 }
 
 impl HistoryTab {
@@ -2467,6 +2476,7 @@ impl HistoryTab {
                 .highlighter(highlight_sql)
                 .segmenter(segment_sql)
                 .read_only(true),
+            detail_view: ScrollView::new(id.sub("detail-view")).axes(Axes::VERTICAL),
             search: TextInput::new(id.sub("search"), "")
                 .placeholder("Search history · terms are ANDed")
                 .plain_label(),
@@ -2670,19 +2680,6 @@ impl HistoryTab {
         if self.detail.text() != wrapped {
             self.detail.set_text(&wrapped);
         }
-        let editor_h =
-            (wrapped.lines().count() as u16 + 1).clamp(3, inner.height.saturating_sub(8).max(3));
-        self.detail.render(
-            Rect::new(
-                inner.x.saturating_sub(1),
-                inner.y,
-                inner.width + 1,
-                editor_h,
-            ),
-            buf,
-            ctx,
-            cbg,
-        );
         let mut facts = vec![
             Prop::new(
                 "Connection",
@@ -2707,33 +2704,55 @@ impl HistoryTab {
         if let Some(err) = &e.error {
             facts.push(Prop::new("Error", err.clone()).tone(Tone::Error).wrap());
         }
-        let fy = inner.y + editor_h + 1;
-        let used = props::render(
-            Rect::new(
-                inner.x,
-                fy,
-                inner.width,
-                inner.bottom().saturating_sub(fy + 2),
-            ),
-            buf,
-            t,
-            &facts,
-            cbg,
-        );
-        // actions follow the facts instead of sinking to the bottom of the pane
-        let ay = (fy + used + 1).min(inner.bottom().saturating_sub(1));
-        let widths = [
-            self.open_btn.width(),
-            self.rerun_btn.width(),
-            self.copy_btn.width(),
-        ];
-        let rects = junie_tui::widgets::button::row_layout(
-            Rect::new(inner.x, ay, inner.width, 1),
-            &widths,
-            2,
-        );
-        self.open_btn.render(rects[0], buf, ctx, cbg);
-        self.rerun_btn.render(rects[1], buf, ctx, cbg);
-        self.copy_btn.render(rects[2], buf, ctx, cbg);
+        // the query, its facts and the actions at their natural height:
+        // a card too short for them scrolls instead of dropping the facts
+        let editor_nat = (wrapped.lines().count() as u16 + 1).max(3);
+        let natural = |a: Size| {
+            Size::new(
+                a.width,
+                editor_nat + 1 + props::measure(&facts, a.width) + 2,
+            )
+        };
+        let size = self.detail_view.fit(inner.as_size(), natural);
+        let mut frame = self.detail_view.begin(inner, size, buf, ctx);
+        let inner = frame.area();
+        {
+            let buf = frame.buffer(buf);
+            self.detail.render(
+                Rect::new(
+                    inner.x.saturating_sub(1),
+                    inner.y,
+                    inner.width + 1,
+                    editor_nat,
+                ),
+                buf,
+                ctx,
+                cbg,
+            );
+            let fy = inner.y + editor_nat + 1;
+            let used = props::render(
+                Rect::new(inner.x, fy, inner.width, inner.bottom().saturating_sub(fy)),
+                buf,
+                t,
+                &facts,
+                cbg,
+            );
+            // actions follow the facts instead of sinking to the bottom
+            let ay = (fy + used + 1).min(inner.bottom().saturating_sub(1));
+            let widths = [
+                self.open_btn.width(),
+                self.rerun_btn.width(),
+                self.copy_btn.width(),
+            ];
+            let rects = junie_tui::widgets::button::row_layout(
+                Rect::new(inner.x, ay, inner.width, 1),
+                &widths,
+                2,
+            );
+            self.open_btn.render(rects[0], buf, ctx, cbg);
+            self.rerun_btn.render(rects[1], buf, ctx, cbg);
+            self.copy_btn.render(rects[2], buf, ctx, cbg);
+        }
+        self.detail_view.end(frame, buf, ctx);
     }
 }
