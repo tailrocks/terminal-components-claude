@@ -132,9 +132,12 @@ impl ListCore {
     }
 
     /// Whether the widget registers as a focus stop with `len` rows
-    /// ([`Self::skip_when_empty`]).
-    pub fn is_focus_stop(&self, len: usize) -> bool {
-        !self.skip_when_empty || self.has_rows(len)
+    /// ([`Self::skip_when_empty`]). A widget that holds focus keeps it
+    /// while it empties (a filter that matches nothing, the last row
+    /// deleted): Tab then moves on and does not come back, and focus never
+    /// jumps away under the user's typing.
+    pub fn is_focus_stop(&self, len: usize, focused: bool) -> bool {
+        focused || !self.skip_when_empty || self.has_rows(len)
     }
 
     /// Draw what shows instead of `len` rows in `area`, if anything:
@@ -238,12 +241,13 @@ mod tests {
     #[test]
     fn a_widget_with_nothing_to_act_on_is_no_focus_stop() {
         let mut core = ListCore::new(0);
-        assert!(!core.is_focus_stop(0));
-        assert!(core.is_focus_stop(2));
+        assert!(!core.is_focus_stop(0, false));
+        assert!(core.is_focus_stop(2, false));
+        assert!(core.is_focus_stop(0, true), "focus stays while it empties");
         core.content = ContentState::loading("");
-        assert!(!core.is_focus_stop(2));
+        assert!(!core.is_focus_stop(2, false));
         core.skip_when_empty = false;
-        assert!(core.is_focus_stop(0), "knob: stays a stop");
+        assert!(core.is_focus_stop(0, false), "knob: stays a stop");
     }
 
     #[test]

@@ -541,7 +541,7 @@ impl ListBox {
         let n = self.items.len();
         // the container registers first so rows drawn later win hit-testing;
         // a list with nothing to act on is no focus stop (K37)
-        if self.core.is_focus_stop(n) {
+        if self.core.is_focus_stop(n, focused) {
             ctx.control(self.id, area, false);
             ctx.scrollable(self.id, area);
         }
