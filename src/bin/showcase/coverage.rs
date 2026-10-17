@@ -1370,7 +1370,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("widgets::button::ButtonRow", Demo("buttons", "Button row")),
     (
         "widgets::button::RowLayout",
-        Demo("buttons", "columns · every button fits"),
+        Demo("buttons", "· every button fits"),
     ),
     (
         "widgets::button::RowAlign",
@@ -3788,7 +3788,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::button::ButtonRow::width",
-        Demo("buttons", "columns · every button fits"),
+        Demo("buttons", "· every button fits"),
     ),
     (
         "widgets::action_row::ActionRow::render",
