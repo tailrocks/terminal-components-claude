@@ -1357,22 +1357,6 @@ impl ShellPage<Holla> for PlanTab {
                 self.view.set_follow(!self.view.follow);
                 Outcome::Changed
             }
-            KeyCode::Char('c') if key.ctrl() => {
-                if p.phase == PlanPhase::Running {
-                    let d = Dialog::destructive(
-                        WidgetId::of("cancel-plan"),
-                        "Cancel the remaining steps?",
-                        "Running steps finish; ready and waiting steps are cancelled. Completed work stays.",
-                        "Cancel remaining",
-                    )
-                    .cancel_label("Keep running");
-                    cx.open(d, LayerTag::new("cancel-plan"));
-                    Outcome::Changed
-                } else {
-                    // nothing to cancel: the shell's quit guard takes it
-                    Outcome::Ignored
-                }
-            }
             KeyCode::Char('x') => {
                 cx.go(Go::CloseTab);
                 Outcome::Changed
@@ -1401,9 +1385,7 @@ impl ShellPage<Holla> for PlanTab {
                     }
                     RunStep::Retry => self.retry_step(w, cx),
                     RunStep::Skip => self.skip_step(w, cx),
-                    RunStep::Cancel => {
-                        self.on_key(&key(KeyCode::Char('c'), KeyModifiers::CONTROL), w, cx)
-                    }
+                    RunStep::Cancel => self.on_interrupt(w, cx),
                     RunStep::Close => self.on_key(&plain_key('x'), w, cx),
                 }
                 .or(Outcome::Changed);
@@ -1808,6 +1790,26 @@ impl ShellPage<Holla> for PlanTab {
             return Outcome::Changed;
         }
         cx.go(Go::Here);
+        Outcome::Changed
+    }
+
+    /// Ctrl+C cancels the remaining steps of a running plan (asking
+    /// first); with nothing to cancel the shell's quit guard takes it.
+    fn on_interrupt(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
+        let running = w
+            .plan_mut(&self.plan)
+            .is_some_and(|p| p.phase == PlanPhase::Running);
+        if !running {
+            return Outcome::Ignored;
+        }
+        let d = Dialog::destructive(
+            WidgetId::of("cancel-plan"),
+            "Cancel the remaining steps?",
+            "Running steps finish; ready and waiting steps are cancelled. Completed work stays.",
+            "Cancel remaining",
+        )
+        .cancel_label("Keep running");
+        cx.open(d, LayerTag::new("cancel-plan"));
         Outcome::Changed
     }
 }
