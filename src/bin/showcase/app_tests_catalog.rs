@@ -779,10 +779,10 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
         (*id, Shown::Demo("nosuchpage", "x")),
         (*id, Shown::Option("buttons", "glow")),
         // a row the page's grid does not have, a row name that is no
-        // state, a page with no States section, an unknown page
+        // state, an unknown page (every page has a States section now:
+        // `every_page_is_on_the_template`)
         (*id, Shown::StateRow("buttons", "error")),
         (*id, Shown::StateRow("inputs", "sideways")),
-        (*id, Shown::StateRow("settings", "rest")),
         (*id, Shown::StateRow("nosuchpage", "rest")),
     ];
     assert_eq!(declaration_problems(&wrong).len(), wrong.len());

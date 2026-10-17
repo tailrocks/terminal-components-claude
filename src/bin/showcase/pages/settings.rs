@@ -1,10 +1,15 @@
 //! Composed screen: project settings with tabs, a form, an editable
 //! members table with a destructive dialog, and an environment list with a
-//! prompt dialog.
+//! prompt dialog, on the Playground | Options | States template. Options:
+//! `crate::options::SETTINGS`; States: the section tabs, the members table
+//! and the environment list.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::forward_blur;
@@ -12,6 +17,7 @@ use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{RadioGroup, Toggle};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
@@ -52,6 +58,8 @@ fn var_validator(s: &str) -> Option<String> {
 }
 
 pub struct SettingsPage {
+    template: Template,
+    opts: PageValues,
     tabs: Tabs,
     // general
     name: TextInput,
@@ -71,50 +79,91 @@ pub struct SettingsPage {
     remove_vars: Button,
 }
 
+/// The members table's rows.
+fn member_rows() -> Vec<Vec<Cell>> {
+    [
+        ("Mira Okafor", "mira@acme.dev", "Owner", "today"),
+        ("Jonas Weber", "jonas@acme.dev", "Admin", "2 h ago"),
+        ("Ana Costa", "ana@acme.dev", "Member", "yesterday"),
+        ("Kai Tanaka", "kai@acme.dev", "Member", "3 d ago"),
+        ("Sofia Rossi", "sofia@acme.dev", "Viewer", "never"),
+        ("deploy-bot", "bot@acme.dev", "Member", "1 m ago"),
+    ]
+    .iter()
+    .map(|(n, e, r, l)| {
+        vec![
+            Cell::new(*n),
+            Cell::new(*e).tone(Tone::Muted),
+            Cell::new(*r),
+            Cell::new(*l).tone(Tone::Muted),
+        ]
+    })
+    .collect()
+}
+
+/// The members table: name and role edit in place.
+fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
+    DataTable::new(
+        id,
+        vec![
+            Column::new("Name", Constraint::Min(14)).editable(),
+            Column::new("Email", Constraint::Length(18)),
+            Column::new("Role", Constraint::Length(8)).editable(),
+            Column::new("Last active", Constraint::Length(11)).right(),
+        ],
+        rows,
+    )
+    .validator(role_validator)
+}
+
+/// The environment's variables.
+fn env_items() -> Vec<ListItem> {
+    [
+        ("DATABASE_URL", "postgres://…"),
+        ("REDIS_URL", "redis://…"),
+        ("STRIPE_KEY", "sk_live_…"),
+        ("LOG_LEVEL", "info"),
+        ("FEATURE_FLAGS", "beta,otel"),
+    ]
+    .iter()
+    .map(|(k, v)| ListItem::new(k).meta(v))
+    .collect()
+}
+
+/// The States grid: the section tabs (General unsaved), the members table
+/// and the environment list.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let tabs = Tabs::new(ID.sub("states-tabs"), &["General", "Members", "Env"]);
+    let mut tabs = tabs;
+    if let Some(general) = tabs.items.get_mut(0) {
+        general.dirty = true;
+    }
+    StateGrid::new(ID.sub("states"))
+        .label_width(14)
+        .column_width(26)
+        .narrow_width(16)
+        .rows(&[
+            Rest, Hover, Pressed, Focused, Selected, Disabled, Error, Editing, Empty, Overflow,
+            Narrow,
+        ])
+        .column("Section tabs", tabs)
+        .column(
+            "Members",
+            members_table(ID.sub("states-members"), member_rows()).cell_nav(true),
+        )
+        .column(
+            "Environment",
+            ListBox::new(ID.sub("states-env"), env_items(), SelectMode::Multi)
+                .empty_text("No variables defined"),
+        )
+}
+
 impl SettingsPage {
     pub fn new() -> Self {
-        let members = [
-            ("Mira Okafor", "mira@acme.dev", "Owner", "today"),
-            ("Jonas Weber", "jonas@acme.dev", "Admin", "2 h ago"),
-            ("Ana Costa", "ana@acme.dev", "Member", "yesterday"),
-            ("Kai Tanaka", "kai@acme.dev", "Member", "3 d ago"),
-            ("Sofia Rossi", "sofia@acme.dev", "Viewer", "never"),
-            ("deploy-bot", "bot@acme.dev", "Member", "1 m ago"),
-        ];
-        let rows = members
-            .iter()
-            .map(|(n, e, r, l)| {
-                vec![
-                    Cell::new(*n),
-                    Cell::new(*e).tone(Tone::Muted),
-                    Cell::new(*r),
-                    Cell::new(*l).tone(Tone::Muted),
-                ]
-            })
-            .collect();
-        let members = DataTable::new(
-            ID.sub("members"),
-            vec![
-                Column::new("Name", Constraint::Min(14)).editable(),
-                Column::new("Email", Constraint::Length(18)),
-                Column::new("Role", Constraint::Length(8)).editable(),
-                Column::new("Last active", Constraint::Length(11)).right(),
-            ],
-            rows,
-        )
-        .cell_nav(true)
-        .validator(role_validator);
-        let env_items = [
-            ("DATABASE_URL", "postgres://…"),
-            ("REDIS_URL", "redis://…"),
-            ("STRIPE_KEY", "sk_live_…"),
-            ("LOG_LEVEL", "info"),
-            ("FEATURE_FLAGS", "beta,otel"),
-        ]
-        .iter()
-        .map(|(k, v)| ListItem::new(k).meta(v))
-        .collect();
-        Self {
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts: PageValues::new(page_options(PageId::Settings)),
             tabs: Tabs::new(ID.sub("tabs"), &["General", "Members", "Environment"]),
             name: TextInput::new(ID.sub("name"), "Project name")
                 .value("payments-gateway")
@@ -131,13 +180,57 @@ impl SettingsPage {
             protect: Toggle::new(ID.sub("protect"), "Protect main branch", true),
             save: Button::primary(ID.sub("save"), "Save changes"),
             dirty: false,
-            members,
+            members: members_table(ID.sub("members"), member_rows()),
             remove: Button::danger(ID.sub("remove"), "Remove…"),
             invite: Button::secondary(ID.sub("invite"), "Invite"),
-            env: ListBox::new(ID.sub("env"), env_items, SelectMode::Multi)
-                .empty_text("No variables defined"),
+            env: ListBox::new(ID.sub("env"), env_items(), SelectMode::Multi),
             add_var: Button::primary(ID.sub("addvar"), "Add variable…"),
             remove_vars: Button::danger(ID.sub("rmvars"), "Remove selected"),
+        };
+        page.apply();
+        if let Some(i) = ["general", "members", "environment"]
+            .iter()
+            .position(|t| *t == page.opts.value("settings.tab"))
+        {
+            page.tabs.set_active(i);
+            page.tabs.cursor = i;
+        }
+        page
+    }
+
+    /// Rebuild the widgets from the options through their builders,
+    /// keeping their content.
+    fn apply(&mut self) {
+        let o = &self.opts;
+        self.members = self.members.clone().cell_nav(o.on("settings.cell_nav"));
+        let mode = match o.value("settings.env_select") {
+            "single" => SelectMode::Single,
+            _ => SelectMode::Multi,
+        };
+        self.env = ListBox::new(ID.sub("env"), self.env.items.clone(), mode)
+            .empty_text("No variables defined");
+        self.description = TextArea::new(
+            ID.sub("desc"),
+            "Description",
+            o.number("settings.desc_rows").unwrap_or(3),
+        )
+        .value(self.description.field.text());
+    }
+
+    /// Save: through a confirmation (`settings.save_confirm`), or at once.
+    fn save(&mut self, cx: &mut Cx) {
+        if !self.dirty {
+            cx.status("Nothing to save");
+        } else if self.opts.on("settings.save_confirm") {
+            cx.open_dialog(Dialog::confirm(
+                SAVE_DLG,
+                "Save settings?",
+                "Changing visibility or branch protection applies to every open task.",
+                "Save",
+            ));
+        } else {
+            self.dirty = false;
+            cx.status("Settings saved ✓");
         }
     }
 
@@ -150,15 +243,8 @@ impl SettingsPage {
     }
 }
 
-impl Page for SettingsPage {
-    fn title(&self) -> &'static str {
-        "Project settings"
-    }
-    fn blurb(&self) -> &'static str {
-        "Composed: tabs, form, editable table, list, dialogs"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+impl SettingsPage {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (strip, body) = Tabs::layout(area);
         self.tabs.render(strip, buf, ctx, t.canvas);
@@ -269,12 +355,40 @@ impl Page for SettingsPage {
             }
         }
     }
+}
+
+impl Page for SettingsPage {
+    fn title(&self) -> &'static str {
+        "Project settings"
+    }
+    fn blurb(&self) -> &'static str {
+        "Composed: tabs, form, editable table, list, dialogs"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        let out = self.handle_event(ev, cx);
+        let out = match self.template.handle(ev, cx) {
+            Some(o) => o,
+            // a dialog's result and a field's blur reach the page from any
+            // section; the rest only on the Playground
+            None if self.template.section() == Section::Playground
+                || matches!(ev, PageEvent::DialogClosed { .. } | PageEvent::Blur(_)) =>
+            {
+                self.handle_event(ev, cx)
+            }
+            None => Outcome::Ignored,
+        };
         // the tab of the section with unsaved edits carries the dirty mark
         if let Some(general) = self.tabs.items.get_mut(0) {
-            general.dirty = self.dirty;
+            general.dirty = self.dirty && self.opts.on("settings.tab_dirty");
         }
         out
     }
@@ -292,6 +406,9 @@ impl Page for SettingsPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         if self.members.is_editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
         }
@@ -310,6 +427,32 @@ impl Page for SettingsPage {
             Some(f) if f == self.env.id => vec![("Space", "Toggle"), ("a", "All")],
             _ => vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")],
         }
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            if key == "settings.tab" {
+                self.tabs.set_active(value);
+                self.tabs.cursor = value;
+            }
+            self.apply();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
 
@@ -353,16 +496,7 @@ impl SettingsPage {
         }
         if let Some(act) = clicked(&mut self.save, ev) {
             if act {
-                if self.dirty {
-                    cx.open_dialog(Dialog::confirm(
-                        SAVE_DLG,
-                        "Save settings?",
-                        "Changing visibility or branch protection applies to every open task.",
-                        "Save",
-                    ));
-                } else {
-                    cx.status("Nothing to save");
-                }
+                self.save(cx);
             }
             return Outcome::Changed;
         }
@@ -475,11 +609,7 @@ impl SettingsPage {
                 if f == self.save.id {
                     let (o, act) = self.save.on_key(key);
                     if act {
-                        if self.dirty {
-                            cx.open_dialog(Dialog::confirm(SAVE_DLG, "Save settings?", "Changing visibility or branch protection applies to every open task.", "Save"));
-                        } else {
-                            cx.status("Nothing to save");
-                        }
+                        self.save(cx);
                     }
                     return o;
                 }

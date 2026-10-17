@@ -383,11 +383,6 @@ fn every_page_opens_by_its_slug() {
     }
 }
 
-/// Pages not yet on the Playground | Options | States template (Priority 0,
-/// "all pages on the template"). This list only shrinks: a page converted
-/// to the template leaves it in the same commit, and it ends empty.
-const NOT_ON_THE_TEMPLATE: &[PageId] = &[PageId::Settings];
-
 /// Every registered page builds through `Template`, opens on its
 /// Playground and draws its section strip (Playground | Options | States),
 /// so no page can fall back to the old single-view layout.
@@ -396,14 +391,6 @@ fn every_page_is_on_the_template() {
     for e in NAV_ENTRIES {
         let h = Harness::new(120, 40, e.id);
         let page = &h.app.pages[e.id.index()];
-        if NOT_ON_THE_TEMPLATE.contains(&e.id) {
-            assert!(
-                page.template().is_none(),
-                "{} is on the template now: drop it from NOT_ON_THE_TEMPLATE",
-                e.label
-            );
-            continue;
-        }
         let tpl = page
             .template()
             .unwrap_or_else(|| panic!("{} is not on the template", e.label));
