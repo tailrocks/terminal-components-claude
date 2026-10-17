@@ -25,6 +25,7 @@ use junie_tui::core::scroll::TrackClick;
 use junie_tui::core::selection::{CheckClick, ClickPolicy, SelectGesture};
 use junie_tui::core::typeahead::TypeAhead;
 use junie_tui::theme::Tone;
+use junie_tui::ui::content::ContentState;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::reveal::{Reveal, RevealMode};
@@ -182,7 +183,16 @@ impl ListsPage {
             new.selection = old.selection.clone();
             new
         };
-        let single = self.build(ListBox::new(SINGLE, languages(), SelectMode::Single));
+        let single = self
+            .build(ListBox::new(SINGLE, languages(), SelectMode::Single))
+            .content(match self.opt("lists.content") {
+                "loading" => ContentState::loading("Loading languages…"),
+                "error" => ContentState::error(
+                    EmptyState::new("Could not load languages")
+                        .hint("The registry did not answer; try again later"),
+                ),
+                _ => ContentState::Ready,
+            });
         self.single = keep(&self.single, single);
         let multi = self.build(ListBox::new(MULTI, files(), SelectMode::Multi));
         self.multi = keep(&self.multi, multi);
@@ -436,6 +446,8 @@ fn states_grid() -> StateGrid {
             Selected,
             Disabled,
             Empty,
+            Loading,
+            Error,
             Overflow,
             Narrow,
         ])

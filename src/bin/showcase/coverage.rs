@@ -4464,6 +4464,24 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("lists", "lists.empty"),
     ),
     (
+        "widgets::list::ListBox::content",
+        Option("lists", "lists.content"),
+    ),
+    ("ui::content::ContentState", StateRow("lists", "loading")),
+    (
+        "ui::content::ContentState::Ready",
+        StateRow("lists", "rest"),
+    ),
+    (
+        "ui::content::ContentState::Loading",
+        StateRow("lists", "loading"),
+    ),
+    (
+        "ui::content::ContentState::Error",
+        StateRow("lists", "error"),
+    ),
+    ("ui::list_core::ListCore", StateRow("lists", "rest")),
+    (
         "widgets::list::ListBox::track_click",
         Option("lists", "lists.track_click"),
     ),
@@ -5763,6 +5781,29 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
         ],
     ),
     ("widgets::file_browser::FileEntry", Operation, &["name"]),
+    (
+        "ui::content::ContentState",
+        Protocol,
+        &[
+            "is_ready",
+            "actions",
+            "ui::content::draw_line",
+            "ui::content::draw_loading",
+            "ui::content::draw_empty",
+            "ui::content::specimen",
+        ],
+    ),
+    (
+        "ui::list_core::ListCore",
+        Plumbing,
+        &[
+            "cursor_model",
+            "key_step",
+            "has_rows",
+            "is_focus_stop",
+            "draw_content",
+        ],
+    ),
     (
         "widgets::notice::Notice",
         Protocol,
