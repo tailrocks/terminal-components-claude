@@ -8,8 +8,8 @@
 holla activity 72x20 btm child logs tests worker # R-apps-4 R-apps-11
 holla activity 80x24 btm logs worker # R-apps-4 R-apps-11
 holla activity 100x25 btm logs worker # R-apps-4 R-apps-11
-holla activity-failed 72x20 Node Open definition here project # R-apps-1 R-apps-7
-holla activity-failed 80x24 Open definition here project # R-apps-1 R-apps-7
+holla activity-failed 72x20 Node Open definition here project # R-apps-7
+holla activity-failed 80x24 Open definition here project # R-apps-7
 holla activity-merged 72x20 btm here tests # R-apps-4 R-apps-11
 holla activity-merged 80x24 btm # R-apps-4 R-apps-11
 holla activity-merged 100x25 btm # R-apps-4 R-apps-11
@@ -38,7 +38,7 @@ holla files 160x50 missing # R-apps-3
 holla finder 72x20 last toml # R-apps-8
 holla finder@macos 120x40 toml # R-apps-12 (the macOS hints leave a path wrapped mid-word)
 holla finder-children@other 160x50 toml # R-apps-12 (the other-platform hints leave a path wrapped mid-word)
-holla finder-children 72x20 under # R-apps-1 R-apps-8 R-apps-12
+holla finder-children 72x20 under # R-apps-8 R-apps-12
 holla finder-children 80x24 under # R-apps-8 R-apps-12
 holla finder-children 120x40 under # R-apps-8 R-apps-12
 holla finder-page 72x20 fits view # R-apps-8
@@ -48,7 +48,7 @@ holla gate-plan 80x24 7f2 continue deliberately grafana loki mirror pgadmin redi
 holla gate-plan 100x25 7f2 grafana loki mirror pgadmin registry shell tmp # R-apps-4
 holla gate-plan 106x29 grafana loki mirror pgadmin shell tmp # R-apps-4
 holla gate-plan 120x40 grafana loki pgadmin shell # R-apps-4
-holla plan-review 72x20 excluded included # R-apps-1 R-apps-2 R-apps-4
+holla plan-review 72x20 excluded included # R-apps-2 R-apps-4
 holla plan-review 100x25 State ready # R-apps-2 R-apps-4
 holla plan-review 106x29 State ready # R-apps-2 R-apps-4
 holla plan-running 72x20 step # R-apps-3
@@ -56,85 +56,85 @@ holla plan-running 80x24 step # R-apps-3
 holla plan-running 100x25 step # R-apps-3
 holla plan-running 106x29 step # R-apps-3
 holla start-plan 72x20 apt get update # R-apps-14
-holla top-files 72x20 cleanup for gate same the # R-apps-1 R-apps-4
-holla top-files 80x24 cleanup for gate same the # R-apps-1 R-apps-4
+holla top-files 72x20 cleanup for gate same the # R-apps-4
+holla top-files 80x24 cleanup for gate same the # R-apps-4
 holla top-files 100x25 cleanup gate # R-apps-4
 holla top-files 106x29 gate # R-apps-4
 holla trust 72x20 Node before changes environment renewed runs when # R-apps-4 R-apps-8
-holla trust 80x24 changes runs team # R-apps-1 R-apps-6
+holla trust 80x24 changes runs team # R-apps-4 R-apps-8
 holla upgrade-plan 72x20 excluded included # R-apps-2 R-apps-4
 holla upgrade-plan 106x29 Lane ordered trunk # R-apps-2 R-apps-4
-jackin capsule 72x20 0004 0005 0007 00Z 03T09 12s 142 2026 204 2u32 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 ATTEMPTS BASE Checking EUR FAILED Finished OpenAI Opus Read Refactor RetryPolicy The add adr ahead and attempt attempts cap capped clippy close codex config const conversion crates currency daily delay dev exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger let lines loop multi origin partial pow precedes precision read reconcile refund retries retrying rounding settled status summarise target u32 unoptimized warn with # R-apps-1 R-apps-6
-jackin capsule 80x24 00Z 03T09 12s 142 2026 204 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 Checking EUR FAILED OpenAI Opus Read Refactor RetryPolicy The add ahead and attempts cap capped clippy close codex config const crates currency daily exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger lines loop multi origin partial precision read reconcile refund retries retrying settled status summarise target warn with # R-apps-1 R-apps-6
-jackin capsule 100x25 00Z 03T09 12s 142 2026 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 Checking FAILED OpenAI Opus Read Refactor RetryPolicy The add ahead and attempts clippy close codex crates currency daily exec exponential exponentially failed failure failures feature first fixed git gpt ignored integration items jitter lines loop multi origin partial precision read reconcile refund retries retrying settled status summarise warn with # R-apps-1 R-apps-6
-jackin capsule 106x29 00Z 03T09 142 2026 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 FAILED OpenAI Opus Read Refactor add ahead close codex daily exec exponentially failed failures feature first git gpt ignored integration items lines origin partial precision read refund retrying settled status summarise warn # R-apps-1 R-apps-6
-jackin capsule 120x40 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 OpenAI ahead codex exec failures gpt integration items retrying settled summarise warn # R-apps-1 R-apps-6
-jackin capsule 160x50 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 warn # R-apps-1 R-apps-6
-jackin capsule-zoom 72x20 142 2u32 BASE Opus Read Refactor The add and attempt attempts batches const delay exponential exponentially failed first fixed for jitter let lines loop pow read retries u32 with # R-apps-1 R-apps-6
-jackin capsule-zoom 80x24 142 Opus Read Refactor The add and attempts batches exponential exponentially failed first fixed lines loop read retries with # R-apps-1 R-apps-6
-jackin capsule-zoom 100x25 142 Opus Read Refactor The add and attempts batches exponential exponentially failed first fixed lines loop read retries with # R-apps-1 R-apps-6
-jackin capsule-zoom 106x29 142 Opus Read Refactor batches exponentially failed first lines read # R-apps-1 R-apps-6
-jackin cockpit 72x20 1Password Capsule Codex Grok Hardline Network OpenCode Personal Primary Sidecar Team accounts after credentials discarded injection memory quota readable resolved subscription # R-apps-1 R-apps-4 R-apps-6
-jackin cockpit 80x24 1Password Codex Grok OpenCode Personal Primary Team accounts after credentials discarded injection memory quota readable resolved subscription # R-apps-1 R-apps-4 R-apps-6
-jackin cockpit 100x25 1Password Codex Grok OpenCode Personal Primary Team accounts after credentials discarded injection memory quota readable resolved subscription # R-apps-1 R-apps-4 R-apps-6
-jackin cockpit 106x29 Grok OpenCode Primary Team subscription # R-apps-1 R-apps-4 R-apps-6
+jackin capsule 72x20 0004 0005 0007 00Z 03T09 12s 142 2026 204 2u32 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 ATTEMPTS BASE Checking EUR FAILED Finished OpenAI Opus Read Refactor RetryPolicy The add adr ahead and attempt attempts cap capped clippy close codex config const conversion crates currency daily delay dev exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger let lines loop multi origin partial pow precedes precision read reconcile refund retries retrying rounding settled status summarise target u32 unoptimized warn with # R-apps-6
+jackin capsule 80x24 00Z 03T09 12s 142 2026 204 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 Checking EUR FAILED OpenAI Opus Read Refactor RetryPolicy The add ahead and attempts cap capped clippy close codex config const crates currency daily exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger lines loop multi origin partial precision read reconcile refund retries retrying settled status summarise target warn with # R-apps-6
+jackin capsule 100x25 00Z 03T09 12s 142 2026 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 Checking FAILED OpenAI Opus Read Refactor RetryPolicy The add ahead and attempts clippy close codex crates currency daily exec exponential exponentially failed failure failures feature first fixed git gpt ignored integration items jitter lines loop multi origin partial precision read reconcile refund retries retrying settled status summarise warn with # R-apps-6
+jackin capsule 106x29 00Z 03T09 142 2026 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 FAILED OpenAI Opus Read Refactor add ahead close codex daily exec exponentially failed failures feature first git gpt ignored integration items lines origin partial precision read refund retrying settled status summarise warn # R-apps-6
+jackin capsule 120x40 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 OpenAI ahead codex exec failures gpt integration items retrying settled summarise warn # R-apps-6
+jackin capsule 160x50 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 warn # R-apps-6
+jackin capsule-zoom 72x20 142 2u32 BASE Opus Read Refactor The add and attempt attempts batches const delay exponential exponentially failed first fixed for jitter let lines loop pow read retries u32 with # R-apps-6
+jackin capsule-zoom 80x24 142 Opus Read Refactor The add and attempts batches exponential exponentially failed first fixed lines loop read retries with # R-apps-6
+jackin capsule-zoom 100x25 142 Opus Read Refactor The add and attempts batches exponential exponentially failed first fixed lines loop read retries with # R-apps-6
+jackin capsule-zoom 106x29 142 Opus Read Refactor batches exponentially failed first lines read # R-apps-6
+jackin cockpit 72x20 1Password Capsule Codex Grok Hardline Network OpenCode Personal Primary Sidecar Team accounts after credentials discarded injection memory quota readable resolved subscription # R-apps-4 R-apps-6
+jackin cockpit 80x24 1Password Codex Grok OpenCode Personal Primary Team accounts after credentials discarded injection memory quota readable resolved subscription # R-apps-4 R-apps-6
+jackin cockpit 100x25 1Password Codex Grok OpenCode Personal Primary Team accounts after credentials discarded injection memory quota readable resolved subscription # R-apps-4 R-apps-6
+jackin cockpit 106x29 Grok OpenCode Primary Team subscription # R-apps-4 R-apps-6
 jackin cockpit 120x40 Grok OpenCode Team subscription # R-apps-4 R-apps-6
 jackin cockpit 160x50 OpenCode subscription # R-apps-4 R-apps-6
 jackin cockpit-failure 72x20 build lines log # R-apps-12
 jackin cockpit-failure 80x24 build lines log # R-apps-12
 jackin cockpit-failure 100x25 build log # R-apps-12
-jackin editor-accounts 72x20 disabled globally needs ready registry secret unavailable unsupported # R-apps-1 R-apps-4
-jackin editor-accounts 80x24 globally registry # R-apps-1 R-apps-4
-jackin editor-env 72x20 Codex Pending Primary Resolution Variable credential launch never resolved sandbox stored text workspace # R-apps-1 R-apps-2
-jackin editor-env 80x24 Codex Original Pending Primary Resolution Variable credential launch never resolved sandbox stored text workspace # R-apps-1 R-apps-2
-jackin editor-env 100x25 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-1 R-apps-2
-jackin editor-env 106x29 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-1 R-apps-2
+jackin editor-accounts 72x20 disabled globally needs ready registry secret unavailable unsupported # R-apps-4
+jackin editor-accounts 80x24 globally registry # R-apps-4
+jackin editor-env 72x20 Codex Pending Primary Resolution Variable credential launch never resolved sandbox stored text workspace # R-apps-2
+jackin editor-env 80x24 Codex Original Pending Primary Resolution Variable credential launch never resolved sandbox stored text workspace # R-apps-2
+jackin editor-env 100x25 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
+jackin editor-env 106x29 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
 jackin editor-env 120x40 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
-jackin editor-mounts 72x20 Source src # R-apps-1 R-apps-3
-jackin editor-mounts 80x24 Source src # R-apps-1 R-apps-3
-jackin editor-mounts 100x25 Source src # R-apps-1 R-apps-3
-jackin editor-roles 72x20 Claude Code Kubernetes limited scope services with # R-apps-1 R-apps-4
-jackin editor-roles 80x24 Claude Code Kubernetes limited scope # R-apps-1 R-apps-4
+jackin editor-mounts 72x20 Source src # R-apps-3
+jackin editor-mounts 80x24 Source src # R-apps-3
+jackin editor-mounts 100x25 Source src # R-apps-3
+jackin editor-roles 72x20 Claude Code Kubernetes limited scope services with # R-apps-4
+jackin editor-roles 80x24 Claude Code Kubernetes limited scope # R-apps-4
 jackin launch-picker 72x20 default provider # R-apps-8
 jackin launch-picker 80x24 default # R-apps-8
-jackin manager 72x20 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager 160x50 ask exit refreshing stale # R-apps-1 R-apps-2 R-apps-8
-jackin manager-detail 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-detail 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-detail 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-detail 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-detail 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-detail 160x50 ask available exit refreshing stale unpushed # R-apps-1 R-apps-2 R-apps-8
-jackin manager-expanded 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-expanded 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-expanded 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-expanded 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-expanded 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
-jackin manager-expanded 160x50 ask available exit refreshing stale unpushed # R-apps-1 R-apps-2 R-apps-8
-jackin manager-hard 72x20 Daemon Preserved Refresh Running Usage account b111 b222 b333 b444 b555 degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
+jackin manager 72x20 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
+jackin manager 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
+jackin manager 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
+jackin manager 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
+jackin manager 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
+jackin manager 160x50 ask exit refreshing stale # R-apps-2 R-apps-8
+jackin manager-detail 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-detail 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-detail 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-detail 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-detail 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-detail 160x50 ask available exit refreshing stale unpushed # R-apps-2 R-apps-8
+jackin manager-expanded 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-expanded 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-expanded 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-expanded 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-expanded 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
+jackin manager-expanded 160x50 ask available exit refreshing stale unpushed # R-apps-2 R-apps-8
+jackin manager-hard 72x20 Daemon Preserved Refresh Running Usage account b111 b222 b333 b444 b555 degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing unavailable warnings # R-apps-2 R-apps-6 R-apps-8
 jackin manager-hard 160x50 ask refreshing # R-apps-2 R-apps-6 R-apps-8
-jackin settings 72x20 Zhokhov alexey chainargos # R-apps-1 R-apps-4
-jackin settings 80x24 alexey chainargos # R-apps-1 R-apps-4
+jackin settings 72x20 Zhokhov alexey chainargos # R-apps-4
+jackin settings 80x24 alexey chainargos # R-apps-4
 jackin settings-agents 72x20 json # R-apps-4
-jackin settings-env 72x20 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-1 R-apps-2
-jackin settings-env 80x24 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-1 R-apps-2
-jackin settings-env 100x25 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-1 R-apps-2
+jackin settings-env 72x20 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-2
+jackin settings-env 80x24 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-2
+jackin settings-env 100x25 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-2
 jackin settings-env 106x29 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-2
 jackin settings-env 120x40 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com eng01 gh01 launch never resolved stored # R-apps-2
-jackin settings-mounts 72x20 Isolation Kind Source cache host roles # R-apps-1 R-apps-3
-jackin settings-mounts 80x24 Isolation Kind Source cache host roles # R-apps-1 R-apps-3
+jackin settings-mounts 72x20 Isolation Kind Source cache host roles # R-apps-3
+jackin settings-mounts 80x24 Isolation Kind Source cache host roles # R-apps-3
 jackin settings-mounts 100x25 Source cache roles # R-apps-3
 jackin settings-mounts 106x29 Source cache roles # R-apps-3
-jackin usage 72x20 authenticated identities sentinel shows worst # R-apps-1 R-apps-4
-jackin usage 80x24 identities shows worst # R-apps-1 R-apps-4
+jackin usage 72x20 authenticated identities sentinel shows worst # R-apps-4
+jackin usage 80x24 identities shows worst # R-apps-4
 jackin usage 100x25 identities # R-apps-4
 jackin usage 106x29 authenticated identities sentinel shows worst # R-apps-4
 jackin usage 120x40 identities shows worst # R-apps-4
@@ -166,20 +166,20 @@ tablepro connections-empty 72x20 Select moves # R-apps-2
 tablepro connections-empty 80x24 Select moves # R-apps-2
 tablepro history 72x20 ANDed Copy any # R-apps-4 R-apps-7
 tablepro history 80x24 Copy # R-apps-7
-tablepro history 106x29 312 Copy # R-apps-3 R-apps-4 R-apps-6 R-apps-7
-tablepro history 120x40 312 Copy # R-apps-3 R-apps-4 R-apps-6 R-apps-7
+tablepro history 106x29 312 Copy # R-apps-3 R-apps-7
+tablepro history 120x40 312 Copy # R-apps-3 R-apps-7
 tablepro query-editing 106x29 312 # R-apps-3
 tablepro query-editing 120x40 312 # R-apps-3
 tablepro result-affected 106x29 312 # R-apps-3
 tablepro result-affected 120x40 312 # R-apps-3
-tablepro result-error 72x20 Enter Perhaps address amount currency delivered gift jumps meant notes number one result shipped shipping statement status tab the total you # R-apps-1 R-apps-5 R-apps-6
-tablepro result-error 80x24 address delivered gift notes shipped shipping # R-apps-1 R-apps-5 R-apps-6
+tablepro result-error 72x20 Enter Perhaps address amount currency delivered gift jumps meant notes number one result shipped shipping statement status tab the total you # R-apps-5 R-apps-6
+tablepro result-error 80x24 address delivered gift notes shipped shipping # R-apps-5 R-apps-6
 tablepro result-error 106x29 312 address delivered gift notes shipped shipping # R-apps-3 R-apps-5 R-apps-6
 tablepro result-error 120x40 312 delivered gift # R-apps-3 R-apps-5 R-apps-6
 tablepro result-multi 106x29 312 # R-apps-3
 tablepro result-multi 120x40 312 # R-apps-3
-tablepro result-plan 72x20 368 Actual Cost Est loop # R-apps-1 R-apps-2
-tablepro result-plan 80x24 368 Actual Cost Est loop # R-apps-1 R-apps-2
+tablepro result-plan 72x20 368 Actual Cost Est loop # R-apps-2
+tablepro result-plan 80x24 368 Actual Cost Est loop # R-apps-2
 tablepro result-plan 100x25 368 Actual Cost Est loop # R-apps-2
 tablepro result-plan 106x29 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
 tablepro result-plan 120x40 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
