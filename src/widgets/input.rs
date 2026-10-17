@@ -3,11 +3,15 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Modifier;
 
-use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect};
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect, TextCmd};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{BlurAction, request_focus_next};
 use crate::core::id::WidgetId;
 use crate::ui::ctx::RenderCtx;
+use crate::ui::edit_menu::{
+    EditCaps, EditMenu, EditMenuHost, edit_menu_key, edit_menu_pointer, edit_menu_route,
+    editable_target, point_editable,
+};
 use crate::ui::text::width;
 use crate::widgets::edit::{EditField, Editable, FieldError, LineLook, ValidateWhen, Validator};
 use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, paste_clipboard};
@@ -100,6 +104,10 @@ pub struct TextInput {
     pub readout_link: Option<WidgetId>,
     /// Where the readout was drawn in the last render.
     pub readout_area: Rect,
+    /// The standard Edit context menu (Cut, Copy, Paste, Select all) a
+    /// secondary click or Shift+F10 / the Menu key opens
+    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+    pub edit_menu: EditMenu,
 }
 
 /// Which ended edits (Enter, Tab, Esc, blur) validate the value.
@@ -165,6 +173,7 @@ impl TextInput {
             readout: String::new(),
             readout_link: None,
             readout_area: Rect::ZERO,
+            edit_menu: EditMenu::default(),
         }
     }
 
@@ -242,6 +251,12 @@ impl TextInput {
     }
     pub fn masked(mut self) -> Self {
         self.masked = true;
+        self
+    }
+    /// Whether a secondary click or a context key opens the Edit menu
+    /// ([`EditMenu::enabled`]). Default `true`.
+    pub fn context_menu(mut self, on: bool) -> Self {
+        self.edit_menu.enabled = on;
         self
     }
     pub fn reveal_tail(mut self, n: u8) -> Self {
@@ -331,6 +346,10 @@ impl TextInput {
     /// Edit` while an [`EditEntry::Explicit`] field waits.
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
         use crate::widgets::keyhint::EDIT_FIELD;
+        // the open Edit menu's keys while it holds the keyboard
+        if let Some(m) = self.edit_menu.menu() {
+            return crate::core::hints::HasHints::hints(m, &crate::core::hints::HintCx::new(None));
+        }
         if self.disabled {
             Vec::new()
         } else if self.wants_text_input() {
@@ -530,6 +549,13 @@ impl TextInput {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
+        // the open Edit menu takes the keys; Shift+F10 opens it
+        if let Some(o) = edit_menu_key(self, key) {
+            return (
+                o,
+                self.edit_menu.take_edited().then_some(InputAction::Changed),
+            );
+        }
         // Ctrl+C copies only a selection; with nothing selected it is not
         // the field's, so it reaches the app's quit guard
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
@@ -708,6 +734,18 @@ impl TextInput {
         ctx: &mut RenderCtx,
         bg: ratatui::style::Color,
     ) {
+        self.render_field(area, buf, ctx, bg);
+        // the Edit menu floats above everything drawn after the field
+        self.edit_menu.render(self.area, buf, ctx);
+    }
+
+    fn render_field(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
         let required = ctx.theme.strings.required;
         if self.required_text != required {
             let old = std::mem::replace(&mut self.required_text, required);
@@ -744,8 +782,12 @@ impl TextInput {
         }
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
+        // under its open Edit menu the field shows no focus (the menu holds
+        // the one indicator) but keeps its edit, caret column and selection
+        let menu_open = self.edit_menu.is_open();
+        s.focused = ctx.interaction.focused_under(self.id, menu_open);
         s.disabled = self.disabled;
-        s.editing = self.editing && s.focused;
+        s.editing = self.editing && (s.focused || (menu_open && has_focus));
         s.error = self.field.error.is_some();
         if self.disabled {
             s.hovered = false;
@@ -1017,12 +1059,57 @@ impl crate::core::pointer::MouseTarget for TextInput {
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
         let pos = ev.pos();
+        if let Some(o) = edit_menu_pointer(self, ev) {
+            return o.into();
+        }
         match ev.phase() {
             Some(Phase::Press) => self.on_press_count(pos, ev.count().max(1)).into(),
             Some(Phase::Drag) => self.on_drag(pos).into(),
             Some(Phase::Click) => self.on_click_count(pos, ev.count().max(1)).into(),
             _ => crate::core::response::Response::ignored(),
         }
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<()>> {
+        edit_menu_route(self, ev)
+    }
+}
+
+/// The field's Edit menu: Cut, Copy, Paste, Select all through its
+/// [`EditField`]; a masked value is never copied.
+impl EditMenuHost for TextInput {
+    fn edit_menu(&mut self) -> &mut EditMenu {
+        &mut self.edit_menu
+    }
+    fn edit_owner(&self) -> WidgetId {
+        self.id
+    }
+    fn edit_caps(&self) -> EditCaps {
+        let mut caps = EditCaps::of(&self.field).secret(self.masked);
+        caps.editable &= !self.disabled;
+        caps
+    }
+    fn edit_shortcut(&self, cmd: TextCmd) -> Option<String> {
+        self.field.shortcut(cmd)
+    }
+    fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        editable_target(self, ev)
+    }
+    fn edit_point(&mut self, pos: Position) {
+        point_editable(self, pos);
+    }
+    fn edit_run(&mut self, cmd: TextCmd) -> bool {
+        if self.masked && matches!(cmd, TextCmd::Cut | TextCmd::Copy) {
+            return false;
+        }
+        if !self.editing {
+            self.begin_edit();
+        }
+        self.sync_required();
+        self.field.run(cmd).edited
     }
 }
 
