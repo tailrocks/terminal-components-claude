@@ -124,8 +124,9 @@ pub struct EditState {
     pub field: EditField,
 }
 
-/// The table with every column in view (no sideways scroll): the gutter,
-/// the selection checkboxes, each column at its width and the gaps, the
+/// The table with every column in view (no sideways scroll) and every
+/// cell whole: the gutter, the selection checkboxes, each column at its
+/// set width or (one that grows) its widest cell and title, the gaps, the
 /// vertical bar's column; as tall as its header and every row (an owner
 /// that shows fewer rows lets the table scroll them).
 impl crate::ui::measure::Measure for DataTable {
@@ -136,10 +137,30 @@ impl crate::ui::measure::Measure for DataTable {
         } else {
             0
         };
-        let cols: u16 = (0..n)
-            .map(|i| self.sizing.width(i, self.columns[i].min_width()))
-            .sum::<u16>()
-            + 2 * n.saturating_sub(1) as u16;
+        // a column of set width keeps it; one that grows is as wide as its
+        // title (and sort mark) and its widest cell
+        let col = |i: usize| -> u16 {
+            if let Some(w) = self.sizing.user(i) {
+                return w;
+            }
+            let c = &self.columns[i];
+            match c.width {
+                Constraint::Length(n) => n,
+                _ => {
+                    let cells = self
+                        .rows
+                        .iter()
+                        .filter_map(|r| r.get(i))
+                        .map(|cell| crate::ui::text::width(&cell.text) as u16)
+                        .max()
+                        .unwrap_or(0);
+                    c.min_width()
+                        .max(crate::ui::text::width(&c.title) as u16 + 2)
+                        .max(cells)
+                }
+            }
+        };
+        let cols: u16 = (0..n).map(col).sum::<u16>() + 2 * n.saturating_sub(1) as u16;
         ratatui::layout::Size::new(cols + 5 + check_w + 1, 1 + self.rows.len().max(1) as u16)
     }
 }
