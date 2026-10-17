@@ -16,7 +16,9 @@ use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width, wrap};
+use junie_tui::widgets::edit::EditField;
 use junie_tui::widgets::empty::{self, EmptyState};
+use junie_tui::widgets::field_common::EditAction;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
@@ -59,7 +61,7 @@ enum Row {
 
 pub struct FinderPage {
     pub group: Option<&'static str>,
-    pub query: String,
+    pub query: EditField,
     pub scope: Scope,
     items: Vec<Item>,
     /// Catalogue warnings (id collisions, configuration diagnostics, failed
@@ -90,18 +92,35 @@ pub struct FinderPage {
     /// The item id whose preview is shown; the preview scroll resets when
     /// it changes.
     previewed: Option<String>,
-    /// The whole query is selected: the next edit replaces it.
-    select_all: bool,
-    undo: Vec<String>,
-    redo: Vec<String>,
     last_tick: u64,
+}
+
+/// The finder's query: the shared one-line text field (K36), under the
+/// finder's keys (HP02): Ctrl+A selects the query, Ctrl+Z undoes, Ctrl+Y
+/// and Ctrl+Shift+Z redo, and the Cmd chords where the terminal delivers
+/// them. Ctrl+W stays with the shell (close tab); Ctrl+Backspace and
+/// Alt+Backspace delete a word, Ctrl+U clears.
+fn query_field() -> EditField {
+    use junie_tui::core::edit::{CMD_TEXT_KEYS, TextCmd};
+    use junie_tui::core::keymap::KeyBinding;
+    let mut keys = CMD_TEXT_KEYS.to_vec();
+    keys.extend([
+        (KeyBinding::ctrl('a'), TextCmd::SelectAll),
+        (KeyBinding::ctrl('z').shift(), TextCmd::Redo),
+        (KeyBinding::ctrl('Z'), TextCmd::Redo),
+        (KeyBinding::ctrl('y'), TextCmd::Redo),
+        (KeyBinding::ctrl('z'), TextCmd::Undo),
+    ]);
+    let mut f = EditField::single("");
+    f.text_keymap = Some(keys);
+    f
 }
 
 impl FinderPage {
     pub fn new(group: Option<&'static str>) -> Self {
         Self {
             group,
-            query: String::new(),
+            query: query_field(),
             scope: Scope::Here,
             items: vec![],
             warnings: vec![],
@@ -121,9 +140,6 @@ impl FinderPage {
             rebuilds: 0,
             query_changed: false,
             previewed: None,
-            select_all: false,
-            undo: vec![],
-            redo: vec![],
             last_tick: u64::MAX,
         }
     }
@@ -154,22 +170,22 @@ impl FinderPage {
         let (items, warnings) = crate::domain::catalog::build_with_warnings(w);
         self.items = items;
         self.warnings = warnings;
-        let learned = if crate::domain::ranking::Query::parse(&self.query).is_empty() {
+        let learned = if crate::domain::ranking::Query::parse(self.query.text()).is_empty() {
             None
         } else {
             w.memory
                 .usage
-                .learned_for(&self.query, &w.host.name)
+                .learned_for(self.query.text(), &w.host.name)
                 .map(str::to_owned)
         };
         let ranked = crate::domain::ranking::search_with(
             &self.items,
-            &self.query,
+            self.query.text(),
             self.scope,
             self.group,
             learned.as_deref(),
         );
-        let has_query = !crate::domain::ranking::Query::parse(&self.query).is_empty();
+        let has_query = !crate::domain::ranking::Query::parse(self.query.text()).is_empty();
         let mut rows = vec![];
         if let Some(g) = self.group {
             rows.push(Row::Heading(format!(
@@ -425,59 +441,36 @@ impl FinderPage {
         }
     }
 
-    fn set_query(&mut self, q: String) {
-        self.query = q;
+    /// The query text changed: rebuild, the cursor goes to the best match.
+    fn query_edited(&mut self) {
         self.dirty = true;
         self.query_changed = true;
         self.scroll.jump_start();
     }
 
-    /// One user edit: remembered for undo, drops the redo branch, clears a
-    /// whole-query selection.
-    fn edit(&mut self, q: String) {
-        if q == self.query {
-            self.select_all = false;
+    /// The whole query is selected: typing replaces it.
+    fn query_selected(&self) -> bool {
+        !self.query.text().is_empty()
+            && self.query.buffer.selected_text() == Some(self.query.text())
+    }
+
+    /// Apply `action` to the query (the shared text field) and rebuild
+    /// when the text changed.
+    fn query_apply(&mut self, action: EditAction, key: &Key) -> Outcome {
+        if self.query.apply(action, key).edited {
+            self.query_edited();
+        }
+        Outcome::Changed
+    }
+
+    /// Empty the query as one undoable edit.
+    fn clear_query(&mut self) {
+        if self.query.text().is_empty() {
             return;
         }
-        self.undo.push(self.query.clone());
-        if self.undo.len() > 100 {
-            self.undo.remove(0);
-        }
-        self.redo.clear();
-        self.select_all = false;
-        self.set_query(q);
-    }
-
-    fn undo(&mut self) -> bool {
-        let Some(prev) = self.undo.pop() else {
-            return false;
-        };
-        self.redo.push(self.query.clone());
-        self.select_all = false;
-        self.set_query(prev);
-        true
-    }
-
-    fn redo(&mut self) -> bool {
-        let Some(next) = self.redo.pop() else {
-            return false;
-        };
-        self.undo.push(self.query.clone());
-        self.select_all = false;
-        self.set_query(next);
-        true
-    }
-
-    fn delete_word(&mut self) {
-        let trimmed = self.query.trim_end();
-        let cut = trimmed
-            .char_indices()
-            .rev()
-            .find(|(_, c)| c.is_whitespace())
-            .map(|(i, _)| i + 1)
-            .unwrap_or(0);
-        let q = self.query[..cut].to_owned();
-        self.edit(q);
+        self.query.record(junie_tui::core::edit::EditKind::Other);
+        self.query.buffer.set_text("");
+        self.query_edited();
     }
 
     fn primary_hint(&self) -> Hint {
@@ -661,7 +654,7 @@ impl FinderPage {
         let Some(it) = self.current().cloned() else {
             let hint_text = if self.rows.iter().any(|r| matches!(r, Row::Item(..))) {
                 "↑↓ moves the cursor"
-            } else if self.query.trim().is_empty() {
+            } else if self.query.text().trim().is_empty() {
                 "Ctrl+↑ widens the scope"
             } else {
                 "Esc clears the query"
@@ -771,7 +764,8 @@ impl FinderPage {
         self.scope_area = Rect::new(rx, area.y, rw, 1);
         ctx.clickable(SCOPE, self.scope_area);
         let text_w = rx.saturating_sub(area.x + 3) as usize;
-        if self.query.is_empty() {
+        let query = self.query.text().to_owned();
+        if query.is_empty() {
             let placeholder = match self.group {
                 Some(g) => format!("Search {}…", g.to_lowercase()),
                 None => "Search actions and resources…".into(),
@@ -783,12 +777,12 @@ impl FinderPage {
                 fs.fg(t.text_muted),
             );
         } else {
-            let shown = if width(&self.query) > text_w {
-                truncate_middle(&self.query, text_w)
+            let shown = if width(&query) > text_w {
+                truncate_middle(&query, text_w)
             } else {
-                self.query.clone()
+                query.clone()
             };
-            let st = if self.select_all {
+            let st = if self.query_selected() {
                 fs.fg(t.canvas).bg(t.accent)
             } else if focused {
                 // neutral underline: the bar is the row's one green cue
@@ -800,7 +794,7 @@ impl FinderPage {
             buf.set_string(area.x + 2, area.y, &shown, st);
         }
         if focused {
-            let cx = area.x + 2 + width(&self.query).min(text_w) as u16;
+            let cx = area.x + 2 + width(&query).min(text_w) as u16;
             ctx.set_cursor(Position::new(cx, area.y));
         }
     }
@@ -828,8 +822,8 @@ impl FinderPage {
             .iter()
             .all(|r| !matches!(r, Row::Item(..) | Row::Explore(_)))
         {
-            let title = if !self.query.trim().is_empty() {
-                format!("No matches for “{}”", truncate(&self.query, 30))
+            let title = if !self.query.text().trim().is_empty() {
+                format!("No matches for “{}”", truncate(self.query.text(), 30))
             } else {
                 match self.scope {
                     Scope::Parent => format!("No project root above {}", w.location.cwd_short()),
@@ -1202,65 +1196,44 @@ impl ShellPage<Holla> for FinderPage {
                     cx.go(Go::Scope(self.scope.inward()));
                     Outcome::Changed
                 }
-                // query editing chords (HP02): selection, undo, redo, word
-                // deletion, clear
-                KeyCode::Char('a') => {
-                    self.select_all = !self.query.is_empty();
-                    cx.status(if self.select_all {
-                        "Query selected · typing replaces it"
-                    } else {
-                        "Nothing to select"
-                    });
-                    Outcome::Changed
-                }
-                KeyCode::Char('z') if !key.shift() => {
-                    cx.status(if self.undo() {
-                        "Undone"
-                    } else {
-                        "Nothing to undo"
-                    });
-                    Outcome::Changed
-                }
-                KeyCode::Char('y') | KeyCode::Char('Z') => {
-                    cx.status(if self.redo() {
-                        "Redone"
-                    } else {
-                        "Nothing to redo"
-                    });
-                    Outcome::Changed
-                }
-                KeyCode::Char('z') => {
-                    cx.status(if self.redo() {
-                        "Redone"
-                    } else {
-                        "Nothing to redo"
-                    });
-                    Outcome::Changed
-                }
-                // Ctrl+W belongs to the shell (close tab): word deletion is
-                // Ctrl+Backspace or Alt+Backspace
-                KeyCode::Backspace => {
-                    if self.select_all {
-                        self.edit(String::new());
-                    } else {
-                        self.delete_word();
+                // Ctrl+W belongs to the shell (close tab)
+                KeyCode::Char('w') | KeyCode::Char('W') => Outcome::Ignored,
+                // query editing chords (HP02) through the shared field:
+                // selection, undo, redo, word deletion, clear
+                _ => match self.query.action(key) {
+                    EditAction::SelectAll => {
+                        let any = !self.query.text().is_empty();
+                        self.query_apply(EditAction::SelectAll, key);
+                        cx.status(if any {
+                            "Query selected · typing replaces it"
+                        } else {
+                            "Nothing to select"
+                        });
+                        Outcome::Changed
                     }
-                    Outcome::Changed
-                }
-                KeyCode::Char('u') => {
-                    self.edit(String::new());
-                    Outcome::Changed
-                }
-                _ => Outcome::Ignored,
+                    EditAction::Undo => {
+                        let can = self.query.can_undo();
+                        self.query_apply(EditAction::Undo, key);
+                        cx.status(if can { "Undone" } else { "Nothing to undo" });
+                        Outcome::Changed
+                    }
+                    EditAction::Redo => {
+                        let can = self.query.can_redo();
+                        self.query_apply(EditAction::Redo, key);
+                        cx.status(if can { "Redone" } else { "Nothing to redo" });
+                        Outcome::Changed
+                    }
+                    a @ (EditAction::Apply(_)
+                    | EditAction::Paste
+                    | EditAction::Copy
+                    | EditAction::Cut) => self.query_apply(a, key),
+                    _ => Outcome::Ignored,
+                },
             };
         }
         if key.alt() && key.code == KeyCode::Backspace {
-            if self.select_all {
-                self.edit(String::new());
-            } else {
-                self.delete_word();
-            }
-            return Outcome::Changed;
+            let a = self.query.action(key);
+            return self.query_apply(a, key);
         }
         match key.code {
             KeyCode::Up => {
@@ -1312,33 +1285,18 @@ impl ShellPage<Holla> for FinderPage {
                 Outcome::Changed
             }
             KeyCode::Enter => self.activate_current(cx),
+            KeyCode::Backspace if self.query.text().is_empty() => Outcome::Consumed,
             KeyCode::Backspace => {
-                if self.select_all {
-                    self.edit(String::new());
-                    return Outcome::Changed;
-                }
-                let mut q = self.query.clone();
-                // one grapheme, never one code unit
-                let cut =
-                    unicode_segmentation::UnicodeSegmentation::grapheme_indices(q.as_str(), true)
-                        .next_back()
-                        .map(|(i, _)| i);
-                match cut {
-                    Some(i) => {
-                        q.truncate(i);
-                        self.edit(q);
-                        Outcome::Changed
-                    }
-                    None => Outcome::Consumed,
-                }
+                let a = self.query.action(key);
+                self.query_apply(a, key)
             }
             KeyCode::Esc => {
-                if self.select_all {
-                    self.select_all = false;
+                if self.query_selected() {
+                    self.query.buffer.clear_selection();
                     return Outcome::Changed;
                 }
-                if !self.query.is_empty() {
-                    self.edit(String::new());
+                if !self.query.text().is_empty() {
+                    self.clear_query();
                     return Outcome::Changed;
                 }
                 if self.scope != Scope::Here {
@@ -1347,16 +1305,7 @@ impl ShellPage<Holla> for FinderPage {
                 }
                 Outcome::Ignored
             }
-            KeyCode::Char(c) if !key.chord() => {
-                let mut q = if self.select_all {
-                    String::new()
-                } else {
-                    self.query.clone()
-                };
-                q.push(c);
-                self.edit(q);
-                Outcome::Changed
-            }
+            KeyCode::Char(c) if !key.chord() => self.query_apply(EditAction::Insert(c), key),
             _ => Outcome::Ignored,
         }
     }
@@ -1365,15 +1314,10 @@ impl ShellPage<Holla> for FinderPage {
         // a pasted block is one edit on one line
         let flat: String = text.split(['\n', '\r']).collect::<Vec<_>>().join(" ");
         let flat = flat.trim().to_owned();
-        if flat.is_empty() {
+        if flat.is_empty() || !self.query.paste(&flat) {
             return Outcome::Consumed;
         }
-        let q = if self.select_all {
-            flat
-        } else {
-            format!("{}{flat}", self.query)
-        };
-        self.edit(q);
+        self.query_edited();
         Outcome::Changed
     }
 
@@ -1565,7 +1509,7 @@ impl ShellPage<Holla> for FinderPage {
             hint("Tab", "Preview"),
             hint("Ctrl+↑↓", "Scope"),
         ];
-        v.push(if !self.query.is_empty() {
+        v.push(if !self.query.text().is_empty() {
             hint("Esc", "Clear")
         } else if self.scope != Scope::Here {
             hint("Esc", "Back to Here")
