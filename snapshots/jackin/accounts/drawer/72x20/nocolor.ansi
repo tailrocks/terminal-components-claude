@@ -5,7 +5,7 @@
  │  Agent runtime       Claude Code                                 ┃ │ [0m
  │  Usage surface       Claude                                      ┃ │ [0m
  │  Identity            alexey@chainargos.com                       ┃ │ [0m
- │  Plan                Team                                        ┆ │ [0m
+ │ [0m[1m Pla[0mn[0m[1m                Team                           [0m            [0m[1m [0m┆ │ [0m
  │  Credential          1Password · Engineering › Anthropic · Work  ┆ │ [0m
  │                      › credential                                ┆ │ [0m
  │  [0m[2m                    chainargos.1password.com ·                  [0m┆ │ [0m

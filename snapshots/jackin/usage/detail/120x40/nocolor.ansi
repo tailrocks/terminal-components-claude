@@ -3,7 +3,7 @@
  ╭─[0m[1m Usage · read-only [0m─────────────────────────────────────────────────────────────────────────────── ⠋ refreshing 1 ─╮ [0m
  │     Overview                             [0m[1mClaude · Personal[0m                                                      ok │ [0m
  │    Anthropic                                                                                                       │ [0m
- │   ›   Personal  ★                        Provider     Anthropic / Claude · surface Claude                          │ [0m
+ │  [0m[1m ›   Personal  ★                      [0m  Provider     Anthropic / Claude · surface Claude                          │ [0m
  │       Archived contractor la… disabled   Account      alexey@donbeave.dev · Max 5x                                 │ [0m
  │       Work                           !   Credential   Local folder · ~/.claude                                     │ [0m
  │    OpenAI                                Status       available · current · refreshed 4 min ago                    │ [0m
