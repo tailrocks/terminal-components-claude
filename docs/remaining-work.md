@@ -142,7 +142,7 @@ never in view at the smallest failing size.
 | R48 | AccountsUsage | Playground | done: Page::measure (the accounts card at `MasterDetail::natural_width`: the tree at its measure beside an inspector of at least 40 columns, whose warning wraps and whose facts and meter details cut and reveal; as tall as the tree or the inspector at its pane width; the usage table at its min width under it). 120x40 unchanged | — |
 | R49 | LaunchCockpit | Playground | done: Page::measure (rail at 30 beside the log, the log asking at most 48 columns: it wraps or scrolls itself) | — |
 | R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, ButtonRow::width; notices wrap, asking at most 40 columns) | — |
-| R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
+| R51 | Forms | Playground | done: Page::measure (two columns when both fit whole: the fields at their measure, the description at its min width, `Checkbox::width`, `RadioGroup::width`, `Toggle::width`; as tall as the taller column, never compact; else one column of parts with their Task, Review and Options headings and the full description); the description's placeholder wraps over its rows (`TextArea`) | — |
 | R52 | Sidebars | Playground | done: Page::measure (content card wraps to the room, as tall as its wrapped lines; the nav scrolls itself) | — |
 | R53 | Settings | Playground | done: Page::measure (two columns when both fit, else stacked; the description at TextArea::min_width) | — |
 | R54 | TaskRunner | Playground | done: Page::measure (pipeline as wide as its two buttons) | — |
