@@ -97,7 +97,7 @@ never in view at the smallest failing size.
 | R5 | HelpKeys | Playground | **Done** (reach-a): `measure` through `tiles`: the reference card keeps its 58 columns (`Tile::fixed`, so "full" wraps at 54 at every size) beside the overlay card and its note, stacked when they do not fit; long facts wrap | — |
 | R6 | QuitLeave | Playground | **Done** (reach-a): `measure` through `tiles`: the document card and the classify card side by side when both fit whole (buttons on one row, the classify table at its columns), stacked otherwise; facts wrap; the notes wrap to the card | — |
 | R7 | FocusNavigation | Playground | **Done** (reach-a): `measure` through `ui::measure::tiles` (ring and readout, list and `Nav` map side by side when they fit, stacked otherwise; the keys card under them); the readouts are `props` sheets whose long values wrap; the mailbox list shows all 12 mailboxes | — |
-| R8 | Buttons | Playground | 80x24, 100x25, 106x29, 120x40 | `190 Button Close Copy Danger Duplicate Edit Explain` |
+| R8 | Buttons | Playground | **Done** (reach-a): `measure`: never narrower than every card with its buttons on one row (`ButtonRow::width`, `ActionRow::width`), its notes and captions; heights from the sections; the row readout says `full width` instead of a size-dependent number when the row fills the card | — |
 | R9 | Inputs | Playground | 80x24, 100x25, 106x29, 120x40 | `Alt Apply Cancel Cmd Copy Ctrl Cut Deleting` |
 | R10 | TextAreas | Playground | 80x24, 100x25, 106x29, 120x40 | `API Commit Junie Plan Reading Review Use add` |
 | R11 | Chips | Playground | 80x24, 100x25, 106x29, 120x40 | `100 120 5432 Acme Add Applies Empty Engine` |
