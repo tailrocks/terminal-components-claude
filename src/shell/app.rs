@@ -25,8 +25,12 @@ use crate::widgets::hintbar::HintKeys;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::too_small::TooSmall;
 
-use super::{Cx, Request, StatusLine};
+use super::{Clipboard, Copied, Cx, Request, StatusLine};
+use crate::clock::Moment;
+use crate::theme::Strings;
 use crate::ui::context::ContextConfig;
+use crate::ui::leave::{LeaveGuard, Stakes};
+use crate::widgets::dialog::Dialog;
 
 /// Which page of an app is mounted, for focus upkeep: when it changes,
 /// focus that lost its control goes to the new page's
@@ -87,6 +91,9 @@ pub struct Shell<P = ()> {
     /// Which keys open a context menu, handed to every page's [`Cx`]
     /// ([`ContextConfig::DEFAULT`] unless the app sets one).
     pub context: ContextConfig,
+    /// How a copy reaches the system clipboard ([`Clipboard`]; every
+    /// [`Request::Copy`] goes through [`Self::copy_at`]).
+    pub clipboard: Clipboard,
     footer: Option<FooterDrawn>,
     page: Option<PageKey>,
 }
@@ -94,6 +101,18 @@ pub struct Shell<P = ()> {
 impl<P> Default for Shell<P> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<P: Default> Shell<P> {
+    /// Copy `text` ([`Request::Copy`]) through [`Self::clipboard`] and
+    /// report the true result on the status line
+    /// ([`Clipboard::report`]).
+    pub fn copy_at(&mut self, text: &str, now: Moment) -> Copied {
+        let r = self.clipboard.copy(text);
+        let (msg, tone) = Clipboard::report(&r, text);
+        self.status.set_at(msg, tone, now);
+        r
     }
 }
 
@@ -113,6 +132,7 @@ impl<P> Shell<P> {
             focus_fallback: FocusFallback::Nearest,
             footer_keys: HintKeys::default(),
             context: ContextConfig::DEFAULT,
+            clipboard: Clipboard::new(),
             footer: None,
             page: None,
         }
@@ -152,6 +172,20 @@ impl<P> Shell<P> {
         } else {
             (o, super::background(reqs).collect())
         }
+    }
+
+    /// Quit through `guard`: a clean app (`stakes`) quits now; otherwise
+    /// the guard's question comes back for the app to open (its answer
+    /// goes to [`LeaveGuard::resolve`]).
+    pub fn quit_through<T: Clone>(
+        &mut self,
+        guard: &mut LeaveGuard<T>,
+        stakes: &Stakes,
+        strings: &Strings,
+    ) -> Result<(), Box<Dialog>> {
+        guard.request_quit(stakes, strings)?;
+        self.quit = true;
+        Ok(())
     }
 
     /// Move focus to the next control of the ring.
@@ -301,6 +335,13 @@ pub trait App {
         None
     }
 
+    /// What quitting would lose: every page and layer that is not clean
+    /// ([`Stakes::max`]). Default [`Stakes::Clean`]. The quit keys and a
+    /// menu's Quit go through [`Shell::quit_through`] with it.
+    fn stakes(&mut self) -> Stakes {
+        Stakes::Clean
+    }
+
     /// See [`Application::coalesce`].
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
@@ -442,6 +483,9 @@ impl<A: App> Application for A {
     }
     fn keyboard_protocol(&self) -> KeyboardProtocol {
         App::keyboard_protocol(self)
+    }
+    fn take_output(&mut self) -> Vec<String> {
+        super::clipboard::take_output()
     }
 }
 
