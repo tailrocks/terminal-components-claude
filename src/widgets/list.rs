@@ -936,6 +936,34 @@ mod reveal_tests {
         assert_eq!(focused.fg, theme.accent);
     }
 
+    /// SV14, SV1: the chosen row is set apart without colour, by weight,
+    /// focused or not and at every colour level; the other rows are not.
+    #[test]
+    fn the_chosen_row_is_bold_at_every_colour_level() {
+        for level in crate::theme::ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            let mut l = list();
+            l.chosen = Some(1);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 3));
+            l.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, theme.canvas);
+            assert!(
+                buf[(3, 1)]
+                    .modifier
+                    .contains(ratatui::style::Modifier::BOLD),
+                "{level:?}"
+            );
+            assert!(
+                !buf[(3, 0)]
+                    .modifier
+                    .contains(ratatui::style::Modifier::BOLD),
+                "{level:?}"
+            );
+        }
+    }
+
     #[test]
     fn meta_tone_colours_the_metadata_and_defaults_to_muted() {
         let theme = Theme::junie();
