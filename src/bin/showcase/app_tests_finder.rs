@@ -25,8 +25,7 @@ fn the_finder_ranks_the_query_and_previews_the_best_match() {
     let text = h.text();
     assert!(!text.contains("arrives with SC48"), "{text}");
     for want in [
-        "Here",
-        "Everywhere",
+        "scope ‹ here ›",
         "Results",
         "Pull",
         "Push",
@@ -48,9 +47,23 @@ fn typing_ranks_live_and_the_scope_widens_the_catalogue() {
         h.key(KeyCode::Char(c));
     }
     assert!(!h.text().contains("Compose up"), "out of scope here");
-    let (x, y) = h.find("Project").unwrap();
-    h.click(x + 1, y);
+    // the scope readout sits inside the query field; a click widens it
+    let r = page(&h).query.readout_area;
+    assert_eq!(r.y, page(&h).query.area.y, "on the field row");
+    assert!(h.text().contains("scope ‹ here ›"));
+    h.click(r.x + 2, r.y);
+    assert_eq!(page(&h).scope, 1);
+    assert!(h.text().contains("scope ‹ project ›"));
     assert!(h.text().contains("Compose up"), "{}", h.text());
+    // Alt+↑ widens from the keyboard, Alt+↓ narrows again
+    h.focus(page(&h).query.id);
+    h.key_mod(KeyCode::Up, KeyModifiers::ALT);
+    assert_eq!(page(&h).scope, 2);
+    h.key_mod(KeyCode::Down, KeyModifiers::ALT);
+    h.key_mod(KeyCode::Down, KeyModifiers::ALT);
+    assert_eq!(page(&h).scope, 0);
+    assert!(!h.text().contains("Compose up"));
+    assert_eq!(page(&h).query.text(), "co", "the keys never typed");
     // a query nothing matches says so
     h.opt("finder.query=nomatch");
     assert!(h.text().contains("No matches"), "{}", h.text());

@@ -1,18 +1,20 @@
 //! Finder (Screens, plan §7.5 SC48): holla's finder composed from the
 //! library only. A typing-hot query (`TextInput`, ranked live with
-//! `ui::text::fuzzy`) with a scope strip (`Tabs`), the ranked results
+//! `ui::text::fuzzy`) with its scope readout inside the field
+//! (`TextInput::readout` as a link: a click widens it, Alt+↑↓ step it),
+//! the ranked results
 //! (`DataTable`, grouped by kind), and a preview card (`props`) with
 //! Alternatives… (a `ContextMenu`) and Why? (an `InfoDialog`); on a narrow
 //! page the preview folds to a one-line summary (`segments`). Options:
 //! `crate::options::FINDER`.
 //!
 //! Gaps (recorded in docs/remaining-work.md SC48): the query owning the
-//! list (`FilterList`, S21: today ↑↓ need Tab into the table), the scope
-//! readout inside the field (`TextInput::readout`, S17), `DataTable`
+//! list (`FilterList`, S21: today ↑↓ need Tab into the table), `DataTable`
 //! group rows and match ranges (S24; today a Group column and plain
 //! text).
 
 use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Rect};
 
 use crate::app::PageId;
@@ -41,12 +43,13 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction};
-use junie_tui::widgets::tabs::{TabAction, Tabs};
 
 const ID: WidgetId = WidgetId::of("finder");
 const ALTS: WidgetId = ID.sub("alternatives-menu");
 const WHY: WidgetId = ID.sub("why-dialog");
 const SCOPES: &[&str] = &["Here", "Project", "Everywhere"];
+/// The scope readout inside the query: a link that widens the scope.
+const SCOPE_LINK: WidgetId = ID.sub("scope");
 /// Page width from which the preview is a card beside the results.
 const CARD_MIN: u16 = 90;
 
@@ -231,7 +234,8 @@ pub struct FinderPage {
     template: Template,
     opts: PageValues,
     pub query: TextInput,
-    pub scope: Tabs,
+    /// The scope: an index into `SCOPES` (0 here, 1 project, 2 everywhere).
+    pub scope: usize,
     pub results: DataTable,
     /// `ACTIONS` index of each result row.
     shown: Vec<usize>,
@@ -248,7 +252,7 @@ impl FinderPage {
             query: TextInput::new(ID.sub("query"), "")
                 .placeholder("Search actions, files and tasks")
                 .plain_label(),
-            scope: Tabs::new(ID.sub("scope"), SCOPES),
+            scope: 0,
             results: DataTable::new(ID.sub("results"), vec![], vec![]),
             shown: Vec::new(),
             alternatives: Button::secondary(ID.sub("alternatives"), "Alternatives…"),
@@ -269,14 +273,21 @@ impl FinderPage {
         self.query = TextInput::new(ID.sub("query"), "")
             .placeholder("Search actions, files and tasks")
             .plain_label()
+            .readout_link(SCOPE_LINK)
             .value(q);
         let scope = match self.opts.value("finder.scope") {
             "project" => 1,
             "everywhere" => 2,
             _ => 0,
         };
-        self.scope.set_active(scope);
-        self.scope.cursor = scope;
+        self.set_scope(scope);
+    }
+
+    /// Show `scope` in the query's readout and rank again for it.
+    pub fn set_scope(&mut self, scope: usize) {
+        self.scope = scope.min(SCOPES.len() - 1);
+        self.query
+            .set_readout(&format!("scope ‹ {} ›", SCOPES[self.scope].to_lowercase()));
         self.rerank();
     }
 
@@ -294,7 +305,7 @@ impl FinderPage {
 
     /// Rank again for the query and scope; the best match takes the cursor.
     fn rerank(&mut self) {
-        self.shown = rank(self.query.text(), self.scope.active);
+        self.shown = rank(self.query.text(), self.scope);
         let risk = self.opts.on("finder.risk_column");
         let rows = self
             .shown
@@ -312,10 +323,7 @@ impl FinderPage {
                 row
             })
             .collect();
-        let total = ACTIONS
-            .iter()
-            .filter(|a| a.scope <= self.scope.active)
-            .count();
+        let total = ACTIONS.iter().filter(|a| a.scope <= self.scope).count();
         self.results = DataTable::new(ID.sub("results"), self.columns(), rows).empty(
             EmptyState::new("No matches").hint(&format!(
                 "Nothing among {total} actions here matches; try Everywhere"
@@ -393,29 +401,10 @@ impl FinderPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the query and its scope strip side by side; stacked when the
-        // strip would not show every scope
-        let scope_w = 34;
-        let side = area.width >= scope_w + 30;
-        let q_w = if side {
-            area.width - scope_w - 2
-        } else {
-            area.width
-        };
+        // the query with its scope readout inside the field
         self.query
-            .render(Rect::new(area.x, area.y, q_w, 2), buf, ctx, t.canvas);
-        let (sx, sy) = if side {
-            (area.right() - scope_w, area.y)
-        } else {
-            (area.x, area.y + 2)
-        };
-        self.scope.render(
-            Rect::new(sx, sy, scope_w.min(area.width), 2),
-            buf,
-            ctx,
-            t.canvas,
-        );
-        let top = if side { 3 } else { 5 };
+            .render(Rect::new(area.x, area.y, area.width, 2), buf, ctx, t.canvas);
+        let top = 3;
         let body = Rect::new(
             area.x,
             area.y + top,
@@ -525,17 +514,14 @@ impl FinderPage {
             }
             return r.outcome();
         }
-        if let Some(r) = self.scope.route(ev) {
+        // the scope readout is a link: a click widens the scope, and past
+        // Everywhere comes back to Here
+        if ev.id == SCOPE_LINK {
             if click {
-                cx.focus.focus(self.scope.id);
-            }
-            let (o, a) = r.into_parts();
-            if let Some(TabAction::Activated(i)) = a {
-                self.scope.set_active(i);
-                self.rerank();
+                self.set_scope((self.scope + 1) % SCOPES.len());
                 return Outcome::Changed;
             }
-            return o;
+            return Outcome::Consumed;
         }
         if ev.is(Phase::Secondary)
             && let Some(req) = self.menu.config.on_secondary(&mut self.results, ev)
@@ -582,21 +568,26 @@ impl FinderPage {
             return Outcome::Ignored;
         };
         if f == self.query.id {
+            // Alt+↑ widens the scope, Alt+↓ narrows it (the readout's keys)
+            if key.alt() {
+                match key.code {
+                    KeyCode::Up => {
+                        self.set_scope(self.scope + 1);
+                        return Outcome::Changed;
+                    }
+                    KeyCode::Down => {
+                        self.set_scope(self.scope.saturating_sub(1));
+                        return Outcome::Changed;
+                    }
+                    _ => {}
+                }
+            }
             let (o, a) = self.query.on_key(key);
             match a {
                 Some(InputAction::Changed) => self.rerank(),
                 Some(InputAction::CommittedTab { backward: false }) => cx.focus_next(),
                 Some(InputAction::CommittedTab { backward: true }) => cx.focus_prev(),
                 _ => {}
-            }
-            return o;
-        }
-        if f == self.scope.id {
-            let (o, a) = self.scope.on_key(key);
-            if let Some(TabAction::Activated(i)) = a {
-                self.scope.set_active(i);
-                self.rerank();
-                return Outcome::Changed;
             }
             return o;
         }
@@ -635,7 +626,8 @@ impl FinderPage {
     }
 }
 
-/// The States grid: the scope strip and the results table.
+/// The States grid: the query with its scope readout and the results
+/// table.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -655,7 +647,14 @@ fn states_grid() -> StateGrid {
     StateGrid::new(id)
         .rows(&[Rest, Hover, Focused, Selected, Empty, Overflow, Narrow])
         .column_width(30)
-        .column("Scope", Tabs::new(id.child(0), SCOPES))
+        .column(
+            "Scope",
+            TextInput::new(id.child(0), "")
+                .placeholder("Search actions")
+                .plain_label()
+                .readout("scope ‹ here ›")
+                .readout_link(id.child(2)),
+        )
         .column("Results", table)
 }
 
@@ -727,8 +726,7 @@ impl Page for FinderPage {
                     crate::pages::row_menu::OPEN_HINT,
                 ]
             }
-            Some(f) if f == self.scope.id => vec![("←→", "Scope")],
-            _ => vec![("Type", "Search"), ("Tab", "Results")],
+            _ => vec![("Type", "Search"), ("Alt+↑↓", "Scope"), ("Tab", "Results")],
         }
     }
 

@@ -1832,6 +1832,19 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::input::TextInput::label_hit",
         Option("inputs", "inputs.label_hit"),
     ),
+    // S17 (SC36): the readout inside the field
+    (
+        "widgets::input::TextInput::readout",
+        Option("inputs", "inputs.readout"),
+    ),
+    (
+        "widgets::input::TextInput::readout_link",
+        Demo("finder", "scope ‹ here ›"),
+    ),
+    (
+        "widgets::input::TextInput::set_readout",
+        Option("finder", "finder.scope"),
+    ),
     (
         "widgets::textarea::TextArea::edit_entry",
         Option("textareas", "textareas.edit_entry"),
