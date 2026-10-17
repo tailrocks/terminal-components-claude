@@ -1,4 +1,4 @@
- [0m[1;7m jackin❯ [0m   File   Edit   View   Session   Help                                [0m
+ [0m[1;7m jackin❯ [0m   File   Edit   View   Session   Help                             …  [0m
                                                                                 [0m
  [0m[1m [0m1[0m[1m Mix (3) [0m●[0m[1m  [0m  2 Shell    3 docs ●                                            [0m
  ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
@@ -20,6 +20,6 @@
 │❯                                   ┃│││payments-platform ❯                  ┃│[0m
 │━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │││━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
 ╰─────────────────────────────────────╯│╰──────────────────────────────────────╯[0m
- [0m[1mPR #482 · Settlement retry backoff[0m                   Session ╍╍╍╍╍╍╍╍─── [0m[3m76%[0m ▲ [0m
+ [0m[1mPR #482 · Settlement retry backoff[0m               …   Session ╍╍╍╍╍╍╍╍─── [0m[3m76%[0m ▲ [0m
  …                      Attached to payments-platform · tabs and panes restored [0m
 [?25h[20;4H[6 q
