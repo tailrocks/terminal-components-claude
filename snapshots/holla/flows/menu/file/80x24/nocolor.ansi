@@ -21,5 +21,5 @@
     → 'holla disk analyze --artifacts' · here · read-only                       [0m
                                                                                 [0m
  [0m[1m~/work/holla[0m   main   ↓3   • 5                                no color · 80×24 [0m
- [0m[1mEsc[0m Close  …   Inspect 12 GB of generated artifacts — 12 GB generated artifac… [0m
+ [0m[1m←→[0m Menu  [0m[1m↑↓[0m Move  [0m[1mType[0m to jump  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close                        [0m
 [?25l
