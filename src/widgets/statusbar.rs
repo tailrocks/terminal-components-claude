@@ -191,6 +191,13 @@ impl StatusBar {
 
     /// Decide which items survive at `width` and where they go.
     pub fn layout(&self, area: Rect) -> Vec<Placed> {
+        self.plan(area).0
+    }
+
+    /// The placed items, the items that had no room at `area`'s width (in
+    /// order) and the column of the overflow item `…` that stands for
+    /// them (R-apps-1).
+    fn plan(&self, area: Rect) -> (Vec<Placed>, Vec<(Group, usize)>, Option<u16>) {
         let total_w = area.width;
         let mut keep: [Vec<bool>; 3] = [
             vec![true; self.left.len()],
@@ -214,7 +221,10 @@ impl StatusBar {
             let ws = [group_w(0, keep), group_w(1, keep), group_w(2, keep)];
             let present = ws.iter().filter(|w| **w > 0).count() as u16;
             let gaps = present.saturating_sub(1) * GAP;
-            ws.iter().sum::<u16>() + gaps + 2 * EDGE
+            // the overflow item `…` stands for the items that left
+            let gone = keep.iter().flatten().any(|k| !k);
+            let more = if gone { 1 + GAP } else { 0 };
+            ws.iter().sum::<u16>() + gaps + more + 2 * EDGE
         };
         // drop the lowest priority anywhere first; ties leave the center,
         // then the right, then the left; the strongest left item never
@@ -287,11 +297,34 @@ impl StatusBar {
             });
             rx = rx.saturating_sub(GAP);
         }
-        let right_start = if right_items.is_empty() {
+        let mut right_start = if right_items.is_empty() {
             area.right().saturating_sub(EDGE)
         } else {
             rx + GAP
         };
+        // the dropped items collapse into one `…`, first of the right
+        // group (the center keeps clear of it)
+        let hidden: Vec<(Group, usize)> = groups
+            .iter()
+            .enumerate()
+            .flat_map(|(g, grp)| {
+                keep[g]
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, k)| !**k)
+                    .map(move |(i, _)| (*grp, i))
+            })
+            .collect();
+        let more_x = (!hidden.is_empty() && total_w > 2 * EDGE).then(|| {
+            let at = if right_items.is_empty() {
+                right_start.saturating_sub(1)
+            } else {
+                right_start.saturating_sub(GAP + 1)
+            };
+            right_start = at;
+            at.max(left_end + u16::from(!placed.is_empty()))
+                .min(area.right().saturating_sub(EDGE + 1))
+        });
         // center: centred in the free span between the groups
         let cw = group_w(1, &keep);
         if cw > 0 {
@@ -316,7 +349,7 @@ impl StatusBar {
         }
         right_items.reverse();
         placed.extend(right_items);
-        placed
+        (placed, hidden, more_x)
     }
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -327,7 +360,21 @@ impl StatusBar {
         let t = ctx.theme;
         let bg = t.surface_elevated;
         fill(buf, area, Style::new().bg(bg));
-        for p in self.layout(area) {
+        let (placed, hidden, more_x) = self.plan(area);
+        if let Some(x) = more_x {
+            let text: Vec<&str> = hidden
+                .iter()
+                .map(|(g, i)| self.group(*g)[*i].text.as_str())
+                .collect();
+            crate::ui::reveal::overflow(
+                ctx,
+                buf,
+                Rect::new(x, area.y, 1, 1),
+                &text.join("   "),
+                bg,
+            );
+        }
+        for p in placed {
             let it = &self.group(p.group)[p.index];
             // a clickable item walks the ladder (a chip on the raised plane,
             // text on the bar); its tone survives every state
@@ -703,5 +750,49 @@ mod tests {
         assert_ne!(plain, tip_id(plain));
         assert!(draw(Some(plain)).0.contains("Current branch"));
         assert!(draw(Some(usage)).0.contains("Usage this week  u"));
+    }
+
+    /// R-apps-1: items with no room collapse into one `…` overflow item;
+    /// resting the pointer on it reveals them.
+    #[test]
+    fn dropped_items_collapse_into_an_overflow_item_that_reveals_them() {
+        let t = Theme::junie();
+        let bar = StatusBar {
+            left: vec![StatusItem::new("~/work/big", Tone::Secondary).priority(9)],
+            center: vec![StatusItem::new("0 selected", Tone::Secondary).priority(2)],
+            right: vec![StatusItem::new("truecolor", Tone::Secondary).priority(5)],
+            reveal: None,
+        };
+        let draw = |hover: Option<WidgetId>| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let i = Interaction {
+                hover,
+                ..Interaction::default()
+            };
+            let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 3));
+            bar.render(Rect::new(0, 2, 30, 1), &mut buf, &mut ctx);
+            ctx.flush_overlays(&mut buf);
+            drop(ctx);
+            let rows: Vec<String> = (0..3u16)
+                .map(|y| (0..30u16).map(|x| buf[(x, y)].symbol()).collect())
+                .collect();
+            (rows, hits)
+        };
+        let (rows, hits) = draw(None);
+        let strip = &rows[2];
+        assert!(!strip.contains("selected"), "{strip:?}");
+        let at = strip
+            .find('…')
+            .unwrap_or_else(|| panic!("no overflow item: {strip:?}"));
+        let x = strip[..at].chars().count() as u16;
+        let id = crate::ui::reveal::overflow_id(Rect::new(x, 2, 1, 1));
+        assert_eq!(hits.hover_at(Position::new(x, 2)), Some(id));
+        let (rows, _) = draw(Some(id));
+        assert!(
+            rows.iter().any(|r| r.contains("0 selected")),
+            "the hover reveals the dropped item: {rows:#?}"
+        );
     }
 }

@@ -1,7 +1,7 @@
 120x40 TrueColor Overview c73c0962823499cc
 120x40 TrueColor Overview · Options 2983c2c6b07ec1f6
 120x40 TrueColor Overview · States 3f81148fa4d62b56
-120x40 TrueColor Chrome 3fdd3ef8710e23fb
+120x40 TrueColor Chrome 36afe6b7f39b63bf
 120x40 TrueColor Chrome · Options 28358fa110c484b6
 120x40 TrueColor Chrome · States dae60f275dd7de62
 120x40 TrueColor Status & hints f84f52c72a012739
@@ -28,7 +28,7 @@
 120x40 TrueColor Text areas 2e4dcfda752291a4
 120x40 TrueColor Text areas · Options 4b0916d7693295f1
 120x40 TrueColor Text areas · States a655233233e7d367
-120x40 TrueColor Chips & selects a1ab378afa293933
+120x40 TrueColor Chips & selects bfc3c75e15e0929f
 120x40 TrueColor Chips & selects · Options d70141ac5ddc7adf
 120x40 TrueColor Chips & selects · States 6e5c8694bb6c2276
 120x40 TrueColor Forms a8863163ac243abe
@@ -165,7 +165,7 @@
 120x40 Ansi256 Overview 92af368628f90ec2
 120x40 Ansi256 Overview · Options 73246a9a22b46881
 120x40 Ansi256 Overview · States 07e7f6f9b8cb7029
-120x40 Ansi256 Chrome c1d26c05a9161b12
+120x40 Ansi256 Chrome 6ece2515a8718c49
 120x40 Ansi256 Chrome · Options 4f32082ec845a678
 120x40 Ansi256 Chrome · States abc6e09319309a08
 120x40 Ansi256 Status & hints 170606edcaf661e4
@@ -192,7 +192,7 @@
 120x40 Ansi256 Text areas 1952d5cc474d6c3f
 120x40 Ansi256 Text areas · Options a03e920bffb52f0e
 120x40 Ansi256 Text areas · States baaafd1047210075
-120x40 Ansi256 Chips & selects 1411ce54a130d911
+120x40 Ansi256 Chips & selects bf2d24b3f6572dfd
 120x40 Ansi256 Chips & selects · Options ff2afec19befc0eb
 120x40 Ansi256 Chips & selects · States 551ce2f43ddebebb
 120x40 Ansi256 Forms 828bfb20a99238a2
@@ -329,7 +329,7 @@
 120x40 Ansi16 Overview 9f30bafedfff60bd
 120x40 Ansi16 Overview · Options 0eee1eb78e5a8c2e
 120x40 Ansi16 Overview · States 9fb9f2b3edcdd24d
-120x40 Ansi16 Chrome aaa14d482f94a743
+120x40 Ansi16 Chrome 7f9ae63244a02715
 120x40 Ansi16 Chrome · Options 09e003a2c6db51a4
 120x40 Ansi16 Chrome · States 1049ae69664ead26
 120x40 Ansi16 Status & hints fb51a42e8b413e7f
@@ -356,7 +356,7 @@
 120x40 Ansi16 Text areas a39acb7d0c6fb525
 120x40 Ansi16 Text areas · Options 9ef48b068491e68b
 120x40 Ansi16 Text areas · States e2a536cd78fb9326
-120x40 Ansi16 Chips & selects 26727fa9dbb5f25d
+120x40 Ansi16 Chips & selects 1219c3f0cc1ef653
 120x40 Ansi16 Chips & selects · Options 16edf3f021d0e657
 120x40 Ansi16 Chips & selects · States 97757b20d998e1e0
 120x40 Ansi16 Forms 76cf323901ad6569
@@ -493,7 +493,7 @@
 120x40 Mono Overview 6a373d4c32be57d5
 120x40 Mono Overview · Options 7d3225c21c417475
 120x40 Mono Overview · States 626f1baf903ede86
-120x40 Mono Chrome a2209cd9acf0ec0d
+120x40 Mono Chrome 5a65e597fd34ecaf
 120x40 Mono Chrome · Options ded315b289e1ea33
 120x40 Mono Chrome · States b3722ced3812ed29
 120x40 Mono Status & hints b292ad5657254f38
@@ -520,7 +520,7 @@
 120x40 Mono Text areas d9866f9aeb940762
 120x40 Mono Text areas · Options 261f8d3000d7d758
 120x40 Mono Text areas · States 13253127eeacd1ad
-120x40 Mono Chips & selects da0221eecc186b17
+120x40 Mono Chips & selects 4a7e6543788d8033
 120x40 Mono Chips & selects · Options 6b827f1de1c0ecca
 120x40 Mono Chips & selects · States 10f4eea331b7c919
 120x40 Mono Forms 504c5f9f01144c22
@@ -738,7 +738,7 @@
 80x24 TrueColor Dialog kinds 8d6489ce45af79b1
 80x24 TrueColor Dialog kinds · Options 3bd4417337ad144a
 80x24 TrueColor Dialog kinds · States cddba4cffaf42db3
-80x24 TrueColor Popups & tooltips 037555fc1dcffb6a
+80x24 TrueColor Popups & tooltips 7bb4583a99d50792
 80x24 TrueColor Popups & tooltips · Options ae3bc56a3d0e310e
 80x24 TrueColor Popups & tooltips · States 7b1134642cc3f450
 80x24 TrueColor File browser 9e943de44b53cc64
@@ -801,7 +801,7 @@
 80x24 TrueColor Disk cleanup 290e1781df16c191
 80x24 TrueColor Disk cleanup · Options 8fd00e4d53b70825
 80x24 TrueColor Disk cleanup · States ebdcef0b5ba99425
-80x24 TrueColor Activity 1b921aed6edfaf56
+80x24 TrueColor Activity b54ef6b75470f3c6
 80x24 TrueColor Activity · Options 298800d55c8fac1c
 80x24 TrueColor Activity · States 256806f97beb5af3
 80x24 TrueColor Workspaces d414795d5abbfb41
@@ -902,7 +902,7 @@
 80x24 Ansi256 Dialog kinds c70288b03e7df994
 80x24 Ansi256 Dialog kinds · Options 0c81d2ab24f164d2
 80x24 Ansi256 Dialog kinds · States adbcf21a115c85a3
-80x24 Ansi256 Popups & tooltips a70816a4f12da952
+80x24 Ansi256 Popups & tooltips 3bec396967bd4245
 80x24 Ansi256 Popups & tooltips · Options cfd20e60056e3f0b
 80x24 Ansi256 Popups & tooltips · States 19247187404325d2
 80x24 Ansi256 File browser c5447435bad627c5
@@ -965,7 +965,7 @@
 80x24 Ansi256 Disk cleanup d9119b905aefa602
 80x24 Ansi256 Disk cleanup · Options aaa6082a1fb5ea72
 80x24 Ansi256 Disk cleanup · States dbff5ca6eb5288cf
-80x24 Ansi256 Activity cd4533a708c0d623
+80x24 Ansi256 Activity 3c1411626351d3e6
 80x24 Ansi256 Activity · Options b6e1003326bc5da9
 80x24 Ansi256 Activity · States c1f98d4cb83ed931
 80x24 Ansi256 Workspaces d0ab414c23d14cb3
@@ -1066,7 +1066,7 @@
 80x24 Ansi16 Dialog kinds c04e58949a4e4b89
 80x24 Ansi16 Dialog kinds · Options bf810f8fb4fe4efc
 80x24 Ansi16 Dialog kinds · States ab0102d1677cd6a2
-80x24 Ansi16 Popups & tooltips 14b0d1d49eef8b00
+80x24 Ansi16 Popups & tooltips 543f08813067c8c6
 80x24 Ansi16 Popups & tooltips · Options 8495daed4b708b24
 80x24 Ansi16 Popups & tooltips · States 419bdd22f0ac65ea
 80x24 Ansi16 File browser 5e45a501c90e9a30
@@ -1129,7 +1129,7 @@
 80x24 Ansi16 Disk cleanup c946de9f47bca31e
 80x24 Ansi16 Disk cleanup · Options 7b65fbe79327123b
 80x24 Ansi16 Disk cleanup · States c6e5359d4f642327
-80x24 Ansi16 Activity 8b32bb31b7ad352c
+80x24 Ansi16 Activity 88c3036654eb528a
 80x24 Ansi16 Activity · Options 8cac31890b1a6515
 80x24 Ansi16 Activity · States cac56fb1ccba3b36
 80x24 Ansi16 Workspaces 2e8b219a216a73e5
@@ -1230,7 +1230,7 @@
 80x24 Mono Dialog kinds 8400dfb517cdb637
 80x24 Mono Dialog kinds · Options dc65be81150bc3ee
 80x24 Mono Dialog kinds · States 5c52e42a26bbc92a
-80x24 Mono Popups & tooltips 911f1add5ab5f9e2
+80x24 Mono Popups & tooltips 6622b279c25cac70
 80x24 Mono Popups & tooltips · Options a45f451544d14032
 80x24 Mono Popups & tooltips · States 4ae4d3a90eb89608
 80x24 Mono File browser b89f1044d9f09b5c
@@ -1293,7 +1293,7 @@
 80x24 Mono Disk cleanup 454efcfb7e734ee0
 80x24 Mono Disk cleanup · Options 6af13acefd556915
 80x24 Mono Disk cleanup · States 654ce8358e360bc1
-80x24 Mono Activity b3206f5a32b9486c
+80x24 Mono Activity c5e25e811a03780a
 80x24 Mono Activity · Options 6508905cf3d19733
 80x24 Mono Activity · States b09e3546c1cb4dce
 80x24 Mono Workspaces b6903a1da36231fd
@@ -1394,7 +1394,7 @@
 72x20 TrueColor Dialog kinds 370210ca1e2f0d18
 72x20 TrueColor Dialog kinds · Options 57aded2156c6ce54
 72x20 TrueColor Dialog kinds · States 16bfb3ab4faa28fe
-72x20 TrueColor Popups & tooltips 17a823783b94fb7e
+72x20 TrueColor Popups & tooltips 25018b08eec714ce
 72x20 TrueColor Popups & tooltips · Options 6ee2d19e0297f246
 72x20 TrueColor Popups & tooltips · States f11e254e82906e4a
 72x20 TrueColor File browser af256a00fd1368c9
@@ -1457,7 +1457,7 @@
 72x20 TrueColor Disk cleanup 51c676bde05e39f0
 72x20 TrueColor Disk cleanup · Options 823013c583d54043
 72x20 TrueColor Disk cleanup · States b3a49b5319e821d1
-72x20 TrueColor Activity 326b6b5152bb1d40
+72x20 TrueColor Activity 4c69f6cc975e63e8
 72x20 TrueColor Activity · Options d857e1e536efc526
 72x20 TrueColor Activity · States 4f632f6f50057b7c
 72x20 TrueColor Workspaces 305507c76e659e49
@@ -1558,7 +1558,7 @@
 72x20 Ansi256 Dialog kinds 86fe2b09f65e614b
 72x20 Ansi256 Dialog kinds · Options 2d3667df3bbdbccd
 72x20 Ansi256 Dialog kinds · States d7f0aff728e4ae3f
-72x20 Ansi256 Popups & tooltips 69e84ef825fc7ff1
+72x20 Ansi256 Popups & tooltips 7d3a8a167d87cca8
 72x20 Ansi256 Popups & tooltips · Options b3f5318b0c444cdb
 72x20 Ansi256 Popups & tooltips · States 840fcf45edf559ec
 72x20 Ansi256 File browser 552cf898bb1fff60
@@ -1621,7 +1621,7 @@
 72x20 Ansi256 Disk cleanup 892e6b6153707973
 72x20 Ansi256 Disk cleanup · Options a651004d838035fd
 72x20 Ansi256 Disk cleanup · States fbab3877172e1b2f
-72x20 Ansi256 Activity 860a989d548fc805
+72x20 Ansi256 Activity 5cb597d5b49e3955
 72x20 Ansi256 Activity · Options 73ce72e6e0886b55
 72x20 Ansi256 Activity · States 24092c90e7669df0
 72x20 Ansi256 Workspaces 7393f208a8053ae9
@@ -1722,7 +1722,7 @@
 72x20 Ansi16 Dialog kinds db91043c46503fbe
 72x20 Ansi16 Dialog kinds · Options 3673eb6e608c42a9
 72x20 Ansi16 Dialog kinds · States e603e4c8d63d3dbf
-72x20 Ansi16 Popups & tooltips 94fc0c4132446406
+72x20 Ansi16 Popups & tooltips cc49657e95af2776
 72x20 Ansi16 Popups & tooltips · Options c52c021248adda44
 72x20 Ansi16 Popups & tooltips · States 417e102fa9948115
 72x20 Ansi16 File browser 5c65d546a293e25d
@@ -1785,7 +1785,7 @@
 72x20 Ansi16 Disk cleanup e2b6d7c135239629
 72x20 Ansi16 Disk cleanup · Options d3270d3c45ba13a3
 72x20 Ansi16 Disk cleanup · States f84f91b452901b25
-72x20 Ansi16 Activity f4e5ffa6f3e08963
+72x20 Ansi16 Activity 7efb4ccbaea96b17
 72x20 Ansi16 Activity · Options 0fd0d89ac5d7d331
 72x20 Ansi16 Activity · States 8e3f7c0a482b595c
 72x20 Ansi16 Workspaces 26f6764db760b2af
@@ -1886,7 +1886,7 @@
 72x20 Mono Dialog kinds 5c6f24c2d02405a6
 72x20 Mono Dialog kinds · Options 7bf07c2a222e16df
 72x20 Mono Dialog kinds · States c41682dfc298a4cb
-72x20 Mono Popups & tooltips a30fe1b2996a5954
+72x20 Mono Popups & tooltips 4bd602e3a0977d24
 72x20 Mono Popups & tooltips · Options bcd39b3f8a63978a
 72x20 Mono Popups & tooltips · States 7f326bea6a33934f
 72x20 Mono File browser 2cadb880b0e0b6f7
@@ -1949,7 +1949,7 @@
 72x20 Mono Disk cleanup 82d459d771bb71e7
 72x20 Mono Disk cleanup · Options 31f770e653ee3df9
 72x20 Mono Disk cleanup · States aa595c820b93af7d
-72x20 Mono Activity 43d5025bf57d31e5
+72x20 Mono Activity b81857bff21bddc9
 72x20 Mono Activity · Options 03f47f1f23ccbcff
 72x20 Mono Activity · States b71071d795b2428e
 72x20 Mono Workspaces cf28335c016d7fc9
@@ -2625,7 +2625,7 @@
 160x50 TrueColor Overview 066d88b253361a1d
 160x50 TrueColor Overview · Options a055878c271822bf
 160x50 TrueColor Overview · States 94bc1bfda8f58d30
-160x50 TrueColor Chrome 2b327c4a6767d2eb
+160x50 TrueColor Chrome 3ee4a12d0fad2ea7
 160x50 TrueColor Chrome · Options 002765eb8051b951
 160x50 TrueColor Chrome · States d77216412411a5ec
 160x50 TrueColor Status & hints 406b6ace7ddc5ef5
@@ -2652,7 +2652,7 @@
 160x50 TrueColor Text areas be387f624a51e30a
 160x50 TrueColor Text areas · Options c7d92995f8abd128
 160x50 TrueColor Text areas · States 8430ac7760b19c92
-160x50 TrueColor Chips & selects fb41481cf77a857e
+160x50 TrueColor Chips & selects 22ec088e29af074e
 160x50 TrueColor Chips & selects · Options bbd7f7f62362072f
 160x50 TrueColor Chips & selects · States 285e5820b79fb403
 160x50 TrueColor Forms 4496066d5dec4e83
@@ -2789,7 +2789,7 @@
 160x50 Ansi256 Overview 0b8300ef9a5d26ad
 160x50 Ansi256 Overview · Options cfcba3a9e30d6e1e
 160x50 Ansi256 Overview · States b87c31c9ac8d9bcf
-160x50 Ansi256 Chrome b58cfd3b03191d58
+160x50 Ansi256 Chrome 8e11ff96a5bb9be7
 160x50 Ansi256 Chrome · Options a4945745a37c9c0f
 160x50 Ansi256 Chrome · States ed3986900b1b8d6a
 160x50 Ansi256 Status & hints 378dd42767ff949a
@@ -2816,7 +2816,7 @@
 160x50 Ansi256 Text areas 360ccf05f55ca576
 160x50 Ansi256 Text areas · Options 15de215f7fff30c1
 160x50 Ansi256 Text areas · States 535ec85a747d67eb
-160x50 Ansi256 Chips & selects e53aa840f321e75d
+160x50 Ansi256 Chips & selects e70ab82deed1d9f2
 160x50 Ansi256 Chips & selects · Options 48a9ecd001c66f15
 160x50 Ansi256 Chips & selects · States c33d7d9cc14e2c96
 160x50 Ansi256 Forms b17e35fb82964bc3
@@ -2953,7 +2953,7 @@
 160x50 Ansi16 Overview 3951fe12328a367e
 160x50 Ansi16 Overview · Options 973d673a37af28eb
 160x50 Ansi16 Overview · States d56309baa57103bb
-160x50 Ansi16 Chrome 1c11d4b87f37bac2
+160x50 Ansi16 Chrome df4d3e18a29ccd04
 160x50 Ansi16 Chrome · Options 19892c00d6b8f821
 160x50 Ansi16 Chrome · States 9e636b8cdaf38c0b
 160x50 Ansi16 Status & hints e1297d5ad0efb8e6
@@ -2980,7 +2980,7 @@
 160x50 Ansi16 Text areas e888a4cd4dd2015f
 160x50 Ansi16 Text areas · Options 2776766529c9f15a
 160x50 Ansi16 Text areas · States 21b5b620cfdd911b
-160x50 Ansi16 Chips & selects ad12038370f6ae46
+160x50 Ansi16 Chips & selects 2cba114d80cb7ec4
 160x50 Ansi16 Chips & selects · Options c43d4f8f5b960804
 160x50 Ansi16 Chips & selects · States 211748c2ecfa527a
 160x50 Ansi16 Forms 4374c1e59a3965aa
@@ -3117,7 +3117,7 @@
 160x50 Mono Overview 713d4d258b936b08
 160x50 Mono Overview · Options 9ebc98a5b2a8e134
 160x50 Mono Overview · States 3fa20cd263c34568
-160x50 Mono Chrome a6ba6b7a95250604
+160x50 Mono Chrome 5713aa377edccd06
 160x50 Mono Chrome · Options caaa1cc543ba75dc
 160x50 Mono Chrome · States 8fc086c45bd6d2cb
 160x50 Mono Status & hints 5553c2db39395b27
@@ -3144,7 +3144,7 @@
 160x50 Mono Text areas 853e0ec27f54f88e
 160x50 Mono Text areas · Options 7acc8d29cfaa748d
 160x50 Mono Text areas · States 4b0b44d9b0c62472
-160x50 Mono Chips & selects 4a3f7601e52ac5c8
+160x50 Mono Chips & selects 4d22ee0772365e6e
 160x50 Mono Chips & selects · Options 628d702284282ee3
 160x50 Mono Chips & selects · States 9be8094377f2c2ff
 160x50 Mono Forms dec9f1c7c79f4649
