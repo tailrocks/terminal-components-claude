@@ -851,6 +851,48 @@ Each step's agent updates its row when the step lands: state, commits, and every
 6. tablepro: quitting during a running query does not ask "Still running" (stakes count unsaved work only; K6). Esc at the workbench top keeps the workbench's Esc steps and does not go back to Connections.
 7. SC34: the shell API (`Router`, `Chrome`, `Menus`, `Clipboard`, …) is allowlisted until the showcase shell page shows it.
 
+### ScrollView outcome (owner priority 2026-10-17, responsive-lib)
+
+- `ui::scroll_view::ScrollView` (`Axes`, `ScrollCmd`, `ViewLayout`,
+  `ScrollFrame`): a two-axis container over content laid out at its
+  natural size. Built on S3's `ScrollPane` (both states, `draw_v`/`draw_h`,
+  `Scrollable`, `scroll_input`), not a second scroll model. Two calling
+  styles: `render(area, size, buf, ctx, draw)` and `begin`/`end` around
+  drawing that takes the buffer itself (the showcase adapter wraps a page's
+  `render`).
+- `ui::measure::Measure` is the minimal part of S15's trait (`measure(&self,
+  avail: Size, &RenderCtx) -> Size`, §1.4); `StateGrid` implements it.
+  S15 extends it to every widget that can size itself; the showcase's
+  `Page::measure` becomes `Measure` on the page there.
+- Content that fits draws in place: no buffer copy, no wheel region, so
+  every screen that fits is byte-identical. Overflowing content draws once
+  off screen; `HitRegistry::scroll_since` moves its hits, bars and
+  autoscroll areas onto the window and records a shift per id, and
+  `PointerEvent::new`/`wheel_on` add it, so widgets inside read positions
+  in the coordinates they drew in. `RenderCtx` keeps the active views'
+  offsets (`shifts`): overlays queued inside are drawn through a shifted
+  copy of the screen at flush, the reveal tip carries its views' offsets,
+  and cut text is moved like hits.
+- Scroll chaining: `ScrollPane::wheel` and `StackScroll::pointer` ignore a
+  vertical notch while their rows fit (they consumed it), so a short list
+  in a scrolled page lets the page scroll. A pane that overflows keeps the
+  notch at its ends (latching), the way the horizontal axis already did.
+- Focus follow (SVg9, WCAG 2.4.11): on a focus move, a caret move or a move
+  of the focus gutter (`Theme::gutter_symbol`; one per screen), the view
+  reveals the caret, else the control when it fits, else the gutter rows,
+  with `context` (default 1) cells around. The wheel can scroll away until
+  the next move.
+- Deviation: the view's keys (`ScrollCmd`) are a fallback after the
+  focused control (the showcase adapter calls `Template::on_unused_key`
+  when the page ignores a key); there is no focus stop for the view
+  itself, so a section with no focusable control is reachable by pointer
+  and by focus only from a control. Recorded for S8a's `KeyRouter`
+  (scroll keys as a container capability) and S15's `Focusable`.
+- Known limits: `clickable_under` regions (inserted below the barrier) are
+  not moved; a context menu the shell opens at an event's position inside
+  a scrolled view reads content coordinates (it lands offset by the scroll
+  while the view is scrolled). Both are recorded for S15.
+
 ## 5. Per-widget documentation (`docs/components/<widget>.md`)
 
 | Item | Decision |

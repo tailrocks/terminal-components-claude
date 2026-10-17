@@ -41,6 +41,108 @@ Gaps the Priority 0 Screens pages record instead of drawing locally
 | P0-G7 | Launch cockpit | jackin's activity chip and the build log as an overlay on `b`: the library has no activity chip / `ActivityLine` and no log overlay layer, so the activity (with the theme spinner) is the build log panel's meta and the log is inline. | S22, S26 |
 | P0-G8 | Accounts & usage | The add/edit `FormDialog`, the secret-reference picker chain and the per-account usage dialog with tabs are jackin-local (`screens/modals.rs`), so the page shows the inspector and an inline usage table only. | S25 |
 
+## Priority 0b (owner, 2026-10-17): the whole content is reachable
+
+The owner's rule: "always make sure there is a way to see the whole
+content". Whenever content does not fit its area, scrollbars appear on the
+axis that overflows (vertical and horizontal) and all of it is reachable by
+keyboard, wheel (Shift+wheel and the horizontal wheel included) and
+scrollbar drag.
+
+Done (branch `responsive-lib`):
+
+- **Library**: `ui::scroll_view::ScrollView`, a two-axis scroll container
+  over content laid out at its natural size (`ui::measure::Measure`, the
+  minimal part of S15's trait; `StateGrid` implements it). Bars appear
+  only on the axes that overflow (dotted tracks, blank corner), wheel /
+  Shift+wheel / horizontal wheel scroll it, both bars take press and drag
+  through the S3 `ScrollPane`, focus moving onto a clipped control (or a
+  caret or the focus gutter moving out of view) brings it in with one
+  row/column of context, and unused Page Up/Down, Alt+Page Up/Down and
+  Home/End scroll it. Content that fits draws in place, unchanged. Scroll
+  chaining: a `ScrollPane` or `Stack` whose rows fit passes the vertical
+  notch on (it consumed it). Content inside a scrolled view needs no
+  change: hits, pointer positions, overlays, the reveal tip and cut text
+  follow the view's offset (`HitRegistry::scroll_since`).
+- **Template**: every templated showcase page draws its section body
+  (Playground, Options, States) inside the template's `ScrollView`, from
+  `pages::adapter` (no page code); the Inspector's body scrolls in one too.
+  Options and States measure themselves, so they reach everything at every
+  size. The Playground is laid out at `Page::measure` (default: the room it
+  gets).
+- **Gate**: `app_tests_reach.rs` walks every page (all are on the template) and section at
+  80x24, 100x25, 106x29 and 120x40, scrolls the body through every window,
+  and compares the words seen with those a 220x70 screen shows. Failures
+  are listed in `tests/showcase_reach_allow.txt` against the rows below;
+  an unlisted failure, or a listed entry that passes, fails the gate.
+
+Open (the audit agent): each row is a page whose Playground squeezes
+(cuts or drops content) instead of overflowing, because it has no
+`Page::measure` yet. Fix: give the page a `measure` that returns the size
+its Playground needs to show everything (its sections' natural heights,
+its widest row), so the template scrolls instead of cutting; where a
+missing word is only an inner list's later rows (reachable by scrolling
+that list), say so and keep the line with that reason. Delete the page's
+lines in the allowlist with the fix. Words shown are a sample of what is
+never in view at the smallest failing size.
+
+| Id | Page | Section | Fails at | Never in view (sample) |
+|---|---|---|---|---|
+| R1 | Overview | Playground | 80x24, 100x25, 106x29, 120x40 | `0a1c0c 173f1c 19191c 1e5024 256 262626 2e0f0f 2e9a38` |
+| R2 | Chrome | Playground | 80x24, 100x25, 106x29, 120x40 | `7f3a 9c41 Brand Center Chosen Closed Ctrl Hide` |
+| R3 | StatusHints | Playground | 80x24, 100x25, 106x29, 120x40 | `256 ASCII Apply Auto COLOR Cancel Colour Command` |
+| R4 | BreadcrumbsRails | Playground | 80x24, 100x25, 106x29, 120x40 | `154 Backspace Collapse Ctrl Enter Expand Keys SidebarRail` |
+| R5 | HelpKeys | Playground | 80x24, 100x25, 106x29, 120x40 | `Dismiss End Esc Home Query Shift bottom cancel` |
+| R6 | QuitLeave | Playground | 80x24, 100x25, 106x29, 120x40 | `Discard Esc Resolved Run Save Stay and answer` |
+| R7 | FocusNavigation | Playground | 80x24, 100x25, 106x29, 120x40 | `Archive Auto Bindings Cmd Ctrl Delta Down Drafts` |
+| R8 | Buttons | Playground | 80x24, 100x25, 106x29, 120x40 | `190 Button Close Copy Danger Duplicate Edit Explain` |
+| R9 | Inputs | Playground | 80x24, 100x25, 106x29, 120x40 | `Alt Apply Cancel Cmd Copy Ctrl Cut Deleting` |
+| R10 | TextAreas | Playground | 80x24, 100x25, 106x29, 120x40 | `API Commit Junie Plan Reading Review Use add` |
+| R11 | Chips | Playground | 80x24, 100x25, 106x29, 120x40 | `100 120 5432 Acme Add Applies Empty Engine` |
+| R12 | ChecksRadios | Playground | 80x24, 100x25, 106x29 | `Auto Beta Isolation Radio Read Region Repeatable Serializable` |
+| R13 | Toolbars | Playground | 80x24, 100x25, 106x29 | `Action Activated End Explain Home Keys Last Line` |
+| R14 | Tables | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1044 1045 1046 1047` |
+| R15 | Editable | Playground | 80x24, 100x25, 106x29, 120x40 | `1050 1051 1052 1053 118 Activated Alt Basic` |
+| R16 | Grid | Playground | 80x24, 100x25, 106x29, 120x40 | `1011 1012 1013 120 150 1920 201 202` |
+| R17 | Selectable | Playground | 80x24, 100x25, 106x29, 120x40 | `APAC Billing Brandt Contract Ctrl Details Docs Eli` |
+| R18 | CellEditors | Playground | 80x24, 100x25, 106x29, 120x40 | `Ana Aziz Bea Berg Canary Cancel Checkbox Chen` |
+| R19 | Columns | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1040 1041 1042 1043` |
+| R20 | Lists | Playground | 80x24, 100x25, 106x29, 120x40 | `1000 BoxOnly Ctrl Double Elixir Haskell ListCmd Page` |
+| R21 | Trees | Playground | 80x24, 100x25, 106x29 | `Activate Cargo CollapseAll Connections Double Expand ExpandAll None` |
+| R22 | Tabs | Playground | 80x24, 100x25, 106x29, 120x40 | `Checks DDL Data Export Foreign Import Indexes Migrate` |
+| R23 | Menus | Playground | 80x24, 100x25 | `Action Chosen Control Dismissed Enter F10 Keys Menu` |
+| R24 | Dialogs | Playground | 80x24, 100x25, 106x29 | `Action Bodies Buttons Cancel Cancelled Close DialogResult Edit` |
+| R25 | Pickers | Playground | 80x24, 100x25, 106x29, 120x40 | `Back Cancelled Chosen ChosenAlt Commands Commit Detail Export` |
+| R26 | DialogKinds | Playground | 80x24, 100x25, 106x29, 120x40 | `Action Bool Cancel Changed Check Choose Chooser Closed` |
+| R27 | PopupsTooltips | Playground | 80x24, 100x25, 106x29, 120x40 | `300 600 Below Center Chosen Connected Dismiss Dismissed` |
+| R28 | FileBrowser | Playground | 80x24, 100x25, 106x29, 120x40 | `Cancelled Choose Ctrl Enter File FileCmd FileEntry Filter` |
+| R29 | Progress | Playground | 80x24, 100x25, 106x29, 120x40 | `100 BarLayout Build Capacity Deploy Error Exhausted High` |
+| R30 | EmptyError | Playground | 80x24, 100x25, 106x29 | `1041 1042 1204 Acme Connections Corp EmptyState Enter` |
+| R31 | Meters | Playground | 80x24, 100x25, 106x29 | `1000 310 500 512 840 Backup CPU Data` |
+| R32 | Notices | Playground | 80x24, 100x25, 106x29 | `200 65535 DESC Enter FORM LIMIT LINE New` |
+| R33 | Panels | Playground | 80x24, 100x25, 106x29, 120x40 | `03s 07s 11s 14s 18s 210 22s 25s` |
+| R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 | `008 009 010 011 012 013 014 015` |
+| R35 | SplitsStacks | Playground | 80x24, 100x25, 106x29 | `12s Advanced Connection Credentials Danger Network Running Stack` |
+| R36 | MasterDetail | Playground | 80x24, 100x25, 106x29, 120x40 | `014 194 204 377 655 Analyzed Columns Indexes` |
+| R37 | PaneTree | Playground | 80x24, 100x25, 106x29 | `12s WARN across binaries masterdetail minimum nextest page` |
+| R38 | Editor | Playground | 80x24, 100x25, 106x29, 120x40 | `200 Client Completion Diagnostics Err Error Exhausted Last` |
+| R39 | Diff | Playground | 80x24, 100x25, 106x29, 120x40 | `api cafe enabled endpoint example exponential health https` |
+| R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
+| R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
+| R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 | `10312 10319 10326 10333 10340 10347 10354 10361` |
+| R43 | Connections | Playground | 80x24, 100x25 | `5432 Last SSH SSL ago bastion connections hour` |
+| R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 | `Alternatives Data Gate Host Risk Runs State Why` |
+| R45 | DiskCleanup | Playground | 80x24, 100x25, 106x29, 120x40 | `100 2000 201 2026 700 810 900 926` |
+| R46 | Activity | Playground | 80x24, 100x25, 106x29, 120x40 | `184 201 404 412 4821 4822 Command Exit` |
+| R47 | Workspaces | Playground | 80x24, 100x25, 106x29, 120x40 | `04d7 9b02 Accounts Claude Codex Delete Edit Environments` |
+| R48 | AccountsUsage | Playground | 80x24, 100x25, 106x29, 120x40 | `100 1Password 212 Account Cost Credential Engineering Mon` |
+| R49 | LaunchCockpit | Playground | 80x24, 100x25, 106x29 | `Binari Build Cancel Capsule Construct Derived Hardline Identity` |
+| R50 | ReadOnlyReport | Playground | 80x24, 100x25, 106x29 | `08Z 120 17T09 2026 24B83 412 500 Activity` |
+| R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
+| R52 | Sidebars | Playground | 80x24, 100x25 | `Appearance Ctrl Disabled Keyboard Last and are behind` |
+| R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
+| R54 | TaskRunner | Playground | 80x24, 100x25 | `Cancel Log Press Ready following libs publish shared` |
+
 Status: 2026-10-17, derived from the repository at `42f0b372e`
 (`origin/design/interaction-polish`). This is the one list of everything
 started on this branch and not finished. Every item names the document and
@@ -215,6 +317,7 @@ SC33 38, SC38 7, SC32 4. Besides, 684 functions are covered via their owner
 | SC45 | **Done.** Pane tree page on the library `PaneTree` (nested splits, frames, focus moves, resize chords, zoom through `Split::toggle_max`; no cross-fade); plan "SC45 outcome". | S26 | — | §7.5 |
 | SC57 | Strategy B options on Focus & navigation and Toolbars, `toolbars.adjacent` | S27 | — | §7.3, §7.5 |
 | SC58 | Function coverage added by SC-G1: theme style roles, widget queries and labels, render helpers on their finished pages (plan §7.5 SC58) | SC-G1 (done) | 210 | plan "SC-G1 outcome" |
+| SC59 | `ScrollView` and `Measure` on the Scrolling page as their own demo: `Axes`, `ScrollbarVisibility` per view, padding, gap, `ScrollCmd` keys, follow and context as options (every templated section already scrolls in a default view; Priority 0b) | responsive-lib (done) | 40 | Priority 0b; allowlist `# ui::scroll_view, ui::measure` |
 | SC46 | Screen: query workbench. **First pass done (P0, 2026-10-17)**: `pages/query_workbench.rs` composes explorer (`TextInput` filter over a lazy `TreeView`), query `Tabs` (`×`, `+`, busy/error flags), `Toolbar`, `CodeEditor` (SQL tones, error `Diagnostic`) over results (`DataTable`, 0-row `EmptyState`, plan grid, `EmptyState::error` card, running bar) in two `Split`/`Splitter`s, `segments` status line; options `queryworkbench.*`; tests `app_tests_workbench.rs`. **Gaps, shown with the closest widget until their step lands**: explorer `FilterTree` (S21; today `TextInput` + `TreeView::set_filter`), sidebar rail collapse, EXPLAIN tree-table (S16d; today a `DataTable` with indented node names), result sub-tabs and `ActivityLine` (S23; today the results card's meta), tab preview/pinned tabs (S23), the table tab (Data/Structure strip, DDL card, filter chips, `FooterNote`, pending bar, Save review with typed token: S17/S18/S23), Open Quickly and the tab list (S22 `CommandMenu`), Safe Mode picker and env-toned gate dialog, zoom (`Split::toggle_max` chord). | S8a, S16, S17, S19, S21, S23 | — | §7.5 "Screens" |
 | SC47 | Screen: connections. **First pass done (P0, 2026-10-17)**: `pages/connections.rs` composes a list card (`TextInput` filter over a `TreeView` grouped by folder or environment, env glyphs `Glyphs::env` in `EnvKind::tone`, engine meta), a detail card (`props` with the production Safe Mode Warning row, connect bar, `EmptyState::error` failure block with Reconnect, a wrapping `ButtonRow` of Connect / Edit… / Duplicate / Delete…), the empty list's `EmptyState` with New connection…, the library `FormDialog` (Test connection, Save) and a destructive `Dialog` for Delete; options `connections.*`; tests `app_tests_connections.rs`. **S17 adoption (plan-s17, 2026-10-17)**: the list and the card are a `MasterDetail` (resizable seam, `connections.list_width` is the list's share 40/30/50 %, a one-line summary and a drawer below 80 columns), the card a `DetailCard` (fitted: the actions follow the facts) with an `ActionRow`, and a failure a `Notice` under the facts (Connect becomes Reconnect, as in tablepro). **Gaps, shown with the closest widget until their step lands**: the inline `FormPanel` form (S18; today the modal `FormDialog`), `FilterTree` (S21), the row context menu and the quit guard for a dirty form. | S17, S18, S19, S21 | — | same |
 | SC48 | Screen: finder. **First pass done (P0, 2026-10-17)**: `pages/finder.rs` composes a typing-hot query (`TextInput`, ranked live with `ui::text::fuzzy`, then recency, grouped by kind), a scope strip (`Tabs`: Here, Project, Everywhere), the ranked `DataTable` (tone cells, `EmptyState` for no match), a preview card (`props`, Alternatives… and Why? buttons) that folds to a one-line `segments` summary on a narrow page, the alternatives `ContextMenu` (button, Shift+F10 and right-click through `ContextConfig`) and Why? as an `InfoDialog`; options `finder.*`; tests `app_tests_finder.rs`. **S17 adoption (plan-s17, 2026-10-17)**: the scope is the query's `TextInput::readout` link (`scope ‹ here ›`; a click widens it, Alt+↑/↓ step it), the preview a fitted `DetailCard` with Alternatives… and Why? as its action row. **Gaps, shown with the closest widget until their step lands**: the query owning the list (`FilterList`, S21: ↑↓ and Enter from the query; today Tab into the table) and `DataTable` group rows and match ranges (S24; today a Group column and plain names). | S11, S17, S19, S24 | — | same |
