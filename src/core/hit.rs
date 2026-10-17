@@ -330,6 +330,17 @@ impl HitRegistry {
         &self.bars
     }
 
+    /// Every scroll body registered this frame (a widget the wheel
+    /// scrolls: [`Self::register_scroll`]), its owner and its area, in
+    /// drawing order: what a reach audit wheels to reach the rest.
+    pub fn scrollers(&self) -> Vec<(WidgetId, Rect)> {
+        self.regions
+            .iter()
+            .filter(|r| r.scroll_only)
+            .map(|r| (r.id, r.area))
+            .collect()
+    }
+
     /// The scrollbar registered under `id` this frame.
     pub fn bar(&self, id: WidgetId) -> Option<Bar> {
         self.bars.iter().rev().find(|b| b.id == id).copied()

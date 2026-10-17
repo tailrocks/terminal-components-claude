@@ -103,6 +103,7 @@ core::hit::HitRegistry::register_thumb | covered by the demo of its owner HitReg
 core::hit::HitRegistry::accept_release | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::accepts_release | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::bars | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitRegistry::scrollers | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::bar | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::register_backdrop | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::register_backdrop_of | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
