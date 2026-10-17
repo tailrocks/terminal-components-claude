@@ -3,6 +3,7 @@
 //! under the cursor row, and a right-click outside an open menu closes it
 //! and reopens at the new spot.
 
+use crate::pages::Pages;
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -57,7 +58,7 @@ fn choose(h: &mut H, id: WidgetId, i: usize) {
 #[test]
 fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     let (sx, sy) = h.find("Shell").expect("the Shell tab");
     h.mouse(MouseKind::Secondary, sx, sy);
     let first = h.find("Change title…").expect("the Shell tab's menu");
@@ -118,7 +119,7 @@ fn capsule_pane_right_click_opens_the_pane_menu_at_the_pointer() {
 
 fn manager() -> H {
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     h
 }
 
@@ -129,8 +130,8 @@ fn tree_row(h: &H, needle: &str) -> (u16, u16) {
 /// The open manager menu's rectangle.
 fn manager_menu(h: &H) -> Rect {
     h.app
-        .screens
-        .manager
+        .router
+        .manager()
         .menu
         .menu()
         .expect("the manager menu is open")
@@ -154,10 +155,10 @@ fn manager_row_menu_opens_at_the_pointer_and_runs_the_row_action() {
         "the title names the row: {text}"
     );
     assert!(
-        matches!(h.app.screens.manager.selected, RowKey::Workspace(_)),
+        matches!(h.app.router.manager().selected, RowKey::Workspace(_)),
         "the row the menu is about is selected"
     );
-    let menu = h.app.screens.manager.menu.menu().unwrap();
+    let menu = h.app.router.manager().menu.menu().unwrap();
     assert!(menu.items[4].danger, "Delete… is a danger item");
     assert_eq!(
         menu.items[1].shortcut.as_deref(),
@@ -166,7 +167,7 @@ fn manager_row_menu_opens_at_the_pointer_and_runs_the_row_action() {
     );
     // Edit: the same path as the e key
     choose(&mut h, MENU, 1);
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
 }
 
 #[test]
@@ -178,7 +179,7 @@ fn manager_instance_menu_disables_what_cannot_run_and_inspects() {
     h.key(KeyCode::Right);
     let (ix, iy) = tree_row(&h, "c41e");
     h.mouse(MouseKind::Secondary, ix, iy);
-    let menu = h.app.screens.manager.menu.menu().unwrap();
+    let menu = h.app.router.manager().menu.menu().unwrap();
     let labels: Vec<&str> = menu.items.iter().map(|i| i.item.label.as_str()).collect();
     assert_eq!(
         labels,
@@ -216,10 +217,10 @@ fn manager_shift_f10_opens_under_the_cursor_row() {
     assert_eq!(manager_menu(&h).y, y + 1, "under the cursor row");
     // the menu owns the keyboard: a global letter does not leave the page
     h.key(KeyCode::Char('s'));
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     h.key(KeyCode::Esc);
-    assert!(h.app.screens.manager.menu.menu().is_none());
-    assert_eq!(h.app.route, Route::Manager, "Esc closes only the menu");
+    assert!(h.app.router.manager().menu.menu().is_none());
+    assert_eq!(h.app.route(), Route::Manager, "Esc closes only the menu");
     // the Menu key opens it too; Enter runs Launch…
     h.key(KeyCode::Menu);
     h.key(KeyCode::Enter);
@@ -302,21 +303,21 @@ fn manager_right_click_outside_a_menu_reopens_on_the_new_row() {
 
 fn accounts() -> H {
     let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Accounts, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Accounts, "{}", h.text());
     h
 }
 
 fn accounts_menu(h: &H) -> &ContextMenu {
     h.app
-        .screens
-        .accounts
+        .router
+        .accounts()
         .menu
         .menu()
         .expect("the accounts menu is open")
 }
 
 fn selected_account(h: &H) -> String {
-    match &h.app.screens.accounts.selected {
+    match &h.app.router.accounts().selected {
         Sel::Account(id) => id.clone(),
         s => panic!("not an account: {s:?}"),
     }
@@ -352,7 +353,7 @@ fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
     assert!(!h.app.world.accounts.get(&id).unwrap().default_for_provider);
     // Set default: the Space key's path
     choose(&mut h, ACCOUNTS_MENU, 4);
-    assert!(h.app.screens.accounts.menu.menu().is_none(), "closed");
+    assert!(h.app.router.accounts().menu.menu().is_none(), "closed");
     assert!(
         h.app.world.accounts.get(&id).unwrap().default_for_provider,
         "{}",
@@ -388,7 +389,7 @@ fn accounts_shift_f10_opens_under_the_cursor_row_and_folds() {
     // the last item collapses the provider
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
-    assert!(h.app.screens.accounts.menu.menu().is_none());
+    assert!(h.app.router.accounts().menu.menu().is_none());
     assert!(find_left(&h, "Personal", 40).is_none(), "{}", h.text());
 }
 
@@ -422,9 +423,8 @@ fn editor_mounts() -> H {
 
 fn editor_menu(h: &H) -> &ContextMenu {
     h.app
-        .screens
-        .editor
-        .as_ref()
+        .router
+        .editor()
         .unwrap()
         .cfg
         .menu
@@ -433,7 +433,7 @@ fn editor_menu(h: &H) -> &ContextMenu {
 }
 
 fn settings_menu(h: &H) -> Option<&ContextMenu> {
-    h.app.screens.settings.as_ref().unwrap().cfg.menu.menu()
+    h.app.router.settings().unwrap().cfg.menu.menu()
 }
 
 #[test]
@@ -538,12 +538,11 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
 #[test]
 fn the_capsule_prefix_waits_until_esc() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     let waiting = |h: &H| {
         h.app
-            .screens
-            .capsule
-            .as_ref()
+            .router
+            .capsule()
             .is_some_and(|c| c.prefix_until.is_some())
     };
     h.ctrl('b');
@@ -554,7 +553,7 @@ fn the_capsule_prefix_waits_until_esc() {
     assert!(!waiting(&h), "Esc cancels the prefix");
     // the override brings a timeout back (and shows the ticks above
     // outlast it)
-    if let Some(c) = h.app.screens.capsule.as_mut() {
+    if let Some(c) = h.app.router.capsule_mut() {
         c.prefix_timeout_ms = Some(2_000);
     }
     h.ctrl('b');

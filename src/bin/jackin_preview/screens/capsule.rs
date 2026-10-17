@@ -476,8 +476,7 @@ impl CapsuleScreen {
                     .and_then(|p| p.term.selected_text());
                 match sel {
                     Some(t) => {
-                        w.clipboard = Some(t);
-                        cx.status("Selection copied");
+                        cx.copy_as(t, "selection");
                     }
                     None => cx.status("Nothing selected"),
                 }
@@ -1390,7 +1389,7 @@ impl CapsuleScreen {
         }
     }
 
-    fn forward_key(&mut self, key: &Key, w: &mut World) -> Outcome {
+    fn forward_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let Some(p) = self.focused_pane(w) else {
             return Outcome::Consumed;
         };
@@ -1450,7 +1449,7 @@ impl CapsuleScreen {
                 && key.plain()
                 && let Some(t) = pane.term.selected_text()
             {
-                w.clipboard = Some(t);
+                cx.copy_as(t, "selection");
                 return Outcome::Changed;
             }
         }
@@ -2030,11 +2029,7 @@ impl Page<Jackin> for CapsuleScreen {
         if self.selecting.is_some() {
             return Outcome::Consumed;
         }
-        let out = self.forward_key(key, w);
-        if key.is_char('y') && w.clipboard.is_some() && out == Outcome::Changed {
-            cx.status("Selection copied");
-        }
-        out
+        self.forward_key(key, w, cx)
     }
 
     /// The Capsule's chrome and panes: the menu bar (a title opens on the
@@ -3071,8 +3066,7 @@ impl CapsuleScreen {
         {
             let o = pane.term.select_word_at(pos);
             if let Some(text) = pane.term.selected_text() {
-                w.clipboard = Some(text);
-                cx.status("Selection copied");
+                cx.copy_as(text, "selection");
             }
             return o;
         }
@@ -3130,8 +3124,7 @@ impl CapsuleScreen {
                 && let Some(text) = pane.term.selected_text()
                 && !text.trim().is_empty()
             {
-                w.clipboard = Some(text);
-                cx.status("Selection copied");
+                cx.copy_as(text, "selection");
             }
             return Outcome::Changed;
         }

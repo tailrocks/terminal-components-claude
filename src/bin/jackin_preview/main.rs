@@ -28,6 +28,7 @@ mod app_tests_mouse;
 mod app_tests_pointer;
 mod arbiter;
 mod domain;
+mod pages;
 mod rain;
 mod scenario;
 mod screens;
