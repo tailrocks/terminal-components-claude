@@ -224,3 +224,23 @@ fn a_capsule_copy_reports_what_was_copied() {
     assert_eq!(h.app.clipboard_gen, before);
     assert_eq!(status(&h), "", "{}", h.text());
 }
+
+/// SI17 copy-first: Ctrl+C over the build log's selection copies it and
+/// does not abort the launch; with nothing selected it is the hard abort.
+#[test]
+fn ctrl_c_over_the_build_log_selection_copies_instead_of_aborting() {
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 120, 40);
+    h.key(KeyCode::Char('b'));
+    assert!(h.app.router.cockpit().unwrap().log_open);
+    h.ctrl('a');
+    let selected = h.app.router.cockpit().unwrap().log.selected_text();
+    assert!(selected.is_some(), "Ctrl+A selects the log: {}", h.text());
+    h.ctrl('c');
+    assert_eq!(h.app.route(), Route::Cockpit, "the launch goes on");
+    assert_eq!(h.app.world.clipboard, selected);
+    assert!(status(&h).starts_with("Copied "), "{}", status(&h));
+    // Esc closes the log; Ctrl+C aborts again
+    h.key(KeyCode::Esc);
+    h.ctrl('c');
+    assert_eq!(h.app.route(), Route::Manager);
+}

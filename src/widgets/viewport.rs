@@ -1774,7 +1774,11 @@ impl TextViewport {
             let o = self.extend_selection(key.code, word);
             return (o, Some(ViewportAction::SelectionChanged));
         }
-        match lookup(&self.keymap, key) {
+        // Ctrl+C over a selection copies (copy-first, SI17); the shell
+        // passes it here only while the frame marked the selection
+        let cmd = lookup(&self.keymap, key)
+            .or_else(|| (key.ctrl_char('c') && self.has_selection()).then_some(ViewportCmd::Copy));
+        match cmd {
             Some(ViewportCmd::ToggleFollow) => {
                 self.set_follow(!self.follow);
                 return (
@@ -1868,6 +1872,9 @@ impl TextViewport {
         ctx.scrollable(self.id, area);
         ctx.autoscroll(text);
         let sel = self.selection();
+        if sel.is_some() {
+            ctx.selection(self.id);
+        }
         fill(buf, area, Style::new().bg(bg));
         for (k, vi) in self.scroll.visible_range().enumerate() {
             let y = area.y + k as u16;

@@ -53,6 +53,30 @@ fn big() -> Harness {
     Harness::on(160, 60, PageId::Scrolling)
 }
 
+/// SI17 copy-first: Ctrl+C over a panel's selection copies it and does
+/// not quit; with nothing selected it quits. The shell reports the focused
+/// control's selection (no page or app code).
+#[test]
+fn ctrl_c_over_a_panel_selection_copies_instead_of_quitting() {
+    use junie_tui::core::edit::clipboard;
+    let mut h = big();
+    let prose = WidgetId::of("scrolling").sub("prose");
+    h.focus(prose);
+    h.key_mod(KeyCode::Char('a'), KeyModifiers::CONTROL);
+    let selected = scrolling(&h).prose.selected_text();
+    assert!(selected.is_some(), "Ctrl+A selects");
+    clipboard::copy("");
+    h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    assert!(!h.app.shell.quit, "Ctrl+C over a selection never quits");
+    assert!(h.app.dialog().is_none(), "nor asks to quit");
+    assert_eq!(clipboard::text(), selected, "the selection is copied");
+    // Esc clears the selection; Ctrl+C then quits
+    h.key(KeyCode::Esc);
+    assert!(scrolling(&h).prose.selected_text().is_none());
+    h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    assert!(h.app.shell.quit, "Ctrl+C with nothing selected quits");
+}
+
 #[test]
 fn hinted_end_keys_reach_both_ends_of_the_list_under_either_profile() {
     for profile in ["desktop", "vim"] {

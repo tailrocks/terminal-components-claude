@@ -169,7 +169,7 @@ impl TextBuffer {
         Some(a.min(self.cursor)..a.max(self.cursor))
     }
 
-    #[cfg(test)]
+    /// Some text is selected.
     pub fn has_selection(&self) -> bool {
         self.selection().is_some()
     }

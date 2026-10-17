@@ -1576,6 +1576,12 @@ impl DataGrid {
         self.more && self.cursor.0 == self.rows.len()
     }
 
+    /// A cell range or marked rows: what Copy takes instead of the cursor
+    /// cell, and what Ctrl+C copies (copy-first, SI17).
+    pub fn has_selection(&self) -> bool {
+        self.anchor.is_some() || !self.selection.is_empty()
+    }
+
     fn copy_text(&self, with_header: bool) -> String {
         let mut out = String::new();
         if let Some(a) = self.anchor {
@@ -1726,7 +1732,10 @@ impl DataGrid {
             }
             return (moved.outcome(), None);
         }
-        if let Some(action) = lookup(&self.keymap, key) {
+        // Ctrl+C over a range or marked rows copies them (copy-first,
+        // SI17); the shell passes it here only while the frame marked them
+        let copy = (key.ctrl_char('c') && self.has_selection()).then_some(GridCmd::Copy);
+        if let Some(action) = lookup(&self.keymap, key).or(copy) {
             return self.on_action(action);
         }
         if let Some(nav) = self.nav.action(key) {
@@ -2510,6 +2519,9 @@ impl DataGrid {
         let focused = ctx.interaction.focused(self.id);
         // a cell edit that lost focus is ended by `on_blur`, never here
         ctx.control(self.id, area, false);
+        if self.has_selection() {
+            ctx.selection(self.id);
+        }
         ctx.scrollable(self.id, area);
 
         let bar_h = if self.show_bar && !self.pending.is_empty() {

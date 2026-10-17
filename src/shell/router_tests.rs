@@ -366,6 +366,32 @@ fn the_key_order_table() {
             ctrl('c'),
             Took::Quit,
         ),
+        (
+            "Ctrl+C over the focused control's selection: it copies (SI17)",
+            |h| {
+                let id = WidgetId::of("selected");
+                h.shell.ring.register(id);
+                h.shell.ring.mark_selection(id);
+                h.shell.focus.set(Some(id));
+                h.interrupts = true;
+                h.page_takes = vec![ctrl('c')];
+            },
+            ctrl('c'),
+            Took::Page,
+        ),
+        (
+            "Ctrl+C: a selection off the focused control does not count",
+            |h| {
+                let (sel, focused) = (WidgetId::of("selected"), WidgetId::of("focused"));
+                h.shell.ring.register(sel);
+                h.shell.ring.register(focused);
+                h.shell.ring.mark_selection(sel);
+                h.shell.focus.set(Some(focused));
+                h.page_takes = vec![ctrl('c')];
+            },
+            ctrl('c'),
+            Took::Quit,
+        ),
         // shell keys before the page
         (
             "app chord before the page",

@@ -565,7 +565,11 @@ impl ScrollPanel {
         if let Some(o) = edit_menu_key(self, key) {
             return o;
         }
-        match lookup(&self.keymap, key) {
+        // Ctrl+C over a selection copies (copy-first, SI17)
+        let cmd = lookup(&self.keymap, key).or_else(|| {
+            (key.ctrl_char('c') && self.selection().is_some()).then_some(PanelCmd::Copy)
+        });
+        match cmd {
             Some(PanelCmd::SelectAll) => return self.select_all(),
             Some(PanelCmd::Copy) => {
                 // nothing selected: the key stays free for the page
@@ -719,6 +723,9 @@ impl ScrollPanel {
         let rows_h = (self.scroll.viewport_len as u16).min(area.height);
         ctx.autoscroll(Rect::new(area.x, area.y, area.width, rows_h));
         let sel = self.select.range();
+        if sel.is_some() {
+            ctx.selection(self.id);
+        }
         let hoff = if self.h_enabled() {
             self.scroll.h.offset
         } else {

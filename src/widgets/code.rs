@@ -962,6 +962,10 @@ impl CodeEditor {
         }
         let focused = s.focused;
         ctx.control(self.id, area, false);
+        // editing or not, Ctrl+C copies the selection (copy-first, SI17)
+        if self.field.buffer.has_selection() {
+            ctx.selection(self.id);
+        }
         ctx.scrollable(self.id, area);
         ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
 
