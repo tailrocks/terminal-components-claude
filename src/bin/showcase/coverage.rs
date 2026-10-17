@@ -4239,6 +4239,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("dialogs", "dialogs.guard_dirty"),
     ),
     (
+        "widgets::dialog::Dialog::guard_destructive_dismiss",
+        Option("dialogs", "dialogs.guard_destructive"),
+    ),
+    (
         "widgets::dialog::Dialog::cancel_label",
         Option("dialogs", "dialogs.cancel_label"),
     ),
