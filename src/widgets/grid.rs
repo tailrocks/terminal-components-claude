@@ -1801,6 +1801,58 @@ impl DataGrid {
         }
     }
 
+    /// The default context menu of the cursor cell (M22), from the key
+    /// map ([`crate::ui::context::command_items`]): Copy, Copy with header;
+    /// Insert row, Duplicate row, Mark for deletion, Clear cell; Undo;
+    /// Filter on cell, Clear filters. A command the cell cannot take stays
+    /// with its reason (a read-only grid or column, a NOT NULL column,
+    /// nothing to undo). Open it at a [`ContextRequest`] from the grid's
+    /// [`ContextSource`] and run the chosen command with [`Self::run`].
+    ///
+    /// [`ContextRequest`]: crate::ui::context::ContextRequest
+    /// [`ContextSource`]: crate::ui::context::ContextSource
+    pub fn context_items(&self) -> Vec<(GridCmd, crate::widgets::menu::MenuItem)> {
+        use crate::ui::context::{ContextCmd, command_items};
+        let row = self.cursor_src();
+        let spec = self.columns.get(self.cursor.1);
+        let read_only = (!self.editable).then_some("Read-only rows");
+        let no_row = row.is_none().then_some("No row here");
+        let clear = read_only.or(no_row).or(match spec {
+            Some(s) if s.read_only => Some("Read-only column"),
+            Some(s) if !s.nullable && self.selection.is_empty() => Some("NOT NULL column"),
+            _ => None,
+        });
+        let cmds = [
+            ContextCmd::new(GridCmd::Copy).unless(no_row),
+            ContextCmd::new(GridCmd::CopyWithHeader)
+                .unless(no_row)
+                .group_end(),
+            ContextCmd::new(GridCmd::InsertRow).unless(read_only),
+            ContextCmd::new(GridCmd::DuplicateRow).unless(read_only.or(no_row)),
+            ContextCmd::new(GridCmd::ToggleDelete)
+                .unless(read_only.or(no_row))
+                .danger(),
+            ContextCmd::new(GridCmd::ClearCell)
+                .unless(clear)
+                .group_end(),
+            ContextCmd::new(GridCmd::Undo)
+                .unless(self.undo.is_empty().then_some("Nothing to undo"))
+                .group_end(),
+            ContextCmd::new(GridCmd::FilterOnCell).unless(no_row),
+            ContextCmd::new(GridCmd::ClearFilters),
+        ];
+        command_items(&self.keymap, &cmds)
+    }
+
+    /// Run `cmd` on the cursor cell exactly as its key does (a chosen
+    /// [`Self::context_items`] row, a toolbar button).
+    pub fn run(&mut self, cmd: GridCmd) -> (Outcome, Option<GridAction>) {
+        if cmd == GridCmd::InsertRow && !self.editable {
+            return (Outcome::Consumed, None);
+        }
+        self.on_action(cmd)
+    }
+
     fn on_action(&mut self, action: GridCmd) -> (Outcome, Option<GridAction>) {
         let c = self.cursor.1;
         match action {
@@ -4515,6 +4567,87 @@ mod tests {
         assert_eq!(g.selection.to_vec(), vec![0, 1], "a marked row keeps them");
         g.context_select((5, 0));
         assert_eq!(g.selection.to_vec(), vec![5]);
+    }
+
+    /// M22: a right click on a cell offers the grid's own commands (insert,
+    /// delete, undo, filter, copy), named by its key map; unavailable ones
+    /// say why, and a chosen row runs exactly as its key does.
+    #[test]
+    fn a_right_click_offers_the_grid_commands_from_its_key_map() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::PointerEvent;
+        use crate::ui::context::ContextConfig;
+        use crate::widgets::menu::MenuAction;
+        let mut g = grid();
+        g.editable = true;
+        let area = Rect::new(0, 0, 60, 8);
+        let (_, hits) = render_at(&mut g, area, Interaction::default());
+        let pos = Position::new(g.col_rects[1].x + 1, g.body.y + 2);
+        let ev = PointerEvent::new(
+            &hits,
+            Phase::Secondary,
+            hits.hit(pos).expect("a cell"),
+            pos,
+            1,
+            KeyModifiers::NONE,
+        );
+        let req = ContextConfig::DEFAULT
+            .on_secondary(&mut g, &ev)
+            .expect("a cell has a menu");
+        assert_eq!(g.cursor, (2, 1), "the menu is about the clicked cell");
+        let items = g.context_items();
+        let row = |items: &[(GridCmd, crate::widgets::menu::MenuItem)], c: GridCmd| {
+            let (_, i) = items.iter().find(|(x, _)| *x == c).expect("listed");
+            (
+                i.item.label.clone(),
+                i.shortcut.as_deref().map(str::to_owned),
+                i.item.disabled,
+            )
+        };
+        assert_eq!(
+            row(&items, GridCmd::InsertRow),
+            ("Insert row".into(), Some("+".into()), false)
+        );
+        assert_eq!(
+            row(&items, GridCmd::ToggleDelete),
+            ("Mark for deletion".into(), Some("-".into()), false)
+        );
+        assert_eq!(
+            row(&items, GridCmd::Undo),
+            ("Undo".into(), Some("u".into()), true),
+            "nothing to undo yet"
+        );
+        assert_eq!(row(&items, GridCmd::FilterOnCell).0, "Filter on cell");
+        assert_eq!(row(&items, GridCmd::Copy).0, "Copy");
+        // choose Insert row through the menu
+        let mut menu = req.menu(
+            WidgetId::of("g.menu"),
+            items.iter().map(|(_, i)| i.clone()).collect(),
+        );
+        let i = items
+            .iter()
+            .position(|(c, _)| *c == GridCmd::InsertRow)
+            .unwrap();
+        assert_eq!(menu.on_click(menu.row_id(i)), Some(MenuAction::Chosen(i)));
+        let (_, action) = g.run(items[i].0);
+        assert!(matches!(action, Some(GridAction::RowInserted(_))));
+        assert!(
+            !row(&g.context_items(), GridCmd::Undo).2,
+            "the insert can be undone from the menu"
+        );
+        // a remapped key shows its own chord; a read-only grid says why
+        g.keymap = vec![(KeyBinding::char('i'), GridCmd::InsertRow)];
+        assert_eq!(
+            row(&g.context_items(), GridCmd::InsertRow).1,
+            Some("i".into())
+        );
+        g.editable = false;
+        let (_, ro) = g
+            .context_items()
+            .into_iter()
+            .find(|(c, _)| *c == GridCmd::InsertRow)
+            .unwrap();
+        assert_eq!(ro.item.reason.as_deref(), Some("Read-only rows"));
     }
 
     #[test]
