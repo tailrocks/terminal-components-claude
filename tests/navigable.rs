@@ -11,10 +11,11 @@ use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::list::{NavProfile, Navigable};
 use junie_tui::widgets::chips::{Chip, ChipBar};
 use junie_tui::widgets::choice::RadioGroup;
-use junie_tui::widgets::completion::{Completion, CompletionItem};
+use junie_tui::widgets::completion::Completion;
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuItem};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::props::{Prop, PropsList};
 use junie_tui::widgets::select::Select;
@@ -83,16 +84,7 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
     // (`Completion::NAV`); the cursor model is the same with them on
     let mut completion = Completion::new(id("c")).nav(NavKeys::DESKTOP);
     completion.open(
-        LABELS
-            .iter()
-            .map(|l| CompletionItem {
-                label: (*l).into(),
-                glyph: "T".into(),
-                detail: String::new(),
-                insert: (*l).into(),
-                matched: vec![],
-            })
-            .collect(),
+        LABELS.iter().map(|l| Item::new(*l).glyph("T")).collect(),
         Rect::new(0, 0, 10, 1),
         0,
     );

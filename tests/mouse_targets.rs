@@ -16,12 +16,13 @@ use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
 use junie_tui::widgets::code::CodeEditor;
-use junie_tui::widgets::completion::{Completion, CompletionItem};
+use junie_tui::widgets::completion::Completion;
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
 use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuItem};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::ScrollPanel;
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::props::{Prop, PropsList};
@@ -293,13 +294,7 @@ fn popups_route_their_rows_and_backdrops() {
     let mut completion = Completion::new(WidgetId::of("mt.completion"));
     let items = many(30)
         .into_iter()
-        .map(|s| CompletionItem {
-            label: s.clone(),
-            glyph: "T".into(),
-            detail: String::new(),
-            insert: s,
-            matched: vec![],
-        })
+        .map(|s| Item::new(s).glyph("T"))
         .collect();
     completion.open(items, Rect::new(2, 1, 1, 1), 0);
     let hits = hits_of(|buf, ctx| completion.render(SCREEN, buf, ctx));

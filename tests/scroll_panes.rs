@@ -17,7 +17,7 @@ use junie_tui::core::scroll::{ScrollState, Scrollable};
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::{Interaction, RenderCtx};
 use junie_tui::widgets::code::CodeEditor;
-use junie_tui::widgets::completion::{Completion, CompletionItem};
+use junie_tui::widgets::completion::Completion;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::form_dialog::{FormDialog, FormField};
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
@@ -25,6 +25,7 @@ use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::info_dialog::InfoDialog;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::ScrollPanel;
 use junie_tui::widgets::picker::{Picker, PickerItem};
 use junie_tui::widgets::props::{Prop, PropsList};
@@ -404,17 +405,11 @@ fn popup_lists_page_and_drag_their_bars() {
     let mut w = Completion::new(id);
     let items = labels(30)
         .into_iter()
-        .map(|l| CompletionItem {
-            insert: l.clone(),
-            label: l,
-            glyph: "T".into(),
-            detail: String::new(),
-            matched: vec![],
-        })
+        .map(|l| Item::new(l).glyph("T"))
         .collect();
     w.open(items, Rect::new(2, 1, 1, 1), 0);
     let hits = frame(|a, b, c| w.render(a, b, c));
-    press_and_drag("Completion", &mut w, bar(&hits, id, Axis::Vertical));
+    press_and_drag("Completion", &mut w.list, bar(&hits, id, Axis::Vertical));
 }
 
 fn help() -> HelpOverlay {
