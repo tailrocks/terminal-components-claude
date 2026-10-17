@@ -17,9 +17,10 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
@@ -29,10 +30,12 @@ use junie_tui::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, hint_key, la
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Strings;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::dialog::DialogResult;
 use junie_tui::widgets::icon_button::IconButton;
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::tabs::{CloseReveal, TabAction, TabCmd, TabItem, TabRule, Tabs};
 
 const ID: WidgetId = WidgetId::of("tabs-page");
@@ -257,15 +260,8 @@ impl TabsPage {
         cx.status(self.last.clone());
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[2, 1, 8, 1, 9, 0]);
-        self.editor.render(rows[0], buf, ctx, t.canvas);
-
-        let card =
-            Panel::card(Some("Editor strip")).meta("click · × · + · ‹ › · wheel · middle-click");
-        let bg = card.bg(t);
-        let inner = card.render(rows[2], buf, t);
+    /// The editor strip's readout.
+    fn facts(&self) -> Vec<Prop> {
         let active = self.editor.items.get(self.editor.active);
         let state = active.map_or(String::new(), |it| {
             let mut s = vec![];
@@ -289,31 +285,49 @@ impl TabsPage {
             format!("{} · {}", it.label, s.join(" · "))
         });
         let (before, after) = self.editor.hidden();
-        let keys = keys_readout(&self.editor);
-        let lines = [
-            ("Active", state),
-            ("Hidden", format!("{before} before · {after} after")),
-            ("Keys", keys),
-            ("Emits", "TabAction::Activated · Close · New".into()),
-            ("Last", self.last.clone()),
-        ];
-        for (i, (k, v)) in lines.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            buf.set_string(inner.x, y, k, t.muted().bg(bg));
-            let w = inner.width.saturating_sub(9) as usize;
-            buf.set_string(
-                inner.x + 9,
-                y,
-                junie_tui::ui::text::truncate(v, w),
-                t.primary().bg(bg),
-            );
-        }
+        vec![
+            Prop::new("Active", state).wrap(),
+            Prop::new("Hidden", format!("{before} before · {after} after")),
+            Prop::new("Keys", keys_readout(&self.editor)).wrap(),
+            Prop::new("Emits", "TabAction::Activated · Close · New").wrap(),
+            Prop::new("Last", self.last.clone()).wrap(),
+        ]
+    }
+
+    /// The Playground's rows at `width`: the editor strip, its readout
+    /// card, the nested strips' card. Returns the width (never narrower
+    /// than the nested strips and the readout) and the two cards' heights.
+    fn layout_at(&self, width: u16, ctx: &RenderCtx) -> (u16, u16, u16) {
+        let any = Size::new(0, 2);
+        let card = Panel::card(Some("Editor strip")).meta(EDITOR_META);
+        let nest = Panel::card(Some("Nested strips")).meta(NEST_META);
+        let facts = self.facts();
+        let strips = self
+            .outer
+            .measure(any, ctx)
+            .width
+            .max(self.sub.measure(any, ctx).width);
+        // the editor strip is not counted: it overflows on purpose (its
+        // ‹N N› window and +N menu reach the hidden tabs)
+        let w = width
+            .max(sheet_width(&card, &facts))
+            .max(nest.outer(Size::new(strips, 0)).width);
+        (w, sheet_height(&card, &facts, w), NEST_H)
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let (_, card_h, nest_h) = self.layout_at(area.width, ctx);
+        let rows = crate::pages::layout::rows(area, &[2, 1, card_h, 1, nest_h, 0]);
+        self.editor.render(rows[0], buf, ctx, t.canvas);
+
+        let card = Panel::card(Some("Editor strip")).meta(EDITOR_META);
+        let bg = card.bg(t);
+        let inner = card.render(rows[2], buf, t);
+        props::render(inner, buf, t, &self.facts(), bg);
 
         // nested strips: table › section › sub-tab
-        let nest = Panel::card(Some("Nested strips")).meta("Tabs::layout · 1–6 jump");
+        let nest = Panel::card(Some("Nested strips")).meta(NEST_META);
         let nbg = nest.bg(t);
         let inner = nest.render(rows[4], buf, t);
         // each strip's body sits under it through `Tabs::layout` (one
@@ -337,7 +351,14 @@ impl TabsPage {
         };
         buf.set_string(body.x, body.y, crumb, t.muted().bg(nbg));
     }
+}
 
+const EDITOR_META: &str = "click · × · + · ‹ › · wheel · middle-click";
+const NEST_META: &str = "Tabs::layout · 1–6 jump";
+/// The nested strips' card: two strips and the crumb under them.
+const NEST_H: u16 = 9;
+
+impl TabsPage {
     /// The strip whose id is `id` (the focused one); the sub strip only
     /// while it is shown.
     fn strip_mut(&mut self, id: WidgetId) -> Option<&mut Tabs> {
@@ -445,6 +466,11 @@ impl Page for TabsPage {
 
     fn blurb(&self) -> &'static str {
         "Tab items (icons, dirty, busy, error, closable), rules, overflow and nested strips"
+    }
+
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let (w, card_h, nest_h) = self.layout_at(avail.width, ctx);
+        Size::new(w, 2 + 1 + card_h + 1 + nest_h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
