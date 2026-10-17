@@ -15,7 +15,7 @@ use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::picker::PickerItem;
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::Segment;
@@ -1221,7 +1221,7 @@ impl Screen for SettingsScreen {
         self.cfg.menu_hides_focus()
     }
 
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, _w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, _w: &World) -> Option<Vec<Item>> {
         if tag.kind == "cfg.role" {
             return Some(self.cfg.role_picker_items(query));
         }
