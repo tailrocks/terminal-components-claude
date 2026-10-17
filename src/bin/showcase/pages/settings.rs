@@ -17,6 +17,7 @@ use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{RadioGroup, Toggle};
@@ -368,9 +369,9 @@ impl Page for SettingsPage {
     /// The General card's two columns whole (the description uncut, the
     /// toggles with their state words, the visibility choices), each
     /// column as wide as the wider needs; the tab's rows under the strip.
-    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
-        let left = self.description.width();
+        let left = self.description.measure(Size::ZERO, ctx).width;
         let right = self
             .auto_merge
             .width()
