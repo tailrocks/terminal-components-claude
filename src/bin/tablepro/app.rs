@@ -18,7 +18,7 @@ use junie_tui::core::pointer::{
 };
 use junie_tui::core::response::Response;
 use junie_tui::shell::{self, PageKey, Shell};
-use junie_tui::theme::{BadgeKind, StatusKind, Theme, Tone};
+use junie_tui::theme::{StatusKind, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{
@@ -31,7 +31,7 @@ use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::CellValue;
 
 use junie_tui::widgets::input::TextInput;
-use junie_tui::widgets::keyhint::{self, Hint, hint};
+
 use junie_tui::widgets::menu::MenuAction;
 use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::props::Prop;
@@ -2106,7 +2106,7 @@ impl App {
         if let Some(p) = page {
             p.render(body, buf, ctx, history);
         }
-        self.draw_footer(footer, buf, ctx);
+        self.footer().render(footer, buf, ctx, &mut self.shell);
         // overlays, bottom to top
         let mut layers = std::mem::take(&mut self.layers);
         for e in layers.iter_mut() {
@@ -2238,34 +2238,30 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = self.theme;
+    /// The footer: the top layer's hints while one is open (the library
+    /// modals name their own keys), else the shown page's; the EDIT badge
+    /// while the page edits; the status line ([`shell::Footer`]).
+    fn footer(&self) -> shell::Footer {
+        let focus = self.shell.focus.current();
         let editing = self.shown().is_some_and(|p| p.is_editing());
-        let hints: Vec<Hint> = match self.layers.top() {
-            Some(e) => e.layer.hints(self.shell.focus.current()),
+        let open = !self.layers.is_empty();
+        let hints = match self.layers.top() {
+            Some(e) => e.layer.hints(focus),
             None => self
                 .shown()
-                .map(|p| p.hints(self.shell.focus.current(), &self.history))
+                .map(|p| p.hints(focus, &self.history))
                 .unwrap_or_default(),
         };
-        let mut hints = hints;
-        // the focused cursor row is cut: name the reveal key
-        junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.key, hint);
-        if self.layers.is_empty() && !editing {
-            hints.push(hint("Tab", "Next"));
-        }
-        let badge = if editing && self.layers.is_empty() {
-            Some(("EDIT", BadgeKind::Edit))
-        } else {
-            None
-        };
-        let status = self
-            .shell
-            .status
-            .entry()
-            .map(|(text, _, kind)| (text, *kind));
-        let (_, spots) = keyhint::render_status_at(area, buf, &t, &hints, badge, status);
-        self.shell.footer_drawn(hints, spots);
+        shell::Footer::new()
+            .layer(Some(hints))
+            .editing(editing && !open)
+            .tab_next(!open && !editing)
+            .status_kind(
+                self.shell
+                    .status
+                    .entry()
+                    .map(|(text, _, kind)| (text, *kind)),
+            )
     }
 }
 
