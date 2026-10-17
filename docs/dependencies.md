@@ -39,9 +39,9 @@ Direct dependencies and tools. "Locked" is the `Cargo.lock` version.
 | `libtest-mimic` (dev, `0.8.2`) | 0.8.2 | 0.8.2 | 0.8.2 | none |
 | `sha2` (dev) | `0.10` / 0.10.9 | `0.11` / 0.11.1 | 0.11.1 | none; tuiscotti held it at `=0.11.0` until PR 11 (raised 2026-10-17) |
 | `tuiscotti` (dev, git `rev`) | `3382e57d` | `a1ea27f7` | `a1ea27f7` (`main`, 2026-10-17) | none; `3382e57d..a1ea27f7` is two CI-only commits (#13, #14: velnor-actions 0.1.10 and 0.1.12), no library or API change |
-| velnor-actions | 0.1.8 | 0.1.9 | 0.1.9 (`a7d49aa`, 2026-10-16) | none; adopted 2026-10-17 (`docs/ci.md`) |
-| cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 | none; `[tools]` can override it |
-| actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | 1.7.12, 0.11.0, 1.31.1, 2.102.0 | zizmor 1.30.1 is velnor 0.1.9's catalog pin; `[tools] zizmor = "1.31.1"` would raise it, not done yet: velnor only shape-checks `[tools]` versions, so the pin needs a CI run to prove it installs |
+| velnor-actions | 0.1.10 | 0.1.12 | 0.1.12 (`f1b044a`, 2026-10-17) | none; adopted 2026-10-17 (`docs/ci.md`); 0.1.11/0.1.12 change only the mr-boxington preflight and add `[workflow] mise_quiet`, our generated output differs only in version strings and digests |
+| cargo-nextest in CI | 0.9.148 | 0.9.148 | 0.9.148 (2026-10-17) | none; `[tools]` can override it |
+| actionlint, shellcheck, zizmor, gh in CI | 1.7.12, 0.11.0, 1.30.1, 2.102.0 | same | 1.7.12, 0.11.0, 1.31.1, 2.102.0 | zizmor 1.30.1 is still velnor 0.1.12's catalog pin; `[tools] zizmor = "1.31.1"` would raise it, held: 0.1.12 still only shape-checks `[tools]` versions (`zizmor = "99.99.99"` generates, checked 2026-10-17), so the pin needs a velnor fix or a CI run to prove it installs (`docs/remaining-work.md` U3). The other three are on latest (2026-10-17) |
 
 `xtask` has no dependencies. `cargo update` moved 42 transitive packages
 (semver-compatible). Transitive crates still behind latest, and why:
