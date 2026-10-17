@@ -416,3 +416,25 @@ junie_tui::reach_tests! {
     grid_menu = "grid-menu",
     explorer_menu = "explorer-menu",
 }
+
+/// R-apps-6: on a short screen the executed-statement card keeps its
+/// facts in a scroll view: the wheel over them reaches the last one.
+#[test]
+fn a_short_result_pane_scrolls_the_statement_facts() {
+    use junie_tui::core::event::MouseKind;
+    let mut h = H::fresh();
+    connected(&mut h);
+    query(&mut h, "DELETE FROM orders WHERE id = 1");
+    h.ctrl('r');
+    h.ticks(10);
+    h.resize(72, 20);
+    assert!(!h.text().contains("Duration"), "{}", h.text());
+    let (x, y) = h.find("Statement      ").expect("the first fact");
+    let mut seen = h.text();
+    for _ in 0..4 {
+        h.mouse(MouseKind::WheelDown, x, y);
+        seen.push_str(&h.text());
+    }
+    assert!(seen.contains("Rows affected"), "{seen}");
+    assert!(seen.contains("Duration"), "{seen}");
+}

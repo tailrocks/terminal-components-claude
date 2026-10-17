@@ -2275,8 +2275,10 @@ mod tests {
         let text = rows(&draw(&mut d, screen, screen)).join("\n");
         assert!(text.contains("line 30"), "{text}");
         assert!(!text.contains("more"), "{text}");
-        // the wheel scrolls back up
-        d.wheel(Axis::Vertical, -100).outcome();
+        // the wheel scrolls back up (a notch moves at most one view)
+        for _ in 0..40 {
+            d.wheel(Axis::Vertical, -100).outcome();
+        }
         let text = rows(&draw(&mut d, screen, screen)).join("\n");
         assert!(text.contains("line 01"), "{text}");
     }

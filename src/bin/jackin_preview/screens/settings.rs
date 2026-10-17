@@ -10,7 +10,8 @@ use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::shell::Page;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
-use junie_tui::ui::text::{fit, truncate, width};
+use junie_tui::ui::scroll_view::{Axes, ScrollView};
+use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::Dialog;
@@ -80,6 +81,9 @@ pub struct SettingsScreen {
     dco: Checkbox,
     trust_cursor: usize,
     agents_cursor: usize,
+    /// The Agents tab body at its natural height, scrolled when the
+    /// screen is too short for the table and its notes (R-apps-6).
+    agents_view: ScrollView,
     cancel: Button,
     save: Button,
     saving: bool,
@@ -112,6 +116,7 @@ impl SettingsScreen {
             tab: StTab::General,
             trust_cursor: 0,
             agents_cursor: 0,
+            agents_view: ScrollView::new(AGENTS.sub("view")).axes(Axes::VERTICAL),
             cancel: Button::subtle(CANCEL, "Cancel"),
             save: Button::primary(SAVE, "Save…"),
             saving: false,
@@ -575,6 +580,22 @@ impl SettingsScreen {
     /// container. Which account backs it is read-only here — the registry
     /// (Account & Usage Center) owns that.
     fn render_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
+        // the heading, the table and a blank row, then the notes wrapped
+        let natural = |a: ratatui::layout::Size| {
+            let notes: usize = AGENT_NOTES
+                .iter()
+                .map(|n| wrap(n, a.width.saturating_sub(4).max(1) as usize).len())
+                .sum();
+            ratatui::layout::Size::new(a.width, 3 + Agent::ALL.len() as u16 + notes as u16)
+        };
+        let size = self.agents_view.fit(area.as_size(), natural);
+        let mut frame = self.agents_view.begin(area, size, buf, ctx);
+        let inner = frame.area();
+        self.draw_agents(inner, frame.buffer(buf), ctx, w);
+        self.agents_view.end(frame, buf, ctx);
+    }
+
+    fn draw_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let bg = t.canvas;
         let focused = ctx.interaction.focused(AGENTS);
@@ -687,26 +708,15 @@ impl SettingsScreen {
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
-        let ny = body.y + Agent::ALL.len() as u16 + 1;
-        if ny + 1 < body.bottom() {
-            buf.set_string(
-                area.x + 2,
-                ny,
-                truncate(
-                    "sync mirrors the host login · api key and oauth token take material from the registry account",
-                    area.width.saturating_sub(4) as usize,
-                ),
-                t.faint().bg(bg),
-            );
-            buf.set_string(
-                area.x + 2,
-                ny + 1,
-                truncate(
-                    "ignore starts the agent without credentials and removes it from session pickers",
-                    area.width.saturating_sub(4) as usize,
-                ),
-                t.faint().bg(bg),
-            );
+        // the notes wrap under the table; the view scrolls to them
+        let mut ny = body.y + Agent::ALL.len() as u16 + 1;
+        for note in AGENT_NOTES {
+            for line in wrap(note, area.width.saturating_sub(4).max(1) as usize) {
+                if ny < area.bottom() {
+                    buf.set_string(area.x + 2, ny, &line, t.faint().bg(bg));
+                }
+                ny += 1;
+            }
         }
     }
 
@@ -988,6 +998,9 @@ impl Page<Jackin> for SettingsScreen {
     /// window); a click on a control or a row acts on it; the
     /// configuration tabs take their own events (rows, menus, wheel).
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        if let Some(r) = self.agents_view.pointer(ev) {
+            return r.outcome();
+        }
         let click = ev.is(Phase::Click);
         if self.saving && (click || ev.is(Phase::Secondary)) {
             return Outcome::Consumed;
@@ -1348,3 +1361,9 @@ impl SettingsScreen {
         }
     }
 }
+
+/// The notes under the Agents table: what each runtime mode hands over.
+const AGENT_NOTES: [&str; 2] = [
+    "sync mirrors the host login · api key and oauth token take material from the registry account",
+    "ignore starts the agent without credentials and removes it from session pickers",
+];

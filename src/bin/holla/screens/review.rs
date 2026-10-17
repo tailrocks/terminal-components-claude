@@ -12,6 +12,7 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::scroll_view::{Axes, ScrollView};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::action_row::ActionRow;
 use junie_tui::widgets::button::{Button, RowAlign};
@@ -42,6 +43,8 @@ use junie_tui::widgets::menu::MenuItem;
 pub const SEQUENCE: WidgetId = WidgetId::of("gate.sequence");
 pub const GATE_CANCEL: WidgetId = WidgetId::of("gate.cancel");
 pub const GATE_CONTINUE: WidgetId = WidgetId::of("gate.continue");
+/// The resolved facts' scroll view.
+pub const GATE_FACTS: WidgetId = WidgetId::of("gate.facts");
 /// The command sequence's context menu.
 pub const SEQUENCE_MENU: WidgetId = WidgetId::of("gate.sequence.menu");
 
@@ -54,9 +57,16 @@ pub struct GatePage {
     sequence: Vec<String>,
     scroll: ScrollState,
     sequence_area: Rect,
+    /// The resolved facts: their natural height, scrolled when the page
+    /// is too short for them beside the sequence (R-apps-6).
+    facts_view: ScrollView,
     cancel: Button,
     cont: Button,
 }
+
+/// Rows the gate's sequence panel keeps under the facts (its frame and
+/// three commands): the facts scroll before the sequence shrinks below it.
+const SEQUENCE_MIN: u16 = 5;
 
 impl GatePage {
     pub fn new(target: GateTarget, w: &World) -> Self {
@@ -67,6 +77,7 @@ impl GatePage {
             sequence: vec![],
             scroll: ScrollState::default(),
             sequence_area: Rect::ZERO,
+            facts_view: ScrollView::new(GATE_FACTS).axes(Axes::VERTICAL),
             cancel: Button::secondary(GATE_CANCEL, "Cancel"),
             cont: Button::danger(GATE_CONTINUE, "Continue…"),
         };
@@ -415,6 +426,9 @@ impl ShellPage<Holla> for GatePage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if let Some(r) = self.facts_view.pointer(ev) {
+            return r.outcome();
+        }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             // a sideways notch never scrolls the vertical sequence
@@ -486,15 +500,24 @@ impl ShellPage<Holla> for GatePage {
                 Tone::Muted,
             )
             .render(area, buf, t);
-        let facts_h = (self.facts.len() as u16 + 2).min(area.height / 2);
+        let buttons_y = area.bottom().saturating_sub(1);
+        // the facts at their natural height, scrolled when the sequence
+        // would keep fewer than its minimum rows under them
+        let room = buttons_y.saturating_sub(area.y + 3);
         let facts_area = Rect::new(
             area.x + 1,
             area.y + 2,
             area.width.saturating_sub(2),
-            facts_h,
+            room.saturating_sub(1 + SEQUENCE_MIN).max(1),
         );
-        let used = props::render(facts_area, buf, t, &self.facts, t.canvas);
-        let buttons_y = area.bottom().saturating_sub(1);
+        let used = props::render_in(
+            &mut self.facts_view,
+            facts_area,
+            buf,
+            ctx,
+            &self.facts,
+            t.canvas,
+        );
         let seq_y = facts_area.y + used + 1;
         let seq_area = Rect::new(
             area.x,
@@ -613,6 +636,8 @@ impl Screen for GatePage {
 pub const TRUST_CANCEL: WidgetId = WidgetId::of("trust.cancel");
 pub const TRUST_OK: WidgetId = WidgetId::of("trust.ok");
 pub const TRUST_BODY: WidgetId = WidgetId::of("trust.body");
+/// The file facts' scroll view.
+pub const TRUST_FACTS: WidgetId = WidgetId::of("trust.facts");
 
 pub struct TrustPage {
     pub config: String,
@@ -621,6 +646,9 @@ pub struct TrustPage {
     ok: Button,
     scroll: ScrollState,
     body_area: Rect,
+    /// The file's facts: their natural height, scrolled when the page is
+    /// too short for them above the definition (R-apps-6).
+    facts_view: ScrollView,
 }
 
 impl TrustPage {
@@ -632,6 +660,7 @@ impl TrustPage {
             ok: Button::primary(TRUST_OK, "Trust this file"),
             scroll: ScrollState::default(),
             body_area: Rect::ZERO,
+            facts_view: ScrollView::new(TRUST_FACTS).axes(Axes::VERTICAL),
         }
     }
 
@@ -833,6 +862,9 @@ impl ShellPage<Holla> for TrustPage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if let Some(r) = self.facts_view.pointer(ev) {
+            return r.outcome();
+        }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             // a sideways notch never scrolls the vertical body
@@ -885,14 +917,17 @@ impl ShellPage<Holla> for TrustPage {
         buf.set_string(area.x + 1, area.y, &title, t.title());
         buf.set_string(area.x + 1, area.y + 1, "not trusted yet · review the exact definition, commands and environment before it runs", t.muted());
         let (facts, body) = self.lines(w);
+        let buttons_y = area.bottom().saturating_sub(1);
+        // the facts at their natural height, scrolled when the definition
+        // would keep fewer than its minimum rows under them
+        let room = buttons_y.saturating_sub(area.y + 4);
         let facts_area = Rect::new(
             area.x + 1,
             area.y + 3,
             area.width.saturating_sub(2),
-            facts.len() as u16,
+            room.saturating_sub(1 + SEQUENCE_MIN).max(1),
         );
-        let used = props::render(facts_area, buf, t, &facts, t.canvas);
-        let buttons_y = area.bottom().saturating_sub(1);
+        let used = props::render_in(&mut self.facts_view, facts_area, buf, ctx, &facts, t.canvas);
         let body_y = facts_area.y + used + 1;
         let body_area = Rect::new(
             area.x,

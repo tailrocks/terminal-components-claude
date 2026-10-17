@@ -2680,6 +2680,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::props::width_with"),
     Capability::function("widgets::props::render"),
     Capability::function("widgets::props::render_with"),
+    Capability::function("widgets::props::render_in"),
     Capability::function("widgets::props::PropsList::set_props"),
     Capability::function("widgets::props::PropsList::row_id"),
     Capability::function("widgets::props::PropsList::on_key"),

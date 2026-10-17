@@ -735,7 +735,10 @@ impl ScrollPane {
                 if !self.v.overflows() {
                     return Response::ignored();
                 }
-                self.v.scroll_by(delta as isize)
+                // a notch never moves further than the viewport shows: a
+                // view shorter than the notch steps through every row
+                let page = self.v.viewport_len.max(1) as isize;
+                self.v.scroll_by((delta as isize).clamp(-page, page))
             }
             Axis::Horizontal => {
                 if !self.h_scrolls() {
@@ -977,6 +980,18 @@ mod tests {
         assert!(p.jump_end());
         assert_eq!(p.offset, 40);
         assert_eq!(p.v.offset, 40);
+    }
+
+    /// A view shorter than a notch steps through every row: a notch moves
+    /// at most one view (R-apps-6, a two-row fact sheet).
+    #[test]
+    fn a_notch_never_moves_further_than_the_view() {
+        let mut p = ScrollPane::new(6);
+        p.set_viewport(2);
+        assert!(p.wheel(Axis::Vertical, 3).is_changed());
+        assert_eq!(p.offset, 2);
+        assert!(p.wheel(Axis::Vertical, -3).is_changed());
+        assert_eq!(p.offset, 0);
     }
 
     #[test]

@@ -6888,6 +6888,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "widgets::props::measure",
             "widgets::props::width",
             "widgets::props::render",
+            "widgets::props::render_in",
         ],
     ),
     ("widgets::props::PropsList", Operation, &["set_props"]),

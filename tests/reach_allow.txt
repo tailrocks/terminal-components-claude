@@ -43,11 +43,11 @@ holla finder-children 80x24 under # R-apps-8 R-apps-12
 holla finder-children 120x40 under # R-apps-8 R-apps-12
 holla finder-page 72x20 fits view # R-apps-8
 holla finder-page 80x24 fits view # R-apps-8
-holla gate-plan 72x20 7f2 Gate Not Privilege Provenance Reclaimable Recoverable Uncertainty acme ago api are bound builder buildx configuration continue daemon data deliberately docker durable facts force from generic grafana hold its itself keep live loki mirror named network none permanent pgadmin phrase prune redis registry scheduler second shell stop system target them then tmp touched types worker would # R-apps-4 R-apps-6
-holla gate-plan 80x24 7f2 Gate Not Privilege Provenance Uncertainty ago bound builder configuration continue daemon data deliberately durable from generic grafana hold its itself keep live loki mirror named none pgadmin phrase redis registry second shell target them then tmp touched types would # R-apps-4 R-apps-6
-holla gate-plan 100x25 7f2 Gate Privilege Provenance Uncertainty ago bound builder data durable from generic grafana hold keep live loki mirror named none pgadmin phrase registry second shell target them tmp types would # R-apps-4 R-apps-6
-holla gate-plan 106x29 Gate Provenance ago bound from grafana live loki mirror pgadmin phrase second shell target tmp types # R-apps-4 R-apps-6
-holla gate-plan 120x40 grafana loki pgadmin shell # R-apps-4 R-apps-6
+holla gate-plan 72x20 7f2 continue deliberately facts grafana loki mirror pgadmin redis registry shell then tmp # R-apps-4
+holla gate-plan 80x24 7f2 continue deliberately grafana loki mirror pgadmin redis registry shell then tmp # R-apps-4
+holla gate-plan 100x25 7f2 grafana loki mirror pgadmin registry shell tmp # R-apps-4
+holla gate-plan 106x29 grafana loki mirror pgadmin shell tmp # R-apps-4
+holla gate-plan 120x40 grafana loki pgadmin shell # R-apps-4
 holla plan-review 72x20 excluded included # R-apps-1 R-apps-2 R-apps-4
 holla plan-review 100x25 State ready # R-apps-2 R-apps-4
 holla plan-review 106x29 State ready # R-apps-2 R-apps-4
@@ -60,7 +60,7 @@ holla top-files 72x20 cleanup for gate same the # R-apps-1 R-apps-4
 holla top-files 80x24 cleanup for gate same the # R-apps-1 R-apps-4
 holla top-files 100x25 cleanup gate # R-apps-4
 holla top-files 106x29 gate # R-apps-4
-holla trust 72x20 Node after before build changes depends description dev development environment eslint lint node production runs server team vite vitest when # R-apps-1 R-apps-6
+holla trust 72x20 Node before changes environment renewed runs when # R-apps-4 R-apps-8
 holla trust 80x24 changes runs team # R-apps-1 R-apps-6
 holla upgrade-plan 72x20 excluded included # R-apps-2 R-apps-4
 holla upgrade-plan 106x29 Lane ordered trunk # R-apps-2 R-apps-4
@@ -123,8 +123,7 @@ jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degrad
 jackin manager-hard 160x50 ask refreshing # R-apps-2 R-apps-6 R-apps-8
 jackin settings 72x20 Zhokhov alexey chainargos # R-apps-1 R-apps-4
 jackin settings 80x24 alexey chainargos # R-apps-1 R-apps-4
-jackin settings-agents 72x20 agent from host json login material mirrors oauth pickers registry removes session starts take token without # R-apps-1 R-apps-6
-jackin settings-agents 80x24 pickers registry # R-apps-1 R-apps-6
+jackin settings-agents 72x20 json # R-apps-4
 jackin settings-env 72x20 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-1 R-apps-2
 jackin settings-env 80x24 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-1 R-apps-2
 jackin settings-env 100x25 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-1 R-apps-2
@@ -165,13 +164,12 @@ tablepro connections 72x20 5432 Database Destructive Duplicate Edit Engine Envir
 tablepro connections 80x24 5432 Database Destructive Duplicate Edit Engine Environment Host Last Mode SSH SSL Safe Silent User Writes acme ago asking confirm dev local localhost minutes off postgres run statements still used without # R-apps-2
 tablepro connections-empty 72x20 Select moves # R-apps-2
 tablepro connections-empty 80x24 Select moves # R-apps-2
-tablepro history 72x20 412 ANDed Connection Copy Duration Rows any email failed pending # R-apps-1 R-apps-3 R-apps-4 R-apps-6 R-apps-7
-tablepro history 80x24 Copy daily pending # R-apps-1 R-apps-4 R-apps-6 R-apps-7
+tablepro history 72x20 ANDed Copy any # R-apps-4 R-apps-7
+tablepro history 80x24 Copy # R-apps-7
 tablepro history 106x29 312 Copy # R-apps-3 R-apps-4 R-apps-6 R-apps-7
 tablepro history 120x40 312 Copy # R-apps-3 R-apps-4 R-apps-6 R-apps-7
 tablepro query-editing 106x29 312 # R-apps-3
 tablepro query-editing 120x40 312 # R-apps-3
-tablepro result-affected 72x20 Duration Rows # R-apps-1 R-apps-6
 tablepro result-affected 106x29 312 # R-apps-3
 tablepro result-affected 120x40 312 # R-apps-3
 tablepro result-error 72x20 Enter Perhaps address amount currency delivered gift jumps meant notes number one result shipped shipping statement status tab the total you # R-apps-1 R-apps-5 R-apps-6
@@ -185,7 +183,6 @@ tablepro result-plan 80x24 368 Actual Cost Est loop # R-apps-1 R-apps-2
 tablepro result-plan 100x25 368 Actual Cost Est loop # R-apps-2
 tablepro result-plan 106x29 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
 tablepro result-plan 120x40 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
-tablepro result-rows 72x20 62e30eb3023a 64e6f4de 66ce 67b727af549c 6c1d1fd69c1a 6ced46ac407d 6e37043f 7033 7127 7258ca86 72e5acedfb6 7408 747ddec2 7557d493 7b162bee070 7bbb 8fe3ac0de925 9004 9276 94e6ec156ee 9520a2e3 9610f538 9d628e15 9d64a4912de0 b1ce ba1e beb1 c180d977 c2244d61 c2e9b1dea5b c4ad c684f35e139 c893cab9 ccce612ed16 ceb1 d189 d1ffd889 d50f d512 db1708c5160b dc0b4dcd dc4e3c55c7c ddb4866f00d e05260977d47 e1c0096fac8c e787efcf86e3 e7c9 f0160378d74 f4cff1e838f5 f7a2e505aaa f93d fa5f fb78dd25 fc5a011cee4 # R-apps-1 R-apps-12
 tablepro safe-mode 72x20 acknowledgement before deliberate statements still work # R-apps-8
 tablepro safe-mode 80x24 acknowledgement work # R-apps-8
 tablepro table-ddl 106x29 312 # R-apps-3
