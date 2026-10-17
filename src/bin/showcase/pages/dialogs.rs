@@ -179,7 +179,13 @@ impl DialogsPage {
                         "  \"host\": \"db.eu-west-1.internal\",",
                         "  \"port\": 5432,",
                         "  \"ssl\": \"verify-full\",",
-                        "  \"pool\": { \"min\": 2, \"max\": 16 }",
+                        "  \"pool\": { \"min\": 2, \"max\": 16 },",
+                        // past six lines the preview scrolls with the
+                        // facts (R-apps-14): no line is summarised away
+                        "  \"user\": \"orders_ro\",",
+                        "  \"database\": \"orders\",",
+                        "  \"statement_timeout\": \"30s\",",
+                        "  \"application_name\": \"tablepro\"",
                         "}",
                     ]
                     .map(String::from)

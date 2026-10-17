@@ -23,7 +23,6 @@ holla plan-running 72x20 step # R-apps-3
 holla plan-running 80x24 step # R-apps-3
 holla plan-running 100x25 step # R-apps-3
 holla plan-running 106x29 step # R-apps-3
-holla start-plan 72x20 apt get update # R-apps-14
 holla trust 72x20 Node # R-apps-4
 holla upgrade-plan 72x20 excluded included # R-apps-4
 jackin capsule 72x20 0004 0005 0007 00Z 03T09 12s 142 2026 204 2u32 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 ATTEMPTS BASE Checking EUR FAILED Finished OpenAI Opus Read Refactor RetryPolicy The add adr ahead and attempt attempts cap capped clippy close codex config const conversion crates currency daily delay dev exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger let lines loop multi origin partial pow precedes precision read reconcile refund retries retrying rounding settled status summarise target u32 unoptimized warn with # R-apps-6
