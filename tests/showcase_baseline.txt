@@ -10,7 +10,7 @@
 120x40 TrueColor Breadcrumbs & rails 0616586086002211
 120x40 TrueColor Breadcrumbs & rails · Options a71b963a93411400
 120x40 TrueColor Breadcrumbs & rails · States 5794559e35b83225
-120x40 TrueColor Help & keys 8512ad2415701acc
+120x40 TrueColor Help & keys 375d2517fac90548
 120x40 TrueColor Help & keys · Options 1577bdd988c85ea1
 120x40 TrueColor Help & keys · States e8616227a9291619
 120x40 TrueColor Quit & leave c9680f2afa80db76
@@ -174,7 +174,7 @@
 120x40 Ansi256 Breadcrumbs & rails 1f895ff3740705ab
 120x40 Ansi256 Breadcrumbs & rails · Options d42e167091c16e4b
 120x40 Ansi256 Breadcrumbs & rails · States 028307c1366c6464
-120x40 Ansi256 Help & keys 5ebe69f1d56abea6
+120x40 Ansi256 Help & keys c0d7c7c43a8f97eb
 120x40 Ansi256 Help & keys · Options a31a5ee1c0be97cf
 120x40 Ansi256 Help & keys · States 7dbad73fa49b851c
 120x40 Ansi256 Quit & leave 6fc583bbef511c1f
@@ -338,7 +338,7 @@
 120x40 Ansi16 Breadcrumbs & rails d8e2966fae587ffc
 120x40 Ansi16 Breadcrumbs & rails · Options b2a54f465678a986
 120x40 Ansi16 Breadcrumbs & rails · States 19d2add3c7120ccc
-120x40 Ansi16 Help & keys 30748d84d74167f4
+120x40 Ansi16 Help & keys a03931783c672bab
 120x40 Ansi16 Help & keys · Options fb8073b6564b25f1
 120x40 Ansi16 Help & keys · States 2a45ef7065363ef9
 120x40 Ansi16 Quit & leave 181b978653d2605d
@@ -502,7 +502,7 @@
 120x40 Mono Breadcrumbs & rails 4b6a0abae19cbdab
 120x40 Mono Breadcrumbs & rails · Options c7160a3dee9a5067
 120x40 Mono Breadcrumbs & rails · States c7abae70f775352d
-120x40 Mono Help & keys 06a885fa6b9b6787
+120x40 Mono Help & keys 68c84943369406b2
 120x40 Mono Help & keys · Options c4b8f1bd6b0ae5e6
 120x40 Mono Help & keys · States 58265c0924905426
 120x40 Mono Quit & leave 66bc52cbd4d8dca0
@@ -666,7 +666,7 @@
 80x24 TrueColor Breadcrumbs & rails c3097e20ff6dae4f
 80x24 TrueColor Breadcrumbs & rails · Options 6024cd773c866f40
 80x24 TrueColor Breadcrumbs & rails · States e61190bb548727f3
-80x24 TrueColor Help & keys 70b0b8176dd2f589
+80x24 TrueColor Help & keys 34ebca842dab651a
 80x24 TrueColor Help & keys · Options be9cbfe0e01436e7
 80x24 TrueColor Help & keys · States 9ca8eed9e0c8fc6b
 80x24 TrueColor Quit & leave 40b051b2ad8f62a2
@@ -830,7 +830,7 @@
 80x24 Ansi256 Breadcrumbs & rails fd52d4027af6db64
 80x24 Ansi256 Breadcrumbs & rails · Options fd54f5190370e66b
 80x24 Ansi256 Breadcrumbs & rails · States 7402f405163fa2f3
-80x24 Ansi256 Help & keys be8e7e5bf6422e9e
+80x24 Ansi256 Help & keys 565ed16b2e1fc0af
 80x24 Ansi256 Help & keys · Options 81b6bc0e5849c6fc
 80x24 Ansi256 Help & keys · States e3e85016762e11db
 80x24 Ansi256 Quit & leave 4bd03799b80df704
@@ -994,7 +994,7 @@
 80x24 Ansi16 Breadcrumbs & rails 35b20654a918ea97
 80x24 Ansi16 Breadcrumbs & rails · Options 4fd0765c756ca4ea
 80x24 Ansi16 Breadcrumbs & rails · States e9720a1f55602873
-80x24 Ansi16 Help & keys ba5defff38830496
+80x24 Ansi16 Help & keys baedfd9828f7f170
 80x24 Ansi16 Help & keys · Options 53f41cada6794c2c
 80x24 Ansi16 Help & keys · States d59f9b9ba15161e7
 80x24 Ansi16 Quit & leave b49f94f53a0c9e54
@@ -1158,7 +1158,7 @@
 80x24 Mono Breadcrumbs & rails 8b0b4446ac7f9b99
 80x24 Mono Breadcrumbs & rails · Options 63bf0cdeb4348d9c
 80x24 Mono Breadcrumbs & rails · States 75abdc8c93e49c2b
-80x24 Mono Help & keys c4c30b3a2eec84ca
+80x24 Mono Help & keys 43737b669679d7f4
 80x24 Mono Help & keys · Options 300229cfd483166e
 80x24 Mono Help & keys · States 3dbf7b45cdaccd45
 80x24 Mono Quit & leave e43d8ee268aac9fe
@@ -1322,7 +1322,7 @@
 72x20 TrueColor Breadcrumbs & rails 89b5df93cdaabe50
 72x20 TrueColor Breadcrumbs & rails · Options 487a64d870d6a5d4
 72x20 TrueColor Breadcrumbs & rails · States 11efef7cdc6b3ed3
-72x20 TrueColor Help & keys 14303fa0c2fd0af0
+72x20 TrueColor Help & keys b4f0c844469dee13
 72x20 TrueColor Help & keys · Options e504438d302b5a34
 72x20 TrueColor Help & keys · States 2a37247352723afc
 72x20 TrueColor Quit & leave 70416baf03ac4111
@@ -1486,7 +1486,7 @@
 72x20 Ansi256 Breadcrumbs & rails 259e6af8e01b9d26
 72x20 Ansi256 Breadcrumbs & rails · Options 33494551abc50af6
 72x20 Ansi256 Breadcrumbs & rails · States 39e028180e564033
-72x20 Ansi256 Help & keys b4ee7a8c79953e47
+72x20 Ansi256 Help & keys 89019f2d8ecb4393
 72x20 Ansi256 Help & keys · Options 743cc84049458d11
 72x20 Ansi256 Help & keys · States 39c7962bf5dcd36b
 72x20 Ansi256 Quit & leave 8d6a5ceaa00f9524
@@ -1650,7 +1650,7 @@
 72x20 Ansi16 Breadcrumbs & rails 403a3ab251a72bc3
 72x20 Ansi16 Breadcrumbs & rails · Options e388f339c54c0db0
 72x20 Ansi16 Breadcrumbs & rails · States 72e10f56690d2e18
-72x20 Ansi16 Help & keys 6b6d6a9c7a6fcc71
+72x20 Ansi16 Help & keys a7f94665aa6883c6
 72x20 Ansi16 Help & keys · Options 692211eb84e8ea7e
 72x20 Ansi16 Help & keys · States 0755a253a3bed922
 72x20 Ansi16 Quit & leave a70cfe7430a13b60
@@ -1814,7 +1814,7 @@
 72x20 Mono Breadcrumbs & rails 9e39cfb92c2e2c59
 72x20 Mono Breadcrumbs & rails · Options a0ea711756d5b222
 72x20 Mono Breadcrumbs & rails · States 6230620c68465278
-72x20 Mono Help & keys c186795693d14815
+72x20 Mono Help & keys d03125fb1583d672
 72x20 Mono Help & keys · Options 72877cf865518498
 72x20 Mono Help & keys · States e2f97f5d847d7ad0
 72x20 Mono Quit & leave 8b12f2ddad38ddb2
@@ -1978,7 +1978,7 @@
 100x30 TrueColor Breadcrumbs & rails 08f41c44b23d1307
 100x30 TrueColor Breadcrumbs & rails · Options c65a0541287c5615
 100x30 TrueColor Breadcrumbs & rails · States 58787b75cb7c25a3
-100x30 TrueColor Help & keys 45a8fe05cb908b07
+100x30 TrueColor Help & keys 1012d243c7801d9c
 100x30 TrueColor Help & keys · Options 20f31c8f69d83919
 100x30 TrueColor Help & keys · States fce532251955600b
 100x30 TrueColor Quit & leave ff5ef06498420a59
@@ -2142,7 +2142,7 @@
 100x30 Ansi256 Breadcrumbs & rails aa6f42845a10b2f6
 100x30 Ansi256 Breadcrumbs & rails · Options 6ae4f03f70904250
 100x30 Ansi256 Breadcrumbs & rails · States 0c9fdf06e802fee1
-100x30 Ansi256 Help & keys 257a1833e7712261
+100x30 Ansi256 Help & keys 8cf7e2309e2d2018
 100x30 Ansi256 Help & keys · Options 88f08d40f81afb78
 100x30 Ansi256 Help & keys · States 8c09189adfcc0790
 100x30 Ansi256 Quit & leave 7b5a086da2c26299
@@ -2306,7 +2306,7 @@
 100x30 Ansi16 Breadcrumbs & rails 328e64fcc6a8679d
 100x30 Ansi16 Breadcrumbs & rails · Options b77f0d118434d90b
 100x30 Ansi16 Breadcrumbs & rails · States 576b7b44fce2c9c1
-100x30 Ansi16 Help & keys 9f436883eaa8fef0
+100x30 Ansi16 Help & keys 5d1dafcf6e5ec49b
 100x30 Ansi16 Help & keys · Options 58e03d691def8a98
 100x30 Ansi16 Help & keys · States 96d52b7ae604ebc8
 100x30 Ansi16 Quit & leave ae30f11afaab85b3
@@ -2470,7 +2470,7 @@
 100x30 Mono Breadcrumbs & rails 282f216610372cce
 100x30 Mono Breadcrumbs & rails · Options 788b7e96efebc75a
 100x30 Mono Breadcrumbs & rails · States 17e4611c48338cac
-100x30 Mono Help & keys da307b0e3ce0c90b
+100x30 Mono Help & keys 19528c6dd66b37b8
 100x30 Mono Help & keys · Options cb5f31542566ae7b
 100x30 Mono Help & keys · States 814973c5a7b6696f
 100x30 Mono Quit & leave 421cee8af8bf4ea8
@@ -2634,7 +2634,7 @@
 160x50 TrueColor Breadcrumbs & rails 5070555075f34ae9
 160x50 TrueColor Breadcrumbs & rails · Options 72720239c30c7796
 160x50 TrueColor Breadcrumbs & rails · States a381894aa3422cc3
-160x50 TrueColor Help & keys 7bae446814139f53
+160x50 TrueColor Help & keys a541946a10bfb971
 160x50 TrueColor Help & keys · Options 9f203c0b181cff40
 160x50 TrueColor Help & keys · States 8b0055c35e2b5dc0
 160x50 TrueColor Quit & leave 3e3a61070867111f
@@ -2798,7 +2798,7 @@
 160x50 Ansi256 Breadcrumbs & rails d2a704be266537fa
 160x50 Ansi256 Breadcrumbs & rails · Options fcd97ff98b1e8c54
 160x50 Ansi256 Breadcrumbs & rails · States e8af7cfb0dfb3b69
-160x50 Ansi256 Help & keys bd8d19e904bc42e6
+160x50 Ansi256 Help & keys cf77717d11399176
 160x50 Ansi256 Help & keys · Options 64760d5af4e6b99c
 160x50 Ansi256 Help & keys · States 333416045ee7ad6f
 160x50 Ansi256 Quit & leave c467131f1ebe9b79
