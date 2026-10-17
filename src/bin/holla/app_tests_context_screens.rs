@@ -350,6 +350,30 @@ fn shift_f10_opens_the_activity_menu_at_the_selection() {
     assert!(!h.text().contains("Select text first"), "{}", h.text());
 }
 
+/// SI17 copy-first: Ctrl+C over the activity output's selection copies it
+/// and neither interrupts nor quits; with nothing selected it quits. The
+/// shell reads the focused viewport's selection from the frame.
+#[test]
+fn ctrl_c_over_the_activity_selection_copies_instead_of_quitting() {
+    use junie_tui::core::event::MouseKind;
+    let mut h = activities();
+    h.alt(KeyCode::Char('1'));
+    let v = row(&h, activity::VIEW);
+    h.mouse(MouseKind::Down, v.x + 2, v.y);
+    h.mouse(MouseKind::Drag, v.x + 6, v.y + 1);
+    h.mouse(MouseKind::Up, v.x + 6, v.y + 1);
+    let selected = activity_view(&mut h).selected_text();
+    assert!(selected.is_some(), "{}", h.text());
+    assert_eq!(h.app.shell.focus.current(), Some(activity::VIEW));
+    h.ctrl(KeyCode::Char('c'));
+    assert!(!h.app.shell.quit, "Ctrl+C over a selection never quits");
+    assert_eq!(h.app.world.clipboard, selected, "{}", h.text());
+    assert!(h.text().contains("Copied "), "{}", h.text());
+    // Esc clears the selection; Ctrl+C then reaches the quit path
+    h.key(KeyCode::Esc);
+    assert!(!activity_view(&mut h).has_selection());
+}
+
 #[test]
 fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
     let mut h = activities();

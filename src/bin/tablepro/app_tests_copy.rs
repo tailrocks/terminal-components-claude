@@ -120,3 +120,39 @@ fn y_copies_a_cell_and_a_history_query_for_real() {
     assert_eq!(clipboard::text().as_deref(), Some(sql.as_str()));
     assert!(h.text().contains("Copied query"), "{}", h.text());
 }
+
+/// SI17 copy-first: Ctrl+C over a grid's cell range copies the range and
+/// neither cancels nor quits; with nothing selected it still quits. The
+/// shell reads the focused grid's selection from the frame (no app code).
+#[test]
+fn ctrl_c_over_a_grid_range_copies_instead_of_quitting() {
+    use junie_tui::core::edit::clipboard;
+    use junie_tui::core::event::{Input, Key};
+    use junie_tui::runtime::Application;
+    use ratatui::crossterm::event::KeyModifiers;
+    let mut h = H::connected(160, 40);
+    let w = h.app.workbench.as_mut().unwrap();
+    w.open_table("public", "customers", false);
+    let grid = match w.active_tab() {
+        Some(crate::workbench::WorkTab::Table(t)) => t.grid.id,
+        _ => panic!("a table tab"),
+    };
+    h.app.shell.focus.focus(grid);
+    h.draw();
+    h.app.handle(Input::Key(Key {
+        code: KeyCode::Down,
+        mods: KeyModifiers::SHIFT,
+    }));
+    h.draw();
+    clipboard::copy("");
+    h.ctrl('c');
+    assert!(!h.app.shell.quit, "Ctrl+C over a range never quits");
+    assert!(h.app.modal().is_none(), "nor asks: {}", h.text());
+    let copied = clipboard::text().unwrap_or_default();
+    assert_eq!(copied.lines().count(), 2, "two rows copied: {copied:?}");
+    assert!(h.text().contains("Copied "), "{}", h.text());
+    // Esc drops the range: Ctrl+C quits again
+    h.key(KeyCode::Esc);
+    h.ctrl('c');
+    assert!(h.app.shell.quit, "Ctrl+C with nothing selected quits");
+}

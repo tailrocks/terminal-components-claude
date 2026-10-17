@@ -570,6 +570,9 @@ impl TextArea {
             ctx.clickable(self.id, Rect::new(area.x, area.y, lw + 2, 1));
         }
         ctx.control(self.id, body, self.disabled);
+        if self.editing && self.field.buffer.has_selection() {
+            ctx.selection(self.id);
+        }
         if !self.disabled {
             ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
         }

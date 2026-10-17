@@ -6013,6 +6013,8 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
         Plumbing,
         &[
             "register",
+            "mark_selection",
+            "has_selection",
             "len",
             "is_empty",
             "sort_from",
@@ -6193,6 +6195,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "select_range",
             "selection_lines",
             "has_selection_lines",
+            "has_selection",
             "insert_at",
             "remove_range",
             "set_text",
@@ -6632,6 +6635,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "discard",
             "select_rows",
             "context_selection",
+            "has_selection",
         ],
     ),
     (

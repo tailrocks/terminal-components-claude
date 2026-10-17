@@ -556,9 +556,9 @@ impl TextInput {
                 self.edit_menu.take_edited().then_some(InputAction::Changed),
             );
         }
-        // Ctrl+C copies only a selection; with nothing selected it is not
-        // the field's, so it reaches the app's quit guard
-        if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
+        // Ctrl+C copies only a selection, never a hidden value; otherwise
+        // it is not the field's, so it reaches the app's quit guard
+        if key.ctrl_char('c') && (self.masked || self.field.buffer.selected_text().is_none()) {
             return (Outcome::Ignored, None);
         }
         let entry = self.entry();
@@ -947,6 +947,10 @@ impl TextInput {
             );
         }
         ctx.control(self.id, field, self.disabled);
+        // a hidden value is never copied, so Ctrl+C over it still quits
+        if self.editing && !self.masked && self.field.buffer.has_selection() {
+            ctx.selection(self.id);
+        }
         if !self.disabled {
             ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
         }
@@ -1280,6 +1284,48 @@ mod tests {
             Outcome::Ignored,
             "a selection is the field's"
         );
+    }
+
+    /// SI17 copy-first: Ctrl+C over a selection copies under the Emacs
+    /// preset too (which leaves Ctrl+C unbound), and the frame reports the
+    /// selection to the shell; a hidden value is never copied, so Ctrl+C
+    /// over it stays the app's (quit) and the frame reports nothing.
+    #[test]
+    fn ctrl_c_copies_a_selection_under_every_preset_but_never_a_secret() {
+        use crate::core::edit::clipboard;
+        let ctrl_c = key(
+            KeyCode::Char('c'),
+            ratatui::crossterm::event::KeyModifiers::CONTROL,
+        );
+        let marked = |input: &mut TextInput| {
+            let theme = Theme::for_level(ColorLevel::TrueColor);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 3));
+            input.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, theme.surface);
+            ring.has_selection(input.id)
+        };
+        let mut input = TextInput::new(WidgetId::of("f"), "Name")
+            .value("draft")
+            .field_keys(FieldKeys::Emacs);
+        input.begin_edit();
+        input.field.buffer.select_all();
+        clipboard::copy("");
+        assert_ne!(input.on_key(&ctrl_c).0, Outcome::Ignored);
+        assert_eq!(clipboard::text().as_deref(), Some("draft"));
+        assert!(marked(&mut input), "the frame reports the selection");
+
+        let mut secret = TextInput::new(WidgetId::of("p"), "Password")
+            .value("hunter2")
+            .field_keys(FieldKeys::Desktop)
+            .masked();
+        secret.begin_edit();
+        secret.field.buffer.select_all();
+        clipboard::copy("");
+        assert_eq!(secret.on_key(&ctrl_c).0, Outcome::Ignored);
+        assert_eq!(clipboard::text().as_deref(), Some(""));
+        assert!(!marked(&mut secret), "a hidden value reports no selection");
     }
 
     #[test]

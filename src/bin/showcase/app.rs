@@ -2501,16 +2501,6 @@ impl shell::KeyHost for App {
         self.pages[self.page().index()].is_editing()
     }
 
-    /// The page had the first chance at Ctrl+C before quitting (a
-    /// selection copies there).
-    fn interrupt(&mut self) -> Outcome {
-        let key = Key {
-            code: KeyCode::Char('c'),
-            mods: KeyModifiers::CONTROL,
-        };
-        self.with_shown(|p, cx| p.on_key(&key, &mut (), cx))
-    }
-
     fn dirty(&mut self) -> bool {
         !self.quit_stakes().is_clean()
     }
