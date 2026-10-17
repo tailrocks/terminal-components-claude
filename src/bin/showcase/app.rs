@@ -22,7 +22,7 @@ use junie_tui::core::pointer::{
 };
 use junie_tui::core::response::Response;
 use junie_tui::shell::{self, Page as _, Shell};
-use junie_tui::theme::{BadgeKind, Theme, Tone};
+use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, Layer, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers,
@@ -35,7 +35,6 @@ use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::form_dialog::FormDialog;
 use junie_tui::widgets::help::HelpOverlay;
-use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
@@ -943,7 +942,8 @@ impl App {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Key(key) => {
-                self.last_key = Some(describe_key(&key));
+                self.last_key =
+                    Some(junie_tui::core::keymap::KeyBinding::new(key.code, key.mods).label());
                 shell::KeyRouter::route(self, &key)
             }
             Input::Mouse(m) => PointerRouter::route(self, m),
@@ -1864,7 +1864,8 @@ impl App {
         if !layout.inspector.is_empty() {
             self.draw_inspector(layout.inspector, buf, ctx);
         }
-        self.draw_footer(layout.footer, buf, ctx);
+        self.footer()
+            .render(layout.footer, buf, ctx, &mut self.shell);
         if self.inspector_overlay() {
             self.draw_inspector_overlay(area, buf, ctx);
         }
@@ -2173,39 +2174,36 @@ impl App {
         self.shell.hits.len()
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let page = &self.pages[self.page.index()];
-        let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
-        let mut dialog_hints = None;
-        let inspector_hints = self
-            .inspector
-            .then(|| self.insp.hints(self.shell.focus.current()))
-            .flatten();
+    /// The footer ([`shell::Footer`]): a window layer's own hints (library
+    /// modals name their keys, CO4), a page layer's when it has any, the
+    /// Inspector's, the sidebar's, else the page's with `Tab Next`; the
+    /// EDIT badge while the page edits; the status line.
+    fn footer(&self) -> shell::Footer {
+        let focus = self.shell.focus.current();
+        let pairs =
+            |v: Vec<(&'static str, &'static str)>| -> Vec<junie_tui::widgets::keyhint::Hint> {
+                v.into_iter()
+                    .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
+                    .collect()
+            };
         let top = self.layers.top();
+        let window_modal = self.layers.iter().any(is_window_layer);
+        let footer = shell::Footer::new()
+            .editing(self.page_editing() && !window_modal)
+            .status(self.shell.status.get());
         if let Some(top) = top.filter(|e| is_window_layer(e)) {
-            dialog_hints = Some(match top.get::<HelpOverlay>() {
-                // the reference's own keys
-                Some(h) => {
-                    use junie_tui::widgets::keyhint::Hint as KeyHint;
-                    let mut own = vec![KeyHint::new("↑↓", "Scroll")];
-                    if h.dismiss.escape {
-                        own.push(KeyHint::new("Esc", "Close"));
-                    }
-                    own
-                }
-                None => top.layer.hints(self.shell.focus.current()),
-            });
-        } else if let Some(own) = top
-            .map(|e| e.layer.hints(self.shell.focus.current()))
-            .filter(|h| !h.is_empty())
-        {
+            return footer.layer(Some(top.layer.hints(focus)));
+        }
+        if let Some(own) = top.map(|e| e.layer.hints(focus)).filter(|h| !h.is_empty()) {
             // a page's own layer (a picker): its keys; one without hints
             // of its own leaves them to the page
-            dialog_hints = Some(own);
-        } else if let Some(own) = inspector_hints {
-            let popup = self.insp.options.popup_open();
+            return footer.layer(Some(own));
+        }
+        let page = &self.pages[self.page.index()];
+        let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
+        if let Some(own) = self.inspector.then(|| self.insp.hints(focus)).flatten() {
             hints.extend(own);
-            if !popup {
+            if !self.insp.options.popup_open() {
                 hints.push(("Tab", "Next"));
                 if self.inspector_overlay() {
                     hints.push(("Esc", "Close"));
@@ -2213,7 +2211,9 @@ impl App {
                     hints.push(("i", "Close"));
                 }
             }
-        } else if self.shell.focus.is(NAV) {
+            return footer.layer(Some(pairs(hints)));
+        }
+        if self.shell.focus.is(NAV) {
             if self.nav_filter.is_some() {
                 hints.push(("type", "Filter"));
                 hints.push(("Enter", "Open"));
@@ -2235,31 +2235,11 @@ impl App {
             }
             hints.push(("Tab", "Into page"));
             hints.push(("q", "Quit"));
-        } else {
-            for (k, v) in Page::hints(page.as_ref(), self.shell.focus.current()) {
-                hints.push((k, v));
-            }
-            // the focused cursor row is cut: name the reveal key
-            junie_tui::ui::reveal::advertise(&mut hints, ctx.reveal_hint, |h| h.0, |k, a| (k, a));
-            if !self.page_editing() && !hints.iter().any(|(key, _)| *key == "Tab") {
-                hints.push(("Tab", "Next"));
-            }
+            return footer.layer(Some(pairs(hints)));
         }
-        let hints: Vec<_> = dialog_hints.unwrap_or_else(|| {
-            hints
-                .into_iter()
-                .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
-                .collect()
-        });
-        let mut layer = HintLayer::new(hints);
-        let window_modal = self.layers.iter().any(is_window_layer);
-        layer.badge = (self.page_editing() && !window_modal).then_some(("EDIT", BadgeKind::Edit));
-        if let Some(status) = self.shell.status.text() {
-            layer = layer.status(status, Tone::Secondary);
-        }
-        // a hint naming one key is a click target that replays it (M1)
-        let spots = HintBar::render_at(area, buf, ctx.theme, &layer);
-        self.shell.footer_drawn(layer.hints, spots);
+        footer
+            .layer(Some(pairs(Page::hints(page.as_ref(), focus))))
+            .tab_next(!self.page_editing())
     }
 }
 
@@ -2386,26 +2366,6 @@ pub(crate) fn describe_mods(mods: KeyModifiers) -> String {
         if mods.contains(m) {
             s.push_str(name);
         }
-    }
-    s
-}
-
-pub(crate) fn describe_key(k: &Key) -> String {
-    let mut s = String::new();
-    if k.ctrl() {
-        s.push_str("Ctrl+");
-    }
-    if k.alt() {
-        s.push_str("Alt+");
-    }
-    if k.shift() && !matches!(k.code, KeyCode::Char(_)) {
-        s.push_str("Shift+");
-    }
-    match k.code {
-        KeyCode::Char(' ') => s.push_str("Space"),
-        KeyCode::Char(c) => s.push(c),
-        KeyCode::BackTab => s.push_str("Shift+Tab"),
-        other => s.push_str(&format!("{other:?}")),
     }
     s
 }
