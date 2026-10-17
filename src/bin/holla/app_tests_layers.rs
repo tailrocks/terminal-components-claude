@@ -26,7 +26,6 @@ use crate::app_tests::H;
 use crate::app_tests_parity::open;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::ModalResult;
-use crate::screens::modals::TextModal;
 
 /// A cell outside the top layer: nothing registered there (a modal's dim
 /// backdrop), or the light-dismiss backdrop a popover registers.
@@ -41,7 +40,14 @@ fn outside(h: &H) -> Position {
         for x in 0..h.app.shell.size.0 {
             let p = Position::new(x, y);
             let hit = h.app.shell.hits.hit(p);
-            if hit.is_none() || hit == menu || (picker.is_some() && hit == picker) {
+            let backdrop = hit.is_some_and(|hit| {
+                h.app
+                    .shell
+                    .hits
+                    .part_of(hit)
+                    .is_some_and(|x| x.part.part == junie_tui::core::id::Part::BACKDROP)
+            });
+            if hit.is_none() || backdrop || hit == menu || (picker.is_some() && hit == picker) {
                 return p;
             }
         }
@@ -64,7 +70,14 @@ fn now(h: &H) -> u64 {
 fn open_text(h: &mut H) -> Option<WidgetId> {
     let owner = h.app.shell.focus.current();
     h.key(KeyCode::F(1));
-    assert!(h.app.modals.top_as::<TextModal>().is_some(), "{}", h.text());
+    assert!(
+        h.app
+            .modals
+            .top_as::<junie_tui::widgets::help::HelpOverlay>()
+            .is_some(),
+        "{}",
+        h.text()
+    );
     owner
 }
 fn open_picker(h: &mut H) -> Option<WidgetId> {
