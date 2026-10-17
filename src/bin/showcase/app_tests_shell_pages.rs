@@ -22,7 +22,7 @@ pub(crate) struct Harness {
 impl Harness {
     pub fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -39,7 +39,7 @@ impl Harness {
     }
 
     pub fn section(&mut self, s: Section) {
-        let page = self.app.page;
+        let page = self.app.page();
         self.app.pages[page.index()]
             .template_mut()
             .unwrap()
@@ -100,7 +100,7 @@ impl Harness {
     }
 
     pub fn states(&self) -> Vec<SpecimenState> {
-        self.app.pages[self.app.page.index()]
+        self.app.pages[self.app.page().index()]
             .template()
             .unwrap()
             .state_rows()
@@ -271,7 +271,7 @@ fn the_header_crumb_is_the_library_trail() {
     let (gx, gy) = h.find("App shell ›").unwrap();
     let mut h = h;
     h.click(gx, gy);
-    assert_eq!(h.app.page, PageId::BreadcrumbsRails);
+    assert_eq!(h.app.page(), PageId::BreadcrumbsRails);
     // narrow: the links stay, the trail gives way
     let h = Harness::new(72, 20, PageId::BreadcrumbsRails);
     let row = h.row_of("Design system");

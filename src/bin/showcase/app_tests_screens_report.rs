@@ -97,6 +97,51 @@ fn report_options_drive_the_widgets() {
     }
 }
 
+/// P0-G6, S14: "Disk cleanup →" opens that page over the report (the
+/// header trail shows the stack); Esc goes back with focus on the button
+/// it left from.
+#[test]
+fn report_link_pushes_the_page_and_esc_returns_to_the_button() {
+    let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
+    h.click_id(REPORT.sub("next-disk"));
+    assert_eq!(h.app.page(), PageId::DiskCleanup, "{}", h.status());
+    assert!(
+        h.row(0).contains("Read-only report › Disk cleanup"),
+        "{}",
+        h.row(0)
+    );
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.page(), PageId::ReadOnlyReport);
+    assert!(h.app.shell.focus.is(REPORT.sub("next-disk")));
+    // the other link too
+    h.click_id(REPORT.sub("next-activity"));
+    assert_eq!(h.app.page(), PageId::Activity);
+}
+
+/// S14, M5: on a pushed page the header trail's earlier level is a link
+/// back to it.
+#[test]
+fn report_header_trail_pops_back_to_the_report() {
+    let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
+    h.click_id(REPORT.sub("next-disk"));
+    assert_eq!(h.app.page(), PageId::DiskCleanup);
+    let (x, y) = h.at("Read-only report");
+    assert_eq!(y, 0, "the header trail");
+    h.click(x + 2, y);
+    assert_eq!(h.app.page(), PageId::ReadOnlyReport);
+    assert!(!h.row(0).contains("Disk cleanup"), "{}", h.row(0));
+}
+
+/// S14: a copy the terminal cannot take says so instead of claiming it
+/// was copied.
+#[test]
+fn report_copy_over_the_terminal_limit_is_not_reported_as_copied() {
+    let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
+    h.app.shell.clipboard = junie_tui::shell::Clipboard::new().limit(8);
+    h.click_id(REPORT.sub("copy"));
+    assert!(h.status().starts_with("Not copied"), "{}", h.status());
+}
+
 // --------------------------------------------------------- Accounts & usage
 
 const ACCOUNTS: WidgetId = WidgetId::of("accountsusage");

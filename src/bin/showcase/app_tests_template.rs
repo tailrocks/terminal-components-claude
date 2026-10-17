@@ -26,7 +26,7 @@ impl Harness {
 
     fn with_theme(w: u16, h: u16, page: PageId, theme: Theme) -> Self {
         let mut app = App::new(theme);
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -76,7 +76,7 @@ impl Harness {
     }
 
     fn section(&self) -> Section {
-        let page = &self.app.pages[self.app.page.index()];
+        let page = &self.app.pages[self.app.page().index()];
         page.template().expect("a templated page").section()
     }
 
@@ -102,7 +102,7 @@ impl Harness {
     }
 
     fn strip_id(&self) -> WidgetId {
-        let page = &self.app.pages[self.app.page.index()];
+        let page = &self.app.pages[self.app.page().index()];
         page.template().unwrap().tabs.id
     }
 }
@@ -315,7 +315,7 @@ fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
     }
     let mut app = App::new(Theme::junie());
     app.nav_expand = crate::app::NavExpand::All;
-    app.goto(PageId::Overview);
+    app.open_page(PageId::Overview);
     assert!(app.nav.rows().iter().all(|r| r.depth <= 1), "two levels");
     // one slug per page, never another page's alias
     let mut slugs: Vec<(String, PageId)> = Vec::new();
@@ -372,7 +372,7 @@ fn every_page_opens_by_its_slug() {
     for e in NAV_ENTRIES {
         let id = PageId::from_name(&slug(e.label)).expect("slug");
         let h = Harness::new(120, 40, id);
-        assert_eq!(h.app.page, e.id);
+        assert_eq!(h.app.page(), e.id);
         let text = h.text();
         assert!(text.contains(e.label), "{}\n{text}", e.label);
         assert!(

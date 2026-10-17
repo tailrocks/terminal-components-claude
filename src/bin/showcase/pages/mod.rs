@@ -173,6 +173,8 @@ impl From<LayerResult> for LayerRes {
 pub enum Go {
     /// Set a live option ([`CxExt::set_option`]).
     SetOption(crate::options::OptSet),
+    /// Navigate ([`CxExt::open_page`]).
+    Nav(junie_tui::shell::Nav<crate::app::PageId>),
 }
 
 /// Things a page may ask the shell to do (the library's
@@ -199,6 +201,9 @@ pub trait CxExt {
     /// Set a live option (a page's Options section): the shell applies it
     /// through `App::apply_opt`, the path `--opt` and the Inspector take.
     fn set_option(&mut self, set: crate::options::OptSet);
+    /// Show `page` over this one (a page's link: "Disk cleanup →"); Esc
+    /// and the header trail come back.
+    fn open_page(&mut self, page: crate::app::PageId);
 }
 
 impl CxExt for Cx<'_> {
@@ -210,6 +215,9 @@ impl CxExt for Cx<'_> {
     }
     fn set_option(&mut self, set: crate::options::OptSet) {
         self.go(Go::SetOption(set));
+    }
+    fn open_page(&mut self, page: crate::app::PageId) {
+        self.go(Go::Nav(junie_tui::shell::Nav::Push(page)));
     }
 }
 

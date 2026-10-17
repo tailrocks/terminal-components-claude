@@ -23,7 +23,7 @@ struct Harness {
 impl Harness {
     fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -77,7 +77,7 @@ impl Harness {
     }
 
     fn section(&mut self, section: Section) {
-        let i = self.app.page.index();
+        let i = self.app.page().index();
         self.app.pages[i]
             .template_mut()
             .expect("a templated page")
