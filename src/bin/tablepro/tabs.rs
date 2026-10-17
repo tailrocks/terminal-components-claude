@@ -1422,7 +1422,7 @@ impl QueryTab {
             ResultBody::Rows(g) if f == g.id => {
                 let (o, ev) = g.on_key(key);
                 match ev {
-                    Some(GridAction::Copy(s)) => cx.status(format!("Copied {} chars", s.len())),
+                    Some(GridAction::Copy(s)) => cx.copy(s),
                     Some(GridAction::SortRequested(_)) => {}
                     Some(GridAction::LeaveForward) => cx.focus_next(),
                     Some(GridAction::LeaveBackward) => cx.focus_prev(),
@@ -1536,7 +1536,7 @@ impl QueryTab {
                     cx.focus.focus(g.id);
                     let (o, act) = r.into_parts();
                     if let Some(GridAction::Copy(s)) = act {
-                        cx.status(format!("Copied {} chars", s.len()));
+                        cx.copy(s);
                     }
                     o
                 }

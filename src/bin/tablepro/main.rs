@@ -89,5 +89,7 @@ fn main() -> std::io::Result<()> {
         app.connect(i);
     }
     app.set_motion(cli.common.motion(NO_MOTION_ENV), cli.common.frame);
+    // a field's Copy and Cut reach the system clipboard too (OSC 52)
+    app.shell.clipboard.install();
     junie_tui::shell::run(&mut app)
 }
