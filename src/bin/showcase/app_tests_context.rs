@@ -22,7 +22,7 @@ struct Harness {
 impl Harness {
     fn new(page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let mut term = Terminal::new(TestBackend::new(140, 45)).unwrap();
         term.draw(|f| app.render(f)).unwrap();
         Self { app, term }

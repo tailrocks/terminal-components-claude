@@ -511,8 +511,7 @@ impl AccountsUsagePage {
         if let Some(PropsAction::Copy(i)) = a
             && let Some(p) = self.facts.props.get(i)
         {
-            cx.copy(p.value.clone());
-            cx.status(format!("Copied {}", p.label));
+            cx.copy_as(p.value.clone(), p.label.clone());
         }
     }
 }
