@@ -11,6 +11,7 @@ use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
+use crate::ui::list_core::ListCore;
 use crate::ui::row::{MarkKind, RowLook, RowUi};
 
 /// A node in a tree: label, optional trailing metadata, children.
@@ -150,10 +151,13 @@ pub struct TreeView {
     pub id: WidgetId,
     pub nodes: Vec<TreeNode>,
     pub expanded: std::collections::HashSet<Path>,
-    pub cursor: usize,
+    /// The shared row model ([`ListCore`]): `cursor`, `wrap`, `nav`,
+    /// `scroll`, `click` (when a click on a row activates it; default
+    /// [`ClickPolicy::DATA`], [`ClickPolicy::NAVIGATION`] for a sidebar),
+    /// type-ahead, `content` (loading, an error) and `empty`. The tree
+    /// dereferences to it.
+    pub core: ListCore,
     pub selected: Option<Path>,
-    /// The scrolled rows and the bar ([`Scrollable`]).
-    pub scroll: ScrollPane,
     pub area: Rect,
     rows: Vec<FlatRow>,
     /// Case-insensitive substring filter; ancestors of matches stay visible.
@@ -174,36 +178,13 @@ pub struct TreeView {
     /// What Enter/Space do on a branch row. Default
     /// [`BranchAction::Toggle`].
     pub branch_activate: BranchAction,
-    /// When a click on a row (not its disclosure, which toggles on one
-    /// click) activates it: a leaf reports [`TreeAction::Activate`], a
-    /// branch runs [`Self::branch_activate`]. Default
-    /// [`ClickPolicy::DATA`]: one click moves the cursor, a double click
-    /// activates, as in macOS outline views and Finder (M15, SI14);
-    /// [`ClickPolicy::NAVIGATION`] activates on one click (a sidebar).
-    pub click: ClickPolicy,
     /// Columns of indentation per depth level. Default 2.
     pub indent: u16,
-    /// ↑ on the first row lands on the last and ↓ on the last on the
-    /// first. Default off: it stops at the end.
-    pub wrap: bool,
     /// Flat rows built so far (a complexity guard: an expand or collapse
     /// builds only the rows it reveals, never the whole tree).
     rows_built: usize,
-    /// Which keys move the cursor and open/close branches (default
-    /// [`NavKeys::default`]).
-    pub nav: NavKeys,
     /// The tree's own action keys (default [`TreeCmd::default_keymap`]).
     pub keymap: KeyMap<TreeCmd>,
-    /// Typing a prefix moves the cursor to the next row whose label starts
-    /// with it, as in macOS outline views (APG tree). Default from the
-    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
-    /// `Vim`. Mapped actions (`*`, `-`) keep priority.
-    pub type_ahead: bool,
-    typeahead: crate::core::typeahead::TypeAhead,
-    /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
-    pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     /// Keep the last column as a divider at every size: a track when the
     /// rows fit, the scrollbar when they overflow (a sidebar edge). Off by
     /// default: the column is taken only while the tree scrolls.
@@ -217,6 +198,19 @@ pub struct TreeView {
     /// disclosure triangle does in macOS outline views. Default `true`;
     /// off, the modifier is ignored and the click toggles one level.
     pub alt_click_recursive: bool,
+}
+
+impl std::ops::Deref for TreeView {
+    type Target = ListCore;
+    fn deref(&self) -> &ListCore {
+        &self.core
+    }
+}
+
+impl std::ops::DerefMut for TreeView {
+    fn deref_mut(&mut self) -> &mut ListCore {
+        &mut self.core
+    }
 }
 
 /// A [`TreeView`] action a key can be bound to.
@@ -298,9 +292,8 @@ impl TreeView {
             id,
             nodes,
             expanded: Default::default(),
-            cursor: 0,
+            core: ListCore::new(0),
             selected: None,
-            scroll: ScrollPane::default(),
             area: Rect::ZERO,
             rows: vec![],
             filter: None,
@@ -308,15 +301,9 @@ impl TreeView {
             show_meta: true,
             trailing: Rect::ZERO,
             branch_activate: BranchAction::Toggle,
-            click: ClickPolicy::DATA,
             indent: 2,
-            wrap: false,
             rows_built: 0,
-            nav: NavKeys::default(),
             keymap: TreeCmd::default_keymap(),
-            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
-            type_ahead_precedence: None,
-            typeahead: Default::default(),
             divider: false,
             selected_marker: None,
             alt_click_recursive: true,
@@ -336,19 +323,19 @@ impl TreeView {
 
     /// See [`Self::click`].
     pub fn click(mut self, policy: ClickPolicy) -> Self {
-        self.click = policy;
+        self.core.click = policy;
         self
     }
 
     /// See [`Self::wrap`].
     pub fn wrap(mut self, on: bool) -> Self {
-        self.wrap = on;
+        self.core.wrap = on;
         self
     }
 
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.core.nav = nav;
         self
     }
 
@@ -367,13 +354,13 @@ impl TreeView {
     /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
     /// (1 s; APG suggests 500–1000 ms).
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
-        self.typeahead.timeout = timeout;
+        self.core.typeahead.timeout = timeout;
         self
     }
 
     /// See [`Self::type_ahead`].
     pub fn type_ahead(mut self, on: bool) -> Self {
-        self.type_ahead = on;
+        self.core.type_ahead = on;
         self
     }
 
@@ -382,7 +369,27 @@ impl TreeView {
         mut self,
         precedence: crate::core::list::TypeAheadPrecedence,
     ) -> Self {
-        self.type_ahead_precedence = Some(precedence);
+        self.core.type_ahead_precedence = Some(precedence);
+        self
+    }
+
+    /// See [`ListCore::content`]: loading or a load error replaces the
+    /// rows.
+    pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
+        self.core.content = content;
+        self
+    }
+
+    /// What a tree with no rows shows ([`ListCore::empty`]). Default none:
+    /// blank.
+    pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
+        self.core.empty = Some(state);
+        self
+    }
+
+    /// See [`ListCore::skip_when_empty`].
+    pub fn skip_when_empty(mut self, on: bool) -> Self {
+        self.core.skip_when_empty = on;
         self
     }
 
@@ -453,13 +460,13 @@ impl TreeView {
     pub fn flatten(&mut self) {
         // the focused node is an identity, not a display position: capture
         // it before the rebuild and resolve it afterwards
-        let focused: Option<Path> = self.rows.get(self.cursor).map(|r| r.path.clone());
+        let focused: Option<Path> = self.rows.get(self.core.cursor).map(|r| r.path.clone());
         let before: Option<Path> = self
             .cursor
             .checked_sub(1)
             .and_then(|i| self.rows.get(i))
             .map(|r| r.path.clone());
-        let after: Option<Path> = self.rows.get(self.cursor + 1).map(|r| r.path.clone());
+        let after: Option<Path> = self.rows.get(self.core.cursor + 1).map(|r| r.path.clone());
         let mut out = Vec::new();
         let filter = self
             .filter
@@ -476,11 +483,11 @@ impl TreeView {
         );
         self.rows_built += out.len();
         self.rows = out;
-        self.cursor = self
+        self.core.cursor = self
             .relocate(focused.as_deref(), before.as_deref(), after.as_deref())
-            .unwrap_or(self.cursor)
+            .unwrap_or(self.core.cursor)
             .min(self.rows.len().saturating_sub(1));
-        self.scroll.set_content(self.rows.len());
+        self.core.scroll.set_content(self.rows.len());
     }
 
     /// Where the focused node went: itself, else its nearest visible
@@ -506,7 +513,7 @@ impl TreeView {
 
     /// The path under the cursor, when the tree has rows.
     pub fn cursor_path(&self) -> Option<&[usize]> {
-        self.rows.get(self.cursor).map(|r| r.path.as_slice())
+        self.rows.get(self.core.cursor).map(|r| r.path.as_slice())
     }
 
     pub fn node(&self, path: &[usize]) -> Option<&TreeNode> {
@@ -549,8 +556,8 @@ impl TreeView {
     pub fn set_filter(&mut self, q: Option<&str>) {
         self.filter = q.map(str::to_owned);
         self.flatten();
-        self.scroll.jump_start();
-        self.cursor = 0;
+        self.core.scroll.jump_start();
+        self.core.cursor = 0;
     }
 
     /// Move the cursor to a path (expanding ancestors) and select it.
@@ -593,12 +600,12 @@ impl TreeView {
 
     /// The cursor with this tree's rules.
     fn nav_cursor(&self) -> Cursor {
-        Cursor::new(self.cursor).wrap(self.wrap)
+        self.core.cursor_model()
     }
 
     fn set_cursor(&mut self, i: usize) {
-        self.cursor = i.min(self.rows.len().saturating_sub(1));
-        self.scroll.ensure_visible(self.cursor);
+        self.core.cursor = i.min(self.rows.len().saturating_sub(1));
+        self.core.scroll.ensure_visible(self.core.cursor);
     }
 
     pub fn toggle(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
@@ -673,15 +680,15 @@ impl TreeView {
         // the focused node is an identity: a cursor inside the hidden
         // subtree moves to its nearest visible ancestor (row `i`), one
         // after it keeps its node
-        if self.cursor > i {
-            self.cursor = if self.cursor < end {
-                if removed > 0 { i } else { self.cursor }
+        if self.core.cursor > i {
+            self.core.cursor = if self.core.cursor < end {
+                if removed > 0 { i } else { self.core.cursor }
             } else {
-                self.cursor - removed + added
+                self.core.cursor - removed + added
             };
         }
-        self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
-        self.scroll.set_content(self.rows.len());
+        self.core.cursor = self.core.cursor.min(self.rows.len().saturating_sub(1));
+        self.core.scroll.set_content(self.rows.len());
     }
 
     pub fn expand_all(&mut self) {
@@ -719,55 +726,45 @@ impl TreeView {
             }
             return (Outcome::Changed, None);
         }
-        let nav = match KeyStep::ordered(
-            key,
-            &self.nav,
-            self.type_ahead,
-            self.type_ahead_precedence
-                .unwrap_or_else(crate::core::list::TypeAheadPrecedence::current),
-        ) {
-            Some(KeyStep::Type(c)) => {
-                let moved = self
-                    .nav_cursor()
-                    .type_ahead(c, &mut self.typeahead, &self.rows[..]);
+        let rows = &self.rows[..];
+        let nav = match self.core.key_step(key, rows) {
+            Some((KeyStep::Type(_), moved)) => {
                 if let Moved::To(i) = moved {
                     self.set_cursor(i);
                 }
                 return (moved.outcome(), None);
             }
-            Some(KeyStep::Nav(nav)) => nav,
+            Some((KeyStep::Nav(nav), moved)) => (nav, moved),
             None => return self.on_plain_key(key),
         };
+        let (nav, moved) = nav;
         let out = match nav {
             Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown | Nav::Home | Nav::End => {
                 // notes are not selectable: the cursor steps over them
-                let moved = self
-                    .nav_cursor()
-                    .apply(nav, &self.rows[..], self.scroll.viewport_len);
                 if let Some(i) = moved.index() {
                     self.set_cursor(i);
                 }
                 Outcome::Changed
             }
             Nav::Right => {
-                let row = &self.rows[self.cursor];
+                let row = &self.rows[self.core.cursor];
                 if row.has_children && !row.expanded {
-                    return self.toggle(self.cursor);
+                    return self.toggle(self.core.cursor);
                 } else if row.has_children {
-                    self.set_cursor(self.cursor + 1);
+                    self.set_cursor(self.core.cursor + 1);
                     Outcome::Changed
                 } else {
                     Outcome::Consumed
                 }
             }
             Nav::Left => {
-                let row = &self.rows[self.cursor];
+                let row = &self.rows[self.core.cursor];
                 if row.has_children && row.expanded {
-                    return self.toggle(self.cursor);
+                    return self.toggle(self.core.cursor);
                 } else if row.depth > 0 {
                     // the parent is the nearest shallower row above
                     let depth = row.depth;
-                    if let Some(pi) = self.rows[..self.cursor]
+                    if let Some(pi) = self.rows[..self.core.cursor]
                         .iter()
                         .rposition(|r| r.depth < depth)
                     {
@@ -786,11 +783,11 @@ impl TreeView {
     fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         let out = match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
-                let row = &self.rows[self.cursor];
+                let row = &self.rows[self.core.cursor];
                 if row.note {
                     Outcome::Consumed
                 } else if row.has_children {
-                    return self.branch(self.cursor);
+                    return self.branch(self.core.cursor);
                 } else {
                     self.selected = Some(row.path.clone());
                     return (
@@ -817,13 +814,13 @@ impl TreeView {
         if i >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
-        let again = self.cursor == i;
-        self.scroll.pointer_move();
+        let again = self.core.cursor == i;
+        self.core.scroll.pointer_move();
         self.set_cursor(i);
         if self.rows[i].note {
             return (Outcome::Consumed, None);
         }
-        if !self.click.activates(count.max(1), again) {
+        if !self.core.click.activates(count.max(1), again) {
             return (Outcome::Changed, None);
         }
         if self.rows[i].has_children {
@@ -838,7 +835,7 @@ impl TreeView {
     }
 
     pub fn on_click_toggle(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
-        self.scroll.pointer_move();
+        self.core.scroll.pointer_move();
         self.set_cursor(i);
         self.toggle(i)
     }
@@ -936,12 +933,12 @@ impl TreeView {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.scroll.track_click = Some(click);
+        self.core.scroll.track_click = Some(click);
         self
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.scroll.begin(ctx.track_click);
+        self.core.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -949,10 +946,21 @@ impl TreeView {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        self.scroll.set_viewport(area.height as usize);
-        ctx.control(self.id, area, false);
-        ctx.scrollable(self.id, area);
-        let has_sb = self.scroll.overflows();
+        self.core.scroll.set_viewport(area.height as usize);
+        let n = self.rows.len();
+        // a tree with nothing to act on is no focus stop (K37)
+        if self.core.is_focus_stop(n, focused) {
+            ctx.control(self.id, area, false);
+            ctx.scrollable(self.id, area);
+        }
+        // loading, an error or a set empty state replace the rows; an
+        // empty tree without one stays blank (its divider still draws)
+        if (!self.core.content.is_ready() || self.core.empty.is_some())
+            && self.core.draw_content(n, area, buf, ctx, bg, None)
+        {
+            return;
+        }
+        let has_sb = self.core.scroll.overflows();
         let full_w = area
             .width
             .saturating_sub(if has_sb || self.divider { 1 } else { 0 });
@@ -971,7 +979,7 @@ impl TreeView {
         let row_w = full_w - reserve;
         // metadata is a column: either every visible row shows it or none does
         let show_meta = self.show_meta
-            && self.scroll.visible_range().all(|ri| {
+            && self.core.scroll.visible_range().all(|ri| {
                 let row = &self.rows[ri];
                 let Some(m) = &row.meta else { return true };
                 let need = 1
@@ -984,14 +992,14 @@ impl TreeView {
                     + 1;
                 need <= row_w
             });
-        for (i, ri) in self.scroll.visible_range().enumerate() {
+        for (i, ri) in self.core.scroll.visible_range().enumerate() {
             let y = area.y + i as u16;
             let row = &self.rows[ri];
             let rect = Rect::new(area.x, y, row_w, 1);
             // the row (fill, press, click) spans the reserved strip too
             let full = Rect::new(area.x, y, full_w, 1);
             let rid = self.row_id(ri);
-            let mut s = ctx.child_state(self.id, rid, ri == self.cursor);
+            let mut s = ctx.child_state(self.id, rid, ri == self.core.cursor);
             let tid = self.toggle_id(ri);
             // the expander is part of the row: its hover and press are the row's
             s.hovered |= ctx.interaction.hovered(tid);
@@ -1005,7 +1013,7 @@ impl TreeView {
                 s.hovered = false;
                 s.pressed = false;
             }
-            s.focused = focused && ri == self.cursor;
+            s.focused = focused && ri == self.core.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
             let rp = RowUi::paint(ctx, buf, full, s, RowLook::Bar, bg);
             let st = rp.style();
@@ -1140,7 +1148,9 @@ impl TreeView {
         ctx.scrollable(self.id, area);
         if self.divider && !has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            self.scroll.draw_divider(sb, buf, ctx, self.id, focused);
+            self.core
+                .scroll
+                .draw_divider(sb, buf, ctx, self.id, focused);
         }
         if has_sb {
             crate::ui::fade::scroll_edges_except(
@@ -1152,24 +1162,24 @@ impl TreeView {
                     (area.right() - 1).saturating_sub(area.x),
                     area.height,
                 ),
-                &self.scroll,
+                &self.core.scroll,
                 &self
                     .scroll
                     .visible_range()
-                    .position(|i| i == self.cursor)
+                    .position(|i| i == self.core.cursor)
                     .map(|k| area.y + k as u16)
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
+            self.core.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
     }
 }
 
 impl Scrollable for TreeView {
     fn pane(&mut self) -> &mut ScrollPane {
-        &mut self.scroll
+        &mut self.core.scroll
     }
 }
 
@@ -1221,11 +1231,24 @@ impl crate::ui::specimen::Specimen for TreeView {
         use crate::ui::specimen::SpecimenState::*;
         matches!(
             state,
-            Rest | Hover | Pressed | Focused | FocusedHover | Selected | Busy | Overflow | Narrow
+            Rest | Hover
+                | Pressed
+                | Focused
+                | FocusedHover
+                | Selected
+                | Busy
+                | Loading
+                | Error
+                | Overflow
+                | Narrow
         )
     }
 
-    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+    fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
+        use crate::ui::specimen::SpecimenState::*;
+        if matches!(state, Loading | Error) {
+            return 1;
+        }
         self.rows.len().clamp(1, SPECIMEN_ROWS) as u16
     }
 
@@ -1260,10 +1283,11 @@ impl crate::ui::specimen::Specimen for TreeView {
                     t.set_busy(&p, true);
                 }
             }
+            (Loading | Error, _) => t.core.content = crate::ui::content::specimen(state),
             _ => {}
         }
         let v = state.visual();
-        if v.hovered {
+        if v.hovered && t.has_rows(t.rows.len()) {
             ctx.interaction.hover = Some(t.row_id(t.cursor));
             if v.pressed {
                 ctx.interaction.pressed = Some(t.row_id(t.cursor));
@@ -1591,6 +1615,38 @@ mod scroll_tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    /// S13: a tree shows `ContentState` in place of its rows, and one with
+    /// nothing to act on is no focus stop (K37).
+    #[test]
+    fn content_states_replace_the_rows_and_an_empty_tree_is_skipped() {
+        use crate::ui::content::ContentState;
+        use crate::widgets::empty::EmptyState;
+        let stop = |t: &mut TreeView| {
+            let theme = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+            t.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
+            ring.contains(t.id)
+        };
+        let mut t = TreeView::new(WidgetId::of("t"), vec![TreeNode::leaf("alpha")]);
+        assert!(stop(&mut t));
+        t.content = ContentState::loading("Loading schema");
+        let s = render(&mut t);
+        assert!(s.contains("Loading schema") && !s.contains("alpha"), "{s}");
+        assert!(!stop(&mut t), "loading: no focus stop");
+        t.content = ContentState::error(EmptyState::new("Could not connect"));
+        assert!(render(&mut t).contains("! Could not connect"));
+        let mut empty = TreeView::new(WidgetId::of("e"), vec![]);
+        assert!(!stop(&mut empty), "K37: an empty tree is skipped");
+        let mut empty = TreeView::new(WidgetId::of("e"), vec![])
+            .empty(EmptyState::new("No tables"))
+            .skip_when_empty(false);
+        assert!(render(&mut empty).contains("No tables"));
+        assert!(stop(&mut empty), "knob: stays a stop");
     }
 
     #[test]
