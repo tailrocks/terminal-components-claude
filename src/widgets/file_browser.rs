@@ -208,7 +208,8 @@ impl FileSource for FsSource {
         let mut out = Vec::new();
         for entry in read.flatten() {
             let path = entry.path().to_string_lossy().into_owned();
-            let meta = entry.metadata().ok();
+            // follow links: a linked folder opens like a folder
+            let meta = std::fs::metadata(entry.path()).ok();
             let is_dir = meta.as_ref().is_some_and(std::fs::Metadata::is_dir);
             let mut e = FileEntry::new(&path, is_dir);
             if let Some(m) = meta.filter(|m| m.is_file()) {
@@ -1483,15 +1484,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn the_real_filesystem_lists_a_folder() {
         let dir = std::env::temp_dir().join(format!("junie-fb-{}", std::process::id()));
         std::fs::create_dir_all(dir.join("sub")).expect("mkdir");
         std::fs::write(dir.join("a.txt"), "hello").expect("write");
+        std::os::unix::fs::symlink(dir.join("sub"), dir.join("link")).expect("link");
         let path = dir.to_string_lossy().into_owned();
         let b = FileBrowser::new(ID, "Choose", FsSource::new(), &path).choose(Choose::Any);
-        assert_eq!(labels(&b), ["..", "sub/", "a.txt"]);
         assert_eq!(
-            b.list.items[2].meta.as_deref(),
+            labels(&b),
+            ["..", "link/", "sub/", "a.txt"],
+            "a linked folder is a folder"
+        );
+        assert_eq!(
+            b.list.items[3].meta.as_deref(),
             Some(crate::ui::text::bytes(5).as_str())
         );
         std::fs::remove_dir_all(&dir).expect("cleanup");
