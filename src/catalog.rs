@@ -1194,6 +1194,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::measure::at_least"),
     Capability::ty("ui::measure::Tile"),
     Capability::function("ui::measure::Tile::new"),
+    Capability::builder("ui::measure::Tile::fixed"),
     Capability::ty("ui::measure::Tiled"),
     Capability::function("ui::measure::Tiled::at"),
     Capability::function("ui::measure::tiles"),

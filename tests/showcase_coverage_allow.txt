@@ -401,6 +401,7 @@ ui::pane_tree::PaneRefusal::message | widget actions: the Inspector State log of
 ui::measure::at_least | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::measure::Tile | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::Tile::new | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
+ui::measure::Tile::fixed | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::Tiled | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::Tiled::at | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::tiles | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
