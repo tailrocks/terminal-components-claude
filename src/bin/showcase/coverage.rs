@@ -2616,6 +2616,62 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Demo("progress", "Migrate schema ━"),
     ),
     (
+        "widgets::notice::Notice",
+        Demo("notices", "Authentication failed"),
+    ),
+    (
+        "widgets::notice::NoticeKind",
+        Demo("notices", "Saved 12 rows in 84 ms"),
+    ),
+    (
+        "widgets::notice::NoticeKind::Error",
+        Demo("notices", "! Port must be a number"),
+    ),
+    (
+        "widgets::notice::NoticeKind::Warning",
+        Demo("notices", "3 rows changed outside this session"),
+    ),
+    (
+        "widgets::notice::NoticeKind::Info",
+        Demo("notices", "Read-only replica"),
+    ),
+    (
+        "widgets::notice::NoticeKind::Success",
+        Demo("notices", "✓ Saved 12 rows"),
+    ),
+    (
+        "widgets::notice::NoticeKind::message_tone",
+        Demo("notices", "the glyph carries it"),
+    ),
+    (
+        "widgets::notice::Notice::kind",
+        Option("notices", "notices.kind"),
+    ),
+    (
+        "widgets::notice::Notice::detail",
+        Option("notices", "notices.detail"),
+    ),
+    (
+        "widgets::notice::Notice::hint",
+        Option("notices", "notices.hint"),
+    ),
+    (
+        "widgets::notice::Notice::max_lines",
+        Option("notices", "notices.max_lines"),
+    ),
+    (
+        "widgets::notice::Notice::message_lines",
+        Option("notices", "notices.message_lines"),
+    ),
+    (
+        "widgets::notice::Notice::detail_tone",
+        Option("notices", "notices.detail_tone"),
+    ),
+    (
+        "widgets::notice::Notice::mark_cut",
+        Option("notices", "notices.mark_cut"),
+    ),
+    (
         "widgets::meter_list::MeterList",
         Demo("meters", "Session (5 h)"),
     ),
@@ -5154,6 +5210,11 @@ impl ViaRole {
 /// catalog, a bare name of another type, a path that is a method, and a
 /// function that is also declared directly or allowlisted.
 pub static VIA: &[(&str, ViaRole, &[&str])] = &[
+    (
+        "widgets::notice::Notice",
+        Protocol,
+        &["height", "render", "render_theme"],
+    ),
     (
         "widgets::meter_list::MeterList",
         Protocol,

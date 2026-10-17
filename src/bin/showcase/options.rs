@@ -267,6 +267,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Progress => PROGRESS,
         PageId::EmptyError => EMPTY_ERROR,
         PageId::Meters => METERS,
+        PageId::Notices => NOTICES,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
         PageId::Editor => CODE_EDITOR,
@@ -1327,6 +1328,27 @@ pub static METERS: &[Opt] = &[
     Opt::new("meters.visual", "Quota meter visual", &["block", "line"]),
     Opt::new("meters.offline", "Offline (last-good)", OFF_ON),
     Opt::new("meters.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Notices (SC36): the kind of the query's error card, and the parts and
+/// limits every `Notice` on the page shares.
+pub static NOTICES: &[Opt] = &[
+    Opt::new(
+        "notices.kind",
+        "Result notice kind",
+        &["error", "warning", "info", "success"],
+    ),
+    Opt::new("notices.detail", "Detail", OFF_ON).default(1),
+    Opt::new("notices.hint", "Hint", OFF_ON).default(1),
+    Opt::new("notices.max_lines", "Detail lines", &["2", "1", "4"]),
+    Opt::new("notices.message_lines", "Message lines", &["2", "1"]),
+    Opt::new(
+        "notices.detail_tone",
+        "Detail tone",
+        &["secondary", "muted"],
+    ),
+    Opt::new("notices.mark_cut", "Mark the cut …", OFF_ON).default(1),
+    Opt::new("notices.width", "Width", &["wide", "narrow"]),
 ];
 
 /// Empty & error (SC21): the empty state's kind, hint and actions, and
