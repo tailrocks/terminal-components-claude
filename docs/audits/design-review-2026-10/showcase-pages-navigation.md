@@ -172,9 +172,9 @@ fix, with the reason.
    instead. `NavKeys::{move_hint, page_hint, ends_hint}` now name only the
    keys a widget's `nav` and `type_ahead` deliver, and Lists and Trees
    build their hints from them.
-2. **Open: Panels and Scrolling still hint `g G Ends` by hand**
-   (`pages/panels.rs`, `pages/scrolling.rs`). Those pages belong to SC22;
-   it should take the hint from `NavKeys::ends_hint` the same way.
+2. **Fixed (71273406c): Panels and Scrolling no longer hint `g G Ends` by
+   hand.** `pages/panels.rs` and `pages/scrolling.rs` (SC22) take the hint
+   from `NavKeys::ends_hint`, as Lists and Trees do.
 3. **Type-ahead precedence and timeout are left for SC29.**
    `TypeAheadPrecedence` and the `type_ahead_timeout` builders are
    allowlisted to SC29, which shows the Cursor/RowSource defaults together
@@ -208,5 +208,5 @@ said "open" or "planned" get their owner id, fixed ones their commit.
 | SC6 1 | Open → SC33 | S8b | `HelpOverlay::from_keymaps` replaces the hand-listed `?` sections. |
 | SC6 2 | Decision (a page option must not change how the showcase quits from one page only) | — | — |
 | SC15 1 | Fixed | 2398b5f91 | `NavKeys::{move_hint, page_hint, ends_hint}`; Lists and Trees build their hints from them. |
-| SC15 2 | Fixed | 71273406c | Panels and Scrolling take `NavKeys::ends_hint` (SC22); the entry above is stale. |
+| SC15 2 | Fixed | 71273406c | Panels and Scrolling take `NavKeys::ends_hint` (SC22). |
 | SC15 3 | Fixed in part; rest open → SC34, SC41 | 71273406c | SC29 shows `TypeAheadPrecedence` and the Cursor/RowSource timeouts; `MenuBar::type_ahead_timeout` moved to SC34 and `ContextMenu::type_ahead_timeout` to SC41 (plan §7.8). |
