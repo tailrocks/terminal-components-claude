@@ -956,6 +956,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::layout::Split::toggle_max"),
     Capability::function("ui::layout::Split::grow"),
     Capability::function("ui::layout::Split::layout"),
+    Capability::function("ui::layout::Split::extent_for"),
     Capability::function("ui::layout::Split::handle"),
     Capability::function("ui::layout::Split::drag_to"),
     Capability::function("ui::layout::Split::nudge"),
