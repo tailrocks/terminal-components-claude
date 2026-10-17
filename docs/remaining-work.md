@@ -271,9 +271,10 @@ wheel notches, reveal wrap cost, a full render per frame,
 ## 4. Working rules (summary; AGENTS.md is authoritative)
 
 - Subagents do the work; the main session coordinates, reviews and
-  integrates. Never more than 5 subagents at once; implementation agents
-  work in isolated worktrees on disjoint files (AGENTS.md "Way of
-  working").
+  integrates. Never more than 5 subagents in parallel, a hard ceiling that
+  counts helpers subagents start; extra work waits in a queue.
+  Implementation agents work in isolated worktrees on disjoint files
+  (AGENTS.md "Way of working").
 - Small portions: commit and push after every coherent step as soon as the
   gate passes. Before each push: `git fetch`, rebase onto the remote
   branch, re-run the gate, push. Never force-push.
@@ -281,15 +282,15 @@ wheel notches, reveal wrap cost, a full render per frame,
   `mkdir "$(git rev-parse --git-common-dir)/push.lock"` and write an owner
   file inside it; if `mkdir` fails, the lock is held: keep working and
   retry at the next checkpoint. Inside the lock: fetch, rebase, check the
-  diff stat, push, then `rm -rf` the lock, also on failure. (Session
-  convention, not yet in AGENTS.md.)
+  diff stat, push, then `rm -rf` the lock, also on failure (AGENTS.md "Way
+  of working").
 - No command runs longer than 4 minutes: set a timeout and split long jobs
   (nextest partitions, visual groups). Long commands run in the
   background while the agent keeps working; an agent with only waiting
   left ends its run and reports where to resume, rather than polling.
-- Never `pkill` or kill processes by name: other sessions and agents share
-  the machine; stop only a task you started, by its id. (Session
-  convention, not yet in AGENTS.md.)
+- Never `pkill -f`, `killall` or kill processes by name: other sessions
+  and agents share the machine; stop only PIDs and tasks you started
+  (AGENTS.md "Way of working").
 - The gate on every step: `cargo nextest run --all-targets` (never `cargo
   test`), `cargo clippy --all-targets`, `cargo fmt --check`, the tuiscotti
   pilot (`--run-ignored only -E 'binary(visual_baseline) &
