@@ -1,0 +1,249 @@
+# Reachability gate (src/shell/reach.rs; app_tests_reach.rs of each app).
+# One line per (app, scenario, size) whose content is not all reachable:
+# <app> <scenario> <W>x<H> <missing word>... # <finding id> <reason>
+# Findings: docs/audits/design-review-2026-10/responsive.md. A fix drops
+# its lines (the gate fails while a fixed line is still here).
+holla activity 72x20 btm child logs tests worker # R-apps-4 R-apps-11
+holla activity 80x24 btm logs worker # R-apps-4 R-apps-11
+holla activity 100x25 btm logs worker # R-apps-4 R-apps-11
+holla activity-failed 72x20 Node Open definition here project truecolor # R-apps-1 R-apps-7
+holla activity-failed 80x24 Open definition here project truecolor # R-apps-1 R-apps-7
+holla activity-merged 72x20 btm here tests # R-apps-4 R-apps-11
+holla activity-merged 80x24 btm # R-apps-4 R-apps-11
+holla activity-merged 100x25 btm # R-apps-4 R-apps-11
+holla args 72x20 masked # R-apps-4
+holla cleanup 72x20 dry # R-apps-4
+holla cleanup 80x24 dry # R-apps-4
+holla cleanup 106x29 dry emptied live mode recoverable toggles until # R-apps-4
+holla cleanup 120x40 dry # R-apps-4
+holla cleanup-history 72x20 4089446400 GiB Trash Users alex freed from outcome path size # R-apps-4 R-apps-6
+holla cleanup-history 80x24 4089446400 GiB Trash Users alex freed from outcome size trashed # R-apps-4 R-apps-6
+holla cleanup-history 100x25 4089446400 size # R-apps-4 R-apps-6
+holla cleanup-history 106x29 4089446400 size # R-apps-4 R-apps-6
+holla cleanup-history 120x40 4089446400 size # R-apps-4 R-apps-6
+holla config 72x20 80de150cfec6235763ee88135d6e8abf9c8de43ddebf148135b5eb42ea710dad ASCII configuration defined digits letters lowercase whoami # R-apps-4 R-apps-6
+holla config 80x24 80de150cfec6235763ee88135d6e8abf9c8de43ddebf148135b5eb42ea710dad ASCII configuration digits letters # R-apps-4 R-apps-6
+holla config 100x25 digits # R-apps-4 R-apps-6
+holla disk 72x20 611 926 Filesystems # R-apps-6
+holla disk 80x24 611 926 Filesystems # R-apps-6
+holla disk 100x25 611 926 Filesystems # R-apps-6
+holla disk-overview 72x20 age analyses caches hints logs their with # R-apps-4
+holla disk-overview 80x24 age analyses their # R-apps-4
+holla disk-overview 100x25 analyses # R-apps-4
+holla files 72x20 Users alex denied file link missing permission special symlink # R-apps-3
+holla files 80x24 Users alex denied missing # R-apps-3
+holla files 100x25 alex missing # R-apps-3
+holla files 106x29 missing # R-apps-3
+holla files 120x40 missing symlink # R-apps-3
+holla files 160x50 missing # R-apps-3
+holla finder 72x20 last toml # R-apps-8
+holla finder-children 72x20 truecolor under # R-apps-1 R-apps-8 R-apps-12
+holla finder-children 80x24 under # R-apps-8 R-apps-12
+holla finder-children 120x40 under # R-apps-8 R-apps-12
+holla finder-children 160x50 toml # R-apps-8 R-apps-12
+holla finder-page 72x20 fits view # R-apps-8
+holla finder-page 80x24 fits view # R-apps-8
+holla gate-plan 72x20 7f2 Gate Not Privilege Provenance Reclaimable Recoverable Uncertainty acme ago api are bound builder buildx configuration continue daemon data deliberately docker durable facts force from generic grafana hold its itself keep live loki mirror named network none permanent pgadmin phrase prune redis registry scheduler second shell stop system target them then tmp touched types worker would # R-apps-4 R-apps-6
+holla gate-plan 80x24 7f2 Gate Not Privilege Provenance Uncertainty ago bound builder configuration continue daemon data deliberately durable from generic grafana hold its itself keep live loki mirror named none pgadmin phrase redis registry second shell target them then tmp touched types would # R-apps-4 R-apps-6
+holla gate-plan 100x25 7f2 Gate Privilege Provenance Uncertainty ago bound builder data durable from generic grafana hold keep live loki mirror named none pgadmin phrase registry second shell target them tmp types would # R-apps-4 R-apps-6
+holla gate-plan 106x29 Gate Provenance ago bound from grafana live loki mirror pgadmin phrase second shell target tmp types # R-apps-4 R-apps-6
+holla gate-plan 120x40 grafana loki pgadmin shell # R-apps-4 R-apps-6
+holla plan-review 72x20 excluded included truecolor # R-apps-1 R-apps-2 R-apps-4
+holla plan-review 100x25 State ready # R-apps-2 R-apps-4
+holla plan-review 106x29 State ready # R-apps-2 R-apps-4
+holla plan-running 72x20 step # R-apps-3
+holla plan-running 80x24 step # R-apps-3
+holla plan-running 100x25 step # R-apps-3
+holla plan-running 106x29 step # R-apps-3
+holla snapshot 72x20 truecolor # R-apps-1
+holla start-plan 72x20 Host Plan Reboot Steps after cached for kernel outdated security session the this upgradable # R-apps-1 R-apps-10
+holla top-files 72x20 cleanup for gate same the # R-apps-1 R-apps-4
+holla top-files 80x24 cleanup for gate same the # R-apps-1 R-apps-4
+holla top-files 100x25 cleanup gate # R-apps-4
+holla top-files 106x29 gate # R-apps-4
+holla trust 72x20 Node after before build changes depends description dev development environment eslint lint main node production runs server team truecolor vite vitest when # R-apps-1 R-apps-6
+holla trust 80x24 changes runs team truecolor # R-apps-1 R-apps-6
+holla upgrade-plan 72x20 excluded included # R-apps-2 R-apps-4
+holla upgrade-plan 106x29 Lane ordered trunk # R-apps-2 R-apps-4
+jackin account-form 72x20 API Agent Credential Local Plain agent chosen field item recommended reference runtime source # R-apps-9
+jackin account-form 80x24 API Local Plain agent chosen field item recommended reference # R-apps-9
+jackin account-form 100x25 API Local Plain agent chosen reference # R-apps-9
+jackin account-form 106x29 chosen # R-apps-9
+jackin accounts 72x20 Construct inside launches running # R-apps-1 R-apps-8
+jackin accounts 80x24 Construct inside running # R-apps-1
+jackin accounts 100x25 running # R-apps-1
+jackin capsule 72x20 0004 0005 0007 00Z 03T09 12s 142 2026 204 2u32 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 7f3a ATTEMPTS BASE Checking EUR FAILED Finished OpenAI Opus Read Refactor RetryPolicy The Weekly add adr ahead and attempt attempts cap capped changed clippy close codex config const conversion crates currency daily delay dev exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored input instances integration items jitter ledger let lines loop multi needs origin panes partial pow precedes precision read reconcile refund retries retrying rounding settled stale status summarise tabs target u32 unoptimized unpushed warn with # R-apps-1 R-apps-6
+jackin capsule 80x24 00Z 03T09 12s 142 2026 204 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 7f3a Checking EUR FAILED OpenAI Opus Read Refactor RetryPolicy The Weekly add ahead and attempts cap capped changed clippy close codex config const crates currency daily exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored input instances integration items jitter ledger lines loop multi needs origin panes partial precision read reconcile refund retries retrying settled stale status summarise tabs target unpushed warn with # R-apps-1 R-apps-6
+jackin capsule 100x25 00Z 03T09 12s 142 2026 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 7f3a Checking FAILED OpenAI Opus Read Refactor RetryPolicy The Weekly add ahead and attempts changed clippy close codex crates currency daily exec exponential exponentially failed failure failures feature first fixed git gpt ignored instances integration items jitter lines loop multi origin panes partial precision read reconcile refund retries retrying settled stale status summarise tabs unpushed warn with # R-apps-1 R-apps-6
+jackin capsule 106x29 00Z 03T09 142 2026 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 7f3a FAILED OpenAI Opus Read Refactor Weekly add ahead changed close codex daily exec exponentially failed failures feature first git gpt ignored instances integration items lines origin panes partial precision read refund retrying settled stale status summarise tabs unpushed warn # R-apps-1 R-apps-6
+jackin capsule 120x40 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 OpenAI Weekly ahead changed codex exec failures gpt instances integration items panes retrying settled stale summarise tabs unpushed warn # R-apps-1 R-apps-6
+jackin capsule 160x50 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 panes stale tabs warn # R-apps-1 R-apps-6
+jackin capsule-zoom 72x20 142 2u32 7f3a BASE Opus Read Refactor The Weekly add and architect attempt attempts batches changed const delay exponential exponentially failed first fixed for form input instances jitter let lines loop needs panes payments platform pow read retries stale tabs u32 unpushed with # R-apps-1 R-apps-6
+jackin capsule-zoom 80x24 142 7f3a Opus Read Refactor The Weekly add and architect attempts batches changed exponential exponentially failed first fixed form input instances lines loop needs panes payments platform read retries stale tabs unpushed with # R-apps-1 R-apps-6
+jackin capsule-zoom 100x25 142 7f3a Opus Read Refactor The Weekly add and attempts batches changed exponential exponentially failed first fixed instances lines loop panes read retries stale tabs unpushed with # R-apps-1 R-apps-6
+jackin capsule-zoom 106x29 142 7f3a Opus Read Refactor Weekly batches changed exponentially failed first instances lines panes read stale tabs unpushed # R-apps-1 R-apps-6
+jackin capsule-zoom 120x40 Weekly changed instances panes stale tabs unpushed # R-apps-1
+jackin capsule-zoom 160x50 panes stale tabs # R-apps-1
+jackin cockpit 72x20 1Password Capsule Codex Grok Hardline Launch Network OpenCode Personal Primary Sidecar Team accounts after credentials discarded help injection memory quota readable resolved stages subscription # R-apps-1 R-apps-4 R-apps-6
+jackin cockpit 80x24 1Password Codex Grok Launch OpenCode Personal Primary Team accounts after credentials discarded help injection memory quota readable resolved stages subscription # R-apps-1 R-apps-4 R-apps-6
+jackin cockpit 100x25 1Password Codex Grok OpenCode Personal Primary Team accounts after credentials discarded help injection memory quota readable resolved stages subscription # R-apps-1 R-apps-4 R-apps-6
+jackin cockpit 106x29 Grok OpenCode Primary Team help subscription # R-apps-1 R-apps-4 R-apps-6
+jackin cockpit 120x40 Grok OpenCode Team subscription # R-apps-4 R-apps-6
+jackin cockpit 160x50 OpenCode subscription # R-apps-4 R-apps-6
+jackin cockpit-failure 72x20 1600 400 800 build capsule cleanup container inspection kept lines log retry sidecar started # R-apps-9 R-apps-12
+jackin cockpit-failure 80x24 build cleanup container inspection kept lines log # R-apps-9 R-apps-12
+jackin cockpit-failure 100x25 build inspection log # R-apps-9 R-apps-12
+jackin editor 72x20 Workspaces edit inside running # R-apps-1
+jackin editor 80x24 inside running # R-apps-1
+jackin editor 100x25 running # R-apps-1
+jackin editor 106x29 running # R-apps-1
+jackin editor-accounts 72x20 Construct Workspaces disabled edit globally inside needs payments platform ready registry running secret the unavailable unsupported # R-apps-1 R-apps-4
+jackin editor-accounts 80x24 Construct globally inside registry running the # R-apps-1 R-apps-4
+jackin editor-accounts 100x25 running # R-apps-1
+jackin editor-accounts 106x29 running # R-apps-1
+jackin editor-env 72x20 Codex Construct Pending Primary Resolution Variable Workspaces credential edit inside launch never payments platform resolved running sandbox stored text workspace # R-apps-1 R-apps-2
+jackin editor-env 80x24 Codex Construct Original Pending Primary Resolution Variable credential inside launch never resolved running sandbox stored text workspace # R-apps-1 R-apps-2
+jackin editor-env 100x25 Original Pending Resolution Variable launch never resolved running stored text workspace # R-apps-1 R-apps-2
+jackin editor-env 106x29 Original Pending Resolution Variable launch never resolved running stored text workspace # R-apps-1 R-apps-2
+jackin editor-env 120x40 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
+jackin editor-mounts 72x20 Construct Source Workspaces edit inside running src the # R-apps-1 R-apps-3
+jackin editor-mounts 80x24 Construct Source inside running src the # R-apps-1 R-apps-3
+jackin editor-mounts 100x25 Source running src # R-apps-1 R-apps-3
+jackin editor-mounts 106x29 running # R-apps-1
+jackin editor-roles 72x20 Claude Code Construct Kubernetes Workspaces edit inside limited payments platform scope services with # R-apps-1 R-apps-4
+jackin editor-roles 80x24 Claude Code Construct Kubernetes inside limited running scope # R-apps-1 R-apps-4
+jackin editor-roles 100x25 running # R-apps-1
+jackin editor-roles 106x29 running # R-apps-1
+jackin env-form 72x20 Scope # R-apps-9
+jackin launch-picker 72x20 default provider # R-apps-8
+jackin launch-picker 80x24 default # R-apps-8
+jackin manager 72x20 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager 160x50 ask exit refreshing stale # R-apps-1 R-apps-2 R-apps-8
+jackin manager-detail 72x20 04d7 9b02 Construct Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy inside instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-detail 80x24 04d7 9b02 Construct Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy inside instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-detail 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-detail 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-detail 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-detail 160x50 ask available exit refreshing stale unpushed # R-apps-1 R-apps-2 R-apps-8
+jackin manager-expanded 72x20 04d7 9b02 Construct Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy inside instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-expanded 80x24 04d7 9b02 Construct Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy inside instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-expanded 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-expanded 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-expanded 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-1 R-apps-2 R-apps-8
+jackin manager-expanded 160x50 ask available exit refreshing stale unpushed # R-apps-1 R-apps-2 R-apps-8
+jackin manager-hard 72x20 Construct Daemon Preserved Refresh Running Usage account b111 b222 b333 b444 b555 degraded every exhausted inside instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 80x24 Construct Daemon Preserved Refresh Running Usage account degraded every exhausted inside instances min pane panes records refreshing tab tabs throttled truncation unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 100x25 Construct Daemon Preserved Refresh Running Usage account degraded every exhausted inside instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 106x29 Construct Daemon Preserved Refresh Running Usage account degraded every exhausted idle inside instances min pane panes record records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
+jackin manager-hard 160x50 ask refreshing # R-apps-2 R-apps-6 R-apps-8
+jackin mount-form 72x20 Shared edits land only read # R-apps-9
+jackin prelude 72x20 Construct inside running the # R-apps-1
+jackin prelude 80x24 Construct inside running the # R-apps-1
+jackin prelude-source 72x20 inside running # R-apps-1
+jackin prelude-source 80x24 inside running # R-apps-1
+jackin settings 72x20 Construct Zhokhov alexey chainargos inside running the # R-apps-1 R-apps-4
+jackin settings 80x24 Construct alexey chainargos inside running the # R-apps-1 R-apps-4
+jackin settings-agents 72x20 Construct agent from host inside json login material mirrors oauth pickers registry removes running session starts take token without # R-apps-1 R-apps-6
+jackin settings-agents 80x24 Construct inside pickers registry running # R-apps-1 R-apps-6
+jackin settings-env 72x20 1Password 1password CLI Construct GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 inside launch never resolved running stored token # R-apps-1 R-apps-2
+jackin settings-env 80x24 1Password 1password CLI Construct GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 inside launch never resolved running stored token # R-apps-1 R-apps-2
+jackin settings-env 100x25 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved running stored # R-apps-1 R-apps-2
+jackin settings-env 106x29 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-2
+jackin settings-env 120x40 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com eng01 gh01 launch never resolved stored # R-apps-2
+jackin settings-mounts 72x20 Construct Isolation Kind Source cache host inside roles running the # R-apps-1 R-apps-3
+jackin settings-mounts 80x24 Construct Isolation Kind Source cache host inside roles running the # R-apps-1 R-apps-3
+jackin settings-mounts 100x25 Source cache roles # R-apps-3
+jackin settings-mounts 106x29 Source cache roles # R-apps-3
+jackin settings-trust 72x20 Construct inside running # R-apps-1
+jackin settings-trust 80x24 Construct inside running # R-apps-1
+jackin usage 72x20 Construct authenticated identities inside running sentinel shows worst # R-apps-1 R-apps-4
+jackin usage 80x24 identities running shows worst # R-apps-1 R-apps-4
+jackin usage 100x25 identities # R-apps-4
+jackin usage 106x29 authenticated identities sentinel shows worst # R-apps-4
+jackin usage 120x40 identities shows worst # R-apps-4
+jackin usage 160x50 identities # R-apps-4
+jackin usage-detail 72x20 Construct inside running the # R-apps-1
+jackin usage-detail 80x24 Construct inside running the # R-apps-1
+tablepro conn-failed 72x20 5432 Alert Authentication Database Duplicate Edit Engine Environment Every FATAL Host Last Mode Reconnect SSH SSL Safe User acme ago app asks authentication bastion before confirmation days failed for keychain password runs staging use used user write # R-apps-2
+tablepro conn-failed 80x24 5432 Alert Authentication Database Duplicate Edit Engine Environment Every FATAL Host Last Mode Reconnect SSH SSL Safe User acme ago app asks authentication bastion before confirmation days failed for keychain password runs staging use used user write # R-apps-2
+tablepro conn-form-advanced 72x20 Acme Analytics Development Filter Personal PostgreSQL Production Scratch Staging connections mysql sqlite # R-apps-2 R-apps-4
+tablepro conn-form-advanced 80x24 Acme Analytics Development Filter Personal PostgreSQL Production Scratch Staging connections mysql sqlite # R-apps-2 R-apps-4
+tablepro conn-form-advanced 100x25 one # R-apps-2 R-apps-4
+tablepro conn-form-advanced 106x29 one # R-apps-2 R-apps-4
+tablepro conn-form-edit 72x20 Acme Analytics Development Filter Production Scratch Staging mysql sqlite statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-edit 80x24 Acme Analytics Development Filter Production Scratch Staging mysql sqlite # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-edit 100x25 json statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-edit 106x29 Destructive asking json statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-edit 120x40 still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-errors 72x20 Acme Analytics Development Filter Local Production Scratch Staging mysql sqlite statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-errors 80x24 Acme Analytics Development Filter Local Production Scratch Staging mysql sqlite # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-errors 100x25 json statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-errors 106x29 Destructive asking json statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-errors 120x40 still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-new 72x20 Acme Analytics Development Filter Local Production Scratch Staging mysql sqlite statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-new 80x24 Acme Analytics Development Filter Local Production Scratch Staging mysql sqlite # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-new 100x25 json statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-new 106x29 Destructive asking json statements still # R-apps-2 R-apps-4 R-apps-5
+tablepro conn-form-new 120x40 still # R-apps-2 R-apps-4 R-apps-5
+tablepro connections 72x20 5432 Database Destructive Duplicate Edit Engine Environment Host Last Mode SSH SSL Safe Silent User Writes acme ago asking confirm dev local localhost minutes off postgres run statements still used without # R-apps-2
+tablepro connections 80x24 5432 Database Destructive Duplicate Edit Engine Environment Host Last Mode SSH SSL Safe Silent User Writes acme ago asking confirm dev local localhost minutes off postgres run statements still used without # R-apps-2
+tablepro connections-empty 72x20 Select moves # R-apps-2
+tablepro connections-empty 80x24 Select moves # R-apps-2
+tablepro explorer-hidden 72x20 help truecolor # R-apps-1
+tablepro explorer-hidden 80x24 truecolor # R-apps-1
+tablepro history 72x20 412 ANDed Connection Copy Duration Rows any email failed help pending truecolor # R-apps-1 R-apps-3 R-apps-4 R-apps-6 R-apps-7
+tablepro history 80x24 Copy daily pending truecolor # R-apps-1 R-apps-4 R-apps-6 R-apps-7
+tablepro history 106x29 312 Copy # R-apps-3 R-apps-4 R-apps-6 R-apps-7
+tablepro history 120x40 312 Copy # R-apps-3 R-apps-4 R-apps-6 R-apps-7
+tablepro maximized 72x20 help truecolor # R-apps-1
+tablepro maximized 80x24 truecolor # R-apps-1
+tablepro open-quickly 72x20 Close # R-apps-4
+tablepro query-editing 72x20 help truecolor # R-apps-1
+tablepro query-editing 80x24 truecolor # R-apps-1
+tablepro query-editing 106x29 312 # R-apps-3
+tablepro query-editing 120x40 312 # R-apps-3
+tablepro result-affected 72x20 Duration Rows help truecolor # R-apps-1 R-apps-6
+tablepro result-affected 80x24 truecolor # R-apps-1
+tablepro result-affected 106x29 312 # R-apps-3
+tablepro result-affected 120x40 312 # R-apps-3
+tablepro result-error 72x20 Enter Perhaps address amount currency delivered gift help jumps meant notes number one result shipped shipping statement status tab the total truecolor you # R-apps-1 R-apps-5 R-apps-6
+tablepro result-error 80x24 address delivered gift notes shipped shipping truecolor # R-apps-1 R-apps-5 R-apps-6
+tablepro result-error 106x29 312 address delivered gift notes shipped shipping # R-apps-3 R-apps-5 R-apps-6
+tablepro result-error 120x40 312 delivered gift # R-apps-3 R-apps-5 R-apps-6
+tablepro result-multi 72x20 help truecolor # R-apps-1
+tablepro result-multi 80x24 truecolor # R-apps-1
+tablepro result-multi 106x29 312 # R-apps-3
+tablepro result-multi 120x40 312 # R-apps-3
+tablepro result-plan 72x20 368 Actual Cost Est help loop truecolor # R-apps-1 R-apps-2
+tablepro result-plan 80x24 368 Actual Cost Est loop truecolor # R-apps-1 R-apps-2
+tablepro result-plan 100x25 368 Actual Cost Est loop # R-apps-2
+tablepro result-plan 106x29 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
+tablepro result-plan 120x40 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
+tablepro result-rows 72x20 62e30eb3023a 64e6f4de 66ce 67b727af549c 6c1d1fd69c1a 6ced46ac407d 6e37043f 7033 7127 7258ca86 72e5acedfb6 7408 747ddec2 7557d493 7b162bee070 7bbb 8fe3ac0de925 9004 9276 94e6ec156ee 9520a2e3 9610f538 9d628e15 9d64a4912de0 b1ce ba1e beb1 c180d977 c2244d61 c2e9b1dea5b c4ad c684f35e139 c893cab9 ccce612ed16 ceb1 d189 d1ffd889 d50f d512 db1708c5160b dc0b4dcd dc4e3c55c7c ddb4866f00d e05260977d47 e1c0096fac8c e787efcf86e3 e7c9 f0160378d74 f4cff1e838f5 f7a2e505aaa f93d fa5f fb78dd25 fc5a011cee4 help truecolor # R-apps-1 R-apps-12
+tablepro result-rows 80x24 truecolor # R-apps-1
+tablepro safe-mode 72x20 acknowledgement before deliberate statements still work # R-apps-8
+tablepro safe-mode 80x24 acknowledgement work # R-apps-8
+tablepro table-data 72x20 help truecolor # R-apps-1
+tablepro table-data 80x24 truecolor # R-apps-1
+tablepro table-ddl 72x20 help truecolor # R-apps-1
+tablepro table-ddl 80x24 truecolor # R-apps-1
+tablepro table-ddl 106x29 312 # R-apps-3
+tablepro table-ddl 120x40 312 # R-apps-3
+tablepro table-filtered 72x20 help truecolor # R-apps-1
+tablepro table-filtered 80x24 truecolor # R-apps-1
+tablepro table-pending 72x20 help truecolor # R-apps-1
+tablepro table-pending 80x24 help truecolor # R-apps-1
+tablepro table-pending 106x29 truecolor # R-apps-1
+tablepro table-structure 72x20 help truecolor # R-apps-1
+tablepro table-structure 80x24 truecolor # R-apps-1
+tablepro table-structure 106x29 312 # R-apps-3
+tablepro table-structure 120x40 312 # R-apps-3
+tablepro workbench 72x20 help truecolor # R-apps-1
+tablepro workbench 80x24 truecolor # R-apps-1
+tablepro workbench 106x29 312 # R-apps-3
+tablepro workbench 120x40 312 # R-apps-3

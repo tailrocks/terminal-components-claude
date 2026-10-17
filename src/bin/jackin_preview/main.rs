@@ -26,6 +26,8 @@ mod app_tests_layers;
 mod app_tests_mouse;
 #[cfg(test)]
 mod app_tests_pointer;
+#[cfg(test)]
+mod app_tests_reach;
 mod arbiter;
 mod domain;
 mod rain;
