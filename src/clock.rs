@@ -3,6 +3,18 @@
 //! runtime ticks (a given `--frame N` renders the same picture every
 //! time). Both implement [`Clock`]; time-based shell behaviour (the status
 //! line's expiry, [`crate::shell::StatusLine`]) reads a [`Moment`] from it.
+//!
+//! Explicit clock steps: under `--motion paused` a [`SimClock`] is stopped,
+//! so a job scheduled on virtual time (a save that fails after 900 ms, a
+//! role load after 1,100 ms) never fires and a capture cannot reach the
+//! dialog it opens. A [`ClockStep`] request (a bracketed paste of
+//! [`ClockStep::request`], sent by the visual harness's `advance:<ms>`
+//! step) asks the shell to run the stopped clock for that long through the
+//! app's own tick ([`crate::shell::App::advance_clock`], [`run_step`]),
+//! then stop it again, so the frame settles. Only a paused app honours it;
+//! everywhere else the paste is an ordinary paste.
+
+use crate::core::event::Outcome;
 
 use std::time::{Duration, Instant};
 
@@ -184,6 +196,66 @@ impl SimClock {
     }
 }
 
+/// The in-band request for an explicit clock step: the whole text of one
+/// bracketed paste. It travels with the keys, so a step lands after the
+/// inputs sent before it, which a signal could not promise.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClockStep;
+
+impl ClockStep {
+    /// What a request starts with; the rest is the step in milliseconds.
+    pub const PREFIX: &'static str = "junie-tui:advance-clock:";
+
+    /// The paste that asks for a step of `ms` virtual milliseconds.
+    pub fn request(ms: u64) -> String {
+        format!("{}{ms}", Self::PREFIX)
+    }
+
+    /// The step a pasted `text` asks for: the whole paste must be a
+    /// request (no surrounding text) for a positive number of
+    /// milliseconds.
+    pub fn parse(text: &str) -> Option<u64> {
+        let digits = text.strip_prefix(Self::PREFIX)?;
+        if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        digits.parse().ok().filter(|ms| *ms > 0)
+    }
+}
+
+/// Run `app`'s clock for an explicit step of `ms` virtual milliseconds: the
+/// clock (`clock`) runs for the step even when stopped, `tick` is called
+/// until it has advanced the clock by at least `ms` (each call is one of
+/// the app's own ticks, so scheduled jobs fire and state advances exactly
+/// as on a running clock), then the clock's `running` flag is restored.
+/// A tick that does not advance the clock ends the step (no endless loop).
+pub fn run_step<A: ?Sized>(
+    app: &mut A,
+    clock: fn(&mut A) -> &mut SimClock,
+    ms: u64,
+    mut tick: impl FnMut(&mut A) -> Outcome,
+) -> Outcome {
+    let c = clock(app);
+    let was_running = c.running;
+    let end = c
+        .now_ms
+        .saturating_add(i64::try_from(ms).unwrap_or(i64::MAX));
+    c.running = true;
+    let mut out = Outcome::Ignored;
+    loop {
+        let before = clock(app).now_ms;
+        if before >= end {
+            break;
+        }
+        out = out.or(tick(app));
+        if clock(app).now_ms <= before {
+            break;
+        }
+    }
+    clock(app).running = was_running;
+    out
+}
+
 impl Clock for SimClock {
     fn now(&self) -> Moment {
         Moment(self.now_ms.max(0) as u64)
@@ -229,6 +301,66 @@ mod tests {
         c.running = false;
         c.advance(33);
         assert_eq!(c.now_ms, 990);
+    }
+
+    #[test]
+    fn a_clock_step_request_round_trips_and_nothing_else_parses() {
+        assert_eq!(ClockStep::parse(&ClockStep::request(1_100)), Some(1_100));
+        for text in [
+            "",
+            "junie-tui:advance-clock:",
+            "junie-tui:advance-clock:0",
+            "junie-tui:advance-clock:-5",
+            "junie-tui:advance-clock:12ms",
+            " junie-tui:advance-clock:12",
+            "junie-tui:advance-clock:12\n",
+            "hello",
+        ] {
+            assert_eq!(ClockStep::parse(text), None, "{text:?}");
+        }
+    }
+
+    struct Ticking {
+        clock: SimClock,
+        ticks: u32,
+    }
+
+    fn ticking_clock(t: &mut Ticking) -> &mut SimClock {
+        &mut t.clock
+    }
+
+    #[test]
+    fn a_step_runs_a_stopped_clock_through_the_apps_ticks_and_stops_it_again() {
+        let mut t = Ticking {
+            clock: SimClock::new(EPOCH, ZONE),
+            ticks: 0,
+        };
+        t.clock.running = false;
+        let out = run_step(&mut t, ticking_clock, 1_100, |t| {
+            t.ticks += 1;
+            t.clock.advance(500);
+            Outcome::Changed
+        });
+        assert_eq!(out, Outcome::Changed);
+        assert_eq!((t.clock.now_ms, t.ticks), (1_500, 3));
+        assert!(!t.clock.running, "the paused clock is stopped again");
+        // stopped again: an ordinary tick does not move it
+        t.clock.advance(500);
+        assert_eq!(t.clock.now_ms, 1_500);
+    }
+
+    #[test]
+    fn a_tick_that_does_not_advance_the_clock_ends_the_step() {
+        let mut t = Ticking {
+            clock: SimClock::new(EPOCH, ZONE),
+            ticks: 0,
+        };
+        let out = run_step(&mut t, ticking_clock, 1_000, |t| {
+            t.ticks += 1;
+            Outcome::Ignored
+        });
+        assert_eq!((out, t.ticks, t.clock.now_ms), (Outcome::Ignored, 1, 0));
+        assert!(t.clock.running, "a running clock stays running");
     }
 
     #[test]

@@ -580,7 +580,9 @@ impl Page<Jackin> for CockpitScreen {
     }
 
     fn on_tick(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-        if self.motion == Motion::Paused {
+        // paused motion stops the world clock; an explicit clock step
+        // (`App::advance_clock`) runs it, and the pipeline with it
+        if !w.clock.running {
             return Outcome::Ignored;
         }
         if self.motion == Motion::Reduced {
