@@ -105,3 +105,29 @@ No repo edits. The scan script and its output are in `/private/tmp/claude-501/-U
 - **Override:** `StateGrid::focus_mark(glyph)`.
 - **Closes:** finding #17 (specimen matrices that deliberately showed many `▎`): the Buttons and Inputs matrices now run on `StateGrid`.
 - **Proof:** `src/ui/specimen.rs: a_focused_sample_depicts_focus_without_a_live_bar` (every colour level and ASCII glyphs; fails without the depiction), `src/bin/showcase/app_tests_template.rs: the_states_grid_never_adds_a_live_focus_bar` (real showcase: exactly one `▎`, on the strip, at all four levels).
+
+## Status (T19 sync, 2026-10-17)
+
+Each row was checked against the code and tests at `942b869d7`, and the commit found with `git log -S` on the fixing symbol or through the commit message that names the finding.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Fixed | a67e7c787, 948e926d8 | `Theme::cursor_row` with `CursorStyle::Fill` (default); the query field draws its bar through `gutter_symbol`. Test `picker.rs: only_the_query_field_carries_a_focus_bar_and_the_cursor_row_is_a_fill`. Fixed-choice pickers: owner question D4. |
+| 2 | Fixed | 1d9055e8b | `RenderCtx::page_under_layer` sets `focus_hidden`; `begin_modal` clears it. Tests `ctx.rs: a_page_under_a_layer_shows_no_focus_and_the_layer_does`, tablepro `the_switcher_is_the_only_layer_showing_focus`. `state()` does not read `inert`. |
+| 3 | Fixed | 1d9055e8b | `ContextMenu`/`MenuBar::hide_owner_focus` (default true). Tests holla `an_open_menu_hides_the_page_focus_under_it`, showcase `an_open_context_menu_hides_the_page_focus_under_it`, jackin `the_new_tab_picker_is_the_only_layer_showing_focus`. |
+| 4 | Superseded | d286ebbe1, 5d0c4467b, cafc01a74 | Fixed as written in d286ebbe1, then superseded by the 2026-10-16 owner decision (note under #4, decision log): `TabRule::Auto` is the accent on the active layer. Test `tabs.rs: strip_focus_is_the_one_gutter_on_the_cursor_tab_apart_from_the_rule`. |
+| 5 | Fixed | e95590552 | Focus-within is the title on cards, the strong border on framed panels; knob `PanelFocus::{Title, Bar}`. Test `panel.rs: a_focused_card_shows_focus_by_its_title_not_a_second_bar`. |
+| 6 | Fixed | 948e926d8 | Completion rows use `cursor_row` (`Completion::cursor_style`). Test `completion.rs: the_cursor_row_is_a_fill_so_the_editor_keeps_the_only_focus_bar`. |
+| 7 | Fixed | 948e926d8 | Dropdown rows use `cursor_row`; the chosen `›` is `text_secondary`. Test `select.rs: the_open_list_marks_its_cursor_with_a_fill_and_the_choice_neutrally`. |
+| 8 | Fixed | 17da8b036 | holla finder cursor and Explore rows use `cursor_row` (Fill). The `accent_bg` tint now applies only to a focused and selected `Row`/`CursorRow(Bar)`, which carries the `▎`. Test holla `the_finder_cursor_row_is_a_fill_and_the_query_keeps_the_only_bar`. |
+| 9 | Fixed | aba9a8e8c | Tree marker and label through `Theme::chosen(focused)`. Test `tree.rs: the_selected_node_is_accent_only_while_the_tree_has_focus`. |
+| 10 | Fixed | aba9a8e8c | Showcase nav `›` through `Theme::chosen`; the nav is now a `TreeView` with `selected_marker`, same rule. Overview legend updated. Test showcase `the_current_page_marker_is_neutral_while_focus_is_on_the_page`. |
+| 11 | Fixed | 17da8b036, cafc01a74 | Usage strip is the shared `Tabs` (Done note above); the cited "no `▎` on a tab" rule is reversed by the decision log. Test jackin `the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent`. |
+| 12 | Fixed | 1d9055e8b | `Theme::backdrop` maps accent and focus to `text_faint`; `modal_backdrop` blanks the focus-bar glyph (ASCII `|` only with focus ink). |
+| 13 | Fixed | 948e926d8, 1d9055e8b, e95590552, 17da8b036 | Picker, menu bar, panel, finder and files bars go through `gutter_symbol`/`gutter`; the capsule strip is the shared `Tabs`. No literal `▎` outside tests in the cited files. |
+| 14 | Fixed | aba9a8e8c | Code editor block marker is `text_primary` beside the bar. Test `code.rs: the_block_marker_beside_the_focus_bar_is_not_accent`. |
+| 15 | Fixed | 948e926d8 | Picker query underline colour is `text_secondary` (test in `picker.rs` asserts `underline_color`). |
+| 16 | Fixed | aba9a8e8c | `Theme::chosen(focused)` in `choice.rs`, holla `cleanup.rs` and `plan.rs`. Test `tests/choice_containment.rs: checked_marks_take_the_accent_only_while_the_control_has_focus`. |
+| 17 | Fixed | bfb059ea5 | Decision log 2026-10-16 (SC2): `StateGrid` depicts focus with `focus_mark`. Tests `specimen.rs: a_focused_sample_depicts_focus_without_a_live_bar`, showcase `the_states_grid_never_adds_a_live_focus_bar`. |
+
+Open from this file: the per-widget strip-gutter override (decision log "Follow-up (not done)") is owned by A7.
