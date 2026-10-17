@@ -1109,13 +1109,7 @@ impl App {
             self.set_status("Close the open dialog first".into());
             return;
         }
-        let any: &dyn std::any::Any = layer.as_ref();
-        // the keyboard reference's one focus stop is its Done button (its
-        // keys reach it wherever focus is)
-        let initial = match any.downcast_ref::<HelpOverlay>() {
-            Some(h) if tag.kind == HELP_TAG => Some(h.done.id),
-            _ => layer.spec().initial_focus,
-        };
+        let initial = layer.spec().initial_focus;
         self.layers.push(
             LayerEntry { layer, tag, owner },
             &mut self.shell.focus,

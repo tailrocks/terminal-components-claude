@@ -336,6 +336,16 @@ fn page_inventory_has_marker_focus_hit_and_escape_contract() {
     }
 }
 
+/// The open key reference's Done button: its one focus stop.
+fn help_done(h: &H) -> WidgetId {
+    h.app
+        .modals
+        .top_as::<junie_tui::widgets::help::HelpOverlay>()
+        .expect("the key reference is open")
+        .done
+        .id
+}
+
 fn assert_modal(h: &H, name: &str, marker: &str, expected_focus: Option<WidgetId>) {
     let text = h.text();
     assert_eq!(h.app.modals.len(), 1, "{name}: modal count\n{text}");
@@ -376,12 +386,7 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     let mut help = build_first();
     let help_owner = help.app.shell.focus.current();
     help.key(KeyCode::F(1));
-    assert_modal(
-        &help,
-        "Text/help",
-        "Key reference",
-        Some(WidgetId::of("help")),
-    );
+    assert_modal(&help, "Text/help", "Key reference", Some(help_done(&help)));
     dismiss_modal(&mut help, "Text/help", help_owner);
 
     let mut about = build_rust();
@@ -484,6 +489,12 @@ pub(crate) fn thumb_row(h: &H, track: ratatui::layout::Rect) -> u16 {
 }
 
 fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
+    drag_scrollbar_focus(h, container, container, name);
+}
+
+/// Drag `container`'s bar; afterwards focus is on `focus` (the container,
+/// or the layer's one focus stop when the container is not a stop).
+fn drag_scrollbar_focus(h: &mut H, container: WidgetId, focus: WidgetId, name: &str) {
     let id = scrollbar::id_for(container);
     let track = h
         .app
@@ -509,7 +520,7 @@ fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
     assert_ne!(h.text(), before, "{name}: scrollbar drag did not redraw");
     assert_eq!(
         h.app.shell.focus.current(),
-        Some(container),
+        Some(focus),
         "{name}: scrollbar did not restore container focus"
     );
 }
@@ -531,7 +542,9 @@ fn raw_scrollbars_route_pointer_press_and_drag() {
 
     let mut modal = H::new(Scenario::RustDirty, Motion::Paused, 40, 72, 20);
     modal.key(KeyCode::F(1));
-    drag_scrollbar(&mut modal, WidgetId::of("help"), "help modal");
+    // the reference's one focus stop is Done; the bar keeps it there
+    let done = help_done(&modal);
+    drag_scrollbar_focus(&mut modal, WidgetId::of("help"), done, "help modal");
 }
 
 #[test]
