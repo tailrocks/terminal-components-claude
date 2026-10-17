@@ -204,6 +204,13 @@ fix, with the reason.
    follow. Both are fixed; the 187 shell capabilities are in
    `src/catalog.rs`, pending on SC34 (the showcase shell page) except the
    run-loop entry and the OSC 52 output plumbing (`permanent`).
+4. **Recorded: the S14 app migrations' open points** (plan "S14
+   deviations"): SI17 copy-first reachable in no app; `Clipboard::install`
+   only in tablepro (belongs in `shell::run`); holla and jackin plain
+   copies on the simulated clipboard (decide later); holla's leave guard
+   unused until a page holds stakes; jackin's Capsule menu bar still
+   dispatches by label and its editors keep their own leave dialog until
+   S20; tablepro does not ask before quitting a running query (K6).
 
 ## Status (T19 sync, 2026-10-17)
 
