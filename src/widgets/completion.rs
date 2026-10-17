@@ -251,10 +251,10 @@ impl Completion {
         let bg = t.surface_elevated;
         let items = &self.items[..];
         self.list
-            .paint_rows(inner, bg, items, buf, ctx, |r, buf, _| {
-                let it = &items[r.index];
-                let (row, y, cr) = (r.area, r.area.y, &r.look);
-                let st = cr.style;
+            .paint_rows(inner, bg, items, buf, ctx, |i, r, buf, ctx| {
+                let it = &items[i];
+                let (row, y) = (r.area, r.area.y);
+                let st = r.style();
                 let focused = r.state.focused;
                 buf.set_string(
                     row.x + 1,
@@ -263,7 +263,7 @@ impl Completion {
                     st.fg(if focused {
                         t.text_primary
                     } else {
-                        t.row_ink(cr, t.text_muted)
+                        r.ink(ctx, t.text_muted)
                     })
                     .remove_modifier(Modifier::BOLD),
                 );
@@ -297,7 +297,7 @@ impl Completion {
                         dx,
                         y,
                         &it.detail,
-                        st.fg(t.row_ink(cr, t.text_muted))
+                        st.fg(r.ink(ctx, t.text_muted))
                             .remove_modifier(Modifier::BOLD),
                     );
                 }

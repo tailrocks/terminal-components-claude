@@ -2148,7 +2148,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::option_list::Item::reason"),
     Capability::builder("widgets::option_list::Item::value"),
     Capability::function("widgets::option_list::Item::insertion"),
-    Capability::ty("widgets::option_list::RowPaint"),
     Capability::ty("widgets::option_list::OptionList"),
     Capability::builder("widgets::option_list::OptionList::wheel_mode"),
     Capability::builder("widgets::option_list::OptionList::hover_moves_cursor"),
