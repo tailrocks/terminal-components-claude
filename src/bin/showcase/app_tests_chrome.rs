@@ -197,8 +197,8 @@ fn the_status_bar_places_items_by_priority() {
     // busy spinner, meter and stale meter all draw
     assert!(text.contains("quota ╍"));
     assert!(text.contains("disk ━"));
-    let h = Harness::new(100, 40, PageId::Chrome);
-    let row = h.row_of("places");
+    // the narrow row: the center leaves first
+    let row = h.row_of("at 64 columns");
     assert!(!row.contains("places 8 of 8"), "{row}");
     assert!(row.contains("Center 0"), "the center leaves first: {row}");
 }
