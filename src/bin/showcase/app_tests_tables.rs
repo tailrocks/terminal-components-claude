@@ -148,16 +148,29 @@ fn columns_sizing_options_rebuild_the_table_through_its_builders() {
     h.opt("columns.min_width=10");
     let s = &columns_page(&h).sized.sizing;
     assert_eq!((s.seam_w, s.min_width), (3, 10));
+    // the header menu card sits under the table: the body scrolls to it
+    let bottom = |h: &mut Harness| {
+        let i = PageId::Columns.index();
+        h.app.pages[i]
+            .template_mut()
+            .unwrap()
+            .view
+            .scroll_to(0, usize::MAX);
+        h.draw();
+    };
+    bottom(&mut h);
     // the header menu offers the sizing commands only while resizable
     assert!(h.text().contains("Size Column to Fit"));
     h.opt("columns.resizable=off");
     assert!(!columns_page(&h).sized.sizing.resizable);
+    bottom(&mut h);
     let text = h.text();
     assert!(!text.contains("Size Column to Fit"), "{text}");
     assert!(text.contains("fixed widths"), "{text}");
     // custom labels reach the menu
     h.opt("columns.resizable=on");
     h.opt("columns.header_labels=custom");
+    bottom(&mut h);
     let text = h.text();
     assert!(
         text.contains("Sort A to Z") && text.contains("Fit Width"),
