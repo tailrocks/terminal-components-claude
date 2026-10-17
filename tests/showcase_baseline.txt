@@ -768,7 +768,7 @@
 80x24 TrueColor Master-detail 6c4d60073a07d0d1
 80x24 TrueColor Master-detail · Options 3e90221b3bad8613
 80x24 TrueColor Master-detail · States 3293dfc19f488bb1
-80x24 TrueColor Pane tree d948acc1eea89d97
+80x24 TrueColor Pane tree 005e74b239b0a837
 80x24 TrueColor Pane tree · Options 997908b7cfd1ec0b
 80x24 TrueColor Pane tree · States 4032316dc9c8277c
 80x24 TrueColor Code editor 9f7ca5d0f80cd37b
@@ -932,7 +932,7 @@
 80x24 Ansi256 Master-detail 60bafabfd8539bb6
 80x24 Ansi256 Master-detail · Options ddb304294ad24a21
 80x24 Ansi256 Master-detail · States a2e7e3560fa17077
-80x24 Ansi256 Pane tree 90b3e863c7cd26fb
+80x24 Ansi256 Pane tree 27cb9dc84e5d47cc
 80x24 Ansi256 Pane tree · Options 551029245c3d449a
 80x24 Ansi256 Pane tree · States d142d5f1c8c0536c
 80x24 Ansi256 Code editor 52f3cb90c2000227
@@ -1096,7 +1096,7 @@
 80x24 Ansi16 Master-detail d3bfb7e53035d98d
 80x24 Ansi16 Master-detail · Options 58acdd4e6c060f1f
 80x24 Ansi16 Master-detail · States 1f681f810b9eb403
-80x24 Ansi16 Pane tree 269488cfd8ca6d5a
+80x24 Ansi16 Pane tree 4e6180f1bc16602a
 80x24 Ansi16 Pane tree · Options cef75c9f44fde08d
 80x24 Ansi16 Pane tree · States f66b2cfa9dc2ea0e
 80x24 Ansi16 Code editor 9dbf0f2a402700b7
@@ -1260,7 +1260,7 @@
 80x24 Mono Master-detail 71ed512addac64e9
 80x24 Mono Master-detail · Options d40069e6bc190029
 80x24 Mono Master-detail · States 35ee07459727d3ed
-80x24 Mono Pane tree fd78c077fa138bca
+80x24 Mono Pane tree 1366c5f4c5475e9a
 80x24 Mono Pane tree · Options e326d9b6e2569a9b
 80x24 Mono Pane tree · States 8e66048400e02a64
 80x24 Mono Code editor 3ddf6a7239d1b06b
@@ -1424,7 +1424,7 @@
 72x20 TrueColor Master-detail bbaf2e54263c81d1
 72x20 TrueColor Master-detail · Options 3642b09a02d7f05b
 72x20 TrueColor Master-detail · States d0e0d1c2a730b202
-72x20 TrueColor Pane tree 1f430435166c5189
+72x20 TrueColor Pane tree 216cb62d690b1c48
 72x20 TrueColor Pane tree · Options 462507ee7a68f051
 72x20 TrueColor Pane tree · States c84720e5e5bfd6bf
 72x20 TrueColor Code editor f66e7cd3d954d2d2
@@ -1588,7 +1588,7 @@
 72x20 Ansi256 Master-detail fc6928d414e0a827
 72x20 Ansi256 Master-detail · Options 43fcfdaac33c4e01
 72x20 Ansi256 Master-detail · States 682f4ca39df960fa
-72x20 Ansi256 Pane tree 4bdff2ac1ff721ac
+72x20 Ansi256 Pane tree e8ab2dad7eaeb270
 72x20 Ansi256 Pane tree · Options b0ab87222611fa71
 72x20 Ansi256 Pane tree · States f238b7e719dc0529
 72x20 Ansi256 Code editor 5aec5a376e3ed2ba
@@ -1752,7 +1752,7 @@
 72x20 Ansi16 Master-detail 49eb371410283317
 72x20 Ansi16 Master-detail · Options 6b1e78b8613169fc
 72x20 Ansi16 Master-detail · States ec268748c7f8eb40
-72x20 Ansi16 Pane tree 50e44401f915c44c
+72x20 Ansi16 Pane tree deae3fc5e4fbf0c1
 72x20 Ansi16 Pane tree · Options da3eab429022572d
 72x20 Ansi16 Pane tree · States 6bd84dcd40257dad
 72x20 Ansi16 Code editor 2b627ce83d1bfa81
@@ -1916,7 +1916,7 @@
 72x20 Mono Master-detail 48e4a1f84ac37e47
 72x20 Mono Master-detail · Options 33f00ce0156e4142
 72x20 Mono Master-detail · States ccf3ad85fa316bf2
-72x20 Mono Pane tree 55c43c18ef4c3ab0
+72x20 Mono Pane tree e9626db493f6a6ad
 72x20 Mono Pane tree · Options 6deb2303af03a907
 72x20 Mono Pane tree · States c4797fd7eb67f6ef
 72x20 Mono Code editor f653bc84ef68a163
@@ -2080,7 +2080,7 @@
 100x30 TrueColor Master-detail 96bc885f009adb48
 100x30 TrueColor Master-detail · Options 9baf9badb3044258
 100x30 TrueColor Master-detail · States fc361e973a827ab3
-100x30 TrueColor Pane tree 491e8d410668de73
+100x30 TrueColor Pane tree a9fa4cf345b1e59a
 100x30 TrueColor Pane tree · Options d8358f05eb610983
 100x30 TrueColor Pane tree · States f386817ed4f215a9
 100x30 TrueColor Code editor 486a1eb0647cc148
@@ -2244,7 +2244,7 @@
 100x30 Ansi256 Master-detail 960597002b502792
 100x30 Ansi256 Master-detail · Options 3d3aff3c0998c383
 100x30 Ansi256 Master-detail · States 64ee7b9489a4e714
-100x30 Ansi256 Pane tree 5c6b107b0d1eb2e8
+100x30 Ansi256 Pane tree 524c3c848b16d4ab
 100x30 Ansi256 Pane tree · Options 39baa34135c66ff2
 100x30 Ansi256 Pane tree · States 36f54ebf45f68004
 100x30 Ansi256 Code editor e5418a887c9457f1
@@ -2408,7 +2408,7 @@
 100x30 Ansi16 Master-detail 577782e68131dafe
 100x30 Ansi16 Master-detail · Options 1107f93f3963bc55
 100x30 Ansi16 Master-detail · States b21974cb36f72a2b
-100x30 Ansi16 Pane tree ce87b2c2bb3f76be
+100x30 Ansi16 Pane tree 56fe0edcb5094d04
 100x30 Ansi16 Pane tree · Options cb05943b83e87821
 100x30 Ansi16 Pane tree · States c4e6de651347f5e6
 100x30 Ansi16 Code editor 060a7c5d7c735f26
@@ -2572,7 +2572,7 @@
 100x30 Mono Master-detail 81dfd5644a80097b
 100x30 Mono Master-detail · Options fd9f91981dcc7568
 100x30 Mono Master-detail · States ca3e6738b9bc75b6
-100x30 Mono Pane tree d7d4bdd8f66bb18d
+100x30 Mono Pane tree cd3ed0c072cc9d9b
 100x30 Mono Pane tree · Options daea10942e17285a
 100x30 Mono Pane tree · States dcfe4c3a34a7682d
 100x30 Mono Code editor d74a71600c6e5757
