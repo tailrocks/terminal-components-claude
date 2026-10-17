@@ -28,10 +28,6 @@ QuitLeave | Playground | 80x24 | R6 squeezes instead of overflowing: no Page::me
 QuitLeave | Playground | 100x25 | R6 squeezes instead of overflowing: no Page::measure yet
 QuitLeave | Playground | 106x29 | R6 squeezes instead of overflowing: no Page::measure yet
 QuitLeave | Playground | 120x40 | R6 squeezes instead of overflowing: no Page::measure yet
-FocusNavigation | Playground | 80x24 | R7 squeezes instead of overflowing: no Page::measure yet
-FocusNavigation | Playground | 100x25 | R7 squeezes instead of overflowing: no Page::measure yet
-FocusNavigation | Playground | 106x29 | R7 squeezes instead of overflowing: no Page::measure yet
-FocusNavigation | Playground | 120x40 | R7 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 80x24 | R8 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 100x25 | R8 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 106x29 | R8 squeezes instead of overflowing: no Page::measure yet
