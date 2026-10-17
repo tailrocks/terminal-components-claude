@@ -18,8 +18,8 @@ holla cleanup 72x20 dry # R-apps-4
 holla cleanup 80x24 dry # R-apps-4
 holla cleanup 106x29 dry emptied live mode recoverable toggles until # R-apps-4
 holla cleanup 120x40 dry # R-apps-4
-holla cleanup-history 72x20 4089446400 GiB Trash Users alex freed from outcome path size # R-apps-4 R-apps-6
-holla cleanup-history 80x24 4089446400 GiB Trash Users alex freed from outcome size trashed # R-apps-4 R-apps-6
+holla cleanup-history 72x20 4089446400 GiB Users alex freed outcome path size # R-apps-4 R-apps-6
+holla cleanup-history 80x24 4089446400 GiB Users alex freed outcome size trashed # R-apps-4 R-apps-6
 holla cleanup-history 100x25 4089446400 size # R-apps-4 R-apps-6
 holla cleanup-history 106x29 4089446400 size # R-apps-4 R-apps-6
 holla cleanup-history 120x40 4089446400 size # R-apps-4 R-apps-6
@@ -35,14 +35,6 @@ holla files 100x25 alex missing # R-apps-3
 holla files 106x29 missing # R-apps-3
 holla files 120x40 missing symlink # R-apps-3
 holla files 160x50 missing # R-apps-3
-holla finder 72x20 last toml # R-apps-8
-holla finder@macos 120x40 toml # R-apps-12 (the macOS hints leave a path wrapped mid-word)
-holla finder-children@other 160x50 toml # R-apps-12 (the other-platform hints leave a path wrapped mid-word)
-holla finder-children 72x20 under # R-apps-8 R-apps-12
-holla finder-children 80x24 under # R-apps-8 R-apps-12
-holla finder-children 120x40 under # R-apps-8 R-apps-12
-holla finder-page 72x20 fits view # R-apps-8
-holla finder-page 80x24 fits view # R-apps-8
 holla gate-plan 72x20 7f2 continue deliberately facts grafana loki mirror pgadmin redis registry shell then tmp # R-apps-4
 holla gate-plan 80x24 7f2 continue deliberately grafana loki mirror pgadmin redis registry shell then tmp # R-apps-4
 holla gate-plan 100x25 7f2 grafana loki mirror pgadmin registry shell tmp # R-apps-4
@@ -58,8 +50,8 @@ holla top-files 72x20 cleanup for gate same the # R-apps-4
 holla top-files 80x24 cleanup for gate same the # R-apps-4
 holla top-files 100x25 cleanup gate # R-apps-4
 holla top-files 106x29 gate # R-apps-4
-holla trust 72x20 Node before changes environment renewed runs when # R-apps-4 R-apps-8
-holla trust 80x24 changes runs team # R-apps-4 R-apps-8
+holla trust 72x20 Node before environment runs # R-apps-4
+holla trust 80x24 runs # R-apps-4
 holla upgrade-plan 72x20 excluded included # R-apps-4
 jackin capsule 72x20 0004 0005 0007 00Z 03T09 12s 142 2026 204 2u32 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 ATTEMPTS BASE Checking EUR FAILED Finished OpenAI Opus Read Refactor RetryPolicy The add adr ahead and attempt attempts cap capped clippy close codex config const conversion crates currency daily delay dev exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger let lines loop multi origin partial pow precedes precision read reconcile refund retries retrying rounding settled status summarise target u32 unoptimized warn with # R-apps-6
 jackin capsule 80x24 00Z 03T09 12s 142 2026 204 4001 4002 4003 4004 4005 4006 4007 4008 4009 4010 4011 4012 4013 4014 4015 4016 4017 4018 4019 4020 4021 4022 4023 4024 4025 4026 4027 4028 4029 4030 4031 500 Checking EUR FAILED OpenAI Opus Read Refactor RetryPolicy The add ahead and attempts cap capped clippy close codex config const crates currency daily exec expected exponential exponentially failed failure failures feature first fixed git got gpt ignored integration items jitter ledger lines loop multi origin partial precision read reconcile refund retries retrying settled status summarise target warn with # R-apps-6
@@ -89,32 +81,30 @@ jackin editor-mounts 80x24 Source src # R-apps-3
 jackin editor-mounts 100x25 Source src # R-apps-3
 jackin editor-roles 72x20 Claude Code Kubernetes limited scope services with # R-apps-4
 jackin editor-roles 80x24 Claude Code Kubernetes limited scope # R-apps-4
-jackin launch-picker 72x20 default provider # R-apps-8
-jackin launch-picker 80x24 default # R-apps-8
-jackin manager 72x20 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
-jackin manager 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
-jackin manager 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
-jackin manager 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
-jackin manager 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-8
-jackin manager 160x50 ask exit refreshing stale # R-apps-2 R-apps-8
-jackin manager-detail 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-detail 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-detail 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-detail 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-detail 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-detail 160x50 ask available exit refreshing stale unpushed # R-apps-2 R-apps-8
-jackin manager-expanded 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-expanded 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-expanded 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-expanded 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-expanded 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-8
-jackin manager-expanded 160x50 ask available exit refreshing stale unpushed # R-apps-2 R-apps-8
-jackin manager-hard 72x20 Daemon Preserved Refresh Running Usage account b111 b222 b333 b444 b555 degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing unavailable warnings # R-apps-2 R-apps-6 R-apps-8
-jackin manager-hard 160x50 ask refreshing # R-apps-2 R-apps-6 R-apps-8
+jackin manager 72x20 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-4
+jackin manager 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-4
+jackin manager 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-4
+jackin manager 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-4
+jackin manager 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-2 R-apps-4
+jackin manager 160x50 refreshing stale # R-apps-2 R-apps-4
+jackin manager-detail 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-detail 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-detail 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-detail 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-detail 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-detail 160x50 available refreshing stale unpushed # R-apps-2 R-apps-4
+jackin manager-expanded 72x20 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-expanded 80x24 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-expanded 100x25 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted healthy instances pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-expanded 106x29 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-expanded 120x40 04d7 9b02 Daemon Experiments Preserved Refresh Running Usage a1c0 account available backend degraded every exhausted failed healthy instances min pane panes records refreshing restore sre stale tab tabs throttled unpushed warnings # R-apps-2 R-apps-4
+jackin manager-expanded 160x50 available refreshing stale unpushed # R-apps-2 R-apps-4
+jackin manager-hard 72x20 Daemon Preserved Refresh Running Usage account b111 b222 b333 b444 b555 degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-4 R-apps-6
+jackin manager-hard 80x24 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-4 R-apps-6
+jackin manager-hard 100x25 Daemon Preserved Refresh Running Usage account degraded every exhausted instances min pane panes records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-4 R-apps-6
+jackin manager-hard 106x29 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing tab tabs throttled unavailable warnings # R-apps-2 R-apps-4 R-apps-6
+jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing unavailable warnings # R-apps-2 R-apps-4 R-apps-6
+jackin manager-hard 160x50 refreshing # R-apps-2 R-apps-4 R-apps-6
 jackin settings 72x20 Zhokhov alexey chainargos # R-apps-4
 jackin settings 80x24 alexey chainargos # R-apps-4
 jackin settings-agents 72x20 json # R-apps-4
@@ -152,7 +142,7 @@ tablepro conn-form-new 106x29 Destructive asking json statements still # R-apps-
 tablepro conn-form-new 120x40 still # R-apps-2 R-apps-4 R-apps-5
 tablepro connections-empty 72x20 Select moves # R-apps-2
 tablepro connections-empty 80x24 Select moves # R-apps-2
-tablepro history 72x20 ANDed Copy any # R-apps-4 R-apps-7
+tablepro history 72x20 Copy any # R-apps-4 R-apps-7
 tablepro history 80x24 Copy # R-apps-7
 tablepro history 106x29 312 Copy # R-apps-3 R-apps-7
 tablepro history 120x40 312 Copy # R-apps-3 R-apps-7
@@ -171,8 +161,6 @@ tablepro result-plan 80x24 368 Actual Cost Est loop # R-apps-2
 tablepro result-plan 100x25 368 Actual Cost Est loop # R-apps-2
 tablepro result-plan 106x29 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
 tablepro result-plan 120x40 312 368 Actual Cost Est loop # R-apps-2 R-apps-3
-tablepro safe-mode 72x20 acknowledgement before deliberate statements still work # R-apps-8
-tablepro safe-mode 80x24 acknowledgement work # R-apps-8
 tablepro table-ddl 106x29 312 # R-apps-3
 tablepro table-ddl 120x40 312 # R-apps-3
 tablepro table-structure 106x29 312 # R-apps-3
