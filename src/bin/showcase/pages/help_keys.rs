@@ -10,10 +10,11 @@
 //! `nav`, `keymap` and `dismiss`. States: the reference by itself.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::page_options;
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
@@ -21,6 +22,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, label_for};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::{Tile, Tiled, tiles};
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text;
@@ -166,23 +168,91 @@ impl HelpKeysPage {
             .gap(self.opt("helpkeys.gap").parse().unwrap_or(3))
     }
 
+    /// The reference's wrap width: the chosen one, or the card's.
+    fn ref_width(&self) -> usize {
+        match self.opt("helpkeys.width") {
+            "full" => (REF_W - 4) as usize,
+            n => n.parse().unwrap_or(40),
+        }
+    }
+
+    /// The overlay the options build, read back.
+    fn help_facts(&self) -> Vec<Prop> {
+        let help = self.build_help();
+        // every key the map binds to Close (`label_for` names the first)
+        let first = label_for(&help.keymap, HelpCmd::Close).unwrap_or_else(|| "none".into());
+        let rest: Vec<String> = help
+            .keymap
+            .iter()
+            .filter(|(_, a)| *a == HelpCmd::Close)
+            .map(|(b, _)| b.label())
+            .filter(|l| *l != first)
+            .collect();
+        let close = std::iter::once(first)
+            .chain(rest)
+            .collect::<Vec<_>>()
+            .join(" ");
+        vec![
+            Prop::new("Title", help.title.clone()).wrap(),
+            Prop::new("Scope", help.scope.clone()).wrap(),
+            Prop::new("Max share", format!("{}%", help.max_percent)),
+            Prop::new(
+                "Scroll keys",
+                if help.nav == NavKeys::VIM {
+                    "↑↓ PgUp PgDn Home End j k g G"
+                } else {
+                    "↑↓ PgUp PgDn Home End"
+                },
+            )
+            .wrap(),
+            Prop::new("HelpCmd::Close", format!("{close} · Esc · Enter")).wrap(),
+            Prop::new(
+                "Dismiss",
+                if help.dismiss.outside_click {
+                    "light: Esc, ×, outside"
+                } else {
+                    "Esc and × only"
+                },
+            )
+            .wrap(),
+        ]
+    }
+
+    /// The reference card (its own width) beside the overlay card and
+    /// its note, or above them when they do not fit side by side.
+    /// `measure` and `render_playground` share it.
+    fn tiled(&self, width: u16) -> Tiled {
+        let lines = self.build_reference().lines(self.ref_width()).len() as u16;
+        let ref_h = |_: u16| lines + 3;
+        let facts = self.help_facts();
+        let panel = Panel::card(Some("HelpOverlay"));
+        let card_h = |w: u16| sheet_height(&panel, &facts, w) + 2;
+        let right_h = |w: u16| card_h(w) + 1 + text::wrap(NOTE, w as usize).len() as u16;
+        let right_w = sheet_width(&panel, &facts).max(self.open.width() + 4);
+        tiles(
+            width,
+            &[&[
+                Tile::new(REF_W, &ref_h).fixed(),
+                Tile::new(right_w, &right_h),
+            ]],
+            (2, 1),
+        )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let (left, right) = crate::pages::layout::columns(area, 58.min(area.width * 11 / 20), 2);
+        let tiled = self.tiled(area.width);
+        let (left, right) = (tiled.at(0, area), tiled.at(1, area));
 
         // the reference at the chosen width
         let r = self.build_reference();
-        let w = match self.opt("helpkeys.width") {
-            "full" => left.width.saturating_sub(4) as usize,
-            n => n.parse().unwrap_or(40),
-        };
+        let w = self.ref_width();
         let lines = r.lines(w);
         let title = format!("KeyReference at width {w}");
         let meta = format!("share {}% · gap {}", r.key_max_share, r.gap.max(3));
         let panel = Panel::card(Some(&title)).meta(&meta);
         let bg = panel.bg(t);
-        let h = (lines.len() as u16 + 3).min(left.height);
-        let inner = panel.render(Rect::new(left.x, left.y, left.width, h), buf, t);
+        let inner = panel.render(left, buf, t);
         for (i, l) in lines.iter().enumerate() {
             let y = inner.y + i as u16;
             if y >= inner.bottom() {
@@ -205,45 +275,10 @@ impl HelpKeysPage {
         }
 
         // the overlay the options build, read back
-        let help = self.build_help();
-        // every key the map binds to Close (`label_for` names the first)
-        let first = label_for(&help.keymap, HelpCmd::Close).unwrap_or_else(|| "none".into());
-        let rest: Vec<String> = help
-            .keymap
-            .iter()
-            .filter(|(_, a)| *a == HelpCmd::Close)
-            .map(|(b, _)| b.label())
-            .filter(|l| *l != first)
-            .collect();
-        let close = std::iter::once(first)
-            .chain(rest)
-            .collect::<Vec<_>>()
-            .join(" ");
-        let facts = vec![
-            Prop::new("Title", help.title.clone()),
-            Prop::new("Scope", help.scope.clone()),
-            Prop::new("Max share", format!("{}%", help.max_percent)),
-            Prop::new(
-                "Scroll keys",
-                if help.nav == NavKeys::VIM {
-                    "↑↓ PgUp PgDn Home End j k g G"
-                } else {
-                    "↑↓ PgUp PgDn Home End"
-                },
-            ),
-            Prop::new("HelpCmd::Close", format!("{close} · Esc · Enter")),
-            Prop::new(
-                "Dismiss",
-                if help.dismiss.outside_click {
-                    "light: Esc, ×, outside"
-                } else {
-                    "Esc and × only"
-                },
-            ),
-        ];
+        let facts = self.help_facts();
         let panel = Panel::card(Some("HelpOverlay"));
         let bg = panel.bg(t);
-        let h = 12.min(right.height);
+        let h = sheet_height(&panel, &facts, right.width) + 2;
         let inner = panel.render(Rect::new(right.x, right.y, right.width, h), buf, t);
         let bw = self.open.width();
         self.open
@@ -260,17 +295,18 @@ impl HelpKeysPage {
             &facts,
             bg,
         );
-        let note = "It opens as the shell's modal and never over another one. \
-                    The showcase's own ? opens one too, listing the shell's keys.";
-        for (i, l) in text::wrap(note, right.width as usize).iter().enumerate() {
-            let y = inner.bottom() + 1 + i as u16;
-            if y >= right.bottom() {
-                break;
-            }
+        for (i, l) in text::wrap(NOTE, right.width as usize).iter().enumerate() {
+            let y = right.y + h + 1 + i as u16;
             buf.set_string(right.x, y, l, t.faint().bg(t.canvas));
         }
     }
 }
+
+/// The reference card's width: "full" wraps the reference to it.
+const REF_W: u16 = 58;
+
+const NOTE: &str = "It opens as the shell's modal and never over another one. \
+                    The showcase's own ? opens one too, listing the shell's keys.";
 
 /// The States grid: the reference by itself.
 fn states_grid() -> StateGrid {
@@ -301,6 +337,10 @@ impl Page for HelpKeysPage {
 
     fn blurb(&self) -> &'static str {
         "HelpOverlay and KeyReference: sections, columns, scrolling, hanging wrap"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
