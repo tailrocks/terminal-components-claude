@@ -21,6 +21,8 @@ mod app_tests_mouse;
 #[cfg(test)]
 mod app_tests_pointer;
 #[cfg(test)]
+mod app_tests_reach;
+#[cfg(test)]
 mod app_tests_splits;
 mod connections;
 mod context;

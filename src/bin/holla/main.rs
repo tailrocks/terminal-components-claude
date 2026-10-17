@@ -36,6 +36,8 @@ mod app_tests_pointer;
 #[cfg(test)]
 mod app_tests_proofs;
 #[cfg(test)]
+mod app_tests_reach;
+#[cfg(test)]
 mod app_tests_rows;
 mod domain;
 mod scenario;
