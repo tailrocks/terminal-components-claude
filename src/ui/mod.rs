@@ -1,6 +1,7 @@
 //! Rendering support shared by widgets and pages.
 
 pub mod columns;
+pub mod content;
 pub mod context;
 pub mod ctx;
 pub mod fade;
@@ -8,6 +9,7 @@ pub mod layer;
 pub mod layers;
 pub mod layout;
 pub mod leave;
+pub mod list_core;
 pub mod master_detail;
 pub mod modal;
 pub mod pane_tree;

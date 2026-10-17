@@ -369,7 +369,7 @@ fn states_grid() -> StateGrid {
     let id = ID.sub("states");
     let rows = |n: usize| list_props().into_iter().take(n).collect::<Vec<_>>();
     StateGrid::new(id)
-        .rows(&[Rest, Focused, Overflow, Narrow])
+        .rows(&[Rest, Focused, Loading, Error, Overflow, Narrow])
         .column_width(48)
         .column("Facts", PropsList::new(id.child(0), rows(3)))
         .column(
