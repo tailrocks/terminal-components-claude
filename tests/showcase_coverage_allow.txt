@@ -625,6 +625,11 @@ widgets::menu::MenuBar::open_menu | menus: CommandMenu with key replay on Menus 
 widgets::menu::MenuBar::close | menus: CommandMenu with key replay on Menus | SC41
 
 # widgets::panel
+widgets::panel::ScrollPanel::pointer_select | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
+widgets::panel::ScrollPanel::selection | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
+widgets::panel::ScrollPanel::selected_text | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
+widgets::panel::ScrollPanel::select_all | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
+widgets::panel::ScrollPanel::clear_selection | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
 widgets::panel::Panel::bg | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::picker
@@ -712,6 +717,9 @@ widgets::viewport::TextViewport::select_word_at | TextViewport::find and the vie
 widgets::viewport::TextViewport::screen_pos | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::context_point | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::hbar | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
+widgets::viewport::TextViewport::pointer_select | text selection by pointer (M31): the Terminal page shows Shift-click, word and line selection with the viewport readouts | SC41
+widgets::viewport::TextViewport::on_press_with | text selection by pointer (M31): the Terminal page shows Shift-click, word and line selection with the viewport readouts | SC41
+widgets::viewport::TextViewport::on_click_with | text selection by pointer (M31): the Terminal page shows Shift-click, word and line selection with the viewport readouts | SC41
 
 # core::list
 

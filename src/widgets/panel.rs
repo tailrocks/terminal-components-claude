@@ -7,7 +7,8 @@
 //! gutter bar belongs to the focused control inside.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::crossterm::event::KeyModifiers;
+use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, Borders, Widget};
 
@@ -19,7 +20,10 @@ use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::widgets::field_common::PointerSelect;
 use crate::widgets::scrollbar;
+use crate::widgets::text_select::{self, TextSelect};
+use crate::widgets::viewport::CellPos;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PanelKind {
@@ -381,6 +385,15 @@ use ratatui::style::Style;
 /// the end; scrolling away pauses following and scrolling back to the end,
 /// by any means, resumes it. A panel that does not tail (prose) never
 /// follows: `End` is only a jump.
+///
+/// Its text selects like a [`TextViewport`](crate::widgets::viewport::TextViewport)'s,
+/// through the same selection model: a drag selects, Shift with a press
+/// extends the selection from its anchor, a double click selects a word
+/// and a triple click the line ([`Self::pointer_select`]); Select All
+/// ([`PanelCmd::SelectAll`]) selects everything, Copy ([`PanelCmd::Copy`])
+/// puts the selection on the clipboard and Esc clears it. Positions are
+/// display rows (a wrapped line's rows; a triple click selects all of
+/// them) and columns.
 #[derive(Debug, Clone)]
 pub struct ScrollPanel {
     pub id: WidgetId,
@@ -394,7 +407,8 @@ pub struct ScrollPanel {
     pub tail: bool,
     pub wrap: bool,
     pub area: Rect,
-    wrapped_cache: (u16, Vec<String>),
+    /// The wrap width, the wrapped rows and the line each row comes from.
+    wrapped_cache: (u16, Vec<String>, Vec<usize>),
     /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
     pub horizontal: Option<HScroll>,
     /// Which keys scroll (default [`NavKeys::default`]; ←/→ scroll
@@ -402,6 +416,18 @@ pub struct ScrollPanel {
     pub nav: NavKeys,
     /// The panel's own action keys (default [`PanelCmd::default_keymap`]).
     pub keymap: KeyMap<PanelCmd>,
+    /// What a drag, a double and a triple click select (the text fields'
+    /// policy). Default [`PointerSelect::DEFAULT`] (macOS): a drag
+    /// selects, a double click a word (a drag from it extends by words),
+    /// a triple click the line; Shift with a press extends the selection.
+    pub pointer_select: PointerSelect,
+    /// The text selection and the pointer gesture in progress, over
+    /// display rows (the model [`crate::widgets::viewport::TextViewport`]
+    /// shares).
+    select: TextSelect<CellPos>,
+    /// The text width the selection's rows were laid out for: a wrapped
+    /// panel that reflows drops its selection.
+    select_w: u16,
 }
 
 /// A [`ScrollPanel`] action a key can be bound to.
@@ -410,11 +436,26 @@ pub enum PanelCmd {
     /// A tailing panel: pause following, or jump to the end and follow
     /// again. Default `f`.
     Follow,
+    /// Put the selection on the clipboard
+    /// ([`crate::core::edit::clipboard::copy`]). Default Cmd+C where the
+    /// terminal delivers Cmd, and `y` (as on a `TextViewport`).
+    Copy,
+    /// Select every line, ready for Copy. Default Cmd+A where the
+    /// terminal delivers Cmd, and Ctrl+A ([`crate::core::keymap::SELECT_ALL`]).
+    SelectAll,
 }
 
 impl Actions for PanelCmd {
     fn default_keymap() -> KeyMap<Self> {
-        vec![(KeyBinding::char('f'), PanelCmd::Follow)]
+        let mut map = vec![
+            (KeyBinding::char('f'), PanelCmd::Follow),
+            (KeyBinding::cmd('c'), PanelCmd::Copy),
+            (KeyBinding::char('y'), PanelCmd::Copy),
+        ];
+        map.extend(crate::core::keymap::select_all_bindings(
+            PanelCmd::SelectAll,
+        ));
+        map
     }
 }
 
@@ -440,11 +481,20 @@ impl ScrollPanel {
             tail: false,
             wrap: false,
             area: Rect::ZERO,
-            wrapped_cache: (0, vec![]),
+            wrapped_cache: (0, vec![], vec![]),
             horizontal: None,
             nav: NavKeys::default(),
             keymap: PanelCmd::default_keymap(),
+            pointer_select: PointerSelect::DEFAULT,
+            select: TextSelect::default(),
+            select_w: 0,
         }
+    }
+
+    /// See [`Self::pointer_select`].
+    pub fn pointer_select(mut self, policy: PointerSelect) -> Self {
+        self.pointer_select = policy;
+        self
     }
 
     /// Override the app-wide horizontal scrolling policy.
@@ -488,6 +538,21 @@ impl ScrollPanel {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
+        match lookup(&self.keymap, key) {
+            Some(PanelCmd::SelectAll) => return self.select_all(),
+            Some(PanelCmd::Copy) => {
+                // nothing selected: the key stays free for the page
+                let Some(text) = self.selected_text() else {
+                    return Outcome::Ignored;
+                };
+                crate::core::edit::clipboard::copy(&text);
+                return Outcome::Consumed;
+            }
+            _ => {}
+        }
+        if key.is(ratatui::crossterm::event::KeyCode::Esc) && key.plain() {
+            return self.clear_selection();
+        }
         if let Some(PanelCmd::Follow) = lookup(&self.keymap, key)
             && self.tail
         {
@@ -531,10 +596,20 @@ impl ScrollPanel {
         let text_w = area.width.saturating_sub(2);
         if self.wrap && self.wrapped_cache.0 != text_w {
             let mut out = Vec::new();
-            for l in &self.lines {
-                out.extend(crate::ui::text::wrap(l, text_w as usize));
+            let mut src = Vec::new();
+            for (i, l) in self.lines.iter().enumerate() {
+                let rows = crate::ui::text::wrap(l, text_w as usize);
+                src.extend(std::iter::repeat_n(i, rows.len()));
+                out.extend(rows);
             }
-            self.wrapped_cache = (text_w, out);
+            self.wrapped_cache = (text_w, out, src);
+        }
+        // a wrapped panel that reflows moves its rows under the selection
+        if self.select_w != text_w {
+            if self.wrap {
+                self.select = TextSelect::default();
+            }
+            self.select_w = text_w;
         }
         let len = if self.wrap {
             self.wrapped_cache.1.len()
@@ -596,23 +671,49 @@ impl ScrollPanel {
         };
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
+        // rows the vertical viewport covers (the horizontal bar takes the
+        // last one)
+        let rows_h = (self.scroll.viewport_len as u16).min(area.height);
+        ctx.autoscroll(Rect::new(area.x, area.y, area.width, rows_h));
+        let sel = self.select.range();
+        let hoff = if self.h_enabled() {
+            self.scroll.h.offset
+        } else {
+            0
+        };
         for (i, li) in self.scroll.visible_range().enumerate() {
             let y = area.y + i as u16;
             let line = &lines[li];
             let st = style_line(t, line).bg(bg);
-            let text = if self.h_enabled() && self.scroll.h.offset > 0 {
+            let text = if hoff > 0 {
                 crate::ui::text::fit(
-                    &crate::ui::text::slice_cells(line, self.scroll.h.offset, text_w as usize),
+                    &crate::ui::text::slice_cells(line, hoff, text_w as usize),
                     text_w as usize,
                 )
             } else {
                 crate::ui::text::fit(line, text_w as usize)
             };
             buf.set_string(area.x, y, &text, st);
+            // the selected columns of the row; a selection that runs on to
+            // the next row paints the cell after the line end too
+            if let Some((a, b)) = sel
+                && (a.line..=b.line).contains(&li)
+            {
+                let from = if li == a.line { a.col } else { 0 };
+                let to = if li == b.line {
+                    b.col
+                } else {
+                    crate::ui::text::width(line) + 1
+                };
+                for col in from.max(hoff)..to {
+                    let x = col - hoff;
+                    if x >= text_w as usize {
+                        break;
+                    }
+                    buf[(area.x + x as u16, y)].set_style(t.selection());
+                }
+            }
         }
-        // rows the vertical viewport covers (the horizontal bar takes the
-        // last one)
-        let rows_h = (self.scroll.viewport_len as u16).min(area.height);
         if self.scroll.overflows() {
             let body = Rect::new(area.x, area.y, area.width, rows_h);
             self.scroll
@@ -632,6 +733,193 @@ impl ScrollPanel {
             let hb = Rect::new(area.x, y, w, 1);
             self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
+    }
+}
+
+/// Text selection: the shared [`TextSelect`] model over display rows.
+impl ScrollPanel {
+    /// The rows drawn: the wrapped rows, or the lines.
+    fn rows(&self) -> &[String] {
+        if self.wrap {
+            &self.wrapped_cache.1
+        } else {
+            &self.lines
+        }
+    }
+
+    /// The line a display row comes from.
+    fn source_of(&self, row: usize) -> usize {
+        if self.wrap {
+            self.wrapped_cache.2.get(row).copied().unwrap_or(row)
+        } else {
+            row
+        }
+    }
+
+    /// The text position (display row, column) under a screen position,
+    /// clamped into the text; `None` with no text laid out.
+    fn pos_at(&self, pos: Position) -> Option<CellPos> {
+        let rows = self.rows();
+        let rows_h = (self.scroll.viewport_len as u16).min(self.area.height);
+        if self.area.is_empty() || rows.is_empty() || rows_h == 0 {
+            return None;
+        }
+        let y = pos.y.clamp(self.area.y, self.area.y + rows_h - 1) - self.area.y;
+        let line = (y as usize + self.scroll.offset).min(rows.len() - 1);
+        let text_w = self.area.width.saturating_sub(2).max(1);
+        let x = pos.x.saturating_sub(self.area.x).min(text_w - 1) as usize;
+        let hoff = if self.h_enabled() {
+            self.scroll.h.offset
+        } else {
+            0
+        };
+        let col = (x + hoff).min(crate::ui::text::width(&rows[line]));
+        Some(CellPos { line, col })
+    }
+
+    /// The word at a text position.
+    fn word_at(&self, p: CellPos) -> Option<(CellPos, CellPos)> {
+        let row = self.rows().get(p.line)?;
+        let cells = text_select::plain_cells(row);
+        let at = text_select::plain_cell_at(&cells, p.col);
+        let (s, e) = text_select::word_bounds(&cells, at, |c| text_select::is_word(c.g))?;
+        let col = |i| text_select::plain_col_of(row, &cells, i);
+        Some((
+            CellPos {
+                line: p.line,
+                col: col(s),
+            },
+            CellPos {
+                line: p.line,
+                col: col(e),
+            },
+        ))
+    }
+
+    /// The line at a text position: every display row of it.
+    fn line_at(&self, p: CellPos) -> Option<(CellPos, CellPos)> {
+        let rows = self.rows();
+        rows.get(p.line)?;
+        let src = self.source_of(p.line);
+        let mut first = p.line;
+        while first > 0 && self.source_of(first - 1) == src {
+            first -= 1;
+        }
+        let mut last = p.line;
+        while last + 1 < rows.len() && self.source_of(last + 1) == src {
+            last += 1;
+        }
+        Some((
+            CellPos {
+                line: first,
+                col: 0,
+            },
+            CellPos {
+                line: last,
+                col: crate::ui::text::width(&rows[last]),
+            },
+        ))
+    }
+
+    /// The selection as (start, end) text positions in reading order.
+    pub fn selection(&self) -> Option<(CellPos, CellPos)> {
+        self.select.range()
+    }
+
+    /// The selected text: rows of one wrapped line rejoin with a space,
+    /// lines with a newline; trailing spaces of each row are dropped.
+    pub fn selected_text(&self) -> Option<String> {
+        let (a, b) = self.selection()?;
+        let rows = self.rows();
+        let mut out = String::new();
+        let last = b.line.min(rows.len().saturating_sub(1));
+        for (li, row) in rows.iter().enumerate().take(last + 1).skip(a.line) {
+            if li > a.line {
+                out.push(if self.source_of(li) == self.source_of(li - 1) {
+                    ' '
+                } else {
+                    '\n'
+                });
+            }
+            let from = if li == a.line { a.col } else { 0 };
+            let to = if li == b.line { b.col } else { usize::MAX };
+            out.push_str(text_select::plain_slice(row, from, to).trim_end_matches(' '));
+        }
+        Some(out)
+    }
+
+    /// Select All: every line, ready for Copy. `Changed` when the
+    /// selection changed.
+    pub fn select_all(&mut self) -> Outcome {
+        let rows = self.rows();
+        let Some(last) = rows.len().checked_sub(1) else {
+            return Outcome::Consumed;
+        };
+        let all = (
+            CellPos { line: 0, col: 0 },
+            CellPos {
+                line: last,
+                col: crate::ui::text::width(&rows[last]),
+            },
+        );
+        if self.select.sel == Some(all) {
+            return Outcome::Consumed;
+        }
+        self.select.set(all.0, all.1);
+        Outcome::Changed
+    }
+
+    /// Drop the selection. `Changed` when there was one.
+    pub fn clear_selection(&mut self) -> Outcome {
+        self.select.clear()
+    }
+
+    /// A press with its multi-click `count` and modifiers (per
+    /// [`Self::pointer_select`]): anchors a drag; Shift extends the
+    /// selection from its anchor; a double press selects the word, a
+    /// triple the line.
+    fn on_press_with(&mut self, pos: Position, count: u8, mods: KeyModifiers) -> Outcome {
+        let at = self.pos_at(pos);
+        let word = at.and_then(|p| self.word_at(p));
+        let line = at.and_then(|p| self.line_at(p));
+        self.select
+            .press(self.pointer_select, at, count, mods, word, line)
+    }
+
+    /// A drag held since a press: extend the selection (by words after a
+    /// double press); past the top or bottom edge it scrolls a row per
+    /// cell of distance.
+    fn on_drag(&mut self, pos: Position) -> Outcome {
+        if self.select.press.is_none() {
+            return Outcome::Ignored;
+        }
+        let rows_h = (self.scroll.viewport_len as u16).min(self.area.height);
+        let bottom = self.area.y + rows_h;
+        if pos.y < self.area.y {
+            self.scroll.scroll_by(-((self.area.y - pos.y) as isize));
+            self.settle_follow();
+        } else if pos.y >= bottom {
+            self.scroll.scroll_by((pos.y + 1 - bottom) as isize);
+            self.settle_follow();
+        }
+        let head = self.pos_at(pos);
+        let word = if self.select.by_word() {
+            head.and_then(|p| self.word_at(p))
+        } else {
+            None
+        };
+        self.select.drag(self.pointer_select, head, pos, word)
+    }
+
+    /// A completed click with its multi-click `count`: a double click
+    /// selects the word, a triple click the line; the release that ends a
+    /// drag or a Shift press keeps the selection.
+    fn on_click_with(&mut self, pos: Position, count: u8) -> Outcome {
+        let at = self.pos_at(pos);
+        let word = at.and_then(|p| self.word_at(p));
+        let line = at.and_then(|p| self.line_at(p));
+        self.select
+            .click(self.pointer_select, pos, count, word, line)
     }
 }
 
@@ -765,7 +1053,9 @@ impl crate::ui::specimen::Specimen for ScrollPanel {
 }
 
 /// The panel's pointer gestures: a wheel or a bar press scrolls it
-/// ([`crate::core::pointer::scroll_input`]); nothing else.
+/// ([`crate::core::pointer::scroll_input`]); a press, a drag and a click
+/// select text ([`ScrollPanel::on_press_with`], [`ScrollPanel::on_drag`],
+/// [`ScrollPanel::on_click_with`]).
 impl crate::core::pointer::MouseTarget for ScrollPanel {
     type Action = ();
 
@@ -777,7 +1067,16 @@ impl crate::core::pointer::MouseTarget for ScrollPanel {
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
     ) -> crate::core::response::Response<()> {
-        crate::core::pointer::scroll_input(self, ev).unwrap_or_default()
+        use crate::core::intent::Phase;
+        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+            return r;
+        }
+        match ev.phase() {
+            Some(Phase::Press) => self.on_press_with(ev.pos(), ev.count(), ev.mods()).into(),
+            Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
+            Some(Phase::Click) => self.on_click_with(ev.pos(), ev.count()).into(),
+            _ => Response::ignored(),
+        }
     }
 }
 
@@ -1277,5 +1576,140 @@ mod pad_tests {
                 .render(area, &mut Buffer::empty(area), &theme);
         let plain = Panel::framed(Some("F")).render(area, &mut Buffer::empty(area), &theme);
         assert_eq!(framed, plain);
+    }
+}
+
+/// M31: a `ScrollPanel` (a log pane) selects its text with the pointer,
+/// the way a `TextViewport` does, and copies it.
+#[cfg(test)]
+mod selection_tests {
+    use super::*;
+    use crate::core::edit::clipboard;
+    use crate::core::intent::Phase;
+    use crate::core::pointer::{MouseTarget, PointerEvent};
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+    use ratatui::layout::Position;
+
+    const AREA: Rect = Rect::new(0, 0, 30, 4);
+
+    fn draw(p: &mut ScrollPanel) -> (Buffer, HitRegistry) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(AREA);
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            p.render(AREA, &mut buf, &mut ctx, theme.surface, |t, _| t.muted());
+        }
+        (buf, hits)
+    }
+
+    fn send(
+        p: &mut ScrollPanel,
+        hits: &HitRegistry,
+        phase: Phase,
+        at: (u16, u16),
+        count: u8,
+        mods: KeyModifiers,
+    ) {
+        let ev = PointerEvent::new(hits, phase, p.id, Position::new(at.0, at.1), count, mods);
+        let _ = p.pointer(&ev);
+    }
+
+    fn click(
+        p: &mut ScrollPanel,
+        hits: &HitRegistry,
+        at: (u16, u16),
+        count: u8,
+        mods: KeyModifiers,
+    ) {
+        send(p, hits, Phase::Press, at, count, mods);
+        send(p, hits, Phase::Click, at, count, mods);
+    }
+
+    fn copied(p: &mut ScrollPanel) -> Option<String> {
+        clipboard::copy("");
+        let _ = p.on_key(&Key {
+            code: KeyCode::Char('y'),
+            mods: KeyModifiers::NONE,
+        });
+        clipboard::text().filter(|t| !t.is_empty())
+    }
+
+    fn selected(buf: &Buffer, x: u16, y: u16) -> bool {
+        buf[(x, y)].bg == Theme::junie().selection().bg.unwrap()
+    }
+
+    #[test]
+    fn a_scroll_panel_selects_by_drag_shift_click_word_and_line_and_copies() {
+        let lines = ["alpha beta gamma", "second line here", "third"];
+        let mut p = ScrollPanel::new(
+            WidgetId::of("log"),
+            lines.iter().map(|l| l.to_string()).collect(),
+        );
+        let none = KeyModifiers::NONE;
+        let (_, hits) = draw(&mut p);
+
+        // a drag from "beta" to the second row selects across the rows
+        send(&mut p, &hits, Phase::Press, (6, 0), 1, none);
+        send(&mut p, &hits, Phase::Drag, (3, 1), 1, none);
+        send(&mut p, &hits, Phase::Click, (3, 1), 1, none);
+        let (buf, _) = draw(&mut p);
+        assert!(
+            selected(&buf, 6, 0) && selected(&buf, 2, 1),
+            "drawn selected"
+        );
+        assert!(!selected(&buf, 5, 0) && !selected(&buf, 3, 1));
+        assert_eq!(copied(&mut p).as_deref(), Some("beta gamma\nsec"));
+
+        // Shift+click extends from the anchor
+        click(&mut p, &hits, (1, 2), 1, KeyModifiers::SHIFT);
+        assert_eq!(
+            copied(&mut p).as_deref(),
+            Some("beta gamma\nsecond line here\nt")
+        );
+
+        // a double click selects the word, a triple click the line
+        click(&mut p, &hits, (8, 1), 1, none);
+        click(&mut p, &hits, (8, 1), 2, none);
+        assert_eq!(copied(&mut p).as_deref(), Some("line"));
+        click(&mut p, &hits, (1, 0), 1, none);
+        click(&mut p, &hits, (1, 0), 2, none);
+        click(&mut p, &hits, (1, 0), 3, none);
+        assert_eq!(copied(&mut p).as_deref(), Some("alpha beta gamma"));
+
+        // a single click clears; Select All then Copy copies every line
+        click(&mut p, &hits, (1, 0), 1, none);
+        assert_eq!(copied(&mut p), None);
+        let _ = p.on_key(&Key {
+            code: KeyCode::Char('a'),
+            mods: KeyModifiers::CONTROL,
+        });
+        assert_eq!(copied(&mut p).as_deref(), Some(lines.join("\n").as_str()));
+        // Esc clears it
+        let o = p.on_key(&Key {
+            code: KeyCode::Esc,
+            mods: KeyModifiers::NONE,
+        });
+        assert_eq!((o, copied(&mut p)), (Outcome::Changed, None));
+    }
+
+    #[test]
+    fn a_wrapped_panel_selects_a_whole_line_and_copies_it_rejoined() {
+        let mut p = ScrollPanel::new(
+            WidgetId::of("prose"),
+            vec!["one two three four five six seven".into(), "next".into()],
+        )
+        .wrap(true);
+        let (_, hits) = draw(&mut p);
+        for count in 1..=3 {
+            click(&mut p, &hits, (1, 0), count, KeyModifiers::NONE);
+        }
+        assert_eq!(
+            copied(&mut p).as_deref(),
+            Some("one two three four five six seven")
+        );
     }
 }
