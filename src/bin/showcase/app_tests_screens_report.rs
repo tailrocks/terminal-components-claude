@@ -16,15 +16,17 @@ const REPORT: WidgetId = WidgetId::of("readonlyreport");
 
 #[test]
 fn report_shows_its_snapshot_not_the_stub() {
+    // at its natural size the report scrolls: read what scrolling the
+    // page brings into view
     for (w, h) in [(120, 40), (80, 24)] {
-        let h = Harness::new(w, h, PageId::ReadOnlyReport);
-        let text = h.text();
+        let mut h = Harness::new(w, h, PageId::ReadOnlyReport);
+        let text = h.page_text();
         assert!(!text.contains("arrives with"), "{text}");
         for needle in ["Host snapshot", "live · 12 s ago", "CPU", "Memory"] {
             assert!(text.contains(needle), "{w}: {needle}: {text}");
         }
     }
-    let text = Harness::new(120, 40, PageId::ReadOnlyReport).text();
+    let text = Harness::new(120, 40, PageId::ReadOnlyReport).page_text();
     for needle in [
         "8 cores · load",
         "Facts",

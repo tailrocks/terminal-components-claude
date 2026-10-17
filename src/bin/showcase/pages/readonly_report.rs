@@ -9,7 +9,7 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -21,13 +21,14 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, ButtonRow, RowOverflow};
 use junie_tui::widgets::meter_list::{MeterList, MeterRow};
 use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual};
-use junie_tui::widgets::props::{Prop, PropsAction, PropsList};
+use junie_tui::widgets::props::{self, Prop, PropsAction, PropsList};
 
 const ID: WidgetId = WidgetId::of("readonlyreport");
 const FACTS: WidgetId = ID.sub("facts");
@@ -196,22 +197,8 @@ impl ReadOnlyReportPage {
         let t = ctx.theme;
         let meters = self.meters();
         let notices = self.notices();
-        let inner_w = area.width.saturating_sub(4);
-        let notice_h: u16 = notices
-            .iter()
-            .map(|n| n.height(inner_w) + 1)
-            .sum::<u16>()
-            .saturating_sub(1);
         let row = ButtonRow::new().overflow(RowOverflow::Wrap);
-        let row_h = row.rows(area.width, &self.actions, t);
-        let mut children = vec![
-            StackChild::fixed(meters.height() + 3),
-            StackChild::fixed(self.facts.props.len() as u16 + 3),
-        ];
-        if !notices.is_empty() {
-            children.push(StackChild::fixed(notice_h));
-        }
-        children.push(StackChild::fixed(row_h));
+        let children = self.children(area.width, t);
         let actions_at = children.len() - 1;
         let focus = if ctx.interaction.has_focus(FACTS) {
             Some(1)
@@ -278,6 +265,28 @@ impl ReadOnlyReportPage {
                 }
             }
         }
+    }
+
+    /// The sections at `width`: the meters card, the facts, the notices
+    /// wrapped to the width less their margins, the action row.
+    fn children(&self, width: u16, t: &junie_tui::theme::Theme) -> Vec<StackChild> {
+        let notices = self.notices();
+        let inner_w = width.saturating_sub(4);
+        let notice_h: u16 = notices
+            .iter()
+            .map(|n| n.height(inner_w) + 1)
+            .sum::<u16>()
+            .saturating_sub(1);
+        let row = ButtonRow::new().overflow(RowOverflow::Wrap);
+        let mut children = vec![
+            StackChild::fixed(self.meters().height() + 3),
+            StackChild::fixed(self.facts.props.len() as u16 + 3),
+        ];
+        if !notices.is_empty() {
+            children.push(StackChild::fixed(notice_h));
+        }
+        children.push(StackChild::fixed(row.rows(width, &self.actions, t)));
+        children
     }
 
     fn start_refresh(&mut self, cx: &mut Cx) {
@@ -352,12 +361,53 @@ fn states_grid() -> StateGrid {
         )
 }
 
+/// The narrowest a wrapping notice asks the report to be.
+const NOTICE_MIN: u16 = 40;
+
 impl Page for ReadOnlyReportPage {
     fn title(&self) -> &'static str {
         "Read-only report"
     }
     fn blurb(&self) -> &'static str {
         "A host snapshot: live meta, MeterList, copyable facts, notices and Next actions"
+    }
+
+    /// Everything whole: the meters (MeterList's Measure) in their card,
+    /// the facts in their frame, the actions on one row; as wide as the
+    /// room when wider, the sections' heights at that width. The notices
+    /// wrap, so they ask only for [`NOTICE_MIN`] columns (or their one
+    /// line when shorter): a long notice grows taller, never the page
+    /// sideways.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let at = |m: &dyn Measure| m.measure(Size::ZERO, ctx);
+        let notices = self
+            .notices()
+            .iter()
+            .map(|n| (at(n).width + 4).min(NOTICE_MIN))
+            .max()
+            .unwrap_or(0);
+        let natural = [
+            Panel::card(Some("Host snapshot"))
+                .meta(self.meta())
+                .outer(at(&self.meters()))
+                .width,
+            Panel::framed(Some("Facts"))
+                .meta("read-only")
+                .outer(Size::new(props::width(&self.facts.props), 0))
+                .width,
+            notices,
+            ButtonRow::new().width(&self.actions, ctx.theme),
+        ]
+        .into_iter()
+        .max()
+        .unwrap_or(0);
+        let width = natural.max(avail.width);
+        Size::new(
+            natural,
+            self.sections
+                .stack
+                .measure(&self.children(width, ctx.theme)),
+        )
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
