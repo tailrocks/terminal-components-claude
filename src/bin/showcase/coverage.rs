@@ -3826,6 +3826,11 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     // NavList (S17, SC36): the Sidebars page's list
     ("widgets::nav_list::NavList", Demo("sidebars", "Workspace")),
+    // the list's States rows (its `Specimen`)
+    (
+        "widgets::nav_list::NavList",
+        StateRow("sidebars", "focused"),
+    ),
     (
         "widgets::nav_list::NavItem",
         Demo("sidebars", "Environment"),
@@ -3846,7 +3851,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::nav_list::NavItem::section",
         Demo("sidebars", "Preferences"),
     ),
-    ("widgets::nav_list::NavItem::badge", Demo("sidebars", "3")),
+    (
+        "widgets::nav_list::NavItem::badge",
+        Option("sidebars", "sidebars.badges"),
+    ),
     (
         "widgets::nav_list::NavItem::disabled",
         Demo("sidebars", "Disabled items are skipped"),
@@ -3857,15 +3865,15 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::nav_list::NavList::collapsed",
-        Demo("sidebars", "Collapse keeps rows"),
+        Option("sidebars", "sidebars.collapsed"),
     ),
     (
         "widgets::nav_list::NavList::nav",
-        Demo("sidebars", "(or j k)"),
+        Option("sidebars", "sidebars.keys"),
     ),
     (
         "widgets::nav_list::NavList::widths",
-        Demo("sidebars", "Collapse"),
+        Option("sidebars", "sidebars.width"),
     ),
     (
         "widgets::nav_list::NavList::item_id",

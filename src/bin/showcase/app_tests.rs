@@ -1527,6 +1527,8 @@ fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible
     );
 
     let mut s = Harness::new(72, 20, PageId::Sidebars);
+    // the template's section strip is the page's first stop, the list next
+    s.key(KeyCode::Tab);
     s.key(KeyCode::Tab);
     let nav = WidgetId::of("sidebars").sub("nav");
     assert_eq!(s.app.shell.focus.current(), Some(nav));

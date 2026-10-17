@@ -865,6 +865,8 @@ fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
     assert!(!h.row(button_y).contains("›"));
 
     let mut disabled = Harness::new(120, 40, PageId::Sidebars);
+    // the template's section strip is the page's first stop, the list next
+    disabled.key(KeyCode::Tab);
     disabled.key(KeyCode::Tab);
     let nav = WidgetId::of("sidebars").sub("nav");
     let (x, y) = disabled.find("Billing").expect("disabled row");

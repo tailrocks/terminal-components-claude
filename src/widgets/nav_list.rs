@@ -412,6 +412,97 @@ impl NavList {
     }
 }
 
+/// A navigation list drawn alone, in a forced state, for a States grid
+/// ([`crate::ui::specimen`]): its first three items under one section
+/// heading, the first one current and the cursor on the second. Hover and
+/// press land on the cursor row (where the pointer would be), selected
+/// opens the cursor row, disabled disables it under the pointer (no
+/// reaction), overflow lengthens its label past the row and gives it a
+/// badge. Collapsed, the sample is the icon-only list.
+impl crate::ui::specimen::Specimen for NavList {
+    fn specimen_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(
+            state,
+            Rest | Hover
+                | Pressed
+                | Focused
+                | FocusedHover
+                | Selected
+                | Disabled
+                | Overflow
+                | Narrow
+        ) && !(self.collapsed && state == Overflow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        self.sample().rows().len() as u16
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut l = self.sample();
+        fill(buf, area, ratatui::style::Style::new().bg(bg));
+        if l.items.is_empty() {
+            return;
+        }
+        let c = l.cursor;
+        match state {
+            Selected => l.current = c,
+            Disabled => l.items[c].disabled = true,
+            Overflow => {
+                let it = &mut l.items[c];
+                it.label = format!("{} and a label far longer than its row", it.label);
+                it.badge = Some("12".into());
+            }
+            _ => {}
+        }
+        // the pointer rests on the cursor row, not on the list
+        let v = state.visual();
+        if v.hovered || state == Disabled {
+            ctx.interaction.hover = Some(l.item_id(c));
+            if v.pressed {
+                ctx.interaction.pressed = Some(l.item_id(c));
+            }
+        }
+        let w = l.width().min(area.width);
+        l.render(Rect::new(area.x, area.y, w, area.height), buf, ctx, bg);
+    }
+}
+
+impl NavList {
+    /// The States grid's sample: the first three items in one section,
+    /// all enabled, the first current and the cursor on the second.
+    fn sample(&self) -> Self {
+        let mut l = self.clone();
+        l.items.truncate(3);
+        let section = l
+            .items
+            .first()
+            .map(|i| i.section.clone())
+            .unwrap_or_default();
+        for it in &mut l.items {
+            it.section.clone_from(&section);
+            it.disabled = false;
+        }
+        l.current = 0;
+        l.cursor = 1.min(l.items.len().saturating_sub(1));
+        l.scroll = ScrollState::default();
+        l
+    }
+}
+
 /// The list's pointer gestures: a click on an item opens it, the wheel
 /// scrolls, the divider's scrollbar pages and drags. Focus is the
 /// router's ([`crate::core::pointer::PointerConfig::focus_on`]).
@@ -563,5 +654,60 @@ mod tests {
         assert_eq!(row(&buf, 0).trim(), "····");
         assert_eq!(row(&buf, 1).trim(), "▎› T");
         assert!(!row(&buf, 1).contains("Tasks"));
+    }
+
+    #[test]
+    fn a_states_grid_draws_the_list_in_each_state() {
+        use crate::ui::specimen::{SpecimenState as S, StateGrid};
+        let t = Theme::junie();
+        let id = WidgetId::of("nav-grid");
+        let states = [
+            S::Rest,
+            S::Hover,
+            S::Focused,
+            S::Selected,
+            S::Disabled,
+            S::Overflow,
+        ];
+        let mut g = StateGrid::new(id)
+            .rows(&states)
+            .label_width(10)
+            .column_width(26)
+            .column("Open", list().widths(24, 6));
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 40, 30);
+        let mut buf = Buffer::empty(area);
+        g.render(area, &mut buf, &mut ctx, t.canvas);
+        assert!(ring.reachable().is_empty(), "samples take no focus");
+        let text: Vec<String> = (0..30)
+            .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect())
+            .collect();
+        // each sample: the heading, then Tasks (current), Runs (cursor), Billing
+        let at = |label: &str| -> usize {
+            text.iter()
+                .position(|r| r.starts_with(label))
+                .unwrap_or_else(|| panic!("{label} row\n{}", text.join("\n")))
+        };
+        let runs = |label: &str| text[at(label) + 2].clone();
+        assert!(text[at("rest") + 1].contains("› T Tasks"));
+        assert_ne!(
+            buf[(15, at("hover") as u16 + 2)].bg,
+            buf[(15, at("rest") as u16 + 2)].bg,
+            "hover lands on the cursor row"
+        );
+        assert!(runs("focused").contains('▏'), "focus is depicted");
+        assert!(!buf.content().iter().any(|c| c.symbol() == "▎"));
+        assert!(
+            runs("selected").contains("› R Runs"),
+            "the cursor row opens"
+        );
+        assert_eq!(
+            buf[(16, at("disabled") as u16 + 2)].fg,
+            t.disabled,
+            "a disabled row in the disabled ink"
+        );
+        assert!(runs("overflow").contains("12"), "the badge stays");
     }
 }
