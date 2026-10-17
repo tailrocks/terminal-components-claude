@@ -46,6 +46,53 @@ pub enum PanelFocus {
     Bar,
 }
 
+/// How a card's heading row (its title and meta) sets itself apart from
+/// the body under it. Set app-wide with
+/// [`Theme::with_card_heading`](crate::theme::Theme::with_card_heading) or
+/// per card with [`Panel::heading_style`]; a framed panel ignores it (its
+/// frame already carries the title). Every style keeps the card's layout:
+/// the content area is the same as [`CardHeading::Plain`]'s. See
+/// `docs/design/card-heading.md`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum CardHeading {
+    /// The title in secondary ink (primary and bold while focus is
+    /// inside), the meta faint, on the card's own surface. The default.
+    #[default]
+    Plain,
+    /// A faint rule ([`Glyphs::h_divider`](crate::theme::Glyphs::h_divider),
+    /// `-` in ASCII) across the blank row the card already keeps under its
+    /// title, as an inspector section's separator. Its shape carries it in
+    /// monochrome.
+    Rule,
+    /// The heading row on the plane one step up
+    /// ([`Plane::up`](crate::theme::Plane::up)), its inks kept legible on
+    /// it. In monochrome, where the fill is gone, the title is underlined.
+    Band,
+    /// The title bold in every state (secondary ink at rest, primary while
+    /// focus is inside). In monochrome, where bold is the focus-within cue
+    /// of a plain card, the focused title is also underlined.
+    Emphasis,
+}
+
+impl CardHeading {
+    pub const ALL: [CardHeading; 4] = [
+        CardHeading::Plain,
+        CardHeading::Rule,
+        CardHeading::Band,
+        CardHeading::Emphasis,
+    ];
+
+    /// A short name for the style (`"plain"`, `"rule"`, ...).
+    pub fn label(self) -> &'static str {
+        match self {
+            CardHeading::Plain => "plain",
+            CardHeading::Rule => "rule",
+            CardHeading::Band => "band",
+            CardHeading::Emphasis => "emphasis",
+        }
+    }
+}
+
 /// Cells a title keeps when a long meta competes for the title row: the
 /// default of [`Panel::title_min`].
 pub const TITLE_MIN: u16 = 12;
@@ -98,6 +145,9 @@ pub struct Panel<'a> {
     /// Default [`CARD_PAD`] (2); a narrow pane (a navigation sidebar)
     /// takes 1 so its rows keep their labels. A framed panel ignores it.
     pub pad_x: u16,
+    /// How the heading row stands apart from the body. `None` (default):
+    /// the theme's [`Theme::card_heading`]. A framed panel ignores it.
+    pub heading: Option<CardHeading>,
 }
 
 /// Columns a card keeps blank on each side: the default of
@@ -117,6 +167,7 @@ impl<'a> Panel<'a> {
             title_min: TITLE_MIN,
             meta_short: None,
             pad_x: CARD_PAD,
+            heading: None,
         }
     }
     pub fn framed(title: Option<&'a str>) -> Self {
@@ -131,6 +182,7 @@ impl<'a> Panel<'a> {
             title_min: TITLE_MIN,
             meta_short: None,
             pad_x: CARD_PAD,
+            heading: None,
         }
     }
     pub fn focused(mut self, f: bool) -> Self {
@@ -154,6 +206,32 @@ impl<'a> Panel<'a> {
     pub fn pad_x(mut self, cells: u16) -> Self {
         self.pad_x = cells;
         self
+    }
+
+    /// How this card's heading row stands apart from its body, over the
+    /// theme's [`Theme::card_heading`]. A framed panel ignores it.
+    pub fn heading_style(mut self, style: CardHeading) -> Self {
+        self.heading = Some(style);
+        self
+    }
+
+    /// The heading style this panel draws with: its own, else the theme's;
+    /// always [`CardHeading::Plain`] for a framed panel.
+    pub(crate) fn heading_for(&self, t: &Theme) -> CardHeading {
+        match self.kind {
+            PanelKind::Card => self.heading.unwrap_or(t.card_heading),
+            PanelKind::Framed => CardHeading::Plain,
+        }
+    }
+
+    /// The colour the title row sits on: the panel's own, or the plane one
+    /// step up for a [`CardHeading::Band`].
+    fn head_bg(&self, t: &Theme) -> Color {
+        let bg = self.bg(t);
+        match self.heading_for(t) {
+            CardHeading::Band if self.title.is_some() => t.ladder(t.plane_of(bg).up()).rest,
+            _ => bg,
+        }
     }
 
     /// The title row's left edge and width inside `area`.
@@ -191,7 +269,7 @@ impl<'a> Panel<'a> {
         if area.is_empty() || (self.kind == PanelKind::Framed && area.width <= 4) {
             return;
         }
-        let bg = self.bg(t);
+        let bg = self.head_bg(t);
         let late = Panel {
             title: self.title,
             kind: self.kind,
@@ -203,6 +281,7 @@ impl<'a> Panel<'a> {
             title_min: self.title_min,
             meta_short: self.meta_short,
             pad_x: self.pad_x,
+            heading: self.heading,
         };
         let (x, w) = self.title_span(area);
         let row = Rect::new(x, area.y, w, 1);
@@ -290,6 +369,15 @@ impl<'a> Panel<'a> {
             PanelKind::Card => {
                 fill(buf, area, Style::new().bg(bg));
                 let inner = area.inner(ratatui::layout::Margin::new(self.pad_x, 1));
+                let heading = self.heading_for(t);
+                let head_bg = self.head_bg(t);
+                if heading == CardHeading::Band && self.title.is_some() {
+                    fill(
+                        buf,
+                        Rect::new(area.x, area.y, area.width, 1),
+                        Style::new().bg(head_bg),
+                    );
+                }
                 if self.focused && self.title.is_some() && self.focus_mark == PanelFocus::Bar {
                     // opt-in: the container itself is the focus stop
                     let s = crate::ui::ctx::VisualState {
@@ -300,11 +388,17 @@ impl<'a> Panel<'a> {
                         area.x + self.pad_x.saturating_sub(1),
                         area.y,
                         t.gutter_symbol(s),
-                        t.gutter(s, bg, false),
+                        t.gutter(s, head_bg, false),
                     );
                 }
                 let (x, w) = self.title_span(area);
-                self.title_row(x, area.y, w, buf, t, bg);
+                self.title_row(x, area.y, w, buf, t, head_bg);
+                if heading == CardHeading::Rule && self.title.is_some() && area.height > 2 {
+                    // the blank row under the title becomes the separator:
+                    // the content area does not move
+                    let rule = t.glyphs.h_divider.repeat(w as usize);
+                    buf.set_string(x, area.y + 1, rule, Style::new().fg(t.rule_on(bg)).bg(bg));
+                }
                 if self.title.is_some() {
                     Rect::new(
                         inner.x,
@@ -334,6 +428,46 @@ impl<'a> Panel<'a> {
                     inner.height,
                 )
             }
+        }
+    }
+
+    /// The title's style on `bg` for this panel's heading style and focus.
+    fn title_style(&self, t: &Theme, bg: Color) -> Style {
+        use crate::theme::ColorLevel;
+        use ratatui::style::Modifier;
+        let mono = t.level == ColorLevel::Mono;
+        let base = if self.focused {
+            t.title().bg(bg)
+        } else {
+            t.secondary().bg(bg)
+        };
+        match self.heading_for(t) {
+            CardHeading::Plain | CardHeading::Rule => base,
+            CardHeading::Band => {
+                let fg = t.legible(base.fg.unwrap_or(t.text_primary), bg);
+                let s = base.fg(fg);
+                if mono {
+                    s.add_modifier(Modifier::UNDERLINED)
+                } else {
+                    s
+                }
+            }
+            CardHeading::Emphasis => {
+                let s = base.add_modifier(Modifier::BOLD);
+                if mono && self.focused {
+                    s.add_modifier(Modifier::UNDERLINED)
+                } else {
+                    s
+                }
+            }
+        }
+    }
+
+    /// The meta's style on `bg`: faint, kept legible on a band.
+    fn meta_style(&self, t: &Theme, bg: Color) -> Style {
+        match self.heading_for(t) {
+            CardHeading::Band => Style::new().fg(t.legible(t.text_faint, bg)).bg(bg),
+            _ => t.faint().bg(bg),
         }
     }
 
@@ -379,11 +513,7 @@ impl<'a> Panel<'a> {
             .map(|m| crate::ui::text::width(m) as u16 + pad)
             .unwrap_or(0);
         if let Some(title) = self.title {
-            let style = if self.focused {
-                t.title().bg(bg)
-            } else {
-                t.secondary().bg(bg)
-            };
+            let style = self.title_style(t, bg);
             let room = if meta_w > 0 {
                 w.saturating_sub(meta_w + 1 + pad)
             } else {
@@ -410,7 +540,7 @@ impl<'a> Panel<'a> {
             let tw = crate::ui::text::width(&text) as u16;
             if right >= cx + tw + u16::from(cx > x) {
                 right = right.saturating_sub(tw);
-                buf.set_string(right, y, &text, t.faint().bg(bg));
+                buf.set_string(right, y, &text, self.meta_style(t, bg));
             }
         }
         if let Some((badge, kind)) = self.badge {
@@ -1084,6 +1214,7 @@ impl crate::ui::specimen::Specimen for Panel<'static> {
             title_min: self.title_min,
             meta_short: self.meta_short,
             pad_x: self.pad_x,
+            heading: self.heading,
         };
         let inner = panel.render(area, buf, t);
         if !inner.is_empty() {
@@ -1891,6 +2022,185 @@ mod outer_tests {
             for part in panel.title.iter().chain(panel.meta.iter()) {
                 assert!(row.contains(part), "{row:?} lacks {part}");
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod heading_tests {
+    use super::*;
+    use crate::theme::{ColorLevel, contrast_ratio};
+    use ratatui::style::Modifier;
+
+    const LEVELS: [ColorLevel; 4] = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+    const AREA: Rect = Rect::new(0, 0, 30, 5);
+
+    /// A titled card with a meta and one body line, drawn as an app does.
+    fn card(t: &Theme, heading: Option<CardHeading>, focused: bool) -> (Buffer, Rect) {
+        let mut buf = Buffer::empty(AREA);
+        let mut p = Panel::card(Some("Settings"))
+            .meta("3 items")
+            .focused(focused);
+        if let Some(h) = heading {
+            p = p.heading_style(h);
+        }
+        let inner = p.render(AREA, &mut buf, t);
+        buf.set_string(inner.x, inner.y, "body text", t.secondary().bg(p.bg(t)));
+        (buf, inner)
+    }
+
+    fn line(buf: &Buffer, y: u16) -> String {
+        (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
+    }
+
+    #[test]
+    fn plain_is_the_default_and_the_theme_and_the_panel_choose_it() {
+        for level in LEVELS {
+            let t = Theme::for_level(level);
+            for focused in [false, true] {
+                let (plain, _) = card(&t, None, focused);
+                let (own, _) = card(&t, Some(CardHeading::Plain), focused);
+                assert_eq!(plain, own, "{level:?}: Plain is the default");
+                // the theme sets the style for every card...
+                let rule = t.with_card_heading(CardHeading::Rule);
+                let (themed, _) = card(&rule, None, focused);
+                assert_ne!(themed, plain, "{level:?}: the theme's style applies");
+                // ...and a card's own style wins over it
+                let (back, _) = card(&rule, Some(CardHeading::Plain), focused);
+                assert_eq!(back, plain, "{level:?}: the panel's style wins");
+            }
+        }
+    }
+
+    #[test]
+    fn a_framed_panel_ignores_the_heading_style() {
+        for level in LEVELS {
+            let t = Theme::for_level(level);
+            let draw = |t: &Theme, h: Option<CardHeading>| {
+                let mut buf = Buffer::empty(AREA);
+                let mut p = Panel::framed(Some("Preview")).meta("1–9 of 24");
+                if let Some(h) = h {
+                    p = p.heading_style(h);
+                }
+                p.render(AREA, &mut buf, t);
+                buf
+            };
+            let plain = draw(&t, None);
+            for h in CardHeading::ALL {
+                assert_eq!(draw(&t, Some(h)), plain, "{level:?} {h:?}");
+                assert_eq!(
+                    draw(&t.with_card_heading(h), None),
+                    plain,
+                    "{level:?} {h:?}"
+                );
+            }
+        }
+    }
+
+    /// Every style at every colour level: the content area does not move,
+    /// the title reads at ≥ 4.5:1 on whatever it sits on, and the heading
+    /// stands apart from the body by a cue that survives monochrome (a
+    /// glyph or a modifier, not only a colour).
+    #[test]
+    fn every_style_reads_and_sets_the_heading_apart_at_every_level() {
+        for level in LEVELS {
+            let t = Theme::for_level(level);
+            for focused in [false, true] {
+                let (plain, plain_inner) = card(&t, None, focused);
+                for h in [CardHeading::Rule, CardHeading::Band, CardHeading::Emphasis] {
+                    let at = format!("{level:?} {h:?} focused={focused}");
+                    let (buf, inner) = card(&t, Some(h), focused);
+                    assert_eq!(inner, plain_inner, "{at}: the content does not move");
+                    assert_eq!(line(&buf, 2), line(&plain, 2), "{at}: body untouched");
+                    let title = &buf[(2, 0)];
+                    assert_eq!(title.symbol(), "S", "{at}");
+                    if let Some(c) = contrast_ratio(title.fg, title.bg) {
+                        assert!(c >= 4.5, "{at}: title contrast {c:.2}");
+                    }
+                    let meta = &buf[(27, 0)];
+                    assert_eq!(meta.symbol(), "s", "{at}: {}", line(&buf, 0));
+                    assert_ne!(meta.fg, meta.bg, "{at}: meta readable");
+                    let body = &buf[(2, 2)];
+                    let plain_title = &plain[(2, 0)];
+                    match h {
+                        CardHeading::Rule => {
+                            let rule = t.glyphs.h_divider;
+                            assert!(
+                                (2..28).all(|x| buf[(x, 1)].symbol() == rule),
+                                "{at}: {}",
+                                line(&buf, 1)
+                            );
+                            assert_ne!(buf[(2, 1)].fg, buf[(2, 1)].bg, "{at}: rule shows");
+                        }
+                        CardHeading::Band => {
+                            if level == ColorLevel::Mono {
+                                assert!(
+                                    title.modifier.contains(Modifier::UNDERLINED),
+                                    "{at}: the band's mono cue"
+                                );
+                            } else {
+                                assert_ne!(title.bg, body.bg, "{at}: the band's plane");
+                                assert!(
+                                    (0..30).all(|x| buf[(x, 0)].bg == title.bg),
+                                    "{at}: the band spans the card"
+                                );
+                            }
+                        }
+                        CardHeading::Emphasis => {
+                            assert!(title.modifier.contains(Modifier::BOLD), "{at}");
+                            assert_ne!(
+                                (title.modifier, title.fg),
+                                (body.modifier, body.fg),
+                                "{at}: the title differs from the body"
+                            );
+                            if level == ColorLevel::Mono && focused {
+                                // bold no longer tells focus-within apart
+                                assert!(title.modifier.contains(Modifier::UNDERLINED), "{at}");
+                            }
+                            if !focused {
+                                assert!(
+                                    !plain_title.modifier.contains(Modifier::BOLD),
+                                    "{at}: plain at rest is not bold"
+                                );
+                            }
+                        }
+                        CardHeading::Plain => unreachable!(),
+                    }
+                }
+            }
+        }
+    }
+
+    /// The meta repainted after the content keeps the band's plane.
+    #[test]
+    fn draw_meta_keeps_the_band() {
+        let t = Theme::junie().with_card_heading(CardHeading::Band);
+        let mut buf = Buffer::empty(AREA);
+        let p = Panel::card(Some("Log"));
+        p.render(AREA, &mut buf, &t);
+        p.draw_meta(AREA, &mut buf, &t, "1–7 of 60");
+        let band = buf[(0, 0)].bg;
+        assert_ne!(band, buf[(0, 2)].bg);
+        assert!((0..30).all(|x| buf[(x, 0)].bg == band), "{}", line(&buf, 0));
+        assert!(line(&buf, 0).contains("1–7 of 60"), "{}", line(&buf, 0));
+    }
+
+    /// An untitled card has no heading: every style draws it as plain.
+    #[test]
+    fn an_untitled_card_has_no_heading_to_set_apart() {
+        for h in CardHeading::ALL {
+            let t = Theme::junie().with_card_heading(h);
+            let draw = |t: &Theme| {
+                let mut buf = Buffer::empty(AREA);
+                Panel::card(None).render(AREA, &mut buf, t);
+                buf
+            };
+            assert_eq!(draw(&t), draw(&Theme::junie()), "{h:?}");
         }
     }
 }

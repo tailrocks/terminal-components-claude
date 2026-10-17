@@ -676,6 +676,11 @@ pub struct Theme {
     /// the Cocoa bindings on macOS, Desktop elsewhere). An app profile
     /// sets one for every platform ([`Self::with_field_keys`]).
     pub field_keys: Option<crate::core::edit::FieldKeys>,
+    /// How a card panel's heading row sets itself apart from its body, for
+    /// every card that does not set its own ([`Panel::heading_style`](crate::widgets::panel::Panel::heading_style)).
+    /// Default [`CardHeading::Plain`](crate::widgets::panel::CardHeading::Plain);
+    /// a framed panel ignores it. See [`Self::with_card_heading`].
+    pub card_heading: crate::widgets::panel::CardHeading,
 }
 
 impl Theme {
@@ -751,6 +756,7 @@ impl Theme {
             strings: Strings::DEFAULT,
             edit_entry: Self::DEFAULT_EDIT_ENTRY,
             field_keys: None,
+            card_heading: crate::widgets::panel::CardHeading::Plain,
         }
     }
 
@@ -1084,6 +1090,14 @@ impl Theme {
     /// [`EditEntry`](crate::core::edit::EditEntry).
     pub const fn with_edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         self.edit_entry = entry;
+        self
+    }
+
+    /// This theme with every card's heading drawn in `style`
+    /// ([`Self::card_heading`]); a card's own
+    /// [`Panel::heading_style`](crate::widgets::panel::Panel::heading_style) still wins.
+    pub const fn with_card_heading(mut self, style: crate::widgets::panel::CardHeading) -> Self {
+        self.card_heading = style;
         self
     }
 
