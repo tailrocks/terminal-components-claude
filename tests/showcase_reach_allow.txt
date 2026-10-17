@@ -16,10 +16,6 @@ Grid | Playground | 80x24 | R16 squeezes instead of overflowing: no Page::measur
 Grid | Playground | 100x25 | R16 squeezes instead of overflowing: no Page::measure yet
 Grid | Playground | 106x29 | R16 squeezes instead of overflowing: no Page::measure yet
 Grid | Playground | 120x40 | R16 squeezes instead of overflowing: no Page::measure yet
-Selectable | Playground | 80x24 | R17 squeezes instead of overflowing: no Page::measure yet
-Selectable | Playground | 100x25 | R17 squeezes instead of overflowing: no Page::measure yet
-Selectable | Playground | 106x29 | R17 squeezes instead of overflowing: no Page::measure yet
-Selectable | Playground | 120x40 | R17 squeezes instead of overflowing: no Page::measure yet
 Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
@@ -44,8 +40,6 @@ PaneTree | Playground | 106x29 | R37 squeezes instead of overflowing: no Page::m
 Editor | Playground | 80x24 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 100x25 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 106x29 | R38 squeezes instead of overflowing: no Page::measure yet
-Diff | Playground | 100x25 | R39 squeezes instead of overflowing: no Page::measure yet
-Diff | Playground | 106x29 | R39 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 80x24 | R40 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 100x25 | R40 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 106x29 | R40 squeezes instead of overflowing: no Page::measure yet
