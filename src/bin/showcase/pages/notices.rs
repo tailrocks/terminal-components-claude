@@ -6,7 +6,7 @@
 //! connected). Options: `crate::options::NOTICES`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -47,6 +47,18 @@ const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
 pub fn page() -> Box<dyn Page> {
     Box::new(NoticesPage::new())
 }
+
+/// The cards' titles and metas, top to bottom.
+const CARDS: [(&str, &str); 3] = [
+    ("prod-replica", "postgres · connection test"),
+    ("Result 1", "error card · 0.4 ms"),
+    (
+        "New connection",
+        "inline · one per kind, the glyph carries it",
+    ),
+];
+/// The connection card's address line.
+const ADDRESS: &str = "acme_app@analytics.acme.io:5432/analytics";
 
 pub struct NoticesPage {
     template: Template,
@@ -137,38 +149,37 @@ impl NoticesPage {
         }
     }
 
+    /// The cards at their heights with the notices `w` wide: a card
+    /// takes its title row, a blank row and a bottom row; the connection
+    /// card its address, the button and blank rows too; the inline card a
+    /// blank row between its four notices.
+    fn children(&self, w: u16) -> [StackChild; 3] {
+        let inline: u16 = self.inline().iter().map(|n| n.height(w)).sum::<u16>() + 3;
+        [
+            StackChild::fixed(self.connection().height(w) + 7),
+            StackChild::fixed(self.query().height(w) + 3),
+            StackChild::fixed(inline + 3),
+        ]
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let focus = ctx.interaction.has_focus(self.test.id).then_some(0);
         let w = self.width(area.width.saturating_sub(4));
         let connection = self.connection();
         let query = self.query();
         let inline = self.inline();
-        let inline_h: u16 = inline.iter().map(|n| n.height(w)).sum::<u16>() + 3; // a blank row between the four
-        // a card takes its title row, a blank row and a bottom row
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(connection.height(w) + 7),
-                StackChild::fixed(query.height(w) + 3),
-                StackChild::fixed(inline_h + 3),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let children = self.children(w);
+        let l = self.sections.layout(area, &children, focus, buf, ctx);
         let t = ctx.theme;
         match l.slot(0) {
             Some(r) => {
-                let panel = Panel::card(Some("prod-replica")).meta("postgres · connection test");
+                let panel = Panel::card(Some(CARDS[0].0)).meta(CARDS[0].1);
                 let bg = panel.bg(t);
                 let inner = panel.render(r, buf, t);
                 buf.set_string(
                     inner.x,
                     inner.y,
-                    junie_tui::ui::text::truncate(
-                        "acme_app@analytics.acme.io:5432/analytics",
-                        inner.width as usize,
-                    ),
+                    junie_tui::ui::text::truncate(ADDRESS, inner.width as usize),
                     t.secondary().bg(bg),
                 );
                 let body = Rect::new(
@@ -187,7 +198,7 @@ impl NoticesPage {
             None => ctx.focus_stop(self.test.id),
         }
         if let Some(r) = l.slot(1) {
-            let panel = Panel::card(Some("Result 1")).meta("error card · 0.4 ms");
+            let panel = Panel::card(Some(CARDS[1].0)).meta(CARDS[1].1);
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
             query.render(
@@ -198,8 +209,7 @@ impl NoticesPage {
             );
         }
         if let Some(r) = l.slot(2) {
-            let panel = Panel::card(Some("New connection"))
-                .meta("inline · one per kind, the glyph carries it");
+            let panel = Panel::card(Some(CARDS[2].0)).meta(CARDS[2].1);
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
             let mut y = inner.y;
@@ -244,6 +254,29 @@ impl Page for NoticesPage {
     }
     fn blurb(&self) -> &'static str {
         "Notice: inline error, warning, information and success blocks with a wrapped detail"
+    }
+
+    /// The notices at the width the option gives them (96 or 44, the
+    /// widest they are drawn) and the cards around them whole.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        let w = self.width(u16::MAX);
+        let content = w.max(junie_tui::ui::text::width(ADDRESS) as u16);
+        let width = CARDS
+            .iter()
+            .map(|(title, meta)| {
+                Panel::card(Some(title))
+                    .meta(meta)
+                    .outer(Size::new(content, 0))
+                    .width
+            })
+            .max()
+            .unwrap_or(0);
+        // the notices are laid out at the room less 4: never narrower
+        // than that here
+        Size::new(
+            width.max(w + 4),
+            self.sections.stack.measure(&self.children(w)),
+        )
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
