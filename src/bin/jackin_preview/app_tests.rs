@@ -1521,6 +1521,34 @@ fn the_account_drawer_keeps_every_action_whole_at_72_columns() {
     assert!(!t.contains("›│") && !t.contains("›┃"), "{t}");
 }
 
+/// The narrow account drawer covers the tree, so nothing of the tree is
+/// drawn under it (S19, `MasterDetail`). The screen drew the tree first and
+/// the inspector over it, and at 16 colours the tree's faint rows leaked
+/// their dim into the drawer's text ("chainargos.1password.com").
+#[test]
+fn the_account_drawer_draws_nothing_of_the_tree_under_it() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 0, 72, 20);
+    h.app.theme = Theme::for_level(junie_tui::theme::ColorLevel::Ansi16);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    let (x, y) = h
+        .find("chainargos.1password.com")
+        .unwrap_or_else(|| panic!("the drawer is open:\n{}", h.text()));
+    let buf = h.term.backend().buffer();
+    for dx in 0..24 {
+        let c = &buf[(x + dx, y)];
+        assert!(
+            !c.modifier.contains(ratatui::style::Modifier::DIM),
+            "({}, {y}) {:?} is dim:\n{}",
+            x + dx,
+            c.symbol(),
+            h.text()
+        );
+    }
+}
+
 /// Type-ahead and single-letter shortcuts (keyboard.md decision log): a
 /// closed select type-selects (S4), but `q` (Back to the manager) is a
 /// shortcut on the editor, so it goes back instead of being typed into the

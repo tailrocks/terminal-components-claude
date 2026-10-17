@@ -16,6 +16,7 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{ButtonKind, StatusKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
+use junie_tui::ui::master_detail::{MasterDetail, Mode};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::button::{Button, ButtonRow, RowOverflow};
 use junie_tui::widgets::choice::RadioGroup;
@@ -104,13 +105,11 @@ pub struct AccountsScreen {
     inspector_scroll: ScrollState,
     tree_area: Rect,
     inspector_area: Rect,
-    split: Split,
-    seam: Splitter,
-    seam_container: Rect,
+    /// The account tree beside the inspector: a resizable seam wide, the
+    /// tree with a summary and the inspector as a drawer narrow.
+    md: MasterDetail,
     actions: Vec<Button>,
     form: Option<FormCtx>,
-    narrow: bool,
-    pub drawer_open: bool,
     pending_remove: Option<AccountId>,
     /// The tree rows' context menu (right-click, Shift+F10, Menu key);
     /// its `config` is the knob.
@@ -144,13 +143,13 @@ impl AccountsScreen {
             inspector_scroll: ScrollState::default(),
             tree_area: Rect::ZERO,
             inspector_area: Rect::ZERO,
-            split: Split::new(34, 30, 40),
-            seam: Splitter::new(SEAM, SplitDir::Horizontal),
-            seam_container: Rect::ZERO,
+            md: MasterDetail::new(TREE, INSPECTOR)
+                .resizable(Split::new(34, 30, 40))
+                .seam(Splitter::new(SEAM, SplitDir::Horizontal))
+                .collapse_below(100)
+                .summary_rows(6),
             actions: vec![],
             form: None,
-            narrow: false,
-            drawer_open: false,
             pending_remove: None,
             menu: RowMenu::new(MENU),
         }
@@ -2155,8 +2154,7 @@ impl Account {
 impl Page<Jackin> for AccountsScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.build_rows(w);
-        cx.focus.focus(TREE);
-        self.drawer_open = false;
+        self.md.close_drawer(cx.focus);
     }
 
     fn primary_focus(&self) -> Option<WidgetId> {
@@ -2381,16 +2379,12 @@ impl Page<Jackin> for AccountsScreen {
                             }
                             self.build_rows(w);
                         }
-                        _ => {
-                            self.drawer_open = true;
-                            cx.focus.focus(INSPECTOR);
-                        }
+                        _ => self.md.open_drawer(cx.focus),
                     }
                     return Outcome::Changed;
                 }
                 KeyCode::Tab => {
-                    self.drawer_open = true;
-                    cx.focus.focus(INSPECTOR);
+                    self.md.open_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 KeyCode::Esc => {
@@ -2425,12 +2419,11 @@ impl Page<Jackin> for AccountsScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Esc | KeyCode::Left | KeyCode::BackTab => {
-                    self.drawer_open = false;
-                    cx.focus.focus(TREE);
+                    self.md.close_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 KeyCode::Tab | KeyCode::Enter => {
-                    self.drawer_open = true;
+                    // the actions are inside the inspector: the drawer stays
                     if let Some(b) = self.actions.first() {
                         cx.focus.focus(b.id);
                     }
@@ -2470,8 +2463,7 @@ impl Page<Jackin> for AccountsScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Esc => {
-                    self.drawer_open = false;
-                    cx.focus.focus(TREE);
+                    self.md.close_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -2485,6 +2477,10 @@ impl Page<Jackin> for AccountsScreen {
     /// drag moves the seam or the tree's bar; the wheel scrolls the pane
     /// under the pointer.
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        // the seam drags, and a double-click resets it
+        if let Some(o) = self.md.on_pointer(ev) {
+            return o;
+        }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -2493,7 +2489,6 @@ impl Page<Jackin> for AccountsScreen {
             };
         }
         match ev.phase() {
-            Some(Phase::Click) if id == SEAM => self.seam.on_click(&mut self.split, ev.count()),
             Some(Phase::Click) => self.click(id, pos, w, cx),
             Some(Phase::Secondary) => self.secondary(id, pos, w, cx),
             Some(Phase::Drag) => self.drag(id, pos),
@@ -2678,42 +2673,25 @@ impl Page<Jackin> for AccountsScreen {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         self.build_rows(w);
         let t = ctx.theme;
-        self.narrow = area.width < 100;
-        let focus = ctx.interaction.focus;
         if w.accounts.accounts.is_empty() && self.filter.is_none() {
             // empty state still lists Overview and Add
         }
-        if self.narrow {
-            let drawer = self.drawer_open
-                || focus.is_some_and(|f| f == INSPECTOR || self.actions.iter().any(|b| b.id == f));
-            let summary_h = 6u16.min(area.height / 3);
-            let tree = Rect::new(
-                area.x,
-                area.y,
-                area.width,
-                area.height.saturating_sub(summary_h + 1),
-            );
-            self.draw_tree(tree, buf, ctx, w);
-            if drawer {
-                self.draw_inspector(area, buf, ctx, w, true);
+        self.md.detail_owns = self.actions.iter().map(|b| b.id).collect();
+        let l = self.md.layout(area, buf, ctx, t.canvas);
+        if !l.master.is_empty() {
+            self.draw_tree(l.master, buf, ctx, w);
+        }
+        if l.mode != Mode::Split {
+            if l.mode == Mode::Drawer {
+                self.draw_inspector(l.detail, buf, ctx, w, true);
             } else {
-                let summary = Rect::new(area.x, tree.bottom() + 1, area.width, summary_h);
-                self.draw_summary(summary, buf, ctx, w);
-                ctx.control(INSPECTOR, Rect::ZERO, false);
+                self.draw_summary(l.summary, buf, ctx, w);
             }
+            self.md.finish(ctx);
             self.menu.render(area, buf, ctx);
             return;
         }
-        self.seam_container = area;
-        let (left, right) = self.split.horizontal(area, 2);
-        let handle = self.split.handle(SplitDir::Horizontal, area, 2);
-        self.draw_tree(left, buf, ctx, w);
-        self.seam.render(
-            Rect::new(handle.x + 1, handle.y, 1, handle.height),
-            buf,
-            ctx,
-            t.canvas,
-        );
+        let right = l.detail;
         self.draw_inspector(right, buf, ctx, w, false);
         if w.accounts.accounts.is_empty() && matches!(self.selected, Sel::Overview) {
             let e = EmptyState::new("No accounts registered").hint("a adds one · 1Password is the default credential source · discovered sources appear after a refresh");
@@ -2867,8 +2845,7 @@ impl AccountsScreen {
                 let same = self.selected == self.rows[i].sel;
                 self.selected = self.rows[i].sel.clone();
                 self.inspector_scroll.jump_start();
-                cx.focus.focus(TREE);
-                self.drawer_open = false;
+                self.md.close_drawer(cx.focus);
                 if same && self.selected == Sel::Add {
                     self.open_form(None, w, cx);
                 }
@@ -2901,8 +2878,7 @@ impl AccountsScreen {
             return Outcome::Changed;
         }
         if id == INSPECTOR {
-            cx.focus.focus(INSPECTOR);
-            self.drawer_open = true;
+            self.md.open_drawer(cx.focus);
             return Outcome::Changed;
         }
         for i in 0..self.actions.len() {
@@ -2936,17 +2912,12 @@ impl AccountsScreen {
             self.selected = self.rows[i].sel.clone();
             self.inspector_scroll.jump_start();
         }
-        cx.focus.focus(TREE);
-        self.drawer_open = false;
+        self.md.close_drawer(cx.focus);
         self.open_menu(i, ContextAnchor::Pointer(pos), w);
         Outcome::Changed
     }
 
     fn drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if pressed == SEAM {
-            let c = self.seam_container;
-            return self.seam.on_drag(&mut self.split, c, 2, pos);
-        }
         if pressed == scrollbar::id_for(TREE) {
             let track = Rect::new(
                 self.tree_area.right() - 1,
