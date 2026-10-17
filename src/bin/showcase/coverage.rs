@@ -5419,6 +5419,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "ui::reveal::hover_wait",
             "ui::reveal::on_pointer_wheel",
             "ui::reveal::advertise",
+            "ui::reveal::peek",
             "ui::reveal::queue_cut",
             "ui::reveal::cut_id",
         ],
