@@ -13,6 +13,7 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
 use junie_tui::ui::leave::{KeyContext, Leave, LeaveGuard, Resolved, Stakes, letters_allowed};
+use junie_tui::ui::master_detail::{MasterDetail, Mode};
 use junie_tui::widgets::action_row::ActionRow;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
@@ -69,6 +70,10 @@ pub struct ConnectionsScreen {
     dup_btn: Button,
     del_btn: Button,
     retry_btn: Button,
+    /// The list beside the selected connection's card: the list takes a
+    /// third of the width (26..40 columns); below 80 columns the card is
+    /// a drawer that Tab (to Connect) opens (R-apps-2).
+    md: MasterDetail,
     form: Option<ConnForm>,
     /// The guard every way out of a dirty form goes through: `e` (edit
     /// another connection), Ctrl+N (a new one), Esc (close) and quitting
@@ -335,6 +340,10 @@ impl ConnectionsScreen {
             dup_btn: Button::subtle(ID.sub("dup"), "Duplicate"),
             del_btn: Button::danger(ID.sub("del"), "Delete…"),
             retry_btn: Button::secondary(ID.sub("retry"), "Retry"),
+            md: MasterDetail::new(ID.sub("tree"), ID.sub("connect"))
+                .master_share(33, 26, 40)
+                .collapse_below(80)
+                .detail_owns(&[ID.sub("edit"), ID.sub("dup"), ID.sub("del")]),
             form: None,
             leave: LeaveGuard::new(ID.sub("leave")),
             glyphs: junie_tui::theme::Glyphs::default(),
@@ -688,6 +697,10 @@ impl ConnectionsScreen {
             if o == Outcome::Ignored && key.is(KeyCode::Esc) {
                 return (self.leave_form(FormLeave::Close, cx), None);
             }
+            return (o, None);
+        }
+        // Esc on the card returns to the list (and closes the drawer)
+        if let Some(o) = self.md.on_key(key, cx.focus) {
             return (o, None);
         }
         let mut hit: Option<(Outcome, bool, usize)> = None;
@@ -1218,6 +1231,9 @@ impl ConnectionsScreen {
             hint("Ctrl+N", "New"),
             junie_tui::widgets::keyhint::CONTEXT_MENU,
         ]
+        .into_iter()
+        .chain(self.md.hints(focus))
+        .collect()
     }
 
     // ---- render --------------------------------------------------------
@@ -1228,20 +1244,36 @@ impl ConnectionsScreen {
             self.glyphs = t.glyphs;
             self.rebuild_tree();
         }
-        let list_w = (area.width / 3).clamp(26, 40);
-        let (l, r) = if area.width >= 80 {
-            (
-                Rect::new(area.x, area.y, list_w, area.height),
-                Rect::new(
-                    area.x + list_w + 2,
-                    area.y,
-                    area.width.saturating_sub(list_w + 2),
-                    area.height,
-                ),
-            )
-        } else {
-            (area, Rect::ZERO)
+        let md = self.md.layout(area, buf, ctx, t.canvas);
+        let (l, r) = match md.mode {
+            Mode::Split => (md.master, md.detail),
+            Mode::Master => (md.master, Rect::ZERO),
+            Mode::Drawer => (Rect::ZERO, md.detail),
         };
+        if md.mode != Mode::Drawer {
+            self.render_list(l, buf, ctx);
+        }
+        if r.is_empty() {
+            if self.form.is_some() {
+                // the form covers the list: the list is inert under it
+                ctx.cover(buf);
+                self.render_form(area, buf, ctx);
+            } else if self.selected_connection().is_some() {
+                // narrow: the card's hidden stop (Connect) after the list
+                self.md.finish(ctx);
+            }
+            return;
+        }
+        if self.form.is_some() {
+            self.render_form(r, buf, ctx);
+            return;
+        }
+        self.render_detail(r, buf, ctx);
+    }
+
+    /// The Connections pane: the filter over the tree.
+    fn render_list(&mut self, l: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
         // list pane
         let lf = ctx.interaction.focused(self.tree.id) || ctx.interaction.focused(self.filter.id);
         let count = format!("{}", self.connections.len());
@@ -1276,19 +1308,11 @@ impl ConnectionsScreen {
         } else {
             self.tree.render(tree_area, buf, ctx, bg);
         }
-        if r.is_empty() {
-            if self.form.is_some() {
-                // the form covers the list: the list is inert under it
-                ctx.cover(buf);
-                self.render_form(area, buf, ctx);
-            }
-            return;
-        }
-        if self.form.is_some() {
-            self.render_form(r, buf, ctx);
-            return;
-        }
-        // detail card
+    }
+
+    /// The selected connection's card: its facts, state and actions.
+    fn render_detail(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
         let Some(c) = self.selected_connection().cloned() else {
             DetailCard::empty(
                 junie_tui::widgets::empty::EmptyState::new("Select a connection")

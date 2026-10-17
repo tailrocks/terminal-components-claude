@@ -130,8 +130,7 @@ jackin usage 100x25 identities # R-apps-4
 jackin usage 106x29 authenticated identities sentinel shows worst # R-apps-4
 jackin usage 120x40 identities shows worst # R-apps-4
 jackin usage 160x50 identities # R-apps-4
-tablepro conn-failed 72x20 5432 Alert Authentication Database Duplicate Edit Engine Environment Every FATAL Host Last Mode Reconnect SSH SSL Safe User acme ago app asks authentication bastion before confirmation days failed for keychain password runs staging use used user write # R-apps-2
-tablepro conn-failed 80x24 5432 Alert Authentication Database Duplicate Edit Engine Environment Every FATAL Host Last Mode Reconnect SSH SSL Safe User acme ago app asks authentication bastion before confirmation days failed for keychain password runs staging use used user write # R-apps-2
+tablepro conn-failed 72x20 FATAL authentication # R-apps-5
 tablepro conn-form-advanced 72x20 Acme Analytics Development Filter Personal PostgreSQL Production Scratch Staging connections mysql sqlite # R-apps-2 R-apps-4
 tablepro conn-form-advanced 80x24 Acme Analytics Development Filter Personal PostgreSQL Production Scratch Staging connections mysql sqlite # R-apps-2 R-apps-4
 tablepro conn-form-advanced 100x25 one # R-apps-2 R-apps-4
@@ -151,8 +150,6 @@ tablepro conn-form-new 80x24 Acme Analytics Development Filter Local Production 
 tablepro conn-form-new 100x25 json statements still # R-apps-2 R-apps-4 R-apps-5
 tablepro conn-form-new 106x29 Destructive asking json statements still # R-apps-2 R-apps-4 R-apps-5
 tablepro conn-form-new 120x40 still # R-apps-2 R-apps-4 R-apps-5
-tablepro connections 72x20 5432 Database Destructive Duplicate Edit Engine Environment Host Last Mode SSH SSL Safe Silent User Writes acme ago asking confirm dev local localhost minutes off postgres run statements still used without # R-apps-2
-tablepro connections 80x24 5432 Database Destructive Duplicate Edit Engine Environment Host Last Mode SSH SSL Safe Silent User Writes acme ago asking confirm dev local localhost minutes off postgres run statements still used without # R-apps-2
 tablepro connections-empty 72x20 Select moves # R-apps-2
 tablepro connections-empty 80x24 Select moves # R-apps-2
 tablepro history 72x20 ANDed Copy any # R-apps-4 R-apps-7
