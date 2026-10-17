@@ -15,6 +15,7 @@
 //! re-opens at the new spot) is
 //! [`PointerState::route_secondary`](crate::core::pointer::PointerState::route_secondary).
 
+use crate::core::keymap::Actions;
 use crate::core::list::Navigable;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -204,6 +205,68 @@ pub trait ContextSource {
     fn context_select(&mut self, target: Self::Target);
     /// The cursor's target and where its menu opens, `None` when empty.
     fn context_cursor(&self) -> Option<ContextRequest<Self::Target>>;
+}
+
+/// One command of a widget's default context menu
+/// ([`command_items`]): the command, why it is unavailable (if it is), and
+/// whether a separator follows it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ContextCmd<A> {
+    pub cmd: A,
+    pub reason: Option<&'static str>,
+    pub group_end: bool,
+    pub danger: bool,
+}
+
+impl<A> ContextCmd<A> {
+    pub const fn new(cmd: A) -> Self {
+        Self {
+            cmd,
+            reason: None,
+            group_end: false,
+            danger: false,
+        }
+    }
+    /// Unavailable for `reason` when it is `Some`: the row stays, dimmed,
+    /// and says why.
+    pub const fn unless(mut self, reason: Option<&'static str>) -> Self {
+        self.reason = reason;
+        self
+    }
+    /// A separator follows the row.
+    pub const fn group_end(mut self) -> Self {
+        self.group_end = true;
+        self
+    }
+    /// The row is destructive.
+    pub const fn danger(mut self) -> Self {
+        self.danger = true;
+        self
+    }
+}
+
+/// A widget's default context-menu rows from its key map (M22): each row
+/// is the command's [`Actions::label`] with the first deliverable key the
+/// map binds to it ([`crate::core::keymap::label_for`]), so a remapped key
+/// shows its new chord and an undeliverable one shows none.
+pub fn command_items<A: Actions + Copy + PartialEq>(
+    map: &[(crate::core::keymap::KeyBinding, A)],
+    cmds: &[ContextCmd<A>],
+) -> Vec<(A, MenuItem)> {
+    cmds.iter()
+        .map(|c| {
+            let mut item = MenuItem::new(c.cmd.label())
+                .separator_if(c.group_end)
+                .danger_if(c.danger);
+            if let Some(k) = crate::core::keymap::label_for(map, c.cmd) {
+                item = item.shortcut(k);
+            }
+            if let Some(r) = c.reason {
+                item = item.reason(r);
+            }
+            (c.cmd, item)
+        })
+        .collect()
 }
 
 /// A one-row rectangle at `row` rows below the top of `area`'s visible
