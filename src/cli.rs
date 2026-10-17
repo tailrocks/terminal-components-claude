@@ -1,5 +1,5 @@
-//! Command-line options every application shares: colour level, motion and
-//! the paused frame. An application flattens [`CommonArgs`] into its own
+//! Command-line options every application shares: colour level, glyphs,
+//! motion and the paused frame. An application flattens [`CommonArgs`] into its own
 //! `clap` parser and adds only its own options:
 //!
 //! ```ignore
@@ -21,7 +21,7 @@
 use clap::{Parser, ValueEnum};
 
 use crate::motion::Motion;
-use crate::theme::{ColorLevel, Theme};
+use crate::theme::{Charset, ColorLevel, Theme};
 
 /// `--color` values. `24bit` and `mono` are aliases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
@@ -47,12 +47,35 @@ impl From<ColorArg> for ColorLevel {
     }
 }
 
+/// `--glyphs` values. `utf8` is an alias.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum GlyphsArg {
+    #[value(name = "unicode", alias = "utf8")]
+    Unicode,
+    #[value(name = "ascii")]
+    Ascii,
+}
+
+impl From<GlyphsArg> for Charset {
+    fn from(value: GlyphsArg) -> Self {
+        match value {
+            GlyphsArg::Unicode => Self::Unicode,
+            GlyphsArg::Ascii => Self::Ascii,
+        }
+    }
+}
+
 /// The options every application accepts.
 #[derive(Clone, Debug, Default, PartialEq, Eq, clap::Args)]
 pub struct CommonArgs {
     /// Colour level (default: detected from the terminal; NO_COLOR selects none)
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     pub color: Option<ColorArg>,
+    /// Glyphs and copy (default: detected from the terminal; ASCII on the
+    /// Linux console, VT terminals and the legacy Windows console;
+    /// JUNIE_TUI_GLYPHS=unicode|ascii overrides detection)
+    #[arg(long, value_enum, value_name = "SET")]
+    pub glyphs: Option<GlyphsArg>,
     /// How much moves (default: full, or reduced when the app's NO_MOTION variable is set)
     #[arg(short = 'm', long, value_enum, value_name = "MOTION")]
     pub motion: Option<Motion>,
@@ -69,9 +92,18 @@ impl CommonArgs {
             .unwrap_or_else(ColorLevel::detect)
     }
 
-    /// The theme for [`level`](Self::level).
+    /// The charset: `--glyphs`, else [`Charset::detect`] (which honours
+    /// [`Charset::OVERRIDE_ENV`]).
+    pub fn charset(&self) -> Charset {
+        self.glyphs
+            .map(Charset::from)
+            .unwrap_or_else(Charset::detect)
+    }
+
+    /// The theme for [`level`](Self::level), drawing with the glyphs and
+    /// copy of [`charset`](Self::charset).
     pub fn theme(&self) -> Theme {
-        Theme::for_level(self.level())
+        self.charset().apply(Theme::for_level(self.level()))
     }
 
     /// The motion level: `--motion`, else reduced when the application's
@@ -145,6 +177,25 @@ mod tests {
         }
         let mono = Cli::try_parse_from(["app", "--color", "mono"]).unwrap();
         assert_eq!(mono.common.level(), ColorLevel::Mono);
+    }
+
+    /// `--glyphs` wins over the terminal: an explicit set is used whatever
+    /// `TERM` says, and the theme draws with its glyphs and copy.
+    #[test]
+    fn explicit_glyphs_win_and_reach_the_theme() {
+        use crate::theme::{Glyphs, Strings};
+        let ascii = Cli::try_parse_from(["app", "--glyphs", "ascii"]).unwrap();
+        assert_eq!(ascii.common.charset(), Charset::Ascii);
+        let t = ascii.common.theme();
+        assert_eq!((t.glyphs, t.strings), (Glyphs::ASCII, Strings::ASCII));
+        let unicode = Cli::try_parse_from(["app", "--glyphs", "utf8"]).unwrap();
+        assert_eq!(unicode.common.charset(), Charset::Unicode);
+        let t = unicode.common.theme();
+        assert_eq!((t.glyphs, t.strings), (Glyphs::UNICODE, Strings::DEFAULT));
+        let kind = Cli::try_parse_from(["app", "--glyphs", "bogus"])
+            .unwrap_err()
+            .kind();
+        assert_eq!(kind, ErrorKind::InvalidValue);
     }
 
     #[test]
