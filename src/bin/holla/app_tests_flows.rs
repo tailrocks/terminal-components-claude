@@ -767,6 +767,40 @@ fn an_open_menu_hides_the_page_focus_under_it() {
     assert_eq!(tinted(&h), 0, "no focused-row tint under the menu");
 }
 
+/// The key reference's one focus stop is its Done button: focus lands
+/// there and the single `▎` is drawn beside it, in the topmost layer
+/// (AGENTS.md "exactly one focus indicator"; WCAG 2.4.7), as in jackin
+/// and tablepro. It used to stay on the overlay body with no indicator.
+#[test]
+fn the_key_reference_shows_its_one_focus_bar_on_done() {
+    let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::F(1));
+    let help = h
+        .app
+        .modals
+        .top_as::<junie_tui::widgets::help::HelpOverlay>()
+        .expect("F1 opens the key reference");
+    let done = help.done.id;
+    assert_eq!(h.app.shell.focus.current(), Some(done), "{}", h.text());
+    let buf = h.term.backend().buffer();
+    let bars: Vec<_> = buf
+        .content()
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| c.symbol() == "▎")
+        .map(|(i, _)| buf.pos_of(i))
+        .collect();
+    assert_eq!(bars.len(), 1, "one focus bar\n{}", h.text());
+    let (bx, by) = bars[0];
+    let (dx, dy) = h.find(&help.done.label).expect("Done is drawn");
+    assert_eq!(by, dy, "the bar is on Done's row\n{}", h.text());
+    assert!(
+        bx < dx && dx - bx <= 2,
+        "the bar sits beside Done\n{}",
+        h.text()
+    );
+}
+
 #[test]
 fn the_finder_cursor_row_is_a_fill_and_the_query_keeps_the_only_bar() {
     let h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
