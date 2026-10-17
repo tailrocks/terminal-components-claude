@@ -239,7 +239,7 @@ widgets::chips::ChipAction::Remove | widget actions: the Inspector State log of 
 widgets::chips::ChipAction::Add | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::Lead | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::ClearAll | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
-widgets::chips::ChipCmd::ShowHidden | Chips & selects page options | SC10
+widgets::chips::ChipCmd::ShowHidden | the +N menu's key is named only in the +N tooltip (hover); the keyboard reference generated from the widgets' key maps lists it | SC33
 
 # widgets::choice
 
@@ -299,14 +299,16 @@ widgets::input::InputAction::Cancelled | widget edit events and outcomes: the In
 widgets::input::InputAction::CommittedTab | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::input::InputAction::Changed | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::input::TextInput::type_to_edit | deprecated alias of TextInput::edit_entry, shown through inputs.edit_entry | permanent
-widgets::input::TextInput::validate_on | Inputs page options: which ended edits validate (not shown yet) | SC8
-widgets::input::ValidateOn | Inputs page options: which ended edits validate (not shown yet) | SC8
-widgets::input::ValidateOn::Change | Inputs page options: which ended edits validate (not shown yet) | SC8
-widgets::input::ValidateOn::EveryCommit | Inputs page options: which ended edits validate (not shown yet) | SC8
+widgets::input::TextInput::validate_on | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
+widgets::input::ValidateOn | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
+widgets::input::ValidateOn::Change | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
+widgets::input::ValidateOn::EveryCommit | validation timing shows with ValidateWhen (S11) on Inputs: no playground field is an untouched empty required field, so Change and EveryCommit look the same today | SC32
 
 # widgets::keyhint
 
 # widgets::menu
+widgets::menu::ContextMenu::type_ahead_timeout | a menu's type-ahead pause belongs on the Menus page, which opens the menus; its next step (SC41) adds the option | SC41
+widgets::menu::MenuBar::type_ahead_timeout | the menu bar's type-ahead pause belongs on Chrome, which shows the bar; its next step (SC34) adds the option | SC34
 
 # widgets::panel
 
@@ -356,8 +358,3 @@ widgets::too_small::TooSmall | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::brand_style | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::min | TooSmall demo on Status & hints | SC30
 widgets::too_small::TooSmall::quit_hint | TooSmall demo on Status & hints | SC30
-
-# core::list
-widgets::menu::ContextMenu::type_ahead_timeout | a menu's type-ahead pause belongs on the Menus page, which opens the menus; its next step (SC41) adds the option | SC41
-widgets::menu::MenuBar::type_ahead_timeout | the menu bar's type-ahead pause belongs on Chrome, which shows the bar; its next step (SC34) adds the option | SC34
-widgets::tabs::TabCmd::ShowHidden | Tabs page | SC14

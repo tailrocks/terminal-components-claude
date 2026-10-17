@@ -29,7 +29,7 @@ The branch is done when all of these hold:
    at 0 hits and its deviations recorded.
 2. Every SC-step (SC30–SC57) is "Done" and
    `tests/showcase_coverage_allow.txt` holds only `permanent` lines
-   (today: 227 pending, 12 permanent).
+   (today: 226 pending, 12 permanent).
 3. Every finding in `docs/audits/design-review-2026-10/` is "Fixed" or
    recorded with a reason the owner accepted; no "open", "recorded, not
    fixed" or "owner question" entry is left without a decision (§2).
@@ -145,13 +145,13 @@ rows for new surfaces, the step's allowlist lines deleted with the gate
 green, no app-local code in `src/bin/showcase`, and the §7.8 row updated.
 
 Allowlist today (`tests/showcase_coverage_allow.txt`, `id | reason | step`):
-239 lines, 12 `permanent`, 227 pending: SC34 172, SC31 43, SC30 5, SC8 4,
-SC10 1, SC14 1, SC41 1.
+238 lines, 12 `permanent`, 226 pending: SC34 172, SC31 43, SC30 5, SC32 4,
+SC33 1, SC41 1.
 
 | Id | What | Depends on | Allowlist lines | Source |
 |---|---|---|---|---|
 | SC-G1 | Extend the coverage-gate scan (`src/bin/showcase/catalog_scan.rs`) to public non-builder functions and methods: free `pub fn` (e.g. `keyhint::render_status`, `src/widgets/keyhint.rs:355`; `keyhint::render_toned`, `columns::solve`, `ui::text::*`) and `&self` methods (e.g. `Theme::status`, `src/theme.rs:1712`) fall into the scanner's `_ => {}` arm today. Add a `CapKind` for them, list them in `src/catalog.rs`, declare or allowlist each. | — | adds lines | owner brief; plan "SC0 outcome" (scan scope) |
-| SC-G2 | Lines on finished steps: `TextInput::validate_on`, `ValidateOn` and its two variants (SC8), `ChipCmd::ShowHidden` (SC10), `TabCmd::ShowHidden` (SC14), `Theme::centred_hints` (SC30, but Status & hints is SC4). Show them on their pages or re-point them to an open step with a reason; move the misfiled `ShowHidden` and `type_ahead_timeout` lines out of `# core::list`. | — | 7 | allowlist lines 242, 302–305, 343, 360–363 |
+| SC-G2 | **Done.** `TabCmd::ShowHidden` is shown (the Tabs keys readout names "↓ hidden tabs" while the strip has an overflow menu; `the_keys_readout_names_the_hidden_tabs_key_while_the_strip_has_a_menu`). Re-pointed with reasons: `TextInput::validate_on`, `ValidateOn` and its two variants to SC32 (no playground field is an untouched empty required field, so the two variants look the same until `ValidateWhen` lands on Inputs); `ChipCmd::ShowHidden` to SC33 (named only in the `+N` tooltip; the generated keyboard reference lists it; the Chips playground has approved captures). `Theme::centred_hints` stays on SC30, which shows it on Status & hints. The `type_ahead_timeout` lines moved under `# widgets::menu`; `# core::list` is gone. | — | 7 → 0 on finished steps | allowlist |
 | SC30 | Real `Motion` Full/Reduced/Paused, `TooSmall` demo, `StatusLine` TTL, `CommonArgs`, `ui::text` helpers | S2 (done): can run now | 5 | §7.5 SC-F table |
 | SC31 | Stacked modals through `ShellLayers`/`ModalStack`, `Dismiss::{focus_out, refuse_feedback}`, `Frame::close_button`, `DismissReason` in the State log; fix the recorded SC10 finding (a select's list closes on dead space under `Dismiss::ESCAPE` because `Select::close_on_blur`, not `Dismiss::focus_out`, decides blur) | S5, S7 (done): can run now | 43 | §7.5; "SC10 outcome" recorded finding; `interaction.md` "SC10 finding" |
 | SC32 | `EditField`/`Validate`/`ValidateWhen`/`FieldError` on Inputs and Dialog kinds; `OptionList` `WheelMode`, `SelectArrows`, `Item` reason | S11, S12 | — | §7.5 |
