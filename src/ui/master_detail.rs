@@ -570,6 +570,9 @@ mod tests {
 
     #[test]
     fn the_resize_chords_move_the_seam_from_either_pane() {
+        // Alt chords delivered (a Linux client, WezTerm): the hints this
+        // test reads do not depend on the host terminal (A29)
+        crate::core::keyboard::set_alt_keys(crate::core::keyboard::AltKeys::Delivered);
         let mut md = MasterDetail::new(M, D);
         let (l, _) = frame(&mut md, 120, None);
         let mut focus = Focus::default();

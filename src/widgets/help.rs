@@ -62,9 +62,14 @@ impl HelpSection {
         }
     }
 
-    /// Add a row by hand (a mouse gesture, a key group such as `a–z`).
+    /// Add a row by hand (a mouse gesture, a key group such as `a–z`);
+    /// keys the terminal does not deliver are left out
+    /// ([`crate::core::keyboard::label_deliverable`]).
     pub fn row(mut self, keys: impl Into<String>, action: impl Into<String>) -> Self {
-        self.rows.push((keys.into(), action.into()));
+        let keys = keys.into();
+        if crate::core::keyboard::label_deliverable(&keys) {
+            self.rows.push((keys, action.into()));
+        }
         self
     }
 
@@ -195,6 +200,7 @@ impl HelpOverlay {
                     (
                         t.to_owned(),
                         rows.into_iter()
+                            .filter(|(k, _)| crate::core::keyboard::label_deliverable(k))
                             .map(|(k, a)| (k.to_owned(), a.to_owned()))
                             .collect(),
                     )

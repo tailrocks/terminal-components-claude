@@ -322,7 +322,11 @@ pub fn index(all: &[Documented]) -> String {
 }
 
 /// Every generated file as `(path under docs/components, contents)`.
+/// The pages document every chord a component binds where the terminal
+/// delivers it: Alt chords are listed whatever terminal generates them
+/// (A29), so the pages are the same on every host.
 pub fn files() -> Vec<(String, String)> {
+    crate::core::keyboard::set_alt_delivered(true);
     let all = documented();
     let mut v: Vec<(String, String)> = all
         .iter()

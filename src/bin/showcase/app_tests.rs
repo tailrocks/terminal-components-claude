@@ -1112,6 +1112,9 @@ fn frame_digest(h: &Harness) -> u64 {
 
 #[test]
 fn showcase_visual_baseline() {
+    // Alt chords delivered (a Linux client, WezTerm): the hints this
+    // test reads do not depend on the host terminal (A29)
+    junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     use std::fmt::Write as _;
     let mut out = String::new();
     for (w, hgt, level) in [(120u16, 40u16), (80, 24), (72, 20), (100, 30), (160, 50)]

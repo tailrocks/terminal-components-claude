@@ -4135,6 +4135,30 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::keyboard::ProtocolState",
         Demo("focusnavigation", "On pushes ESC[>5u"),
     ),
+    (
+        "core::keyboard::AltKeys",
+        Option("focusnavigation", "shell.alt_keys"),
+    ),
+    (
+        "core::keyboard::AltKeys::Delivered",
+        Option("focusnavigation", "shell.alt_keys=delivered"),
+    ),
+    (
+        "core::keyboard::AltKeys::Refused",
+        Option("focusnavigation", "shell.alt_keys=refused"),
+    ),
+    (
+        "core::keyboard::AltKeys::UntilSeen",
+        Option("focusnavigation", "shell.alt_keys=until-seen"),
+    ),
+    (
+        "core::keyboard::AltKeys::WithProtocol",
+        Option("focusnavigation", "shell.alt_keys=with-protocol"),
+    ),
+    (
+        "core::keymap::KeyBinding::alt_stand_in",
+        Demo("focusnavigation", "stand-in Ctrl+Shift+←"),
+    ),
     ("core::keymap::Nav", Demo("focusnavigation", "Nav map")),
     ("core::keymap::Nav::Up", Demo("focusnavigation", "Up ↑")),
     ("core::keymap::Nav::Down", Demo("focusnavigation", "Down ↓")),
@@ -5875,6 +5899,10 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "core::keyboard::super_delivered",
             "core::keyboard::set_super_delivered",
             "core::keyboard::observe",
+            "core::keyboard::alt_delivered",
+            "core::keyboard::set_alt_delivered",
+            "core::keyboard::set_alt_keys",
+            "core::keyboard::label_deliverable",
         ],
     ),
     (

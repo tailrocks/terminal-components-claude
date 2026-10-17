@@ -200,11 +200,29 @@ impl Default for NavKeys {
 pub struct KeyBinding {
     pub code: KeyCode,
     pub mods: KeyModifiers,
+    /// A stand-in for an Alt chord ([`Self::alt_stand_in`]): it matches
+    /// and is hinted only while the terminal does not deliver Alt
+    /// ([`crate::core::keyboard::alt_delivered`]).
+    pub alt_stand_in: bool,
 }
 
 impl KeyBinding {
     pub const fn new(code: KeyCode, mods: KeyModifiers) -> Self {
-        Self { code, mods }
+        Self {
+            code,
+            mods,
+            alt_stand_in: false,
+        }
+    }
+
+    /// This chord as the stand-in for an Alt chord a terminal may not
+    /// deliver (A29): where Alt arrives, the chord keeps its usual
+    /// meaning in the content (Ctrl+Shift+← selects a word) and the Alt
+    /// chord does the job; where it does not, this chord does it and the
+    /// hint names it.
+    pub const fn alt_stand_in(mut self) -> Self {
+        self.alt_stand_in = true;
+        self
     }
 
     /// `code` with no modifier.
@@ -240,15 +258,24 @@ impl KeyBinding {
     }
 
     /// Whether the terminal delivers this chord: a Cmd (super) chord only
-    /// once [`crate::core::keyboard::super_delivered`] confirms it. Hints
-    /// skip chords that are not deliverable.
+    /// once [`crate::core::keyboard::super_delivered`] confirms it, an Alt
+    /// chord only while [`crate::core::keyboard::alt_delivered`], and an
+    /// [`Self::alt_stand_in`] only while Alt is not delivered. Hints skip
+    /// chords that are not deliverable.
     pub fn deliverable(&self) -> bool {
-        !self.mods.contains(KeyModifiers::SUPER) || crate::core::keyboard::super_delivered()
+        use crate::core::keyboard::{alt_delivered, super_delivered};
+        (!self.mods.contains(KeyModifiers::SUPER) || super_delivered())
+            && (!self.mods.contains(KeyModifiers::ALT) || alt_delivered())
+            && (!self.alt_stand_in || !alt_delivered())
     }
 
-    /// True when `key` is this chord.
+    /// True when `key` is this chord (an [`Self::alt_stand_in`] only while
+    /// Alt chords are not delivered).
     pub fn matches(&self, key: &Key) -> bool {
         if self.code != key.code {
+            return false;
+        }
+        if self.alt_stand_in && crate::core::keyboard::alt_delivered() {
             return false;
         }
         if matches!(self.code, KeyCode::Char(_)) {
@@ -415,11 +442,26 @@ pub fn hint_key<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<&'st
         .get_or_init(Default::default)
         .lock()
         .unwrap_or_else(|e| e.into_inner());
-    Some(
-        labels
-            .entry(b)
-            .or_insert_with(|| Box::leak(b.label().into_boxed_str())),
-    )
+    Some(labels.entry(b).or_insert_with(|| intern(b.label())))
+}
+
+/// `label` as a `&'static str`, each distinct label leaked once: hint keys
+/// built from bindings every frame ([`hint_key`], a pair such as
+/// `Alt+Shift+←→`) without allocating after the first.
+pub fn intern(label: String) -> &'static str {
+    use std::collections::HashSet;
+    use std::sync::{Mutex, OnceLock};
+    static LABELS: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let mut labels = LABELS
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if let Some(&l) = labels.get(label.as_str()) {
+        return l;
+    }
+    let l: &'static str = Box::leak(label.into_boxed_str());
+    labels.insert(l);
+    l
 }
 
 #[cfg(test)]
@@ -548,6 +590,34 @@ mod tests {
             lookup(&map, &with(KeyCode::Char('a'), KeyModifiers::CONTROL)),
             Some(TestCmd::Add)
         );
+    }
+
+    #[test]
+    fn alt_chords_are_hinted_only_where_alt_arrives_and_stand_ins_only_where_not() {
+        use crate::core::keyboard::{AltKeys, set_alt_keys};
+        let map: KeyMap<TestCmd> = vec![
+            (KeyBinding::alt('z'), TestCmd::Add),
+            (
+                KeyBinding::new(KeyCode::Right, KeyModifiers::CONTROL | KeyModifiers::SHIFT)
+                    .alt_stand_in(),
+                TestCmd::Add,
+            ),
+        ];
+        let stand_in = with(KeyCode::Right, KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        let alt_z = with(KeyCode::Char('z'), KeyModifiers::ALT);
+        set_alt_keys(AltKeys::Delivered);
+        assert_eq!(hint_key(&map, TestCmd::Add), Some("Alt+Z"));
+        assert_eq!(lookup(&map, &alt_z), Some(TestCmd::Add));
+        assert_eq!(
+            lookup(&map, &stand_in),
+            None,
+            "Ctrl+Shift+→ stays the content's"
+        );
+        // macOS Terminal: Option types a character
+        set_alt_keys(AltKeys::UntilSeen);
+        assert_eq!(hint_key(&map, TestCmd::Add), Some("Ctrl+Shift+→"));
+        assert_eq!(lookup(&map, &stand_in), Some(TestCmd::Add));
+        assert_eq!(lookup(&map, &alt_z), Some(TestCmd::Add), "still bound");
     }
 
     #[test]
