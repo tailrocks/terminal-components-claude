@@ -6328,7 +6328,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "ui::layout::Split",
         Protocol,
-        &["layout", "handle", "extent_for"],
+        &["layout", "handle", "extent_for", "natural_extent"],
     ),
     ("ui::layout::Split", Protocol, &["vertical", "horizontal"]),
     (

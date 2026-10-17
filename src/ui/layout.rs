@@ -138,8 +138,23 @@ impl Split {
         self.drag_to(dir, area, gap, pos);
     }
 
-    /// The natural extent of the split along its axis (plan §1.4
-    /// `Measure`): the fewest cells that give the first pane at least
+    /// The natural extent of the split for a container to lay out at
+    /// (plan §1.4 `Measure`): [`Self::extent_for`] at the starting ratio
+    /// ([`Self::default_percent`]), the maximised pane kept. A seam drag
+    /// or resize key only shares this room out differently: the
+    /// container never grows or shrinks under the pointer, and a reset
+    /// (double-click) lays every pane out whole again.
+    pub fn natural_extent(&self, first: u16, second: u16, gap: u16) -> u16 {
+        let start = Self {
+            percent: self.default_percent,
+            precise: None,
+            ..*self
+        };
+        start.extent_for(first, second, gap)
+    }
+
+    /// The extent of the split along its axis at its current ratio (plan
+    /// §1.4 `Measure`): the fewest cells that give the first pane at least
     /// `first` and the second at least `second` at the current ratio,
     /// minima and maximised pane, `gap` included. Laid out at it, neither
     /// pane is squeezed.
@@ -836,6 +851,30 @@ mod split_extent_tests {
         let mut zoomed = Split::new(30, 10, 10);
         zoomed.toggle_max(Maximized::Second);
         assert_eq!(zoomed.extent_for(20, 40, 1), 40, "the zoomed pane alone");
+    }
+
+    /// The natural extent is the starting ratio's: a drag or a resize key
+    /// leaves it as it was (the container never resizes under the
+    /// pointer), while the zoomed pane still counts alone.
+    #[test]
+    fn the_natural_extent_ignores_a_moved_seam() {
+        let fresh = Split::new(30, 10, 10);
+        let start = fresh.natural_extent(20, 40, 1);
+        assert_eq!(start, fresh.extent_for(20, 40, 1));
+        let mut dragged = fresh;
+        dragged.drag_to(
+            SplitDir::Horizontal,
+            Rect::new(0, 0, 100, 3),
+            1,
+            Position::new(70, 1),
+        );
+        assert_ne!(dragged.extent_for(20, 40, 1), start, "the ratio moved");
+        assert_eq!(dragged.natural_extent(20, 40, 1), start);
+        let mut keyed = fresh;
+        keyed.grow(20);
+        assert_eq!(keyed.natural_extent(20, 40, 1), start);
+        keyed.toggle_max(Maximized::First);
+        assert_eq!(keyed.natural_extent(20, 40, 1), 20, "zoomed: first alone");
     }
 }
 
