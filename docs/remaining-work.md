@@ -117,7 +117,7 @@ never in view at the smallest failing size.
 | R25 | Pickers | Playground | 80x24, 100x25, 106x29, 120x40 | `Back Cancelled Chosen ChosenAlt Commands Commit Detail Export` |
 | R26 | DialogKinds | Playground | 80x24, 100x25, 106x29, 120x40 | `Action Bool Cancel Changed Check Choose Chooser Closed` |
 | R27 | PopupsTooltips | Playground | 80x24, 100x25, 106x29, 120x40 | `300 600 Below Center Chosen Connected Dismiss Dismissed` |
-| R28 | FileBrowser | Playground | 80x24, 100x25, 106x29, 120x40 | `Cancelled Choose Ctrl Enter File FileCmd FileEntry Filter` |
+| R28 | FileBrowser | Playground | done: Page::measure (cards at their widest line, Panel::outer) | — |
 | R29 | Progress | Playground | 80x24, 100x25, 106x29, 120x40 | `100 BarLayout Build Capacity Deploy Error Exhausted High` |
 | R30 | EmptyError | Playground | 80x24, 100x25, 106x29 | `1041 1042 1204 Acme Connections Corp EmptyState Enter` |
 | R31 | Meters | Playground | 80x24, 100x25, 106x29 | `1000 310 500 512 840 Backup CPU Data` |
