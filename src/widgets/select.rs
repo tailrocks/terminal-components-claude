@@ -23,15 +23,7 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
 use crate::widgets::scrollbar;
 
-/// What ↑/↓ (and ←/→) do on a closed select.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SelectArrows {
-    /// Step the value without opening the list.
-    Step,
-    /// ↑/↓ open the list (macOS popup buttons); ←/→ are left to the page.
-    /// Arrows never change the value unseen.
-    Open,
-}
+pub use crate::widgets::option_list::{SelectArrows, WheelMode};
 
 /// What Tab (and Shift+Tab) do while the list is open (K13).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -44,18 +36,6 @@ pub enum TabInOpen {
     Close,
     /// Keep the list open; Tab does nothing (the old behaviour).
     Swallow,
-}
-
-/// What the wheel does over the open list.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum WheelMode {
-    /// Scroll the list; the cursor (and the value) stay where they are
-    /// (macOS menus, WAI-ARIA listbox: the wheel moves the view, never the
-    /// choice).
-    #[default]
-    Viewport,
-    /// Move the cursor one option per line (the old behaviour).
-    Cursor,
 }
 
 /// A press held since it landed on the field (see [`Select::on_press`]).
