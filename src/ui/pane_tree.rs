@@ -685,30 +685,22 @@ impl PaneTree {
             }
             let focused = tree_focused && pid == self.focused;
             let hovered = ctx.interaction.hovered(part);
-            let block = ratatui::widgets::Block::new()
-                .borders(ratatui::widgets::Borders::ALL)
-                .border_type(ratatui::widgets::BorderType::Rounded)
-                .border_style(t.border(focused).bg(bg));
-            ratatui::widgets::Widget::render(block, r, buf);
-            let mut text = format!(" {} ", title(pid));
-            if zoomed {
-                text.push_str("· zoomed ");
+            // the frame is a framed Panel: the theme's border glyphs, the
+            // strong border on the focused pane
+            let name = title(pid);
+            let meta = if zoomed { Some("zoomed") } else { None };
+            let mut panel = crate::widgets::panel::Panel::framed(Some(&name)).focused(focused);
+            panel.bg_override = Some(bg);
+            if let Some(m) = meta {
+                panel = panel.meta(m);
             }
-            let ts = if focused {
-                t.title()
-            } else if hovered {
-                t.primary()
-            } else {
-                t.secondary()
-            }
-            .bg(bg);
-            if r.width > 6 {
-                buf.set_string(
-                    r.x + 2,
-                    r.y,
-                    crate::ui::text::truncate(&text, r.width.saturating_sub(4) as usize),
-                    ts,
-                );
+            panel.render(r, buf, t);
+            if hovered && !focused && r.width > 4 {
+                // a hovered pane's title brightens (the pointer target)
+                let w = crate::ui::text::width(&name) as u16 + 2;
+                for x in r.x + 2..(r.x + 2 + w).min(r.right().saturating_sub(2)) {
+                    buf[(x, r.y)].set_style(t.primary().bg(bg));
+                }
             }
             inner.push((pid, r.inner(Margin::new(1, 1))));
         }
