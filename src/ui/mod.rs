@@ -3,6 +3,7 @@
 pub mod columns;
 pub mod context;
 pub mod ctx;
+pub mod edit_menu;
 pub mod fade;
 pub mod layer;
 pub mod layers;

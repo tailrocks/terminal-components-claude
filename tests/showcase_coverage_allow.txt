@@ -215,6 +215,7 @@ widgets::picker::Picker::choose_hint | the footer's Enter action of a picker: th
 widgets::picker::Picker::searchable | a fixed-choice picker without a query (the Level picker on the Pickers page is built with it off) | SC33
 
 # core::pointer
+core::pointer::PointerConfig::secondary_focuses | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 core::pointer::SecondaryRoute | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::pointer::SecondaryRoute::Nothing | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::pointer::SecondaryRoute::Target | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -508,6 +509,7 @@ widgets::chips::ChipBar::menu_open | public function registered by SC-G1 (a quer
 widgets::choice_dialog::ChoiceDialog::double_click_confirms | a pointer knob (a double click on an option fires the primary): the Dialog kinds page shows it as an option when SC32 adds the dialog pointer options | SC32
 
 # widgets::code
+widgets::code::CodeEditor::context_menu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 widgets::code::EditorAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::code::EditorAction::Changed | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::code::EditorAction::CursorMoved | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -607,6 +609,7 @@ widgets::icon_button::IconButton::style | public function registered by SC-G1 (a
 # widgets::info_dialog
 
 # widgets::input
+widgets::input::TextInput::context_menu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 widgets::input::InputAction | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::input::InputAction::Committed | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::input::InputAction::Cancelled | widget edit events and outcomes: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -642,6 +645,7 @@ widgets::menu::MenuBar::open_menu | menus: CommandMenu with key replay on Menus 
 widgets::menu::MenuBar::close | menus: CommandMenu with key replay on Menus | SC41
 
 # widgets::panel
+widgets::panel::ScrollPanel::context_menu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 widgets::panel::ScrollPanel::pointer_select | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
 widgets::panel::ScrollPanel::selection | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
 widgets::panel::ScrollPanel::selected_text | text selection in a ScrollPanel (M31, the TextViewport selection model): the Panels page shows a selection when SC41 adds the selection readouts | SC41
@@ -685,6 +689,7 @@ widgets::steps::StepRail::failed | public function registered by SC-G1 (a query,
 
 
 # widgets::textarea
+widgets::textarea::TextArea::context_menu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 widgets::textarea::TextArea::is_dirty | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::viewport
@@ -749,6 +754,29 @@ core::selection::SelectGesture::from_key | covered by the demo of its owner Sele
 ui::columns::header_menu | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # ui::context
+
+# ui::edit_menu
+ui::edit_menu::EditCaps | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditCaps::secret | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::edit_items | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::id_for | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::is_open | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::menu | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::close | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::take_edited | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::owns | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::open | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::key_anchor | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::on_key | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::on_pointer | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::EditMenu::render | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::edit_menu_key | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::edit_menu_pointer | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::edit_menu_route | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::point_editable | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::editable_target | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+ui::edit_menu::point_field | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 
 # ui::fade
 
@@ -985,6 +1013,9 @@ widgets::edit::EditField::text_cmd | EditField, Validate, ValidateWhen, FieldErr
 widgets::edit::EditField::on_key | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::apply | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::paste | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::run | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+widgets::edit::EditField::run_as | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
+widgets::edit::EditField::shortcut | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
 widgets::edit::EditField::record | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::seal | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::clear_history | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32

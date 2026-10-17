@@ -773,3 +773,42 @@ fn an_escape_only_select_stays_open_on_a_click_outside() {
     h.key(KeyCode::Esc);
     assert!(!sort_select(&h).open, "Esc closes it");
 }
+
+/// M3: a right click on a field the keyboard is not in focuses it and
+/// opens the standard Edit menu above the page; the keys then drive the
+/// menu (Enter chooses), and the page needs no code for it.
+#[test]
+fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
+    let mut h = Harness::new(120, 40, PageId::Inputs);
+    h.draw();
+    let (x, y) = h.at("mira@example");
+    let owner = input_field(&h, 2).id;
+    assert_ne!(h.app.shell.focus.current(), Some(owner));
+    h.mouse(MouseKind::Secondary, x + 2, y);
+    h.draw();
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(owner),
+        "the right click focused the field"
+    );
+    for label in ["Cut", "Copy", "Paste", "Select all"] {
+        assert!(
+            h.find(label).is_some(),
+            "the menu shows {label}:\n{}",
+            h.text()
+        );
+    }
+    // nothing is selected and nothing copied: the cursor starts on the
+    // one available command, Select all; Enter chooses it
+    h.key(KeyCode::Enter);
+    h.draw();
+    assert!(
+        h.find("Select all").is_none(),
+        "choosing closed the menu:\n{}",
+        h.text()
+    );
+    assert_eq!(
+        input_field(&h, 2).field.buffer.selected_text(),
+        Some("mira@example")
+    );
+}

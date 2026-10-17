@@ -21,7 +21,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::core::edit::{EditEntry, EditKind, FieldKeys};
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, TextCmd};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::request_focus_next;
 use crate::core::hit::Axis;
@@ -31,6 +31,10 @@ use crate::core::scroll::{HScroll, ScrollPane, ScrollState, Scrollable};
 use crate::core::text::TextBuffer;
 use crate::theme::SyntaxTone;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::edit_menu::{
+    EditCaps, EditMenu, EditMenuHost, edit_menu_key, edit_menu_pointer, edit_menu_route,
+    point_editable,
+};
 use crate::ui::text::{find_ranges, width};
 use crate::widgets::edit::{EditField, Editable, LineLook};
 use crate::widgets::field_common::{EditAction, PointerField};
@@ -134,6 +138,11 @@ pub struct CodeEditor {
     /// The document as the edit began, for [`Self::esc_reverts`].
     snapshot: Option<String>,
     focus_seen: bool,
+    /// The standard Edit context menu a secondary click or Shift+F10 /
+    /// the Menu key opens ([`crate::ui::edit_menu`]): Cut, Copy, Paste,
+    /// Select all, or Copy and Select all on a read-only document.
+    /// [`Self::context_menu`] turns it off.
+    pub edit_menu: EditMenu,
 }
 
 /// A [`CodeEditor`] reading-mode action a key can be bound to.
@@ -226,7 +235,15 @@ impl CodeEditor {
             field_keys: None,
             snapshot: None,
             focus_seen: false,
+            edit_menu: EditMenu::default(),
         }
+    }
+
+    /// Whether a secondary click or a context key opens the Edit menu
+    /// ([`EditMenu::enabled`]). Default `true`.
+    pub fn context_menu(mut self, on: bool) -> Self {
+        self.edit_menu.enabled = on;
+        self
     }
 
     /// See [`Self::edit_entry`].
@@ -273,6 +290,10 @@ impl CodeEditor {
     /// Done` under [`Self::tab_leaves`]); after Esc, `Enter Edit · Tab
     /// Next`. Ctrl+Tab is never advertised (most terminals send plain Tab).
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
+        // the open Edit menu's keys while it holds the keyboard
+        if let Some(m) = self.edit_menu.menu() {
+            return crate::core::hints::HasHints::hints(m, &crate::core::hints::HintCx::new(None));
+        }
         use crate::widgets::keyhint::{EDIT_CODE, hint};
         let esc = if self.esc_reverts { "Cancel" } else { "Done" };
         if self.find.as_ref().is_some_and(|f| f.editing) {
@@ -504,6 +525,17 @@ impl CodeEditor {
         // TextInput and TextArea), editing or not
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
+        }
+        // the open Edit menu takes the keys; Shift+F10 opens it (the find
+        // bar's query keeps its own keys while it is edited)
+        if (self.edit_menu.is_open() || !self.find.as_ref().is_some_and(|f| f.editing))
+            && let Some(o) = edit_menu_key(self, key)
+        {
+            let ev = self
+                .edit_menu
+                .take_edited()
+                .then_some(EditorAction::Changed);
+            return (o, ev);
         }
         // find bar
         if let Some(f) = self.find.as_mut()
@@ -887,6 +919,12 @@ impl CodeEditor {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.render_editor(area, buf, ctx, bg);
+        // the Edit menu floats above everything drawn after the editor
+        self.edit_menu.render(self.area, buf, ctx);
+    }
+
+    fn render_editor(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.scroll.begin(ctx.track_click);
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
@@ -910,9 +948,15 @@ impl CodeEditor {
         };
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
-        s.editing = self.editing && s.focused;
+        // under its open Edit menu the editor shows no focus (the menu
+        // holds the one indicator) but keeps its edit and selection
+        let held = s.focused;
+        s.focused = ctx
+            .interaction
+            .focused_under(self.id, self.edit_menu.is_open());
+        s.editing = self.editing && held;
         // Read-only documents still accept focus, navigation, selection and find.
-        if (!s.focused || self.read_only) && self.editing {
+        if (!held || self.read_only) && self.editing {
             self.commit();
             s.editing = false;
         }
@@ -1396,6 +1440,9 @@ impl crate::core::pointer::MouseTarget for CodeEditor {
         ev: &crate::core::pointer::PointerEvent,
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
+        if let Some(o) = edit_menu_pointer(self, ev) {
+            return o.into();
+        }
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r;
         }
@@ -1405,6 +1452,48 @@ impl crate::core::pointer::MouseTarget for CodeEditor {
             Some(Phase::Drag) => PointerField::on_drag(self, ev.pos()).into(),
             _ => crate::core::response::Response::ignored(),
         }
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<()>> {
+        edit_menu_route(self, ev)
+    }
+}
+
+/// The editor's Edit menu: Cut, Copy, Paste, Select all through its
+/// [`EditField`]; a read-only document offers Copy and Select all. Cut and
+/// Paste pick the edit up, as their keys do.
+impl EditMenuHost for CodeEditor {
+    fn edit_menu(&mut self) -> &mut EditMenu {
+        &mut self.edit_menu
+    }
+    fn edit_owner(&self) -> WidgetId {
+        self.id
+    }
+    fn edit_caps(&self) -> EditCaps {
+        let mut caps = EditCaps::of(&self.field);
+        caps.editable = !self.read_only;
+        caps
+    }
+    fn edit_shortcut(&self, cmd: TextCmd) -> Option<String> {
+        self.field.shortcut(cmd)
+    }
+    fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        // the text, not the scrollbar
+        ev.id == self.id && self.text_area.contains(ev.pos())
+    }
+    fn edit_point(&mut self, pos: Position) {
+        point_editable(self, pos);
+    }
+    fn edit_run(&mut self, cmd: TextCmd) -> bool {
+        if matches!(cmd, TextCmd::Cut | TextCmd::Paste) {
+            self.begin_edit();
+        }
+        let edited = self.field.run_as(cmd, self.read_only).edited;
+        self.after_change();
+        edited
     }
 }
 

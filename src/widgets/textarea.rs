@@ -3,7 +3,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier};
 
-use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect};
+use crate::core::edit::{EditEntry, EditKind, FieldKeys, FocusSelect, TextCmd};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{BlurAction, request_focus_next};
 use crate::core::hit::Axis;
@@ -12,6 +12,10 @@ use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::text::CursorPos;
 use crate::ui::ctx::RenderCtx;
+use crate::ui::edit_menu::{
+    EditCaps, EditMenu, EditMenuHost, edit_menu_key, edit_menu_pointer, edit_menu_route,
+    editable_target, point_editable,
+};
 use crate::ui::text::width;
 use crate::widgets::edit::{EditField, Editable};
 use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, paste_clipboard};
@@ -88,6 +92,10 @@ pub struct TextArea {
     /// The edit in progress was started by focus, so it may end quietly
     /// with the focus.
     focus_edit: bool,
+    /// The standard Edit context menu (Cut, Copy, Paste, Select all) a
+    /// secondary click or Shift+F10 / the Menu key opens
+    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+    pub edit_menu: EditMenu,
 }
 
 impl TextArea {
@@ -121,7 +129,15 @@ impl TextArea {
             was_editing: false,
             label_hit: true,
             focus_edit: false,
+            edit_menu: EditMenu::default(),
         }
+    }
+
+    /// Whether a secondary click or a context key opens the Edit menu
+    /// ([`EditMenu::enabled`]). Default `true`.
+    pub fn context_menu(mut self, on: bool) -> Self {
+        self.edit_menu.enabled = on;
+        self
     }
 
     /// See [`Self::edit_entry`].
@@ -177,6 +193,10 @@ impl TextArea {
     /// after Esc ended the edit.
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
         use crate::widgets::keyhint::{EDIT_TEXT, hint};
+        // the open Edit menu's keys while it holds the keyboard
+        if let Some(m) = self.edit_menu.menu() {
+            return crate::core::hints::HasHints::hints(m, &crate::core::hints::HintCx::new(None));
+        }
         if self.disabled {
             Vec::new()
         } else if self.editing && self.esc_reverts {
@@ -278,6 +298,13 @@ impl TextArea {
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputAction>) {
         if self.disabled {
             return (Outcome::Ignored, None);
+        }
+        // the open Edit menu takes the keys; Shift+F10 opens it
+        if let Some(o) = edit_menu_key(self, key) {
+            return (
+                o,
+                self.edit_menu.take_edited().then_some(InputAction::Changed),
+            );
         }
         // Ctrl+C copies only a selection; with nothing selected it is not
         // the field's, so it reaches the app's quit guard
@@ -463,6 +490,12 @@ impl TextArea {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.render_area(area, buf, ctx, bg);
+        // the Edit menu floats above everything drawn after the area
+        self.edit_menu.render(self.text_area, buf, ctx);
+    }
+
+    fn render_area(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
@@ -493,8 +526,12 @@ impl TextArea {
         }
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
+        // under its open Edit menu the area shows no focus (the menu holds
+        // the one indicator) but keeps its edit, view and selection
+        let menu_open = self.edit_menu.is_open();
+        s.focused = ctx.interaction.focused_under(self.id, menu_open);
         s.disabled = self.disabled;
-        s.editing = self.editing && s.focused;
+        s.editing = self.editing && (s.focused || (menu_open && has_focus));
         s.error = self.field.error.is_some();
         if self.disabled {
             s.hovered = false;
@@ -862,6 +899,9 @@ impl crate::core::pointer::MouseTarget for TextArea {
         ev: &crate::core::pointer::PointerEvent,
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
+        if let Some(o) = edit_menu_pointer(self, ev) {
+            return o.into();
+        }
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r;
         }
@@ -872,6 +912,45 @@ impl crate::core::pointer::MouseTarget for TextArea {
             Some(Phase::Click) => self.on_click_count(pos, ev.count().max(1)).into(),
             _ => crate::core::response::Response::ignored(),
         }
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<()>> {
+        edit_menu_route(self, ev)
+    }
+}
+
+/// The area's Edit menu: Cut, Copy, Paste, Select all through its
+/// [`EditField`].
+impl EditMenuHost for TextArea {
+    fn edit_menu(&mut self) -> &mut EditMenu {
+        &mut self.edit_menu
+    }
+    fn edit_owner(&self) -> WidgetId {
+        self.id
+    }
+    fn edit_caps(&self) -> EditCaps {
+        let mut caps = EditCaps::of(&self.field);
+        caps.editable &= !self.disabled;
+        caps
+    }
+    fn edit_shortcut(&self, cmd: TextCmd) -> Option<String> {
+        self.field.shortcut(cmd)
+    }
+    fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        editable_target(self, ev)
+    }
+    fn edit_point(&mut self, pos: Position) {
+        point_editable(self, pos);
+    }
+    fn edit_run(&mut self, cmd: TextCmd) -> bool {
+        if !self.editing {
+            self.begin_edit();
+        }
+        self.follow_cursor = true;
+        self.field.run(cmd).edited
     }
 }
 

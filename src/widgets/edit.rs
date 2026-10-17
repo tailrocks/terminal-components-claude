@@ -396,6 +396,40 @@ impl EditField {
         EditResult::changed(edited)
     }
 
+    /// Run a text command as if its key was pressed (the Edit context
+    /// menu, [`crate::ui::edit_menu`]): its [`EditAction`] through
+    /// [`Self::apply`]. Paste brings the field clipboard's text in through
+    /// [`Self::paste`], so a one-line field flattens its line breaks as a
+    /// terminal paste does.
+    pub fn run(&mut self, cmd: TextCmd) -> EditResult {
+        self.run_as(cmd, self.read_only)
+    }
+
+    /// [`Self::run`] with `read_only` deciding for this command alone (a
+    /// document that only selects and copies while it is not being
+    /// edited, [`Self::apply_as`]).
+    pub fn run_as(&mut self, cmd: TextCmd, read_only: bool) -> EditResult {
+        if cmd == TextCmd::Paste {
+            let text = crate::core::edit::clipboard::text().unwrap_or_default();
+            return EditResult::changed(!read_only && self.paste(&text));
+        }
+        let action = crate::widgets::field_common::text_cmd_action(cmd, self.multiline);
+        let key = Key {
+            code: ratatui::crossterm::event::KeyCode::Null,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        self.apply_as(action, &key, read_only)
+    }
+
+    /// The label of the first deliverable key bound to `cmd` in the
+    /// field's text key map (its own, or the preset's).
+    pub fn shortcut(&self, cmd: TextCmd) -> Option<String> {
+        match &self.text_keymap {
+            Some(map) => crate::core::keymap::label_for(map, cmd),
+            None => crate::core::keymap::label_for(&self.keys.text_keymap(), cmd),
+        }
+    }
+
     /// Bracketed paste: one undoable edit. A single-line field flattens
     /// line breaks to spaces (a trailing break is dropped), so words never
     /// run together and a pasted newline never submits (standards gap 5).
