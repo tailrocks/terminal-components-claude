@@ -1389,6 +1389,19 @@ impl CodeEditor {
     }
 }
 
+/// The editor's natural size (plan §1.4 `Measure`): every line whole
+/// beside the gutter (bar, marker, numbers), one spare cell for the caret,
+/// every line in view and the status row under them.
+impl crate::ui::measure::Measure for CodeEditor {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let text = self.field.buffer.text();
+        let lines: Vec<&str> = text.split('\n').collect();
+        let num_w = (lines.len().to_string().len() as u16).max(2);
+        let widest = lines.iter().map(|l| width(l)).max().unwrap_or(0) as u16;
+        ratatui::layout::Size::new(1 + 1 + num_w + 1 + 1 + widest + 1, lines.len() as u16 + 1)
+    }
+}
+
 impl Scrollable for CodeEditor {
     /// The pane, its horizontal offset brought in step with
     /// [`CodeEditor::hscroll`] (the caret moves that one).
@@ -1508,6 +1521,26 @@ mod tests {
     use crate::theme::{ColorLevel, Theme};
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    /// At its measure the editor scrolls on neither axis: every line is
+    /// in view and whole.
+    #[test]
+    fn an_editor_at_its_measure_scrolls_on_neither_axis() {
+        use crate::ui::measure::Measure;
+        let text: Vec<String> = (1..=12)
+            .map(|i| format!("    let line_{i} = transient_retry(attempt_{i}).await?;"))
+            .collect();
+        let mut editor = CodeEditor::new(WidgetId::of("c"), &text.join("\n"));
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let size = {
+            let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            editor.measure(ratatui::layout::Size::new(10, 3), &ctx)
+        };
+        render(&mut editor, size.width, size.height);
+        assert!(!editor.scroll.overflows(), "rows: {size:?}");
+        assert!(!editor.scroll.h.overflows(), "columns: {size:?}");
+    }
 
     #[test]
     fn scrollbar_drag_reaches_the_end_of_the_drawn_track() {
