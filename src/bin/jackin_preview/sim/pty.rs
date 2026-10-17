@@ -6,204 +6,23 @@ use std::collections::VecDeque;
 
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Tone;
-use junie_tui::ui::layout::{Split, SplitDir};
+use junie_tui::ui::layout::SplitDir;
 use junie_tui::widgets::viewport::{Line, Span, TextViewport};
-use ratatui::layout::Rect;
 
 use crate::domain::account::AccountId;
 use crate::domain::agent::Agent;
 use crate::domain::instance::AgentState;
 
-pub type PaneId = u64;
+pub use junie_tui::ui::pane_tree::PaneId;
 
 pub const SCROLLBACK: usize = 2_000;
 pub const MIN_PANE_COLS: u16 = 20;
 pub const MIN_PANE_ROWS: u16 = 4;
 pub const MAX_LABEL: usize = 16;
 
-#[derive(Debug, Clone)]
-pub enum PaneNode {
-    Leaf(PaneId),
-    Split {
-        dir: SplitDir,
-        split: Split,
-        first: Box<PaneNode>,
-        second: Box<PaneNode>,
-    },
-}
-
-impl PaneNode {
-    pub fn leaves(&self) -> Vec<PaneId> {
-        match self {
-            PaneNode::Leaf(id) => vec![*id],
-            PaneNode::Split { first, second, .. } => {
-                let mut v = first.leaves();
-                v.extend(second.leaves());
-                v
-            }
-        }
-    }
-
-    /// Geometry of every leaf and every seam (path, dir, container rect).
-    pub fn layout(
-        &self,
-        area: Rect,
-        out: &mut Vec<(PaneId, Rect)>,
-        seams: &mut Vec<Seam>,
-        path: &mut Vec<u8>,
-    ) {
-        match self {
-            PaneNode::Leaf(id) => out.push((*id, area)),
-            PaneNode::Split {
-                dir,
-                split,
-                first,
-                second,
-            } => {
-                let (a, b) = split.layout(*dir, area, 1);
-                let handle = split.handle(*dir, area, 1);
-                seams.push(Seam {
-                    path: path.clone(),
-                    dir: *dir,
-                    container: area,
-                    handle,
-                });
-                path.push(0);
-                first.layout(a, out, seams, path);
-                path.pop();
-                path.push(1);
-                second.layout(b, out, seams, path);
-                path.pop();
-            }
-        }
-    }
-
-    pub fn node_at_mut(&mut self, path: &[u8]) -> Option<&mut PaneNode> {
-        let mut cur = self;
-        for p in path {
-            match cur {
-                PaneNode::Split { first, second, .. } => {
-                    cur = if *p == 0 { first } else { second };
-                }
-                PaneNode::Leaf(_) => return None,
-            }
-        }
-        Some(cur)
-    }
-
-    /// Replace the leaf `target` with a split holding it and `new`.
-    pub fn split_leaf(
-        &mut self,
-        target: PaneId,
-        new: PaneId,
-        dir: SplitDir,
-        new_first: bool,
-    ) -> bool {
-        match self {
-            PaneNode::Leaf(id) if *id == target => {
-                let old = PaneNode::Leaf(*id);
-                let fresh = PaneNode::Leaf(new);
-                let (first, second) = if new_first {
-                    (fresh, old)
-                } else {
-                    (old, fresh)
-                };
-                *self = PaneNode::Split {
-                    dir,
-                    split: Split::new(50, 1, 1),
-                    first: Box::new(first),
-                    second: Box::new(second),
-                };
-                true
-            }
-            PaneNode::Leaf(_) => false,
-            PaneNode::Split { first, second, .. } => {
-                first.split_leaf(target, new, dir, new_first)
-                    || second.split_leaf(target, new, dir, new_first)
-            }
-        }
-    }
-
-    /// Remove a leaf; the parent split collapses into the sibling.
-    pub fn remove_leaf(&mut self, target: PaneId) -> bool {
-        if let PaneNode::Split { first, second, .. } = self {
-            if matches!(**first, PaneNode::Leaf(id) if id == target) {
-                let s = std::mem::replace(&mut **second, PaneNode::Leaf(0));
-                *self = s;
-                return true;
-            }
-            if matches!(**second, PaneNode::Leaf(id) if id == target) {
-                let f = std::mem::replace(&mut **first, PaneNode::Leaf(0));
-                *self = f;
-                return true;
-            }
-            return first.remove_leaf(target) || second.remove_leaf(target);
-        }
-        false
-    }
-
-    /// Path (0/1 steps) from the root to a leaf.
-    pub fn path_to(&self, target: PaneId, path: &mut Vec<u8>) -> bool {
-        match self {
-            PaneNode::Leaf(id) => *id == target,
-            PaneNode::Split { first, second, .. } => {
-                path.push(0);
-                if first.path_to(target, path) {
-                    return true;
-                }
-                path.pop();
-                path.push(1);
-                if second.path_to(target, path) {
-                    return true;
-                }
-                path.pop();
-                false
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Seam {
-    pub path: Vec<u8>,
-    pub dir: SplitDir,
-    pub container: Rect,
-    pub handle: Rect,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
-}
-
-/// Nearest leaf in a direction from `from`, by centre distance.
-pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Option<PaneId> {
-    let (_, fr) = leaves.iter().find(|(id, _)| *id == from)?;
-    let (fx, fy) = (
-        fr.x as i32 + fr.width as i32 / 2,
-        fr.y as i32 + fr.height as i32 / 2,
-    );
-    leaves
-        .iter()
-        .filter(|(id, r)| {
-            *id != from
-                && match dir {
-                    Direction::Left => r.right() as i32 <= fr.x as i32,
-                    Direction::Right => r.x as i32 >= fr.right() as i32,
-                    Direction::Up => r.bottom() as i32 <= fr.y as i32,
-                    Direction::Down => r.y as i32 >= fr.bottom() as i32,
-                }
-        })
-        .min_by_key(|(_, r)| {
-            let cx = r.x as i32 + r.width as i32 / 2;
-            let cy = r.y as i32 + r.height as i32 / 2;
-            (cx - fx).abs() + (cy - fy).abs()
-        })
-        .map(|(id, _)| *id)
-}
+/// The pane tree is the library's (`PaneTree`, S26): the capsule's split
+/// tree, its seams, directions and nearest-pane search moved there.
+pub use junie_tui::ui::pane_tree::{Direction, PaneNode, Seam, nearest};
 
 #[derive(Debug, Clone)]
 pub struct Tab {
@@ -1678,7 +1497,8 @@ mod tests {
         let mut leaves = vec![];
         let mut seams = vec![];
         tab.root.layout(
-            Rect::new(0, 0, 120, 40),
+            ratatui::layout::Rect::new(0, 0, 120, 40),
+            1,
             &mut leaves,
             &mut seams,
             &mut vec![],
