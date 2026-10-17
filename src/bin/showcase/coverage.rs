@@ -4786,27 +4786,23 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     // SC20: Pickers
     (
-        "widgets::picker::PickerItem",
-        Demo("pickers", "▶ Run query (run.query)"),
-    ),
-    (
-        "widgets::picker::PickerItem::detail",
+        "widgets::option_list::Item::detail",
         Demo("pickers", "disabled: Run a query first"),
     ),
     (
-        "widgets::picker::PickerItem::glyph",
+        "widgets::option_list::Item::glyph",
         Demo("pickers", "▶ Run query"),
     ),
     (
-        "widgets::picker::PickerItem::group",
+        "widgets::option_list::Item::group",
         Demo("pickers", "Commands"),
     ),
     (
-        "widgets::picker::PickerItem::key",
+        "widgets::option_list::Item::key",
         Demo("pickers", "(run.query)"),
     ),
     (
-        "widgets::picker::PickerItem::disabled",
+        "widgets::option_list::Item::disabled",
         Demo("pickers", "disabled: No open transaction"),
     ),
     (
@@ -5857,7 +5853,16 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::picker::Picker",
         Operation,
-        &["set_items", "refresh_items", "set_cursor"],
+        &[
+            "set_items",
+            "refresh_items",
+            "set_cursor",
+            "query",
+            "set_query",
+            "current",
+            "is_searchable",
+            "set_searchable",
+        ],
     ),
     (
         "widgets::picker::Picker",

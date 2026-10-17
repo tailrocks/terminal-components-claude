@@ -1157,7 +1157,8 @@ impl Specimen for crate::widgets::picker::Picker {
     ) {
         let _ = bg;
         let mut p = picker_sample(self, state);
-        p.width = p.width.min(area.width);
+        let w = p.list.width.1.min(area.width);
+        p.list.width = (w, w);
         let v = state.visual();
         let row = p.row_id(1.min(p.items.len().saturating_sub(1)));
         ctx.interaction.focus = None;
@@ -1174,7 +1175,7 @@ fn picker_sample(
 ) -> crate::widgets::picker::Picker {
     use crate::widgets::picker::PickerStatus;
     let mut p = p.clone();
-    p.placement = crate::ui::popup::Placement::Center;
+    p.list.placement = crate::ui::popup::Placement::Center;
     p.anchor = Rect::ZERO;
     p.backdrop = crate::ui::ctx::Backdrop::FULL;
     match state {
@@ -1195,7 +1196,7 @@ fn picker_sample(
                 detail: Some("r retries".into()),
             };
         }
-        SpecimenState::Overflow => p.max_rows = 3,
+        SpecimenState::Overflow => p.list.max_rows = 3,
         _ => {}
     }
     p
