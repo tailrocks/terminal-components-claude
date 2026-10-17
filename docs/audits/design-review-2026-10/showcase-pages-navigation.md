@@ -201,7 +201,7 @@ said "open" or "planned" get their owner id, fixed ones their commit.
 | SC28 6 | Open → S27 | SC57 | Strategy B nav policies. |
 | SC27 1 | Open → A13 | with V1 | The legacy `showcase/flows/settings/toggled_off` capture is re-recorded with the Settings flows. |
 | SC27 7 | Fixed; one shared overflow menu open → A13 | 921049106 | `Toolbar` overflow `»` menu; Toolbar, Tabs `+N`, ChipBar and MenuBar `»` still each own their menu. |
-| SC5 1 | Open → SC36 | S17 | `SidebarRail` on the Sidebars page when `NavList` moves into the library. |
+| SC5 1 | Fixed (SC36) | feat(nav_list) | The Sidebars page uses the library `NavList` and `SidebarRail`: the frame `‹` or Ctrl+B hides it behind the rail; a click on the rail or Ctrl+B brings it back. |
 | SC5 2 | Open → SC38 | S19 | The library drawer is `MasterDetail`. |
 | SC5 3 | Decision (`0` is the showcase's jump-to-navigation key) | — | The rail opens by click and Ctrl+B. |
 | SC5 4 | Decision (outer levels collapse, as Windows Explorer's address bar) | d62744f97 | The current page is cut in the middle when too wide (library fix in the same step). |
