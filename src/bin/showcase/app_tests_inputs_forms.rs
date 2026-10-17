@@ -773,3 +773,80 @@ fn an_escape_only_select_stays_open_on_a_click_outside() {
     h.key(KeyCode::Esc);
     assert!(!sort_select(&h).open, "Esc closes it");
 }
+
+// ----------------------------------------------------------------- forms --
+
+/// Forms on the template: the options rebuild the fields through their
+/// builders, the States section draws the fields, and Ctrl+S submits from
+/// the section strip too.
+#[test]
+fn forms_options_states_and_submit_from_the_strip() {
+    let mut h = Harness::new(120, 40, PageId::Forms);
+    let text = h.text();
+    assert!(text.contains("Short imperative summary"), "{text}");
+    assert!(text.contains("Optional · Markdown"));
+    assert!(text.contains("Managed by your organization"));
+    h.opt("forms.placeholders=off");
+    h.opt("forms.help=off");
+    h.opt("forms.managed=off");
+    let text = h.text();
+    assert!(!text.contains("Short imperative summary"), "{text}");
+    assert!(!text.contains("Optional · Markdown"));
+    assert!(!text.contains("Managed by your organization"));
+    // the description's rows
+    let rows = |h: &Harness| {
+        let (_, top) = h.at("Description");
+        let (_, rev) = h.at("Reviewer");
+        rev - top
+    };
+    let four = rows(&h);
+    h.opt("forms.desc_rows=6");
+    assert_eq!(rows(&h), four + 2, "two more description rows");
+    // not required: an empty task name submits
+    h.opt("forms.required=off");
+    h.key(KeyCode::Tab);
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(junie_tui::core::id::WidgetId::of("forms").sub("sections")),
+        "the strip is the page's first stop"
+    );
+    h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    assert!(h.text().contains("Creating task…"), "{}", h.text());
+
+    let mut h = Harness::new(120, 40, PageId::Forms);
+    h.key(KeyCode::Tab);
+    h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    assert!(h.text().contains("Required"), "an empty required name");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(junie_tui::core::id::WidgetId::of("forms").sub("name")),
+        "the invalid field takes focus"
+    );
+
+    h.section(Section::States);
+    let text = h.text();
+    for col in ["Required field", "Optional field", "Description"] {
+        assert!(text.contains(col), "{col}\n{text}");
+    }
+    for row in ["rest", "editing", "error", "disabled", "empty"] {
+        assert!(text.lines().any(|l| l.contains(row)), "{row}\n{text}");
+    }
+}
+
+/// On a short page the form is one column that scrolls part by part:
+/// Tab reaches the actions below the fold and brings them into view.
+#[test]
+fn a_short_forms_page_scrolls_its_column_to_the_focused_control() {
+    let mut h = Harness::new(72, 20, PageId::Forms);
+    assert!(h.text().contains("Task name"));
+    assert!(h.find("Create task").is_none(), "{}", h.text());
+    let submit = junie_tui::core::id::WidgetId::of("forms").sub("submit");
+    for _ in 0..12 {
+        if h.app.shell.focus.current() == Some(submit) {
+            break;
+        }
+        h.key(KeyCode::Tab);
+    }
+    assert_eq!(h.app.shell.focus.current(), Some(submit));
+    assert!(h.find("Create task").is_some(), "{}", h.text());
+}
