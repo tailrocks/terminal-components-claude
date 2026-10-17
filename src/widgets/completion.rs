@@ -1,6 +1,7 @@
 //! Completion popup: an anchored, non-modal suggestion list. The owner keeps
 //! keyboard focus and forwards keys; the popup only consumes navigation and
-//! accept/dismiss keys.
+//! accept/dismiss keys. Its body (cursor, scroll, rows, wheel, hover, the
+//! popup policy) is an [`OptionList`]; its rows are [`Item`]s.
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -8,81 +9,31 @@ use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
-use crate::core::hit::Axis;
-use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
+use crate::core::id::{ItemKey, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Moved, Navigable, RowSource};
-use crate::core::scroll::{ScrollPane, ScrollState, Scrollable};
 use crate::theme::CursorStyle;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::RenderCtx;
 use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for};
 use crate::ui::text::{truncate, width};
-use crate::widgets::scrollbar;
+use crate::widgets::option_list::{Item, OptionList};
 
 /// Columns from the popup's left edge to an item label: the frame, the
 /// cursor gutter, the kind glyph and a space.
 pub const TEXT_INSET: u16 = 4;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompletionItem {
-    pub label: String,
-    /// One-cell kind glyph (T, V, C, K, F, S, A…).
-    pub glyph: std::borrow::Cow<'static, str>,
-    pub detail: String,
-    pub insert: String,
-    /// Byte positions in `label` that matched the typed prefix.
-    pub matched: Vec<usize>,
-}
-
-impl CompletionItem {
-    /// Accept the item into `buffer`: the `replace_len` bytes typed before
-    /// the cursor (the prefix the popup matched) give way to
-    /// [`Self::insert`]. An insert that opens a call (`fetch(`) gets its
-    /// closing `)` with the cursor between the two, as editors pair
-    /// brackets on a function completion.
-    pub fn apply(&self, buffer: &mut crate::core::text::TextBuffer, replace_len: usize) {
-        let cur = buffer.cursor_offset();
-        buffer.remove_range(cur.saturating_sub(replace_len)..cur);
-        buffer.insert_str(&self.insert);
-        if self.insert.ends_with('(') {
-            buffer.insert_char(')');
-            buffer.move_left(false);
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Completion {
     pub id: WidgetId,
-    pub items: Vec<CompletionItem>,
-    pub cursor: usize,
-    /// The rows and the bar ([`Scrollable`]).
-    pub scroll: ScrollPane,
+    /// The suggestions; accepting one inserts its [`Item::insertion`].
+    pub items: Vec<Item>,
+    /// The list body: cursor, scroll and bar, wheel, hover and the popup
+    /// policy (rows, width, fit, placement, dismiss, cursor look, keys).
+    pub list: OptionList,
     pub anchor: Rect,
     /// Bytes before the cursor to replace on accept.
     pub replace_len: usize,
-    pub max_rows: u16,
-    /// Popup width bounds `(min, max)` in cells. Default `(24, 48)`.
-    pub popup_width: (u16, u16),
-    /// How the list keeps off the screen edges and lines up with the typed
-    /// text. Default: one free cell from every edge, and the item labels
-    /// start in the anchor's column ([`TEXT_INSET`]).
-    pub fit: crate::ui::popup::Place,
-    /// Which side of the anchor the list opens on. Default
-    /// [`Placement::Below`] (flipping above when there is no room).
-    pub placement: Placement,
     pub area: Rect,
-    /// How the list closes without a choice. Default: Esc, or a click
-    /// outside that also lands where it was aimed (placing the caret in the
-    /// editor underneath).
-    pub dismiss: Dismiss,
-    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
-    /// editor that owns the list keeps the only focus bar.
-    pub cursor_style: CursorStyle,
-    /// Which keys move the list cursor. Default [`Completion::NAV`]: ↑/↓
-    /// and paging only, since letters, ←/→ and Home/End belong to the
-    /// editor the list completes for. Ctrl+N/Ctrl+P always step.
-    pub nav: NavKeys,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,72 +43,86 @@ pub enum CompletionAction {
 }
 
 impl Completion {
-    /// Default [`Completion::nav`].
+    /// Default [`OptionList::nav`] of a completion: ↑/↓ and paging only,
+    /// since letters, ←/→ and Home/End belong to the editor the list
+    /// completes for. Ctrl+N/Ctrl+P always step.
     pub const NAV: NavKeys = NavKeys::NO_VIM.home_end(false);
 
-    /// See [`Self::nav`].
+    /// Which keys move the list cursor. Default [`Completion::NAV`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.list.nav = nav;
         self
     }
 
     /// Most rows shown before the list scrolls. Default 8.
     pub fn max_rows(mut self, rows: u16) -> Self {
-        self.max_rows = rows;
+        self.list.max_rows = rows;
         self
     }
 
     /// Popup width bounds in cells. Default `(24, 48)`.
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
-        self.popup_width = (min, max.max(min));
+        self.list = self.list.width(min, max);
         self
     }
 
     pub fn new(id: WidgetId) -> Self {
+        let list = OptionList::new(id)
+            .width(24, 48)
+            // the labels start in the anchor's column, one free cell from
+            // every edge
+            .fit(crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET))
+            // Esc, or a click outside that also lands where it was aimed
+            // (placing the caret in the editor underneath)
+            .dismiss(Dismiss::LIGHT.pass_through(true))
+            .nav(Self::NAV)
+            // letters are the editor's
+            .type_ahead(false)
+            // the pointer tints a row and the cursor stays the keyboard's,
+            // as in an editor's suggestion list
+            .hover_moves_cursor(false);
         Self {
             id,
             items: vec![],
-            cursor: 0,
-            scroll: ScrollPane::default(),
+            list,
             anchor: Rect::ZERO,
             replace_len: 0,
-            max_rows: 8,
-            popup_width: (24, 48),
-            fit: crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET),
-            placement: Placement::Below,
             area: Rect::ZERO,
-            dismiss: Dismiss::LIGHT.pass_through(true),
-            cursor_style: CursorStyle::default(),
-            nav: Self::NAV,
         }
     }
 
-    /// See [`Self::placement`].
+    /// Which side of the anchor the list opens on. Default
+    /// [`Placement::Below`] (flipping above when there is no room).
     pub fn placement(mut self, placement: Placement) -> Self {
-        self.placement = placement;
+        self.list.placement = placement;
         self
     }
 
-    /// See [`Self::fit`].
+    /// How the list keeps off the screen edges and lines up with the typed
+    /// text. Default: one free cell from every edge, and the item labels
+    /// start in the anchor's column ([`TEXT_INSET`]).
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
-        self.fit = fit;
+        self.list.fit = fit;
         self
     }
 
+    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
+    /// editor that owns the list keeps the only focus bar.
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
-        self.cursor_style = cursor_style;
+        self.list.look = cursor_style;
         self
     }
 
+    /// How the list closes without a choice. Default: Esc, or a click
+    /// outside that also lands where it was aimed.
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
-        self.dismiss = dismiss;
+        self.list.dismiss = dismiss;
         self
     }
 
-    pub fn open(&mut self, items: Vec<CompletionItem>, anchor: Rect, replace_len: usize) {
+    pub fn open(&mut self, items: Vec<Item>, anchor: Rect, replace_len: usize) {
         self.items = items;
-        self.cursor = 0;
-        self.scroll.v = ScrollState::new(self.items.len());
+        self.list.reset(self.items.len());
         self.anchor = anchor;
         self.replace_len = replace_len;
     }
@@ -170,16 +135,31 @@ impl Completion {
         self.items.clear();
     }
 
-    pub fn current(&self) -> Option<&CompletionItem> {
-        self.items.get(self.cursor)
+    pub fn current(&self) -> Option<&Item> {
+        self.items.get(self.list.cursor.index)
+    }
+
+    /// Accept item `i` into `buffer`: the [`Self::replace_len`] bytes typed
+    /// before the cursor (the prefix the popup matched) give way to
+    /// [`Item::insertion`]. An insertion that opens a call (`fetch(`) gets
+    /// its closing `)` with the cursor between the two, as editors pair
+    /// brackets on a function completion. Out of range does nothing.
+    pub fn apply(&self, i: usize, buffer: &mut crate::core::text::TextBuffer) {
+        let Some(item) = self.items.get(i) else {
+            return;
+        };
+        let insert = item.insertion();
+        let cur = buffer.cursor_offset();
+        buffer.remove_range(cur.saturating_sub(self.replace_len)..cur);
+        buffer.insert_str(insert);
+        if insert.ends_with('(') {
+            buffer.insert_char(')');
+            buffer.move_left(false);
+        }
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.part(Self::row_part(i))
-    }
-
-    fn row_part(i: usize) -> PartRef {
-        PartRef::item(Part::ROW, ItemKey::index(i))
+        self.list.row_id(i)
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<CompletionAction>) {
@@ -187,27 +167,23 @@ impl Completion {
             return (Outcome::Ignored, None);
         }
         let up_down = key.plain() || key.ctrl();
-        let mut cursor = self.cursor();
-        let moved = match (self.nav.action(key), key.code) {
+        let moved = match (self.list.nav.action(key), key.code) {
             (Some(Nav::Down | Nav::Up), _) if !up_down => Moved::Ignored,
-            (Some(nav @ (Nav::Left | Nav::Right)), _) => cursor.apply(nav, self, 1),
-            (Some(nav), _) => cursor.apply(nav, self, self.scroll.viewport_len),
+            (Some(_), _) => self.list.key(key, &self.items[..]),
             // the editor's emacs keys
-            (_, KeyCode::Char('n')) if key.ctrl() => cursor.step(1, self),
-            (_, KeyCode::Char('p')) if key.ctrl() => cursor.step(-1, self),
+            (_, KeyCode::Char('n')) if key.ctrl() => self.list.step(1, &self.items[..]),
+            (_, KeyCode::Char('p')) if key.ctrl() => self.list.step(-1, &self.items[..]),
             _ => Moved::Ignored,
         };
-        if let Some(to) = moved.index() {
-            self.cursor = to;
-            self.scroll.ensure_visible(self.cursor);
+        if moved.index().is_some() {
             return (Outcome::Changed, None);
         }
         match key.code {
             KeyCode::Tab | KeyCode::Enter => (
                 Outcome::Changed,
-                Some(CompletionAction::Accept(self.cursor)),
+                Some(CompletionAction::Accept(self.list.cursor.index)),
             ),
-            KeyCode::Esc if self.dismiss.escape => {
+            KeyCode::Esc if self.list.dismiss.escape => {
                 self.close();
                 (Outcome::Changed, Some(CompletionAction::Dismiss))
             }
@@ -215,27 +191,21 @@ impl Completion {
         }
     }
 
-    /// The row `id` is (the inverse [`Self::on_click`] needs until S15
-    /// hands it the routed part).
-    fn row_of(&self, id: WidgetId) -> Option<usize> {
-        self.id.item_of(id, Part::ROW, 0..self.items.len())
-    }
-
     pub fn on_click(&mut self, id: WidgetId) -> Option<CompletionAction> {
         if id == backdrop_id(self.id) {
-            if !self.dismiss.outside_click {
+            if !self.list.dismiss.outside_click {
                 return None;
             }
             self.close();
             return Some(CompletionAction::Dismiss);
         }
-        let i = self.row_of(id)?;
-        self.cursor = i;
+        let i = self.list.row_of(id, self.items.len())?;
+        self.list.select(i, &self.items[..]);
         Some(CompletionAction::Accept(i))
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        self.scroll.begin(ctx.track_click);
+        self.list.scroll.begin(ctx.track_click);
         if !self.is_open() {
             return;
         }
@@ -251,23 +221,25 @@ impl Completion {
             .map(|i| width(&i.detail))
             .max()
             .unwrap_or(0);
-        let w = (label_w + detail_w + 8)
-            .clamp(self.popup_width.0 as usize, self.popup_width.1 as usize) as u16;
-        let rows = (self.items.len() as u16).min(self.max_rows);
+        let (min_w, max_w) = self.list.width;
+        let w = (label_w + detail_w + 8).clamp(min_w as usize, max_w as usize) as u16;
+        let rows = (self.items.len() as u16).min(self.list.max_rows);
         let h = rows + 2;
-        let area = place_with(screen, self.anchor, w, h, self.placement, self.fit);
+        let area = place_with(
+            screen,
+            self.anchor,
+            w,
+            h,
+            self.list.placement,
+            self.list.fit,
+        );
         self.area = area;
         let inner = area
             .intersection(*buf.area())
             .inner(ratatui::layout::Margin::new(1, 1));
-        self.scroll.set_content(self.items.len());
-        self.scroll.set_viewport(inner.height as usize);
-        // the overlay paints from a copy, so the bar's track is recorded
-        // here, for presses and drags
-        if self.scroll.overflows() && inner.width >= 2 {
-            let track = Rect::new(inner.right() - 1, inner.y, 1, inner.height);
-            self.scroll.set_track(self.id, Axis::Vertical, track);
-        }
+        // the overlay paints from a copy, so the rows are laid out (and
+        // the bar's track recorded) here
+        self.list.layout(inner, &self.items[..], ctx);
         // drawn as an overlay: above whatever is rendered after the editor
         let me = self.clone();
         ctx.overlay(move |buf, ctx| me.paint(area, buf, ctx));
@@ -275,101 +247,94 @@ impl Completion {
 
     fn paint(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let inner = surface_for(area, buf, ctx, t, Some((self.id, self.dismiss)));
-        // the key handlers pull the viewport to the cursor; a render never
-        // does, so a wheel scroll survives the next frame
-        let has_sb = self.scroll.overflows();
+        let inner = surface_for(area, buf, ctx, t, Some((self.id, self.list.dismiss)));
         let bg = t.surface_elevated;
-        for (k, i) in self.scroll.visible_range().enumerate() {
-            let y = inner.y + k as u16;
-            let it = &self.items[i];
-            let rid = self.row_id(i);
-            let mut s = ctx.state(rid);
-            s.focused = i == self.cursor;
-            let cr = t.cursor_row(s, bg, self.cursor_style);
-            let st = cr.style;
-            let row = Rect::new(inner.x, y, inner.width.saturating_sub(u16::from(has_sb)), 1);
-            fill(buf, row, st);
-            buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
-            buf.set_string(
-                row.x + 1,
-                y,
-                &it.glyph,
-                st.fg(if s.focused {
-                    t.text_primary
-                } else {
-                    t.row_ink(&cr, t.text_muted)
-                })
-                .remove_modifier(Modifier::BOLD),
-            );
-            // label with matched chars bold
-            let mut x = row.x + 3;
-            let avail = row.width.saturating_sub(3) as usize;
-            let show_detail =
-                !it.detail.is_empty() && avail > width(&it.label) + width(&it.detail) + 2;
-            let label = truncate(
-                &it.label,
-                if show_detail {
-                    avail - width(&it.detail) - 2
-                } else {
-                    avail
-                },
-            );
-            for (bi, ch) in label.char_indices() {
-                let mut cs = st;
-                if it.matched.contains(&bi) {
-                    cs = cs.add_modifier(Modifier::BOLD);
-                } else if !s.focused {
-                    cs = cs.remove_modifier(Modifier::BOLD);
-                }
-                let g = ch.to_string();
-                buf.set_string(x, y, &g, cs);
-                x += width(&g) as u16;
-            }
-            if show_detail {
-                let dx = row.right().saturating_sub(width(&it.detail) as u16 + 1);
+        let items = &self.items[..];
+        self.list
+            .paint_rows(inner, bg, items, buf, ctx, |r, buf, _| {
+                let it = &items[r.index];
+                let (row, y, cr) = (r.area, r.area.y, &r.look);
+                let st = cr.style;
+                let focused = r.state.focused;
                 buf.set_string(
-                    dx,
+                    row.x + 1,
                     y,
-                    &it.detail,
-                    st.fg(t.row_ink(&cr, t.text_muted))
-                        .remove_modifier(Modifier::BOLD),
+                    &it.glyph,
+                    st.fg(if focused {
+                        t.text_primary
+                    } else {
+                        t.row_ink(cr, t.text_muted)
+                    })
+                    .remove_modifier(Modifier::BOLD),
                 );
-            }
-            ctx.register_part(self.id, Self::row_part(i), row);
-        }
-        if has_sb {
-            scrollbar::render_with_fade(inner, buf, ctx, self.id, &self.scroll, true);
-        }
+                // label with matched chars bold
+                let mut x = row.x + 3;
+                let avail = row.width.saturating_sub(3) as usize;
+                let show_detail =
+                    !it.detail.is_empty() && avail > width(&it.label) + width(&it.detail) + 2;
+                let label = truncate(
+                    &it.label,
+                    if show_detail {
+                        avail - width(&it.detail) - 2
+                    } else {
+                        avail
+                    },
+                );
+                for (bi, ch) in label.char_indices() {
+                    let mut cs = st;
+                    if it.matched.contains(&bi) {
+                        cs = cs.add_modifier(Modifier::BOLD);
+                    } else if !focused {
+                        cs = cs.remove_modifier(Modifier::BOLD);
+                    }
+                    let g = ch.to_string();
+                    buf.set_string(x, y, &g, cs);
+                    x += width(&g) as u16;
+                }
+                if show_detail {
+                    let dx = row.right().saturating_sub(width(&it.detail) as u16 + 1);
+                    buf.set_string(
+                        dx,
+                        y,
+                        &it.detail,
+                        st.fg(t.row_ink(cr, t.text_muted))
+                            .remove_modifier(Modifier::BOLD),
+                    );
+                }
+            });
     }
 }
 
+/// The popup's rows as the shared nav table sees them
+/// (`tests/navigable.rs`), forwarded to its items.
 impl RowSource for Completion {
     fn len(&self) -> usize {
         self.items.len()
     }
+    fn enabled(&self, i: usize) -> bool {
+        self.items[..].enabled(i)
+    }
     fn label(&self, i: usize) -> &str {
         &self.items[i].label
     }
+    fn key(&self, i: usize) -> ItemKey {
+        self.items[..].key(i)
+    }
 }
 
+/// The list's cursor.
 impl Navigable for Completion {
     fn cursor(&self) -> Cursor {
-        Cursor::new(self.cursor)
+        self.list.cursor
     }
 }
 
-impl Scrollable for Completion {
-    fn pane(&mut self) -> &mut ScrollPane {
-        &mut self.scroll
-    }
-}
-
-/// The popup's pointer gestures: a vertical wheel or a bar press scrolls
-/// it (a sideways notch is consumed: the editor beneath does not move); a
-/// completed click on a row accepts it, on the backdrop dismisses per its
-/// dismiss policy ([`Completion::on_click`]); any other click on it is
-/// consumed.
+/// The popup's pointer gestures: the wheel and a bar press scroll its list
+/// (the [`OptionList`]'s
+/// [`Scrollable`](crate::core::scroll::Scrollable); a sideways notch is
+/// consumed so the editor beneath does not move); a completed click on a
+/// row accepts it, on the backdrop dismisses per its dismiss policy
+/// ([`Completion::on_click`]); any other click on it is consumed.
 impl crate::core::pointer::MouseTarget for Completion {
     type Action = CompletionAction;
 
@@ -383,10 +348,7 @@ impl crate::core::pointer::MouseTarget for Completion {
     ) -> crate::core::response::Response<CompletionAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        if let Some((crate::core::hit::Axis::Horizontal, _)) = ev.wheel() {
-            return Response::consumed();
-        }
-        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+        if let Some(r) = crate::core::pointer::scroll_input(&mut self.list, ev) {
             return r.lift();
         }
         match ev.phase() {
@@ -402,6 +364,7 @@ impl crate::core::pointer::MouseTarget for Completion {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::hit::Axis;
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
@@ -409,21 +372,26 @@ mod tests {
 
     #[test]
     fn applying_an_item_replaces_the_prefix_and_pairs_a_call() {
-        let item = |insert: &str| CompletionItem {
-            label: insert.to_owned(),
-            glyph: "ƒ".into(),
-            detail: String::new(),
-            insert: insert.to_owned(),
-            matched: vec![],
+        let popup = |label: &str, insert: &str, replace: usize| {
+            let mut c = Completion::new(WidgetId::of("c"));
+            c.open(
+                vec![Item::new(label).glyph("ƒ").insert(insert)],
+                Rect::ZERO,
+                replace,
+            );
+            c
         };
         let mut b = crate::core::text::TextBuffer::multi("let x = fe");
         b.move_end(false);
-        item("fetch(").apply(&mut b, 2);
+        popup("fetch", "fetch(", 2).apply(0, &mut b);
         assert_eq!(b.text(), "let x = fetch()");
         assert_eq!(b.cursor_offset(), "let x = fetch(".len());
         let mut b = crate::core::text::TextBuffer::multi("Cli");
         b.move_end(false);
-        item("Client").apply(&mut b, 3);
+        // no insert text: the label goes in
+        let mut c = popup("Client", "", 3);
+        c.items[0].insert = None;
+        c.apply(0, &mut b);
         assert_eq!(b.text(), "Client");
         assert_eq!(b.cursor_offset(), 6);
     }
@@ -433,22 +401,16 @@ mod tests {
         let c = Completion::new(WidgetId::of("c"))
             .max_rows(4)
             .popup_width(30, 20);
-        assert_eq!(c.max_rows, 4);
-        assert_eq!(c.popup_width, (30, 30), "max never under min");
+        assert_eq!(c.list.max_rows, 4);
+        assert_eq!(c.list.width, (30, 30), "max never under min");
     }
 
     fn popup(rows: u16) -> Completion {
         let mut c = Completion::new(WidgetId::of("c"));
-        c.max_rows = rows;
+        c.list.max_rows = rows;
         c.open(
             (0..40)
-                .map(|i| CompletionItem {
-                    label: format!("item{i:02}"),
-                    glyph: "T".into(),
-                    detail: String::new(),
-                    insert: format!("item{i:02}"),
-                    matched: vec![],
-                })
+                .map(|i| Item::new(format!("item{i:02}")).glyph("T"))
                 .collect(),
             Rect::new(0, 0, 1, 1),
             0,
@@ -507,30 +469,54 @@ mod tests {
         assert_eq!(bars(&buf), 1);
     }
 
+    /// A wheel notch on a row, routed the way the app routes it: through
+    /// the popup's [`MouseTarget`](crate::core::pointer::MouseTarget) and
+    /// its list's shared wheel.
+    fn wheel(c: &mut Completion, delta: i32) -> Outcome {
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 24));
+        c.render(Rect::new(0, 0, 60, 24), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        let row = c.row_id(c.list.scroll.offset);
+        let pos = hits.area_of(row).expect("a visible row").as_position();
+        let ev = PointerEvent::wheel_on(&hits, row, Axis::Vertical, delta, pos, KeyModifiers::NONE);
+        c.pointer(&ev).outcome()
+    }
+
     #[test]
     fn a_wheel_scroll_survives_the_next_render_and_pages_follow_the_viewport() {
         let mut c = popup(8);
-        draw(&mut c, 24);
-        assert_eq!(c.wheel(Axis::Vertical, 3).outcome(), Outcome::Changed);
-        assert_eq!(c.scroll.offset, 3);
+        assert_eq!(wheel(&mut c, 3), Outcome::Changed);
+        assert_eq!((c.list.scroll.offset, c.list.cursor.index), (3, 0));
         draw(&mut c, 24);
         assert_eq!(
-            c.scroll.offset, 3,
+            c.list.scroll.offset, 3,
             "a render never pulls the view back to the cursor"
         );
-        assert_eq!(c.wheel(Axis::Vertical, -3).outcome(), Outcome::Changed);
-        assert_eq!(c.wheel(Axis::Vertical, -3).outcome(), Outcome::Consumed);
+        assert_eq!(wheel(&mut c, -3), Outcome::Changed);
+        assert_eq!(wheel(&mut c, -3), Outcome::Consumed);
+        // the other mode moves the cursor, and the view follows it
+        let mut by_cursor = popup(8);
+        by_cursor.list.wheel = crate::widgets::option_list::WheelMode::Cursor;
+        assert_eq!(wheel(&mut by_cursor, 9), Outcome::Changed);
+        assert_eq!(by_cursor.list.cursor.index, 9);
+        assert!(by_cursor.list.scroll.visible_range().contains(&9));
         // clipped by a short screen: the page is the viewport, not the config
         let mut short = popup(8);
         draw(&mut short, 6);
-        let view = short.scroll.viewport_len;
+        let view = short.list.scroll.viewport_len;
         assert!(view < 8 && view > 0, "{view}");
         let key = Key {
             code: KeyCode::PageDown,
             mods: KeyModifiers::NONE,
         };
         short.on_key(&key);
-        assert_eq!(short.cursor, view, "one page is one viewport");
-        assert!(short.scroll.visible_range().contains(&short.cursor));
+        assert_eq!(short.list.cursor.index, view, "one page is one viewport");
+        assert!(short.list.scroll.visible_range().contains(&view));
     }
 }
