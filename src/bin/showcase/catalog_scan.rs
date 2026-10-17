@@ -17,7 +17,11 @@
 //! Private inline modules, `#[cfg(test)]` items, function bodies, trait
 //! impls and macro bodies are skipped. Out-of-line `pub mod x;` children
 //! are followed from the roots (`core`, `ui`, `widgets`, `theme`,
-//! `runtime`).
+//! `runtime`, `shell`). A private out-of-line `mod x;` whose items the
+//! parent re-exports (`pub use x::{A, b};`) is followed too, and those
+//! items (with the members of a re-exported type) are filed under the
+//! parent, the path they are public at (`shell::Router`, not
+//! `shell::nav::Router`).
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -37,7 +41,7 @@ pub struct Item {
 const TOKEN_STRUCTS: &[&str] = &["theme::Theme"];
 
 /// Module roots the gate scans (below `src/`).
-pub const ROOTS: &[&str] = &["core", "ui", "widgets", "theme", "runtime"];
+pub const ROOTS: &[&str] = &["core", "ui", "widgets", "theme", "runtime", "shell"];
 
 /// Scans the library source under `src_dir` from [`ROOTS`].
 pub fn scan_tree(src_dir: &Path) -> Vec<Item> {
@@ -48,7 +52,9 @@ pub fn scan_tree(src_dir: &Path) -> Vec<Item> {
     resolve(raw)
 }
 
-fn scan_module(dir: &Path, module: &[String], out: &mut Vec<RawItem>) {
+/// The source text of module `module` (`a/b.rs` or `a/b/mod.rs` below
+/// `dir`) and its label for messages.
+fn read_module(dir: &Path, module: &[String]) -> (String, String) {
     let rel = module.join("/");
     let flat = dir.join(format!("{rel}.rs"));
     let nested = dir.join(format!("{rel}/mod.rs"));
@@ -60,11 +66,39 @@ fn scan_module(dir: &Path, module: &[String], out: &mut Vec<RawItem>) {
         .unwrap_or(&file)
         .display()
         .to_string();
-    let children = scan_raw(module, &src, &label, out);
-    for child in children {
+    (src, label)
+}
+
+fn scan_module(dir: &Path, module: &[String], out: &mut Vec<RawItem>) {
+    let (src, label) = read_module(dir, module);
+    let found = scan_raw(module, &src, &label, out);
+    for child in found.children {
         let mut path = module.to_vec();
         path.push(child);
         scan_module(dir, &path, out);
+    }
+    // private children whose items this module re-exports: those items
+    // are public here
+    let names: Vec<&str> = found
+        .reexports
+        .iter()
+        .filter(|(m, _)| found.private.contains(m))
+        .flat_map(|(_, n)| n.iter().map(String::as_str))
+        .collect();
+    for child in &found.private {
+        if !found.reexports.iter().any(|(m, _)| m == child) {
+            continue;
+        }
+        let mut path = module.to_vec();
+        path.push(child.clone());
+        let (src, label) = read_module(dir, &path);
+        let mut items = Vec::new();
+        scan_raw(module, &src, &label, &mut items);
+        out.extend(
+            items
+                .into_iter()
+                .filter(|i| names.contains(&i.owner.as_deref().unwrap_or(i.name.as_str()))),
+        );
     }
 }
 
@@ -423,7 +457,18 @@ fn skip_quals(h: &[Token], mut i: usize) -> usize {
 struct Ctx<'a> {
     label: &'a str,
     out: &'a mut Vec<RawItem>,
+    found: Found,
+}
+
+/// What a module's scan finds besides its items.
+#[derive(Default)]
+struct Found {
+    /// Out-of-line `pub mod x;` children.
     children: Vec<String>,
+    /// Out-of-line private `mod x;` children.
+    private: Vec<String>,
+    /// `pub use x::{A, b};`: the first path segment and the names.
+    reexports: Vec<(String, Vec<String>)>,
 }
 
 impl Ctx<'_> {
@@ -445,15 +490,53 @@ impl Ctx<'_> {
     }
 }
 
-fn scan_raw(module: &[String], src: &str, label: &str, out: &mut Vec<RawItem>) -> Vec<String> {
+fn scan_raw(module: &[String], src: &str, label: &str, out: &mut Vec<RawItem>) -> Found {
     let toks = tokenize(src);
     let mut ctx = Ctx {
         label,
         out,
-        children: Vec::new(),
+        found: Found::default(),
     };
     walk_items(&toks, 0, toks.len(), module, true, &mut ctx);
-    ctx.children
+    ctx.found
+}
+
+/// A `pub use` header (`toks[h..stop]` from `use`, its `{..}` group, if
+/// any, up to `end`): the first path segment and the names it makes
+/// public (an `as` alias names the item).
+fn reexport(
+    header: &[Token],
+    group: Option<(&[Token], usize, usize)>,
+) -> Option<(String, Vec<String>)> {
+    let path: Vec<&str> = header[1..].iter().filter_map(ident).collect();
+    let first = path.iter().copied().find(|s| *s != "self")?.to_string();
+    let names = match group {
+        Some((toks, from, to)) => {
+            let mut names = Vec::new();
+            let mut i = from;
+            while i < to {
+                match &toks[i].tok {
+                    Tok::Punct('{' | '(' | '[') => {
+                        i = skip_group(toks, i);
+                        continue;
+                    }
+                    Tok::Ident(s)
+                        if !toks.get(i + 1).is_some_and(|t| is_punct(t, ':'))
+                            && toks.get(i + 1).and_then(ident) != Some("as")
+                            && s != "self"
+                            && s != "as" =>
+                    {
+                        names.push(s.clone());
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+            names
+        }
+        None => path.last().map(|s| vec![s.to_string()]).unwrap_or_default(),
+    };
+    Some((first, names))
 }
 
 /// The item headers in `toks[start..end]`: yields (header range, the index
@@ -501,7 +584,18 @@ fn walk_items(
         match (kw, at_brace) {
             (Some("mod"), false) if vis == Vis::Pub && top => {
                 if let Some(n) = name {
-                    ctx.children.push(n.to_string());
+                    ctx.found.children.push(n.to_string());
+                }
+            }
+            (Some("mod"), false) if vis == Vis::Private && top => {
+                if let Some(n) = name {
+                    ctx.found.private.push(n.to_string());
+                }
+            }
+            (Some("use"), _) if vis == Vis::Pub && top => {
+                let group = at_brace.then_some((toks, stop + 1, body_end - 1));
+                if let Some(r) = reexport(&header[k..], group) {
+                    ctx.found.reexports.push(r);
                 }
             }
             (Some("mod"), true) if vis == Vis::Pub => {
