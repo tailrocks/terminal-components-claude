@@ -40,6 +40,7 @@ fn ctor(kind: CapKind) -> &'static str {
         CapKind::Variant => "variant",
         CapKind::Builder => "builder",
         CapKind::Token => "token",
+        CapKind::Function => "function",
         CapKind::State => "state",
     }
 }
@@ -516,6 +517,83 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
     let allow = format!(
         "{ALLOWLIST}\nwidgets::fixture::Gizmo | fixture | SC7\n\
          widgets::fixture::Gizmo::glow | fixture | SC7\n"
+    );
+    assert_eq!(
+        coverage_problems(&caps, SHOWN, &allow),
+        Vec::<String>::new()
+    );
+}
+
+/// Fixture (SC-G1): a new free function and a new query method, scanned
+/// as if they were `src/widgets/fixture.rs`. Constructors are not
+/// capabilities of their own.
+const NEW_FUNCTIONS: &str = r#"
+    pub struct Gizmo { glow: u8 }
+    impl Gizmo {
+        pub fn new() -> Self { Self { glow: 0 } }
+        pub fn level(&self) -> u8 { self.glow }
+    }
+    pub fn render_gizmo(g: &Gizmo) -> String { String::new() }
+"#;
+
+#[test]
+fn gate_fails_when_a_new_public_function_has_no_coverage() {
+    let mut scanned = catalog_scan::scan_tree(src_dir());
+    scanned.extend(catalog_scan::scan_source(
+        &["widgets", "fixture"],
+        NEW_FUNCTIONS,
+    ));
+
+    // Not in the registry: the drift check names the free function and
+    // the method, never the constructor.
+    let drift = registry_problems(CAPABILITIES, &scanned);
+    for line in [
+        "Capability::function(\"widgets::fixture::render_gizmo\")",
+        "Capability::function(\"widgets::fixture::Gizmo::level\")",
+    ] {
+        assert!(drift.iter().any(|p| p.contains(line)), "{line}: {drift:#?}");
+    }
+    assert!(
+        !drift.iter().any(|p| p.contains("Gizmo::new")),
+        "{drift:#?}"
+    );
+
+    // Registered but neither shown nor allowlisted: the coverage check
+    // fails on each function.
+    let mut caps = CAPABILITIES.to_vec();
+    caps.push(Capability::ty("widgets::fixture::Gizmo"));
+    caps.push(Capability::function("widgets::fixture::Gizmo::level"));
+    caps.push(Capability::function("widgets::fixture::render_gizmo"));
+    assert!(registry_problems(&caps, &scanned).is_empty());
+    let gaps = coverage_problems(&caps, SHOWN, ALLOWLIST);
+    for id in [
+        "widgets::fixture::Gizmo::level",
+        "widgets::fixture::render_gizmo",
+    ] {
+        assert!(
+            gaps.iter()
+                .any(|p| p.contains(&format!("function {id} is neither shown"))),
+            "{id}: {gaps:#?}"
+        );
+    }
+
+    // A removed function whose entry stays fails as drift.
+    let gone: Vec<Item> = scanned
+        .iter()
+        .filter(|i| i.id != "widgets::fixture::render_gizmo")
+        .cloned()
+        .collect();
+    assert!(
+        registry_problems(&caps, &gone)
+            .iter()
+            .any(|p| p.contains("lists widgets::fixture::render_gizmo (function)")),
+    );
+
+    // Allowlist lines against an SC step satisfy the gate.
+    let allow = format!(
+        "{ALLOWLIST}\nwidgets::fixture::Gizmo | fixture | SC58\n\
+         widgets::fixture::Gizmo::level | fixture | SC58\n\
+         widgets::fixture::render_gizmo | fixture | SC58\n"
     );
     assert_eq!(
         coverage_problems(&caps, SHOWN, &allow),
