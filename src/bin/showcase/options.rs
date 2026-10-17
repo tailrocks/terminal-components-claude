@@ -268,6 +268,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::EmptyError => EMPTY_ERROR,
         PageId::Meters => METERS,
         PageId::Notices => NOTICES,
+        PageId::FileBrowser => FILE_BROWSER,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::MasterDetail => MASTER_DETAIL,
         PageId::PaneTree => PANE_TREE,
@@ -1330,6 +1331,29 @@ pub static METERS: &[Opt] = &[
     Opt::new("meters.visual", "Quota meter visual", &["block", "line"]),
     Opt::new("meters.offline", "Offline (last-good)", OFF_ON),
     Opt::new("meters.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// File browser (SC41): what Choose accepts, the optional parts (path
+/// bar, filter, hidden-files check box, option check box, URL entry, step
+/// line), type-ahead, the key map and the dismissal policy of the
+/// `FileBrowser` the page opens.
+pub static FILE_BROWSER: &[Opt] = &[
+    Opt::new("filebrowser.choose", "Choose", &["folders", "files", "any"]),
+    Opt::new("filebrowser.source", "Source", &["fixture", "real"]),
+    Opt::new("filebrowser.path_bar", "Path bar", OFF_ON).default(1),
+    Opt::new("filebrowser.filter", "Name filter", OFF_ON).default(1),
+    Opt::new("filebrowser.hidden_toggle", "Hidden toggle", OFF_ON).default(1),
+    Opt::new("filebrowser.show_hidden", "Show hidden", OFF_ON),
+    Opt::new("filebrowser.type_ahead", "Type-ahead", OFF_ON).default(1),
+    Opt::new("filebrowser.keys", "Keys", &["desktop", "vim"]),
+    Opt::new("filebrowser.url_entry", "URL entry", OFF_ON),
+    Opt::new("filebrowser.checkbox", "Option check box", OFF_ON).default(1),
+    Opt::new("filebrowser.stepper", "Step line", OFF_ON),
+    Opt::new(
+        "filebrowser.dismiss",
+        "Dismiss",
+        &["escape", "light", "never"],
+    ),
 ];
 
 /// Notices (SC36): the kind of the query's error card, and the parts and

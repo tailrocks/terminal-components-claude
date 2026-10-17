@@ -173,6 +173,7 @@ pub const SITES: &[Site] = &[
     rows("showcase/pages/dialog_kinds.rs::choice", &["showcase/overlays/dialogkinds_choice"]),
     rows("showcase/pages/dialog_kinds.rs::states_grid", &["showcase/sections/dialogkinds-states"]),
     rows("showcase/pages/dialog_kinds.rs::open_key_picker", &["showcase/overlays/dialogkinds_key_picker"]),
+    rows("showcase/pages/file_browser.rs::open", &["showcase/overlays/filebrowser", "showcase/overlays/filebrowser_url"]),
     rows("showcase/pages/selectable.rs::ask_delete", &["showcase/flows/selectable/delete_confirm"]),
     rows("showcase/pages/selectable.rs::open_menu", &["showcase/overlays/selectable_context"]),
     rows("showcase/pages/selectable.rs::table_input", &["showcase/overlays/selectable_discard"]),

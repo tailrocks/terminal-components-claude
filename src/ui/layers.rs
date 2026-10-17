@@ -1,6 +1,6 @@
 //! The library's modals and popups as [`Layer`]s: an app pushes a
 //! `Dialog`, `Picker`, `ContextMenu`, `FormDialog`, `ChoiceDialog`,
-//! `InfoDialog` or `HelpOverlay` onto its [`ShellLayers`] as is, and
+//! `InfoDialog`, `HelpOverlay` or `FileBrowser` onto its [`ShellLayers`] as is, and
 //! receives a [`LayerResult`] (through `From<LayerResult>` for its own
 //! result type). Input routing, focus restore and dismissal are the
 //! stack's; no app matches on which modal is open (plan S5).
@@ -21,6 +21,7 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec, Overlay};
 use crate::widgets::choice_dialog::ChoiceDialog;
 use crate::widgets::dialog::{Dialog, DialogBody, DialogResult};
+use crate::widgets::file_browser::{FileBrowser, FileBrowserResult};
 use crate::widgets::form_dialog::{FormAction, FormDialog};
 use crate::widgets::help::HelpOverlay;
 use crate::widgets::info_dialog::{InfoDialog, InfoResult};
@@ -55,6 +56,8 @@ pub enum LayerResult {
     Info(InfoResult),
     /// A [`HelpOverlay`] closed.
     Help,
+    /// A [`FileBrowser`] closed: the chosen path, the URL or `Cancelled`.
+    File(FileBrowserResult),
 }
 
 fn out<R: From<LayerResult>>(r: LayerResult, closes: bool) -> LayerOut<R> {
@@ -422,6 +425,41 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOv
         }
         self.closed = false;
         Some(out(LayerResult::Help, true))
+    }
+}
+
+// -------------------------------------------------------------- FileBrowser
+
+impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FileBrowser {
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        FileBrowser::hints(self, focused)
+    }
+    fn is_editing(&self) -> bool {
+        FileBrowser::is_editing(self)
+    }
+    fn spec(&self) -> LayerSpec {
+        Overlay::spec(self)
+    }
+    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &W) {
+        FileBrowser::render(self, screen, buf, ctx);
+    }
+    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
+        FileBrowser::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
+    }
+    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
+        FileBrowser::pointer(self, ev, cx.focus)
+    }
+    fn on_paste(&mut self, text: &str) -> Outcome {
+        FileBrowser::on_paste(self, text)
+    }
+    fn on_blur(&mut self, change: FocusChange) -> Outcome {
+        FileBrowser::on_blur(self, change)
+    }
+    fn on_dismiss(&mut self, reason: DismissReason) {
+        let _ = Overlay::on_dismiss(self, reason);
+    }
+    fn take_result(&mut self) -> Option<LayerOut<R>> {
+        self.result.take().map(|r| out(LayerResult::File(r), true))
     }
 }
 

@@ -2883,6 +2883,178 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("notices", "notices.mark_cut"),
     ),
     (
+        "ui::layers::LayerResult::File",
+        Demo("filebrowser", "LayerResult::File"),
+    ),
+    (
+        "widgets::file_browser::FileEntry",
+        Demo("filebrowser", "FileEntry rows of ~"),
+    ),
+    (
+        "widgets::file_browser::FileEntry::meta",
+        Demo("filebrowser", "src folder 4 items"),
+    ),
+    (
+        "widgets::file_browser::FileEntry::hidden",
+        Demo("filebrowser", ".ssh folder keys hidden"),
+    ),
+    (
+        "widgets::file_browser::MemorySource",
+        Demo("filebrowser", "MemorySource · home"),
+    ),
+    (
+        "widgets::file_browser::MemorySource::home",
+        Demo("filebrowser", "home /Users/ada"),
+    ),
+    (
+        "widgets::file_browser::FsSource",
+        Option("filebrowser", "filebrowser.source"),
+    ),
+    (
+        "widgets::file_browser::Choose",
+        Option("filebrowser", "filebrowser.choose"),
+    ),
+    (
+        "widgets::file_browser::Choose::Dirs",
+        Option("filebrowser", "filebrowser.choose"),
+    ),
+    (
+        "widgets::file_browser::Choose::Files",
+        Option("filebrowser", "filebrowser.choose"),
+    ),
+    (
+        "widgets::file_browser::Choose::Any",
+        Option("filebrowser", "filebrowser.choose"),
+    ),
+    (
+        "widgets::file_browser::FileCmd",
+        Demo("filebrowser", "FileCmd · desktop key map"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::Open",
+        Demo("filebrowser", "Enter Open"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::Parent",
+        Demo("filebrowser", "Parent folder"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::Choose",
+        Demo("filebrowser", "Space Choose"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::ToggleHidden",
+        Demo("filebrowser", ". Hidden files"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::GoTo",
+        Demo("filebrowser", "/ Go to folder"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::Filter",
+        Demo("filebrowser", "Ctrl+F Filter"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::Url",
+        Demo("filebrowser", "unbound URL entry"),
+    ),
+    (
+        "widgets::file_browser::FileCmd::vim_keymap",
+        Option("filebrowser", "filebrowser.keys"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry::back",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry::placeholder",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry::help",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry::hint",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry::empty_error",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::UrlEntry::validate",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::FileBrowserResult",
+        Demo("filebrowser", "FileBrowserResult: Chosen"),
+    ),
+    (
+        "widgets::file_browser::FileBrowserResult::Chosen",
+        Demo("filebrowser", "Chosen { path, checked }"),
+    ),
+    (
+        "widgets::file_browser::FileBrowserResult::Url",
+        Demo("filebrowser", "checked } · Url ·"),
+    ),
+    (
+        "widgets::file_browser::FileBrowserResult::Cancelled",
+        Demo("filebrowser", "Url · Cancelled"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser",
+        Demo("filebrowser", "FileBrowser on the layer stack"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::dismiss",
+        Option("filebrowser", "filebrowser.dismiss"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::choose",
+        Option("filebrowser", "filebrowser.choose"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::checkbox",
+        Option("filebrowser", "filebrowser.checkbox"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::show_hidden",
+        Option("filebrowser", "filebrowser.show_hidden"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::hidden_toggle",
+        Option("filebrowser", "filebrowser.hidden_toggle"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::path_bar",
+        Option("filebrowser", "filebrowser.path_bar"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::filter",
+        Option("filebrowser", "filebrowser.filter"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::type_ahead",
+        Option("filebrowser", "filebrowser.type_ahead"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::keys",
+        Option("filebrowser", "filebrowser.keys"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::url_entry",
+        Option("filebrowser", "filebrowser.url_entry"),
+    ),
+    (
+        "widgets::file_browser::FileBrowser::stepper",
+        Option("filebrowser", "filebrowser.stepper"),
+    ),
+    (
         "widgets::meter_list::MeterList",
         Demo("meters", "Session (5 h)"),
     ),
@@ -5421,6 +5593,23 @@ impl ViaRole {
 /// catalog, a bare name of another type, a path that is a method, and a
 /// function that is also declared directly or allowlisted.
 pub static VIA: &[(&str, ViaRole, &[&str])] = &[
+    (
+        "widgets::file_browser::FileBrowser",
+        Protocol,
+        &[
+            "load",
+            "on_key",
+            "pointer",
+            "on_paste",
+            "is_editing",
+            "on_blur",
+            "render",
+            "initial_focus",
+            "hints",
+            "url_button",
+        ],
+    ),
+    ("widgets::file_browser::FileEntry", Operation, &["name"]),
     (
         "widgets::notice::Notice",
         Protocol,

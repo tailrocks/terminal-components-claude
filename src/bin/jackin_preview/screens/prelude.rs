@@ -19,7 +19,7 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 
-use super::modals::{BrowserResult, ChoiceDialog, FileBrowser};
+use super::modals::{BrowserResult, ChoiceDialog};
 use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::workspace::{Mount, Workspace};
 use crate::sim::world::World;
@@ -144,7 +144,14 @@ impl PreludeScreen {
         self.step = step;
         match step {
             Step::Source => {
-                let mut b = FileBrowser::new(BROWSER, Self::title(step), &self.cwd, true, true, w);
+                let mut b = super::modals::file_browser(
+                    BROWSER,
+                    Self::title(step),
+                    &self.cwd,
+                    true,
+                    true,
+                    w,
+                );
                 b.stepper = Some(self.stepper_line());
                 cx.open(b, LayerTag::new("prelude.source"));
             }
@@ -390,7 +397,10 @@ impl Page<Jackin> for PreludeScreen {
     ) -> Outcome {
         match (tag.kind, result) {
             ("prelude.source", ModalResult::Browser(r)) => match r {
-                BrowserResult::Chosen { path, readonly } => {
+                BrowserResult::Chosen {
+                    path,
+                    checked: readonly,
+                } => {
                     if let Some((parent, _)) = path.rsplit_once('/')
                         && !parent.is_empty()
                     {
@@ -399,7 +409,7 @@ impl Page<Jackin> for PreludeScreen {
                     self.source = Some(Source::Host { path, readonly });
                     self.open(Step::Destination, w, cx, None);
                 }
-                BrowserResult::GitUrl(url) => {
+                BrowserResult::Url(url) => {
                     self.source = Some(Source::Git { url });
                     self.open(Step::Destination, w, cx, None);
                 }
