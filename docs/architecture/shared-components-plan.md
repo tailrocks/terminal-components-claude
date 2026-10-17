@@ -596,6 +596,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 4. CO2: the router runs the whole order inside `core::list::route_key`; a key-order row locks a page letter over a focused list (`a_letter_shortcut_wins_over_a_focused_lists_type_ahead`, library).
 5. A16: `a_paste_goes_to_the_top_layer_else_the_page` (library; the app paths kept their behaviour).
 6. K26: jackin's Capsule prefix (Ctrl+B) is sticky by default, Esc cancels; `CapsuleScreen::prefix_timeout_ms` restores a timeout (`the_capsule_prefix_waits_until_esc`).
+7. `CodeEditor` lets Ctrl+C with nothing selected pass while it edits, as `TextInput` and `TextArea` do (keyboard.md review (4)); with the router giving an editing field the key first, tablepro's query editor under the Linux field keys otherwise kept Ctrl+C from the quit guard (`ctrl_c_without_a_selection_passes_on_while_editing`, fails on the parent with `JUNIE_TUI_CLIENT_PLATFORM=linux`).
 - The key-order table (`src/shell/router_tests.rs`, `the_key_order_table`) is the cross-app acceptance test: every stage, capture, priority, idle-only, quit and Esc rows.
 - Visual: none intended; `check-touched` ran green on the library commit and on the branch head.
 
