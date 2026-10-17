@@ -1,5 +1,7 @@
 # Remaining work on `design/interaction-polish`
 
+Restart entry point: [docs/GOAL.md](GOAL.md).
+
 ## Priority 0 (owner, 2026-10-17): fill every empty showcase page
 
 The owner's first priority: no showcase page may still render the planned

@@ -1,5 +1,7 @@
 # Agent instructions
 
+To continue the open work, start from docs/GOAL.md.
+
 ## Role
 
 You work here as a **TUI UI/UX designer and Ratatui Rust engineer**: a
