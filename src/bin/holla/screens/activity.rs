@@ -15,11 +15,12 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::text::{truncate, width};
+use junie_tui::ui::text::width;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
+use junie_tui::widgets::page_header::PageHeader;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportAction, line_text};
@@ -812,17 +813,6 @@ impl ShellPage<Holla> for ActivityTab {
             head.push_str(" · attached");
         }
         // an attached monitor's frame says so once; the hint bar owns the key
-        buf.set_string(area.x + 1, area.y, &a.name, t.title());
-        buf.set_string(
-            area.x + 1 + width(&a.name) as u16,
-            area.y,
-            &head,
-            ratatui::style::Style::new().fg(t.tone(if a.waiting.is_some() {
-                Tone::Warning
-            } else {
-                state_tone
-            })),
-        );
         let right = if a.scope.direction == crate::domain::context::Scope::System {
             a.host.clone()
         } else {
@@ -833,15 +823,11 @@ impl ShellPage<Holla> for ActivityTab {
                 a.host
             )
         };
-        let rw = width(&right) as u16;
-        if rw + 2 + width(&a.name) as u16 + width(&head) as u16 + 4 < area.width {
-            buf.set_string(
-                area.right().saturating_sub(rw + 1),
-                area.y,
-                &right,
-                t.muted(),
-            );
-        }
+        let status_tone = if a.waiting.is_some() {
+            Tone::Warning
+        } else {
+            state_tone
+        };
         // the exact command, then insights or origin
         let mut insight = if a.insights.is_empty() {
             format!("started by {}", a.origin)
@@ -865,12 +851,12 @@ impl ShellPage<Holla> for ActivityTab {
                     .join(" && ")
             );
         }
-        buf.set_string(
-            area.x + 1,
-            area.y + 1,
-            truncate(&insight, area.width.saturating_sub(2) as usize),
-            t.muted(),
-        );
+        PageHeader::new(&a.name)
+            .status(&head, status_tone)
+            .right(&right)
+            .right_gap(6)
+            .subtitle(&insight, Tone::Muted)
+            .render(area, buf, t);
         let mut y = area.y + 3;
         if !self.chips.chips.is_empty() {
             self.chips.render(

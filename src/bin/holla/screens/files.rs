@@ -21,6 +21,7 @@ use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem, Placement};
 use junie_tui::widgets::option_list::Item;
+use junie_tui::widgets::page_header::Heading;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::picker::{Picker, PickerStatus};
 use junie_tui::widgets::scrollbar;
@@ -32,7 +33,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::exec::Command;
-use crate::screens::{Cx, Go, ModalResult, Screen, StatusBits, heading, scroll_drag, scroll_press};
+use crate::screens::{Cx, Go, ModalResult, Screen, StatusBits, scroll_drag, scroll_press};
 use crate::sim::fs::{FindHit, Fs, NodeKind, Preview};
 use crate::sim::world::{SourceState, World};
 use junie_tui::ui::layer::LayerTag;
@@ -1656,15 +1657,13 @@ impl ShellPage<Holla> for FilesPage {
                     ));
                 }
                 ctx.control(QUERY, query, false);
-                heading(
+                Heading::new(&format!(
+                    "{} · home scope",
+                    plural(self.hits.len(), "result", "results")
+                ))
+                .render(
+                    Rect::new(area.x + 3, area.y + 1, area.width.saturating_sub(3), 1),
                     buf,
-                    area.x + 3,
-                    area.y + 1,
-                    area.width.saturating_sub(3),
-                    &format!(
-                        "{} · home scope",
-                        plural(self.hits.len(), "result", "results")
-                    ),
                     t,
                     t.canvas,
                 );
