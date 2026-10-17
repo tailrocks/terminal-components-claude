@@ -531,7 +531,9 @@ fn clicking_dead_space_ends_the_edit_and_keeps_focus() {
 
 #[test]
 fn textarea_scrolls_with_wheel_and_keys() {
-    let mut h = Harness::new(120, 40, PageId::TextAreas);
+    // the areas are as wide as their longest lines: a screen that shows
+    // the first one whole, with its position readout
+    let mut h = Harness::new(220, 50, PageId::TextAreas);
     assert!(h.text().contains(" 1. Read"));
     let (x, y) = h.find(" 1. Read").unwrap();
     h.mouse(MouseKind::WheelDown, x, y + 2);

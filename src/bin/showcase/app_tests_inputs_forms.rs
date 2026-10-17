@@ -417,7 +417,8 @@ fn inputs_blur_action_decides_what_leaving_an_edit_does() {
 #[test]
 fn inputs_label_options_wrap_hide_optional_and_take_clicks() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
-    assert!(h.text().contains("once the task is do…"));
+    // the fields are as wide as their labels: the label shows whole
+    assert!(h.text().contains("once the task is done"));
     h.opt("inputs.wrap_label=on");
     let text = h.text();
     assert!(!text.contains("once the task is do…"), "{text}");
@@ -791,6 +792,7 @@ fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
         Some(owner),
         "the right click focused the field"
     );
+    assert!(input_field(&h, 2).edit_menu.is_open());
     for label in ["Cut", "Copy", "Paste", "Select all"] {
         assert!(
             h.find(label).is_some(),
@@ -802,8 +804,9 @@ fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
     // one available command, Select all; Enter chooses it
     h.key(KeyCode::Enter);
     h.draw();
+    // the Text commands card lists "Select all" too: ask the field
     assert!(
-        h.find("Select all").is_none(),
+        !input_field(&h, 2).edit_menu.is_open(),
         "choosing closed the menu:\n{}",
         h.text()
     );
