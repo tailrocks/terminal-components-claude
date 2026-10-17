@@ -363,6 +363,12 @@ fn keys_readout(t: &Tabs) -> String {
     {
         parts.push(format!("{k} new tab"));
     }
+    // the `+N` menu's keyboard opener, while the strip has one
+    if t.overflow_menu
+        && let Some(k) = label_for(&t.keymap, TabCmd::ShowHidden)
+    {
+        parts.push(format!("{k} hidden tabs"));
+    }
     if t.wrap {
         parts.push("wraps".into());
     }
