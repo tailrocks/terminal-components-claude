@@ -58,12 +58,23 @@ pub struct ChoiceDialog {
     /// Default [`crate::widgets::button::ButtonRow::new`]: disabled
     /// buttons are skipped, no wrap.
     pub button_row: crate::widgets::button::ButtonRow,
+    /// A double click on an option chooses it and fires the primary
+    /// button, the one Enter on the options fires (a macOS list sheet's
+    /// double click is its default button). A single click only selects.
+    /// Default `true`; `false` makes every click only select.
+    pub double_click_confirms: bool,
 }
 
 impl ChoiceDialog {
     /// See [`Self::button_row`].
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
+        self
+    }
+
+    /// See [`Self::double_click_confirms`].
+    pub fn double_click_confirms(mut self, on: bool) -> Self {
+        self.double_click_confirms = on;
         self
     }
 
@@ -94,6 +105,7 @@ impl ChoiceDialog {
             strings: Strings::DEFAULT,
             nav: NavKeys::default(),
             button_row: crate::widgets::button::ButtonRow::new(),
+            double_click_confirms: true,
         }
     }
 
@@ -141,6 +153,15 @@ impl ChoiceDialog {
         2 + 2 + stepper + body + self.radio.height() + 2 + 1
     }
 
+    /// The button Enter on the options fires: the first primary or
+    /// danger button, else the last.
+    fn primary(&self) -> usize {
+        self.buttons
+            .iter()
+            .position(|b| b.kind == ButtonKind::Primary || b.kind == ButtonKind::Danger)
+            .unwrap_or(self.buttons.len().saturating_sub(1))
+    }
+
     fn fire(&mut self, i: usize) -> Outcome {
         self.fired = Some(i);
         self.result = Some(if i == self.cancel_index {
@@ -155,12 +176,7 @@ impl ChoiceDialog {
         let cur = focus.current();
         if cur == Some(self.radio.id) {
             if key.is(KeyCode::Enter) {
-                let primary = self
-                    .buttons
-                    .iter()
-                    .position(|b| b.kind == ButtonKind::Primary || b.kind == ButtonKind::Danger)
-                    .unwrap_or(self.buttons.len() - 1);
-                return self.fire(primary);
+                return self.fire(self.primary());
             }
             let o = self.radio.on_key(key);
             if o.consumed() {
@@ -307,7 +323,8 @@ impl ChoiceDialog {
     /// One pointer event the router resolved to the dialog (its layer's
     /// [`crate::ui::layer::Layer::pointer`]): the radio group takes its own
     /// clicks ([`crate::core::pointer::MouseTarget::route`]; a click
-    /// focuses it); any other completed click is [`Self::on_click`] (a
+    /// focuses it, and a double click on an option also fires the primary
+    /// button per [`Self::double_click_confirms`]); any other completed click is [`Self::on_click`] (a
     /// button). The dialog does not scroll: a wheel moves nothing.
     pub fn pointer_in(
         &mut self,
@@ -323,6 +340,18 @@ impl ChoiceDialog {
         if let Some(r) = self.radio.route(ev) {
             if ev.is(Phase::Click) {
                 focus.focus(self.radio.id);
+                // a double click on an option chooses it
+                // ([`Self::double_click_confirms`])
+                if self.double_click_confirms
+                    && ev.count() >= 2
+                    && !self.radio.disabled
+                    && !self.buttons.is_empty()
+                    && ev
+                        .index_of(crate::core::id::Part::ROW)
+                        .is_some_and(|i| i == self.radio.selected)
+                {
+                    return self.fire(self.primary()).into();
+                }
             }
             return r;
         }
@@ -376,5 +405,53 @@ mod tests {
         d.on_key(&key(KeyCode::Down), &mut focus, &ring);
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         assert_eq!(d.result, Some(Some(1)));
+    }
+
+    /// M39: a double click on an option chooses it and fires the primary
+    /// button (the one Enter fires); a single click only selects;
+    /// `double_click_confirms(false)` keeps every click a selection.
+    #[test]
+    fn a_double_click_on_an_option_confirms_it() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::PointerEvent;
+        let t = Theme::junie();
+        let draw = |d: &mut ChoiceDialog| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+            d.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
+            drop(ctx);
+            hits
+        };
+        let click = |d: &mut ChoiceDialog, hits: &HitRegistry, i: usize, count: u8| {
+            let id = d.radio.option_id(i);
+            let at = d.radio.areas[i];
+            let pos = ratatui::layout::Position::new(at.x + 6, at.y);
+            let mut focus = Focus::default();
+            for phase in [Phase::Press, Phase::Click] {
+                let ev = PointerEvent::new(hits, phase, id, pos, count, KeyModifiers::NONE);
+                let _ = d.pointer_in(&ev, &mut focus);
+            }
+        };
+        let new =
+            || ChoiceDialog::new(WidgetId::of("split"), "Split", "Dir", &["Right", "Down"], 0);
+
+        // a single click only selects
+        let mut d = new();
+        let hits = draw(&mut d);
+        click(&mut d, &hits, 1, 1);
+        assert_eq!((d.radio.selected, d.result), (1, None));
+        // its second click (count 2) chooses the option with the primary
+        click(&mut d, &hits, 1, 2);
+        assert_eq!(d.result, Some(Some(1)), "double click confirms");
+        assert_eq!(d.fired, Some(1), "the primary button fired");
+
+        // off: the double click only selects
+        let mut d = new().double_click_confirms(false);
+        let hits = draw(&mut d);
+        click(&mut d, &hits, 1, 1);
+        click(&mut d, &hits, 1, 2);
+        assert_eq!((d.radio.selected, d.result), (1, None));
     }
 }
