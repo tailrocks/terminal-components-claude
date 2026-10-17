@@ -62,6 +62,31 @@ pub fn width_capped(s: &str, cap: usize) -> usize {
     }
 }
 
+/// The leading part of `s` that fits in `max` display cells, without an
+/// ellipsis: a short id (`clip(run_id, 8)`), a digest prefix. Never splits a
+/// grapheme and never panics on text shorter than `max`, unlike a byte
+/// slice `&s[..max]`.
+///
+/// ```
+/// use junie_tui::ui::text::clip;
+/// assert_eq!(clip("run7f3a", 8), "run7f3a");
+/// assert_eq!(clip("0123456789", 4), "0123");
+/// assert_eq!(clip("日本語", 3), "日");
+/// ```
+pub fn clip(s: &str, max: usize) -> String {
+    let mut out = String::new();
+    let mut w = 0;
+    for g in s.graphemes(true) {
+        let gw = width(g);
+        if w + gw > max {
+            break;
+        }
+        out.push_str(g);
+        w += gw;
+    }
+    out
+}
+
 /// Truncate to `max` display cells, appending `…` when cut. Reads only the
 /// part of `s` that can be shown (see [`wider_than`]).
 pub fn truncate(s: &str, max: usize) -> String {
@@ -833,6 +858,16 @@ mod format_tests {
         assert_eq!(truncate_sep("short", 10), "short");
         assert_eq!(truncate_sep("alpha · beta · gamma", 16), "alpha · beta…");
         assert_eq!(truncate_sep("abcdefghij", 3), "ab…");
+    }
+
+    #[test]
+    fn clip_keeps_whole_graphemes_and_tolerates_short_text() {
+        assert_eq!(clip("", 8), "");
+        assert_eq!(clip("run7f3a", 8), "run7f3a");
+        assert_eq!(clip("abcdefghij", 8), "abcdefgh");
+        assert_eq!(clip("ab日本", 3), "ab");
+        assert_eq!(clip("e\u{301}xyz", 2), "e\u{301}x");
+        assert_eq!(clip("abc", 0), "");
     }
 
     #[test]
