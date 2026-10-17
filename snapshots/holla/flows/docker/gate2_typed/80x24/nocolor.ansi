@@ -4,13 +4,13 @@
 [0m[2m ━━│                                                                        │── [0m
 [0m[2m  R│  [0m[1;2mClean Docker completely · gate 2 of 2[0m[2m                                 │…  [0m
 [0m[2m   │                                                                        │   [0m
-[0m[2m  A│                                                                        │   [0m
-[0m[2m  H│  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acm…  │   [0m
-[0m[2m  I│  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-…  │   [0m
-[0m[2m  S│  docker image prune -a --force                                         │   [0m
-[0m[2m  D│  docker network prune --force                                          │   [0m
-[0m[2m   │  docker volume prune -a --force                                        │   [0m
-[0m[2m  R│  docker builder prune -a --force … 2 more                              │   [0m
+[0m[2m  A│  [0mAction             remove all user-removable Docker state on devbox [0m[2m ┃│   [0m
+[0m[2m  H│  [0mHost               devbox                                           [0m[2m ┆│   [0m
+[0m[2m  I│  [0mSteps              7 included                                       [0m[2m ┆│   [0m
+[0m[2m  S│  ↓ 4 more                                                              │   [0m
+[0m[2m  D│  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acm…  │   [0m
+[0m[2m   │  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-…  │   [0m
+[0m[2m  R│  docker image prune -a --force … 5 more                                │   [0m
 [0m[2m  R│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │   [0m
 [0m[2m   │                                                                        │   [0m
 [0m[2m ╭─│  [0m[1;2mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm      [0m[2m  │─╮ [0m
