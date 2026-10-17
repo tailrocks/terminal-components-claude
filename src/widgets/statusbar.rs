@@ -347,7 +347,10 @@ impl StatusBar {
                     buf.set_string(x, area.y, lead, st);
                     x += 1;
                 }
-                buf.set_string(x, area.y, spin, st.fg(t.accent));
+                // a graphic on the item's plane: at 3:1 there (the accent is 2.9:1
+                // on a 16-colour DarkGray chip)
+                let ink = t.legible_mark(t.accent, st.bg.unwrap_or(bg));
+                buf.set_string(x, area.y, spin, st.fg(ink));
                 buf.set_string(x + 2, area.y, rest, st);
                 if it.emphasis == Emphasis::Chip {
                     buf.set_string(x + 2 + width(rest) as u16, area.y, " ", st);
@@ -532,6 +535,32 @@ mod tests {
             .unwrap();
         assert_eq!(buf[(chip_x + 1, 0)].bg, t.lift(t.surface_overlay));
         assert!(buf[(1, 0)].modifier.contains(Modifier::BOLD));
+    }
+
+    /// A1: a busy chip's spinner reads on the chip (3:1) at every level;
+    /// at 16 colours the chip is xterm's DarkGray, where the LightGreen
+    /// spinner was 2.9:1 (holla's `⠋ 4 running`).
+    #[test]
+    fn a_busy_chips_spinner_reads_on_the_chip_at_every_level() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut b = StatusBar::new();
+            b.right
+                .push(StatusItem::new("4 running", Tone::Info).chip().busy());
+            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 1));
+            b.render(Rect::new(0, 0, 60, 1), &mut buf, &mut ctx);
+            let spin = t.glyphs.spinner_frame(ctx.interaction.tick);
+            let c = (0..60u16)
+                .map(|x| &buf[(x, 0)])
+                .find(|c| c.symbol() == spin)
+                .unwrap_or_else(|| panic!("{level:?}: no spinner"));
+            let r = contrast_ratio(c.fg, c.bg).unwrap();
+            assert!(r >= 3.0, "{level:?}: spinner {r:.2}");
+        }
     }
 
     #[test]
