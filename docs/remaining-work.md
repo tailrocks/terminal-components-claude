@@ -95,7 +95,7 @@ never in view at the smallest failing size.
 | R3 | StatusHints | Playground | 80x24, 100x25, 106x29, 120x40 | `256 ASCII Apply Auto COLOR Cancel Colour Command` |
 | R4 | BreadcrumbsRails | Playground | **Done** (reach-a): `measure` from `Breadcrumb: Measure`, `Panel::outer`, `props::width`; the Trails card spans the page (the deep trail is ~90 cells, so 80-column screens scroll sideways); captions say `full width` instead of a size-dependent number | — |
 | R5 | HelpKeys | Playground | **Done** (reach-a): `measure` through `tiles`: the reference card keeps its 58 columns (`Tile::fixed`, so "full" wraps at 54 at every size) beside the overlay card and its note, stacked when they do not fit; long facts wrap | — |
-| R6 | QuitLeave | Playground | 80x24, 100x25, 106x29, 120x40 | `Discard Esc Resolved Run Save Stay and answer` |
+| R6 | QuitLeave | Playground | **Done** (reach-a): `measure` through `tiles`: the document card and the classify card side by side when both fit whole (buttons on one row, the classify table at its columns), stacked otherwise; facts wrap; the notes wrap to the card | — |
 | R7 | FocusNavigation | Playground | **Done** (reach-a): `measure` through `ui::measure::tiles` (ring and readout, list and `Nav` map side by side when they fit, stacked otherwise; the keys card under them); the readouts are `props` sheets whose long values wrap; the mailbox list keeps an 8-row viewport and scrolls itself | — |
 | R8 | Buttons | Playground | 80x24, 100x25, 106x29, 120x40 | `190 Button Close Copy Danger Duplicate Edit Explain` |
 | R9 | Inputs | Playground | 80x24, 100x25, 106x29, 120x40 | `Alt Apply Cancel Cmd Copy Ctrl Cut Deleting` |
