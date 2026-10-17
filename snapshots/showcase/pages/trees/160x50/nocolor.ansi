@@ -18,19 +18,19 @@
   ▸ Text & code                  checkout.rs                                                    5.3 KB ┃                                                        [0m
   ▸ Screens                      auth_flow.rs                                                   3.0 KB ┃      Connections                   → loads a database  [0m
                                ▸ fixtures                                                              ┃                                                        [0m
-                             ▾ docs                                                                    ┃       ▾ ◆ production                                ┃  [0m
-                                 architecture.md                                                7.7 KB ┃         ▸ orders-db                        postgres ┃  [0m
-                                 webhooks.md                                                    2.2 KB ┃         ▸ billing-db                       postgres ┆  [0m
-                            [0m[2m   Cargo.toml                                                       1.4 KB [0m┆      [0m[2m     replica-eu                      lag 4.2 s [0m┆  [0m
+                             ▾ docs                                                                    ┃       ▾ ◆ production                                   [0m
+                                 architecture.md                                                7.7 KB ┃         ▸ orders-db                         postgres   [0m
+                                 webhooks.md                                                    2.2 KB ┃         ▸ billing-db                        postgres   [0m
+                            [0m[2m   Cargo.toml                                                       1.4 KB [0m┆           replica-eu                       lag 4.2 s   [0m
+                                                                                                               ▾ ◇ staging                                      [0m
+                                                                                                                 ▸ orders-db                         postgres   [0m
+                                                                                                               ▾ ○ archive                                      [0m
+                                                                                                                   No connections                               [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                           branch_activate Toggle · click Double · indent 2 · divider false · alt_click_recursive true · reserve_right 0 · show_meta true        [0m
                           nav default · wrap false · type-ahead on · track_click Page · selected_marker None · * TreeCmd::ExpandAll · - TreeCmd::CollapseAll    [0m
                           last TreeAction: —   (TreeAction::Expand on a lazy node · TreeAction::Activate on a leaf, or a branch per branch_activate)            [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
