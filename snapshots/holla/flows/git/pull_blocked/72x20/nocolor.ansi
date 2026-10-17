@@ -17,5 +17,5 @@
     → git -C /Users/alex/work/svc pull · parent · mutating              [0m
                                                                         [0m
  [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1   • 1          no color · 72×20 [0m
-           [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mEsc[0m Clear  …           [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mEsc[0m Clear  …                     [0m
 [?25h[5;8H[6 q
