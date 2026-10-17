@@ -344,6 +344,12 @@ impl Toggle {
         Outcome::Changed
     }
 
+    /// The row's natural width (plan §1.4 `Measure`): the switch, the
+    /// whole label and its state word.
+    pub fn width(&self) -> u16 {
+        crate::ui::text::width(&self.label) as u16 + 10
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         let area = Rect::new(area.x, area.y, area.width, 1.min(area.height));
@@ -575,6 +581,24 @@ mod tests {
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    /// At its width a toggle shows its whole label and its state word.
+    #[test]
+    fn a_toggle_at_its_width_shows_its_label_and_state() {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut t = Toggle::new(WidgetId::of("t"), "Auto-merge approved PRs", false);
+        let area = Rect::new(0, 0, t.width(), 1);
+        let mut buf = Buffer::empty(area);
+        t.render(area, &mut buf, &mut ctx, theme.canvas);
+        let row: String = (0..area.width).map(|x| buf[(x, 0)].symbol()).collect();
+        assert!(
+            row.contains("Auto-merge approved PRs") && row.contains("off"),
+            "{row:?}"
+        );
+    }
 
     fn mark(cb: &mut Checkbox) -> String {
         let t = Theme::junie();

@@ -213,6 +213,26 @@ impl Notice {
     }
 }
 
+/// The narrowest a notice shows its message, detail and hint each on one
+/// line, unwrapped and uncut, beside its glyph (plan §1.4 `Measure`);
+/// [`Notice::height`] at that width.
+impl crate::ui::measure::Measure for Notice {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let text = [
+            Some(&self.message),
+            self.detail.as_ref(),
+            self.hint.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .map(|s| crate::ui::text::width(s) as u16)
+        .max()
+        .unwrap_or(0);
+        let width = text + 2;
+        ratatui::layout::Size::new(width, self.height(width))
+    }
+}
+
 /// The id a notice answers to in a States grid (it is not interactive).
 const SAMPLE_ID: WidgetId = WidgetId::of("notice-sample");
 
@@ -272,6 +292,32 @@ mod tests {
             .collect::<String>()
             .trim_end()
             .to_owned()
+    }
+
+    /// At its measure a notice shows its message, detail and hint whole,
+    /// one line each.
+    #[test]
+    fn a_notice_at_its_measure_shows_every_line_whole() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let n = Notice::error("Connection refused by the replica")
+            .detail("prod-replica:5432 rejected the handshake after 3 attempts")
+            .hint("Check the VPN, then test again");
+        let size = n.measure(ratatui::layout::Size::new(10, 1), &ctx);
+        assert_eq!(size.height, 3);
+        let mut buf = Buffer::empty(Rect::new(0, 0, size.width, size.height));
+        n.render_theme(buf.area, &mut buf, &t, t.canvas);
+        assert!(text(&buf, 0).ends_with("Connection refused by the replica"));
+        assert!(text(&buf, 1).ends_with("after 3 attempts"));
+        assert!(text(&buf, 2).ends_with("then test again"));
     }
 
     #[test]
