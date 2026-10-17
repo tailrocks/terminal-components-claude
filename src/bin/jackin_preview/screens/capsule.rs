@@ -9,11 +9,13 @@ use junie_tui::core::hit::{Axis, Bar};
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
+use junie_tui::core::response::Response;
 use junie_tui::core::selection::ClickPolicy;
 use junie_tui::shell::Page;
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::layer;
 use junie_tui::ui::layout::SplitDir;
 use junie_tui::ui::text::{clip, truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
@@ -2034,6 +2036,9 @@ impl Page<Jackin> for CapsuleScreen {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
+            if let Some(o) = self.tab_menu_pointer(ev, w, cx) {
+                return o;
+            }
             if let Some(r) = self.menubar.route(ev) {
                 return r.outcome();
             }
@@ -2873,6 +2878,42 @@ impl CapsuleScreen {
         }
     }
 
+    /// The open tab or pane menu's share of a click or a wheel notch,
+    /// routed by the event's part through the menu's `MouseTarget`: a row
+    /// chooses it (a disabled row never), a ▲/▼ marker pages, the wheel
+    /// scrolls it, a click on its backdrop closes it per its `Dismiss`. A
+    /// click that is not the menu's is outside it and closes it the same
+    /// way (`layer::dismiss`). `None` when no menu is open or the event is
+    /// not its own (the wheel over the backdrop reaches the pane).
+    fn tab_menu_pointer(
+        &mut self,
+        ev: &PointerEvent,
+        w: &mut World,
+        cx: &mut Cx,
+    ) -> Option<Outcome> {
+        let (tab, mut m) = self.tab_menu.take()?;
+        let r = match m.route(ev) {
+            Some(r) if r.outcome() != Outcome::Ignored => r,
+            _ if ev.is(Phase::Click) => layer::dismiss(&mut m, DismissReason::OutsideClick)
+                .unwrap_or_else(Response::consumed),
+            _ => {
+                self.tab_menu = Some((tab, m));
+                return None;
+            }
+        };
+        let (o, act) = r.into_parts();
+        match act {
+            Some(MenuAction::Chosen(i)) => {
+                let label = m.items[i].item.label.clone();
+                let t = if tab == usize::MAX { None } else { Some(tab) };
+                self.run_menu(&label, t, w, cx);
+            }
+            Some(MenuAction::Dismissed) => {}
+            None => self.tab_menu = Some((tab, m)),
+        }
+        Some(o.or(Outcome::Changed))
+    }
+
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if self.takeover.is_some() {
@@ -2889,16 +2930,8 @@ impl CapsuleScreen {
         }
         self.prefix_until = None;
         // anchored menus take the click first
-        if let Some((tab, mut m)) = self.tab_menu.take() {
-            match m.on_click(id) {
-                Some(MenuAction::Chosen(i)) => {
-                    let label = m.items[i].item.label.clone();
-                    let t = if tab == usize::MAX { None } else { Some(tab) };
-                    self.run_menu(&label, t, w, cx);
-                }
-                Some(MenuAction::Dismissed) | None => {}
-            }
-            return Outcome::Changed;
+        if let Some(o) = self.tab_menu_pointer(ev, w, cx) {
+            return o;
         }
         if let Some(r) = self.menubar.route(ev) {
             let (o, act) = r.into_parts();
