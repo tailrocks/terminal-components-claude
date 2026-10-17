@@ -103,7 +103,7 @@ never in view at the smallest failing size.
 | R11 | Chips | Playground | **Done** (reach-a): `measure` through `tiles`: the chip bars at their natural width (`ChipBar: Measure`, unless the bar-width option sets one), the selects, the strip (`segments::width`, its note wraps), the properties beside the empty state (`EmptyState: Measure`) | — |
 | R12 | ChecksRadios | Playground | done: its rest is an inner scroller's rows (the inner-scroller rule) | — |
 | R13 | Toolbars | Playground | **Done** (reach-a): `measure` through `tiles`: each card never narrower than its toolbar shown whole (`Toolbar::width`) and its first line; the overflow readout and the Last facts wrap | — |
-| R14 | Tables | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1044 1045 1046 1047` |
+| R14 | Tables | Playground | **Done** (reach-a): `measure`: every table with all its columns and every cell whole (`DataTable: Measure`), the tasks card at 20 rows (the table scrolls the rest), the reviewers and checks cards at their set heights; the page scrolls sideways where the tasks table is wider than the screen | — |
 | R15 | Editable | Playground | 80x24, 100x25, 106x29, 120x40 | `1050 1051 1052 1053 118 Activated Alt Basic` |
 | R16 | Grid | Playground | 80x24, 100x25, 106x29, 120x40 | `1011 1012 1013 120 150 1920 201 202` |
 | R17 | Selectable | Playground | 80x24, 100x25, 106x29, 120x40 | `APAC Billing Brandt Contract Ctrl Details Docs Eli` |
