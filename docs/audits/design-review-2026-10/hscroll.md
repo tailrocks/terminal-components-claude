@@ -311,3 +311,38 @@ change: `tests/showcase_baseline.txt` regenerated; tuiscotti showcase
 captures re-approved in snapshot-only commits after a cell-by-cell
 attribution (every changed cell is a track cell: `│`→`┆`, `─`→`┄`, and
 at 256/truecolor the ink `238`→`239` / `#3a3a3a`→`#474747`).
+
+## Status (T19 sync, 2026-10-17)
+
+Method: every inventory row, input finding, follow-up and "Still open"
+item was checked against the code at HEAD and `git log -S`/`--grep`.
+The "Status" tables above give the commits for the surfaces; this table
+gives each item one status.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| Inventory: `DataGrid` | Fixed | 76ccdab11, 72a319a98 | Bottom bar in column units; badges and `cols a–b of n` kept. |
+| Inventory: `DataTable` | Fixed | f8203570d | Bottom bar; `overflow_marks` kept. |
+| Inventory: `ScrollPanel` | Fixed | 5edf2bba8 | Two-axis when not wrapping. |
+| Inventory: `TextViewport` | Fixed | 6f075829a, b68c2210e | Was "not this pass"; done in the follow-up section. |
+| Inventory: `CodeEditor` | Fixed | 7e9bc5277 | Bar on the bottom row, clamped to the widest line. |
+| Inventory: `TextArea` | Decision (caret is the position; single-purpose input) | this file, Inventory | No bar. |
+| Inventory: `Dialog` bodies | Fixed | 0957f37f9, e44df5ead | Code preview scrolls sideways; text wraps. |
+| Inventory: `PropsList` | Decision (one value per row; reveal shows it) | this file, Inventory | No hscroll. |
+| Inventory: List, Picker, Completion, Steps | Decision (reveal, not hscroll) | this file, Inventory | Reveal for their cut labels is the follow-up below. |
+| Inventory: `Tree` | Decision (←/→ belong to the tree) | this file, Inventory | Raw EXPLAIN view uses the two-axis panel. |
+| Inventory: `Tabs` strip | Decision (already pages with badges) | this file, Inventory | — |
+| Inventory: KeyHint, StatusBar, Menu, Select | Decision (chrome rows, not content) | this file, Inventory | — |
+| Inventory: tablepro EXPLAIN | Fixed | 5edf2bba8 | Raw view on the two-axis `ScrollPanel`; sideways wheel no longer scrolls vertically. |
+| Input: sideways wheel fed vertical `on_wheel` | Fixed | f8203570d, 5edf2bba8 | tablepro, holla and jackin; S6 now routes the wheel by axis through `PointerRouter`. |
+| Input: Shift+wheel | Fixed | d11ab0792 | `Input::from_crossterm_with(InputConfig)`. |
+| Follow-up: `TextViewport` offset | Fixed | 6f075829a | — |
+| Follow-up: `DiffView` unified | Fixed | 6f075829a | Delegates to `TextViewport`. |
+| Follow-up: reveal for Tree, List, Picker, DataTable cut labels | Open → A12 (with S10) | — | — |
+| Follow-up: one Shift+wheel knob | Fixed | cd4515ddc | `PointerConfig::shift_wheel_horizontal` was removed; `InputConfig::shift_wheel_horizontal` is the only knob. A12 still lists it (stale). |
+| Follow-up: per-app bar routing into the shared router | Fixed | 7efcf8e45, 69383ed6e, e6b2ba9ad, 13cea0a2c | S6: widget bars route through `MouseTarget`/`scroll_input`; no `on_bar_drag` or `owns` left. The paragraph "Every widget with a horizontal bar exposes `owns(id)`" above is superseded by S6. |
+| Follow-up: vertical `TrackClick::Page` | Fixed | 7338c7ecf, 200e688ad | — |
+| Follow-up: holla and jackin sideways wheel | Fixed | b68c2210e, 12e442e71 | Capsule panes and Files preview, with app tests. |
+| Still open: showcase and holla route bars by hand | Fixed for widget bars (S6, as above); Open → CO10, CO11 for hand-drawn panes | — | Left: showcase Scrolling hand-drawn panes (`scrollbar::is_bar_of`, `pages/scrolling.rs`) and holla `scroll_press`/`scroll_drag` screens. |
+| Still open: jackin capsule pane bars by position (`hbar()`) | Open → A12 | — | `capsule.rs` still routes the pane bar by `hbar().contains(pos)`. |
+| Design decisions 1–8, dotted rail | Decision (recorded in this file) | d11ab0792; dotted rail in "Decision" section | — |

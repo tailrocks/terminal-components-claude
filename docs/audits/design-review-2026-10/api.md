@@ -193,3 +193,20 @@ as struct literals outside the crate. `TriState::glyph`,
 `grid::cell_text`, `diff::{unified_lines, review_lines}` and
 `DiffFile::{summary, header}` keep the Unicode set; themed callers use
 the `_with` variants.
+
+## Status (T19 sync, 2026-10-17)
+
+Method: every row still Partial or Deferred in the sections above was
+checked against the code at HEAD and `git log -S`/`--grep`. The last row
+per finding in the earlier sections stands for #2, #4, #6–#10, #12–#25,
+#27, #29 and #30 (all Fixed); this table settles the rest.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Fixed | 4851af3e3, 0afc08a4b, 5d7422edb, 7606cd962, 521e1437e, ffbb3f2a1 | S5: `ShellLayers` with `take`/`dismiss` and `LayerResult` replace the app modal enums; S6 adds `ShellLayers::pointer`. No `enum Modal`, `modal_key` or `push_modal` left in `src/bin`. |
+| 3 | Open → A8 | — | Dialog and Picker still draw their own chrome inside `Frame`'s placement and backdrop (a visual change). |
+| 5 | Open → S18 | — | tablepro `FilterEditor` is a `Layer` in `filter_editor.rs` (S5) but still app code; S18 moves it onto `FormDialog`. |
+| 11 | Open → A19 | — | `MenuBar::render` still calls `on_hover(live_hover())` (`menu.rs:1341`), so state changes on draw; S6's `PointerRouter` could deliver hover instead. |
+| 26 | Open → A8 | 18f15fd5f | Widget glyphs are themed; `ui::text::{truncate, truncate_middle, fit, slice_cells, wrap}` still cut with a literal `…`. |
+| 28 (formatter) | Open → A8 | acfbe62db | Grid and scrollbar position labels, CodeEditor `ln/col` and Meter `refreshing` need a formatter hook on `Strings`. |
+| 28 (`not_in_preview`) | Open → A20 | — | `Strings::not_in_preview` exists but no app reads it: holla `app.rs:2717` and jackin `capsule.rs:965` still spell "Not in this preview". |
