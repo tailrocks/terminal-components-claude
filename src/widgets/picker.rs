@@ -12,6 +12,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
+use crate::core::edit::TextCmd;
 use crate::core::event::{Key, Outcome};
 use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
@@ -20,6 +21,10 @@ use crate::core::list::{Cursor, KeyStep, Navigable, RowSource};
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
+use crate::ui::edit_menu::{
+    EditCaps, EditMenu, EditMenuHost, edit_menu_key, edit_menu_pointer, edit_menu_route,
+    point_field,
+};
 use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
@@ -99,6 +104,11 @@ pub struct Picker {
     /// What the footer says Enter does on a row ([`HasHints`]). Default
     /// `Choose`; a tab switcher says `Switch`.
     pub choose_hint: std::borrow::Cow<'static, str>,
+    /// The standard Edit context menu on the search query (Cut, Copy,
+    /// Paste, Select all) a secondary click on it or Shift+F10 / the Menu
+    /// key opens ([`crate::ui::edit_menu`]); `enabled = false` turns it
+    /// off.
+    pub edit_menu: EditMenu,
 }
 
 /// The footer while the picker is on top: `Type Filter` when it searches,
@@ -183,6 +193,7 @@ impl Picker {
             pending: None,
             delete_is_secondary: true,
             choose_hint: std::borrow::Cow::Borrowed("Choose"),
+            edit_menu: EditMenu::default(),
         }
     }
 
@@ -440,6 +451,16 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
+        // the query's open Edit menu takes the keys; Shift+F10 opens it
+        if self.list.query.is_some()
+            && let Some(o) = edit_menu_key(self, key)
+        {
+            let ev = self
+                .edit_menu
+                .take_edited()
+                .then_some(PickerAction::QueryChanged);
+            return (o, ev);
+        }
         // a searchable picker types its letters, and its Home/End and ←/→
         // edit the query; the list keeps ↑/↓ and paging
         let typing = self.is_searchable();
@@ -566,6 +587,8 @@ impl Picker {
             &crate::widgets::keyhint::deliverable_line(&hints),
         );
         self.hints = hints;
+        // the query's Edit menu floats above the picker
+        self.edit_menu.render(self.area, buf, ctx);
     }
 
     /// Draw with `hints` for this frame only.
@@ -926,6 +949,14 @@ impl crate::core::pointer::MouseTarget for Picker {
     ) -> crate::core::response::Response<PickerAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
+        // the query's Edit menu: its rows and backdrop, and a secondary
+        // click on the query, which opens it
+        if let Some(o) = edit_menu_pointer(self, ev) {
+            if self.edit_menu.take_edited() {
+                return Response::emit(PickerAction::QueryChanged);
+            }
+            return o.into();
+        }
         // the wheel outside the picker (its backdrop) moves nothing
         if ev.wheel().is_some() && ev.part().part == Part::BACKDROP {
             return Response::ignored();
@@ -964,6 +995,47 @@ impl crate::core::pointer::MouseTarget for Picker {
             Some(a) => Response::emit(a),
             None => Response::consumed(),
         }
+    }
+
+    fn route(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> Option<crate::core::response::Response<PickerAction>> {
+        edit_menu_route(self, ev)
+    }
+}
+
+/// The search query's Edit menu: Cut, Copy, Paste, Select all through the
+/// query's [`EditField`]; an edit is a [`PickerAction::QueryChanged`].
+impl EditMenuHost for Picker {
+    fn edit_menu(&mut self) -> &mut EditMenu {
+        &mut self.edit_menu
+    }
+    fn edit_owner(&self) -> WidgetId {
+        self.id
+    }
+    fn edit_caps(&self) -> EditCaps {
+        self.list
+            .query
+            .as_ref()
+            .map(|q| EditCaps::of(q))
+            .unwrap_or_default()
+    }
+    fn edit_shortcut(&self, cmd: TextCmd) -> Option<String> {
+        self.list.query.as_ref().and_then(|q| q.shortcut(cmd))
+    }
+    fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        // the query line only: the rows keep their own secondary click
+        self.list.query.is_some() && ev.part().part == Part::QUERY
+    }
+    fn edit_point(&mut self, pos: ratatui::layout::Position) {
+        if let Some(q) = self.list.query.as_mut() {
+            let at = q.line_offset_at(pos);
+            point_field(q, at);
+        }
+    }
+    fn edit_run(&mut self, cmd: TextCmd) -> bool {
+        self.list.query.as_mut().is_some_and(|q| q.run(cmd).edited)
     }
 }
 

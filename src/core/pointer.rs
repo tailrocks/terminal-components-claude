@@ -88,6 +88,13 @@ pub struct PointerConfig {
     /// A secondary click outside an open popup. Default
     /// [`SecondaryOutside::Reopen`].
     pub secondary_outside: SecondaryOutside,
+    /// A secondary click on a focusable control focuses it before its
+    /// context menu opens (a right click in a text field makes it the
+    /// field the keyboard edits, as in Windows, GNOME and browser fields;
+    /// a text control's Edit menu then takes the keys,
+    /// [`crate::ui::edit_menu`]). Never while a modal layer is open (the
+    /// layer owns its focus). Default on.
+    pub secondary_focuses: bool,
     /// A press on dead space (no control under the pointer) ends the
     /// focused control's edit in place ([`super::focus::Focus::end_edit`]),
     /// as clicking a macOS window background ends field editing.
@@ -133,6 +140,7 @@ impl PointerConfig {
         hover_refresh_after_scroll: true,
         flash_ms: 140,
         secondary_outside: SecondaryOutside::Reopen,
+        secondary_focuses: true,
         end_edit_on_dead_space: true,
         autoscroll: true,
         autoscroll_ms: 50,
@@ -170,6 +178,11 @@ impl PointerConfig {
     }
     pub const fn secondary_outside(mut self, policy: SecondaryOutside) -> Self {
         self.secondary_outside = policy;
+        self
+    }
+    /// See [`Self::secondary_focuses`].
+    pub const fn secondary_focuses(mut self, on: bool) -> Self {
+        self.secondary_focuses = on;
         self
     }
     pub const fn pointer_shapes(mut self, on: bool) -> Self {
@@ -1122,6 +1135,11 @@ impl PointerRouter {
         let route = p.router.state.route_secondary(p.hits, m.pos);
         let at = |host: &mut H, id: WidgetId| {
             let p = host.pointer_parts();
+            // a focusable control under a secondary click takes focus
+            // first, so the keys reach the menu it opens
+            if !layer && p.router.state.config.secondary_focuses && p.ring.contains(id) {
+                p.focus.focus(id);
+            }
             let ev = PointerEvent::new(p.hits, Phase::Secondary, id, m.pos, 1, m.mods);
             host.deliver(&ev).outcome()
         };

@@ -615,6 +615,11 @@ impl crate::core::pointer::MouseTarget for DiffView {
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
+        // the viewport's Edit menu (Copy, Select all): a secondary click
+        // on the diff opens it, its rows and backdrop are its own
+        if ev.is(Phase::Secondary) || self.term.edit_menu.owns(ev) {
+            return self.term.pointer(ev);
+        }
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r;
         }
@@ -624,6 +629,10 @@ impl crate::core::pointer::MouseTarget for DiffView {
             Some(Phase::Click) => Response::consumed(),
             _ => Response::ignored(),
         }
+    }
+
+    fn route(&mut self, ev: &crate::core::pointer::PointerEvent) -> Option<Response<()>> {
+        (ev.on(self.id()) || self.term.edit_menu.owns(ev)).then(|| self.pointer(ev))
     }
 }
 
