@@ -176,3 +176,107 @@ fn disk_cleanup_tab_order_runs_tree_then_checklist() {
     h.key(KeyCode::Char('d'));
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
 }
+
+// ---------------------------------------------------------------- Activity
+
+const ACT: WidgetId = WidgetId::of("activity");
+
+#[test]
+fn activity_shows_a_live_job_not_the_stub() {
+    for (w, h) in [(120, 40), (80, 24)] {
+        let h = Harness::new(w, h, PageId::Activity);
+        let text = h.text();
+        assert!(!text.contains("arrives with"), "{text}");
+        for needle in [
+            "api dev",
+            "running",
+            "streams",
+            "output",
+            "following",
+            "Stop",
+        ] {
+            assert!(text.contains(needle), "{w}: {needle}: {text}");
+        }
+    }
+    let text = Harness::new(120, 40, PageId::Activity).text();
+    for needle in ["Steps", "Healthy", "Command", "mise run dev", "Restart"] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+}
+
+#[test]
+fn activity_follows_the_tail_and_streams_hide_their_lines() {
+    let mut h = Harness::new(120, 40, PageId::Activity);
+    // the services keep writing while the log follows its tail
+    for _ in 0..3 {
+        h.tick();
+    }
+    assert!(h.text().contains("following"));
+    assert!(h.text().contains("scheduler │"), "{}", h.text());
+    // a digit hides the third stream (scheduler) while the chips have focus
+    h.focus(ACT.sub("streams"));
+    h.key(KeyCode::Char('3'));
+    assert_eq!(h.status(), "scheduler hidden");
+    let text = h.text();
+    assert!(!text.contains("scheduler │"), "{text}");
+    assert!(text.contains("3 of 4 streams"), "{text}");
+    h.key(KeyCode::Char(' '));
+    assert_eq!(h.status(), "scheduler shown");
+    assert!(h.text().contains("scheduler │"));
+    // scrolling up leaves the tail; End follows again
+    h.focus(ACT.sub("log"));
+    h.key(KeyCode::Up);
+    assert!(h.text().contains("scrollback ↑"), "{}", h.text());
+    h.key(KeyCode::End);
+    assert!(h.text().contains("following"));
+}
+
+#[test]
+fn activity_stop_is_busy_then_stopped_and_restart_runs_again() {
+    let mut h = Harness::new(120, 40, PageId::Activity);
+    h.click_id(ACT.sub("stop"));
+    assert_eq!(h.status(), "Stopping api dev…");
+    assert!(h.text().contains("stopping · SIGTERM sent"), "{}", h.text());
+    for _ in 0..10 {
+        h.tick();
+    }
+    assert_eq!(h.status(), "api dev stopped · exit 143");
+    let text = h.text();
+    assert!(text.contains("stopped · exit 143"), "{text}");
+    assert!(text.contains("descendants reaped"), "{text}");
+    h.click_id(ACT.sub("restart"));
+    assert_eq!(h.status(), "Restarted api dev");
+    assert!(h.text().contains("running ·"));
+}
+
+#[test]
+fn activity_options_drive_the_widgets() {
+    let mut h = Harness::new(120, 40, PageId::Activity);
+    h.opt("activity.state=failed");
+    let text = h.text();
+    assert!(text.contains("failed · exit 1"), "{text}");
+    assert!(text.contains("EADDRINUSE"), "{text}");
+    assert!(text.contains("Free the port"), "the failure notice: {text}");
+    h.opt("activity.find=error");
+    assert!(h.text().contains("matches for “error”"), "{}", h.text());
+    h.opt("activity.find=off");
+    h.opt("activity.retention=20");
+    assert!(h.text().contains("last 20 kept"), "{}", h.text());
+    h.opt("activity.wrap=off");
+    assert!(!h.text().contains("│  MTP 421"), "no wrapped continuation");
+    // digits are the page's again with the knob off
+    h.opt("activity.digit_toggles=off");
+    h.focus(ACT.sub("streams"));
+    h.key(KeyCode::Char('2'));
+    assert!(h.text().contains("4 of 4 streams"));
+}
+
+#[test]
+fn activity_states_rows_render() {
+    let mut h = Harness::new(120, 40, PageId::Activity);
+    h.section(Section::States);
+    let text = h.text();
+    for needle in ["Log", "Streams", "Steps", "overflow", "narrow"] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+}
