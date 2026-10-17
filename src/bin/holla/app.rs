@@ -14,8 +14,8 @@ use junie_tui::core::pointer::{
 };
 use junie_tui::core::response::Response;
 use junie_tui::shell::{self, PageKey, Shell};
-use junie_tui::theme::{BadgeKind, Theme, Tone};
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::theme::{Theme, Tone};
+use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, Layer, LayerCx, LayerPointer, LayerTag, Taken,
 };
@@ -25,9 +25,9 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
-use junie_tui::widgets::hintbar::{HintBar, HintLayer};
+use junie_tui::widgets::hintbar::HintBar;
 use junie_tui::widgets::input::TextInput;
-use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::keyhint::hint;
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarAction, MenuItem, Placement};
 use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
 use junie_tui::widgets::props::Prop;
@@ -156,7 +156,7 @@ impl App {
         let mut shell = Shell::new();
         shell.motion = motion;
         let mut app = Self {
-            theme: theme.centred_hints(),
+            theme,
             scenario,
             world,
             tabs: vec![TabEntry {
@@ -1000,7 +1000,7 @@ impl App {
 
     fn open_activities(&mut self) {
         let items = self.activity_picker_items();
-        let mut p = Picker::new(WidgetId::of("activities"), "Activities");
+        let mut p = Picker::new(WidgetId::of("activities"), "Activities").choose_hint("Switch");
         p.searchable = false;
         p.width = 70;
         p.empty_text = "Nothing has been started yet".into();
@@ -2835,7 +2835,7 @@ impl App {
         self.modals = modals;
         if open {
             let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-            self.draw_footer(footer, buf, ctx, true);
+            self.footer(true).render(footer, buf, ctx, &mut self.shell);
         }
     }
 
@@ -2965,7 +2965,7 @@ impl App {
             s.render(body, buf, ctx, &self.world);
         }
         self.draw_status(status, buf, ctx);
-        self.draw_footer(footer, buf, ctx, false);
+        self.footer(false).render(footer, buf, ctx, &mut self.shell);
     }
 
     /// Row zero: the menu bar, then the project crumb and the host identity
@@ -3084,82 +3084,41 @@ impl App {
         bar.render(area, buf, ctx);
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, modal: bool) {
-        let t = self.theme;
-        let reveal = ctx.reveal_hint;
-        fill(buf, area, t.base());
-        let hints: Vec<Hint> = if modal {
-            // the top layer's own hints; the library picker and menu
-            // layers bring none yet, so holla names their keys (S7 Footer)
-            match self.modals.top() {
-                Some(top) if top.get::<Picker>().is_some() => {
-                    let mut v = vec![];
-                    if top.get::<Picker>().is_some_and(|p| p.searchable) {
-                        v.push(hint("Type", "Filter"));
-                    }
-                    v.push(hint("↑↓", "Move"));
-                    v.push(hint("Enter", "Switch"));
-                    v.push(hint("Esc", "Cancel"));
-                    v
-                }
-                Some(top) if top.get::<ContextMenu>().is_some() => vec![
-                    hint("↑↓", "Move"),
-                    hint("Enter", "Choose"),
-                    hint("Esc", "Close"),
-                ],
-                Some(top) => top.layer.hints(self.shell.focus.current()),
-                None => vec![],
-            }
-        } else {
-            let focus = self.shell.focus.current();
-            if focus == Some(TABS) {
-                vec![
-                    hint("←→", "Switch tab"),
-                    hint("1–9", "Jump"),
-                    hint("x", "Close"),
-                    hint("Enter", "Into the tab"),
-                    hint("Esc", "Back"),
-                ]
-            } else {
-                self.top()
-                    .map(|s| s.hints(focus, &self.world))
-                    .unwrap_or_default()
-            }
-        };
-        // the focused cursor row is cut: name the reveal key
-        let mut hints = hints;
-        junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
+    /// The footer ([`shell::Footer`]): the top layer's hints while one is
+    /// open (library modals name their own keys, CO4), else the open menu
+    /// bar's, else the focused tab strip's or the screen's, else `F1 Help ·
+    /// Esc Back`; the EDIT badge while a field edits; the status line with
+    /// its toned parts.
+    fn footer(&self, modal: bool) -> shell::Footer {
+        use junie_tui::core::hints::{HasHints, HintCx};
+        let focus = self.shell.focus.current();
         let editing = self.modals.top().is_some_and(|t| t.layer.is_editing())
             || (!modal && self.top().is_some_and(|s| s.is_editing()) && self.active == 0);
-        let badge = if editing {
-            Some(("EDIT", BadgeKind::Edit))
+        let page = if focus == Some(TABS) {
+            vec![
+                hint("←→", "Switch tab"),
+                hint("1–9", "Jump"),
+                hint("x", "Close"),
+                hint("Enter", "Into the tab"),
+                hint("Esc", "Back"),
+            ]
         } else {
-            None
+            self.top()
+                .map(|s| s.hints(focus, &self.world))
+                .unwrap_or_default()
         };
-        // an error status carries a `! ` prefix: leave room for it
-        let status = self
-            .shell
-            .status
-            .get()
-            .map(|(s, tone)| (truncate(s, area.width.saturating_sub(8) as usize), tone));
-        let status_parts = self.shell.status.payload().cloned().unwrap_or_default();
-        let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
-        let menu_layer = (!modal && self.menu.is_open()).then(|| {
-            HintLayer::new(vec![
-                hint("←→", "Menu"),
-                hint("↑↓", "Move"),
-                hint("Enter", "Choose"),
-                hint("Esc", "Close"),
-            ])
-        });
-        let screen_layer = (!modal && !hints.is_empty()).then(|| HintLayer::new(hints.clone()));
-        let fallback = HintLayer::new(vec![hint("F1", "Help"), hint("Esc", "Back")]);
-        let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
-        layer.badge = badge;
-        layer.status = status;
-        layer.status_parts = status_parts;
-        let spots = HintBar::render_at(area, buf, &t, &layer);
-        self.shell.footer_drawn(layer.hints, spots);
+        let footer = if modal {
+            shell::Footer::new().layer(self.modals.top().map(|t| t.layer.hints(focus)))
+        } else {
+            shell::Footer::new()
+                .layer(Some(HasHints::hints(&self.menu, &HintCx::new(focus))))
+                .layer(Some(page))
+                .fallback(vec![hint("F1", "Help"), hint("Esc", "Back")])
+        };
+        footer.editing(editing).status_parts(
+            self.shell.status.get(),
+            self.shell.status.payload().cloned().unwrap_or_default(),
+        )
     }
 }
 
