@@ -24,8 +24,8 @@
                        [0m[2m   Zig              [0m┆                                                        [0m
                                                                                                     [0m
                                                                                                     [0m
-                     nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Activate · wrap [0m
-                     false · skip_disabled true                                                     [0m
+                     nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Double, check   [0m
+                     BoxOnly · wrap false · skip_disabled true                                      [0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l
