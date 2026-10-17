@@ -257,7 +257,7 @@ impl CodeEditor {
     }
     /// The footer hints for the editor's own keys while it holds focus:
     /// while editing, how to leave ([`crate::widgets::keyhint::EDIT_CODE`]
-    /// `Tab Indent · Esc Done` when Tab indents, `Tab Next field · Esc
+    /// `Tab Indent · F6 Leave · Esc Done` when Tab indents, `Tab Next field · Esc
     /// Done` under [`Self::tab_leaves`]); after Esc, `Enter Edit · Tab
     /// Next`. Ctrl+Tab is never advertised (most terminals send plain Tab).
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
@@ -270,7 +270,7 @@ impl CodeEditor {
         } else if self.editing && !self.esc_reverts {
             EDIT_CODE.to_vec()
         } else if self.editing {
-            vec![hint("Tab", "Indent"), hint("Esc", esc)]
+            vec![hint("Tab", "Indent"), hint("F6", "Leave"), hint("Esc", esc)]
         } else if self.read_only {
             vec![hint("Tab", "Next")]
         } else {
@@ -1598,7 +1598,11 @@ mod tests {
         assert_eq!(ev, Some(EditorAction::Changed), "Tab indents");
         assert_eq!(e.text(), "q  ");
         let keys: Vec<&str> = e.hints().iter().map(|h| h.key).collect();
-        assert_eq!(keys, ["Tab", "Esc"], "Tab Indent · Esc Done");
+        assert_eq!(
+            keys,
+            ["Tab", "F6", "Esc"],
+            "Tab Indent · F6 Leave · Esc Done: F6 leaves while Tab indents"
+        );
         assert_eq!(
             e.on_key(&key(KeyCode::Esc)).1,
             Some(EditorAction::Committed)

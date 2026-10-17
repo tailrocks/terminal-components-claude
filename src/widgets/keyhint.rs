@@ -112,6 +112,10 @@ pub fn normalize_key(key: &str) -> Cow<'_, str> {
 /// Super elsewhere. `None` when `mods` holds none of them. A multi-select
 /// table's toggle reads `modifier_click(table.toggle_mods, platform)`:
 /// `Option+click` on macOS, `Ctrl+click` elsewhere.
+///
+/// Shift is never named: many terminals keep Shift+click and Shift+drag
+/// for their own text selection while the app captures the mouse, so a
+/// hint naming it would advertise a gesture that may never arrive.
 pub fn modifier_click(mods: KeyModifiers, platform: ClientPlatform) -> Option<&'static str> {
     const MAC: [(KeyModifiers, &str); 3] = [
         (KeyModifiers::ALT, "Option+click"),
@@ -162,9 +166,14 @@ pub const CONTEXT_MENU: Hint = hint("Shift+F10", "Menu");
 /// moves on, Esc ends the edit keeping the text.
 pub const EDIT_TEXT: [Hint; 2] = [hint("Tab", "Next field"), hint("Esc", "Done")];
 
-/// A code editor being edited while Tab indents: Esc ends the edit (the
-/// text stays), and then Tab and Shift+Tab leave.
-pub const EDIT_CODE: [Hint; 2] = [hint("Tab", "Indent"), hint("Esc", "Done")];
+/// A code editor being edited while Tab indents: F6 leaves from any mode
+/// (the pane key, K17), Esc ends the edit (the text stays), and then Tab
+/// and Shift+Tab leave.
+pub const EDIT_CODE: [Hint; 3] = [
+    hint("Tab", "Indent"),
+    hint("F6", "Leave"),
+    hint("Esc", "Done"),
+];
 
 /// [`EDIT_FIELD`] for a grid cell: Tab moves to the next cell.
 pub const EDIT_CELL: [Hint; 3] = [
@@ -398,6 +407,34 @@ pub fn render_status_at(
         &t.hintbar,
         &mut spots,
     );
+    (n, spots)
+}
+
+/// [`render_status_at`] with an explicit [`HintBarStyle`] (the footer's
+/// alignment and pinned keys).
+pub fn render_status_styled_at(
+    area: Rect,
+    buf: &mut Buffer,
+    t: &Theme,
+    hints: &[Hint],
+    badge: Option<(&str, BadgeKind)>,
+    right: Option<(&str, Option<StatusKind>)>,
+    style: &HintBarStyle,
+) -> (usize, Vec<(usize, Rect)>) {
+    let right = right.map(|(text, kind)| match kind {
+        Some(kind) => {
+            let (mark, mark_style) = t.status(kind);
+            Right {
+                text,
+                mark,
+                mark_style,
+                style: t.status_label(kind),
+            }
+        }
+        None => Right::toned(t, text, Tone::Secondary),
+    });
+    let mut spots = Vec::new();
+    let n = render_right(area, buf, t, hints, badge, right, &[], style, &mut spots);
     (n, spots)
 }
 

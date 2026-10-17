@@ -4,6 +4,7 @@
 pub mod edit;
 pub mod event;
 pub mod focus;
+pub mod hints;
 pub mod hit;
 pub mod id;
 pub mod intent;

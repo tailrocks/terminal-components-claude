@@ -114,7 +114,13 @@ impl Button {
 
     /// The footer hint for this button while it has focus: Enter names
     /// what it does (`Enter Save…`, `Enter Cancel`), never a generic verb.
+    /// While it is busy Enter does nothing, so the hint says it is working
+    /// (`Working…`, K35) instead of naming a key that does nothing.
     pub fn hint(&self) -> crate::widgets::keyhint::Hint {
+        if self.busy {
+            return crate::widgets::keyhint::Hint::new("", "Working…")
+                .priority(crate::widgets::keyhint::HintPriority::Normal);
+        }
         crate::widgets::keyhint::Hint::new("Enter", self.label.clone())
     }
 
