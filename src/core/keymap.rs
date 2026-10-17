@@ -293,7 +293,13 @@ impl KeyBinding {
             .mods
             .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
         let mac_cmd = self.mods.contains(KeyModifiers::SUPER) && platform.is_macos();
-        if self.mods.contains(KeyModifiers::SHIFT) && !mac_cmd && (!char_shift || ctrl_or_alt) {
+        // BackTab names Shift itself
+        let back_tab = self.code == KeyCode::BackTab;
+        if self.mods.contains(KeyModifiers::SHIFT)
+            && !mac_cmd
+            && !back_tab
+            && (!char_shift || ctrl_or_alt)
+        {
             out.push_str("Shift+");
         }
         match self.code {

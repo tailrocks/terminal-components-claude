@@ -568,6 +568,8 @@ fn the_help_section_lists_the_live_shell_keys() {
     assert_eq!(row("Run").as_deref(), Some("Ctrl+R"));
     assert_eq!(row("Quit").as_deref(), Some("Ctrl+Q q"));
     assert_eq!(row("Next page").as_deref(), Some("Ctrl+PgDn"));
+    // BackTab with or without the Shift flag is one key: Shift+Tab
+    assert_eq!(row("Previous control").as_deref(), Some("Shift+Tab"));
     let unbound = ShellKeys::<u8>::new().unbind(KeyBinding::char('?'));
     let s = unbound.help_section("Shell", |_| None);
     assert_eq!(
