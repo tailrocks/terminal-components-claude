@@ -481,10 +481,14 @@ mod tests {
         use crate::ui::measure::Measure;
         let mut r = StepRail::new(
             WidgetId::of("r"),
-            ["Resolve workspace", "Pull base image", "Resolve credentials"]
-                .iter()
-                .map(|s| Step::new(s))
-                .collect(),
+            [
+                "Resolve workspace",
+                "Pull base image",
+                "Resolve credentials",
+            ]
+            .iter()
+            .map(|s| Step::new(s))
+            .collect(),
         );
         r.set_state(0, StepState::Done);
         r.set_meta(0, Some("1.2s".into()));
@@ -514,7 +518,11 @@ mod tests {
             "Resolve credentials",
             "queued",
         ] {
-            assert!(whole.contains(word), "{word} whole at {}: {whole}", size.width);
+            assert!(
+                whole.contains(word),
+                "{word} whole at {}: {whole}",
+                size.width
+            );
         }
         // one cell narrower, a label or a meta gives way
         let less = text(&mut r, size.width - 1);
