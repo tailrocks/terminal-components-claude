@@ -1024,6 +1024,9 @@ impl App {
                 Request::StatusAs(s, kind) => {
                     self.shell.status.set_at(s, kind.tone(), self.clock.now());
                 }
+                Request::Progress(s, job) => {
+                    self.shell.status.progress_at(job, s, self.clock.now());
+                }
                 Request::Open(layer, tag) => self.open_layer(layer, tag, Some(owner)),
                 Request::Go(Go::SetOption(set)) => self.apply_opt(set),
                 Request::Help => self.open_help(),

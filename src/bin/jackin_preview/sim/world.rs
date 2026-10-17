@@ -15,6 +15,21 @@ use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::pty::Daemon;
 use junie_tui::clock::SimClock;
+use junie_tui::shell::JobKey;
+
+/// The background jobs a progress status reports on
+/// ([`junie_tui::shell::Cx::progress`]); [`Msg::job`] names the job a
+/// result ends.
+pub mod job {
+    use junie_tui::shell::JobKey;
+    pub const WORKSPACE_SAVE: JobKey = JobKey::new("workspace.save");
+    pub const SETTINGS_SAVE: JobKey = JobKey::new("settings.save");
+    pub const ROLE_LOAD: JobKey = JobKey::new("role.load");
+    pub const PREWARM: JobKey = JobKey::new("prewarm");
+    pub const STOP: JobKey = JobKey::new("instance.stop");
+    pub const PURGE: JobKey = JobKey::new("instance.purge");
+    pub const ACCOUNT_VALIDATE: JobKey = JobKey::new("account.validate");
+}
 
 /// Global (host) configuration edited in Settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,6 +147,22 @@ pub enum Msg {
         instance: InstanceId,
         by: String,
     },
+}
+
+impl Msg {
+    /// The job whose result this is, if a progress status reports on it.
+    pub fn job(&self) -> Option<JobKey> {
+        match self {
+            Msg::WorkspaceSaved { .. } => Some(job::WORKSPACE_SAVE),
+            Msg::GlobalSaved { .. } => Some(job::SETTINGS_SAVE),
+            Msg::RoleLoaded { .. } => Some(job::ROLE_LOAD),
+            Msg::Prewarmed { .. } => Some(job::PREWARM),
+            Msg::Stopped { .. } => Some(job::STOP),
+            Msg::Purged { .. } => Some(job::PURGE),
+            Msg::AccountValidated { .. } => Some(job::ACCOUNT_VALIDATE),
+            Msg::Refreshed { .. } | Msg::AccountRefreshed { .. } | Msg::Takeover { .. } => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

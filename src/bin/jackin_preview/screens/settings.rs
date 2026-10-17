@@ -30,7 +30,7 @@ use super::modals::InfoDialog;
 use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::agent::{Agent, AuthMode};
 use crate::domain::workspace::RoleName;
-use crate::sim::world::{GlobalConfig, Msg, World};
+use crate::sim::world::{GlobalConfig, Msg, World, job};
 use junie_tui::ui::text::plural;
 
 pub const TABS: WidgetId = WidgetId::of("settings.tabs");
@@ -325,7 +325,7 @@ impl SettingsScreen {
         let ok = !w.save_fails_once;
         w.save_fails_once = false;
         w.schedule(900, Msg::GlobalSaved { ok });
-        cx.status("Saving settings…");
+        cx.progress(job::SETTINGS_SAVE, "Saving settings…");
         cx.focus.focus(SAVE);
     }
 

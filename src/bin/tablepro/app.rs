@@ -531,6 +531,10 @@ impl App {
                     self.shell.status.set_with_at(s, tone, None, now);
                 }
                 Request::StatusAs(s, kind) => self.set_status_as(kind, s),
+                Request::Progress(s, job) => {
+                    let now = self.clock.now();
+                    self.shell.status.progress_at(job, s, now);
+                }
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(a) => self.act(a),
                 // tablepro pages do not ask for these

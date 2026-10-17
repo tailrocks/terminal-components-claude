@@ -881,6 +881,63 @@ fn editor_validation_and_save_failure_preserve_pending_changes() {
     assert!(h.app.screens.editor.as_ref().unwrap().change_count() > 0);
 }
 
+/// A27: a failed job opens its error dialog and must not leave its
+/// progress status ("Saving …", "Loading role …") in the footer under it:
+/// the job's result ends its progress status.
+#[test]
+fn a_failed_job_leaves_no_progress_status_under_its_error() {
+    // the workspace save
+    let mut h = hard_manager();
+    editor(&mut h, 1);
+    h.key(KeyCode::Char(']'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('r'));
+    h.ctrl('s');
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(status(&h).starts_with("Saving "), "{}", status(&h));
+    h.ticks(15);
+    assert!(h.text().contains("Save failed"), "{}", h.text());
+    assert!(!status(&h).contains("Saving"), "{}", status(&h));
+
+    // the role load
+    let mut h = hard_manager();
+    editor(&mut h, 1);
+    h.key(KeyCode::Char('3'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('a'));
+    h.type_str("writer");
+    h.key(KeyCode::Enter);
+    assert!(status(&h).contains("Loading role writer"), "{}", status(&h));
+    for _ in 0..40 {
+        if h.text().contains("failed to load") {
+            break;
+        }
+        h.ticks(5);
+    }
+    assert!(
+        h.text().contains("Role writer failed to load"),
+        "{}",
+        h.text()
+    );
+    assert!(!status(&h).contains("Loading role"), "{}", status(&h));
+
+    // the settings save
+    let mut h = hard_manager();
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app.route, Route::Settings);
+    h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    h.ctrl('s');
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(status(&h).contains("Saving settings"), "{}", status(&h));
+    h.ticks(20);
+    assert!(h.text().contains("Settings error"), "{}", h.text());
+    assert!(!status(&h).contains("Saving settings"), "{}", status(&h));
+}
+
 #[test]
 fn editor_environment_validation_and_masking_stay_local() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);

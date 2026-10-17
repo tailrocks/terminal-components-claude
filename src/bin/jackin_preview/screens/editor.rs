@@ -40,7 +40,7 @@ use crate::domain::workspace::{
     AllowedRoles, DirtyExitPolicy, Effective, RoleEntry, RoleName, RoleSource, Workspace,
     WorkspaceId,
 };
-use crate::sim::world::{Msg, World};
+use crate::sim::world::{Msg, World, job};
 use junie_tui::ui::text::plural;
 
 pub const TABS: WidgetId = WidgetId::of("editor.tabs");
@@ -459,7 +459,10 @@ impl EditorScreen {
         w.save_fails_once = false;
         let id = self.workspace.unwrap_or(w.next_workspace_id);
         w.schedule(900, Msg::WorkspaceSaved { id, ok });
-        cx.status(format!("Saving {}…", self.pending.name));
+        cx.progress(
+            job::WORKSPACE_SAVE,
+            format!("Saving {}…", self.pending.name),
+        );
         cx.focus.focus(SAVE);
     }
 
@@ -1419,7 +1422,7 @@ impl EditorScreen {
                 error,
             },
         );
-        cx.status(format!("Loading role {name}…"));
+        cx.progress(job::ROLE_LOAD, format!("Loading role {name}…"));
     }
 
     fn finish_role_load(
