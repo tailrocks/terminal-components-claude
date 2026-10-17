@@ -1385,6 +1385,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::dialog::Dialog::ack_enter"),
     Capability::builder("widgets::dialog::Dialog::mnemonics"),
     Capability::builder("widgets::dialog::Dialog::guard_dirty_prompt"),
+    Capability::builder("widgets::dialog::Dialog::guard_destructive_dismiss"),
     Capability::builder("widgets::dialog::Dialog::cancel_label"),
     Capability::builder("widgets::dialog::Dialog::dismiss"),
     Capability::builder("widgets::dialog::Dialog::close_button"),

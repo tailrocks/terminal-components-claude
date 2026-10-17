@@ -314,6 +314,7 @@ impl DialogsPage {
             _ => AckEnter::Submit,
         });
         d = d.guard_dirty_prompt(o.on("dialogs.guard_dirty"));
+        d = d.guard_destructive_dismiss(o.on("dialogs.guard_destructive"));
         d = d.edit_entry(match o.value("dialogs.edit_entry") {
             "type-to-edit" => EditEntry::TypeToEdit,
             "explicit" => EditEntry::Explicit,

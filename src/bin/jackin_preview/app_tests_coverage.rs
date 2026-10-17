@@ -493,6 +493,44 @@ fn cockpit_credentials_retry_plain_and_cancel_are_recoverable() {
     assert!(status(&h).contains("Launch failed"), "{}", status(&h));
 }
 
+/// A28: the credential error's cancel action is the danger "Cancel
+/// launch", so a stray click on the backdrop must not take it. The click
+/// is refused and flashes the frame; Esc still cancels the launch.
+#[test]
+fn a_stray_click_does_not_cancel_a_launch_held_on_credentials() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.app.world.op.session = crate::sim::onepassword::OpSession::Locked;
+    launch(&mut h, LaunchPlan::CredentialsLocked);
+    h.ticks(110);
+    assert!(
+        h.text().contains("Credential source unavailable"),
+        "{}",
+        h.text()
+    );
+    let route = h.app.route;
+    let focus = h.app.shell.focus.current();
+    let p = outside(&h);
+    h.mouse(MouseKind::Down, p.x, p.y);
+    h.mouse(MouseKind::Up, p.x, p.y);
+    assert_eq!(h.app.route, route, "the launch was not cancelled");
+    assert!(h.app.screens.cockpit.as_ref().unwrap().credential_hold);
+    assert!(
+        h.text().contains("Credential source unavailable"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.app.shell.focus.current(), focus, "focus stays in it");
+    let now = h.app.world.now_ms().max(0) as u64;
+    assert_eq!(
+        h.app.shell.pointer.flashing(now),
+        Some(junie_tui::ui::modal::SURFACE),
+        "the refused click flashes the frame"
+    );
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.route, Route::Manager, "Esc still cancels the launch");
+    assert!(status(&h).contains("Launch failed"), "{}", status(&h));
+}
+
 #[test]
 fn cockpit_blocked_sidecar_abort_log_and_info_paths_are_screen_level() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
