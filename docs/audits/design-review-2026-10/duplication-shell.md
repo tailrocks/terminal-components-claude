@@ -94,5 +94,5 @@ Every row is consolidated into the plan ([`shared-components-plan.md`](../../arc
 | 13 Quit / leave guards | Open → S14 | — | `request_quit`/`open_quit_confirm` remain; library `ui::leave::LeaveGuard` exists (keyboard.md #4). |
 | 14 Navigation / routing | Open → S14 | — | `shell::Router` not built; per-app `go`/`goto` remain. |
 | 15 Clipboard | Open → S14 | — | `shell::Clipboard` not built; holla `copy_osc52` remains. |
-| 16 Small helpers | Open → A16 for paste routing; rest Fixed (S2) | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::plural` and `Theme::centred_hints` adopted. Paste still routed per app (`Input::Paste` in all four `app.rs`); no step names it; suggested owner S8a. |
+| 16 Small helpers | Fixed (S2; paste routing S8a, A16) | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::plural` and `Theme::centred_hints` adopted. Paste goes through `KeyRouter::input` (S8a): no app matches `Input::Paste`. |
 | Gap: `InputConfig` per app | Fixed | `8016cb3ab` | `runtime::Application::input_config` lets an app set its `InputConfig` (SC28 commit). |
