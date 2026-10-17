@@ -2879,7 +2879,11 @@ impl DataGrid {
                         st = st.fg(t.error).remove_modifier(Modifier::ITALIC);
                     }
                     if is_cursor {
-                        st = t.cell_cursor(err.is_some(), s.pressed);
+                        st = if self.in_range(d, ci) {
+                            t.cursor_in_selection(err.is_some(), s.pressed)
+                        } else {
+                            t.cell_cursor(err.is_some(), s.pressed)
+                        };
                         if state == RowState::Deleted {
                             st = st.add_modifier(Modifier::CROSSED_OUT);
                         }
@@ -4134,6 +4138,36 @@ mod tests {
         g.record_cell(9, 1, CellValue::Text("z".into()));
         assert!(g.pending.is_dirty(9, 1));
         assert_eq!(g.row_state(g.source_row(0)), RowState::Modified);
+    }
+
+    /// SVg3: the cursor cell inside a range selection takes the
+    /// `highlight_on_selection` fill, not the plain cursor fill, so it
+    /// never reads as one more selected cell.
+    #[test]
+    fn the_cursor_inside_a_range_takes_its_own_fill() {
+        let mut g = grid();
+        let shift = ratatui::crossterm::event::KeyModifiers::SHIFT;
+        g.on_key(&Key {
+            code: KeyCode::Down,
+            mods: shift,
+        });
+        g.on_key(&Key {
+            code: KeyCode::Right,
+            mods: shift,
+        });
+        let focus = Interaction {
+            focus: Some(g.id),
+            ..Default::default()
+        };
+        let (buf, _) = render_at(&mut g, Rect::new(0, 0, 60, 10), focus);
+        let t = Theme::junie();
+        let cursor: String = buf
+            .content()
+            .iter()
+            .filter(|c| c.bg == t.highlight_on_selection)
+            .map(|c| c.symbol())
+            .collect();
+        assert!(cursor.contains("row 1"), "{cursor:?}");
     }
 
     #[test]
