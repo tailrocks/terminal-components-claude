@@ -4,14 +4,14 @@
  ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────── [0m
   [0m[1mReview · trash 1 item[0m · gate 1 of 2 · review the resolved facts, th…  [0m
                                                                         [0m
-  Action        move to Trash 1 item under ~                            [0m
-  Host          devbox · local                                          [0m
-  Mode          Trash · no Trash backend · every item will fail, never  [0m
-                fall back · space returns after the Trash is emptied    [0m
-  Estimate      124.0 KiB allocated · APFS clones may overcount ·       [0m
-                purgeable space excluded · not a free-space guarantee   [0m
+  Action        move to Trash 1 item under ~                         ┃  [0m
+  Host          devbox · local                                       ┆  [0m
+  Mode          Trash · no Trash backend · every item will fail,     ┆  [0m
                                                                         [0m
  ╭─ Sequence · 1 command ────────────────────────────────── y copies ─╮ [0m
+ │  01  trash /home/alex/Projects/app/node_modules  # 124.0 KiB · pr… │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
  ╰────────────────────────────────────────────────────────────────────╯ [0m
                                                                         [0m
                                                  ▎[0m[1mCancel [0m   Continue…   [0m

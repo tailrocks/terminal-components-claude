@@ -17,10 +17,10 @@
 [0m[2;38;5;7;48;5;0m  Paths         ~/Pro│  [0m[48;5;0m              [0m[38;5;15;48;5;0mpurgeable space excluded · not a free-space guarantee[0m[48;5;0m     [0m[2;38;5;7;48;5;0m  │                     [0m
 [0m[2;38;5;7;48;5;0m  Recoverable   yes ·│  [0m[38;5;7;48;5;0mDenied[0m[48;5;0m        [0m[38;5;7;48;5;0mnone · every path passed the lexical, protected-root,[0m[48;5;0m     [0m[2;38;5;7;48;5;0m  │                     [0m
 [0m[2;38;5;7;48;5;0m  Provenance    holla│  [0m[48;5;0m              [0m[38;5;7;48;5;0muser-data and symlink rules[0m[48;5;0m                               [0m[2;38;5;7;48;5;0m  │                     [0m
-[0m[2;38;5;7;48;5;0m                     │  [0m[38;5;7;48;5;0mRevision[0m[48;5;0m      [0m[38;5;7;48;5;0mc4d729e20ca0805b · any change to paths, mode or dry run[0m[48;5;0m   [0m[2;38;5;7;48;5;0m  │                     [0m
-[0m[2;38;5;7;48;5;0m ╭─ Sequence · 1 comm│  [0m[48;5;0m              [0m[38;5;7;48;5;0mvoids this review[0m[48;5;0m                                         [0m[2;38;5;7;48;5;0m  │──────── y copies ─╮ [0m
-[0m[2;38;5;7;48;5;0m │  01  trash /home/a│  [0m[38;5;7;48;5;0mThreat model[0m[48;5;0m  [0m[38;5;7;48;5;0man unprivileged user · ancestors are re-resolved at commit[0m[2;38;5;7;48;5;0m  │                   │ [0m
-[0m[2;38;5;7;48;5;0m │                   │  [0m[48;5;0m              [0m[38;5;7;48;5;0m· a concurrent rename of the final path cannot be excluded[0m[2;38;5;7;48;5;0m  │                   │ [0m
+[0m[2;38;5;7;48;5;0m  Gate          secon│  [0m[38;5;7;48;5;0mRevision[0m[48;5;0m      [0m[38;5;7;48;5;0mc4d729e20ca0805b · any change to paths, mode or dry run[0m[48;5;0m   [0m[2;38;5;7;48;5;0m  │                     [0m
+[0m[2;38;5;7;48;5;0m                     │  [0m[48;5;0m              [0m[38;5;7;48;5;0mvoids this review[0m[48;5;0m                                         [0m[2;38;5;7;48;5;0m  │                     [0m
+[0m[2;38;5;7;48;5;0m ╭─ Sequence · 1 comm│  [0m[38;5;7;48;5;0mThreat model[0m[48;5;0m  [0m[38;5;7;48;5;0man unprivileged user · ancestors are re-resolved at commit[0m[2;38;5;7;48;5;0m  │──────── y copies ─╮ [0m
+[0m[2;38;5;7;48;5;0m │  01  trash /home/a│  [0m[48;5;0m              [0m[38;5;7;48;5;0m· a concurrent rename of the final path cannot be excluded[0m[2;38;5;7;48;5;0m  │                   │ [0m
 [0m[2;38;5;7;48;5;0m │                   │  [0m[38;5;7;48;5;0mPaths[0m[48;5;0m         [0m[38;5;15;48;5;0m~/Projects/app/node_modules[0m[48;5;0m                               [0m[2;38;5;7;48;5;0m  │                   │ [0m
 [0m[2;38;5;7;48;5;0m │                   │                                                                            │                   │ [0m
 [0m[2;38;5;7;48;5;0m │                   │  /home/alex/Projects/app/node_modules                                      │                   │ [0m

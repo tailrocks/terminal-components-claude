@@ -17,10 +17,10 @@
 [0m[2m  Paths         ~/Pro│  [0m              purgeable space excluded · not a free-space guarantee     [0m[2m  │                     [0m
 [0m[2m  Recoverable   yes ·│  [0mDenied        none · every path passed the lexical, protected-root,     [0m[2m  │                     [0m
 [0m[2m  Provenance    holla│  [0m              user-data and symlink rules                               [0m[2m  │                     [0m
-[0m[2m                     │  [0mRevision      c4d729e20ca0805b · any change to paths, mode or dry run   [0m[2m  │                     [0m
-[0m[2m ╭─ Sequence · 1 comm│  [0m              voids this review                                         [0m[2m  │──────── y copies ─╮ [0m
-[0m[2m │  01  trash /home/a│  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m  │                   │ [0m
-[0m[2m │                   │  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m  │                   │ [0m
+[0m[2m  Gate          secon│  [0mRevision      c4d729e20ca0805b · any change to paths, mode or dry run   [0m[2m  │                     [0m
+[0m[2m                     │  [0m              voids this review                                         [0m[2m  │                     [0m
+[0m[2m ╭─ Sequence · 1 comm│  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m  │──────── y copies ─╮ [0m
+[0m[2m │  01  trash /home/a│  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m  │                   │ [0m
 [0m[2m │                   │  [0mPaths         ~/Projects/app/node_modules                               [0m[2m  │                   │ [0m
 [0m[2m │                   │                                                                            │                   │ [0m
 [0m[2m │                   │  /home/alex/Projects/app/node_modules                                      │                   │ [0m

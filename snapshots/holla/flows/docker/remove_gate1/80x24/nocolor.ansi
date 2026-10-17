@@ -4,18 +4,18 @@
  ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────── [0m
   [0m[1mReview · Stop and remove all containers[0m · gate 1 of 2 · review the resolved…  [0m
                                                                                 [0m
-  Action       stop the running containers, then remove every captured          [0m
-               container on mbp (running and stopped) · images and volumes      [0m
-               stay · rm runs only after stop succeeds                          [0m
-  Host         mbp · local                                                      [0m
-  In           mbp · host-wide                                                  [0m
-  Scope        host                                                             [0m
-  Changes      6 containers removed · writable layers lost                      [0m
-  Risk         destructive                                                      [0m
+  Action       stop the running containers, then remove every captured       ┃  [0m
+               container on mbp (running and stopped) · images and volumes   ┃  [0m
+               stay · rm runs only after stop succeeds                       ┃  [0m
+  Host         mbp · local                                                   ┆  [0m
+  In           mbp · host-wide                                               ┆  [0m
+  Scope        host                                                          ┆  [0m
+  Changes      6 containers removed · writable layers lost                   ┆  [0m
                                                                                 [0m
  ╭─ Sequence · 2 commands ───────────────────────────────────────── y copies ─╮ [0m
  │  01  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-sch… │ [0m
  │  02  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-sched… │ [0m
+ │                                                                            │ [0m
  ╰────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                 [0m
                                                          ▎[0m[1mCancel [0m   Continue…   [0m
