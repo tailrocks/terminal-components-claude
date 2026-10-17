@@ -2,10 +2,10 @@
                                                                                                     [0m
  [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text f… [0m
                                                                                                     [0m
-    Overview                                         Tasks                                          [0m
+    Overview                                 ‹       Tasks                                          [0m
   ▸ App shell           Workspace               │                                                   [0m
-  ▸ Inputs & forms    › T Tasks               3 │    One focus stop. ↑↓ move the cursor, Enter      [0m
-  ▸ Tables              R Runs                  │    opens.                                         [0m
+  ▸ Inputs & forms    › T Tasks               3 │    One focus stop. ↑↓ (or j k) move the cursor,   [0m
+  ▸ Tables              R Runs                  │    Enter opens.                                   [0m
   ▾ Navigation          B Branches              │                                                   [0m
       Lists                                     │    ›  current item · persists when focus leaves   [0m
       Trees             Project                 │    ▎  keyboard cursor · only while focused        [0m
@@ -13,12 +13,12 @@
       Tabs              E Environment           │                                                   [0m
       Menus          [0m[2m   $ Billing               [0m│    Disabled items are skipped and ignore the      [0m
   ▸ Overlays                                    │    pointer.                                       [0m
-  ▸ Feedback            Preferences             │    Collapsed mode keeps rows and markers,         [0m
-  ▸ Layout              K Keyboard              │    initials only.                                 [0m
-  ▸ Text & code         A Appearance            │                                                   [0m
-  ▸ Screens                                     │                                                   [0m
+  ▸ Feedback            Preferences             │    Collapse keeps rows and markers, initials      [0m
+  ▸ Layout              K Keyboard              │    only.                                          [0m
+  ▸ Text & code         A Appearance            │    ‹ on the frame or Ctrl+B hides the sidebar     [0m
+  ▸ Screens                                     │    behind its rail.                               [0m
                                                 │                                                   [0m
-                                                │                                                   [0m
+                                                │    Last: none yet                                 [0m
                                                                                                     [0m
                        Collapse                                                                     [0m
                                                                                                     [0m

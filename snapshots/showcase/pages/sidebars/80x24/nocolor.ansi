@@ -2,23 +2,23 @@
                                                                                 [0m
  [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, co… [0m
                                                                                 [0m
-    Overview                                         Tasks                      [0m
+    Overview                                 ‹       Tasks                      [0m
   ▸ App shell           Workspace               │                               [0m
-  ▸ Inputs & forms    › T Tasks               3 │    One focus stop. ↑↓ move    [0m
-  ▸ Tables              R Runs                  │    the cursor, Enter opens.   [0m
-  ▾ Navigation          B Branches              │                               [0m
-      Lists                                     │    ›  current item ·          [0m
-      Trees             Project                 │    persists when focus        [0m
- [0m[1m▎  › Sidebars     [0m     M Members               │    leaves                     [0m
-      Tabs              E Environment           │    ▎  keyboard cursor · only  [0m
-      Menus          [0m[2m   $ Billing               [0m│    while focused              [0m
-  ▸ Overlays                                    │    ░  hover · follows the     [0m
-  ▸ Feedback            Preferences             │    pointer                    [0m
-  ▸ Layout              K Keyboard              │                               [0m
-  ▸ Text & code         A Appearance            │    Disabled items are         [0m
-  ▸ Screens                                     │    skipped and ignore the     [0m
-                                                     pointer.                   [0m
-                       Collapse                      Collapsed mode keeps row…  [0m
+  ▸ Inputs & forms    › T Tasks               3 │    One focus stop. ↑↓ (or j   [0m
+  ▸ Tables              R Runs                  │    k) move the cursor, Enter  [0m
+  ▾ Navigation          B Branches              │    opens.                     [0m
+      Lists                                     │                               [0m
+      Trees             Project                 │    ›  current item ·          [0m
+ [0m[1m▎  › Sidebars     [0m     M Members               │    persists when focus        [0m
+      Tabs              E Environment           │    leaves                     [0m
+      Menus          [0m[2m   $ Billing               [0m│    ▎  keyboard cursor · only  [0m
+  ▸ Overlays                                    │    while focused              [0m
+  ▸ Feedback            Preferences             │    ░  hover · follows the     [0m
+  ▸ Layout              K Keyboard              │    pointer                    [0m
+  ▸ Text & code         A Appearance            │                               [0m
+  ▸ Screens                                     │    Disabled items are         [0m
+                                                     skipped and ignore the     [0m
+                       Collapse                      pointer.                …  [0m
                                                                                 [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
