@@ -21,7 +21,7 @@
 [0m[2m ╰────────│  [0m[1;2mMouse[0m[2m                                [0m[1;2mShell[0m[2m                                 ┆│────────╯ [0m
 [0m[2m          │  [0m[1;2mclick[0m[2m       select · 2× activates    [0m[1;2ms[0m[2m           Settings                  ┆│          [0m
 [0m[2m   Current│  [0m[1;2mwheel[0m[2m       scroll under pointer     [0m[1;2mc[0m[2m           Accounts                  ┆│details   [0m
-[0m[2m          │  [0m[1;2mdrag[0m[2m        seam · scrollbar thumb   [0m[1;2mu[0m[2m           Usage                     ┆│          [0m
+[0m[2m   ───────│  [0m[1;2mdrag[0m[2m        seam · scrollbar thumb   [0m[1;2mu[0m[2m           Usage                     ┆│───────   [0m
 [0m[2m   /worksp│                                       [0m[1;2mF1 ?[0m[2m        This reference            ┆│          [0m
 [0m[2m   Roles t│                                                                      ▎[0m[1;2mDone [0m[2m  │          [0m
 [0m[2m   ◉ 7f3a ╰──────────────────────────────────────────────────────────────────────────────╯          [0m
