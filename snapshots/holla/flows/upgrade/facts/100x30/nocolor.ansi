@@ -15,7 +15,7 @@
    In         / · devbox                                                                            [0m
    Needs      nothing · starts first                                                                [0m
    Unlocks    02 Refresh Debian metadata · 05 Inspect global mise tools                             [0m
-   L6 required · 2 optional · 2 branches run in parallel where independent                          [0m
+   Lane       · trunk · ordered                                                                     [0m
    Privilege  sudo                                                                                  [0m
    Effect     checks OS, privileges, package lock, network, free space, pending reboot              [0m
    State      ready                                                                                 [0m
