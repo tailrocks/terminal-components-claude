@@ -22,6 +22,7 @@ use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::meter_list::{MeterList, MeterRow};
+use junie_tui::widgets::page_header::{Heading, PageHeader};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterLevel, MeterTone, MeterVisual, StaleStyle};
 
@@ -202,7 +203,47 @@ impl MetersPage {
             .detail_gap(3)
     }
 
+    /// The page's header: its status follows the offline option, as a
+    /// usage screen's does.
+    fn header(&self) -> PageHeader {
+        let offline = self.opts.on("meters.offline");
+        let (status, tone) = if offline {
+            (" · offline · last good 4 min ago", Tone::Warning)
+        } else {
+            (" · live", Tone::Success)
+        };
+        PageHeader::new("Usage and capacity")
+            .status(status, tone)
+            .right("refreshes every 2 s")
+            .right_gap(4)
+            .inset(1)
+            .subtitle(
+                "Plan quotas, filesystems and host load in aligned columns",
+                Tone::Muted,
+            )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        // the header, a group heading, then the cards
+        let header = self.header();
+        let rows = header.render(area, buf, ctx.theme);
+        debug_assert_eq!(rows, header.height());
+        let body = header.body(area);
+        Heading::new("Sections")
+            .meta("3 cards")
+            .tone(Tone::Muted)
+            .render(
+                Rect::new(body.x + 1, body.y, body.width.saturating_sub(2), 1),
+                buf,
+                ctx.theme,
+                ctx.theme.canvas,
+            );
+        let area = Rect::new(
+            body.x,
+            body.y + 2,
+            body.width,
+            body.height.saturating_sub(2),
+        );
         let focus = [self.refresh.id, self.offline.id]
             .iter()
             .any(|&id| ctx.interaction.has_focus(id))

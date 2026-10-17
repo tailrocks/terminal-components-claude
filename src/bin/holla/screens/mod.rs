@@ -22,7 +22,6 @@ use junie_tui::widgets::menu::MenuAction;
 use junie_tui::widgets::picker::PickerAction;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
-use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
 use crate::domain::context::Scope;
@@ -267,30 +266,6 @@ pub fn risk_tone(risk: crate::domain::action::Risk) -> Tone {
         Risk::Destructive => Tone::Error,
         Risk::Privileged => Tone::Warning,
     }
-}
-
-/// A one-row section heading: text-muted (faint is 4.4:1 on the canvas),
-/// sentence case (DESIGN hierarchy).
-pub fn heading(
-    buf: &mut Buffer,
-    x: u16,
-    y: u16,
-    w: u16,
-    text: &str,
-    t: &junie_tui::theme::Theme,
-    bg: ratatui::style::Color,
-) {
-    if w == 0 {
-        return;
-    }
-    buf.set_string(
-        x,
-        y,
-        junie_tui::ui::text::truncate(text, w as usize),
-        ratatui::style::Style::new()
-            .fg(t.tone_on(junie_tui::theme::Tone::Muted, bg))
-            .bg(bg),
-    );
 }
 
 /// Route a pointer press to a raw `ScrollState` scrollbar. Widget-owned

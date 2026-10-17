@@ -14,11 +14,12 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::text::{truncate, width};
+use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::meter_list::{MeterList, MeterRow};
+use junie_tui::widgets::page_header::PageHeader;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual};
 use junie_tui::widgets::props::{self, Prop};
@@ -1431,17 +1432,10 @@ impl ShellPage<Holla> for SnapshotPage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
-        buf.set_string(area.x + 1, area.y, &self.title, t.title());
         let meta = format!("{} · live · {}", self.meta, w.clock.ago(w.now_secs() - 1));
-        let mw = width(&meta) as u16;
-        if mw + width(&self.title) as u16 + 4 < area.width {
-            buf.set_string(
-                area.right().saturating_sub(mw + 1),
-                area.y,
-                &meta,
-                t.muted(),
-            );
-        }
+        PageHeader::new(&self.title)
+            .right(&meta)
+            .render(area, buf, t);
         let mut y = area.y + 2;
         // meters (system, postgres)
         let meters = MeterList::new(
