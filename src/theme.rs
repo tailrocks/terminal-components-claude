@@ -214,6 +214,12 @@ pub struct StateModifiers {
     pub pressed_fill: Modifier,
     /// Added to a focused control (with the `▎` gutter where it has one).
     pub focused: Modifier,
+    /// Added to a selected row (the current item, a chosen or ticked row,
+    /// the current page of a navigation list): its cue that does not rely
+    /// on colour (WCAG 1.4.1; the selection tints are about 1.7:1 against
+    /// the canvas, under 1.4.11), and the neutral active state's weight
+    /// beside its siblings. `BOLD` at every level.
+    pub selected: Modifier,
     /// Added to a disabled control.
     pub disabled: Modifier,
     /// Added to a hovered scrollbar thumb. Empty where the handle ladder
@@ -235,6 +241,7 @@ impl StateModifiers {
         fill: Modifier::empty(),
         pressed_fill: Modifier::BOLD,
         focused: Modifier::BOLD,
+        selected: Modifier::BOLD,
         disabled: Modifier::empty(),
         thumb_hover: Modifier::empty(),
         thumb_pressed: Modifier::empty(),
@@ -248,6 +255,7 @@ impl StateModifiers {
         fill: Modifier::empty(),
         pressed_fill: Modifier::REVERSED.union(Modifier::BOLD),
         focused: Modifier::BOLD,
+        selected: Modifier::BOLD,
         disabled: Modifier::empty(),
         thumb_hover: Modifier::empty(),
         thumb_pressed: Modifier::empty(),
@@ -261,6 +269,7 @@ impl StateModifiers {
         fill: Modifier::REVERSED,
         pressed_fill: Modifier::BOLD.union(Modifier::UNDERLINED),
         focused: Modifier::BOLD,
+        selected: Modifier::BOLD,
         disabled: Modifier::DIM,
         thumb_hover: Modifier::BOLD,
         thumb_pressed: Modifier::REVERSED,
@@ -1396,6 +1405,11 @@ impl Theme {
         };
         if weighted && !s.busy {
             mods |= m.focused;
+        }
+        // a selected row is set apart without colour (SV14), and the
+        // neutral active row (a current page) by weight (SV1)
+        if s.selected && row_like {
+            mods |= m.selected;
         }
         let style = Style::new().fg(fg).bg(bg).add_modifier(mods);
 
