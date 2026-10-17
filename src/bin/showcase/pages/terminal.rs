@@ -385,9 +385,17 @@ impl TerminalPage {
             inner.height.saturating_sub(3),
         );
         self.rail.render(rail_area, buf, ctx, bg);
+        // a narrow card wraps the two buttons upward instead of cutting one
+        let widths = [self.run.width(), self.fail.width()];
+        let lines = junie_tui::widgets::button::row_lines(inner.width, &widths, 2);
         let rects = row_layout(
-            Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
-            &[self.run.width(), self.fail.width()],
+            Rect::new(
+                inner.x,
+                inner.bottom().saturating_sub(lines),
+                inner.width,
+                1,
+            ),
+            &widths,
             2,
         );
         self.run.render(rects[0], buf, ctx, bg);

@@ -888,14 +888,14 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
     assert!(a.app.world.live_activities() > 0);
 }
 
-/// K8: when the focused control vanishes while the page stays, focus goes
-/// to its nearest neighbour, not back to the page's primary control. A
-/// finished activity offers its follow-ups in one row; the ones that no
-/// longer fit drop out when the terminal narrows. Focus on the last one,
-/// narrow to the minimum, and focus lands on the follow-up before it.
+/// R-apps-7: a finished activity offers its follow-ups in one row; the
+/// ones that no longer fit used to drop out when the terminal narrowed
+/// (K8's focus hand-off is covered by `core::focus` and jackin's
+/// `a_vanished_control_hands_focus_to_its_nearest_neighbour`). Now the row
+/// wraps: focus on the last one, narrow to the minimum, and it stays
+/// drawn, reachable and focused on the next line.
 #[test]
-fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
-    use crate::screens::activity::VIEW;
+fn a_narrowed_follow_up_row_wraps_and_keeps_the_focused_button() {
     use junie_tui::shell::App as _;
     fn label(h: &H, id: junie_tui::core::id::WidgetId) -> String {
         let r = h.app.shell.hits.area_of(id).expect("a drawn control");
@@ -933,21 +933,19 @@ fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
         label(&h, neighbour)
     );
     let page = h.app.page_key();
+    let before = h.app.shell.hits.area_of(last).unwrap();
     h.resize(72, 20);
     assert_eq!(h.app.page_key(), page, "the page stays");
     assert!(
-        !h.app.shell.ring.contains(last),
-        "the last follow-up no longer fits: {}",
+        h.app.shell.ring.contains(last),
+        "the last follow-up still fits, wrapped: {}",
         h.text()
     );
-    assert_eq!(h.app.shell.focus.current(), Some(neighbour), "{}", h.text());
-    assert!(label(&h, neighbour).contains("Run tests again"));
-    assert_eq!(h.app.primary_focus(), Some(VIEW));
-    assert_ne!(
-        h.app.shell.focus.current(),
-        h.app.primary_focus(),
-        "the old upkeep put focus back on the page's primary control"
-    );
+    assert_eq!(h.app.shell.focus.current(), Some(last), "{}", h.text());
+    assert!(label(&h, last).contains("Review 4 modified files"));
+    let after = h.app.shell.hits.area_of(last).unwrap();
+    let prev = h.app.shell.hits.area_of(neighbour).unwrap();
+    assert!(after.y > prev.y, "on the next line: {before:?} {after:?}");
 }
 
 /// The footer's peek line never costs a key hint: with a cut cursor row
