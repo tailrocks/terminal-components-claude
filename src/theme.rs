@@ -566,6 +566,40 @@ mod palette {
     pub const GREEN_35: Color = rgb(0x1e5024);
     /// Text selection and grid ranges.
     pub const BLUE_20: Color = rgb(0x1f3460);
+    /// Inactive selection ([`super::InactiveSelection::Neutral`]): a cool
+    /// grey apart from every plane's hover step.
+    pub const GREY_INACTIVE: Color = rgb(0x33363e);
+}
+
+/// How the selected row of a list, tree, table or sidebar looks while its
+/// widget does not have keyboard focus ([`Theme::inactive_selection`],
+/// per widget through [`crate::ui::ctx::VisualState::inactive_selection`]).
+///
+/// macOS keeps a neutral grey "inactive selection" fill there; the owner
+/// chose to keep the accent fill instead (owner decision 2026-10-17,
+/// `docs/audits/design-review-2026-10/states.md`). Under a modal or popup
+/// layer the row never shows the accent: [`Self::Accent`] falls back to
+/// [`Self::Neutral`] there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InactiveSelection {
+    /// Keep the focused-selection accent fill ([`Theme::accent_bg`]) on
+    /// the selected row while its page is the active layer (the default).
+    #[default]
+    Accent,
+    /// A neutral grey fill ([`Theme::selection_inactive`]): macOS's
+    /// inactive selection.
+    Neutral,
+    /// No fill: the selected row is marked only by its glyph and weight.
+    None,
+}
+
+impl InactiveSelection {
+    /// Every look, in option order.
+    pub const ALL: [InactiveSelection; 3] = [
+        InactiveSelection::Accent,
+        InactiveSelection::Neutral,
+        InactiveSelection::None,
+    ];
 }
 
 /// Semantic tokens. Field names are the vocabulary used everywhere else.
@@ -644,6 +678,12 @@ pub struct Theme {
     /// Hover step of the focused-selected tint ([`Self::accent_bg`]): hover
     /// keeps the selection hue instead of replacing it.
     pub accent_bg_hover: Color,
+    /// The selected row's fill while its widget is unfocused, under
+    /// [`InactiveSelection::Neutral`] (and under a modal or popup layer).
+    pub selection_inactive: Color,
+    /// How a selected row looks while its widget is unfocused. Default
+    /// [`InactiveSelection::Accent`]; see [`Self::with_inactive_selection`].
+    pub inactive_selection: InactiveSelection,
     /// A destructive label at rest on a raised or popover plane (danger
     /// buttons): full strength, readable at ≥ 4.5:1.
     pub danger_label: Color,
@@ -731,6 +771,8 @@ impl Theme {
             syntax_string: SYNTAX_STRING,
             syntax_literal: SYNTAX_LITERAL,
             accent_bg_hover: GREEN_35,
+            selection_inactive: GREY_INACTIVE,
+            inactive_selection: InactiveSelection::Accent,
             selection_bg: BLUE_20,
             highlight_on_selection: INDIGO,
             danger_label: RED_LABEL,
@@ -831,6 +873,7 @@ impl Theme {
             syntax_string,
             syntax_literal,
             accent_bg_hover,
+            selection_inactive,
             danger_label,
             selection_bg
         );
@@ -900,6 +943,7 @@ impl Theme {
         self.accent_pressed = i(65);
         self.accent_bg = i(22);
         self.accent_bg_hover = i(28);
+        self.selection_inactive = i(238);
         self.selection_bg = i(17);
         self.accent_bg_subtle = i(22);
         self.focus = i(78);
@@ -1090,6 +1134,14 @@ impl Theme {
     /// [`EditEntry`](crate::core::edit::EditEntry).
     pub const fn with_edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         self.edit_entry = entry;
+        self
+    }
+
+    /// This theme with every unfocused selected row drawn as `look`
+    /// ([`Self::inactive_selection`]); a widget's own
+    /// [`VisualState::inactive_selection`] still wins.
+    pub const fn with_inactive_selection(mut self, look: InactiveSelection) -> Self {
+        self.inactive_selection = look;
         self
     }
 
@@ -1462,9 +1514,15 @@ impl Theme {
             mods |= m.fill;
         }
         let row_like = matches!(kind, Kind::Row | Kind::CursorRow(CursorStyle::Bar));
-        let tinted = row_like && s.selected && s.focused && self.tint_selection;
-        let (rest, hover) = if tinted {
+        // the selected row: the accent tint while focused; unfocused it
+        // follows the inactive-selection look, never the accent under a
+        // modal or popup layer
+        let inactive = self.inactive_look(s);
+        let sel = row_like && s.selected && self.tint_selection;
+        let (rest, hover) = if sel && (s.focused || inactive == InactiveSelection::Accent) {
             (self.accent_bg, self.accent_bg_hover)
+        } else if sel && inactive == InactiveSelection::Neutral {
+            (self.selection_inactive, self.selection_inactive)
         } else {
             (lad.rest, lad.hover)
         };
@@ -1731,6 +1789,29 @@ impl Theme {
             self.accent
         } else {
             self.text_primary
+        }
+    }
+
+    /// Ink for a chosen-value mark (a checked box, the on radio or toggle,
+    /// a current item's `›`) in state `s`: the accent while its control
+    /// has focus, and while unfocused under [`InactiveSelection::Accent`]
+    /// (the default, owner decision 2026-10-17) unless a modal or popup
+    /// covers it ([`VisualState::backdrop`]); primary text otherwise.
+    /// [`crate::ui::ctx::RenderCtx::chosen`] fills in the layer.
+    pub fn chosen_in(&self, s: VisualState) -> Color {
+        if s.focused || self.inactive_look(s) == InactiveSelection::Accent {
+            self.accent
+        } else {
+            self.text_primary
+        }
+    }
+
+    /// The unfocused-selection look in state `s`: the widget's own, else
+    /// the theme's; under a layer the accent falls back to neutral.
+    pub fn inactive_look(&self, s: VisualState) -> InactiveSelection {
+        match s.inactive_selection.unwrap_or(self.inactive_selection) {
+            InactiveSelection::Accent if s.backdrop => InactiveSelection::Neutral,
+            look => look,
         }
     }
 
@@ -3032,6 +3113,114 @@ mod tests {
     fn contrast(a: Color, b: Color) -> f64 {
         let (x, y) = (luminance(a), luminance(b));
         (x.max(y) + 0.05) / (x.min(y) + 0.05)
+    }
+
+    /// A selected row keeps a fill while its widget is unfocused
+    /// (owner decision 2026-10-17): the accent by default, the neutral
+    /// grey under `Neutral` and under a layer, none under `None`; readable
+    /// and apart from hover and the plane at every colour level, by a
+    /// modifier where colour cannot carry it.
+    #[test]
+    fn an_unfocused_selected_row_keeps_its_inactive_selection() {
+        for level in ColorLevel::ALL {
+            let base = Theme::for_level(level);
+            for plane in [Plane::Canvas, Plane::Surface, Plane::Card] {
+                let lad = base.ladder(plane);
+                let row = |t: &Theme, s: VisualState| t.interactive(Kind::Row, s, plane).style;
+                let sel = VisualState {
+                    selected: true,
+                    ..Default::default()
+                };
+                let hover = row(
+                    &base,
+                    VisualState {
+                        hovered: true,
+                        ..Default::default()
+                    },
+                );
+                let focused = row(
+                    &base,
+                    VisualState {
+                        focused: true,
+                        ..sel
+                    },
+                );
+                for look in InactiveSelection::ALL {
+                    let t = base.with_inactive_selection(look);
+                    let st = row(&t, sel);
+                    let bg = st.bg.unwrap();
+                    let want = match (look, base.tint_selection) {
+                        (_, false) | (InactiveSelection::None, _) => lad.rest,
+                        (InactiveSelection::Accent, _) => base.accent_bg,
+                        (InactiveSelection::Neutral, _) => base.selection_inactive,
+                    };
+                    assert_eq!(bg, want, "{level:?} {plane:?} {look:?}");
+                    // the selected row is set apart from rest and hover
+                    assert!(
+                        st.add_modifier.contains(base.mods.selected)
+                            && !base.mods.selected.is_empty()
+                            || bg != lad.rest,
+                        "{level:?} {plane:?} {look:?}: no cue"
+                    );
+                    assert_ne!(st, hover, "{level:?} {plane:?} {look:?}: like hover");
+                    if look == InactiveSelection::Neutral && base.tint_selection {
+                        assert_ne!(bg, lad.hover, "{level:?} {plane:?}: neutral is hover");
+                        assert_ne!(st, focused, "{level:?} {plane:?}: neutral is focused");
+                    }
+                    if let (Some(fg), Some(r)) =
+                        (st.fg, st.fg.and_then(|fg| contrast_ratio(fg, bg)))
+                    {
+                        assert!(
+                            r >= 4.5,
+                            "{level:?} {plane:?} {look:?}: {fg:?} on {bg:?} {r:.2}"
+                        );
+                    }
+                    // under a modal or popup the accent goes neutral
+                    let under = row(
+                        &t,
+                        VisualState {
+                            backdrop: true,
+                            ..sel
+                        },
+                    );
+                    let neutral = row(
+                        &base.with_inactive_selection(InactiveSelection::Neutral),
+                        sel,
+                    );
+                    if look != InactiveSelection::None {
+                        assert_eq!(under, neutral, "{level:?} {plane:?} {look:?} under a layer");
+                    }
+                    // a widget's own look wins over the theme's
+                    let own = row(
+                        &t,
+                        VisualState {
+                            inactive_selection: Some(InactiveSelection::None),
+                            ..sel
+                        },
+                    );
+                    assert_eq!(own.bg, Some(lad.rest));
+                    // a chosen mark (a checked box, the on radio) follows
+                    // the same look, and reads at ≥ 3:1 on its plane
+                    let ink = t.chosen_in(sel);
+                    if look == InactiveSelection::Accent {
+                        assert_eq!(ink, t.accent);
+                        if let Some(r) = contrast_ratio(ink, lad.rest) {
+                            assert!(r >= 3.0, "{level:?} {plane:?}: mark {r:.2}");
+                        }
+                    } else {
+                        assert_eq!(ink, t.text_primary);
+                    }
+                    assert_eq!(
+                        t.chosen_in(VisualState {
+                            backdrop: true,
+                            ..sel
+                        }),
+                        t.text_primary,
+                        "{level:?}: no accent under a layer"
+                    );
+                }
+            }
+        }
     }
 
     #[test]

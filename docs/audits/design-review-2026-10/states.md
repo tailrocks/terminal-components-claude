@@ -135,3 +135,50 @@ Each finding was checked against the code and tests at `origin/design/interactio
 | 28 | Fixed | e2afaae4a, 0a965d6b4 | The brand walks the accent ladder like a primary button. Test `clickable_lockup_rest_hover_and_pressed_differ_at_every_level`. It is pointer-only (`render_clickable` clears focus), so it draws no `▎`. |
 | 29 | Fixed | d5e1595a8 | A read-only step rail zeroes hover and press. Test `a_read_only_step_rail_does_not_react_to_hover_or_press`. |
 | 30 | Fixed | d3a10933b | Showcase Help/Inspector links, holla finder scope and explore cells, and jackin cockpit chips use `RenderCtx::title_style`. Test `header_links_show_rest_hover_and_press`. |
+
+## Inactive selection (owner decision, 2026-10-17)
+
+**Request.** The current item of a list or tree (the showcase sidebar's
+`› Scrolling`) showed the accent fill only while the list had focus; once
+focus moved on, only the `›` was left and the current item was hard to
+find. The same held for checked boxes, the on radio and the on toggle,
+whose accent ink turned primary when unfocused.
+
+**Standard.** macOS keeps an *inactive selection*: a neutral grey fill on
+the selected row of a list whose window or view is not key, and the accent
+only while focused. Checkboxes and radios keep their accent fill in an
+active window whatever has focus.
+
+**Decision.** The owner chose the accent as the default, overriding the
+macOS neutral fill for rows: `Theme::inactive_selection` =
+`InactiveSelection::Accent`. `Neutral` (macOS: `Theme::selection_inactive`,
+`#33363e`, 256 index 238) and `None` (the previous look) stay options,
+app-wide (`Theme::with_inactive_selection`, showcase
+`shell.inactive_selection`) and per widget (`ListBox`, `TreeView`,
+`NavList::inactive_selection`, or `VisualState::inactive_selection` for any
+row). One rule serves rows (`Theme::interactive` for `Kind::Row` and the
+bar cursor row, so `RowUi`, `Theme::row`, lists, trees, tables, grids and
+the sidebar) and chosen marks (`Theme::chosen_in`, `RenderCtx::chosen`:
+checkbox, radio, toggle, table check column, row marks).
+
+**Layers.** Under a modal or popup (`VisualState::backdrop`, set by
+`RenderCtx::state` from `Interaction::focus_hidden`) the accent falls back
+to neutral: content under a layer shows no accent (AGENTS.md "Visual
+states"). Keyboard focus is still only the `▎` gutter. The selected row
+therefore shows a grey band under a modal or popup (the neutral fill,
+dimmed by the modal backdrop to the overlay grey) where it had no fill
+before; the owner confirmed keeping it (2026-10-18), so the current item
+stays findable behind a dialog.
+
+**Colour levels.** At 16 colours and in monochrome there is no row tint
+(`Theme::tint_selection` is off, the fill would collide with a hover or
+pressed plane); the selected row keeps `StateModifiers::selected` and its
+mark, as before. Tests: `theme::tests::an_unfocused_selected_row_keeps_its_inactive_selection`
+(every level, plane and look: fill, ≥ 4.5:1 text, ≥ 3:1 mark, apart from
+hover and focused, neutral under a layer, widget override),
+`app_tests_nav::the_current_sidebar_row_keeps_its_fill_when_focus_leaves`,
+`app_tests_inputs_forms::checks_a_checked_box_keeps_its_accent_when_focus_leaves`.
+
+**Not covered.** Chips and segmented controls already follow the tab rule
+(accent while their page is the active layer). The per-widget builders are
+shown through the shell option, not a page of their own.

@@ -1898,7 +1898,11 @@ fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
     assert_eq!(marker(&h), t.accent, "accent while the nav has focus");
     h.key(tab());
     assert_ne!(h.app.shell.focus.current(), Some(nav));
-    assert_eq!(marker(&h), t.text_primary, "a fact, not a focus cue");
+    assert_eq!(
+        marker(&h),
+        t.accent,
+        "the accent stays (InactiveSelection::Accent)"
+    );
 }
 
 #[test]

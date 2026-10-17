@@ -4891,6 +4891,58 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("panels", "shell.card_heading"),
     ),
     (
+        "theme::InactiveSelection",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "theme::InactiveSelection::Accent",
+        Option("sidebars", "shell.inactive_selection=accent"),
+    ),
+    (
+        "theme::InactiveSelection::Neutral",
+        Option("sidebars", "shell.inactive_selection=neutral"),
+    ),
+    (
+        "theme::InactiveSelection::None",
+        Option("sidebars", "shell.inactive_selection=none"),
+    ),
+    (
+        "theme::Theme::inactive_selection",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "theme::Theme::with_inactive_selection",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "theme::Theme::selection_inactive",
+        Option("sidebars", "shell.inactive_selection=neutral"),
+    ),
+    (
+        "theme::Theme::chosen_in",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "theme::Theme::inactive_look",
+        Option("sidebars", "shell.inactive_selection=neutral"),
+    ),
+    (
+        "ui::ctx::RenderCtx::chosen",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "widgets::nav_list::NavList::inactive_selection",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "widgets::tree::TreeView::inactive_selection",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
+        "widgets::list::ListBox::inactive_selection",
+        Option("sidebars", "shell.inactive_selection"),
+    ),
+    (
         "widgets::panel::Panel::focused",
         StateRow("panels", "focused"),
     ),

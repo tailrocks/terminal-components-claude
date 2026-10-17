@@ -666,7 +666,7 @@ impl CleanupPage {
                         y,
                         mark,
                         plain.fg(if checked > 0 {
-                            t.chosen(focused)
+                            ctx.chosen(focused)
                         } else {
                             t.text_muted
                         }),
@@ -742,7 +742,7 @@ impl CleanupPage {
                     let (mark, ms) = if ineligible {
                         ("[ ]", plain.fg(quiet))
                     } else if checked {
-                        ("[✓]", plain.fg(t.chosen(focused)))
+                        ("[✓]", plain.fg(ctx.chosen(focused)))
                     } else {
                         ("[ ]", plain.fg(t.text_muted))
                     };

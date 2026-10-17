@@ -257,6 +257,13 @@ pub static SHELL: &[Opt] = &[
         &["plain", "rule", "band", "emphasis"],
     )
     .default(1),
+    // a selected row while its list is unfocused
+    // (`Theme::with_inactive_selection`)
+    Opt::new(
+        "shell.inactive_selection",
+        "Inactive selection",
+        &["accent", "neutral", "none"],
+    ),
 ];
 
 /// A page's own option table. Each page step (SC3 onward) adds its page's
