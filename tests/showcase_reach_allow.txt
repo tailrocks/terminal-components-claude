@@ -20,10 +20,6 @@ Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.coun
 Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 120x40 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Panels | Playground | 80x24 | R33 squeezes instead of overflowing: no Page::measure yet
-Panels | Playground | 100x25 | R33 squeezes instead of overflowing: no Page::measure yet
-Panels | Playground | 106x29 | R33 squeezes instead of overflowing: no Page::measure yet
-Panels | Playground | 120x40 | R33 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 80x24 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 100x25 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 106x29 | R34 squeezes instead of overflowing: no Page::measure yet
