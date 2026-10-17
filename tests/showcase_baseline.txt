@@ -2307,7 +2307,7 @@
 160x50 Ansi16 Overview · States ffd70f881b0e53c9
 160x50 Ansi16 Chrome 794cf51091179197
 160x50 Ansi16 Chrome · Options 19892c00d6b8f821
-160x50 Ansi16 Chrome · States 042b6c3e37bae8b7
+160x50 Ansi16 Chrome · States 0eab83e0925e86a1
 160x50 Ansi16 Status & hints 6cf77b78ec248090
 160x50 Ansi16 Status & hints · Options eba30b5492944bab
 160x50 Ansi16 Status & hints · States 3b44472a8b992f6f
