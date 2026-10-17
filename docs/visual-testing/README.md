@@ -184,3 +184,29 @@ xtask visual seal` after a reviewed harness change).
   with the change: `cargo xtask visual check-touched` before the push.
 - A new popup, menu, dialog or picker gets an `OVERLAYS` row (open + both
   dismissals) and an entry in `overlay_sites::SITES`.
+- A `wait:<needle>` waits for text only the new state shows. The harness
+  fails a capture whose needle is already on screen before the inputs it
+  should prove (`support::drive`, "vacuous `wait:`"): a footer hint or a
+  menu item that names the dialog lets the wait pass at once, and under
+  load the capture then races the app (`jackin/capsule/new_tab` waited
+  for `New tab`, which the Ctrl+B prefix footer already shows; it now
+  waits for the picker's `Type to search…`). The same audit fixed holla
+  `flows/cargo/clean` (`900.0 MiB` → `Results · 3`), `flows/cleanup/*`
+  and `fade/cleanup_list_wheel` (`18 categories` → `Cleanup review`;
+  `artifacts` waits for its detail pane, or the row where the list
+  scrolls), `flows/files/jump*` (`Go to path` → `type a path or a
+  name`), `flows/menu/file` (`Alternatives…` → `Copy command`),
+  `flows/scope/children` (→ `‹ children ›`), `flows/upgrade/facts`
+  (`Preflight` → `Back to outline`), and tablepro `ack/armed`
+  (`Execute` → `▎Execute`) and `query/completion` (`order_items` →
+  `ORDER BY`). Pending rows meet the check the first time they run
+  (`VISUAL_FULL=1`). When the steps end in an
+  input with no `wait:` after it, the harness waits for the app's next
+  draw before the settle window starts, so a slow answer is never taken
+  for no answer.
+
+## Known flakes
+
+| Capture | Cause | Status |
+|---|---|---|
+| `holla/flows/task/input_cancelled` | The task's duration counts the wall-clock time the run spent waiting at its prompts (`Password:`, `Proceed with rollout?`), so the elapsed digit (`1` → `0` at (32,4) and in the footer) depends on how fast the harness answers under load. | Pending owner decision D10 (exclude prompt wait from the duration, or pin it in captures). Not re-approved from a flaky run. |

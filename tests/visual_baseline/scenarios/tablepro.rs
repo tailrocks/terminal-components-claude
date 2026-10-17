@@ -102,7 +102,7 @@ pub const OVERLAYS: &[Root] = &[
     // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
     Root::new("tablepro/connections/delete_dialog", Bin::Tablepro, &[], "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "d", "wait:Delete connection?"]).dismiss_pending(),
     Root::new("tablepro/table/filter_editor", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "ctrl-f", "wait:Add filter"]).dismiss_pending(),
-    Root::new("tablepro/query/completion", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM ord", "wait:order_items"]).dismiss_pending(),
+    Root::new("tablepro/query/completion", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM ord", "wait:ORDER BY"]).dismiss_pending(),
     // Dirty the fresh tab so ctrl-w asks (app.rs:625-637): the new tab's editor
     // takes focus already editing (EditEntry::Immediate, 1da20cc01), `x` is too
     // short to auto-open completion (model.rs:791-799), escape leaves edit mode.
@@ -137,7 +137,7 @@ pub const JOURNEYS: &[Root] = &[
     // Enter on a matching token runs the statement (3ec122eb2), so `armed`
     // leaves the field with Tab (to Cancel) and Right arms Execute; `executed`
     // then presses it.
-    Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "wait:Execute"]),
+    Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "wait:▎Execute"]),
     Root::new("tablepro/ack/executed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "enter", "wait:rows affected"]),
     // DELETE without WHERE is dangerous (sql.rs:799-802): the gate carries the
     // ON DELETE CASCADE risk line and the not-reversible copy the UPDATE gate

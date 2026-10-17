@@ -407,6 +407,34 @@ impl Session {
         self.find(needle).map(|_| ())
     }
 
+    /// Panic if `needle` is already on screen: a `wait:` for it after the
+    /// next inputs could not tell whether they took effect ([`drive`]).
+    pub fn assert_wait_not_vacuous(&self, needle: &str) {
+        let obs = self.inner.observe_now().expect("observe live session");
+        let screen = render::frame_from_screen(&obs.screen, "evidence").text();
+        assert!(
+            !screen.lines().any(|line| line.contains(needle)),
+            "vacuous `wait:{needle}`: it is already on screen before the inputs it \
+             should prove; wait for text only the new state shows\n\
+             --- screen ---\n{screen}"
+        );
+    }
+
+    /// The latest published screen revision.
+    pub fn revision(&self) -> u64 {
+        self.inner.revision()
+    }
+
+    /// Wait until the app has drawn anything after revision `before` (the
+    /// answer to an input sent after it was read). A capture's settle
+    /// window alone cannot tell a slow answer from no answer: under load
+    /// the input can sit unread for longer than [`SETTLE`].
+    pub fn wait_answer(&mut self, before: u64) -> Result<(), String> {
+        self.wait(|obs| obs.revision > before)
+            .map(|_| ())
+            .map_err(|e| wait_failure("the screen never changed after it", &e))
+    }
+
     /// No needle: wait for a non-blank first paint (any non-whitespace
     /// cell), then a quiet window.
     pub fn wait_idle(&mut self, quiet: Duration) -> Result<(), String> {
@@ -625,8 +653,32 @@ pub fn boot(session: &mut Session, needle: &str) {
 }
 
 /// The step loop on a live session, 120 ms pacing after each input.
+///
+/// A `wait:<needle>` must prove that the inputs before it took effect, so
+/// the needle may not already be on screen when the first of those inputs
+/// is sent (checked here, [`Session::assert_wait_not_vacuous`]). A needle
+/// that is already visible (a footer hint naming the action, a menu item
+/// naming the dialog it opens) lets the wait pass at once and the capture
+/// race the app under load (`jackin/capsule/new_tab` waited for `New tab`,
+/// which the Ctrl+B prefix footer already showed).
 pub fn drive(session: &mut Session, steps: &[&str]) {
-    for step in steps {
+    let mut segment_start = true;
+    // the last input when no `wait:` follows it: the capture must not be
+    // taken before the app has answered it (see [`Session::wait_answer`])
+    let unproven = steps
+        .iter()
+        .rposition(|s| !s.starts_with("sleep:"))
+        .filter(|&i| !steps[i].starts_with("wait:"));
+    for (i, step) in steps.iter().enumerate() {
+        let before = (Some(i) == unproven).then(|| session.revision());
+        if step.starts_with("wait:") {
+            segment_start = true;
+        } else if segment_start && !step.starts_with("sleep:") {
+            segment_start = false;
+            if let Some(needle) = steps[i..].iter().find_map(|s| s.strip_prefix("wait:")) {
+                session.assert_wait_not_vacuous(needle);
+            }
+        }
         if let Some(ms) = step.strip_prefix("sleep:") {
             std::thread::sleep(Duration::from_millis(ms.parse().expect("sleep:<ms>")));
         } else if let Some(needle) = step.strip_prefix("wait:") {
@@ -646,6 +698,11 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
                 .send_key(step)
                 .unwrap_or_else(|e| panic!("send_key `{step}`: {e}"));
             std::thread::sleep(Duration::from_millis(120));
+        }
+        if let Some(before) = before {
+            session
+                .wait_answer(before)
+                .unwrap_or_else(|e| panic!("final step `{step}`: {e}"));
         }
     }
 }
