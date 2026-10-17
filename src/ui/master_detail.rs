@@ -162,6 +162,19 @@ impl MasterDetail {
                 }
                 w
             }
+            DetailSize::MasterShare { pct, min, max } => {
+                // the share never draws the master wider than its max
+                let master = master.min(max.max(min));
+                let fits = |w: u16| {
+                    let mw = (((w as u32 * pct as u32 + 50) / 100) as u16).clamp(min, max.max(min));
+                    mw >= master && w.saturating_sub(mw + self.gap) >= detail
+                };
+                let mut w = master.saturating_add(detail).saturating_add(self.gap);
+                while w < u16::MAX && !fits(w) {
+                    w += 1;
+                }
+                w
+            }
         };
         both.max(self.collapse_below)
     }
@@ -569,6 +582,7 @@ mod tests {
             MasterDetail::new(M, D),
             MasterDetail::new(M, D).collapse_below(40),
             MasterDetail::new(M, D).detail_share(40, 20, 50),
+            MasterDetail::new(M, D).master_share(33, 10, 40),
             MasterDetail::new(M, D)
                 .resizable(Split::new(30, 10, 10))
                 .gap(3),
@@ -577,11 +591,15 @@ mod tests {
                 let w = md.natural_width(m, d);
                 let (l, _) = frame(&mut md, w, None);
                 assert_eq!(l.mode, Mode::Split, "{w} for {m},{d}");
+                // a share draws its pane at most its max
+                let m = match md.size {
+                    DetailSize::MasterShare { max, .. } => m.min(max),
+                    _ => m,
+                };
                 assert!(l.master.width >= m, "master {:?} for {m}", l.master);
-                // a share draws the detail at most its max
                 let d = match md.size {
                     DetailSize::Share { max, .. } => d.min(max),
-                    DetailSize::Resizable => d,
+                    _ => d,
                 };
                 assert!(l.detail.width >= d, "detail {:?} for {d}", l.detail);
             }
