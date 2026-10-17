@@ -1277,6 +1277,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::choice_dialog::ChoiceDialog::option_tones"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::close_button"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::button_row"),
+    Capability::builder("widgets::choice_dialog::ChoiceDialog::double_click_confirms"),
     Capability::function("widgets::choice_dialog::ChoiceDialog::initial_focus"),
     Capability::function("widgets::choice_dialog::ChoiceDialog::height"),
     Capability::function("widgets::choice_dialog::ChoiceDialog::on_key"),
