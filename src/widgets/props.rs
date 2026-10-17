@@ -257,6 +257,42 @@ pub fn render_with(
     y - area.y
 }
 
+/// The sheet's natural size offered `avail` (plan §1.4 `Measure`): the
+/// offered width (values cut to it end in `…` and reveal), as tall as its
+/// rows at that width.
+fn natural(props: &[Prop], avail: ratatui::layout::Size) -> ratatui::layout::Size {
+    ratatui::layout::Size::new(avail.width, measure(props, avail.width))
+}
+
+/// Draw the sheet in `area` through `view` (a vertical
+/// [`ScrollView`](crate::ui::scroll_view::ScrollView)): laid out at its
+/// natural height, and scrolled with a bar (wheel, drag, the view's keys)
+/// when that is taller than `area`, so no row is ever dropped. Returns
+/// the rows used: the sheet's height, at most `area.height`. The owner
+/// routes the view's pointer events ([`ScrollView::pointer`]).
+///
+/// [`ScrollView::pointer`]: crate::ui::scroll_view::ScrollView::pointer
+pub fn render_in(
+    view: &mut crate::ui::scroll_view::ScrollView,
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    props: &[Prop],
+    bg: Color,
+) -> u16 {
+    let area = area.intersection(*buf.area());
+    if area.is_empty() || props.is_empty() {
+        return 0;
+    }
+    let size = view.fit(area.as_size(), |a| natural(props, a));
+    let area = Rect::new(area.x, area.y, area.width, size.height.min(area.height));
+    let t = ctx.theme;
+    view.render(area, size, buf, ctx, |r, b, _| {
+        render(r, b, t, props, bg);
+    });
+    area.height
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PropsAction {
     Copy(usize),
@@ -964,6 +1000,76 @@ mod tests {
                     .to_owned()
             })
             .collect()
+    }
+
+    /// A sheet taller than its area keeps every row: it scrolls with a
+    /// bar and the wheel brings its last fact into view (R-apps-6).
+    #[test]
+    fn a_sheet_taller_than_its_area_scrolls_to_its_last_row() {
+        use crate::core::pointer::PointerEvent;
+        use crate::ui::scroll_view::{Axes, ScrollView};
+        use ratatui::crossterm::event::KeyModifiers;
+        let t = Theme::junie();
+        let props: Vec<Prop> = (0..6)
+            .map(|i| Prop::new(&format!("Fact{i}"), format!("value{i}")))
+            .collect();
+        let id = WidgetId::of("sheet");
+        let mut view = ScrollView::new(id).axes(Axes::VERTICAL);
+        let draw = |view: &mut ScrollView| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
+            let used = {
+                let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+                let used = render_in(
+                    view,
+                    Rect::new(0, 0, 30, 3),
+                    &mut buf,
+                    &mut ctx,
+                    &props,
+                    t.canvas,
+                );
+                ctx.flush_overlays(&mut buf);
+                used
+            };
+            let text: String = (0..3)
+                .flat_map(|y| (0..30).map(move |x| (x, y)))
+                .map(|p| buf[p].symbol().to_owned())
+                .collect();
+            (used, text, hits)
+        };
+        let (used, text, hits) = draw(&mut view);
+        assert_eq!(used, 3);
+        assert!(text.contains("Fact0") && !text.contains("Fact5"));
+        // the sheet registered its wheel region and a bar
+        let ev = PointerEvent::wheel_on(
+            &hits,
+            id,
+            Axis::Vertical,
+            5,
+            ratatui::layout::Position::new(2, 1),
+            KeyModifiers::NONE,
+        );
+        assert!(view.pointer(&ev).is_some());
+        let (_, text, _) = draw(&mut view);
+        assert!(text.contains("Fact5"), "{text}");
+        // a sheet that fits uses only its rows
+        let mut view = ScrollView::new(id).axes(Axes::VERTICAL);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 10));
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        assert_eq!(
+            render_in(
+                &mut view,
+                Rect::new(0, 0, 30, 10),
+                &mut buf,
+                &mut ctx,
+                &props,
+                t.canvas
+            ),
+            6
+        );
     }
 
     /// A long label no longer pushes every value to the edge: it takes its

@@ -404,3 +404,42 @@ fn a_short_screen_keeps_the_disk_filesystems() {
     assert!(text.contains("Filesystems"), "{text}");
     assert!(text.contains("926"), "{text}");
 }
+
+/// R-apps-6: on a short screen the gate's and the trust review's facts
+/// keep their natural height in a scroll view: the panel under them
+/// keeps its rows, and the wheel over the facts reaches the last one.
+#[test]
+fn a_short_screen_scrolls_the_review_facts() {
+    use junie_tui::core::event::MouseKind;
+    let mut h = H::fresh();
+    review_gate(&mut h);
+    h.resize(72, 20);
+    let text = h.text();
+    // the sequence keeps its first commands under the facts
+    assert!(text.contains("01  docker stop"), "{text}");
+    assert!(!text.contains("Provenance"), "{text}");
+    let (x, y) = h.find("Action").expect("the first fact");
+    for _ in 0..10 {
+        h.mouse(MouseKind::WheelDown, x, y);
+    }
+    let text = h.text();
+    assert!(text.contains("Provenance"), "{text}");
+    let mut h = H::fresh();
+    at(&mut h, Scenario::MonorepoChild);
+    h.type_str("test");
+    h.key(KeyCode::Enter);
+    h.resize(72, 20);
+    let text = h.text();
+    assert!(text.contains("[tasks.dev]"), "{text}");
+    // notch by notch the two rows in view pass every fact: a notch never
+    // skips a row the short view has not shown
+    let (x, y) = h.find("Defines").expect("a fact");
+    let mut seen = h.text();
+    for _ in 0..6 {
+        h.mouse(MouseKind::WheelDown, x, y);
+        seen.push_str(&h.text());
+    }
+    for fact in ["Environment", "Trust scope", "Provenance", "Then"] {
+        assert!(seen.contains(fact), "{fact}: {seen}");
+    }
+}

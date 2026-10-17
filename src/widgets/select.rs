@@ -1171,8 +1171,10 @@ mod tests {
             sel.list.scroll.offset, 3,
             "the next frame keeps the scrolled view"
         );
-        // the end stops it
-        wheel(&mut sel, 30);
+        // the end stops it (a notch moves at most one view)
+        for _ in 0..10 {
+            wheel(&mut sel, 30);
+        }
         assert_eq!(sel.list.scroll.offset, 15);
         assert_eq!(wheel(&mut sel, 1), Outcome::Consumed);
         // a key move brings the cursor back into view
