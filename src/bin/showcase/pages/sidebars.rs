@@ -1,11 +1,16 @@
-//! Sidebars: the library `NavList` (sections, the current item, the
-//! focus cursor, hover, a collapsed icon mode) in a sidebar whose frame
-//! carries the `SidebarRail` collapse button; hidden, the sidebar leaves
-//! the rail, and a click on it (or Ctrl+B) brings it back.
+//! Sidebars (Navigation): the library `NavList` (sections, the current
+//! item, the focus cursor, hover, a collapsed icon mode) in a sidebar whose
+//! frame carries the `SidebarRail` collapse button; hidden, the sidebar
+//! leaves the rail, and a click on it (or Ctrl+B) brings it back.
+//! Options: `crate::options::SIDEBARS`; States: the open and collapsed list
+//! and the rail.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
@@ -13,6 +18,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::nav_list::{NavAction, NavItem, NavList};
 use junie_tui::widgets::panel::Panel;
@@ -20,7 +26,37 @@ use junie_tui::widgets::rail::{RailAction, SidebarRail};
 
 const ID: WidgetId = WidgetId::of("sidebars");
 
+/// The demo's items: `(label, icon, section, badge, disabled)`.
+const ITEMS: [(&str, &str, &str, Option<&str>, bool); 8] = [
+    ("Tasks", "T", "Workspace", Some("3"), false),
+    ("Runs", "R", "Workspace", None, false),
+    ("Branches", "B", "Workspace", None, false),
+    ("Members", "M", "Project", None, false),
+    ("Environment", "E", "Project", None, false),
+    ("Billing", "$", "Project", None, true),
+    ("Keyboard", "K", "Preferences", None, false),
+    ("Appearance", "A", "Preferences", None, false),
+];
+
+fn items(badges: bool) -> Vec<NavItem> {
+    ITEMS
+        .iter()
+        .map(|&(label, icon, section, badge, disabled)| {
+            let it = NavItem::new(label)
+                .icon(icon)
+                .section(section)
+                .disabled(disabled);
+            match badge {
+                Some(b) if badges => it.badge(b),
+                _ => it,
+            }
+        })
+        .collect()
+}
+
 pub struct SidebarsPage {
+    template: Template,
+    opts: PageValues,
     pub nav: NavList,
     collapse: Button,
     /// The sidebar's collapse button and the rail it leaves.
@@ -33,34 +69,41 @@ pub struct SidebarsPage {
 
 impl SidebarsPage {
     pub fn new() -> Self {
-        let items = vec![
-            NavItem::new("Tasks")
-                .icon("T")
-                .section("Workspace")
-                .badge("3"),
-            NavItem::new("Runs").icon("R").section("Workspace"),
-            NavItem::new("Branches").icon("B").section("Workspace"),
-            NavItem::new("Members").icon("M").section("Project"),
-            NavItem::new("Environment").icon("E").section("Project"),
-            NavItem::new("Billing")
-                .icon("$")
-                .section("Project")
-                .disabled(true),
-            NavItem::new("Keyboard").icon("K").section("Preferences"),
-            NavItem::new("Appearance").icon("A").section("Preferences"),
-        ];
-        Self {
-            // the page's list also takes the vim letters (NavKeys::VIM)
-            nav: NavList::new(ID.sub("nav"), items)
-                .current(0)
-                .collapsed(false)
-                .widths(24, 6)
-                .nav(NavKeys::VIM),
+        let opts = PageValues::new(page_options(PageId::Sidebars));
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            nav: NavList::new(ID.sub("nav"), items(true)).current(0),
             collapse: Button::secondary(ID.sub("collapse"), "Collapse"),
             rail: SidebarRail::new(ID.sub("rail"), "Navigation"),
             hidden: false,
             last: "none yet".into(),
-        }
+            opts,
+        };
+        page.apply();
+        page
+    }
+
+    /// Rebuild the list and the rail from the options through their
+    /// builders, keeping the open item and the cursor.
+    fn apply(&mut self) {
+        let o = &self.opts;
+        let (current, cursor) = (self.nav.current, self.nav.cursor);
+        let width = o.number("sidebars.width").unwrap_or(24);
+        let collapsed_w = o.number("sidebars.collapsed_width").unwrap_or(6);
+        let mut nav = NavList::new(ID.sub("nav"), items(o.on("sidebars.badges")))
+            .current(current)
+            .collapsed(o.on("sidebars.collapsed"))
+            .widths(width, collapsed_w)
+            .nav(match o.value("sidebars.keys") {
+                "desktop" => NavKeys::DEFAULT,
+                _ => NavKeys::VIM,
+            });
+        nav.cursor = cursor;
+        nav.scroll = self.nav.scroll;
+        self.nav = nav;
+        self.rail = SidebarRail::new(ID.sub("rail"), o.value("sidebars.rail_label"))
+            .collapsed_rail(o.on("sidebars.collapsed_rail"));
+        self.hidden = o.on("sidebars.hidden");
     }
 
     fn act(&mut self, a: Option<NavAction>) {
@@ -69,10 +112,18 @@ impl SidebarsPage {
         }
     }
 
+    /// Collapse the list to its icons, or open it (the Collapse button).
+    fn toggle_collapsed(&mut self) {
+        let on = !self.nav.collapsed;
+        self.opts.set("sidebars.collapsed", usize::from(on));
+        self.nav.collapsed = on;
+    }
+
     /// Hide the sidebar behind its rail, or bring it back (the rail's
     /// buttons or Ctrl+B).
     fn set_hidden(&mut self, on: bool, cx: &mut Cx) {
         self.hidden = on;
+        self.opts.set("sidebars.hidden", usize::from(on));
         self.last = if on {
             "RailAction::Collapse"
         } else {
@@ -83,20 +134,11 @@ impl SidebarsPage {
             cx.focus.focus(self.nav.id);
         }
     }
-}
 
-impl Page for SidebarsPage {
-    fn title(&self) -> &'static str {
-        "Sidebars"
-    }
-    fn blurb(&self) -> &'static str {
-        "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons"
-    }
-
-    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let content_x = if self.hidden {
-            // the hidden sidebar leaves its rail
+            // the hidden sidebar leaves its rail (none without one)
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
             self.rail.render_rail(col, buf, ctx, t.canvas);
             area.x + self.rail.width() + 1
@@ -148,8 +190,13 @@ impl Page for SidebarsPage {
             t,
         );
         let last = format!("Last: {}", self.last);
+        let keys = if self.opts.value("sidebars.keys") == "desktop" {
+            "One focus stop. ↑↓ move the cursor, Enter opens."
+        } else {
+            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens."
+        };
         let lines = [
-            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens.",
+            keys,
             "",
             "›  current item · persists when focus leaves",
             "▎  keyboard cursor · only while focused",
@@ -188,14 +235,66 @@ impl Page for SidebarsPage {
             panel.mark_clipped(inner, buf, t);
         }
     }
+}
+
+/// The States grid: the open list, the collapsed list and the rail the
+/// hidden sidebar leaves.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let sample = || NavList::new(ID.sub("states-nav"), items(true)).widths(22, 6);
+    StateGrid::new(ID.sub("states"))
+        .label_width(14)
+        .column_width(24)
+        .narrow_width(14)
+        .rows(&[
+            Rest,
+            Hover,
+            Pressed,
+            Focused,
+            FocusedHover,
+            Selected,
+            Disabled,
+            Overflow,
+            Narrow,
+        ])
+        .column("Open", sample())
+        .column("Collapsed", sample().collapsed(true))
+        .column("Rail", SidebarRail::new(ID.sub("states-rail"), "Nav"))
+}
+
+impl Page for SidebarsPage {
+    fn title(&self) -> &'static str {
+        "Sidebars"
+    }
+    fn blurb(&self) -> &'static str {
+        "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
+        // Ctrl+B is the sidebar's shortcut wherever focus is on the page
+        if let PageEvent::Key(key) = ev
+            && key.ctrl_char('b')
+            && self.template.section() == Section::Playground
+        {
+            self.set_hidden(!self.hidden, cx);
+            return Outcome::Changed;
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
         match ev {
-            // Ctrl+B is the sidebar's shortcut wherever focus is on the page
-            PageEvent::Key(key) if key.ctrl_char('b') => {
-                self.set_hidden(!self.hidden, cx);
-                Outcome::Changed
-            }
             PageEvent::Key(key) => {
                 if cx.focus.is(self.nav.id) {
                     let (o, a) = self.nav.on_key(key);
@@ -205,7 +304,7 @@ impl Page for SidebarsPage {
                 if cx.focus.is(self.collapse.id) {
                     let (o, act) = self.collapse.on_key(key);
                     if act {
-                        self.nav.collapsed = !self.nav.collapsed;
+                        self.toggle_collapsed();
                     }
                     return o;
                 }
@@ -233,7 +332,7 @@ impl Page for SidebarsPage {
                         return r.outcome();
                     }
                     if r.into_action().is_some() {
-                        self.nav.collapsed = !self.nav.collapsed;
+                        self.toggle_collapsed();
                     }
                     return Outcome::Changed;
                 }
@@ -243,11 +342,32 @@ impl Page for SidebarsPage {
         }
     }
 
-    fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         vec![("↑↓", "Move"), ("Enter", "Open"), ("Ctrl+B", "Sidebar")]
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.apply();
+        }
     }
 
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
     }
 }
