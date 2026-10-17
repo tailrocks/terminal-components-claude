@@ -77,8 +77,11 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/taskrunner-states", Bin::Showcase, &["--page", "taskrunner"], BOOT).sends(&["tab", "3", "wait:Task bar"]).pending(),
     Root::new("showcase/flows/taskrunner/plain-tree", Bin::Showcase, &["--page", "taskrunner", "--opt", "taskrunner.env_glyphs=off", "--opt", "taskrunner.tree_meta=on"], BOOT).sends(&["wait:shared-libs"]).pending(),
     // Paused frame 1600 fast-forwards the 400-line log to its deterministic
-    // 2000-line endpoint; `wait:739.63s` proves that endpoint on every axis.
-    Root::new("showcase/pages/scrolling", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s"]),
+    // 2000-line endpoint before the first frame (`App::with_motion`), so the
+    // first frame is the endpoint. `wait:Row 001` waits for it: on a narrow
+    // screen the Playground scrolls sideways and the log's last lines
+    // (`739.63s`) are out of view.
+    Root::new("showcase/pages/scrolling", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:Row 001"]),
     // `✓ 07 Ready` is the step-rail end-state at every width (the rail's
     // `7 of 7` counter compacts to `7/7` at 72 columns); 30s is tight under load.
     Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:✓ Ready"]).timeout(60000),
