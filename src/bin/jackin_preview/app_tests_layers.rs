@@ -476,3 +476,28 @@ fn only_the_new_workspace_browser_shows_the_flow_progress() {
     );
     assert!(!h.text().contains("✓ Source"), "{}", h.text());
 }
+
+/// CO4: a form's footer comes from the form's state, not a fixed line:
+/// on its Save button Enter names that button (it said `Enter Edit /
+/// Save` on every control before).
+#[test]
+fn the_form_footer_names_the_focused_button() {
+    let (mut h, _) = form();
+    let save = |h: &H| {
+        h.app
+            .top_layer::<crate::screens::modals::FormDialog>()
+            .map(|f| (f.save.id, f.save.label.clone()))
+            .unwrap()
+    };
+    let (id, label) = save(&h);
+    for _ in 0..12 {
+        if h.app.shell.focus.current() == Some(id) {
+            break;
+        }
+        h.key(KeyCode::Tab);
+    }
+    assert_eq!(h.app.shell.focus.current(), Some(id), "{}", h.text());
+    let footer = h.text().lines().next_back().unwrap_or("").to_owned();
+    assert!(footer.contains(&format!("Enter {label}")), "{footer}");
+    assert!(!footer.contains("Edit / Save"), "{footer}");
+}
