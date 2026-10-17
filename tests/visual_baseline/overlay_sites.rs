@@ -74,6 +74,14 @@ pub const SITES: &[Site] = &[
     rows("holla/app.rs::confirm_plan", &["holla/flows/upgrade/confirm"]),
     rows("holla/app.rs::draw", &["holla/flows/help/overlay", "holla/flows/quit/confirm"]),
     rows("holla/app.rs::menu_action", &["holla/overlays/alias_prompt"]),
+    gap(
+        "holla/app.rs::navigate",
+        "the leave guard's question (S14): no holla page holds unsaved edits yet, so no scenario reaches it; app_tests_nav drives it with a test page",
+    ),
+    gap(
+        "holla/app.rs::request_quit",
+        "the leave guard's unsaved-edits question on quit (S14; running work keeps open_quit_confirm): no holla page holds unsaved edits yet; app_tests_nav drives it with a test page",
+    ),
     rows("holla/app.rs::open_about", &["holla/overlays/about"]),
     rows("holla/app.rs::open_activities", &["holla/flows/activities/overlay", "holla/flows/activities/empty", "holla/flows/git/batch_picker"]),
     rows("holla/app.rs::open_alternatives", &["holla/flows/alternatives"]),
