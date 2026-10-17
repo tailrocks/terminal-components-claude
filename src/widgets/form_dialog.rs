@@ -9,6 +9,7 @@
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
+use crate::core::hints::{HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::scroll::{ScrollPane, Scrollable};
@@ -18,6 +19,7 @@ use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::choice::{Checkbox, RadioGroup};
 use crate::widgets::input::{InputAction, TextInput};
+use crate::widgets::keyhint::Hint;
 use crate::widgets::scrollbar;
 use crate::widgets::select::Select;
 use ratatui::buffer::Buffer;
@@ -154,6 +156,34 @@ impl FormField {
             FormFieldKind::Note(_) => true,
         };
         if disabled { None } else { self.focus_id() }
+    }
+}
+
+/// The footer while the form is on top: a field being edited shows
+/// [`EDIT_FIELD`](crate::widgets::keyhint::EDIT_FIELD); otherwise Tab moves
+/// between fields, Enter presses the focused button or, on a field, Save,
+/// and Esc names the cancel button when the dismiss policy lets it close.
+impl HasHints for FormDialog {
+    fn hints(&self, cx: &HintCx) -> Vec<Hint> {
+        if self.is_editing() {
+            return crate::widgets::keyhint::EDIT_FIELD.to_vec();
+        }
+        let mut v = vec![Hint::new("Tab", "Next field")];
+        let button = self
+            .actions
+            .iter()
+            .map(|(_, b)| b)
+            .chain([&self.cancel, &self.save])
+            .find(|b| cx.focus == Some(b.id));
+        match button {
+            Some(b) => v.push(b.hint()),
+            None if self.save.can_activate() => v.push(self.save.hint()),
+            None => {}
+        }
+        if self.dismiss.escape {
+            v.push(Hint::new("Esc", self.cancel.label.clone()));
+        }
+        v
     }
 }
 
