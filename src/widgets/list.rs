@@ -161,6 +161,13 @@ impl ListBox {
         self
     }
 
+    /// The selected row's look while this widget is unfocused, over the
+    /// theme's [`crate::theme::Theme::inactive_selection`].
+    pub fn inactive_selection(mut self, look: crate::theme::InactiveSelection) -> Self {
+        self.core.inactive_selection = Some(look);
+        self
+    }
+
     /// See [`Self::keymap`].
     pub fn keymap(mut self, keymap: KeyMap<ListCmd>) -> Self {
         self.keymap = keymap;
@@ -602,6 +609,7 @@ impl ListBox {
                 SelectMode::Single => self.chosen == Some(li),
                 SelectMode::Multi => self.core.selection.contains(li),
             };
+            s.inactive_selection = self.core.inactive_selection;
             let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
             let st = rp.style();
             if s.selected {
@@ -964,7 +972,7 @@ mod reveal_tests {
     /// rest and the accent on hover.
     #[test]
     fn the_chosen_mark_is_accent_only_while_the_list_has_focus() {
-        let theme = Theme::junie();
+        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None); // the focus-only look (owner default is Accent)
         let mark = |interaction: Interaction| {
             let mut l = list();
             l.chosen = Some(1);

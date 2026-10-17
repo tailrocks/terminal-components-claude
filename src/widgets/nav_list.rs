@@ -32,7 +32,7 @@ use crate::core::keymap::{Nav, NavKeys};
 use crate::core::pointer::PointerEvent;
 use crate::core::response::Response;
 use crate::core::scroll::ScrollState;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::widgets::scrollbar;
 
 /// One entry of a [`NavList`].
@@ -121,6 +121,9 @@ pub struct NavList {
     pub widths: (u16, u16),
     /// Scroll over the flattened rows (section headings and items).
     pub scroll: ScrollState,
+    /// The current item's look while the list is unfocused; `None` (the
+    /// default) takes [`crate::theme::Theme::inactive_selection`].
+    pub inactive_selection: Option<crate::theme::InactiveSelection>,
     area: Rect,
     track: Rect,
 }
@@ -137,9 +140,16 @@ impl NavList {
             nav: NavKeys::DEFAULT,
             widths: (24, 6),
             scroll: ScrollState::default(),
+            inactive_selection: None,
             area: Rect::ZERO,
             track: Rect::ZERO,
         }
+    }
+
+    /// See [`Self::inactive_selection`].
+    pub fn inactive_selection(mut self, look: crate::theme::InactiveSelection) -> Self {
+        self.inactive_selection = Some(look);
+        self
     }
 
     /// Open item `i` (the cursor follows it).
@@ -330,6 +340,10 @@ impl NavList {
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     s.disabled = it.disabled;
+                    // the open item is the list's selection: it keeps its
+                    // fill while the list is unfocused (InactiveSelection)
+                    s.selected = i == self.current;
+                    s.inactive_selection = self.inactive_selection;
                     if it.disabled {
                         s.hovered = false;
                     }
@@ -346,7 +360,13 @@ impl NavList {
                         t.gutter(s, st.bg.unwrap_or(bg), false),
                     );
                     if current {
-                        buf.set_string(row.x + 1, y, "›", st.fg(t.chosen(focused)));
+                        let ink = t.chosen_in(VisualState { focused, ..s });
+                        buf.set_string(
+                            row.x + 1,
+                            y,
+                            "›",
+                            st.fg(t.legible(ink, st.bg.unwrap_or(bg))),
+                        );
                     }
                     let label_style = if it.disabled {
                         st

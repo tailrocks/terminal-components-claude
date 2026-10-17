@@ -138,6 +138,14 @@ pub struct VisualState {
     pub error: bool,
     pub editing: bool,
     pub busy: bool,
+    /// The control sits under a modal or popup layer
+    /// ([`Interaction::focus_hidden`]): a selected row shows no accent
+    /// there ([`crate::theme::InactiveSelection`]). [`RenderCtx::state`]
+    /// sets it.
+    pub backdrop: bool,
+    /// This widget's own unfocused-selection look; `None` takes
+    /// [`crate::theme::Theme::inactive_selection`].
+    pub inactive_selection: Option<crate::theme::InactiveSelection>,
 }
 
 /// Deferred drawing queued by [`RenderCtx::overlay`]. It owns what it draws
@@ -460,8 +468,19 @@ impl<'a> RenderCtx<'a> {
             focused: self.interaction.focused(id),
             hovered: self.interaction.hovered(id),
             pressed: self.interaction.pressed(id),
+            backdrop: self.interaction.focus_hidden,
             ..Default::default()
         }
+    }
+
+    /// Ink for a chosen-value mark of a control that is (`focused`) or is
+    /// not the focus, on this layer ([`Theme::chosen_in`]).
+    pub fn chosen(&self, focused: bool) -> ratatui::style::Color {
+        self.theme.chosen_in(VisualState {
+            focused,
+            backdrop: self.interaction.focus_hidden,
+            ..Default::default()
+        })
     }
 
     /// State of `child` inside `container`: pressed when the pointer holds
