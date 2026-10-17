@@ -1047,3 +1047,23 @@ widgets::option_list::OptionList::select | OptionList, the one popup-list body (
 widgets::option_list::OptionList::layout | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::paint_rows | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::status | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+
+# ui::row
+ui::row::RowLook | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowLook::Bar | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowLook::Fill | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::MarkKind | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::MarkKind::Current | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::MarkKind::Tick | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::MarkKind::Check | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::MarkKind::Glyph | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowUi | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowUi::paint | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowUi::resolve | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint::draw | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint::style | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint::bg | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint::ink | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint::mark | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+ui::row::RowPaint::label | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
