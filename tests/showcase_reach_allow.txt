@@ -11,7 +11,6 @@
 Overview | Playground | 80x24 | R1 squeezes instead of overflowing: no Page::measure yet
 Overview | Playground | 100x25 | R1 squeezes instead of overflowing: no Page::measure yet
 Overview | Playground | 106x29 | R1 squeezes instead of overflowing: no Page::measure yet
-Overview | Playground | 120x40 | R1 squeezes instead of overflowing: no Page::measure yet
 Chrome | Playground | 80x24 | R2 squeezes instead of overflowing: no Page::measure yet
 Chrome | Playground | 100x25 | R2 squeezes instead of overflowing: no Page::measure yet
 Chrome | Playground | 106x29 | R2 squeezes instead of overflowing: no Page::measure yet
@@ -52,9 +51,6 @@ Chips | Playground | 80x24 | R11 squeezes instead of overflowing: no Page::measu
 Chips | Playground | 100x25 | R11 squeezes instead of overflowing: no Page::measure yet
 Chips | Playground | 106x29 | R11 squeezes instead of overflowing: no Page::measure yet
 Chips | Playground | 120x40 | R11 squeezes instead of overflowing: no Page::measure yet
-ChecksRadios | Playground | 80x24 | R12 squeezes instead of overflowing: no Page::measure yet
-ChecksRadios | Playground | 100x25 | R12 squeezes instead of overflowing: no Page::measure yet
-ChecksRadios | Playground | 106x29 | R12 squeezes instead of overflowing: no Page::measure yet
 Toolbars | Playground | 80x24 | R13 squeezes instead of overflowing: no Page::measure yet
 Toolbars | Playground | 100x25 | R13 squeezes instead of overflowing: no Page::measure yet
 Toolbars | Playground | 106x29 | R13 squeezes instead of overflowing: no Page::measure yet
@@ -113,20 +109,13 @@ PopupsTooltips | Playground | 120x40 | R27 squeezes instead of overflowing: no P
 FileBrowser | Playground | 80x24 | R28 squeezes instead of overflowing: no Page::measure yet
 FileBrowser | Playground | 100x25 | R28 squeezes instead of overflowing: no Page::measure yet
 FileBrowser | Playground | 106x29 | R28 squeezes instead of overflowing: no Page::measure yet
-FileBrowser | Playground | 120x40 | R28 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 80x24 | R29 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 100x25 | R29 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 106x29 | R29 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 120x40 | R29 squeezes instead of overflowing: no Page::measure yet
 EmptyError | Playground | 80x24 | R30 squeezes instead of overflowing: no Page::measure yet
-EmptyError | Playground | 100x25 | R30 squeezes instead of overflowing: no Page::measure yet
-EmptyError | Playground | 106x29 | R30 squeezes instead of overflowing: no Page::measure yet
 Meters | Playground | 80x24 | R31 squeezes instead of overflowing: no Page::measure yet
-Meters | Playground | 100x25 | R31 squeezes instead of overflowing: no Page::measure yet
-Meters | Playground | 106x29 | R31 squeezes instead of overflowing: no Page::measure yet
 Notices | Playground | 80x24 | R32 squeezes instead of overflowing: no Page::measure yet
-Notices | Playground | 100x25 | R32 squeezes instead of overflowing: no Page::measure yet
-Notices | Playground | 106x29 | R32 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 80x24 | R33 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 100x25 | R33 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 106x29 | R33 squeezes instead of overflowing: no Page::measure yet
@@ -137,7 +126,6 @@ Scrolling | Playground | 106x29 | R34 squeezes instead of overflowing: no Page::
 Scrolling | Playground | 120x40 | R34 squeezes instead of overflowing: no Page::measure yet
 SplitsStacks | Playground | 80x24 | R35 squeezes instead of overflowing: no Page::measure yet
 SplitsStacks | Playground | 100x25 | R35 squeezes instead of overflowing: no Page::measure yet
-SplitsStacks | Playground | 106x29 | R35 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 80x24 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 100x25 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Page::measure yet
@@ -148,11 +136,8 @@ PaneTree | Playground | 106x29 | R37 squeezes instead of overflowing: no Page::m
 Editor | Playground | 80x24 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 100x25 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 106x29 | R38 squeezes instead of overflowing: no Page::measure yet
-Editor | Playground | 120x40 | R38 squeezes instead of overflowing: no Page::measure yet
-Diff | Playground | 80x24 | R39 squeezes instead of overflowing: no Page::measure yet
 Diff | Playground | 100x25 | R39 squeezes instead of overflowing: no Page::measure yet
 Diff | Playground | 106x29 | R39 squeezes instead of overflowing: no Page::measure yet
-Diff | Playground | 120x40 | R39 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 80x24 | R40 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 100x25 | R40 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 106x29 | R40 squeezes instead of overflowing: no Page::measure yet
@@ -170,7 +155,6 @@ Connections | Playground | 100x25 | R43 squeezes instead of overflowing: no Page
 Finder | Playground | 80x24 | R44 squeezes instead of overflowing: no Page::measure yet
 Finder | Playground | 100x25 | R44 squeezes instead of overflowing: no Page::measure yet
 Finder | Playground | 106x29 | R44 squeezes instead of overflowing: no Page::measure yet
-Finder | Playground | 120x40 | R44 squeezes instead of overflowing: no Page::measure yet
 DiskCleanup | Playground | 80x24 | R45 squeezes instead of overflowing: no Page::measure yet
 DiskCleanup | Playground | 100x25 | R45 squeezes instead of overflowing: no Page::measure yet
 DiskCleanup | Playground | 106x29 | R45 squeezes instead of overflowing: no Page::measure yet
@@ -189,10 +173,8 @@ AccountsUsage | Playground | 106x29 | R48 squeezes instead of overflowing: no Pa
 AccountsUsage | Playground | 120x40 | R48 squeezes instead of overflowing: no Page::measure yet
 LaunchCockpit | Playground | 80x24 | R49 squeezes instead of overflowing: no Page::measure yet
 LaunchCockpit | Playground | 100x25 | R49 squeezes instead of overflowing: no Page::measure yet
-LaunchCockpit | Playground | 106x29 | R49 squeezes instead of overflowing: no Page::measure yet
 ReadOnlyReport | Playground | 80x24 | R50 squeezes instead of overflowing: no Page::measure yet
 ReadOnlyReport | Playground | 100x25 | R50 squeezes instead of overflowing: no Page::measure yet
-ReadOnlyReport | Playground | 106x29 | R50 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 80x24 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 100x25 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 106x29 | R51 squeezes instead of overflowing: no Page::measure yet
@@ -204,4 +186,3 @@ Settings | Playground | 100x25 | R53 squeezes instead of overflowing: no Page::m
 Settings | Playground | 106x29 | R53 squeezes instead of overflowing: no Page::measure yet
 Settings | Playground | 120x40 | R53 squeezes instead of overflowing: no Page::measure yet
 TaskRunner | Playground | 80x24 | R54 squeezes instead of overflowing: no Page::measure yet
-TaskRunner | Playground | 100x25 | R54 squeezes instead of overflowing: no Page::measure yet
