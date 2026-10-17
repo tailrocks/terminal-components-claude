@@ -45,8 +45,8 @@ use junie_tui::core::scroll::{
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
-use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::reveal;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::{fit, slice_cells, truncate};
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
