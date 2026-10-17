@@ -217,7 +217,7 @@ impl Picker {
     /// off drops it.
     pub fn set_searchable(&mut self, on: bool) {
         match (on, self.list.query.is_some()) {
-            (true, false) => self.list.query = Some(EditField::single("")),
+            (true, false) => self.list.query = Some(Box::new(EditField::single(""))),
             (false, true) => self.list.query = None,
             _ => {}
         }
@@ -230,7 +230,7 @@ impl Picker {
 
     /// The query text; empty for a picker without a query.
     pub fn query(&self) -> &str {
-        self.list.query.as_ref().map_or("", EditField::text)
+        self.list.query.as_deref().map_or("", EditField::text)
     }
 
     /// Replace the query text (the caret goes to the end). Nothing for a

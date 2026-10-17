@@ -1694,7 +1694,6 @@ impl OptionsView {
                 Control::Toggle(t) => t.on = v == 1,
                 Control::Select(s) if !s.open => {
                     s.selected = v;
-                    s.cursor = v;
                 }
                 Control::Select(_) => {}
             }

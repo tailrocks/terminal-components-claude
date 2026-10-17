@@ -1335,7 +1335,11 @@ mod tests {
         };
         let out = Layer::<LayerResult>::pointer(&mut d, &ev, &mut cx);
         assert_ne!(out, Outcome::Ignored);
-        assert_eq!(select(&mut d).scroll, 3, "the select's list scrolled");
+        assert_eq!(
+            select(&mut d).list.scroll.offset,
+            3,
+            "the select's list scrolled"
+        );
         assert_eq!(d.scroll.offset, form_before, "the form behind did not");
     }
 }
