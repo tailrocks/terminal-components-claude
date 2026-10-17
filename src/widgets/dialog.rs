@@ -14,6 +14,7 @@ use ratatui::layout::{Constraint, Margin, Position, Rect};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::Axis;
+use crate::core::hints::{HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::response::Response;
@@ -188,6 +189,12 @@ pub const OUTER_MARGIN: Margin = Margin {
     horizontal: 3,
     vertical: 1,
 };
+
+impl HasHints for Dialog {
+    fn hints(&self, cx: &HintCx) -> Vec<Hint> {
+        Dialog::hints(self, cx.focus)
+    }
+}
 
 impl Dialog {
     /// Width in cells before clamping to the screen.

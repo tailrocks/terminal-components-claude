@@ -8,6 +8,7 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Navigable, RowSource};
@@ -18,6 +19,7 @@ use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
+use crate::widgets::keyhint::Hint;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PickerItem {
@@ -161,6 +163,31 @@ pub struct Picker {
     /// ←/→ and Home/End, so there only ↑/↓ and paging move; a plain list
     /// takes the whole table.
     pub nav: NavKeys,
+    /// What the footer says Enter does on a row ([`HasHints`]). Default
+    /// `Choose`; a tab switcher says `Switch`.
+    pub choose_hint: std::borrow::Cow<'static, str>,
+}
+
+/// The footer while the picker is on top: `Type Filter` when it searches,
+/// how the cursor moves (from [`Picker::nav`]), Enter
+/// ([`Picker::choose_hint`]), and Esc as it acts now (`Clear` while a
+/// query is typed, `Cancel` when the dismiss policy lets Esc close it).
+impl HasHints for Picker {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        let mut v = vec![];
+        if self.searchable {
+            v.push(Hint::new("Type", "Filter"));
+        }
+        // a searchable picker's letters edit the query
+        v.extend(nav_hints(&self.nav, self.searchable, false).into_iter().filter(|h| h.key != "Type"));
+        v.push(Hint::new("Enter", self.choose_hint.clone()));
+        if self.searchable && !self.query.is_empty() {
+            v.push(Hint::new("Esc", "Clear"));
+        } else if self.dismiss.escape {
+            v.push(Hint::new("Esc", self.strings.hint_cancel));
+        }
+        v
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -215,7 +242,14 @@ impl Picker {
             pending: None,
             delete_is_secondary: true,
             nav: NavKeys::default(),
+            choose_hint: std::borrow::Cow::Borrowed("Choose"),
         }
+    }
+
+    /// See [`Self::choose_hint`].
+    pub fn choose_hint(mut self, action: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        self.choose_hint = action.into();
+        self
     }
 
     /// See [`Self::nav`].
