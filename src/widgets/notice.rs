@@ -1,0 +1,341 @@
+//! Inline notices: an error, warning, information or success block drawn
+//! in the flow of a card or a form, not floating over it.
+//!
+//! ```text
+//! ! Authentication failed                       (message, kind tone)
+//!   FATAL: password authentication failed for   (detail, wrapped)
+//!   user "acme_app" (SQLSTATE 28P01). Check …   (cut marked)
+//!   Enter retries · e edits the connection      (hint, muted, one line)
+//! ```
+//!
+//! The leading glyph carries the kind without colour (`!` bold for an
+//! error, the theme's warning, information and done glyphs for the
+//! others), so a notice stays readable at every colour level. A notice
+//! takes the space it is given: the message and the detail wrap to the
+//! width beside the glyph and stop at their line limits, and the cut is
+//! marked with `…` (macOS and WAI-ARIA: truncated text says it is
+//! truncated).
+
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Modifier, Style};
+
+use crate::core::id::WidgetId;
+use crate::theme::{Theme, Tone};
+use crate::ui::ctx::RenderCtx;
+use crate::ui::text::{truncate, wrap};
+
+/// What a notice reports: picks its glyph and tone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum NoticeKind {
+    /// A failure: bold `!`, message in the error tone.
+    #[default]
+    Error,
+    /// Needs attention: the warning glyph, message in the warning tone.
+    Warning,
+    /// Information: the info glyph in the info tone, message in body text.
+    Info,
+    /// Done: the done glyph in the success tone, message in body text.
+    Success,
+}
+
+impl NoticeKind {
+    /// The glyph and its style.
+    fn glyph(self, t: &Theme) -> (&'static str, Style) {
+        match self {
+            NoticeKind::Error => ("!", t.error_fg().add_modifier(Modifier::BOLD)),
+            NoticeKind::Warning => (t.glyphs.warning, Style::new().fg(t.warning)),
+            NoticeKind::Info => (t.glyphs.info, Style::new().fg(t.info)),
+            NoticeKind::Success => (t.glyphs.done, Style::new().fg(t.success)),
+        }
+    }
+
+    /// The tone the message is drawn in.
+    pub fn message_tone(self) -> Tone {
+        match self {
+            NoticeKind::Error => Tone::Error,
+            NoticeKind::Warning => Tone::Warning,
+            NoticeKind::Info | NoticeKind::Success => Tone::Normal,
+        }
+    }
+}
+
+/// An inline notice: a glyph, a message, an optional wrapped detail and
+/// an optional one-line hint, indented under the message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Notice {
+    pub kind: NoticeKind,
+    pub message: String,
+    pub detail: Option<String>,
+    pub hint: Option<String>,
+    /// Lines the message wraps to at most. Default 2.
+    pub message_lines: usize,
+    /// Lines the detail wraps to at most ([`Self::max_lines`]). Default 2.
+    pub max_lines: usize,
+    /// The detail's tone. Default [`Tone::Secondary`].
+    pub detail_tone: Tone,
+    /// Mark a message or detail cut at its line limit with ` …`.
+    /// Default on.
+    pub mark_cut: bool,
+}
+
+impl Notice {
+    pub fn new(kind: NoticeKind, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+            detail: None,
+            hint: None,
+            message_lines: 2,
+            max_lines: 2,
+            detail_tone: Tone::Secondary,
+            mark_cut: true,
+        }
+    }
+    pub fn error(message: impl Into<String>) -> Self {
+        Self::new(NoticeKind::Error, message)
+    }
+    pub fn warning(message: impl Into<String>) -> Self {
+        Self::new(NoticeKind::Warning, message)
+    }
+    pub fn info(message: impl Into<String>) -> Self {
+        Self::new(NoticeKind::Info, message)
+    }
+    pub fn success(message: impl Into<String>) -> Self {
+        Self::new(NoticeKind::Success, message)
+    }
+    /// The kind (glyph and tone). See [`NoticeKind`].
+    pub fn kind(mut self, kind: NoticeKind) -> Self {
+        self.kind = kind;
+        self
+    }
+    /// The detail under the message: wrapped, at most [`Self::max_lines`].
+    pub fn detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = Some(detail.into());
+        self
+    }
+    /// A muted line after the detail: what the reader can do next.
+    pub fn hint(mut self, hint: impl Into<String>) -> Self {
+        self.hint = Some(hint.into());
+        self
+    }
+    /// Lines the detail wraps to at most. Default 2.
+    pub fn max_lines(mut self, n: usize) -> Self {
+        self.max_lines = n;
+        self
+    }
+    /// Lines the message wraps to at most. Default 2.
+    pub fn message_lines(mut self, n: usize) -> Self {
+        self.message_lines = n;
+        self
+    }
+    /// The detail's tone. Default [`Tone::Secondary`].
+    pub fn detail_tone(mut self, tone: Tone) -> Self {
+        self.detail_tone = tone;
+        self
+    }
+    /// Whether a cut message or detail ends in ` …`. Default on.
+    pub fn mark_cut(mut self, on: bool) -> Self {
+        self.mark_cut = on;
+        self
+    }
+
+    /// The lines of `text` at `w` cells, at most `max`, the cut marked.
+    fn lines(&self, text: &str, w: usize, max: usize) -> Vec<String> {
+        let wrapped = wrap(text, w.max(1));
+        let cut = wrapped.len() > max;
+        let mut lines: Vec<String> = wrapped.into_iter().take(max).collect();
+        if cut
+            && self.mark_cut
+            && let Some(last) = lines.last_mut()
+        {
+            *last = truncate(&format!("{last} …"), w);
+        }
+        lines
+    }
+
+    /// Rows the notice takes at `width`: the message, the detail and the
+    /// hint lines.
+    pub fn height(&self, width: u16) -> u16 {
+        let w = width.saturating_sub(2) as usize;
+        let message = self.lines(&self.message, w, self.message_lines).len();
+        let detail = self
+            .detail
+            .as_ref()
+            .map_or(0, |d| self.lines(d, w, self.max_lines).len());
+        (message.max(1) + detail + usize::from(self.hint.is_some())) as u16
+    }
+
+    /// Draw into `area` from its top row on `bg`; returns the rows drawn
+    /// (clipped to `area`).
+    pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) -> u16 {
+        self.render_theme(area, buf, ctx.theme, bg)
+    }
+
+    /// [`Self::render`] with only a theme at hand.
+    pub fn render_theme(&self, area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) -> u16 {
+        let area = area.intersection(*buf.area());
+        if area.is_empty() {
+            return 0;
+        }
+        let (glyph, gs) = self.kind.glyph(t);
+        buf.set_string(area.x, area.y, glyph, gs.bg(bg));
+        if area.width <= 2 {
+            return 1;
+        }
+        let x = area.x + 2;
+        let w = area.width.saturating_sub(2) as usize;
+        let mut y = area.y;
+        let mut put = |y: &mut u16, text: &str, style: Style| {
+            if *y < area.bottom() {
+                buf.set_string(x, *y, text, style.bg(bg));
+                *y += 1;
+            }
+        };
+        let message = Style::new().fg(t.tone(self.kind.message_tone()));
+        let lines = self.lines(&self.message, w, self.message_lines.max(1));
+        if lines.is_empty() {
+            y += 1;
+        }
+        for l in &lines {
+            put(&mut y, l, message);
+        }
+        if let Some(d) = &self.detail {
+            let style = Style::new().fg(t.tone(self.detail_tone));
+            for l in self.lines(d, w, self.max_lines) {
+                put(&mut y, &l, style);
+            }
+        }
+        if let Some(h) = &self.hint {
+            put(&mut y, &truncate(h, w), t.muted());
+        }
+        y.min(area.bottom()) - area.y
+    }
+}
+
+/// The id a notice answers to in a States grid (it is not interactive).
+const SAMPLE_ID: WidgetId = WidgetId::of("notice-sample");
+
+/// In a States grid a notice shows its kinds and its cut: Error is the
+/// error kind, Overflow a detail past its limit, Narrow the wrap.
+impl crate::ui::specimen::Specimen for Notice {
+    fn specimen_id(&self) -> WidgetId {
+        SAMPLE_ID
+    }
+
+    fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
+        use crate::ui::specimen::SpecimenState::*;
+        matches!(state, Rest | Error | Overflow | Narrow)
+    }
+
+    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+        self.message_lines.max(1) as u16
+            + if self.detail.is_some() {
+                self.max_lines as u16
+            } else {
+                0
+            }
+            + u16::from(self.hint.is_some())
+    }
+
+    fn specimen(
+        &self,
+        state: crate::ui::specimen::SpecimenState,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+    ) {
+        use crate::ui::specimen::SpecimenState::*;
+        let mut n = self.clone();
+        match state {
+            Error => n.kind = NoticeKind::Error,
+            Overflow => {
+                n.detail = Some(format!(
+                    "{} and a cause far too long to fit in the lines it has",
+                    n.detail.unwrap_or_default()
+                ))
+            }
+            _ => {}
+        }
+        n.render(area, buf, ctx, bg);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn text(buf: &Buffer, y: u16) -> String {
+        (0..buf.area.width)
+            .map(|x| buf[(x, y)].symbol().to_owned())
+            .collect::<String>()
+            .trim_end()
+            .to_owned()
+    }
+
+    #[test]
+    fn an_error_draws_a_bold_mark_its_message_detail_and_hint() {
+        let t = Theme::junie();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
+        let n = Notice::error("Could not connect")
+            .detail("Timed out after 10 s")
+            .hint("Enter retries");
+        let rows = n.render_theme(buf.area, &mut buf, &t, t.canvas);
+        assert_eq!(rows, 3);
+        assert_eq!(rows, n.height(30));
+        assert_eq!(text(&buf, 0), "! Could not connect");
+        assert_eq!(text(&buf, 1), "  Timed out after 10 s");
+        assert_eq!(text(&buf, 2), "  Enter retries");
+        assert!(buf[(0, 0)].modifier.contains(Modifier::BOLD));
+        assert_eq!(buf[(0, 0)].fg, t.error);
+        assert_eq!(buf[(2, 0)].fg, t.error);
+        assert_eq!(buf[(2, 1)].fg, t.text_secondary);
+        assert_eq!(buf[(2, 2)].fg, t.text_muted);
+    }
+
+    #[test]
+    fn a_detail_past_its_limit_is_cut_and_marked() {
+        let t = Theme::junie();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 6));
+        let n = Notice::error("Failed").detail("one two three four five six seven eight nine ten");
+        let rows = n.render_theme(buf.area, &mut buf, &t, t.canvas);
+        assert_eq!(rows, 3);
+        assert!(text(&buf, 2).ends_with('…'), "{:?}", text(&buf, 2));
+        // without the marker the cut is silent
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 6));
+        n.clone()
+            .mark_cut(false)
+            .render_theme(buf.area, &mut buf, &t, t.canvas);
+        assert!(!text(&buf, 2).ends_with('…'));
+    }
+
+    #[test]
+    fn each_kind_has_its_own_glyph() {
+        let t = Theme::junie();
+        let glyphs: Vec<&str> = [
+            NoticeKind::Error,
+            NoticeKind::Warning,
+            NoticeKind::Info,
+            NoticeKind::Success,
+        ]
+        .iter()
+        .map(|k| k.glyph(&t).0)
+        .collect();
+        let mut unique = glyphs.clone();
+        unique.dedup();
+        assert_eq!(unique.len(), 4, "{glyphs:?}");
+    }
+
+    #[test]
+    fn a_notice_stops_at_the_bottom_of_its_area() {
+        let t = Theme::junie();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 30, 4));
+        let n = Notice::warning("Disk almost full")
+            .detail("a b")
+            .hint("Free space");
+        let rows = n.render_theme(Rect::new(0, 0, 30, 2), &mut buf, &t, t.canvas);
+        assert_eq!(rows, 2);
+        assert_eq!(text(&buf, 2), "");
+    }
+}

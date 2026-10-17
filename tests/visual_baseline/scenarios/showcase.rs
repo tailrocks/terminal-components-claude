@@ -128,7 +128,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/meters-states", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["tab", "3", "wait:Disk list"]).pending(),
     Root::new("showcase/flows/meters/offline", Bin::Showcase, &["--page", "meters", "--opt", "meters.offline=on"], BOOT).sends(&["wait:last-good values"]).pending(),
     Root::new("showcase/flows/meters/narrow-line", Bin::Showcase, &["--page", "meters", "--opt", "meters.label_width=8", "--opt", "meters.visual=line"], BOOT).sends(&["wait:Session…"]).pending(),
-    Root::new("showcase/planned/notices", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
+    // SC36 filled Notices (Notice): the page, its sections, the narrow
+    // wrap with the cut marked, and a warning result
+    Root::new("showcase/pages/notices", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["wait:Authentication failed"]).pending(),
+    Root::new("showcase/sections/notices-options", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["tab", "2", "wait:Result notice kind"]).pending(),
+    Root::new("showcase/sections/notices-states", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["tab", "3", "wait:With hint"]).pending(),
+    Root::new("showcase/flows/notices/narrow", Bin::Showcase, &["--page", "notices", "--opt", "notices.width=narrow"], BOOT).sends(&["wait:Authentication failed"]).pending(),
+    Root::new("showcase/flows/notices/warning", Bin::Showcase, &["--page", "notices", "--opt", "notices.kind=warning"], BOOT).sends(&["wait:syntax error"]).pending(),
     // SC23 filled Splits & stacks: the page, its sections, zoom, stacked
     // panes, a scrolling stack and the seam under the pointer
     Root::new("showcase/pages/splitsstacks", Bin::Showcase, &["--page", "splitsstacks"], BOOT).sends(&["wait:Three panes"]).pending(),
