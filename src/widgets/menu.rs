@@ -639,7 +639,7 @@ impl ContextMenu {
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
             .border_set(t.glyphs.border)
-            .border_style(Style::new().fg(t.border_subtle).bg(bg));
+            .border_style(Style::new().fg(t.frame_on(bg)).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
         // the popover itself is a hit target so clicks inside its frame
         // never fall through to what is underneath
@@ -2218,6 +2218,31 @@ mod tests {
             assert_ne!(cursor, hover, "{level:?}: cursor = hover");
             assert_ne!(hover, pressed, "{level:?}: hover = pressed");
             assert_ne!(cursor, pressed, "{level:?}: cursor = pressed");
+        }
+    }
+
+    /// A1: the popover frame stands off the popover plane. At 16 colours
+    /// and `none` both were `DarkGray` (an invisible frame, 1.0:1); there
+    /// the frame now reads at 3:1 or more. Truecolor and 256 keep the soft
+    /// frame (recorded in `color.md`).
+    #[test]
+    fn the_menu_frame_stands_off_the_popover_plane_at_every_level() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(1, 1));
+            let b = paint_menu(&mut m, &t, Interaction::default());
+            let corner = (0..b.area.height)
+                .flat_map(|y| (0..b.area.width).map(move |x| (x, y)))
+                .find(|&p| b[p].symbol() == t.glyphs.border.top_left)
+                .expect("menu frame drawn");
+            let c = &b[corner];
+            assert_eq!(c.bg, t.popover, "{level:?}");
+            assert_ne!(c.fg, c.bg, "{level:?}: frame on its own plane");
+            if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
+                let r = contrast_ratio(c.fg, c.bg).unwrap();
+                assert!(r >= 3.0, "{level:?}: frame {r:.2}");
+            }
         }
     }
 

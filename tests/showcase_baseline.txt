@@ -63,9 +63,9 @@
 120x40 TrueColor Trees · Options 792a9840a5cf53a0
 120x40 TrueColor Trees · States a4bbfabb5c0e8e82
 120x40 TrueColor Sidebars 5d3619412deed8cd
-120x40 TrueColor Tabs 75abe7570b174ff6
+120x40 TrueColor Tabs 0110bea60dc483a7
 120x40 TrueColor Tabs · Options 0fa68753c24af738
-120x40 TrueColor Tabs · States c8039b0de8f012ef
+120x40 TrueColor Tabs · States 8cb4a61271717cfb
 120x40 TrueColor Menus 4ef5cfd8de53a97c
 120x40 TrueColor Menus · Options 48722a775811ad85
 120x40 TrueColor Menus · States 49ba2f468749ca9e
@@ -191,9 +191,9 @@
 120x40 Ansi256 Trees · Options 4f68f3384ca615fa
 120x40 Ansi256 Trees · States 5d2ff6ee171a1031
 120x40 Ansi256 Sidebars 9a866737e1ca4044
-120x40 Ansi256 Tabs 1d8abc4532dd70a9
+120x40 Ansi256 Tabs 692b061864e3060d
 120x40 Ansi256 Tabs · Options e3ca976997f0c2e3
-120x40 Ansi256 Tabs · States 89fec35cb4d6cc9e
+120x40 Ansi256 Tabs · States bcc5907b0b2e79b6
 120x40 Ansi256 Menus 22020d2d88913bdc
 120x40 Ansi256 Menus · Options f54f314418269edd
 120x40 Ansi256 Menus · States 6ff305a2119f6243
@@ -319,12 +319,12 @@
 120x40 Ansi16 Trees · Options 8dbdbd89fa57091b
 120x40 Ansi16 Trees · States 2955af648cc1111d
 120x40 Ansi16 Sidebars 61a624e68ae76948
-120x40 Ansi16 Tabs d7e5eb7af7b452c0
+120x40 Ansi16 Tabs 91f21301ec1228fc
 120x40 Ansi16 Tabs · Options 88787b2d1b8d36e3
-120x40 Ansi16 Tabs · States faa0c7fcda2cf642
+120x40 Ansi16 Tabs · States ade822339c12ab3c
 120x40 Ansi16 Menus 5291f8f282d8a2ec
 120x40 Ansi16 Menus · Options ce26ba0ee98fcc9e
-120x40 Ansi16 Menus · States 2ee6359207b48912
+120x40 Ansi16 Menus · States 89d46d4041a482ea
 120x40 Ansi16 Dialogs 935b0c23f3644d4e
 120x40 Ansi16 Dialogs · Options 43f04493aa2eca50
 120x40 Ansi16 Dialogs · States b308f25ab0aab6a5
@@ -447,12 +447,12 @@
 120x40 Mono Trees · Options b0e14540a14b8b76
 120x40 Mono Trees · States f85be3de73358746
 120x40 Mono Sidebars 6cf3eed0477623eb
-120x40 Mono Tabs deff863e8798f57a
+120x40 Mono Tabs 378456222cc7e070
 120x40 Mono Tabs · Options 9718f164f85120cc
-120x40 Mono Tabs · States 9b1c74b7dcfe3b6b
+120x40 Mono Tabs · States 4cfa3e731482b2cd
 120x40 Mono Menus d5b1887ccbec0193
 120x40 Mono Menus · Options 1ccb1083c7a475a7
-120x40 Mono Menus · States dd20254f5153b16f
+120x40 Mono Menus · States e309e51e25ba4b97
 120x40 Mono Dialogs 9eceffef9a430283
 120x40 Mono Dialogs · Options 49ce9f76e4c3a2cb
 120x40 Mono Dialogs · States ae60c981dfdd1c9e
@@ -575,7 +575,7 @@
 80x24 TrueColor Trees · Options 4ff72d1c736c829f
 80x24 TrueColor Trees · States fe5499733d0e5db6
 80x24 TrueColor Sidebars 37e76401b67f02b2
-80x24 TrueColor Tabs 979f4867eeea7a2a
+80x24 TrueColor Tabs 16d92f97ab5f1af3
 80x24 TrueColor Tabs · Options 5b1ab6a302100aec
 80x24 TrueColor Tabs · States 1dc40729bba409ef
 80x24 TrueColor Menus 2462e2bb16763d15
@@ -703,7 +703,7 @@
 80x24 Ansi256 Trees · Options be24141da8b27c62
 80x24 Ansi256 Trees · States 4f6a3b33bdb022df
 80x24 Ansi256 Sidebars d2ad514bb1097c2d
-80x24 Ansi256 Tabs 8af824d03109d879
+80x24 Ansi256 Tabs 4c0e22dad2c45e75
 80x24 Ansi256 Tabs · Options 29227a0b4ec28bff
 80x24 Ansi256 Tabs · States 6d123269a482d990
 80x24 Ansi256 Menus 088806dd5a9e0efc
@@ -831,12 +831,12 @@
 80x24 Ansi16 Trees · Options 22626f7e23ab0b32
 80x24 Ansi16 Trees · States b68f78e40d2873d7
 80x24 Ansi16 Sidebars 32b8c57f7149888c
-80x24 Ansi16 Tabs 3702dab01548dc0d
+80x24 Ansi16 Tabs 5b7e7aae584a0639
 80x24 Ansi16 Tabs · Options 532c080113d4a6f2
 80x24 Ansi16 Tabs · States 1790e802c60e043c
 80x24 Ansi16 Menus 146ef4af8a53bf0b
 80x24 Ansi16 Menus · Options 7a8bd156f8c2815c
-80x24 Ansi16 Menus · States bae1fc191779d371
+80x24 Ansi16 Menus · States 789f5488e06291a1
 80x24 Ansi16 Dialogs 56c8a98b65d0aa08
 80x24 Ansi16 Dialogs · Options f68348f55200a572
 80x24 Ansi16 Dialogs · States bb1cb8ea400c2070
@@ -959,12 +959,12 @@
 80x24 Mono Trees · Options 05279f06ec446e04
 80x24 Mono Trees · States 9ef7d0491465ae6f
 80x24 Mono Sidebars 7a5e2174d6f72fba
-80x24 Mono Tabs 0a2f22937a65e0b4
+80x24 Mono Tabs 11b0b78ca01d5000
 80x24 Mono Tabs · Options 1581856003661c20
 80x24 Mono Tabs · States 478225f37ed77170
 80x24 Mono Menus 1006a9a74c501433
 80x24 Mono Menus · Options c85b46be51ba3b34
-80x24 Mono Menus · States 121a87fcbbf65b23
+80x24 Mono Menus · States f40cc881dd844fdb
 80x24 Mono Dialogs 0ef32654a834c59e
 80x24 Mono Dialogs · Options 5da452641fa9ffc4
 80x24 Mono Dialogs · States 604f266a0f1c4946
@@ -1087,7 +1087,7 @@
 72x20 TrueColor Trees · Options 1b9c8e4ca6a4ac3b
 72x20 TrueColor Trees · States 05193d95d36dae31
 72x20 TrueColor Sidebars 611c53733d93934a
-72x20 TrueColor Tabs 506276655ad02d4c
+72x20 TrueColor Tabs 227e18e8b2a43303
 72x20 TrueColor Tabs · Options 640093d44ecc0ead
 72x20 TrueColor Tabs · States 8cd3e4dc96458186
 72x20 TrueColor Menus f664288d9cfc3bf6
@@ -1215,7 +1215,7 @@
 72x20 Ansi256 Trees · Options e4c2704683d4bf64
 72x20 Ansi256 Trees · States 44ff5e6a635af09f
 72x20 Ansi256 Sidebars 7d98165093b56c11
-72x20 Ansi256 Tabs 460d3ac6cc965e2d
+72x20 Ansi256 Tabs 6ccafb4e8b65f839
 72x20 Ansi256 Tabs · Options 4931c1f69b046fd4
 72x20 Ansi256 Tabs · States f1313db6c2201133
 72x20 Ansi256 Menus e373d17457e92c43
@@ -1343,12 +1343,12 @@
 72x20 Ansi16 Trees · Options b0361ff9a65aabbb
 72x20 Ansi16 Trees · States 3d60e87943ea1d2c
 72x20 Ansi16 Sidebars fc38e4d1cb21442f
-72x20 Ansi16 Tabs d97e3bba7f6d3a36
+72x20 Ansi16 Tabs 4b459879dd482858
 72x20 Ansi16 Tabs · Options 3117b3f302957e1e
 72x20 Ansi16 Tabs · States ddc05a85ab04e15c
 72x20 Ansi16 Menus 76b0c4833719d5c2
 72x20 Ansi16 Menus · Options cfbc8bd19a90d5ba
-72x20 Ansi16 Menus · States 9bf91e8dabfe1a67
+72x20 Ansi16 Menus · States 649757ec6cdbbc2f
 72x20 Ansi16 Dialogs 3dc30457985dc071
 72x20 Ansi16 Dialogs · Options 8b01db89a0b471dd
 72x20 Ansi16 Dialogs · States d08402bebf277387
@@ -1471,12 +1471,12 @@
 72x20 Mono Trees · Options 72e7745aae8bb1d3
 72x20 Mono Trees · States 5044dfad3e839db0
 72x20 Mono Sidebars 5fe39f215d1ee817
-72x20 Mono Tabs 0060aa04b51658fb
+72x20 Mono Tabs bfacfd1ca3222d6d
 72x20 Mono Tabs · Options 55915322965b6cfa
 72x20 Mono Tabs · States a55acf28dd85d9ca
 72x20 Mono Menus a7f965a05f04aec6
 72x20 Mono Menus · Options f9c2e492bcdff924
-72x20 Mono Menus · States e189c443285acb8d
+72x20 Mono Menus · States b56d9f478a81c715
 72x20 Mono Dialogs e3f99457636c12d3
 72x20 Mono Dialogs · Options 8aa11263665f9a63
 72x20 Mono Dialogs · States 5e98a97adc4bd8fd
@@ -1599,7 +1599,7 @@
 100x30 TrueColor Trees · Options d0ce4f53dbaa1111
 100x30 TrueColor Trees · States a1ace39911b8c659
 100x30 TrueColor Sidebars bbd114156e9183a8
-100x30 TrueColor Tabs 15d7f588ff4f7071
+100x30 TrueColor Tabs be5d9cc17ba4b1c0
 100x30 TrueColor Tabs · Options 3e77e79256e840a9
 100x30 TrueColor Tabs · States 277c9ca3e4f1fef4
 100x30 TrueColor Menus f13407e6e2626a57
@@ -1727,7 +1727,7 @@
 100x30 Ansi256 Trees · Options 2ba96e0f4025b9d0
 100x30 Ansi256 Trees · States 50a090d0e74d368f
 100x30 Ansi256 Sidebars 9be33369d8855a5c
-100x30 Ansi256 Tabs 7552e13bfb4e9cfe
+100x30 Ansi256 Tabs 8c66faa8f317bf2a
 100x30 Ansi256 Tabs · Options fd952edf85e9e0cb
 100x30 Ansi256 Tabs · States c431992b549b5d5a
 100x30 Ansi256 Menus 5d1a4f3e1903e08a
@@ -1855,12 +1855,12 @@
 100x30 Ansi16 Trees · Options 06a4e1ee90d20aec
 100x30 Ansi16 Trees · States 80519379fe54d2db
 100x30 Ansi16 Sidebars 07dc13d9e2955bda
-100x30 Ansi16 Tabs 8ce35fd223e7d177
+100x30 Ansi16 Tabs e6c779175c693e89
 100x30 Ansi16 Tabs · Options deef64764b87d309
 100x30 Ansi16 Tabs · States bc22c43a9411e4a6
 100x30 Ansi16 Menus 469edcff7db7834c
 100x30 Ansi16 Menus · Options 28f268bef32ad70a
-100x30 Ansi16 Menus · States 978297c0850de9e3
+100x30 Ansi16 Menus · States 3e373c5034f32bef
 100x30 Ansi16 Dialogs 0e01cfc948ef6b9b
 100x30 Ansi16 Dialogs · Options 992cf56cd4925200
 100x30 Ansi16 Dialogs · States 3409a78b0de3ab46
@@ -1983,12 +1983,12 @@
 100x30 Mono Trees · Options a9873508606d026b
 100x30 Mono Trees · States 1d75115f7ae9a274
 100x30 Mono Sidebars ce51d021f8759c8d
-100x30 Mono Tabs d92008eaebf1eedd
+100x30 Mono Tabs 333b2adeeab013b1
 100x30 Mono Tabs · Options d69af3d2e1029160
 100x30 Mono Tabs · States a8ecdd9c4afbff17
 100x30 Mono Menus af6d336053c2f429
 100x30 Mono Menus · Options 73d68844c60e855b
-100x30 Mono Menus · States 5cbe2392425384de
+100x30 Mono Menus · States 7063023cca48f30a
 100x30 Mono Dialogs 3730149a6f015880
 100x30 Mono Dialogs · Options 1fb0291ad7e8132d
 100x30 Mono Dialogs · States 645c4cd0a1e07ad1
@@ -2111,9 +2111,9 @@
 160x50 TrueColor Trees · Options d7fd47c7a863f619
 160x50 TrueColor Trees · States 479d67480561930a
 160x50 TrueColor Sidebars 573145fdc64d82ca
-160x50 TrueColor Tabs 5e807bf4197063d0
+160x50 TrueColor Tabs cc2795019eba45a3
 160x50 TrueColor Tabs · Options f186d0f545e28dd3
-160x50 TrueColor Tabs · States ccee288a2d26d684
+160x50 TrueColor Tabs · States a90f038cfa615a90
 160x50 TrueColor Menus c05c813d0009f524
 160x50 TrueColor Menus · Options 56fab8ce00297591
 160x50 TrueColor Menus · States 1a71d098440dd0fe
@@ -2239,9 +2239,9 @@
 160x50 Ansi256 Trees · Options def083d76c4ee31f
 160x50 Ansi256 Trees · States 05964372fc17cd92
 160x50 Ansi256 Sidebars fbfaa7157a71d747
-160x50 Ansi256 Tabs 855fce5f94a20f98
+160x50 Ansi256 Tabs dc026d8024f6abcc
 160x50 Ansi256 Tabs · Options 7ac1919fb7cc752c
-160x50 Ansi256 Tabs · States d758ef5bb0c533bd
+160x50 Ansi256 Tabs · States 572f8010b766a115
 160x50 Ansi256 Menus 0b8ccd3771094db5
 160x50 Ansi256 Menus · Options 638837f3ca2e7ef4
 160x50 Ansi256 Menus · States 53bafd39e037f88b
@@ -2367,12 +2367,12 @@
 160x50 Ansi16 Trees · Options 8df0959d4be64e4e
 160x50 Ansi16 Trees · States 0f1c8ab266308798
 160x50 Ansi16 Sidebars a889be673fa63b8d
-160x50 Ansi16 Tabs a60f861ac1638ac1
+160x50 Ansi16 Tabs f94bda720f81e8bb
 160x50 Ansi16 Tabs · Options 9418e730aa09a24e
-160x50 Ansi16 Tabs · States 83d817df86e27bd3
+160x50 Ansi16 Tabs · States 8fd7b75bedc02d9b
 160x50 Ansi16 Menus 6e1e570fbeb27af8
 160x50 Ansi16 Menus · Options 7c24de0ec472051a
-160x50 Ansi16 Menus · States ac6025465847712e
+160x50 Ansi16 Menus · States 29e2de2da3feec46
 160x50 Ansi16 Dialogs 44f5a69aad32aec5
 160x50 Ansi16 Dialogs · Options 08681ee053ecbb6d
 160x50 Ansi16 Dialogs · States c328f78d544f1ed1
@@ -2495,12 +2495,12 @@
 160x50 Mono Trees · Options b70c8afd8821dce5
 160x50 Mono Trees · States 2d27ea90ba2ca3b6
 160x50 Mono Sidebars 6df107e48dc7fab8
-160x50 Mono Tabs 3e817236bb512481
+160x50 Mono Tabs ffb903d839f0e125
 160x50 Mono Tabs · Options 7cb2a93376833ca7
-160x50 Mono Tabs · States 7bb316c66e1a7822
+160x50 Mono Tabs · States f6da5bca039697ca
 160x50 Mono Menus 59e9558682022de9
 160x50 Mono Menus · Options 0482c560d274ec75
-160x50 Mono Menus · States a4d75065b8616f51
+160x50 Mono Menus · States 534ee5c1746f6b59
 160x50 Mono Dialogs c4568b3a5d470fb0
 160x50 Mono Dialogs · Options ea39396b95a25c5e
 160x50 Mono Dialogs · States 9717c250d7afc32e
