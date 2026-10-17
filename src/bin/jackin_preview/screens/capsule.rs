@@ -1931,6 +1931,9 @@ impl Page<Jackin> for CapsuleScreen {
         }
         if let Some((tab, mut m)) = self.tab_menu.take() {
             let (o, ev) = m.on_key(key);
+            // K14: a key the menu has no use for closed it (`Ignored`) and
+            // reaches the page below (CO15)
+            let pass = o == Outcome::Ignored && ev == Some(MenuAction::Dismissed);
             match ev {
                 Some(MenuAction::Chosen(i)) => {
                     let label = m.items[i].item.label.clone();
@@ -1940,7 +1943,9 @@ impl Page<Jackin> for CapsuleScreen {
                 Some(MenuAction::Dismissed) => {}
                 None => self.tab_menu = Some((tab, m)),
             }
-            return o.or(Outcome::Changed);
+            if !pass {
+                return o.or(Outcome::Changed);
+            }
         }
         if self.menubar.is_open() {
             let (o, ev) = self.menubar.on_key(key);

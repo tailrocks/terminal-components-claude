@@ -92,13 +92,18 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
     }
 
     /// A key while open: the menu owns the keyboard. Returns the chosen
-    /// command with its target.
+    /// command with its target. A key the menu has no use for closes it
+    /// and comes back `Ignored`, so the page handles it (K14, CO15).
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<(T, C)>) {
         let Some(o) = self.open.as_mut() else {
             return (Outcome::Ignored, None);
         };
         let (out, ev) = o.menu.on_key(key);
-        // the menu takes every key while it is open
+        if out == Outcome::Ignored && ev == Some(MenuAction::Dismissed) {
+            self.open = None;
+            return (Outcome::Ignored, None);
+        }
+        // the menu takes every other key while it is open
         (out.or(Outcome::Consumed), self.resolve(ev))
     }
 
