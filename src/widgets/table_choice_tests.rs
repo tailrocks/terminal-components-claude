@@ -146,9 +146,14 @@ fn space_opens_type_ahead_jumps_and_a_disabled_option_is_never_chosen() {
 fn a_select_cell_opens_chooses_and_cancels_by_mouse() {
     let mut t = table();
     let (_, hits) = draw(&mut t, None);
-    // a click on the current cell opens it (as a second click edits text)
+    // one click on the current cell never opens it (M9); a double click
+    // does (as it edits text)
     let cell = hits.area_of(t.cell_id(0, 1)).unwrap();
-    let (out, _) = t.on_click_cell(0, 1, Position::new(cell.x, cell.y));
+    let at = Position::new(cell.x, cell.y);
+    let (out, _) = t.on_click_cell(0, 1, at);
+    assert_eq!(out, Outcome::Changed);
+    assert!(t.choice.is_none());
+    let (out, _) = t.on_click_cell_count(0, 1, at, KeyModifiers::NONE, 2);
     assert_eq!(out, Outcome::Changed);
     assert!(t.choice.is_some());
     let (buf, hits) = draw(&mut t, None);

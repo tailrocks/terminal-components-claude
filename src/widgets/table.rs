@@ -15,7 +15,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, sel
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
-use crate::core::selection::{RowSelection, SelectGesture, SelectionMode, TriState};
+use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
@@ -234,6 +234,12 @@ pub struct DataTable {
     /// three. Option+click is a fallback (some macOS terminals keep it);
     /// Space and the checkbox column always toggle without a modifier.
     pub toggle_mods: KeyModifiers,
+    /// What a click does beyond selecting: when it activates a row and
+    /// when it starts editing a cell. Default [`ClickPolicy::DATA`]: a
+    /// double click activates or edits, one click only selects (M9, M15,
+    /// SI14); [`Activate::ClickAgain`](crate::core::selection::Activate)
+    /// is the earlier "click the cursor row again" rule.
+    pub click: ClickPolicy,
     /// Source rows that can be read but never selected or activated.
     pub disabled: BTreeSet<usize>,
     /// Which keys move the cursor (default [`NavKeys::default`]).
@@ -329,6 +335,7 @@ impl DataTable {
             selection_column: false,
             esc_clears: true,
             toggle_mods: Self::toggle_mods_for(ClientPlatform::current()),
+            click: ClickPolicy::DATA,
             disabled: BTreeSet::new(),
             nav: NavKeys::default(),
             keymap: TableCmd::default_keymap(),
@@ -461,6 +468,12 @@ impl DataTable {
         self
     }
 
+    /// See [`Self::click`].
+    pub fn click(mut self, policy: ClickPolicy) -> Self {
+        self.click = policy;
+        self
+    }
+
     /// Mark source rows as disabled: readable, never selectable.
     pub fn disabled_rows(mut self, rows: &[usize]) -> Self {
         self.disabled.extend(rows.iter().copied());
@@ -529,6 +542,18 @@ impl DataTable {
     pub fn clear_selection(&mut self) -> bool {
         let single = self.selected.take().is_some();
         self.selection.clear() || single
+    }
+
+    /// The right-click selection rule on display row `display` (multi mode,
+    /// row navigation): a row inside the selection keeps it, any other
+    /// selects only that row. Returns whether the selection changed.
+    pub fn context_selection(&mut self, display: usize) -> bool {
+        if !self.multi() || self.cell_nav {
+            return false;
+        }
+        let disabled = &self.disabled;
+        self.selection
+            .context_select(display, &self.order, |r| !disabled.contains(&r))
     }
 
     /// Toggle one source row in the multi selection.
@@ -678,11 +703,12 @@ impl DataTable {
                     .unwrap_or(from);
                 self.set_cursor(to, self.cursor_col);
                 let disabled = &self.disabled;
-                let c = self
-                    .selection
-                    .extend(&self.order, from, self.cursor_row, |r| {
-                        !disabled.contains(&r)
-                    });
+                let c = self.selection.apply(
+                    SelectGesture::Extend { from },
+                    self.cursor_row,
+                    &self.order,
+                    |r| !disabled.contains(&r),
+                );
                 Some((Outcome::Changed, c.then_some(TableAction::SelectionChanged)))
             }
             _ => None,
@@ -1374,22 +1400,18 @@ impl DataTable {
         self.sort_by(col)
     }
 
-    /// Click on a row (display index) / cell. Double click is emulated by
-    /// clicking the already-current cell.
+    /// A single plain click on a row (display index) / cell
+    /// ([`Self::on_click_cell_count`]).
     pub fn on_click_cell(
         &mut self,
         display: usize,
         col: usize,
         pos: Position,
     ) -> (Outcome, Option<TableAction>) {
-        self.on_click_cell_with(display, col, pos, KeyModifiers::NONE)
+        self.on_click_cell_count(display, col, pos, KeyModifiers::NONE, 1)
     }
 
-    /// [`Self::on_click_cell`] with the modifiers held during the click:
-    /// in multi mode Shift extends from the anchor and
-    /// [`Self::toggle_mods`] toggle the row; a plain click selects only
-    /// that row, and a plain click on the sole selected cursor row
-    /// activates it.
+    /// A single click with the modifiers held ([`Self::on_click_cell_count`]).
     pub fn on_click_cell_with(
         &mut self,
         display: usize,
@@ -1397,6 +1419,26 @@ impl DataTable {
         pos: Position,
         mods: KeyModifiers,
     ) -> (Outcome, Option<TableAction>) {
+        self.on_click_cell_count(display, col, pos, mods, 1)
+    }
+
+    /// The `count`th click of a multi-click on a row / cell, with the
+    /// modifiers held. In multi mode the click is a [`SelectGesture`]
+    /// ([`SelectGesture::from_mods`] with [`Self::toggle_mods`]): Shift
+    /// extends from the anchor, the toggle modifiers toggle the row, a plain
+    /// click selects only that row. A plain click selects; it activates the
+    /// row ([`TableAction::Activated`]) or edits a cell (cell navigation)
+    /// only when [`Self::click`] says so: a double click by default, so the
+    /// click that gives a row the cursor never opens or edits it (M9, M15).
+    pub fn on_click_cell_count(
+        &mut self,
+        display: usize,
+        col: usize,
+        pos: Position,
+        mods: KeyModifiers,
+        count: u8,
+    ) -> (Outcome, Option<TableAction>) {
+        let count = count.max(1);
         if display >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
@@ -1430,24 +1472,21 @@ impl DataTable {
             let src = self.order[display];
             let disabled = &self.disabled;
             let enabled = |r: usize| !disabled.contains(&r);
-            let changed = if mods.contains(KeyModifiers::SHIFT) {
-                self.selection.extend(&self.order, from, display, enabled)
-            } else if mods.intersects(self.toggle_mods) {
-                self.selection.toggle(src, enabled)
-            } else if same && self.selection.len() == 1 && self.selection.contains(src) {
-                return (Outcome::Changed, Some(TableAction::Activated(src)));
-            } else if !enabled(src) {
+            let gesture = SelectGesture::from_mods(mods, self.toggle_mods, from);
+            if gesture == SelectGesture::Only && !enabled(src) {
                 // a disabled row takes the cursor, the selection stays
-                false
-            } else {
-                self.selection.select_only(src, enabled)
-            };
+                return (Outcome::Changed, None);
+            }
+            let changed = self.selection.apply(gesture, display, &self.order, enabled);
+            if gesture == SelectGesture::Only && self.click.activates(count, same) {
+                return (Outcome::Changed, Some(TableAction::Activated(src)));
+            }
             return (
                 Outcome::Changed,
                 changed.then_some(TableAction::SelectionChanged),
             );
         }
-        if same && self.cell_nav && self.columns[col].editable {
+        if self.cell_nav && self.columns[col].editable && self.click.edits(count, same) {
             return self.start_edit();
         }
         if !self.cell_nav {
@@ -1458,7 +1497,9 @@ impl DataTable {
             if self.selection_mode == SelectionMode::Single {
                 self.selected = Some(src);
             }
-            return (Outcome::Changed, Some(TableAction::Activated(src)));
+            if self.click.activates(count, same) {
+                return (Outcome::Changed, Some(TableAction::Activated(src)));
+            }
         }
         (Outcome::Changed, None)
     }
@@ -2118,7 +2159,9 @@ impl crate::core::pointer::MouseTarget for DataTable {
                     _ => None,
                 };
                 match at {
-                    Some((row, col)) => self.on_click_cell_with(row, col, pos, ev.mods()).into(),
+                    Some((row, col)) => self
+                        .on_click_cell_count(row, col, pos, ev.mods(), ev.count())
+                        .into(),
                     None => Response::ignored(),
                 }
             }
@@ -2824,8 +2867,17 @@ mod tests {
         // a plain click replaces the selection
         t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(t.selected_rows(), vec![0]);
-        // a plain click on the sole selected cursor row activates it
+        // a slow second click on the selected row only selects (M15); the
+        // double click activates it
         let (_, ev) = t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
+        assert_eq!(ev, None);
+        let (_, ev) = t.on_click_cell_count(0, 0, p, KeyModifiers::NONE, 2);
+        assert_eq!(ev, Some(TableAction::Activated(0)));
+        // the earlier rule stays an option
+        let mut again = members()
+            .click(ClickPolicy::DATA.activate(crate::core::selection::Activate::ClickAgain));
+        again.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
+        let (_, ev) = again.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(ev, Some(TableAction::Activated(0)));
         // a plain click on a disabled row moves the cursor only
         t.on_click_cell_with(4, 0, p, KeyModifiers::NONE);
