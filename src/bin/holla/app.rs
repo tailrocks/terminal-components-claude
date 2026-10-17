@@ -196,7 +196,7 @@ impl App {
         match self.scenario {
             Scenario::DockerCleanup => {
                 if let Some(f) = self.finder_mut() {
-                    f.query = "docker clean".into();
+                    f.query.set_text("docker clean");
                 }
                 self.enter_top();
             }
@@ -1502,7 +1502,7 @@ impl App {
                     .first_mut()
                     .and_then(|t| t.stack.first_mut())
                     .and_then(|s| s.as_finder())
-                    .map(|f| f.query.clone())
+                    .map(|f| f.query.text().to_owned())
                     .filter(|q| !q.trim().is_empty());
                 self.run_item(&item, args)
             }
