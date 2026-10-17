@@ -399,6 +399,13 @@ impl TreeView {
         self
     }
 
+    /// The selected row's look while this widget is unfocused, over the
+    /// theme's [`crate::theme::Theme::inactive_selection`].
+    pub fn inactive_selection(mut self, look: crate::theme::InactiveSelection) -> Self {
+        self.core.inactive_selection = Some(look);
+        self
+    }
+
     /// See [`Self::selected_marker`].
     pub fn selected_marker(mut self, marker: Option<&'static str>) -> Self {
         self.selected_marker = marker;
@@ -1059,6 +1066,7 @@ impl TreeView {
             }
             s.focused = focused && ri == self.core.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
+            s.inactive_selection = self.core.inactive_selection;
             let rp = RowUi::paint(ctx, buf, full, s, RowLook::Bar, bg);
             let st = rp.style();
             let indent = (row.depth as u16) * self.indent;
@@ -1124,7 +1132,9 @@ impl TreeView {
             // otherwise it is a fact, not a position: primary and bold
             let mut label_style = match (s.selected, focused) {
                 (true, true) => st.fg(t.chosen(true)),
-                (true, false) => st.fg(t.chosen(false)).add_modifier(Modifier::BOLD),
+                (true, false) => st
+                    .fg(t.legible(t.chosen_in(s), st.bg.unwrap_or(bg)))
+                    .add_modifier(Modifier::BOLD),
                 _ => match row.label_tone {
                     Some(tone) => st.fg(t.tone_on(tone, st.bg.unwrap_or(t.canvas))),
                     None => st,
@@ -1804,7 +1814,7 @@ mod scroll_tests {
 
     #[test]
     fn the_selected_node_is_accent_only_while_the_tree_has_focus() {
-        let theme = Theme::junie();
+        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None); // the focus-only look (owner default is Accent)
         let nodes = (0..3)
             .map(|i| TreeNode::leaf(&format!("Node {i:02}")))
             .collect();
@@ -1899,7 +1909,7 @@ mod scroll_tests {
 
     #[test]
     fn a_divider_keeps_the_last_column_and_the_marker_names_the_selected_leaf() {
-        let theme = Theme::junie();
+        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None); // the focus-only look (owner default is Accent)
         let nodes = vec![TreeNode::dir("Group", vec![TreeNode::leaf("Page")])];
         let mut tv = TreeView::new(WidgetId::of("t"), nodes)
             .divider(true)

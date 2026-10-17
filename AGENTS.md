@@ -135,7 +135,14 @@ components work; they are not where behaviour lives.
   does in the active window), and goes neutral under a modal or popup.
   Keyboard focus is still only the single `▎` indicator, never the
   selection colour. Other chosen values (the current page in a list, a
-  chosen option) follow `Theme::chosen`.
+  chosen option) follow `Theme::chosen_in`.
+- The selected item of a list, tree, table, sidebar or menu keeps its
+  accent fill, and a checked box, the on radio or toggle keeps its accent
+  mark, when focus moves elsewhere in the same layer (owner decision
+  2026-10-17, `InactiveSelection::Accent`, overriding macOS's neutral
+  inactive selection, which stays available as `Neutral`). Both go
+  neutral only under a modal or popup. Keyboard focus is still shown only
+  by the single `▎`.
 - A focused tab strip or segmented control shows the `▎` gutter like any
   focusable element; the selected item's accent is selection, not focus.
 - A scrollbar thumb keeps one glyph in every state: rest is a neutral

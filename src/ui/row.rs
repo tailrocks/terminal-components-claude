@@ -178,7 +178,11 @@ impl RowPaint {
         let style = if self.state.disabled {
             self.style()
         } else {
-            self.style().fg(t.legible(t.chosen(focused), self.bg()))
+            let s = VisualState {
+                focused,
+                ..self.state
+            };
+            self.style().fg(t.legible(t.chosen_in(s), self.bg()))
         };
         buf.set_string(x, y, glyph, style);
     }
