@@ -96,7 +96,13 @@ fn a_dialog_closes_on_esc_on_its_close_button_and_on_an_outside_click() {
     let mut h = H::connected(120, 40);
     let before = h.focus();
     h.key(KeyCode::Char('?'));
-    assert!(h.app.top_as::<Dialog>().is_some(), "{}", h.text());
+    assert!(
+        h.app
+            .top_as::<junie_tui::widgets::help::HelpOverlay>()
+            .is_some(),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Esc);
     assert!(h.app.modal().is_none(), "Esc closes the help");
     assert_eq!(h.focus(), before, "K9");

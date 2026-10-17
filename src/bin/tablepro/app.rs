@@ -1272,41 +1272,24 @@ impl App {
         self.open_layer(Box::new(d), LayerTag::new("dialog"));
     }
 
+    /// `?` and F1: the library `HelpOverlay` (K23). The shell's keys and
+    /// every workbench chord come from the live `ShellKeys` (`TpCmd`
+    /// labels); the page keys the screens handle in their own code are
+    /// listed by hand until they move onto key maps (S16).
     fn open_help(&mut self) {
-        // a key reference: wrapped descriptions hang under their column
-        let text = junie_tui::widgets::keyref::KeyReference::new()
-            .key("Tab / Shift+Tab", "move focus · 0 explorer · Esc back")
-            .key("Ctrl+O", "Open Quickly (tables, schemas, tabs, queries)")
-            .key(
-                "Ctrl+T / Ctrl+W",
-                "new / close tab · [ ] switch · Ctrl+G tab list",
-            )
-            .key("Ctrl+R / F5", "run statement at cursor · Alt+R run all")
-            .key("Ctrl+X / Alt+X", "EXPLAIN / EXPLAIN ANALYZE")
-            .key("Esc / Ctrl+C", "cancel a running query")
-            .key(
-                "Ctrl+D",
-                "Data / Structure · Ctrl+F filter (grid) or find (editor)",
-            )
-            .key("Alt+D", "duplicate the current grid row")
-            .key("Ctrl+S", "save pending row changes · p preview SQL")
-            .key(
-                "Ctrl+Y",
-                "query history · Ctrl+L Safe Mode · Ctrl+B explorer · z zoom",
-            )
-            .key(
-                "Shift+F10",
-                "menu of the focused row, cell or tab · right-click at the pointer",
-            )
-            .key("q / Ctrl+Q", "quit")
-            .text();
-        let mut d = Dialog::confirm(HELP_DIALOG, "Keyboard", &text, "Close");
-        d.actions.remove(0);
-        d.cancel_index = Some(0);
-        d.initial_focus = d.actions[0].id;
-        d.actions[0].kind = junie_tui::theme::ButtonKind::Secondary;
-        d.width = 78;
-        self.open_dialog(d);
+        use junie_tui::widgets::help::{HelpOverlay, HelpSection};
+        let shell = self
+            .keys
+            .help_section("Shell and workbench", |c| Some(c.label()));
+        let page = HelpSection::new("Grid and editor")
+            .row("Enter F2", "Edit a cell · Esc cancels")
+            .row("Ctrl+F", "Filter (grid) or find (editor)")
+            .row("p", "Preview the SQL of pending changes")
+            .row("z", "Zoom the focused pane")
+            .row("Shift+F10", "Menu of the focused row, cell or tab")
+            .row("Right-click", "The same menu at the pointer");
+        let h = HelpOverlay::from_keymaps(HELP_DIALOG, "TablePro", vec![shell, page]);
+        self.open_layer(Box::new(h), LayerTag::new("help"));
     }
 
     fn open_switcher(&mut self) {
@@ -2427,6 +2410,35 @@ pub enum TpCmd {
     GrowResults,
     /// `0`: show and focus the explorer.
     Explorer,
+}
+
+impl TpCmd {
+    /// What the command does, as the help overlay names it.
+    pub fn label(self) -> &'static str {
+        match self {
+            TpCmd::NewConnection => "New connection",
+            TpCmd::CancelQuery => "Cancel the running query",
+            TpCmd::Run => "Run the statement at the cursor",
+            TpCmd::RunOrRefresh => "Run, or refresh the table",
+            TpCmd::RunAll => "Run all statements",
+            TpCmd::Explain => "EXPLAIN",
+            TpCmd::ExplainAnalyze => "EXPLAIN ANALYZE",
+            TpCmd::NewQuery => "New query tab",
+            TpCmd::CloseTab => "Close tab",
+            TpCmd::Switcher => "Open Quickly",
+            TpCmd::TabList => "Tab list",
+            TpCmd::History => "Query history",
+            TpCmd::ToggleExplorer => "Show or hide the explorer",
+            TpCmd::SafeMode => "Safe Mode",
+            TpCmd::ToggleStructure => "Data / Structure",
+            TpCmd::Commit => "Save pending changes",
+            TpCmd::Find => "Filter or find",
+            TpCmd::Maximize => "Maximize the pane",
+            TpCmd::GrowEditor => "Grow the editor",
+            TpCmd::GrowResults => "Grow the results",
+            TpCmd::Explorer => "Focus the explorer",
+        }
+    }
 }
 
 /// tablepro's shell keys: the standard set, the workbench chords before
