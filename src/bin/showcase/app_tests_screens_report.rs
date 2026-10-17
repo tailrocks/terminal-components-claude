@@ -306,6 +306,22 @@ fn cockpit_cancel_asks_then_stops_the_launch() {
     assert!(h.text().contains("cancelled ·"), "{}", h.text());
 }
 
+/// The key path the overlay scenarios take: Launch is the fourth stop
+/// (strip, facts, log, Launch) and Cancel launch… the fifth.
+#[test]
+fn cockpit_keyboard_reaches_launch_and_cancel() {
+    let mut h = Harness::new(120, 40, PageId::LaunchCockpit);
+    for _ in 0..4 {
+        h.key(KeyCode::Tab);
+    }
+    assert!(h.app.shell.focus.is(COCKPIT.sub("launch")));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Tab);
+    assert!(h.app.shell.focus.is(COCKPIT.sub("cancel")));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Cancel launch?"), "{}", h.text());
+}
+
 #[test]
 fn cockpit_options_drive_the_rail_and_states() {
     let mut h = Harness::new(120, 40, PageId::LaunchCockpit);

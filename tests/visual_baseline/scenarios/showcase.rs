@@ -493,6 +493,12 @@ pub const OVERLAYS: &[Root] = &[
     // SC49 Disk cleanup's review: Gate 1 (the facts, d on the checklist),
     // then Gate 2 (the typed phrase); SC52 Workspaces' purge (Delete… is
     // the eighth stop: strip, tree, detail, roster, four actions)
+    // SC55 Launch cockpit: Launch is the fourth stop (strip, facts, log,
+    // Launch); the held credential source and the failed build open from
+    // the running launch, Cancel launch… is the next stop
+    Root::new("showcase/overlays/launchcockpit_credentials", Bin::Showcase, &["--page", "launchcockpit", "--opt", "launchcockpit.outcome=credentials"], BOOT).sends(&["wait:not started", "tab", "tab", "tab", "tab", "enter", "wait:Credential source unavailable"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/launchcockpit_build_failed", Bin::Showcase, &["--page", "launchcockpit", "--opt", "launchcockpit.outcome=build-failure"], BOOT).sends(&["wait:not started", "tab", "tab", "tab", "tab", "enter", "wait:Docker build failed"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/launchcockpit_cancel", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:not started", "tab", "tab", "tab", "tab", "enter", "tab", "enter", "wait:Cancel launch?"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/diskcleanup_gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/diskcleanup_gate2", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/workspaces_purge", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:Delete payments-platform?"]).pending().dismiss_pending(),
