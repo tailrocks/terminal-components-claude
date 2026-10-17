@@ -28,6 +28,7 @@ use junie_tui::widgets::grid::{
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
+use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::props::{self, Prop};
@@ -1859,58 +1860,17 @@ impl QueryTab {
                             buf,
                             t,
                         );
-                        buf.set_string(
-                            inner.x,
-                            inner.y,
-                            "!",
-                            t.error_fg().bg(cbg).add_modifier(Modifier::BOLD),
-                        );
-                        let lines = junie_tui::ui::text::wrap(
-                            message,
-                            inner.width.saturating_sub(2) as usize,
-                        );
-                        for (i, l) in lines.iter().take(2).enumerate() {
-                            buf.set_string(
-                                inner.x + 2,
-                                inner.y + i as u16,
-                                l,
-                                t.error_fg().bg(cbg),
-                            );
-                        }
-                        let mut yy = inner.y + lines.len().min(2) as u16;
-                        if let Some(d) = detail {
-                            let w = inner.width.saturating_sub(2) as usize;
-                            let wrapped = junie_tui::ui::text::wrap(d, w);
-                            for (i, l) in wrapped.iter().take(2).enumerate() {
-                                if yy < inner.bottom() {
-                                    // mark the cut when the detail runs longer than shown
-                                    let l = if i == 1 && wrapped.len() > 2 {
-                                        junie_tui::ui::text::truncate(&format!("{l} …"), w)
-                                    } else {
-                                        l.clone()
-                                    };
-                                    buf.set_string(inner.x + 2, yy, &l, t.secondary().bg(cbg));
-                                    yy += 1;
-                                }
+                        let pos = match at {
+                            Some(_) => {
+                                "Enter on the result tab jumps to the statement · the offending token is underlined in the editor"
                             }
+                            None => "Enter on the result tab jumps to the statement",
+                        };
+                        let mut notice = Notice::error(message.as_str()).hint(pos);
+                        if let Some(d) = detail {
+                            notice = notice.detail(d.as_str());
                         }
-                        if yy < inner.bottom() {
-                            let pos = match at {
-                                Some(_) => {
-                                    "Enter on the result tab jumps to the statement · the offending token is underlined in the editor"
-                                }
-                                None => "Enter on the result tab jumps to the statement",
-                            };
-                            buf.set_string(
-                                inner.x + 2,
-                                yy,
-                                junie_tui::ui::text::truncate(
-                                    pos,
-                                    inner.width.saturating_sub(2) as usize,
-                                ),
-                                t.muted().bg(cbg),
-                            );
-                        }
+                        notice.render(inner, buf, ctx, cbg);
                     }
                     ResultBody::Plan {
                         tree,

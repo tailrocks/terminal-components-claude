@@ -13,11 +13,12 @@ use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
-use junie_tui::ui::text::{fit, truncate, width, wrap};
+use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::picker::Picker;
@@ -993,23 +994,21 @@ impl ConfigTabs {
         if reserve > 0 {
             let mut y = body.bottom() + 1;
             for p in blocker_rows.iter().take(2) {
-                for (i, line) in wrap(p, list_area.width.saturating_sub(5) as usize)
-                    .into_iter()
-                    .take(2)
-                    .enumerate()
-                {
-                    if y >= list_area.bottom() {
-                        break;
-                    }
-                    buf.set_string(
+                if y >= list_area.bottom() {
+                    break;
+                }
+                // each blocker wraps to two rows at most, the cut unmarked
+                y += Notice::error(p.as_str()).mark_cut(false).render(
+                    Rect::new(
                         list_area.x + 3,
                         y,
-                        if i == 0 { "!" } else { " " },
-                        Style::new().fg(t.error).bg(bg),
-                    );
-                    buf.set_string(list_area.x + 5, y, &line, Style::new().fg(t.error).bg(bg));
-                    y += 1;
-                }
+                        list_area.width.saturating_sub(3),
+                        list_area.bottom() - y,
+                    ),
+                    buf,
+                    ctx,
+                    bg,
+                );
             }
         }
         if let Some(card) = card_area {
