@@ -23,8 +23,8 @@
 [0m[2m │                                     │││  [0mTransaction  All statements run in one transaction; a failure rolls     [0m[2m  │4d88-a74…8e49ab0daa2 →  paid         ┆ │ [0m
 [0m[2m │                                     │││  [0m             everything back.                                           [0m[2m  │474c-946…286d04a5c2b →  shipped      ┆ │ [0m
 [0m[2m │                                     │││  [0mSafe Mode    Safe Mode · type to confirm                                [0m[2m  │40e9-b90…cbbfeb56e8b →  refunded     ┆ │ [0m
-[0m[2m │                                     │││  [0m [0m[2m                                                                         │4b8b-b3e…8c43bcce08f →  pending      ┆ │ [0m
-[0m[2m │                                     │││  [0mU[0m[2mPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…  │43c3-9a4…0779d6c73ea →  pending      ┆ │ [0m
+[0m[2m │                                     │││  [0m                                                                        [0m[2m  │4b8b-b3e…8c43bcce08f →  pending      ┆ │ [0m
+[0m[2m │                                     │││  [0mUPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…[0m[2m  │43c3-9a4…0779d6c73ea →  pending      ┆ │ [0m
 [0m[2m │                                     │││  [0m━[0m[2m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │4faf-8df…aae78d5ece4 →  refunded     ┆ │ [0m
 [0m[2m │                                     │││  [0m [0m[2m                                                                         │458e-bc5…6fa0b0d0c1c →  pending      ┆ │ [0m
 [0m[2m │                                     │││  [0m[1mT[0m[1;2mype orders to confirm                                                  [0m[2m  │413d-835…ccce612ed16 →  cancelled    ┆ │ [0m

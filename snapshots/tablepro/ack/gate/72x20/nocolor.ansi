@@ -5,11 +5,11 @@
 [0m[2m › │  ▲ [0m[1;2mExecute write query?[0m[2m                                        │─╮ [0m
 [0m[2m   │  [0m [0m[2m     [0m [0m[2m         [0m [0m[2m                                             │ │ [0m
 [0m[2m E │  [0mAction      UPDATE                                          [0m[2m ┃│ │ [0m
-[0m[2m x │  [0mTarget      Production · production · acme_prod · orders    [0m[2m ┆│ │ [0m
-[0m[2m p │  [0mScope       matching rows in orders                         [0m[2m ┆│ │ [0m
-[0m[2m l │  ↓ 2 more                                                      │ │ [0m
-[0m[2m o │  UPDATE orders SET status = 'paid' WHERE id = 'x'              │ │ [0m
-[0m[2m r │                                                                │ │ [0m
+[0m[2m x │  [0mTarget      Production · production · acme_prod · orders    [0m[2m ┃│ │ [0m
+[0m[2m p │  [0mScope       matching rows in orders                         [0m[2m ┃│ │ [0m
+[0m[2m l │  [0mReversible  Reversible by a compensating UPDATE             [0m[2m ┆│ │ [0m
+[0m[2m o │  [0mSafe Mode   Safe Mode · type to confirm                     [0m[2m ┆│ │ [0m
+[0m[2m r │  ↓ 2 more                                                      │ │ [0m
 [0m[2m e │  [0m[1;2mType orders to confirm                                      [0m[2m  │ │ [0m
 [0m[2m r │▎                                                               │ │ [0m
 [0m[2m   │                                                                │ │ [0m

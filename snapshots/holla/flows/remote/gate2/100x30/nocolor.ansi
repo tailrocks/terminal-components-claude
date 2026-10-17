@@ -14,9 +14,9 @@
 [0m[2m  Data     │  [0mChanges  payments restarts · brief outage on prod-eu-1                  [0m[2m  │           [0m
 [0m[2m  Recoverab│  [0mRisk     privileged                                                     [0m[2m  │           [0m
 [0m[2m  Provenanc│  [0mData     live · 0 s ago                                                 [0m[2m  │           [0m
-[0m[2m  Gate     │                                                                            │           [0m
-[0m[2m           │  sudo systemctl restart payments                                           │           [0m
-[0m[2m ╭─ Sequenc│  systemctl status payments                                                 │ copies ─╮ [0m
+[0m[2m  Gate     │  [0m                                                                        [0m[2m  │           [0m
+[0m[2m           │  [0msudo systemctl restart payments                                         [0m[2m  │           [0m
+[0m[2m ╭─ Sequenc│  [0msystemctl status payments                                               [0m[2m  │ copies ─╮ [0m
 [0m[2m │  01  sud│                                                                            │         │ [0m
 [0m[2m │  02  sys│  [0m[1;2mType RESTART PAYMENTS ON prod-eu-1 to confirm                           [0m[2m  │         │ [0m
 [0m[2m │         │[0m[1;2;7m▎                                                                         [0m[2m  │         │ [0m

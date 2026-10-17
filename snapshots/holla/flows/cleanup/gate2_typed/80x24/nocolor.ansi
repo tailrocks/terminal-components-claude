@@ -6,13 +6,13 @@
 [0m[2m   │                                                                        │   [0m
 [0m[2m  A│  [0mAction        move to Trash 1 item under ~/Projects/safe            [0m[2m ┃│┃  [0m
 [0m[2m  H│  [0mHost          mbp · local                                           [0m[2m ┃│┃  [0m
-[0m[2m  M│  [0mMode          Trash · native macOS Trash · space returns after the  [0m[2m ┆│┃  [0m
-[0m[2m   │  [0m              Trash is emptied                                      [0m[2m ┆│┆  [0m
+[0m[2m  M│  [0mMode          Trash · native macOS Trash · space returns after the  [0m[2m ┃│┃  [0m
+[0m[2m   │  [0m              Trash is emptied                                      [0m[2m ┃│┆  [0m
 [0m[2m  E│  [0mEstimate      1000.0 MiB allocated · APFS clones may overcount ·    [0m[2m ┆│┆  [0m
 [0m[2m   │  [0m              purgeable space excluded · not a free-space guarantee [0m[2m ┆│┆  [0m
-[0m[2m  D│  ↓ 8 more                                                              │┆  [0m
-[0m[2m   │  /Users/alex/Projects/safe/target                                      │   [0m
-[0m[2m ╭─│                                                                        │─╮ [0m
+[0m[2m  D│  [0mDenied        none · every path passed the lexical, protected-root, [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              user-data and symlink rules                           [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 8 more                                                              │─╮ [0m
 [0m[2m │ │  [0m[1;2mType TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm      [0m[2m  │ │ [0m
 [0m[2m │ │▎ [0m[2;4mTRASH 1 UNDER /Users/alex/Projects/safe ON mbp[0m[2m                        │ │ [0m
 [0m[2m │ │                                                                        │ │ [0m

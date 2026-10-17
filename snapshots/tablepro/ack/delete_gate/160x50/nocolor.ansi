@@ -24,8 +24,8 @@
 [0m[2m │                                     │││ │  [0m            CASCADE.                                                [0m[2m  │                                         │ [0m
 [0m[2m │                                     │││ │  [0mReversible  Not reversible without a backup                         [0m[2m  │                                         │ [0m
 [0m[2m │                                     │││ │  [0mSafe Mode   Safe Mode · type to confirm                             [0m[2m  │                                         │ [0m
-[0m[2m │                                     │││ │                                                                        │                                         │ [0m
-[0m[2m │                                     │││ │  DELETE FROM orders                                                    │                                         │ [0m
+[0m[2m │                                     │││ │  [0m                                                                    [0m[2m  │                                         │ [0m
+[0m[2m │                                     │││ │  [0mDELETE FROM orders                                                  [0m[2m  │                                         │ [0m
 [0m[2m │                                     │││ │                                                                        │                                         │ [0m
 [0m[2m │                                     │││ │  [0m[1;2mType orders to confirm                                              [0m[2m  │                                         │ [0m
 [0m[2m │                                     │││ │▎                                                                       │                                         │ [0m

@@ -4,8 +4,8 @@
 [0m[2m ━━│                                                                │── [0m
 [0m[2m  R│  [0m[1;2mClean Docker completely · gate 2 of 2[0m[2m                         │…  [0m
 [0m[2m   │                                                                │   [0m
-[0m[2m  A│                                                                │┃  [0m
-[0m[2m   │  docker stop acme-api-1 acme-worker-1 acme-sched… … 7 more     │┆  [0m
+[0m[2m  A│  [0mAction             remove all user-removable Docker state on[0m[2m ┃│┃  [0m
+[0m[2m   │  [0m                   devbox                                   [0m[2m ┆│┆  [0m
 [0m[2m  H│  ━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │┆  [0m
 [0m[2m   │                                                                │   [0m
 [0m[2m ╭─│  [0m[1;2mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to[0m[2m        │─╮ [0m

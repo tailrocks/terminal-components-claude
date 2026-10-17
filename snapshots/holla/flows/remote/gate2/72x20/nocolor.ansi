@@ -6,9 +6,9 @@
 [0m[2m   │                                                                │   [0m
 [0m[2m  A│  [0mAction   systemctl restart payments on prod-eu-1 ·          [0m[2m ┃│┃  [0m
 [0m[2m   │  [0m         production · in-flight requests are dropped        [0m[2m ┆│┆  [0m
-[0m[2m  H│  ↓ 6 more                                                      │┆  [0m
-[0m[2m   │  sudo systemctl restart payments … 1 more                      │   [0m
-[0m[2m ╭─│                                                                │─╮ [0m
+[0m[2m  H│  [0mHost     prod-eu-1 · production                             [0m[2m ┆│┆  [0m
+[0m[2m   │  [0mIn       prod-eu-1 · host-wide                              [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 7 more                                                      │─╮ [0m
 [0m[2m │ │  [0m[1;2mType RESTART PAYMENTS ON prod-eu-1 to confirm               [0m[2m  │ │ [0m
 [0m[2m │ │[0m[1;2;7m▎                                                             [0m[2m  │ │ [0m
 [0m[2m │ │                                                                │ │ [0m
