@@ -563,6 +563,10 @@ pub fn truncated(
 ) -> bool {
     let cfg = config.unwrap_or(ctx.reveal);
     let cut = is_cut(area, full);
+    if cut && cfg.hover && !ctx.inert {
+        // its full text is a hover away: reached, as an overflow item's is
+        OVERFLOWS.with(|o| o.borrow_mut().push(full.to_owned()));
+    }
     if cfg.hover
         && cut
         && !ctx.inert
@@ -600,7 +604,9 @@ pub(crate) fn overflow_id(area: Rect) -> WidgetId {
 }
 
 thread_local! {
-    /// The hidden text of every overflow item drawn this frame.
+    /// The hidden text of every overflow item drawn this frame, and the
+    /// full text of every cut text that reveals itself on hover
+    /// ([`truncated`]).
     static OVERFLOWS: std::cell::RefCell<Vec<String>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
@@ -636,7 +642,10 @@ pub(crate) fn overflow(
     if ctx.inert {
         return;
     }
-    OVERFLOWS.with(|o| o.borrow_mut().push(hidden.to_owned()));
+    if !ctx.reveal.hover {
+        // no hover reveal: `truncated` below records nothing either
+        OVERFLOWS.with(|o| o.borrow_mut().push(hidden.to_owned()));
+    }
     if ctx.reveal.hover {
         ctx.hits.register_hover(id, area);
     }
@@ -644,7 +653,8 @@ pub(crate) fn overflow(
 }
 
 /// The hidden text of the overflow items drawn in the last frame
-/// ([`overflow`]): what their reveals show.
+/// ([`overflow`]) and the full text of the cut texts that reveal on hover
+/// ([`truncated`]): what their reveals show.
 pub(crate) fn overflowed() -> Vec<String> {
     OVERFLOWS.with(|o| o.borrow().clone())
 }
