@@ -299,6 +299,38 @@ sha list equals the reviewed one; `cargo xtask visual accept` per half
 (c12eccdfa). Re-captured after rebasing onto S7 part 1 (the library
 Shell, 4400f40ab): no jackin frame moved.
 
+### V4 findings: A25 and A26 (2026-10-17)
+
+- **A25, fixed (3e9a1a5a2).** `Ctrl+B i` (Container info) on
+  `capsule-multi` panicked: `capsule.rs` byte-sliced
+  `run_id.replace('-', "")[..8]`, and `run-7f3a` leaves 7 characters.
+  Every fixed byte slice of a display id now goes through the new
+  `ui::text::clip(s, max)` (leading cells, no ellipsis, whole graphemes,
+  never panics on short text) or a prefix trim: capsule Container ID,
+  cockpit run stamp, manager image tag, the jackin fixture run ids and
+  holla's config digest. The remaining range slices in `src/` take their
+  bounds from `find`, `char_indices` or a checked boundary. Regression
+  test: `app_tests_chrome::container_info_opens_on_a_short_run_id_without_panicking`
+  (fails on the parent with the panic). The Container info frame now
+  reads `3f9crun7f3ae21a`; there is no `jackin/overlays/capsule_info`
+  capture row on this branch, so nothing was re-approved.
+- **A26, decision: reachable, kept.** The editor's role-load error
+  dialog (`editor.rs::finish_role_load`) never opened because the
+  fixture failed only an untrusted `data-eng`, and a load starts only
+  after trust is granted. In the real product a trusted Role's load
+  still fails (fetch, I/O, manifest parse), and the dialog's "trust
+  stays granted · retry from the Roles tab" is written for that case, so
+  the path stays. The fixture gained `RoleEntry::fetch_error` (what the
+  simulated registry answers; the name check in `start_role_load` is
+  gone); `hard-cases` gives the trusted local `writer` a manifest parse
+  error. Enter on a trusted row with a load error now retries the load
+  instead of asking for trust again, as the dialog says. Test:
+  `app_tests_coverage::a_trusted_role_that_fails_to_load_reports_the_error_and_retries`.
+  No capture row: the load completes on a 1,100 ms virtual-time job,
+  which never fires under the paused motion every jackin capture uses
+  (the `editor/save_preview` boundary), so the in-process test is the
+  proof.
+
 ## Status (T19 sync, 2026-10-17)
 
 The "Regressions found and fixed" and "Stale scenario steps fixed"

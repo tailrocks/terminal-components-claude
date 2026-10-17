@@ -245,6 +245,8 @@ questions.
 | A22 | Automatic ASCII glyphs (SVg6 remainder): `Glyphs::ASCII` and `Strings::ASCII` are opt-in only; nothing selects them for `TERM=linux` or the Windows console. The plan's §4 "Already done" and S17 rows now say SVg6 is partial (was "SVg6 done, S17 verify only"). | T or S17 | a detection unit test (`TERM=linux` picks ASCII) with an override | `standards-visual.md` gap 6 |
 | A23 | A non-searchable Picker ignores typed letters (no type-ahead); Tree, ContextMenu, DataTable and DataGrid already type-select. | S12 (Picker body on `OptionList`) | a type-ahead test on a non-searchable Picker | `interaction.md` #11 |
 | A24 | Alt+click does not trigger the Picker's `ChosenAlt` action (Alt+Enter does). | S9 (modifier clicks) or S12 | an Alt+click test reporting `ChosenAlt` | `interaction.md` #6 |
+| A25 | **Done** (3e9a1a5a2): jackin Container info (`Ctrl+B i`) panicked on `capsule-multi` by byte-slicing a 7-character run id to 8; display-id slices go through `ui::text::clip`. | — | `container_info_opens_on_a_short_run_id_without_panicking` | `visual-reapproval.md` "V4 findings" |
+| A26 | **Done** (decision: reachable, kept): the role-load error dialog could not open because only an untrusted Role failed; the fixture's `RoleEntry::fetch_error` fails trusted `writer` in `hard-cases`, and Enter on the failed row retries. | — | `a_trusted_role_that_fails_to_load_reports_the_error_and_retries` | `visual-reapproval.md` "V4 findings" |
 
 Not tasks (watch list): `performance.md` "Remaining risks" (stale-frame
 wheel notches, reveal wrap cost, a full render per frame,
