@@ -25,6 +25,7 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::{BadgeKind, StatusKind, Tone};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::tooltip::Tip;
@@ -396,6 +397,109 @@ impl ChromePage {
         }
     }
 
+    fn sessions_panel(&self, focused: bool) -> Panel<'static> {
+        Panel::card(Some("Sessions"))
+            .meta("right-click or Shift+F10 for the tab menu")
+            .focused(focused)
+    }
+
+    /// The toned spans line in the sessions card.
+    fn checks_line() -> [Span; 6] {
+        [
+            Span::muted("checks "),
+            Span::new("2 ok", Tone::Success),
+            Span::muted(" · "),
+            Span::new("1 failed", Tone::Error).bold(),
+            Span::muted(" · "),
+            Span::new("1 cancelled", Tone::Muted),
+        ]
+    }
+
+    /// What the bar reported last, and the actions it reports.
+    fn action_line(&self) -> String {
+        let last = match self.action {
+            Some(a) => format!("{a:?}"),
+            None => "—".into(),
+        };
+        format!("last MenuBarAction: {last}   (Opened(menu) · Chosen(menu, item) · Closed · Brand)")
+    }
+
+    /// The faint lines under the card, wrapped to `w`: the built bar read
+    /// back and the last action.
+    fn readout_lines(&self, w: u16) -> Vec<String> {
+        self.readout()
+            .iter()
+            .map(String::as_str)
+            .chain(std::iter::once(self.action_line().as_str()))
+            .flat_map(|l| junie_tui::ui::text::wrap(l, w.max(1) as usize))
+            .collect()
+    }
+
+    /// Where the status bar's items went at `w` columns.
+    fn placed_text(&self, w: u16) -> String {
+        let placed = self.status_bar().layout(Rect::new(0, 0, w, 1));
+        let groups: Vec<String> = [Group::Left, Group::Center, Group::Right]
+            .into_iter()
+            .map(|g| {
+                let n = placed.iter().filter(|p| p.group == g).count();
+                format!("{g:?} {n}")
+            })
+            .collect();
+        format!("places {} of 8 · {}", placed.len(), groups.join(", "))
+    }
+
+    /// The Playground's natural width: the menu bar with every title, the
+    /// sessions card with its notes, the identity strip, the status bar
+    /// and the hint bar with nothing dropped.
+    fn natural_width(&self, ctx: &RenderCtx) -> u16 {
+        let t = ctx.theme;
+        let any = ratatui::layout::Size::new(0, 1);
+        let w = |s: &str| junie_tui::ui::text::width(s) as u16;
+        let spans: u16 = Self::checks_line().iter().map(|s| w(&s.text)).sum();
+        let notes = NOTES
+            .iter()
+            .map(|n| w(n))
+            .max()
+            .unwrap_or(0)
+            .max(spans)
+            .max(44);
+        let card = self
+            .sessions_panel(false)
+            .outer(ratatui::layout::Size::new(LIST_W + 4 + notes, CARD_ROWS))
+            .width;
+        let (left, right) = self.strip(0, t);
+        let status = self.status_bar().measure(any, ctx).width;
+        let captions = [
+            STRIP_CAPTION.to_owned(),
+            format!(
+                "status bar · StatusBar::layout {}",
+                self.placed_text(status)
+            ),
+            format!(
+                "at {NARROW_STATUS} columns · StatusBar::layout {}",
+                self.placed_text(NARROW_STATUS)
+            ),
+            HINT_CAPTION.to_owned(),
+        ];
+        [
+            self.bar.measure(any, ctx).width,
+            card,
+            segments::width(&left, &right, t),
+            status,
+            self.layer(ctx.interaction.focus).measure(any, ctx).width,
+        ]
+        .into_iter()
+        .chain(captions.iter().map(|c| w(c) + 1))
+        .max()
+        .unwrap_or(0)
+    }
+
+    /// The Playground's rows at `w` columns: the menu bar, the sessions
+    /// card, the readout, the strip, the status bars and the hint bar.
+    fn height(&self, w: u16) -> u16 {
+        2 + CARD_ROWS + 3 + 1 + self.readout_lines(w).len() as u16 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let mut y = area.y;
@@ -408,140 +512,108 @@ impl ChromePage {
         self.bar
             .render(Rect::new(area.x, y, bar_w, 1), buf, ctx, t.canvas);
         y += 2;
-        // the status bar, the hint bar and their captions take the last
-        // five rows; everything else stays above them
-        let foot = area.bottom().saturating_sub(5);
         // body: a list of sessions in a card
-        let body = Rect::new(area.x, y, area.width, foot.saturating_sub(y).min(11));
-        let panel = Panel::card(Some("Sessions"))
-            .meta("right-click or Shift+F10 for the tab menu")
-            .focused(ctx.interaction.focused(SESSIONS));
+        let body = Rect::new(area.x, y, area.width, CARD_ROWS + 3);
+        let panel = self.sessions_panel(ctx.interaction.focused(SESSIONS));
         let bg = panel.bg(t);
         let inner = panel.render(body, buf, t);
-        let list_area = Rect::new(inner.x, inner.y, inner.width.min(48), inner.height.min(6));
+        let list_area = Rect::new(
+            inner.x,
+            inner.y,
+            inner.width.min(LIST_W),
+            inner.height.min(6),
+        );
         self.sessions.render(list_area, buf, ctx, bg);
-        let notes = [
-            "The status bar below sits on its own plane: three groups, no",
-            "separator glyphs, and items leave by priority when the row is",
-            "narrow — resize the terminal to watch the center go first.",
-            "",
-            "Brand: one lockup, accent-filled, the only accent-filled control.",
-        ];
         let nx = inner.x + list_area.width + 4;
-        for (i, n) in notes.iter().enumerate() {
+        for (i, n) in NOTES.iter().enumerate() {
             let ny = inner.y + i as u16;
-            if nx < inner.right() && ny < inner.bottom() {
-                buf.set_string(
-                    nx,
-                    ny,
-                    junie_tui::ui::text::truncate(n, inner.right().saturating_sub(nx) as usize),
-                    t.muted().bg(bg),
-                );
-            }
+            buf.set_string(
+                nx,
+                ny,
+                junie_tui::ui::text::truncate(n, inner.right().saturating_sub(nx) as usize),
+                t.muted().bg(bg),
+            );
         }
         // toned lines drawn by the library: spans with their own tones,
         // and a footer status led by its `StatusKind` glyph
-        let sy = inner.y + notes.len() as u16 + 1;
-        if nx + 8 < inner.right() && sy + 1 < inner.bottom() {
-            let max = inner.right().saturating_sub(nx);
-            let line = [
-                Span::muted("checks "),
-                Span::new("2 ok", Tone::Success),
-                Span::muted(" · "),
-                Span::new("1 failed", Tone::Error).bold(),
-                Span::muted(" · "),
-                Span::new("1 cancelled", Tone::Muted),
-            ];
-            render_spans(buf, nx, sy, max, t, &line, bg);
-            junie_tui::widgets::keyhint::render_status(
-                Rect::new(nx, sy + 1, max.min(44), 1),
-                buf,
-                t,
-                &[hint("Ctrl+S", "Save")],
-                None,
-                Some(("Saved", Some(StatusKind::Ok))),
-            );
-        }
-        // the built bar read back, then the identity strip on the chrome
-        // plane
+        let sy = inner.y + NOTES.len() as u16 + 1;
+        let max = inner.right().saturating_sub(nx);
+        render_spans(buf, nx, sy, max, t, &Self::checks_line(), bg);
+        junie_tui::widgets::keyhint::render_status(
+            Rect::new(nx, sy + 1, max.min(44), 1),
+            buf,
+            t,
+            &[hint("Ctrl+S", "Save")],
+            None,
+            Some(("Saved", Some(StatusKind::Ok))),
+        );
+        // the built bar read back and what it reported last, then the
+        // identity strip on the chrome plane
         let mut y = body.bottom() + 1;
-        for line in self.readout() {
-            if y < foot {
-                let text = junie_tui::ui::text::truncate(&line, area.width as usize);
-                buf.set_string(area.x, y, text, t.faint().bg(t.canvas));
-            }
+        for line in self.readout_lines(area.width) {
+            buf.set_string(area.x, y, line, t.faint().bg(t.canvas));
             y += 1;
         }
-        // what the bar reported last, and the actions it reports
-        if y < foot {
-            let last = match self.action {
-                Some(a) => format!("{a:?}"),
-                None => "—".into(),
-            };
-            let text = format!(
-                "last MenuBarAction: {last}   (Opened(menu) · Chosen(menu, item) · Closed · Brand)"
-            );
-            buf.set_string(
-                area.x,
-                y,
-                junie_tui::ui::text::truncate(&text, area.width as usize),
-                t.faint().bg(t.canvas),
-            );
-        }
-        y += 2;
-        if y + 1 < foot {
-            buf.set_string(
-                area.x,
-                y,
-                "identity strip · segments drop by priority · ◆ opens the app menu",
-                t.faint().bg(t.canvas),
-            );
-            let (left, right) = self.strip(ctx.interaction.tick, t);
-            let row = Rect::new(area.x, y + 1, area.width, 1);
-            junie_tui::ui::ctx::fill(buf, row, ratatui::style::Style::new().bg(t.surface));
-            segments::render(row, buf, ctx, &left, &right, t.surface);
-        }
-        let ay = y + 2;
-        // status bar row above the hint bar, and where its items went
-        let status_row = Rect::new(area.x, area.bottom().saturating_sub(4), area.width, 1);
+        y += 1;
+        buf.set_string(area.x, y, STRIP_CAPTION, t.faint().bg(t.canvas));
+        let (left, right) = self.strip(ctx.interaction.tick, t);
+        let row = Rect::new(area.x, y + 1, area.width, 1);
+        junie_tui::ui::ctx::fill(buf, row, ratatui::style::Style::new().bg(t.surface));
+        segments::render(row, buf, ctx, &left, &right, t.surface);
+        y += 3;
+        // the status bar at the page's width and in a narrow row, and
+        // where its items went
         let status = self.status_bar();
-        let placed = status.layout(status_row);
-        status.render(status_row, buf, ctx);
-        if status_row.y > ay + 1 {
-            let groups: Vec<String> = [Group::Left, Group::Center, Group::Right]
-                .into_iter()
-                .map(|g| {
-                    let n = placed.iter().filter(|p| p.group == g).count();
-                    format!("{g:?} {n}")
-                })
-                .collect();
-            let text = format!(
-                "status bar · StatusBar::layout places {} of 8 · {}",
-                placed.len(),
-                groups.join(", ")
-            );
-            buf.set_string(
-                area.x + 1,
-                status_row.y - 1,
-                junie_tui::ui::text::truncate(&text, area.width.saturating_sub(1) as usize),
-                t.faint().bg(t.canvas),
-            );
+        for (caption, w) in [
+            (
+                format!(
+                    "status bar · StatusBar::layout {}",
+                    self.placed_text(area.width)
+                ),
+                area.width,
+            ),
+            (
+                format!(
+                    "at {NARROW_STATUS} columns · StatusBar::layout {}",
+                    self.placed_text(NARROW_STATUS)
+                ),
+                NARROW_STATUS.min(area.width),
+            ),
+        ] {
+            buf.set_string(area.x + 1, y, caption, t.faint().bg(t.canvas));
+            status.render(Rect::new(area.x, y + 1, w, 1), buf, ctx);
+            y += 3;
         }
-        // the hint layer that a shell would pin to the bottom
-        let hint_row = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
-        self.hint_area = hint_row;
+        // the hint layer that a shell would pin to the bottom, as wide as
+        // its hints and status: its status stays in view on a page wider
+        // than the screen
         let layer = self.layer(ctx.interaction.focus);
-        buf.set_string(
-            area.x + 1,
-            hint_row.y.saturating_sub(1),
-            "hint bar · topmost layer wins:",
-            t.faint().bg(t.canvas),
-        );
+        let hint_w = layer.measure(ratatui::layout::Size::new(0, 1), ctx).width;
+        let hint_row = Rect::new(area.x, y + 1, hint_w.min(area.width), 1);
+        self.hint_area = hint_row;
+        buf.set_string(area.x + 1, y, HINT_CAPTION, t.faint().bg(t.canvas));
         HintBar::render(hint_row, buf, t, &layer);
         // popovers last so they sit on top
         self.context.render(area, buf, ctx);
     }
 }
+
+/// The sessions list's width and the card's content rows.
+const LIST_W: u16 = 48;
+const CARD_ROWS: u16 = 8;
+/// The narrow status row: items leave by priority.
+const NARROW_STATUS: u16 = 64;
+
+const NOTES: [&str; 5] = [
+    "The status bar below sits on its own plane: three groups, no",
+    "separator glyphs, and items leave by priority when the row is",
+    "narrow — the 64-column row shows the center going first.",
+    "",
+    "Brand: one lockup, accent-filled, the only accent-filled control.",
+];
+
+const STRIP_CAPTION: &str = "identity strip · segments drop by priority · ◆ opens the app menu";
+const HINT_CAPTION: &str = "hint bar · topmost layer wins:";
 
 /// The States grid: segments and status items in every state they have,
 /// drawn by the widgets themselves.
@@ -591,6 +663,11 @@ impl Page for ChromePage {
     fn animating(&self) -> bool {
         // the strip's deploy spinner and the busy status item
         true
+    }
+
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        let w = avail.width.max(self.natural_width(ctx));
+        ratatui::layout::Size::new(w, self.height(w))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

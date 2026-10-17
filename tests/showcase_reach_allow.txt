@@ -10,11 +10,6 @@
 
 Overview | Playground | 80x24 | R1 squeezes instead of overflowing: no Page::measure yet
 Overview | Playground | 100x25 | R1 squeezes instead of overflowing: no Page::measure yet
-Overview | Playground | 106x29 | R1 squeezes instead of overflowing: no Page::measure yet
-Chrome | Playground | 80x24 | R2 squeezes instead of overflowing: no Page::measure yet
-Chrome | Playground | 100x25 | R2 squeezes instead of overflowing: no Page::measure yet
-Chrome | Playground | 106x29 | R2 squeezes instead of overflowing: no Page::measure yet
-Chrome | Playground | 120x40 | R2 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 80x24 | R8 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 100x25 | R8 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 106x29 | R8 squeezes instead of overflowing: no Page::measure yet
