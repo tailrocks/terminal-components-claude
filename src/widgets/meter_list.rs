@@ -214,6 +214,40 @@ impl MeterList {
     }
 }
 
+/// The narrowest the list shows every label, value and detail whole: the
+/// label column, the meter column (fixed, or the widest row's meter at its
+/// natural width, never under [`MeterList::min_meter`]) and, after a
+/// fixed meter, the widest detail after its gap, or the reserve when that
+/// is wider.
+impl crate::ui::measure::Measure for MeterList {
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        let label = self.label_column(Rect::new(0, 0, u16::MAX, 1));
+        let meter = self.meter_width.unwrap_or_else(|| {
+            self.rows
+                .iter()
+                .map(|r| r.meter.measure(avail, ctx).width)
+                .max()
+                .unwrap_or(0)
+        });
+        // a filling meter takes the row up to the reserve: its details
+        // show only in the reserve, at any width
+        let detail = match self.meter_width {
+            None => 0,
+            Some(_) => self
+                .rows
+                .iter()
+                .filter_map(|r| r.detail.as_deref())
+                .map(|d| self.detail_gap + width(d) as u16)
+                .max()
+                .unwrap_or(0),
+        };
+        ratatui::layout::Size::new(
+            label + self.label_gap + meter.max(self.min_meter) + detail.max(self.reserve),
+            self.height(),
+        )
+    }
+}
+
 /// The id a meter list answers to in a States grid (it is not interactive).
 const SAMPLE_ID: WidgetId = WidgetId::of("meter-list-sample");
 
@@ -273,6 +307,59 @@ mod tests {
             .collect::<String>()
             .trim_end()
             .to_owned()
+    }
+
+    /// At its measured width the list shows every label, value and
+    /// detail whole.
+    #[test]
+    fn a_list_at_its_measure_shows_everything() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let l = MeterList::new(vec![
+            MeterRow::new("Session", Meter::new(Some(38)).value("38% used"))
+                .detail("resets in 2 h"),
+            MeterRow::new(
+                "Quota",
+                Meter::new(None)
+                    .value("quota read failed")
+                    .tone(MeterTone::Error),
+            ),
+            MeterRow::new(
+                "Weekly",
+                Meter::new(Some(91))
+                    .value("91%")
+                    .visual(crate::widgets::progress::MeterVisual::Block),
+            )
+            .detail("of 100 credits"),
+        ])
+        .meter_width(22)
+        .min_meter(8)
+        .reserve(2);
+        let size = l.measure(ratatui::layout::Size::new(10, 1), &ctx);
+        drop(ctx);
+        assert_eq!(size.height, 3);
+        let buf = draw(&l, size.width);
+        let all: Vec<String> = (0..3).map(|y| text(&buf, y)).collect();
+        for (y, parts) in [
+            &["Session", "38% used", "resets in 2 h"][..],
+            &["Quota", "quota read failed"],
+            &["Weekly", "91%", "of 100 credits"],
+        ]
+        .iter()
+        .enumerate()
+        {
+            for p in *parts {
+                assert!(all[y].contains(p), "{p:?} in {:?}", all[y]);
+            }
+        }
     }
 
     fn list() -> MeterList {

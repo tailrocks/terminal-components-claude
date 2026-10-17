@@ -211,6 +211,26 @@ pub fn height(e: &EmptyState, width: u16) -> u16 {
     1 + hint + actions
 }
 
+/// The size [`render_ctx`] shows the whole state in: the title (with the
+/// error `! `), the hint on one line inside its margins, the button row;
+/// [`height`] at that width.
+impl crate::ui::measure::Measure for EmptyState {
+    fn measure(&self, _avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        let w = |s: &str| crate::ui::text::width(s) as u16;
+        let title = w(&self.title) + if self.kind == EmptyKind::Error { 2 } else { 0 };
+        let hint = self.hint.as_deref().map(|h| w(h) + 4).unwrap_or(0);
+        let gap = ctx.theme.spacing.button_gap;
+        let buttons = self
+            .actions
+            .iter()
+            .map(|a| Button::secondary(a.id, &a.label).width())
+            .sum::<u16>()
+            + gap * self.actions.len().saturating_sub(1) as u16;
+        let width = title.max(hint).max(buttons);
+        ratatui::layout::Size::new(width, height(self, width))
+    }
+}
+
 /// In a States grid an empty state is drawn by [`render_ctx`]; its
 /// interactive states are those of its first action button.
 impl crate::ui::specimen::Specimen for EmptyState {
@@ -258,6 +278,36 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::ui::ctx::Interaction;
     use ratatui::layout::Constraint;
+
+    /// At its measured size the whole state shows: title, hint on one
+    /// line and every button label.
+    #[test]
+    fn an_empty_state_at_its_measure_shows_everything() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let e = EmptyState::error("Could not load connections")
+            .hint("Check the network, then retry the request")
+            .actions(vec![
+                EmptyAction::primary(WidgetId::of("retry"), "Retry"),
+                EmptyAction::secondary(WidgetId::of("import"), "Import from file"),
+            ]);
+        let size = e.measure(ratatui::layout::Size::new(10, 3), &ctx);
+        let area = Rect::new(0, 0, size.width, size.height);
+        let mut buf = Buffer::empty(area);
+        render_ctx(area, &mut buf, &mut ctx, &e, Color::Reset);
+        let all = text(&buf);
+        for part in [
+            "! Could not load connections",
+            "Check the network, then retry the request",
+            "Retry",
+            "Import from file",
+        ] {
+            assert!(all.contains(part), "{part:?} in {all:?}");
+        }
+    }
 
     #[test]
     fn enter_or_space_on_a_focused_action_chooses_it() {
