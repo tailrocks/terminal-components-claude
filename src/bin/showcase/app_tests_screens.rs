@@ -41,3 +41,38 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     h.click(x + 1, y);
     assert!(h.app.shell.quit, "Stop and leave quits");
 }
+
+/// The Task runner on the template: its options rebuild the tree and the
+/// log through their builders, r runs the pipeline from the section strip,
+/// the pipeline keeps running while another section shows, and States
+/// draws the tree, the log and a task's bar.
+#[test]
+fn the_task_runner_options_states_and_run_from_the_strip() {
+    use crate::pages::template::Section;
+    let mut h = Harness::on(120, 40, PageId::TaskRunner);
+    assert!(h.text().contains("◆ production"), "{}", h.text());
+    assert!(h.text().contains("integration"));
+    h.opt("taskrunner.env_glyphs=off");
+    assert!(!h.text().contains("◆ production"), "{}", h.text());
+    h.opt("taskrunner.expanded=off");
+    assert!(!h.text().contains("staging"), "folded: {}", h.text());
+    h.opt("taskrunner.expanded=on");
+    h.opt("taskrunner.tree_meta=on");
+    let (_, y) = h.find("deploy").expect("the deploy folder");
+    assert!(h.row(y).contains('2'), "its task count: {}", h.row(y));
+    // r from the section strip runs the pipeline
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Char('r'));
+    assert!(h.text().contains("Pipeline · running"), "{}", h.text());
+    h.section(Section::States);
+    for _ in 0..30 {
+        junie_tui::runtime::Application::handle(&mut h.app, junie_tui::core::event::Input::Tick);
+    }
+    h.section(Section::Playground);
+    assert!(h.text().contains("compile started"), "it ran meanwhile");
+    h.section(Section::States);
+    let text = h.text();
+    for col in ["Targets", "Log", "Task bar"] {
+        assert!(text.contains(col), "{col}\n{text}");
+    }
+}
