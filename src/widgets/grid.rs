@@ -410,6 +410,31 @@ enum GridDrag {
     },
 }
 
+/// The grid with every column at its width (as last measured) and every
+/// row; it scrolls both ways itself, so its min width only holds its
+/// cursor gutter and a column: a container lays it out in the room it has
+/// ([`Measure::min_width`](crate::ui::measure::Measure::min_width)).
+impl crate::ui::measure::Measure for DataGrid {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        _ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let n = self.columns.len();
+        let cols: u16 = (0..n).map(|c| self.col_w(c)).sum::<u16>() + n.saturating_sub(1) as u16;
+        ratatui::layout::Size::new(cols + GRID_CHROME_W, self.len() as u16 + 2)
+    }
+
+    fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
+        GRID_MIN_W
+    }
+}
+
+/// The grid's cursor gutter, row marks and vertical bar around its columns.
+const GRID_CHROME_W: u16 = 6;
+/// The narrowest a grid is laid out at: it scrolls both ways itself.
+const GRID_MIN_W: u16 = 24;
+
 #[derive(Debug, Clone)]
 pub struct DataGrid {
     /// The cells, row numbers and `▾`s registered in the last render.
@@ -3385,6 +3410,40 @@ impl crate::core::pointer::MouseTarget for DataGrid {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A grid's min width is far below its natural one: it scrolls both
+    /// ways, so a container gives it the room it has.
+    #[test]
+    fn measure_is_natural_and_min_width_flexible() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = crate::theme::Theme::junie();
+        let cols = (0..8)
+            .map(|i| ColumnSpec::new(&format!("column {i}"), CellKind::Text))
+            .collect();
+        let mut g = DataGrid::new(WidgetId::of("g"), cols);
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        {
+            let mut ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            let area = Rect::new(0, 0, 200, 10);
+            let mut buf = Buffer::empty(area);
+            g.render(area, &mut buf, &mut ctx, t.canvas);
+        }
+        let ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let any = ratatui::layout::Size::new(0, 0);
+        assert!(g.min_width(any, &ctx) < g.measure(any, &ctx).width);
+    }
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::ColorLevel;
     use crate::ui::ctx::Interaction;
