@@ -90,7 +90,7 @@ never in view at the smallest failing size.
 |---|---|---|---|---|
 | R1 | Overview | Playground | 80x24, 100x25, 106x29, 120x40 | `0a1c0c 173f1c 19191c 1e5024 256 262626 2e0f0f 2e9a38` |
 | R2 | Chrome | Playground | 80x24, 100x25, 106x29, 120x40 | `7f3a 9c41 Brand Center Chosen Closed Ctrl Hide` |
-| R3 | StatusHints | Playground | 80x24, 100x25, 106x29, 120x40 | `256 ASCII Apply Auto COLOR Cancel Colour Command` |
+| R3 | StatusHints | Playground | **Done** (reach-a): `measure`: width from `keyhint::width` (every layer and the resolved bar whole after the label column) and the captions, height from the sections with their notes wrapped (the notes and the options' help wrap instead of being cut); "all fit" draws at the bar's natural width | — |
 | R4 | BreadcrumbsRails | Playground | **Done** (reach-a): `measure` from `Breadcrumb: Measure`, `Panel::outer`, `props::width`; the Trails card spans the page (the deep trail is ~90 cells, so 80-column screens scroll sideways); captions say `full width` instead of a size-dependent number | — |
 | R5 | HelpKeys | Playground | **Done** (reach-a): `measure` through `tiles`: the reference card keeps its 58 columns (`Tile::fixed`, so "full" wraps at 54 at every size) beside the overlay card and its note, stacked when they do not fit; long facts wrap | — |
 | R6 | QuitLeave | Playground | **Done** (reach-a): `measure` through `tiles`: the document card and the classify card side by side when both fit whole (buttons on one row, the classify table at its columns), stacked otherwise; facts wrap; the notes wrap to the card | — |
