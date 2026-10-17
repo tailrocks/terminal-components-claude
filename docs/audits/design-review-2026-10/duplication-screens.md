@@ -119,7 +119,7 @@ Every row is consolidated into the plan ([`shared-components-plan.md`](../../arc
 | F22 Too-small screen, frame regions | Open → A17 for regions; too-small Fixed (S2) | `96af80573` | `TooSmall` in all apps. Header/body/footer `Rect` arithmetic still per app; no step names `AppShell` regions; suggested owner S14 (`Chrome`). |
 | F23 Tab strip body offset | Open → S17 | — | `Tabs::{layout, passive}` not built. |
 | F24 Spinners on the wall clock | Open → S22 | — | 12 wall-clock spinner sites (also SVg8 under reduced motion). |
-| F25 Text formatting in apps | Fixed (S2) except `describe_key`: Open → A18 | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::{plural, truncate_sep, duration, bytes, crumb_fit}`, `Theme::centred_hints`. showcase `describe_key` (`app.rs:2485`) still formats keys itself; suggested owner S8b. |
+| F25 Text formatting in apps | Fixed (S2; `describe_key` S8b, A18) | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::{plural, truncate_sep, duration, bytes, crumb_fit}`, `Theme::centred_hints`. S8b removed the showcase's `describe_key`: keys are spelled by `KeyBinding::label` (`the_last_key_is_spelled_by_the_library`). |
 | F26 Text centred by hand | Open → CO12 (S17/S22) | — | `ui::text::center_x` exists (S2); jackin capsule, cockpit, prelude, rain still centre by `chars().count()`. |
 | F27 Smaller hand-rolled pieces | Open → S12, S17, S22 | — | `PickerItem` literals and `value` payload (S12), `Notice`/`MeterList`/chip row (S17), `StepLine`/`Wizard` (S22). |
 | B1 Blur drift | Fixed (S5, S7) | `7606cd962`, `14d6cdbc1` | Every layer gets the blur fan-out in all apps (S5 behaviour fix 8); the shell drives it (S7). |
