@@ -854,6 +854,10 @@ widgets::form_dialog::FormDialog::on_paste | widget protocol (render, input, hit
 widgets::form_dialog::FormDialog::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::form_dialog::FormDialog::pointer_in | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
+# widgets::grid
+widgets::grid::DataGrid::click | S9 click policy on the grid (double click edits): the Data grid page's knobs gain it with the SC33 click options | SC33
+widgets::grid::DataGrid::toggle_mods | S9 row-number toggle click on the grid: the Data grid page's knobs gain it with the SC33 click options | SC33
+
 # widgets::help
 widgets::help::HelpOverlay::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::help::HelpOverlay::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent

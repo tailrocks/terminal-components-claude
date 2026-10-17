@@ -327,11 +327,14 @@ impl ContextSource for DataGrid {
         let r = ev.index_of(Part::CELL)?;
         Some((r, self.column_at(ev.pos().x)?))
     }
+    /// The cursor moves onto the cell unless it lands inside the cell
+    /// range, which then stays; a range or row marks the cell is outside
+    /// of give way to it ([`DataGrid::context_selection`], M10).
     fn context_select(&mut self, cell: (usize, usize)) {
         if cell.1 < self.columns.len()
             && let Some(r) = Navigable::cursor(self).select(cell.0, self).index()
         {
-            self.cursor = (r, cell.1);
+            self.context_selection(r, cell.1);
         }
     }
     fn context_cursor(&self) -> Option<ContextRequest<(usize, usize)>> {
