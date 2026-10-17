@@ -16,6 +16,46 @@ use crate::ui::text::width;
 use crate::widgets::edit::{EditField, Editable, FieldError, LineLook, ValidateWhen, Validator};
 use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, paste_clipboard};
 
+/// The field with its label (and its "optional" or `*` suffix), its value
+/// or placeholder, and its help or error whole: nothing scrolled away or
+/// cut (a label that wraps wraps instead of widening the field). Its
+/// height is [`TextInput::height_for`] that width.
+impl crate::ui::measure::Measure for TextInput {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let t = ctx.theme;
+        let suffix = if self.required {
+            2
+        } else if self.plain_label || self.label.is_empty() {
+            0
+        } else {
+            4 + width(t.strings.optional)
+        };
+        // a wrapping label takes rows, not width
+        let label = if self.wrap_label {
+            suffix
+        } else {
+            width(&self.label) + suffix
+        };
+        // the value's cells sit after the gutter, with the caret's cell and
+        // room for a trailing affix after them
+        let value = width(self.field.buffer.text()).max(width(&self.placeholder)) + 3 + 1 + 4;
+        let message = self
+            .field
+            .error
+            .as_ref()
+            .map(|e| width(&e.to_string()))
+            .unwrap_or(0)
+            .max(width(&self.help))
+            + 2;
+        let w = (label + Self::GUTTER as usize).max(value).max(message) as u16;
+        ratatui::layout::Size::new(w, self.height_for(w))
+    }
+}
+
 /// Single-line text input.
 ///
 /// How focus becomes an edit is the field's [`EditEntry`] (default: the
@@ -1120,6 +1160,54 @@ impl EditMenuHost for TextInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drawn at its measured size the field shows its label, its whole
+    /// value and its help.
+    #[test]
+    fn measure_shows_label_value_and_help_whole() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = crate::theme::Theme::junie();
+        let mut f = TextInput::new(WidgetId::of("f"), "Branch")
+            .value("feature/settlement-backoff-retry")
+            .help("Checked out after the clone finishes");
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let size = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            f.measure(ratatui::layout::Size::new(1, 1), &ctx)
+        };
+        let area = Rect::new(0, 0, size.width, size.height);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        f.render(area, &mut buf, &mut ctx, t.canvas);
+        let text: String = (0..size.height)
+            .map(|y| {
+                (0..size.width)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        for part in [
+            "Branch",
+            "optional",
+            "feature/settlement-backoff-retry",
+            "Checked out after the clone finishes",
+        ] {
+            assert!(text.contains(part), "{part}:\n{text}");
+        }
+    }
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::{ColorLevel, Theme};
     use crate::ui::ctx::Interaction;
