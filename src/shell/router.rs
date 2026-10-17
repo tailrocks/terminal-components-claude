@@ -225,9 +225,19 @@ pub trait KeyHost: App {
     }
 
     /// The page captures the keyboard: a field is editing, a page menu is
-    /// open, an attached program has the keys.
+    /// open, an attached program has the keys. The page gets every key
+    /// before the shell's keys (the priority ones excepted).
     fn capturing(&self) -> bool {
         false
+    }
+
+    /// Letters type: a text field has focus, so the shell's printable and
+    /// [`ShellKeys::idle_only`] bindings stay quiet, the quit letter does
+    /// not quit and an activation does not flash. Default
+    /// [`Self::capturing`]; a search field that types without capturing
+    /// chords (they still reach the shell first) says so here.
+    fn text_focus(&self) -> bool {
+        self.capturing()
     }
 
     /// Ctrl+C, before it may quit ([`super::Page::on_interrupt`]).
@@ -314,8 +324,8 @@ impl KeyRouter {
             return out;
         }
         let capture = host.capturing();
-        if let Some(action) =
-            Self::bound(host.shell_keys(), &host.shell_keys().priority, key, capture)
+        let text = capture || host.text_focus();
+        if let Some(action) = Self::bound(host.shell_keys(), &host.shell_keys().priority, key, text)
         {
             let out = Self::act(host, action, key);
             if out.consumed() {
@@ -336,7 +346,7 @@ impl KeyRouter {
         }
         if key.chord() {
             let kc = KeyContext {
-                text_focus: capture,
+                text_focus: text,
                 dirty: false,
                 selection: host.selection(),
             };
@@ -344,8 +354,7 @@ impl KeyRouter {
                 return host.request_quit();
             }
         }
-        if let Some(action) = Self::bound(host.shell_keys(), &host.shell_keys().keys, key, capture)
-        {
+        if let Some(action) = Self::bound(host.shell_keys(), &host.shell_keys().keys, key, text) {
             let out = Self::act(host, action, key);
             if out.consumed() {
                 return out;
@@ -360,6 +369,7 @@ impl KeyRouter {
             let out = host.page_key(key);
             if out.consumed() {
                 if activating
+                    && !text
                     && out == Outcome::Changed
                     && let Some(f) = host.shell().focus.current()
                 {
@@ -370,6 +380,7 @@ impl KeyRouter {
             }
             if let Some(c) = quit.letter
                 && key.is_char(c)
+                && !text
             {
                 let dirty = host.dirty();
                 let kc = KeyContext {
@@ -386,8 +397,7 @@ impl KeyRouter {
                 }
             }
         }
-        if let Some(action) =
-            Self::bound(host.shell_keys(), &host.shell_keys().fallback, key, capture)
+        if let Some(action) = Self::bound(host.shell_keys(), &host.shell_keys().fallback, key, text)
         {
             return Self::act(host, action, key);
         }
