@@ -120,7 +120,7 @@ never in view at the smallest failing size.
 | R28 | FileBrowser | Playground | done: Page::measure (cards at their widest line, Panel::outer) | — |
 | R29 | Progress | Playground | done: Page::measure (bars at 70, meter columns at 34, the note on two lines) | — |
 | R30 | EmptyError | Playground | done: Page::measure (EmptyState Measure, Panel::outer) | — |
-| R31 | Meters | Playground | 80x24, 100x25, 106x29 | `1000 310 500 512 840 Backup CPU Data` |
+| R31 | Meters | Playground | done: Page::measure (PageHeader, Heading, MeterList Measure) | — |
 | R32 | Notices | Playground | 80x24, 100x25, 106x29 | `200 65535 DESC Enter FORM LIMIT LINE New` |
 | R33 | Panels | Playground | 80x24, 100x25, 106x29, 120x40 | `03s 07s 11s 14s 18s 210 22s 25s` |
 | R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 | `008 009 010 011 012 013 014 015` |

@@ -750,7 +750,7 @@
 80x24 TrueColor Empty & error 0783aa2d5879ba81
 80x24 TrueColor Empty & error · Options 5872c2a81bfe412d
 80x24 TrueColor Empty & error · States 11a39b27eb2344c0
-80x24 TrueColor Meters 775acadd5f06b4e6
+80x24 TrueColor Meters 4a7165ab45cdcf7d
 80x24 TrueColor Meters · Options b9eccc157fdec4ef
 80x24 TrueColor Meters · States f0a93af0d5ceb594
 80x24 TrueColor Notices 6263cfae586cb0c0
@@ -914,7 +914,7 @@
 80x24 Ansi256 Empty & error 809049fb66d192aa
 80x24 Ansi256 Empty & error · Options 0298586cb574ded6
 80x24 Ansi256 Empty & error · States c7484eebcec9b794
-80x24 Ansi256 Meters 17de17dfed949288
+80x24 Ansi256 Meters 4432c4c23bcaa698
 80x24 Ansi256 Meters · Options caaf73680d1baa91
 80x24 Ansi256 Meters · States 7930b869d4047f8f
 80x24 Ansi256 Notices 836af88c8b034681
@@ -1078,7 +1078,7 @@
 80x24 Ansi16 Empty & error 4ce30f4462487635
 80x24 Ansi16 Empty & error · Options c691be5c591f4d8f
 80x24 Ansi16 Empty & error · States c1a18103ae89a86e
-80x24 Ansi16 Meters 3c6b244d07336911
+80x24 Ansi16 Meters ad11e522c8a08e4a
 80x24 Ansi16 Meters · Options 1890b4608346810f
 80x24 Ansi16 Meters · States 38d8ce60729a3afb
 80x24 Ansi16 Notices 01367cfd6198d9d2
@@ -1242,7 +1242,7 @@
 80x24 Mono Empty & error 1e4c01ff76dcfc2b
 80x24 Mono Empty & error · Options 81027e8ea85cbb6d
 80x24 Mono Empty & error · States e39a9b88e0c883e6
-80x24 Mono Meters 5f9644969e88f23e
+80x24 Mono Meters ed0ce1f5f2b6bb33
 80x24 Mono Meters · Options b8f458b2916e7325
 80x24 Mono Meters · States ed129678547d45da
 80x24 Mono Notices fae8e5ce569737ca
@@ -1406,7 +1406,7 @@
 72x20 TrueColor Empty & error 6979d62d0ee17954
 72x20 TrueColor Empty & error · Options f3dc635bfca29788
 72x20 TrueColor Empty & error · States ad9da09a4ed0253e
-72x20 TrueColor Meters 3904afd3e4d31db1
+72x20 TrueColor Meters 868101287c61e6c9
 72x20 TrueColor Meters · Options 6ed6a4c82fd0a6e3
 72x20 TrueColor Meters · States 236446b17c20fc3f
 72x20 TrueColor Notices 79961ee8d68f2fed
@@ -1570,7 +1570,7 @@
 72x20 Ansi256 Empty & error 6d9eb03c450253ab
 72x20 Ansi256 Empty & error · Options 035e110f54161fbc
 72x20 Ansi256 Empty & error · States 9f2dc1aa5ce1425e
-72x20 Ansi256 Meters 46aa5f3f6b0b3de7
+72x20 Ansi256 Meters 3061d407dd4e6b70
 72x20 Ansi256 Meters · Options 91ad62a7a42a0ede
 72x20 Ansi256 Meters · States f9ff78288dbf4c96
 72x20 Ansi256 Notices c614090ea1dff733
@@ -1734,7 +1734,7 @@
 72x20 Ansi16 Empty & error 426158d9b923e8c6
 72x20 Ansi16 Empty & error · Options 3519ebc8b58aba37
 72x20 Ansi16 Empty & error · States 09fe36d656b346da
-72x20 Ansi16 Meters 6fc1ba7f752f612a
+72x20 Ansi16 Meters 430a57fc6820743d
 72x20 Ansi16 Meters · Options a3bc2c3d03319dec
 72x20 Ansi16 Meters · States 4a38a83c20a5f9e5
 72x20 Ansi16 Notices f72871c9b597ffca
@@ -1898,7 +1898,7 @@
 72x20 Mono Empty & error 2cc3fb3809123504
 72x20 Mono Empty & error · Options 78f8d61ff9e5991d
 72x20 Mono Empty & error · States 5fad3ad05ce3d92a
-72x20 Mono Meters d83d0d271c1ef4e3
+72x20 Mono Meters 7d3af7ff5745e876
 72x20 Mono Meters · Options d7cc50920aa16b7a
 72x20 Mono Meters · States 652647038e35e0f4
 72x20 Mono Notices c9c85f19cba86e10
@@ -2062,7 +2062,7 @@
 100x30 TrueColor Empty & error 9438c6a0d1dfb451
 100x30 TrueColor Empty & error · Options 2d196dbc94b93e77
 100x30 TrueColor Empty & error · States ddfefaa3cc9377fd
-100x30 TrueColor Meters bff1f7ddc4fee296
+100x30 TrueColor Meters 363b42ca20d5ff14
 100x30 TrueColor Meters · Options 2e4cd28559344c35
 100x30 TrueColor Meters · States d570c3e35c4320b3
 100x30 TrueColor Notices 6984a16a351cf578
@@ -2226,7 +2226,7 @@
 100x30 Ansi256 Empty & error e0ce339fc61f3c94
 100x30 Ansi256 Empty & error · Options 01f6430848496f66
 100x30 Ansi256 Empty & error · States 04c52cc8800cf74f
-100x30 Ansi256 Meters a0eae47813cc1985
+100x30 Ansi256 Meters 9653c88c75ee434c
 100x30 Ansi256 Meters · Options 81072feecb3f80ff
 100x30 Ansi256 Meters · States f56cf5a36be0fedb
 100x30 Ansi256 Notices f28ddead9c52e400
@@ -2390,7 +2390,7 @@
 100x30 Ansi16 Empty & error afa4dcdd38312198
 100x30 Ansi16 Empty & error · Options 454a1dc3b78a1143
 100x30 Ansi16 Empty & error · States 9b6f5d345bd23922
-100x30 Ansi16 Meters b8925c9dafba56db
+100x30 Ansi16 Meters 8f9c129a1c0ef879
 100x30 Ansi16 Meters · Options b59dfe5a7ec0b311
 100x30 Ansi16 Meters · States ef90088e65fcf11d
 100x30 Ansi16 Notices 588856cf4710303c
@@ -2554,7 +2554,7 @@
 100x30 Mono Empty & error 5f5be9aeaad029a3
 100x30 Mono Empty & error · Options a32aecf28d583cfc
 100x30 Mono Empty & error · States ba10efe318059489
-100x30 Mono Meters 1a76a895a9c3d52d
+100x30 Mono Meters a57330ca98dd62b0
 100x30 Mono Meters · Options e530a4df6aaf7668
 100x30 Mono Meters · States 2880039b4a74505f
 100x30 Mono Notices 96a1fa7163f86085
