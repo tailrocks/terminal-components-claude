@@ -409,6 +409,26 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),
     // Unsaved Settings edits: `q` asks Cancel / Discard first (7b54eb459).
     Root::new("showcase/overlays/settings_quit_guard", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved", "q", "wait:Unsaved changes"]).pending().dismiss_pending(),
+    // V4: every overlay site in src/bin/showcase has a row (overlay_sites).
+    // Dialogs: the first drop gate's Continue opens the second (typed token).
+    Root::new("showcase/overlays/dialogs_gate2", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:1 of 2", "right", "enter", "wait:2 of 2"]).pending().dismiss_pending(),
+    // Dialog kinds: the form's SSH key chooser stacks the key picker over it
+    // (the chooser shows once the tunnel is on).
+    Root::new("showcase/overlays/dialogkinds_key_picker", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["tab", "tab", "enter", "wait:Add connection", "tab", "tab", "tab", "tab", "tab", "space", "tab", "enter", "wait:SSH key"]).pending().dismiss_pending(),
+    // Context menus (Shift+F10) on the Selectable, Tables and Trees rows.
+    Root::new("showcase/overlays/selectable_context", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "shift-f10"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/tables_context", Bin::Showcase, &["--page", "tables"], BOOT).sends(&["tab", "tab", "shift-f10"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/trees_context", Bin::Showcase, &["--page", "trees"], BOOT).sends(&["tab", "tab", "shift-f10"]).pending().dismiss_pending(),
+    // Selectable: unapplied editor changes, then a new selection, ask first.
+    Root::new("showcase/overlays/selectable_discard", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected", "enter", "enter", "end", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "enter", "wait:Unsaved changes"]).click("Cleo Barnes").pending().dismiss_pending(),
+    // Settings: Save with unsaved edits asks (keyboard and pointer), Remove…
+    // asks before removing a member, Add variable… prompts for the name.
+    Root::new("showcase/overlays/settings_save_keyboard", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved", "tab", "tab", "enter", "wait:Save settings?"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_save_pointer", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved"]).click("Save changes").pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_remove_member", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "wait:Remove…"]).click("Remove…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_add_variable", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "right", "wait:Add variable…"]).click("Add variable…").pending().dismiss_pending(),
+    // Task runner: Cancel on a running pipeline asks first.
+    Root::new("showcase/overlays/taskrunner_cancel", Bin::Showcase, &["--page", "taskrunner", "--motion", "paused"], BOOT).sends(&["r", "wait:Cancel"]).click("Cancel").pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
