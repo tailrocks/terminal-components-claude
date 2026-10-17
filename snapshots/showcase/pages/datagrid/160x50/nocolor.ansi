@@ -25,10 +25,10 @@
                                15 1015       Trey Research              pro             150  4350.00  [0m[3mtrue    [0m  2026-03-15           203 →  [0m[3mNULL       [0m    ┆   ┃[0m
                                16 1016       Humongous Insurance        free             25     0.00  [0m[3mtrue    [0m  [0m[3mNULL        [0m         204 →  [0m[3mNULL       [0m    ┆   ┃[0m
                                17 1017       Northwind Traders 2        enterprise        3    57.00  [0m[3mtrue    [0m  2026-05-21           201 →  {"owner":"…    ┆   ┃[0m
-                               18 1018       Blue Yonder Airlines 2     team             80  1920.00  [0m[3mtrue    [0m  2026-06-24           202 →  [0m[3mNULL       [0m    ┆   ┆[0m
-                               19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  [0m[3mfalse   [0m  2026-07-27           203 →  [0m[3mNULL       [0m    ┆   ┆[0m
-                               20 1020       Fabrikam Robotics 2        free              1     0.00  [0m[3mtrue    [0m  [0m[3mNULL        [0m         204 →  [0m[3mNULL       [0m    ┆   ┆[0m
-                            [0m[2m   21 1021       Litware Analytics 2        enterprise       40   760.00  [0m[2;3mtrue    [0m[2m  2026-09-05           201 →  {"owner":"…    [0m┆   ┆[0m
+                               18 1018       Blue Yonder Airlines 2     team             80  1920.00  [0m[3mtrue    [0m  2026-06-24           202 →  [0m[3mNULL       [0m    ┆   ┃[0m
+                               19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  [0m[3mfalse   [0m  2026-07-27           203 →  [0m[3mNULL       [0m    ┆   ┃[0m
+                               20 1020       Fabrikam Robotics 2        free              1     0.00  [0m[3mtrue    [0m  [0m[3mNULL        [0m         204 →  [0m[3mNULL       [0m    ┆   ┃[0m
+                            [0m[2m   21 1021       Litware Analytics 2        enterprise       40   760.00  [0m[2;3mtrue    [0m[2m  2026-09-05           201 →  {"owner":"…    [0m┆   ┃[0m
                                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┆[0m
                                                                                                                                                                ┆[0m
                                                                                                                                                                ┆[0m
@@ -36,16 +36,16 @@
                             Pending       no pending changes                                                                                                   ┆[0m
                                                                                                                                                                ┆[0m
                                                                                                                                                                ┆[0m
+                            Schema                                                                                                                             ┆[0m
                                                                                                                                                                ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
-                                                                                                                                                               ┆[0m
+                            id          Id · integer · primary key · not null · read-only                                                                      ┆[0m
+                            customer    Text · text · not null                                                                                                 ┆[0m
+                            plan        Enum · plan_tier · not null · one of free, pro, team, enterprise · ▾ picks from a fixed set                            ┆[0m
+                            seats       Number · integer · not null                                                                                            ┆[0m
+                            mrr         Number · numeric(10,2) · read-only                                                                                     ┆[0m
+                            active      Bool · boolean · not null                                                                                              ┆[0m
+                            renewed_at  Timestamp · date                                                                                                       ┆[0m
+                            account_id  Number · integer · references accounts                                                                                 ┆[0m
                                                                                                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
 [?25l
