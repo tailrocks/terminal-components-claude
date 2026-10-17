@@ -45,6 +45,12 @@ pub enum DetailSize {
     /// The detail takes `pct` percent of the width, clamped to
     /// `min..=max` columns; the seam does not move.
     Share { pct: u16, min: u16, max: u16 },
+    /// The master takes `pct` percent of the width (rounded to the
+    /// nearest column), clamped to `min..=max` columns; the detail takes
+    /// the rest. For a list that should stay narrow whatever the width (a
+    /// connections sidebar) while the detail grows; the seam does not
+    /// move.
+    MasterShare { pct: u16, min: u16, max: u16 },
     /// The seam is a draggable [`Splitter`]; [`MasterDetail::split`]
     /// holds the master's share and both minimums, and
     /// [`MasterDetail::keys`] resizes it from either pane.
@@ -156,6 +162,19 @@ impl MasterDetail {
                 }
                 w
             }
+            DetailSize::MasterShare { pct, min, max } => {
+                // the share never draws the master wider than its max
+                let master = master.min(max.max(min));
+                let fits = |w: u16| {
+                    let mw = (((w as u32 * pct as u32 + 50) / 100) as u16).clamp(min, max.max(min));
+                    mw >= master && w.saturating_sub(mw + self.gap) >= detail
+                };
+                let mut w = master.saturating_add(detail).saturating_add(self.gap);
+                while w < u16::MAX && !fits(w) {
+                    w += 1;
+                }
+                w
+            }
         };
         both.max(self.collapse_below)
     }
@@ -170,6 +189,14 @@ impl MasterDetail {
     /// to `min..=max` columns ([`DetailSize::Share`]).
     pub fn detail_share(mut self, pct: u16, min: u16, max: u16) -> Self {
         self.size = DetailSize::Share { pct, min, max };
+        self
+    }
+
+    /// A fixed seam sized by the master: it takes `pct` percent of the
+    /// width, clamped to `min..=max` columns, and the detail the rest
+    /// ([`DetailSize::MasterShare`]).
+    pub fn master_share(mut self, pct: u16, min: u16, max: u16) -> Self {
+        self.size = DetailSize::MasterShare { pct, min, max };
         self
     }
 
@@ -292,6 +319,13 @@ impl MasterDetail {
                         area.height,
                     );
                     l.detail = Rect::new(l.master.right() + self.gap, area.y, dw, area.height);
+                }
+                DetailSize::MasterShare { pct, min, max } => {
+                    let mw = ((area.width as u32 * pct as u32 + 50) / 100) as u16;
+                    let mw = mw.clamp(min, max.max(min)).min(area.width);
+                    l.master = Rect::new(area.x, area.y, mw, area.height);
+                    let dx = (mw + self.gap).min(area.width);
+                    l.detail = Rect::new(area.x + dx, area.y, area.width - dx, area.height);
                 }
                 DetailSize::Resizable => {
                     self.container = area;
@@ -548,6 +582,7 @@ mod tests {
             MasterDetail::new(M, D),
             MasterDetail::new(M, D).collapse_below(40),
             MasterDetail::new(M, D).detail_share(40, 20, 50),
+            MasterDetail::new(M, D).master_share(33, 10, 40),
             MasterDetail::new(M, D)
                 .resizable(Split::new(30, 10, 10))
                 .gap(3),
@@ -556,11 +591,15 @@ mod tests {
                 let w = md.natural_width(m, d);
                 let (l, _) = frame(&mut md, w, None);
                 assert_eq!(l.mode, Mode::Split, "{w} for {m},{d}");
+                // a share draws its pane at most its max
+                let m = match md.size {
+                    DetailSize::MasterShare { max, .. } => m.min(max),
+                    _ => m,
+                };
                 assert!(l.master.width >= m, "master {:?} for {m}", l.master);
-                // a share draws the detail at most its max
                 let d = match md.size {
                     DetailSize::Share { max, .. } => d.min(max),
-                    DetailSize::Resizable => d,
+                    _ => d,
                 };
                 assert!(l.detail.width >= d, "detail {:?} for {d}", l.detail);
             }
@@ -642,6 +681,31 @@ mod tests {
         assert_eq!(l.master.width, 120 - 42);
         assert!(l.seam.is_empty());
         assert_eq!(fixed.on_key(&chord, &mut focus), None);
+    }
+
+    #[test]
+    fn a_master_share_sizes_the_master_and_the_detail_takes_the_rest() {
+        let mut md = MasterDetail::new(M, D)
+            .master_share(33, 26, 40)
+            .collapse_below(80);
+        // a third of the width, as `width / 3` gives it, clamped 26..40
+        for (w, mw) in [
+            (80, 26),
+            (81, 27),
+            (99, 33),
+            (110, 36),
+            (121, 40),
+            (200, 40),
+        ] {
+            let (l, _) = frame(&mut md, w, None);
+            assert_eq!(l.mode, Mode::Split, "{w}");
+            assert_eq!(l.master.width, mw, "{w}");
+            assert_eq!(l.detail.x, mw + 2, "{w}");
+            assert_eq!(l.detail.right(), w, "{w}");
+            assert!(l.seam.is_empty());
+        }
+        let (l, _) = frame(&mut md, 79, None);
+        assert_eq!(l.mode, Mode::Master);
     }
 
     #[test]
