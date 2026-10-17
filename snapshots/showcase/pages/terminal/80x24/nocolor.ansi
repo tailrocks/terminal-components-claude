@@ -5,21 +5,21 @@
     Overview         [0m[1m Playground  [0m  Options    States                           [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                              [0m
-  ▸ Tables           ╭─ Viewp… ─ 38 lines · following ─╮ │  Step rail   7 of 7  [0m
-  ▸ Navigation       │  [0m[2m  #13 RUN apt-get install -y [0m┆ │ │  ──────────────────  [0m
-  ▸ Overlays         │    #14 COPY rust-toolchain.to ┆ │ │   ✓ 01 Resolve wo…   [0m
-  ▸ Feedback         │  ✓ Build container            ┆ │ │   ✓ 02 Pull base …   [0m
-  ▸ Layout           │  [0m[1m▶ Resolve credentials[0m        ┆ │ │   ✓ 03 Build cont…   [0m
-  ▾ Text & code      │    1Password  Engineering › A ┆ │ │     04 Mount sour…   [0m
-      Code editor    │  ✓ Resolve credentials        ┆ │ │   ✓ 05 Resolve cr…   [0m
-      Diff           │  [0m[1m▶ Start agent[0m                ┆ │ │   ✓ 06 Start agent   [0m
- [0m[1m▎  › Terminal     [0m  │    claude --resume  pid 4188  ┆ │ │   ✓ 07 Ready         [0m
-      Text utilit…   │  ✓ Start agent                ┆ │ │                      [0m
-  ▸ Screens          │  [0m[1m▶ Ready[0m                      ┃ │ │                      [0m
-                     │  ✓ Ready                      ┃ │ │                      [0m
-                     │  [0m[1mpayments-platform ❯ [0m         ┃ │ │   [0m[1;7mRun [0m               [0m
-                     │  ━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ │   Run with a fail…   [0m
-                     ╰─────────────────────────────────╯ │                      [0m
+  ▸ Tables           ╭─ Viewport ──────────── 38 lines · following ─╮ │  Step  ┃[0m
+  ▸ Navigation       │  [0m[2m  #12 RUN cargo build --release           [0m┆ │ │  ───── ┃[0m
+  ▸ Overlays         │    #13 RUN apt-get install -y build-essent ┆ │ │   ✓ 01 ┃[0m
+  ▸ Feedback         │    #14 COPY rust-toolchain.toml ./         ┆ │ │   ✓ 02 ┃[0m
+  ▸ Layout           │  ✓ Build container                         ┆ │ │   ✓ 03 ┃[0m
+  ▾ Text & code      │  [0m[1m▶ Resolve credentials[0m                     ┆ │ │     04 ┃[0m
+      Code editor    │    1Password  Engineering › Anthropic · Wo ┆ │ │   ✓ 05 ┃[0m
+      Diff           │  ✓ Resolve credentials                     ┆ │ │   ✓ 06 ┃[0m
+ [0m[1m▎  › Terminal     [0m  │  [0m[1m▶ Start agent[0m                             ┆ │ │   ✓ 07 ┃[0m
+      Text utilit…   │    claude --resume  pid 4188               ┆ │ │        ┃[0m
+  ▸ Screens          │  ✓ Start agent                             ┃ │ │  viewp ┃[0m
+                     │  [0m[1m▶ Ready[0m                                   ┃ │ │        ┃[0m
+                     │  ✓ Ready                                   ┃ │ │        ┆[0m
+                     │  [0m[1mpayments-platform ❯ [0m                      ┃ │ │        ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
 [?25l
