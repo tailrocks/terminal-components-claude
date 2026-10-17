@@ -109,14 +109,14 @@ never in view at the smallest failing size.
 | R17 | Selectable | Playground | 80x24, 100x25, 106x29, 120x40 | `APAC Billing Brandt Contract Ctrl Details Docs Eli` |
 | R18 | CellEditors | Playground | 80x24, 100x25, 106x29, 120x40 | `Ana Aziz Bea Berg Canary Cancel Checkbox Chen` |
 | R19 | Columns | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1040 1041 1042 1043` |
-| R20 | Lists | Playground | 80x24, 100x25, 106x29, 120x40 | `1000 BoxOnly Ctrl Double Elixir Haskell ListCmd Page` |
-| R21 | Trees | Playground | 80x24, 100x25, 106x29 | `Activate Cargo CollapseAll Connections Double Expand ExpandAll None` |
-| R22 | Tabs | Playground | 80x24, 100x25, 106x29, 120x40 | `Checks DDL Data Export Foreign Import Indexes Migrate` |
+| R20 | Lists | Playground | **Done** (reach-a): `measure` through `tiles`: the three list cards side by side when each fits its widest row and caption (stacked otherwise), 18 rows tall (their lists scroll in them), the readout wrapped under them | — |
+| R21 | Trees | Playground | **Done** (reach-a): `measure`: never so narrow that the tree card and its readouts stack, the connections column as wide as its widest row, the connections card shows every row, the readout wraps under the taller column | — |
+| R22 | Tabs | Playground | Partly done (reach-a): `measure` lays the readout (facts wrap) and the nested strips (`Tabs: Measure`) out at their natural size; the editor strip keeps the page width and overflows on purpose (`tabs.count=many`): its hidden tabs are reached by its own window (‹N N›, the wheel) and its +N menu, which the gate does not drive, so its lines stay with that reason | 80x24, 100x25, 106x29, 120x40 |
 | R23 | Menus | Playground | **Done** (reach-a): `measure` through `tiles`: the file list at every file's row beside the actions card (stacked when they do not fit), the Last facts wrap | — |
-| R24 | Dialogs | Playground | 80x24, 100x25, 106x29 | `Action Bodies Buttons Cancel Cancelled Close DialogResult Edit` |
-| R25 | Pickers | Playground | 80x24, 100x25, 106x29, 120x40 | `Back Cancelled Chosen ChosenAlt Commands Commit Detail Export` |
-| R26 | DialogKinds | Playground | 80x24, 100x25, 106x29, 120x40 | `Action Bool Cancel Changed Check Choose Chooser Closed` |
-| R27 | PopupsTooltips | Playground | 80x24, 100x25, 106x29, 120x40 | `300 600 Below Center Chosen Connected Dismiss Dismissed` |
+| R24 | Dialogs | Playground | **Done** (reach-a): `measure`: every button carries its note at any width (lines of up to four, each with its note row), the Applied facts wrap, the Results card lists every result | — |
+| R25 | Pickers | Playground | **Done** (reach-a): `measure`: the buttons wrap to the width, the quick note wraps, the Applied and Result facts wrap | — |
+| R26 | DialogKinds | Playground | **Done** (reach-a): `measure`: every button carries its note at any width (lines of up to four), the Applied facts wrap, the Returned card lists every result and wraps its empty note | — |
+| R27 | PopupsTooltips | Playground | **Done** (reach-a): `measure` through `tiles`: the popover and tooltip cards side by side when both fit whole (the status bar at its natural width), the reveal card (its rows cut on purpose), the policies wrapped | — |
 | R28 | FileBrowser | Playground | done: Page::measure (cards at their widest line, Panel::outer) | — |
 | R29 | Progress | Playground | done: Page::measure (bars at 70, meter columns at 34, the note on two lines) | — |
 | R30 | EmptyError | Playground | done: Page::measure (EmptyState Measure, Panel::outer) | — |

@@ -16,10 +16,11 @@
 //! dialog's own.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Margin, Rect};
+use ratatui::layout::{Margin, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::edit::EditEntry;
@@ -345,16 +346,32 @@ impl DialogsPage {
         cx.open_dialog(self.style(self.variant(i), anchor));
     }
 
+    /// Buttons per row at `width` (up to four, each with its note under
+    /// it) and the cards' heights: the buttons, Applied, Results.
+    fn layout_at(&self, width: u16) -> (usize, [u16; 3]) {
+        let per = ((width.saturating_sub(2) / 22).max(1) as usize).min(4);
+        let lines = self.buttons.len().div_ceil(per) as u16 * 3 - 1;
+        let applied = Panel::card(Some("Applied")).meta(APPLIED_META);
+        let results = 2 + (self.history.len() as u16).max(1);
+        (
+            per,
+            [
+                lines + 3,
+                sheet_height(&applied, &self.readout(), width),
+                Panel::card(Some("Results"))
+                    .outer(Size::new(0, results))
+                    .height,
+            ],
+        )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // as many buttons per row as fit; with four per row each has a note
-        // under it saying what its dialog shows, narrower rows drop them
-        let per = (area.width.saturating_sub(2) / 22).max(1) as usize;
-        let notes = per >= 4;
-        let per = per.min(4);
-        let lines = self.buttons.len().div_ceil(per) as u16;
-        let lines = if notes { lines * 3 - 1 } else { lines };
-        let rows = crate::pages::layout::rows(area, &[lines + 3, 1, 0]);
+        // as many buttons per row as fit, each with a note under it saying
+        // what its dialog shows
+        let (per, [buttons_h, applied_h, _]) = self.layout_at(area.width);
+        let notes = true;
+        let rows = crate::pages::layout::rows(area, &[buttons_h, 1, 0]);
         let panel = Panel::card(Some("Open a dialog")).meta("Enter · click");
         let bg = panel.bg(t);
         let inner = panel.render(rows[0], buf, t);
@@ -380,9 +397,9 @@ impl DialogsPage {
             }
         }
 
-        let rest = crate::pages::layout::rows(rows[2], &[13, 1, 0]);
+        let rest = crate::pages::layout::rows(rows[2], &[applied_h, 1, 0]);
         let (left, right) = (rest[0], rest[2]);
-        let panel = Panel::card(Some("Applied")).meta("read back from the built dialog");
+        let panel = Panel::card(Some("Applied")).meta(APPLIED_META);
         let bg = panel.bg(t);
         let inner = panel.render(left, buf, t);
         props::render(inner, buf, t, &self.readout(), bg);
@@ -402,13 +419,7 @@ impl DialogsPage {
         if self.history.is_empty() && inner.height > 2 {
             buf.set_string(inner.x, inner.y + 2, "Nothing yet", t.muted().bg(bg));
         }
-        for (i, h) in self
-            .history
-            .iter()
-            .rev()
-            .take(inner.height.saturating_sub(2) as usize)
-            .enumerate()
-        {
+        for (i, h) in self.history.iter().rev().enumerate() {
             let st = if i == 0 { t.primary() } else { t.muted() };
             buf.set_string(
                 inner.x,
@@ -615,12 +626,26 @@ fn states_grid() -> StateGrid {
         )
 }
 
+const APPLIED_META: &str = "read back from the built dialog";
+/// The narrowest Playground: one button and its note per row.
+const MIN_W: u16 = 24;
+
 impl Page for DialogsPage {
     fn title(&self) -> &'static str {
         "Dialogs"
     }
     fn blurb(&self) -> &'static str {
         "Focus is trapped, the page dims, Esc always cancels"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let applied = Panel::card(Some("Applied")).meta(APPLIED_META);
+        let w = avail
+            .width
+            .max(sheet_width(&applied, &self.readout()))
+            .max(MIN_W);
+        let (_, [a, b, c]) = self.layout_at(w);
+        Size::new(w, a + 1 + b + 1 + c)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
