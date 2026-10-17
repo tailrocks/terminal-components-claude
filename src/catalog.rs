@@ -1199,7 +1199,6 @@ pub static CAPABILITIES: &[Capability] = &[
     // ui::row
     Capability::function("ui::measure::at_least"),
     Capability::ty("ui::measure::Tile"),
-    Capability::function("ui::measure::Tile::new"),
     Capability::builder("ui::measure::Tile::fixed"),
     Capability::ty("ui::measure::Tiled"),
     Capability::function("ui::measure::Tiled::at"),
@@ -1215,6 +1214,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::ty("ui::scroll_view::ViewLayout"),
     Capability::function("ui::scroll_view::ViewLayout::overflows"),
     Capability::ty("ui::scroll_view::ScrollView"),
+    Capability::function("ui::scroll_view::ScrollView::fit"),
     Capability::builder("ui::scroll_view::ScrollView::axes"),
     Capability::builder("ui::scroll_view::ScrollView::bars"),
     Capability::builder("ui::scroll_view::ScrollView::padding"),
