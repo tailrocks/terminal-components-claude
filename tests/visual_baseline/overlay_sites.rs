@@ -156,6 +156,8 @@ pub const SITES: &[Site] = &[
     rows("showcase/pages/dialogs.rs::variant", &["showcase/flows/dialogs/open", "showcase/flows/dialogs/prompt", "showcase/flows/dialogs/destructive", "showcase/overlays/dialogs_viewer", "showcase/overlays/dialogs_gate", "showcase/overlays/dialogs_push", "showcase/overlays/dialogs_notes", "showcase/overlays/dialogs_anchored"]),
     rows("showcase/pages/dialogs.rs::gate2", &["showcase/overlays/dialogs_gate2"]),
     rows("showcase/pages/dialogs.rs::states_grid", &["showcase/sections/dialogs-states"]),
+    rows("showcase/pages/launch_cockpit.rs::advance", &["showcase/overlays/launchcockpit_credentials", "showcase/overlays/launchcockpit_build_failed"]),
+    rows("showcase/pages/launch_cockpit.rs::ask_cancel", &["showcase/overlays/launchcockpit_cancel"]),
     rows("showcase/pages/disk_cleanup.rs::gate1", &["showcase/overlays/diskcleanup_gate1"]),
     rows("showcase/pages/disk_cleanup.rs::gate2", &["showcase/overlays/diskcleanup_gate2"]),
     rows("showcase/pages/workspaces.rs::purge_dialog", &["showcase/overlays/workspaces_purge"]),

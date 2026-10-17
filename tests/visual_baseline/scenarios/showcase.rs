@@ -203,7 +203,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/workspaces-states", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["tab", "3", "wait:Workspace tree"]).pending(),
     Root::new("showcase/flows/workspaces/drawer", Bin::Showcase, &["--page", "workspaces", "--opt", "workspaces.collapse_below=108"], BOOT).sends(&["wait:Tab shows details", "tab", "tab", "tab", "wait:Esc back"]).pending(),
     Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
-    Root::new("showcase/planned/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:arrives with SC55"]).pending(),
+    // SC55 filled Launch cockpit: the page (idle, before Launch) and its
+    // sections; the launch itself is tick-driven, proven by the harness
+    Root::new("showcase/pages/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:not started"]).pending(),
+    Root::new("showcase/sections/launchcockpit-options", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["tab", "2", "wait:Launch outcome"]).pending(),
+    Root::new("showcase/sections/launchcockpit-states", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["tab", "3", "wait:Failed launch"]).pending(),
+    Root::new("showcase/flows/launchcockpit/numbered", Bin::Showcase, &["--page", "launchcockpit", "--opt", "launchcockpit.numbered=on"], BOOT).sends(&["wait:01 Identity"]).pending(),
     // SC56 filled Read-only report: the page, its sections and offline
     // (last-good values, the warning notice)
     Root::new("showcase/pages/readonlyreport", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["wait:Host snapshot"]).pending(),
@@ -490,6 +495,12 @@ pub const OVERLAYS: &[Root] = &[
     // SC49 Disk cleanup's review: Gate 1 (the facts, d on the checklist),
     // then Gate 2 (the typed phrase); SC52 Workspaces' purge (Delete… is
     // the eighth stop: strip, tree, detail, roster, four actions)
+    // SC55 Launch cockpit: Launch is the fourth stop (strip, facts, log,
+    // Launch); the held credential source and the failed build open from
+    // the running launch, Cancel launch… is the next stop
+    Root::new("showcase/overlays/launchcockpit_credentials", Bin::Showcase, &["--page", "launchcockpit", "--opt", "launchcockpit.outcome=credentials"], BOOT).sends(&["wait:not started", "tab", "tab", "tab", "tab", "enter", "wait:Credential source unavailable"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/launchcockpit_build_failed", Bin::Showcase, &["--page", "launchcockpit", "--opt", "launchcockpit.outcome=build-failure"], BOOT).sends(&["wait:not started", "tab", "tab", "tab", "tab", "enter", "wait:Docker build failed"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/launchcockpit_cancel", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:not started", "tab", "tab", "tab", "tab", "enter", "tab", "enter", "wait:Cancel launch?"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/diskcleanup_gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/diskcleanup_gate2", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2"]).pending().dismiss_pending(),
     Root::new("showcase/overlays/workspaces_purge", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:Delete payments-platform?"]).pending().dismiss_pending(),
