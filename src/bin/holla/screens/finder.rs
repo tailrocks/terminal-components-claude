@@ -10,6 +10,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::columns::{self, Col};
@@ -1413,10 +1414,11 @@ impl ShellPage<Holla> for FinderPage {
                 Outcome::Ignored
             }
             Some(Phase::Click) => {
-                // a double click on an item runs it
-                if ev.count() >= 2
-                    && let Some(i) = self.locate_row(id)
+                // an item runs on the library's data-view activation (a
+                // double click)
+                if let Some(i) = self.locate_row(id)
                     && matches!(self.rows[i], Row::Item(..))
+                    && ClickPolicy::DATA.activates(ev.count(), self.cursor == i)
                 {
                     self.cursor = i;
                     return self.activate_current(cx);

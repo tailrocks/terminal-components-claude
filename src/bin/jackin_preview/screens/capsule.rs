@@ -9,6 +9,7 @@ use junie_tui::core::hit::{Axis, Bar};
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::shell::Page;
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
@@ -2074,7 +2075,7 @@ impl Page<Jackin> for CapsuleScreen {
             Some(Phase::Click) => {
                 // a press held on a pane's bar ends with its click
                 let o = self.drag_end(w, cx);
-                if ev.count() >= 2 {
+                if ClickPolicy::DATA.activates(ev.count(), false) {
                     let d = self.double_click(ev, w, cx);
                     if d.consumed() {
                         return d;

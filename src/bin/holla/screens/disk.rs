@@ -14,6 +14,7 @@ use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextSource};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
@@ -1098,28 +1099,23 @@ impl DiskPage {
             return Outcome::Changed;
         }
         if self.view == View::Tree {
-            let row = match (ev.index_of(Part::ROW), ev.index_of(Part::ICON)) {
-                (Some(row), _) => Some((row, false)),
-                (None, Some(row)) => Some((row, true)),
-                _ => None,
-            };
-            if ev.on(TREE)
-                && let Some((row, toggle)) = row
-            {
+            if let Some(row) = self.tree.row_at(ev) {
                 cx.focus.focus(TREE);
-                let (o, _) = if toggle {
-                    self.tree.on_click_toggle(row)
-                } else {
+                // the node's mark (its glyph: ✓ · ◐) is the row's check
+                // box: a click there selects it for cleanup
+                // (CheckClick::BoxOnly, M15); a click on the rest of the
+                // row only moves the cursor, the disclosure and a double
+                // click on a folder open it (the tree's ClickPolicy)
+                if ev.index_of(Part::MARKER).is_some() {
                     self.tree.cursor = row;
-                    (Outcome::Changed, None)
-                };
-                if !toggle
-                    && let Some(p) = self.fs_path_of(&self.tree.rows()[row].path.clone())
-                    && p != self.path
-                {
-                    self.toggle_select(&p, w, cx);
+                    if let Some(p) = self.fs_path_of(&self.tree.rows()[row].path.clone())
+                        && p != self.path
+                    {
+                        self.toggle_select(&p, w, cx);
+                    }
+                    return Outcome::Changed;
                 }
-                return o.or(Outcome::Changed);
+                return self.tree.pointer(ev).outcome().or(Outcome::Changed);
             }
             if id == TREE {
                 cx.focus.focus(TREE);
@@ -1424,13 +1420,14 @@ impl ShellPage<Holla> for DiskPage {
                 }
             }
             Some(Phase::Click) => {
-                // a double click on an overview row opens it
-                if ev.count() >= 2
-                    && self.view == View::Overview
+                // an overview row opens on the library's data-view
+                // activation (a double click)
+                if self.view == View::Overview
                     && let Some(i) = self
                         .list_scroll
                         .visible_range()
                         .find(|&i| LIST.child(i) == id)
+                    && ClickPolicy::DATA.activates(ev.count(), self.cursor == i)
                 {
                     self.cursor = i;
                     return self.open_row(w, cx);

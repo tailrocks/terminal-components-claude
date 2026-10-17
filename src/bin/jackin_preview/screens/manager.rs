@@ -12,6 +12,7 @@ use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
@@ -2350,7 +2351,7 @@ impl Page<Jackin> for ManagerScreen {
         match ev.phase() {
             Some(Phase::Click) if id == SEAM => self.seam.on_click(&mut self.split, ev.count()),
             Some(Phase::Click) => {
-                if ev.count() >= 2 {
+                if ClickPolicy::DATA.activates(ev.count(), false) {
                     let d = self.double_click(id, w, cx);
                     if d.consumed() {
                         return d;
