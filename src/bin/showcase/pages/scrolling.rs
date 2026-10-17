@@ -24,7 +24,7 @@ use std::time::Duration;
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -45,6 +45,7 @@ use junie_tui::core::scroll::{
 use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::{fit, slice_cells, truncate};
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
@@ -54,6 +55,10 @@ use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::table::{Cell, Column, DataTable};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
+
+/// Rows the scrolling cards keep at least.
+const SCROLLERS_MIN: u16 = 10;
+const COLLECTIONS: &str = "Type to jump · select, tree, table, grid";
 
 const ID: WidgetId = WidgetId::of("scrolling");
 /// The hand-drawn table's pane (the page paints its rows).
@@ -336,19 +341,9 @@ impl ScrollingPage {
         } else {
             None
         };
-        // the scrolling cards take every row the other two bands leave
-        let top = area.height.saturating_sub(10 + 8 + 3).max(10);
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(top),
-                StackChild::fixed(10),
-                StackChild::fixed(8),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &Self::children(area.height), focus, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_scrollers(r, buf, ctx),
             None => [self.prose.id, self.list.id, self.log.id]
@@ -364,6 +359,18 @@ impl ScrollingPage {
                 .into_iter()
                 .for_each(|id| ctx.focus_stop(id)),
         }
+    }
+
+    /// The three bands in a Playground `height` rows tall: the scrolling
+    /// cards take every row the other two bands leave, at least
+    /// [`SCROLLERS_MIN`].
+    fn children(height: u16) -> [StackChild; 3] {
+        let top = height.saturating_sub(10 + 8 + 3).max(SCROLLERS_MIN);
+        [
+            StackChild::fixed(top),
+            StackChild::fixed(10),
+            StackChild::fixed(8),
+        ]
     }
 
     /// Three columns of `area` with one blank column between them.
@@ -576,6 +583,23 @@ impl ScrollingPage {
         let panel = Panel::card(Some("Cursor")).title_min(4);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
+        for (k, l) in self.cursor_lines().iter().enumerate() {
+            let y = inner.y + k as u16;
+            if y >= inner.bottom() {
+                break;
+            }
+            let style = if k == 4 || k == 5 {
+                t.faint()
+            } else {
+                t.secondary()
+            };
+            buf.set_string(inner.x, y, truncate(l, inner.width as usize), style.bg(bg));
+        }
+    }
+
+    /// The cursor readout: the list's cursor, the rows a type-ahead
+    /// searches, the last key's step and the key profile.
+    fn cursor_lines(&self) -> [String; 7] {
         let c: Cursor = self.list.cursor();
         let axis = match c.axis {
             Axis::Vertical => "vertical",
@@ -626,25 +650,14 @@ impl ScrollingPage {
             "Moved: To · Stayed · Ignored".to_owned(),
             keys,
         ];
-        for (k, l) in lines.iter().enumerate() {
-            let y = inner.y + k as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            let style = if k == 4 || k == 5 {
-                t.faint()
-            } else {
-                t.secondary()
-            };
-            buf.set_string(inner.x, y, truncate(l, inner.width as usize), style.bg(bg));
-        }
+        lines
     }
 
     /// Type-ahead in four more collections, under the same pause and
     /// precedence.
     fn render_collections(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Type to jump · select, tree, table, grid")).title_min(4);
+        let panel = Panel::card(Some(COLLECTIONS)).title_min(4);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         if inner.is_empty() {
@@ -824,6 +837,31 @@ impl Page for ScrollingPage {
     }
     fn blurb(&self) -> &'static str {
         "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
+    }
+
+    /// The three bands at their least heights, as wide as the cursor
+    /// readout needs: its column takes 3/8 of the width less the gaps,
+    /// the card its padding.
+    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+        let readout = self
+            .cursor_lines()
+            .iter()
+            .map(|l| junie_tui::ui::text::width(l) as u16)
+            .max()
+            .unwrap_or(0);
+        let col = Panel::card(Some("Cursor"))
+            .outer(Size::new(readout, 0))
+            .width;
+        // area - (3/8 + 1) - (1/4 + 1) >= col
+        let mechanics = ((col + 2) * 8).div_ceil(3) + 1;
+        // a quarter of the collections card, less its gap, holds the
+        // tree's labels and metas beside its scrollbar
+        let tree = self.tree.measure(Size::ZERO, ctx).width + 1;
+        let collections = Panel::card(Some(COLLECTIONS))
+            .outer(Size::new(4 * (tree + 2), 0))
+            .width;
+        let width = mechanics.max(collections);
+        Size::new(width, self.sections.stack.measure(&Self::children(0)))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
