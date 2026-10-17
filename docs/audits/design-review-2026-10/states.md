@@ -99,3 +99,39 @@ Severity | file:line | widget | states that collide (resolved colours) | fix
 **Notes**
 - `git diff` was empty during the audit; `cursor_row` already exists in `src/theme.rs` but has no callers.
 - The contrast and downgrade scripts are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/audit-states/` (`dg.py`, `m.py`, `p.py`, `q.py`, `r.py`).
+## Status (T19 sync, 2026-10-17)
+
+Each finding was checked against the code and tests at `origin/design/interaction-polish` and matched to the commit that fixed it (most commit messages cite the finding numbers).
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Fixed | e40c2c08f, 189734f49 | Accent ladder 78/71/65 at 256, pressed `#2e9a38`, reversed press at 16 and mono. Test `reduced_levels_pin_state_tokens_instead_of_snapping_to_greys`. |
+| 2 | Fixed | 189734f49, e40c2c08f | `nearest_256` keeps saturated colours in the cube; `for_level` applies hand-picked 256/16/mono tables (`LevelOverrides`). Same test as #1. |
+| 3 | Fixed | e40c2c08f, 3aad1f2ef | Destructive cursor is `Plane::HighlightDanger`, 256 indices 88/124/52 (not the proposed 131). Test `a_destructive_cursor_row_is_not_grey_on_grey_at_256`. |
+| 4 | Fixed | 189734f49, e40c2c08f | Disabled resolves to the kind's rest plane with `disabled` ink; at 16 a grey-on-grey ink falls back to muted plus DIM. Test `disabled_button_ignores_hover`. |
+| 5 | Fixed | e40c2c08f, e2afaae4a, 0a965d6b4 | `Kind::Chip`; on = selected, off = secondary ink. 0a965d6b4 re-applies e2afaae4a after 090f2a2f3 reverted it. Test `an_off_chip_label_is_readable_and_distinct_from_an_on_chip_at_every_level`. |
+| 6 | Fixed | e40c2c08f | `StateModifiers::MONO`: hover UNDERLINED, pressed REVERSED + BOLD. Test `no_color_buttons_and_menu_cursors_carry_state_in_modifiers`. Mono hover glyph may change under T (SV2). |
+| 7 | Fixed | 189734f49, ba849cd89 | One pressed rule: the plane ladder's pressed step plus weight; no white or red flood. Pressed direction (lighter vs darker) is still open: Open → T (SVg2). |
+| 8 | Fixed | 189734f49 | `Theme::ladder(Plane)` with explicit rest/hover/pressed; `lift()` is a thin wrapper over it. Test `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. |
+| 9 | Fixed | 189734f49, e40c2c08f | `accent_bg_hover` token (256 index 28); a hovered selected row keeps its tint. |
+| 10 | Fixed | 189734f49, e40c2c08f | Canvas ladder `#1c1c1f`/`#303036` (234/236); 16 colours press reversed. Covered by `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. |
+| 11 | Fixed | 189734f49, e40c2c08f | Card ladder `#2a2a2f`/`#3c3c43`; `accent_bg` index 22 at 256. Same test as #10. |
+| 12 | Fixed | 189734f49, e40c2c08f | Mono fill = REVERSED, pressed on a fill = BOLD + UNDERLINED (`StateModifiers::MONO.pressed_fill`). Test `no_color_buttons_and_menu_cursors_carry_state_in_modifiers`. |
+| 13 | Fixed | 948e926d8 | Select, Picker and Completion rows use `Theme::cursor_row` with `CursorStyle::Fill` (`focus.md` #1, #6, #7, #15). Tests `only_the_query_field_carries_a_focus_bar_and_the_cursor_row_is_a_fill`, `the_cursor_row_is_a_fill_so_the_editor_keeps_the_only_focus_bar`. |
+| 14 | Fixed | 3aad1f2ef | Menu rows resolve as `Kind::CursorRow(Fill)` with their own press. Test `a_menu_row_shows_rest_cursor_hover_and_press_apart_at_every_level`. Pressed direction: see #7. |
+| 15 | Fixed | d5e1595a8 | Table and grid count `pressed_any` over the row's cell ids. Test `a_press_on_a_cell_or_the_keyboard_flash_presses_the_row`. |
+| 16 | Fixed | d5e1595a8, 3aad1f2ef, d37f14b61, 0a965d6b4, d3a10933b | `Interaction::flash_within` and `RenderCtx::child_state` in list, tree, table, grid, radio, props, steps, menu, tabs, chips and the jackin manager tree. Tests `enter_on_a_focused_list_flashes_its_cursor_row`, `enter_on_the_strip_flashes_the_cursor_tab`. |
+| 17 | Fixed | d37f14b61 | `Kind::Tab`: active tab one plane up, hover and press on its ladder, focus is the `▎` gutter. Tests `every_tab_shows_rest_hover_and_press_and_the_close_glyph_its_own`, `hover_and_cursor_differ_from_active`. |
+| 18 | Fixed | d37f14b61 | Tab × resolves through `Theme::close_glyph` with its own hover and press. Same test as #17. |
+| 19 | Fixed | e2afaae4a, 0a965d6b4 | Chip × is `Kind::Close` (`chips::close_style`) and no longer hovers the chip. Test `hovering_the_close_glyph_does_not_hover_the_chip_and_it_presses`. |
+| 20 | Fixed | 189734f49, 3aad1f2ef | Field ladder `#2f2f34`/`#3a3a40` (236/238) through `Kind::Field`. Covered by `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. Mono hover may change under T (SV2). |
+| 21 | Fixed | e2afaae4a, 0a965d6b4, e9b8f3631 | `Kind::Handle`. e9b8f3631 replaced the proposed white plus `█` press: one glyph, rest grey, hover lighter, pressed accent (AGENTS.md "Visual states"). Test `the_thumb_keeps_one_glyph_and_colour_carries_rest_hover_and_pressed`. |
+| 22 | Fixed | e2afaae4a, 0a965d6b4 | Seams use `Kind::Seam`; the capsule draws through `Splitter::render_held`. Test `seam_rest_hover_and_drag_differ_at_every_level`. |
+| 23 | Fixed | 3aad1f2ef | Status items and segments resolve as `Kind::Title`/`Kind::Chip` with a press. Test `a_clickable_chip_keeps_its_tone_and_shows_a_press`. |
+| 24 | Fixed | 3aad1f2ef | Menu-bar titles resolve as `Kind::Title` with hover and press. |
+| 25 | Fixed | 3aad1f2ef, d37f14b61 | Grid and table headers and overflow badges (3aad1f2ef), tab overflow badges and `+` (d37f14b61) through `RenderCtx::title_style`. |
+| 26 | Fixed | d5e1595a8 | Grid range and text selection use `selection_bg` (`#1f3460`, 256 index 17), apart from the popover and pressed rows. |
+| 27 | Open → A15 | d5e1595a8 (part) | Table and grid cell cursor fixed (`Theme::cell_cursor`, test `the_cell_cursor_is_the_cursor_fill_not_a_white_flood`). Viewport reversed terminal cells still draw `fg canvas`/`bg text_primary` (`viewport.rs:1816`); fix or record a decision. |
+| 28 | Fixed | e2afaae4a, 0a965d6b4 | The brand walks the accent ladder like a primary button. Test `clickable_lockup_rest_hover_and_pressed_differ_at_every_level`. It is pointer-only (`render_clickable` clears focus), so it draws no `▎`. |
+| 29 | Fixed | d5e1595a8 | A read-only step rail zeroes hover and press. Test `a_read_only_step_rail_does_not_react_to_hover_or_press`. |
+| 30 | Fixed | d3a10933b | Showcase Help/Inspector links, holla finder scope and explore cells, and jackin cockpit chips use `RenderCtx::title_style`. Test `header_links_show_rest_hover_and_press`. |
