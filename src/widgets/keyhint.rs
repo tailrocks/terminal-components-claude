@@ -374,6 +374,21 @@ fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool
     (keep, full)
 }
 
+/// The natural width of a hint bar (plan §1.4 `Measure`): every hint in
+/// full, the badge and the whole status, so a bar drawn this wide drops,
+/// compacts and cuts nothing. `status` is the status as drawn, its mark
+/// included (`"! Connection lost"`).
+pub fn width(hints: &[Hint], badge: Option<&str>, status: Option<&str>) -> u16 {
+    let all: Vec<usize> = (0..hints.len()).collect();
+    let full = vec![false; hints.len()];
+    let badge = badge.map_or(0, |b| crate::ui::text::width(b) as u16 + 4);
+    let status = status
+        .map(|s| crate::ui::text::width(s) as u16)
+        .filter(|w| *w > 0)
+        .map_or(0, |w| w + 3);
+    1 + badge + cost(hints, &all, &full) as u16 + status
+}
+
 /// Like [`render`], with a status of a [`StatusKind`]: its glyph and
 /// colour from [`Theme::status`] (`✓ Saved` in success, `✗` bold in
 /// error, `▲` in warning, `i` in info), the message in
@@ -768,6 +783,39 @@ mod tests {
         for many in ["↑↓", "1–6", "Ctrl+B c", "Tab/Shift+Tab", "", "F13"] {
             assert_eq!(key_of(many), None, "{many}");
         }
+    }
+
+    /// A bar drawn at its `width` shows every hint, the badge and the
+    /// whole status; one cell less gives something up.
+    #[test]
+    fn width_shows_the_whole_bar() {
+        let t = Theme::junie();
+        let hints = [hint("Enter", "Open"), hint("Esc", "Back").pinned()];
+        let w = width(&hints, Some("EDIT"), Some("! Connection lost"));
+        let draw = |w: u16| {
+            let area = Rect::new(0, 0, w, 1);
+            let mut buf = Buffer::empty(area);
+            render_toned(
+                area,
+                &mut buf,
+                &t,
+                &hints,
+                Some(("EDIT", BadgeKind::Edit)),
+                Some(("Connection lost", Tone::Error)),
+            );
+            (0..w).map(|x| buf[(x, 0)].symbol()).collect::<String>()
+        };
+        let row = draw(w);
+        for part in ["EDIT", "Enter Open", "Esc Back", "! Connection lost"] {
+            assert!(row.contains(part), "{row:?} lacks {part}");
+        }
+        let row = draw(w - 1);
+        assert!(
+            !["EDIT", "Enter Open", "Esc Back", "Connection lost"]
+                .iter()
+                .all(|p| row.contains(p)),
+            "{row:?}"
+        );
     }
 
     #[test]
