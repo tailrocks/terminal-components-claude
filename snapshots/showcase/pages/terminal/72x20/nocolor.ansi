@@ -5,17 +5,17 @@
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
-  ▸ Tables        ┃  ╭─ Viewport ────── 38 lines ─╮ │  Step rail   7/7  [0m
-  ▸ Navigation    ┃  │  [0m[2m  1Password  Engineerin [0m┆ │ │  ───────────────  [0m
-  ▸ Overlays      ┃  │  ✓ Resolve credentials   ┆ │ │   ✓ 01 Resolv… ┃  [0m
-  ▸ Feedback      ┃  │  [0m[1m▶ Start agent[0m           ┆ │ │   ✓ 02 Pull b… ┃  [0m
-  ▸ Layout        ┃  │    claude --resume  pid  ┆ │ │   ✓ 03 Build … ┃  [0m
-  ▾ Text & code   ┃  │  ✓ Start agent           ┆ │ │     04 Mount … ┆  [0m
-      Code editor ┃  │  [0m[1m▶ Ready[0m                 ┆ │ │  [0m[2m ✓ 05 Resolv… [0m┆  [0m
-      Diff        ┃  │  ✓ Ready                 ┆ │ │                   [0m
- [0m[1m▎  › Terminal    [0m┃  │  [0m[1mpayments-platform ❯ [0m    ┃ │ │   [0m[1;7mRun [0m            [0m
- [0m[2m     Text utili… [0m┆  │  ━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ │   Run with a f…   [0m
-                     ╰────────────────────────────╯ │                   [0m
+  ▸ Tables        ┃  ╭─ Viewport ──────────── 38 lines · following ─╮  ┃[0m
+  ▸ Navigation    ┃  │  [0m[2m  #12 RUN cargo build --release           [0m┆ │  ┃[0m
+  ▸ Overlays      ┃  │    #13 RUN apt-get install -y build-essent ┆ │  ┃[0m
+  ▸ Feedback      ┃  │    #14 COPY rust-toolchain.toml ./         ┆ │  ┃[0m
+  ▸ Layout        ┃  │  ✓ Build container                         ┆ │  ┃[0m
+  ▾ Text & code   ┃  │  [0m[1m▶ Resolve credentials[0m                     ┆ │  ┃[0m
+      Code editor ┃  │    1Password  Engineering › Anthropic · Wo ┆ │  ┆[0m
+      Diff        ┃  │  ✓ Resolve credentials                     ┆ │  ┆[0m
+ [0m[1m▎  › Terminal    [0m┃  │  [0m[1m▶ Start agent[0m                             ┆ │  ┆[0m
+ [0m[2m     Text utili… [0m┆  │    claude --resume  pid 4188               ┆ │  ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l
