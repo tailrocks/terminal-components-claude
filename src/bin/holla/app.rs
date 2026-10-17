@@ -20,12 +20,12 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, Layer, LayerCx, LayerPointer, LayerTag, Taken,
 };
-use junie_tui::ui::leave::Stakes;
+use junie_tui::ui::leave::{Leave, LeaveGuard, Resolved, Stakes};
 use junie_tui::ui::text::{crumb_fit, truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::dialog::Dialog;
+use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::help::{HelpOverlay, HelpSection};
 use junie_tui::widgets::hintbar::HintBar;
 use junie_tui::widgets::input::TextInput;
@@ -56,7 +56,9 @@ use crate::screens::modals::{TextLine, TextModal};
 use crate::screens::plan::{PlanReviewPage, PlanTab};
 use crate::screens::review::{ArgsPage, GatePage, TrustPage};
 use crate::screens::snapshot::SnapshotPage;
-use crate::screens::{Cx, GateTarget, Go, LayerSlot, Layers, ModalResult, Page, Request, Screen};
+use crate::screens::{
+    Cx, GateTarget, Go, Holla, LayerSlot, Layers, ModalResult, Page, Request, Screen,
+};
 use crate::sim::world::{Msg, World};
 
 /// The canonical product mark; every brand lockup renders exactly this.
@@ -66,6 +68,13 @@ pub const MENU: WidgetId = WidgetId::of("shell.menu");
 pub const TABS: WidgetId = WidgetId::of("shell.tabs");
 /// The Here tab's breadcrumb trail.
 pub const CRUMBS: WidgetId = WidgetId::of("shell.crumbs");
+/// The frame's regions ([`shell::Chrome`]): four header rows (the menu
+/// bar, the trail, the two-row tab strip), three footer rows (a blank
+/// row, the status bar, the hint bar), the body one column in from each
+/// side.
+const CHROME: shell::Chrome = shell::Chrome::new().header(4).gap(0).footer(3).inset(1);
+/// The tag of the leave guard's question ([`App::navigate`]).
+const LEAVE_TAG: &str = "leave";
 const STATUS_PATH: WidgetId = WidgetId::of("shell.status.path");
 const STATUS_RUNNING: WidgetId = WidgetId::of("shell.status.running");
 const STATUS_GIT: WidgetId = WidgetId::of("shell.status.git");
@@ -77,9 +86,10 @@ pub enum TabKind {
     Plan(String),
 }
 
+/// What the app keeps per tab beside its pages (which live on
+/// [`App::router`], tab for tab).
 pub struct TabEntry {
     pub kind: TabKind,
-    pub stack: Vec<Box<dyn Screen>>,
     /// Status and error messages a screen of this tab raised while the
     /// tab was in the background (a blur, a tick, a message): shown when
     /// the tab is active again.
@@ -105,13 +115,21 @@ pub struct App {
     pub theme: Theme,
     pub scenario: Scenario,
     pub world: World,
+    /// The pages: one stack per tab, the Here tab first
+    /// ([`shell::Router`]). `tabs` holds each tab's kind and pending
+    /// messages, index for index.
+    pub router: shell::Router<Box<dyn Screen>>,
     pub tabs: Vec<TabEntry>,
-    pub active: usize,
+    /// Every move that drops a page, and quitting, ask here first
+    /// ([`shell::Router::request`], [`Shell::quit_through`]).
+    leave: LeaveGuard<shell::Nav<Page>>,
     pub(crate) modals: Layers,
     /// Focus, ring, hit regions, pointer, the footer status (5 s on the
     /// world clock; an error stays until the next action, with its toned
     /// parts), size, motion and quit: the library shell's state.
     pub shell: Shell<Vec<(String, Tone)>>,
+    /// The menu bar's menus, each item with its command (M23).
+    menus: shell::Menus<HollaCmd>,
     menu: MenuBar,
     strip: Tabs,
     /// The Here tab's page trail, drawn above a nested page (mouse #5).
@@ -168,15 +186,16 @@ impl App {
             theme,
             scenario,
             world,
+            router: shell::Router::new(Box::new(FinderPage::new(None))),
             tabs: vec![TabEntry {
                 kind: TabKind::Here,
-                stack: vec![Box::new(FinderPage::new(None))],
                 pending: vec![],
             }],
-            active: 0,
+            leave: LeaveGuard::new(WidgetId::of("holla.leave")).save(false),
             modals: Layers::new(),
             shell,
-            menu: Self::build_menu(),
+            menus: Self::menus(),
+            menu: Self::menus().bar(MENU).brand(Lockup::new(BRAND_MARK)),
             strip: Tabs::with_items(TABS, vec![]),
             crumbs: Breadcrumb::new(CRUMBS, vec![]),
             menu_item: None,
@@ -223,7 +242,7 @@ impl App {
                 for id in ids {
                     self.open_activity_tab(&id, false);
                 }
-                self.active = 0;
+                self.router.select(0);
                 self.enter_top();
             }
             Scenario::LaunchFailure => {
@@ -237,7 +256,13 @@ impl App {
     }
 
     fn finder_mut(&mut self) -> Option<&mut FinderPage> {
-        self.tabs[0].stack.first_mut()?.as_finder()
+        // the Here tab's root page
+        self.router.pages_mut().next()?.as_finder()
+    }
+
+    /// The shown tab.
+    pub fn active(&self) -> usize {
+        self.router.active()
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
@@ -254,10 +279,7 @@ impl App {
     }
 
     fn top(&self) -> Option<&dyn Screen> {
-        self.tabs
-            .get(self.active)
-            .and_then(|t| t.stack.last())
-            .map(|b| b.as_ref())
+        Some(self.router.current().as_ref())
     }
 
     fn animating(&self) -> bool {
@@ -302,7 +324,7 @@ impl App {
         &mut self,
         f: F,
     ) -> Outcome {
-        let active = self.active;
+        let active = self.active();
         let (o, reqs) = self.deliver_tab(active, true, Outcome::Ignored, f);
         o.or(self.apply_requests(reqs, active))
     }
@@ -318,12 +340,11 @@ impl App {
         absent: Outcome,
         f: impl FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome,
     ) -> (Outcome, Vec<Request>) {
-        self.shell.deliver(shown, |cx| {
-            match self.tabs.get_mut(ti).and_then(|t| t.stack.last_mut()) {
+        self.shell
+            .deliver(shown, |cx| match self.router.top_of_mut(ti) {
                 Some(s) => f(s, &mut self.world, cx),
                 None => absent,
-            }
-        })
+            })
     }
 
     fn enter_top(&mut self) {
@@ -355,8 +376,8 @@ impl App {
         mut f: impl FnMut(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome,
     ) -> Outcome {
         let mut out = Outcome::Ignored;
-        for ti in 0..self.tabs.len() {
-            let shown = ti == self.active;
+        for ti in 0..self.router.tab_count() {
+            let shown = ti == self.active();
             let (o, reqs) = self.deliver_tab(ti, shown, Outcome::Ignored, &mut f);
             if shown {
                 out = out.or(o).or(self.apply_requests(reqs, ti));
@@ -369,7 +390,7 @@ impl App {
 
     /// Messages a background tab raised show once it is active.
     fn apply_pending(&mut self, out: Outcome) -> Outcome {
-        let active = self.active;
+        let active = self.active();
         match self
             .tabs
             .get_mut(active)
@@ -540,7 +561,7 @@ impl App {
     fn attached(&self) -> bool {
         self.top().is_some_and(|s| s.is_editing())
             && matches!(
-                self.tabs.get(self.active).map(|t| &t.kind),
+                self.tabs.get(self.active()).map(|t| &t.kind),
                 Some(TabKind::Activity(_))
             )
     }
@@ -550,14 +571,14 @@ impl App {
     fn open_menu_key(&mut self, key: &Key) -> Outcome {
         let (o, ev) = self.menu.on_key(key);
         match ev {
-            Some(MenuBarAction::Chosen(mi, ii)) => {
-                let label = self.menu.menus[mi][ii].item.label.clone();
-                self.run_menu(&label)
-            }
             Some(MenuBarAction::Brand) => {
                 self.open_about();
                 Outcome::Changed
             }
+            Some(act) => match self.menus.command(act) {
+                Some(cmd) => self.run_cmd(cmd),
+                None => o.or(Outcome::Changed),
+            },
             _ => o.or(Outcome::Changed),
         }
     }
@@ -596,7 +617,7 @@ impl App {
                     return Outcome::Changed;
                 }
                 Some(TabAction::Close(i)) => {
-                    self.active = i;
+                    self.router.select(i);
                     self.go(Go::CloseTab);
                     return Outcome::Changed;
                 }
@@ -616,7 +637,7 @@ impl App {
 
     /// Show tab `n` (Alt+digit); a missing tab says so.
     fn tab_key(&mut self, n: usize) -> Outcome {
-        if n < self.tabs.len() {
+        if n < self.router.tab_count() {
             self.activate_tab(n);
         } else {
             self.set_status(&format!("No tab {n}"), Tone::Secondary);
@@ -626,44 +647,67 @@ impl App {
 
     // ------------------------------------------------------------- menus
 
-    fn build_menu() -> MenuBar {
+    /// The menu bar: File, Go and Help, each item with its command.
+    fn menus() -> shell::Menus<HollaCmd> {
+        use HollaCmd as C;
         let file = vec![
-            MenuItem::new("Run").shortcut("Enter"),
-            MenuItem::new("Alternatives…").shortcut("Alt+Enter"),
-            MenuItem::new("Copy command").separator(),
-            MenuItem::new("Close tab").shortcut("Ctrl+W").separator(),
-            MenuItem::new("Quit").shortcut("Ctrl+Q"),
+            (MenuItem::new("Run").shortcut("Enter"), C::Run),
+            (
+                MenuItem::new("Alternatives…").shortcut("Alt+Enter"),
+                C::Alternatives,
+            ),
+            (MenuItem::new("Copy command").separator(), C::CopyCommand),
+            (
+                MenuItem::new("Close tab").shortcut("Ctrl+W").separator(),
+                C::CloseTab,
+            ),
+            (MenuItem::new("Quit").shortcut("Ctrl+Q"), C::Quit),
         ];
-        let go = vec![
-            MenuItem::new("Here").shortcut("Alt+0"),
-            MenuItem::new("Activities…").shortcut("Ctrl+G").separator(),
-            MenuItem::new("Parent scope").shortcut("Ctrl+↑"),
-            MenuItem::new("Children scope").shortcut("Ctrl+↓"),
-            MenuItem::new("System scope").separator(),
-            MenuItem::new("Tasks"),
-            MenuItem::new("Git"),
-            MenuItem::new("Files"),
-            MenuItem::new("Disk"),
-            MenuItem::new("Services"),
-            MenuItem::new("System"),
+        let mut go = vec![
+            (MenuItem::new("Here").shortcut("Alt+0"), C::Tab(0)),
+            (
+                MenuItem::new("Activities…").shortcut("Ctrl+G").separator(),
+                C::Activities,
+            ),
+            (
+                MenuItem::new("Parent scope").shortcut("Ctrl+↑"),
+                C::Scope(Scope::Parent),
+            ),
+            (
+                MenuItem::new("Children scope").shortcut("Ctrl+↓"),
+                C::Scope(Scope::Children),
+            ),
+            (
+                MenuItem::new("System scope").separator(),
+                C::Scope(Scope::System),
+            ),
         ];
+        for g in ["Tasks", "Git", "Files", "Disk", "Services", "System"] {
+            go.push((MenuItem::new(g), C::Group(g)));
+        }
         let help = vec![
-            MenuItem::new("Key reference").shortcut("F1"),
-            MenuItem::new("Why is this here?"),
-            MenuItem::new("About holla"),
+            (MenuItem::new("Key reference").shortcut("F1"), C::Help),
+            (MenuItem::new("Why is this here?"), C::Why),
+            (MenuItem::new("About holla"), C::About),
         ];
-        MenuBar::new(MENU, vec![("File", file), ("Go", go), ("Help", help)])
-            .brand(Lockup::new(BRAND_MARK))
+        shell::Menus::new()
+            .menu("File", file)
+            .menu("Go", go)
+            .menu("Help", help)
     }
 
-    fn run_menu(&mut self, label: &str) -> Outcome {
-        let key = |code: KeyCode, mods: KeyModifiers| Input::Key(Key { code, mods });
-        match label {
-            "Run" => return shell::handle(self, key(KeyCode::Enter, KeyModifiers::NONE)),
-            "Alternatives…" => {
-                return shell::handle(self, key(KeyCode::Enter, KeyModifiers::ALT));
+    /// Run one of holla's commands, from a menu or a key.
+    fn run_cmd(&mut self, cmd: HollaCmd) -> Outcome {
+        let key = |code: KeyCode, mods: KeyModifiers| Key { code, mods };
+        match cmd {
+            // what the page's Enter and Alt+Enter do
+            HollaCmd::Run => {
+                return shell::KeyRouter::replay(self, &key(KeyCode::Enter, KeyModifiers::NONE));
             }
-            "Copy command" => {
+            HollaCmd::Alternatives => {
+                return shell::KeyRouter::replay(self, &key(KeyCode::Enter, KeyModifiers::ALT));
+            }
+            HollaCmd::CopyCommand => {
                 let cmd = self
                     .current_item()
                     .map(|i| i.commands.join("\n"))
@@ -674,38 +718,24 @@ impl App {
                     self.copy(cmd);
                 }
             }
-            "Close tab" => self.go(Go::CloseTab),
-            "Quit" => self.request_quit(),
-            "Here" => self.activate_tab(0),
-            "Activities…" => self.open_activities(),
-            "Parent scope" => self.go(Go::Scope(Scope::Parent)),
-            "Children scope" => self.go(Go::Scope(Scope::Children)),
-            "System scope" => self.go(Go::Scope(Scope::System)),
-            "Tasks" | "Git" | "Files" | "Disk" | "Services" | "System" => {
-                let g: &'static str = match label {
-                    "Tasks" => "Tasks",
-                    "Git" => "Git",
-                    "Files" => "Files",
-                    "Disk" => "Disk",
-                    "Services" => "Services",
-                    _ => "System",
-                };
+            HollaCmd::CloseTab => self.go(Go::CloseTab),
+            HollaCmd::Quit => self.request_quit(),
+            HollaCmd::Tab(n) => return self.tab_key(n as usize),
+            HollaCmd::Activities => self.open_activities(),
+            HollaCmd::Scope(s) => self.go(Go::Scope(s)),
+            HollaCmd::Group(g) => {
                 self.activate_tab(0);
                 self.push_page(Page::Finder { group: Some(g) });
             }
-            "Key reference" => self.open_help(),
-            "Why is this here?" => self.open_why(),
-            "About holla" => self.open_about(),
-            _ => self.set_status(
-                &format!("{label}: not available in the preview"),
-                Tone::Secondary,
-            ),
+            HollaCmd::Help => self.open_help(),
+            HollaCmd::Why => self.open_why(),
+            HollaCmd::About => self.open_about(),
         }
         Outcome::Changed
     }
 
     fn current_item(&mut self) -> Option<Item> {
-        if self.active != 0 {
+        if self.active() != 0 {
             return None;
         }
         let id = self.finder_page_current_id()?;
@@ -713,7 +743,7 @@ impl App {
     }
 
     fn finder_page_current_id(&mut self) -> Option<String> {
-        self.tabs[0].stack.last_mut()?.as_finder()?.current_id()
+        self.router.top_of_mut(0)?.as_finder()?.current_id()
     }
 
     fn open_about(&mut self) {
@@ -740,7 +770,7 @@ impl App {
     fn open_help(&mut self) {
         let kind = self
             .tabs
-            .get(self.active)
+            .get(self.active())
             .map(|t| t.kind.clone())
             .unwrap_or(TabKind::Here);
         // the page keys the screens handle in their own code, by hand
@@ -841,8 +871,9 @@ impl App {
                 HollaCmd::Activities => "Activities",
                 HollaCmd::CloseTab => "Close tab",
                 HollaCmd::Tab(0) => "Here",
-                // the nine others read as one range row below
-                HollaCmd::Tab(_) => return None,
+                // the nine others read as one range row below; the
+                // menu-only commands have no key
+                _ => return None,
             })
         }));
         if let Some(s) = sections.last_mut() {
@@ -885,18 +916,28 @@ impl App {
         }
     }
 
-    /// Every quit (Ctrl+Q, Ctrl+C, the menu, Esc when allowed) goes
-    /// through here: a clean quit leaves at once, running work asks first.
+    /// Every quit (Ctrl+Q, Ctrl+C, the menu) goes through the leave
+    /// guard ([`Shell::quit_through`] with [`shell::App::stakes`]): a
+    /// clean quit leaves at once; running work asks in holla's own words
+    /// (which host, which work), unsaved page edits in the guard's.
     fn request_quit(&mut self) {
         if self.quitting {
             self.set_status(
                 "Already stopping · the shell leaves when every process is gone",
                 Tone::Secondary,
             );
-        } else if self.quit_stakes().is_clean() {
-            self.shell.quit = true;
-        } else {
-            self.open_quit_confirm();
+            return;
+        }
+        let stakes = shell::App::stakes(self);
+        if let Err(d) = self
+            .shell
+            .quit_through(&mut self.leave, &stakes, &self.theme.strings)
+        {
+            if self.quit_stakes().is_clean() {
+                self.open_layer(d, LayerTag::new("quit"));
+            } else {
+                self.open_quit_confirm();
+            }
         }
     }
 
@@ -1023,7 +1064,7 @@ impl App {
     /// it, and comes back to the tab when it closes (K9).
     fn open_layer(&mut self, layer: Box<dyn Layer<ModalResult>>, tag: LayerTag) {
         self.modals
-            .open(layer, tag, self.active, &mut self.shell.focus);
+            .open(layer, tag, self.active(), &mut self.shell.focus);
         // holla's dialogs sit in the body, clear of the menu bar above and
         // the status and footer rows below
         if let Some(d) = self.modals.top_as_mut::<Dialog>() {
@@ -1120,10 +1161,7 @@ impl App {
         let tag = entry.tag.clone();
         match tag.kind {
             "quit" => {
-                if let ModalResult::Dialog {
-                    action: Some(1), ..
-                } = result
-                {
+                if let Resolved::Discard(Leave::Quit) = self.leave.resolve(answer(&result)) {
                     let n = self.world.stop_all();
                     if n == 0 && self.world.cleanup_job.is_none() {
                         self.shell.quit = true;
@@ -1143,6 +1181,13 @@ impl App {
                             Tone::Secondary,
                         );
                     }
+                }
+                Outcome::Changed
+            }
+            LEAVE_TAG => {
+                if let Resolved::Discard(Leave::To(nav)) = self.leave.resolve(answer(&result)) {
+                    self.apply_nav(nav);
+                    self.enter_top();
                 }
                 Outcome::Changed
             }
@@ -1231,7 +1276,7 @@ impl App {
                     action: Some(1), ..
                 } = result
                 {
-                    self.close_tab(self.active, true);
+                    self.close_tab(self.active(), true);
                 }
                 Outcome::Changed
             }
@@ -1263,14 +1308,13 @@ impl App {
     /// The files page's jump picker rows for its current query, with
     /// `error` in its status row.
     fn files_jump_rows(&mut self, error: Option<String>) {
-        let active = self.active;
+        let active = self.active();
         let Some(query) = self.modals.top_as::<Picker>().map(|p| p.query().to_owned()) else {
             return;
         };
         let rows = self
-            .tabs
-            .get_mut(active)
-            .and_then(|t| t.stack.last_mut())
+            .router
+            .top_of_mut(active)
             .and_then(|s| s.as_files())
             .map(|f| {
                 f.set_jump_error(error);
@@ -1289,7 +1333,7 @@ impl App {
     /// jump keeps the picker open with the error in its status row.
     /// `chosen` is the picker a choice closed; `None` while it is open.
     fn files_jump(&mut self, ev: PickerAction, chosen: Option<LayerSlot>) -> Outcome {
-        let active = self.active;
+        let active = self.active();
         match ev {
             PickerAction::QueryChanged | PickerAction::Back => {
                 self.files_jump_rows(None);
@@ -1312,9 +1356,8 @@ impl App {
                 };
                 let mut cx = self.shell.cx();
                 let outcome = self
-                    .tabs
-                    .get_mut(active)
-                    .and_then(|t| t.stack.last_mut())
+                    .router
+                    .top_of_mut(active)
                     .and_then(|s| s.as_files())
                     .map(
                         |f| match f.jump_target(&query, selected.as_deref(), &self.world) {
@@ -1410,9 +1453,12 @@ impl App {
         // every earlier level of the trail is a link (mouse #5)
         if let Some(r) = self.crumbs.route(ev) {
             let (o, level) = r.into_parts();
-            return Some(match level {
-                Some(level) => {
-                    self.pop_to(level + 1);
+            let nav = level.and_then(|_| self.router.crumb_click(&self.crumbs, 0, ev.id));
+            return Some(match nav {
+                Some(nav) => {
+                    if self.navigate(nav) {
+                        self.enter_top();
+                    }
                     Outcome::Changed
                 }
                 None => o,
@@ -1421,10 +1467,10 @@ impl App {
         if let Some(r) = self.menu.route(ev) {
             let (o, act) = r.into_parts();
             return Some(match act {
-                Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.menu.menus[mi][ii].item.label.clone();
-                    self.run_menu(&label)
-                }
+                Some(act @ MenuBarAction::Chosen(..)) => match self.menus.command(act) {
+                    Some(cmd) => self.run_cmd(cmd),
+                    None => o,
+                },
                 Some(MenuBarAction::Brand) => {
                     self.open_about();
                     Outcome::Changed
@@ -1442,7 +1488,7 @@ impl App {
                     Outcome::Changed
                 }
                 Some(TabAction::Close(i)) => {
-                    self.active = i;
+                    self.router.select(i);
                     self.go(Go::CloseTab);
                     Outcome::Changed
                 }
@@ -1510,10 +1556,7 @@ impl App {
         match g {
             Go::Run { item, args } => {
                 self.last_query = self
-                    .tabs
-                    .first_mut()
-                    .and_then(|t| t.stack.first_mut())
-                    .and_then(|s| s.as_finder())
+                    .finder_mut()
                     .map(|f| f.query.text().to_owned())
                     .filter(|q| !q.trim().is_empty());
                 self.run_item(&item, args)
@@ -1528,8 +1571,8 @@ impl App {
             Go::Scope(s) => {
                 self.activate_tab(0);
                 // scope lives on the root finder; domain pages pop back to it
-                while self.tabs[0].stack.len() > 1 {
-                    self.tabs[0].stack.pop();
+                if !self.navigate(shell::Nav::PopTo(0)) {
+                    return;
                 }
                 if let Some(f) = self.finder_mut() {
                     f.set_scope(s);
@@ -1653,34 +1696,29 @@ impl App {
         }
     }
 
-    fn page_screen(&mut self, page: Page) -> Box<dyn Screen> {
+    /// The page of route `page` (the router's constructor).
+    fn page_screen(world: &mut World, page: Page) -> Box<dyn Screen> {
         match page {
             Page::Finder { group } => Box::new(FinderPage::new(group)),
             Page::Disk { path } => Box::new(DiskPage::new(&path)),
             Page::PlanReview { plan } => {
-                self.ensure_plan(&plan);
+                ensure_plan(world, &plan);
                 Box::new(PlanReviewPage::new(&plan))
             }
-            Page::Review(target) => Box::new(GatePage::new(target, &self.world)),
+            Page::Review(target) => Box::new(GatePage::new(target, world)),
             Page::Trust { config, then } => Box::new(TrustPage::new(&config, &then)),
-            Page::Args { item } => Box::new(ArgsPage::new(&item, &self.world)),
-            Page::Snapshot { kind } => Box::new(SnapshotPage::new(&kind, &self.world)),
-            Page::Files { path, query } => {
-                Box::new(FilesPage::new(&path, query.as_deref(), &self.world))
-            }
-            Page::Find => Box::new(FilesPage::find(&self.world)),
+            Page::Args { item } => Box::new(ArgsPage::new(&item, world)),
+            Page::Snapshot { kind } => Box::new(SnapshotPage::new(&kind, world)),
+            Page::Files { path, query } => Box::new(FilesPage::new(&path, query.as_deref(), world)),
+            Page::Find => Box::new(FilesPage::find(world)),
             Page::DiskOverview => Box::new(DiskPage::overview()),
             Page::TopFiles => Box::new(DiskPage::top_files()),
             Page::Cleanup { category } => Box::new(CleanupPage::new(category.as_deref())),
-            Page::CleanupGate { plan } => {
-                Box::new(GatePage::new(GateTarget::Cleanup(plan), &self.world))
-            }
+            Page::CleanupGate { plan } => Box::new(GatePage::new(GateTarget::Cleanup(plan), world)),
             Page::Report { index } => {
-                Box::new(SnapshotPage::new(&format!("report:{index}"), &self.world))
+                Box::new(SnapshotPage::new(&format!("report:{index}"), world))
             }
-            Page::Config { path } => {
-                Box::new(SnapshotPage::new(&format!("config:{path}"), &self.world))
-            }
+            Page::Config { path } => Box::new(SnapshotPage::new(&format!("config:{path}"), world)),
         }
     }
 
@@ -1711,40 +1749,83 @@ impl App {
         ));
     }
 
+    /// Show `page` on top of the Here tab's stack, and the Here tab.
     pub(crate) fn push_page(&mut self, page: Page) {
-        let screen = self.page_screen(page);
-        self.tabs[0].stack.push(screen);
-        self.active = 0;
+        self.router.select(0);
+        self.navigate(shell::Nav::Push(page));
         self.enter_top();
     }
 
-    /// Go back to the Here tab's page at `depth` (1 is the root finder),
-    /// as a click on a breadcrumb level does.
-    fn pop_to(&mut self, depth: usize) {
-        self.activate_tab(0);
-        let depth = depth.max(1);
-        if self.tabs[0].stack.len() > depth {
-            self.tabs[0].stack.truncate(depth);
-            self.enter_top();
+    /// Ask to move on the shown tab's stack, then move: every page the
+    /// move drops is asked what it would lose first (K4, K6,
+    /// [`shell::Router::request`]). `true` when the move was made now;
+    /// `false` while the question is open (its answer makes the move,
+    /// [`Self::on_layer_result`]).
+    fn navigate(&mut self, nav: shell::Nav<Page>) -> bool {
+        let n = self.router.dropped_by(&nav).count();
+        let mut stakes = Stakes::Clean;
+        for p in self.router.stack_mut().rev().take(n) {
+            stakes = stakes.max(shell::Page::<Holla>::stakes(p.as_mut(), &self.world));
+        }
+        match self
+            .router
+            .request(&mut self.leave, nav, || stakes, &self.theme.strings)
+        {
+            Ok(nav) => {
+                self.apply_nav(nav);
+                true
+            }
+            Err(d) => {
+                self.open_layer(d, LayerTag::new(LEAVE_TAG));
+                false
+            }
         }
     }
 
+    /// Make the move `nav` (nothing asks any more).
+    fn apply_nav(&mut self, nav: shell::Nav<Page>) {
+        let world = &mut self.world;
+        self.router
+            .apply(nav, |page| Self::page_screen(world, page));
+    }
+
+    /// Back to the Here tab's root finder, out of the review pages above
+    /// it: `false` while a page asks first.
+    fn leave_review_pages(&mut self) -> bool {
+        self.router.select(0);
+        self.navigate(shell::Nav::PopTo(0))
+    }
+
     fn pop_page(&mut self) {
-        if self.active == 0 && self.tabs[0].stack.len() > 1 {
-            self.tabs[0].stack.pop();
-            self.enter_top();
-        } else if self.active != 0 {
+        if self.active() == 0 && self.router.depth() > 1 {
+            if self.navigate(shell::Nav::Back) {
+                self.enter_top();
+            }
+        } else if self.active() != 0 {
             self.activate_tab(0);
         }
     }
 
     fn activate_tab(&mut self, i: usize) {
-        if i >= self.tabs.len() {
+        if i >= self.router.tab_count() {
             return;
         }
-        self.active = i;
+        self.router.select(i);
         self.strip.set_active(i);
         self.enter_top();
+    }
+
+    /// Open a tab of `kind` showing `root` after the last one, keeping
+    /// the shown tab: its index.
+    pub(crate) fn add_tab(&mut self, kind: TabKind, root: Box<dyn Screen>) -> usize {
+        let shown = self.active();
+        let i = self.router.open_tab(root);
+        self.router.select(shown);
+        self.tabs.push(TabEntry {
+            kind,
+            pending: vec![],
+        });
+        i
     }
 
     fn open_activity_tab(&mut self, id: &str, activate: bool) {
@@ -1758,14 +1839,12 @@ impl App {
             }
             return;
         }
-        self.tabs.push(TabEntry {
-            kind: TabKind::Activity(id.to_owned()),
-            stack: vec![Box::new(ActivityTab::new(id))],
-            pending: vec![],
-        });
+        let i = self.add_tab(
+            TabKind::Activity(id.to_owned()),
+            Box::new(ActivityTab::new(id)),
+        );
         if activate {
-            let n = self.tabs.len() - 1;
-            self.activate_tab(n);
+            self.activate_tab(i);
         }
     }
 
@@ -1778,21 +1857,17 @@ impl App {
             self.activate_tab(i);
             return;
         }
-        self.tabs.push(TabEntry {
-            kind: TabKind::Plan(id.to_owned()),
-            stack: vec![Box::new(PlanTab::new(id))],
-            pending: vec![],
-        });
-        let n = self.tabs.len() - 1;
-        self.activate_tab(n);
+        let i = self.add_tab(TabKind::Plan(id.to_owned()), Box::new(PlanTab::new(id)));
+        self.activate_tab(i);
     }
 
     fn request_close_tab(&mut self) {
-        if self.active == 0 {
+        let active = self.active();
+        if active == 0 {
             self.set_status("Here cannot be closed · Ctrl+Q quits", Tone::Secondary);
             return;
         }
-        let live = match &self.tabs[self.active].kind {
+        let live = match &self.tabs[active].kind {
             TabKind::Activity(id) => self.world.activity(id).is_some_and(|a| a.state.live()),
             TabKind::Plan(id) => self
                 .world
@@ -1801,7 +1876,7 @@ impl App {
             TabKind::Here => false,
         };
         if live {
-            let name = self.tab_label(self.active);
+            let name = self.tab_label(active);
             let d = Dialog::destructive(
                 WidgetId::of("close-tab"),
                 &format!("Stop {name}?"),
@@ -1811,12 +1886,12 @@ impl App {
             .cancel_label("Keep running");
             self.open_layer(Box::new(d), LayerTag::new("close-tab"));
         } else {
-            self.close_tab(self.active, false);
+            self.close_tab(active, false);
         }
     }
 
     fn close_tab(&mut self, i: usize, stop: bool) {
-        if i == 0 || i >= self.tabs.len() {
+        if i == 0 || i >= self.router.tab_count() {
             return;
         }
         match self.tabs[i].kind.clone() {
@@ -1849,6 +1924,7 @@ impl App {
             TabKind::Here => {}
         }
         self.tabs.remove(i);
+        self.router.close_tab(i);
         self.activate_tab(i.saturating_sub(1).min(self.tabs.len() - 1));
     }
 
@@ -2013,33 +2089,6 @@ impl App {
         d.width = 74;
         self.pending_confirm = Some((it.id.clone(), args));
         self.open_layer(Box::new(d), LayerTag::new("confirm-one"));
-    }
-
-    fn ensure_plan(&mut self, id: &str) {
-        if self.world.plan(id).is_some() {
-            return;
-        }
-        let plan = match id {
-            "docker-cleanup" => crate::domain::fixtures::plan_docker_cleanup(&self.world),
-            "upgrade" => crate::domain::fixtures::plan_upgrade(&self.world),
-            "git-pull-all" => crate::domain::fixtures::plan_git_pull_all(&self.world),
-            "git-switch-primary" => crate::domain::fixtures::plan_git_switch_primary(&self.world),
-            "upgrade-all" => crate::domain::fixtures::plan_upgrade_all(&self.world),
-            _ => {
-                let sel: Vec<String> = self
-                    .world
-                    .disk
-                    .candidates
-                    .iter()
-                    .filter(|c| {
-                        c.default_selected() && c.path.starts_with(&self.world.location.cwd)
-                    })
-                    .map(|c| c.path.clone())
-                    .collect();
-                crate::domain::fixtures::plan_cleanup_work(&self.world, &sel)
-            }
-        };
-        self.world.plans.push(plan);
     }
 
     /// The plan review's Confirm: gate it when it has a phrase, otherwise one
@@ -2210,8 +2259,8 @@ impl App {
                     return;
                 }
                 // leave the review pages
-                while self.tabs[0].stack.len() > 1 {
-                    self.tabs[0].stack.pop();
+                if !self.leave_review_pages() {
+                    return;
                 }
                 let tick = self.world.tick;
                 if let Some(p) = self.world.plan_mut(&id) {
@@ -2226,8 +2275,8 @@ impl App {
                 self.set_status(&format!("{title} started"), Tone::Secondary);
             }
             GateTarget::Item { item, args } => {
-                while self.tabs[0].stack.len() > 1 {
-                    self.tabs[0].stack.pop();
+                if !self.leave_review_pages() {
+                    return;
                 }
                 self.enter_top();
                 self.execute_item(&item, args);
@@ -2238,9 +2287,9 @@ impl App {
                 let outcome = crate::screens::cleanup::commit(&plan, &mut self.world);
                 match outcome {
                     Ok(index) => {
-                        while self.tabs[0].stack.len() > 1 {
-                            self.tabs[0].stack.pop();
-                        }
+                        // the deletion is committed: the report shows
+                        // whatever the review pages answer
+                        self.leave_review_pages();
                         self.push_page(Page::Report { index });
                         let n = plan.items.len();
                         self.set_status(
@@ -2525,33 +2574,37 @@ impl App {
         }
     }
 
-    /// Copy through the terminal's OSC 52 channel: the result names the
-    /// actual destination and never claims success the terminal cannot
-    /// deliver (I-F11).
+    /// Copy through the terminal's OSC 52 channel ([`shell::Clipboard`]
+    /// on the simulated terminal of `world.platform`): the result names
+    /// the actual destination and never claims success the terminal
+    /// cannot deliver (I-F11).
     pub fn copy_osc52(&mut self, value: String) {
         let p = &self.world.platform;
-        if !p.osc52 {
-            self.set_status(
+        // a simulated terminal: the result is read, nothing is written
+        let clipboard = shell::Clipboard::new()
+            .osc52(p.osc52)
+            .limit(p.osc52_limit)
+            .write(false);
+        let copied = clipboard.copy(&value);
+        match copied {
+            shell::Copied::Copied { .. } => {
+                let shown = truncate(&value.replace('\n', " · "), 40);
+                self.world.clipboard = Some(value);
+                self.clipboard_gen += 1;
+                self.set_status(
+                    &format!("Copied to the terminal clipboard (OSC 52, flushed) · {shown}"),
+                    Tone::Secondary,
+                );
+            }
+            shell::Copied::Unsupported => self.set_status(
                 "Not copied · this terminal does not accept OSC 52 · no system clipboard is wired",
                 Tone::Error,
-            );
-            return;
+            ),
+            shell::Copied::TooLarge { .. } => {
+                let (text, tone) = shell::Clipboard::report(&copied, &value, None);
+                self.set_status(&text, tone);
+            }
         }
-        let encoded = value.len().div_ceil(3) * 4;
-        if encoded > p.osc52_limit {
-            self.set_status(
-                &format!("Not copied · {encoded} encoded bytes exceed the terminal's {} byte OSC 52 limit", p.osc52_limit),
-                Tone::Error,
-            );
-            return;
-        }
-        let shown = truncate(&value.replace('\n', " · "), 40);
-        self.world.clipboard = Some(value);
-        self.clipboard_gen += 1;
-        self.set_status(
-            &format!("Copied to the terminal clipboard (OSC 52, flushed) · {shown}"),
-            Tone::Secondary,
-        );
     }
 
     // --------------------------------------------------------- alternatives
@@ -2846,7 +2899,9 @@ impl App {
         let open = !modals.is_empty();
         self.modals = modals;
         if open {
-            let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
+            // the hint bar, the last chrome row
+            let r = CHROME.regions(area).footer;
+            let footer = Rect::new(r.x, r.bottom() - 1, r.width, 1);
             self.footer(true).render(footer, buf, ctx, &mut self.shell);
         }
     }
@@ -2857,25 +2912,7 @@ impl App {
 
     /// The Here tab's trail, one part per page on its stack.
     fn crumb_parts(&self) -> Vec<String> {
-        let here = &self.tabs[0];
-        // a page nested inside its own family (the tree's Top files under
-        // Disk › Usage) repeats the family name; the trail keeps it once
-        let mut parts: Vec<String> = vec![];
-        for s in &here.stack {
-            let crumb = s.crumb(&self.world);
-            let (family, rest) = match crumb.split_once(" › ") {
-                Some((f, r)) => (f.to_owned(), Some(r.to_owned())),
-                None => (crumb.clone(), None),
-            };
-            let same_family = parts
-                .last()
-                .is_some_and(|prev| prev.split(" › ").next() == Some(family.as_str()));
-            match (same_family, rest) {
-                (true, Some(r)) => parts.push(r),
-                _ => parts.push(crumb),
-            }
-        }
-        parts
+        trail(self.router.tab(0).map(|s| s.crumb(&self.world)).collect())
     }
 
     fn tab_label(&self, i: usize) -> String {
@@ -2944,38 +2981,48 @@ impl App {
 
     fn draw_frame(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        let header = Rect::new(area.x, area.y, area.width, 1);
-        let strip = Rect::new(area.x + 1, area.y + 2, area.width.saturating_sub(2), 2);
-        let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-        let status = Rect::new(area.x, area.bottom() - 2, area.width, 1);
-        // one blank row separates the body from the status bar (shell rhythm)
-        let body = Rect::new(
-            area.x + 1,
-            area.y + 4,
-            area.width.saturating_sub(2),
-            area.height.saturating_sub(7),
+        let r = CHROME.regions(area);
+        // header: the menu bar, the trail row, the tab strip's two rows
+        let menu = Rect {
+            height: 1,
+            ..r.header
+        };
+        let strip = Rect::new(
+            r.header.x + 1,
+            r.header.y + 2,
+            r.header.width.saturating_sub(2),
+            2,
         );
-        self.draw_menu(header, buf, ctx);
+        // footer: a blank row between the body and the status bar (shell
+        // rhythm), the status bar, the hint bar
+        let status = Rect::new(r.footer.x, r.footer.bottom() - 2, r.footer.width, 1);
+        let footer = Rect::new(r.footer.x, r.footer.bottom() - 1, r.footer.width, 1);
+        self.draw_menu(menu, buf, ctx);
         // tab strip
         let items = self.strip_items();
         self.strip.set_items(items);
-        self.strip.set_active(self.active);
+        self.strip.set_active(self.active());
         self.strip.render(strip, buf, ctx, t.canvas);
         // a nested page shows its trail in the row above the tab strip:
         // every level back is a link (the page keeps its rows)
-        if self.active == 0 && self.tabs[0].stack.len() > 1 {
-            self.crumbs.segments = self.crumb_parts();
-            let row = Rect::new(strip.x + 1, area.y + 1, strip.width.saturating_sub(2), 1);
-            self.crumbs.render(row, buf, ctx, t.canvas);
+        if self.active() == 0 && self.router.depth() > 1 {
+            let mut crumbs = self.router.breadcrumb(CRUMBS, |s| s.crumb(&self.world));
+            crumbs.segments = trail(crumbs.segments);
+            let row = Rect::new(
+                strip.x + 1,
+                r.header.y + 1,
+                strip.width.saturating_sub(2),
+                1,
+            );
+            crumbs.render(row, buf, ctx, t.canvas);
+            self.crumbs = crumbs;
         } else {
-            self.crumbs.segments.clear();
-            self.crumbs.areas.clear();
+            self.crumbs = Breadcrumb::new(CRUMBS, vec![]);
         }
         // body
-        let active = self.active;
-        if let Some(s) = self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
-            s.render(body, buf, ctx, &self.world);
-        }
+        self.router
+            .current_mut()
+            .render(r.body, buf, ctx, &self.world);
         self.draw_status(status, buf, ctx);
         self.footer(false).render(footer, buf, ctx, &mut self.shell);
     }
@@ -3105,7 +3152,7 @@ impl App {
         use junie_tui::core::hints::{HasHints, HintCx};
         let focus = self.shell.focus.current();
         let editing = self.modals.top().is_some_and(|t| t.layer.is_editing())
-            || (!modal && self.top().is_some_and(|s| s.is_editing()) && self.active == 0);
+            || (!modal && self.top().is_some_and(|s| s.is_editing()) && self.active() == 0);
         let page = if focus == Some(TABS) {
             vec![
                 hint("←→", "Switch tab"),
@@ -3175,12 +3222,20 @@ impl shell::App for App {
     fn layer_open(&self) -> bool {
         !self.modals.is_empty()
     }
+    /// What quitting would stop or lose: live work ([`Self::quit_stakes`])
+    /// over every page's edits.
+    fn stakes(&mut self) -> Stakes {
+        let mut stakes = self.quit_stakes();
+        for p in self.router.pages_mut() {
+            stakes = stakes.max(shell::Page::<Holla>::stakes(p.as_mut(), &self.world));
+        }
+        stakes
+    }
     fn page_under_layer(&self) -> bool {
         self.menu.hides_page_focus() || self.modals.hides_page_focus()
     }
     fn page_key(&self) -> PageKey {
-        let depth = self.tabs.get(self.active).map_or(0, |t| t.stack.len());
-        PageKey::of((self.active, depth))
+        self.router.key()
     }
     fn primary_focus(&self) -> Option<WidgetId> {
         self.top().and_then(|s| s.primary_focus())
@@ -3220,6 +3275,63 @@ impl PointerHost for App {
     }
 }
 
+/// A trail of page crumbs: a page nested inside its own family (the
+/// tree's Top files under Disk › Usage) repeats the family name; the
+/// trail keeps it once.
+fn trail(crumbs: Vec<String>) -> Vec<String> {
+    let mut parts: Vec<String> = vec![];
+    for crumb in crumbs {
+        let (family, rest) = match crumb.split_once(" › ") {
+            Some((f, r)) => (f.to_owned(), Some(r.to_owned())),
+            None => (crumb.clone(), None),
+        };
+        let same_family = parts
+            .last()
+            .is_some_and(|prev| prev.split(" › ").next() == Some(family.as_str()));
+        match (same_family, rest) {
+            (true, Some(r)) => parts.push(r),
+            _ => parts.push(crumb),
+        }
+    }
+    parts
+}
+
+/// The plan `id` on the world, built from its fixture when it is not
+/// there yet.
+fn ensure_plan(world: &mut World, id: &str) {
+    if world.plan(id).is_some() {
+        return;
+    }
+    let plan = match id {
+        "docker-cleanup" => crate::domain::fixtures::plan_docker_cleanup(world),
+        "upgrade" => crate::domain::fixtures::plan_upgrade(world),
+        "git-pull-all" => crate::domain::fixtures::plan_git_pull_all(world),
+        "git-switch-primary" => crate::domain::fixtures::plan_git_switch_primary(world),
+        "upgrade-all" => crate::domain::fixtures::plan_upgrade_all(world),
+        _ => {
+            let sel: Vec<String> = world
+                .disk
+                .candidates
+                .iter()
+                .filter(|c| c.default_selected() && c.path.starts_with(&world.location.cwd))
+                .map(|c| c.path.clone())
+                .collect();
+            crate::domain::fixtures::plan_cleanup_work(world, &sel)
+        }
+    };
+    world.plans.push(plan);
+}
+
+/// A closed dialog's answer, for the leave guard.
+fn answer(result: &ModalResult) -> DialogResult {
+    match result {
+        ModalResult::Dialog {
+            action: Some(i), ..
+        } => DialogResult::Action(*i),
+        _ => DialogResult::Cancelled,
+    }
+}
+
 /// The derived alternatives [`App::run_derived`] runs, by id shape.
 fn derived_supported(alt: &str) -> bool {
     let mise_dry = alt
@@ -3234,15 +3346,34 @@ fn derived_supported(alt: &str) -> bool {
     mise_dry || ssh || activity || alt.ends_with(".alias")
 }
 
-/// holla's own shell commands ([`shell::ShellAction::App`]).
+/// holla's own commands: what its keys ([`shell::ShellAction::App`])
+/// and its menu items ([`shell::Menus`]) run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HollaCmd {
-    /// Ctrl+G: the activities picker.
+    /// Ctrl+G, Go › Activities…: the activities picker.
     Activities,
-    /// Ctrl+W: close the active tab.
+    /// Ctrl+W, File › Close tab: close the active tab.
     CloseTab,
-    /// Alt+digit: show that tab.
+    /// Alt+digit: show that tab (Go › Here is tab 0).
     Tab(u8),
+    /// File › Run: what Enter does on the page.
+    Run,
+    /// File › Alternatives…: what Alt+Enter does on the page.
+    Alternatives,
+    /// File › Copy command: the selected action's commands.
+    CopyCommand,
+    /// File › Quit.
+    Quit,
+    /// Go › a scope of the finder.
+    Scope(Scope),
+    /// Go › a group of the finder.
+    Group(&'static str),
+    /// Help › Key reference.
+    Help,
+    /// Help › Why is this here?
+    Why,
+    /// Help › About holla.
+    About,
 }
 
 /// holla's shell keys: the standard set without a quit letter, and its
@@ -3306,23 +3437,15 @@ impl shell::KeyHost for App {
                 self.open_help();
                 Outcome::Changed
             }
-            ShellAction::NextPage | ShellAction::PrevPage if self.tabs.is_empty() => {
-                Outcome::Ignored
+            ShellAction::NextPage => {
+                let n = self.router.tab_count();
+                self.tab_key((self.active() + 1) % n)
             }
-            ShellAction::NextPage => self.tab_key((self.active + 1) % self.tabs.len()),
             ShellAction::PrevPage => {
-                let n = self.tabs.len();
-                self.tab_key((self.active + n - 1) % n)
+                let n = self.router.tab_count();
+                self.tab_key((self.active() + n - 1) % n)
             }
-            ShellAction::App(HollaCmd::Activities) => {
-                self.open_activities();
-                Outcome::Changed
-            }
-            ShellAction::App(HollaCmd::CloseTab) => {
-                self.go(Go::CloseTab);
-                Outcome::Changed
-            }
-            ShellAction::App(HollaCmd::Tab(n)) => self.tab_key(n as usize),
+            ShellAction::App(cmd) => self.run_cmd(cmd),
             _ => Outcome::Ignored,
         }
     }
@@ -3350,7 +3473,7 @@ impl shell::KeyHost for App {
     /// Esc on another tab shows the Here tab; on the Here tab, the page's
     /// own ladder.
     fn esc_top(&mut self) -> Outcome {
-        if self.active != 0 {
+        if self.active() != 0 {
             self.activate_tab(0);
             return Outcome::Changed;
         }
