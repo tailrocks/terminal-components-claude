@@ -193,6 +193,7 @@ impl TextUtilitiesPage {
             Prop::new("truncate_sep", text::truncate_sep(TRAIL, w)),
             Prop::new("crumb_fit", text::crumb_fit(TRAIL, w)),
             Prop::new("slice_cells", text::slice_cells(SAMPLE, 9, w)),
+            Prop::new("clip", text::clip(SAMPLE, w)),
             Prop::new("fit", format!("[{}]", text::fit("ok", w))),
             Prop::new("fit_right", format!("[{}]", text::fit_right("42", w))),
             Prop::new(

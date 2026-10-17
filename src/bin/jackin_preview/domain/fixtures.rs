@@ -465,7 +465,7 @@ fn instance(
         status,
         created_secs: created,
         last_seen_secs: last_seen,
-        run_id: format!("run-{}", &id[3..]),
+        run_id: format!("run-{}", id.trim_start_matches("jk-")),
         sessions: Ok(vec![]),
         daemon: DaemonSnapshot::Unavailable,
         branch: None,
