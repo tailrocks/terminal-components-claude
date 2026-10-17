@@ -383,6 +383,9 @@ impl RevealState {
         }
         self.available = true;
         self.advertise(ctx);
+        if self.effective.hover || self.effective.keyboard.is_some() {
+            peek(ctx, full);
+        }
         if !self.open
             || self.effective.keyboard.is_none()
             || self.effective.mode != RevealMode::InlineWrap
@@ -419,6 +422,9 @@ impl RevealState {
         if cut && cursor && !ctx.inert {
             self.available = true;
             self.advertise(ctx);
+            if self.effective.hover || self.effective.keyboard.is_some() {
+                peek(ctx, full);
+            }
             if self.open && self.effective.keyboard.is_some() && !self.inlined {
                 self.track(id);
                 let feed = self.feed();
@@ -691,6 +697,25 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
 /// keys), so a narrow footer that drops hints from the right keeps it, and
 /// is skipped when its key is already advertised. `key_of` reads a hint's
 /// key, `make` builds one, so any hint type works.
+/// Publish `full`, the cut value under the focused widget's cursor, for
+/// the peek line ([`RenderCtx::peek`]): the footer shows it in full while
+/// nothing else is in its status slot. The first value of a frame wins;
+/// an inert frame (content under a modal) publishes nothing. Widgets with
+/// a [`RevealState`] publish through [`RevealState::cell`]; a table or grid
+/// calls this for its cursor cell (K12, SI8).
+pub fn peek(ctx: &mut RenderCtx, full: &str) {
+    if ctx.inert || ctx.peek.is_some() {
+        return;
+    }
+    // one line: a value's line breaks read as spaces
+    let one: String = full
+        .split(['\n', '\r', '\t'])
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    ctx.peek = Some(one);
+}
+
 pub fn advertise<T>(
     hints: &mut Vec<T>,
     reveal: Option<(&'static str, &'static str)>,

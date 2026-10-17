@@ -2926,6 +2926,12 @@ impl DataGrid {
                             Rect::new(rect.x, y, rect.width, 1),
                             &full,
                         );
+                        // the cursor cell's cut value reads in full on the
+                        // peek line (K12, SI8)
+                        let cfg = self.reveal.unwrap_or(ctx.reveal);
+                        if is_cursor && (cfg.hover || cfg.keyboard.is_some()) {
+                            crate::ui::reveal::peek(ctx, &full);
+                        }
                     }
                     if ref_mark {
                         buf.set_string(
