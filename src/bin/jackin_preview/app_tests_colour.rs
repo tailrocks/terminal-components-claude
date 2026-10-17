@@ -2,6 +2,7 @@
 //! jackin): each status, count and health part takes the library role
 //! that says what it is, checked on the rendered cells of the real App.
 
+use crate::pages::Pages;
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::style::Modifier;
@@ -48,7 +49,7 @@ fn col(h: &H, y: u16, from: u16, needle: &str) -> u16 {
 fn usage() -> H {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
     h.key(KeyCode::Char('u'));
-    assert_eq!(h.app.route, Route::Usage);
+    assert_eq!(h.app.route(), Route::Usage);
     h
 }
 
@@ -95,7 +96,7 @@ fn the_usage_health_line_tones_each_part() {
 fn the_accounts_health_line_and_warnings_tone_each_part() {
     let t = theme();
     let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     let (x, y) = find(&h, "Health        degraded");
     let d = col(&h, y, x, "degraded");
     assert_eq!(cell(&h, d, y).fg, t.error, "{}", row(&h, y));
@@ -137,7 +138,7 @@ fn provider_group_labels_are_muted_not_faint() {
 fn a_running_instance_shows_live_state_in_the_accent() {
     let t = theme();
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 140, 40);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     let (x, y) = find(&h, "◉ 7f3a");
     assert_eq!(cell(&h, x, y).fg, t.accent, "{}", row(&h, y));
     assert_eq!(cell(&h, x + 2, y).fg, t.text_primary);
@@ -228,7 +229,7 @@ fn a_stale_quota_warning_keeps_its_warning_level() {
     // the account detail's block meter: a block cannot be dashed, so the
     // fill keeps the warning hue, the value goes italic, the marker is `▲`
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
-    h.app.screens.accounts.selected =
+    h.app.router.accounts_mut().selected =
         crate::screens::accounts::Sel::Account("acct-claude-work".into());
     stale_work_at_90(&mut h);
     let (x, y) = find(&h, "Session · 5-hour   ");

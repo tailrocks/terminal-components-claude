@@ -1,6 +1,7 @@
 //! Mouse-only navigation in jackin (docs/audits/design-review-2026-10/mouse.md):
 //! every state is reachable, and every view can be left, by pointer alone.
 
+use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -31,7 +32,7 @@ fn hard_editor_roles() -> H {
     let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
     for _ in 0..8 {
         h.ticks(3);
-        if h.app.route == Route::Manager {
+        if h.app.route() == Route::Manager {
             break;
         }
         h.key(KeyCode::Enter);
@@ -122,7 +123,7 @@ fn help_closes_by_its_close_button_its_done_button_and_a_click_beside_it() {
 
 fn new_account_form() -> H {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("New account"), "{}", h.text());
     h
@@ -140,7 +141,7 @@ fn a_form_closes_by_the_close_button_in_its_frame() {
         .expect("form draws a close button");
     h.click(x.x + 1, x.y);
     assert!(!h.text().contains("New account"), "{}", h.text());
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
 }
 
 // mouse #24: an outside click the policy refuses flashes the frame
@@ -168,23 +169,23 @@ fn a_refused_outside_click_flashes_the_form_frame() {
 #[test]
 fn a_click_skips_the_intro() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Intro);
+    assert_eq!(h.app.route(), Route::Intro);
     h.ticks(3);
     h.click(60, 20);
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     // the knob turns it off
     let mut off = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     off.app.shell.pointer.config = off.app.shell.pointer.config.click_skips_animation(false);
     off.ticks(3);
     off.click(60, 20);
-    assert_eq!(off.app.route, Route::Intro);
+    assert_eq!(off.app.route(), Route::Intro);
 }
 
 // mouse #6: a running launch can be cancelled and its build log closed by mouse
 #[test]
 fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() {
     let mut h = H::new(Scenario::LaunchRunning, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Cockpit);
+    assert_eq!(h.app.route(), Route::Cockpit);
     let (x, y) = h.find("Cancel launch…").expect("a Cancel launch button");
     h.click(x + 1, y);
     assert!(h.text().contains("Cancel the launch?"), "{}", h.text());
@@ -223,8 +224,8 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
 #[test]
 fn a_taken_over_capsule_reconnects_by_mouse() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Capsule);
-    h.app.screens.capsule.as_mut().unwrap().takeover = Some("laptop".into());
+    assert_eq!(h.app.route(), Route::Capsule);
+    h.app.router.capsule_mut().unwrap().takeover = Some("laptop".into());
     h.draw();
     assert!(h.text().contains("Attach taken over"));
     let r = h
@@ -242,9 +243,9 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
     );
     h.click(r.x + 1, r.y);
     assert!(!h.text().contains("Attach taken over"), "{}", h.text());
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
 
-    h.app.screens.capsule.as_mut().unwrap().takeover = Some("laptop".into());
+    h.app.router.capsule_mut().unwrap().takeover = Some("laptop".into());
     h.draw();
     let r = h
         .app
@@ -253,7 +254,7 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
         .area_of(crate::screens::capsule::TAKEOVER_LEAVE)
         .expect("a Workspace manager button");
     h.click(r.x + 1, r.y);
-    assert_ne!(h.app.route, Route::Capsule, "{}", h.text());
+    assert_ne!(h.app.route(), Route::Capsule, "{}", h.text());
 }
 
 // mouse #13: the app's own modal frames (here the capsule's Usage) close by ×
@@ -282,7 +283,7 @@ fn an_app_modal_frame_closes_by_its_close_button() {
         .expect("the Usage modal has ×");
     h.click(x.x + 1, x.y);
     assert!(!h.text().contains("read-only projection"), "{}", h.text());
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
 }
 
 /// Every drawn roster row, as (column of its `◉`, its y, the instance id
@@ -321,12 +322,12 @@ fn a_roster_click_selects_the_instance_of_that_row() {
         let mut h = H::new(scenario, Motion::Reduced, 0, 200, 50);
         for _ in 0..8 {
             h.ticks(3);
-            if h.app.route == Route::Manager {
+            if h.app.route() == Route::Manager {
                 break;
             }
             h.key(KeyCode::Enter);
         }
-        if h.app.route != Route::Manager {
+        if h.app.route() != Route::Manager {
             continue;
         }
         h.draw();
@@ -336,10 +337,10 @@ fn a_roster_click_selects_the_instance_of_that_row() {
         }
         for (x, y, short) in rows.iter().rev() {
             h.click(*x, *y);
-            let RowKey::Instance(id) = &h.app.screens.manager.selected else {
+            let RowKey::Instance(id) = &h.app.router.manager().selected else {
                 panic!(
                     "{scenario:?}: the row at y {y} selected {:?}",
-                    h.app.screens.manager.selected
+                    h.app.router.manager().selected
                 );
             };
             assert_eq!(
