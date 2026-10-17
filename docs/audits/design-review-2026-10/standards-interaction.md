@@ -205,3 +205,21 @@ Open panel, then GNOME's file chooser):
   exactly as the `Dismiss` policy allows (default `ESCAPE`); the footer
   shows Esc only when it closes.
 
+## Scroll container and scroll chaining (owner priority, 2026-10-17)
+
+- Content larger than its area scrolls instead of being cut: the library
+  `ScrollView` (macOS scroll views; WCAG 2.2 1.4.10 Reflow and 2.4.11 Focus
+  Not Obscured). Bars show only on the axes that overflow; the corner where
+  both meet stays blank.
+- Scroll chaining (CSS `overscroll-behavior: auto`, macOS nested scroll
+  views): a scroller whose content fits on the notch's axis passes the
+  wheel to the one beneath it. A scroller that overflows keeps the notch
+  at its ends, so a page does not jump while a list is scrolled to its end
+  (the latching macOS applies within one gesture; a terminal has no
+  gesture boundary to release it). Before, a vertical `ScrollPane` or
+  `Stack` consumed every notch.
+- Keys: Page Up/Down and Home/End scroll a view when the focused control
+  leaves them unused (macOS scroll views; Fn+arrows on a laptop). macOS
+  has no sideways page key; Alt (Option)+Page Up/Down is the closest chord
+  terminals deliver. Overridable per view (`ScrollView::keys`).
+
