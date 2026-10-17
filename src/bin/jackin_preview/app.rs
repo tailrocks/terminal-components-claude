@@ -17,7 +17,6 @@ use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, ShellLayers, Taken,
 };
-use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, letters_allowed};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
@@ -163,9 +162,11 @@ pub struct App {
     /// world clock; an error stays until the next action), size, motion
     /// and quit: the library shell's state.
     pub shell: Shell,
-    /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Esc never
-    /// quits, `q` never fires over a field or unsaved edits.
-    pub quit_keys: QuitKeys,
+    /// The shell's keys ([`shell::KeyRouter`], [`shell_keys`]): Ctrl+C
+    /// and Ctrl+Q quit through the guard, Esc never quits, `q` leaves the
+    /// host screen (never over a field or unsaved edits), `u`/`c`/`s` the
+    /// host routes.
+    pub keys: shell::ShellKeys<JackinCmd>,
     /// A quit is waiting on the screen's unsaved-changes question: when
     /// that flow leaves for the manager (Save or Discard), the app quits.
     quit_after_leave: bool,
@@ -213,7 +214,7 @@ impl App {
             screens: Screens::default(),
             layers: ShellLayers::new(),
             shell,
-            quit_keys: QuitKeys::DEFAULT,
+            keys: shell_keys(),
             quit_after_leave: false,
             host_menu: Self::build_host_menu(Route::Manager),
             host_menu_route: Route::Manager,
@@ -367,11 +368,7 @@ impl App {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => self.on_paste(&text),
-            Input::Key(key) => {
-                self.shell.pointer.suppress_hover();
-                // shortcuts first, then type-ahead (one rule, in the library)
-                junie_tui::core::list::route_key(&key, || self.on_key(key))
-            }
+            Input::Key(key) => shell::KeyRouter::route(self, &key),
             Input::Mouse(m) => PointerRouter::route(self, m),
         }
     }
@@ -499,17 +496,14 @@ impl App {
         self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
-    fn on_key(&mut self, key: Key) -> Outcome {
-        if self.shell.too_small {
-            if key.is_char('q') || key.ctrl_char('c') {
-                self.shell.quit = true;
-            }
-            return Outcome::Consumed;
-        }
+    /// A key on a full-screen sequence (the intro, the outro, the
+    /// handoff): Enter and Esc skip it; Ctrl+C leaves the intro and the
+    /// outro at once. `None` on any other route.
+    fn sequence_key(&mut self, key: &Key) -> Option<Outcome> {
         match self.route {
             Route::Intro => {
                 if self.intro_guard > 0 && self.shell.motion != Motion::Paused {
-                    return Outcome::Consumed;
+                    return Some(Outcome::Consumed);
                 }
                 if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
                     if let Some(s) = self.intro.as_mut() {
@@ -518,13 +512,13 @@ impl App {
                             self.finish_intro();
                         }
                     }
-                    return Outcome::Changed;
+                    return Some(Outcome::Changed);
                 }
                 if key.ctrl_char('c') {
                     self.world.arbiter.release_entry();
                     self.shell.quit = true;
                 }
-                return Outcome::Consumed;
+                Some(Outcome::Consumed)
             }
             Route::Outro => {
                 if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
@@ -534,175 +528,46 @@ impl App {
                             self.shell.quit = true;
                         }
                     }
-                    return Outcome::Changed;
+                    return Some(Outcome::Changed);
                 }
                 if key.ctrl_char('c') {
                     self.shell.quit = true;
                 }
-                return Outcome::Consumed;
+                Some(Outcome::Consumed)
             }
             Route::Handoff => {
                 if matches!(key.code, KeyCode::Enter | KeyCode::Esc) {
                     self.finish_handoff();
                 }
-                return Outcome::Changed;
+                Some(Outcome::Changed)
             }
-            _ => {}
+            _ => None,
         }
-        if !self.layers.is_empty() {
-            return self.layer_key(key);
-        }
-        // back on the page: a quit that waited on the leave question was
-        // cancelled
-        self.quit_after_leave = false;
-        if key.ctrl_char('c') && self.route != Route::Cockpit && self.route != Route::Capsule {
-            let kc = KeyContext::default();
-            if self.quit_keys.classify(&key, kc) == Some(LeaveKey::Quit) {
-                return self.request_quit();
-            }
-        }
+    }
+
+    /// The host screen's page is editing or has its own menu open.
+    fn host_editing(&self) -> bool {
+        self.screens
+            .get(self.route)
+            .is_some_and(|s| s.is_editing() || s.layer_open())
+    }
+
+    /// `q` on a host screen: never over unsaved edits; the manager quits,
+    /// any other host screen goes back to it.
+    fn leave_key(&mut self) -> Outcome {
         let route = self.route;
-        // an open page menu owns the keyboard like a text field does: no
-        // global chord reaches past it
-        let editing = self
+        let dirty = self
             .screens
-            .get(route)
-            .is_some_and(|s| s.is_editing() || s.layer_open());
-        // global chords (never while editing, never inside the Capsule/Cockpit)
-        let host = matches!(
-            route,
-            Route::Manager
-                | Route::Accounts
-                | Route::Usage
-                | Route::Settings
-                | Route::Editor
-                | Route::Prelude
-        );
-        if host && self.host_menu.is_open() {
-            let (o, ev) = self.host_menu.on_key(&key);
-            return match ev {
-                Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.host_menu.menus[mi][ii].label.clone();
-                    self.run_host_menu(&label)
-                }
-                Some(MenuBarAction::Brand) => {
-                    self.open_about();
-                    Outcome::Changed
-                }
-                _ => o.or(Outcome::Changed),
-            };
+            .get_mut(route)
+            .is_some_and(|s| !s.stakes(&self.world).is_clean());
+        if dirty {
+            self.set_status("Unsaved changes · save, or Esc to leave", Tone::Secondary);
+        } else if route == Route::Manager {
+            return self.request_quit();
+        } else {
+            self.go(Go::Manager);
         }
-        // plain F10 is the menu bar; Shift+F10 is the page's context key
-        if host && !editing && key.code == KeyCode::F(10) && !key.shift() {
-            self.sync_host_menu();
-            self.host_menu.open_menu(0);
-            return Outcome::Changed;
-        }
-        if host && !editing {
-            match key.code {
-                KeyCode::Char('?') => {
-                    self.open_help();
-                    return Outcome::Changed;
-                }
-                KeyCode::Char('u')
-                    if key.plain() && matches!(route, Route::Manager | Route::Accounts) =>
-                {
-                    self.go(Go::Usage { select: None });
-                    return Outcome::Changed;
-                }
-                KeyCode::Char('c')
-                    if key.plain() && matches!(route, Route::Manager | Route::Usage) =>
-                {
-                    self.go(Go::Accounts { select: None });
-                    return Outcome::Changed;
-                }
-                KeyCode::Char('s')
-                    if key.plain()
-                        && matches!(route, Route::Manager | Route::Accounts | Route::Usage) =>
-                {
-                    self.go(Go::Settings);
-                    return Outcome::Changed;
-                }
-                KeyCode::Char(_)
-                    if key.ctrl()
-                        && self.quit_keys.classify(&key, KeyContext::default())
-                            == Some(LeaveKey::Quit) =>
-                {
-                    return self.request_quit();
-                }
-                _ => {}
-            }
-        }
-        let out = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_key(&key, w, cx));
-        if out.consumed() {
-            if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
-                && key.plain()
-                && !editing
-                && let Some(f) = self.shell.focus.current()
-            {
-                let now = self.now_ms();
-                self.shell.pointer.flash(f, now);
-            }
-            return out;
-        }
-        match key.code {
-            KeyCode::Tab => {
-                self.shell.focus.next(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::BackTab => {
-                self.shell.focus.prev(&self.shell.ring);
-                Outcome::Changed
-            }
-            // a quit chord an editing field passed on (fields bind no
-            // Ctrl+Q): through the same guard
-            KeyCode::Char(_)
-                if host
-                    && key.ctrl()
-                    && self.quit_keys.classify(
-                        &key,
-                        KeyContext {
-                            text_focus: editing,
-                            ..KeyContext::default()
-                        },
-                    ) == Some(LeaveKey::Quit) =>
-            {
-                self.request_quit()
-            }
-            KeyCode::Char('q') if key.plain() && !editing && host => {
-                // a letter never leaves unsaved edits (keyboard audit #4)
-                let dirty = self
-                    .screens
-                    .get_mut(route)
-                    .is_some_and(|s| !s.stakes(&self.world).is_clean());
-                let kc = KeyContext {
-                    text_focus: editing,
-                    dirty,
-                    ..KeyContext::default()
-                };
-                if !letters_allowed(kc) {
-                    self.set_status("Unsaved changes · save, or Esc to leave", Tone::Secondary);
-                } else if route == Route::Manager {
-                    return self.request_quit();
-                } else {
-                    self.go(Go::Manager);
-                }
-                Outcome::Changed
-            }
-            KeyCode::Esc => {
-                let o = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_esc_top(w, cx));
-                if o != Outcome::Ignored || !host {
-                    return o;
-                }
-                // the top of the ladder: Esc never quits unless configured
-                if self.quit_keys.classify(&key, KeyContext::default()) == Some(LeaveKey::Quit) {
-                    return self.request_quit();
-                }
-                self.set_status("Esc never quits · Ctrl+Q quits", Tone::Secondary);
-                Outcome::Changed
-            }
-            _ => Outcome::Ignored,
-        }
+        Outcome::Changed
     }
 
     /// Every quit (Ctrl+Q, Ctrl+C, `q`, the menu) goes through here: a
@@ -1587,7 +1452,7 @@ impl App {
         // a footer hint naming one key runs it (mouse #1)
         if ev.on(HintBar::ID) {
             return match self.shell.footer_keys.clicked(ev) {
-                Some(key) => self.on_key(key).or(Outcome::Changed),
+                Some(key) => shell::KeyRouter::replay(self, &key).or(Outcome::Changed),
                 None => Outcome::Consumed,
             };
         }
@@ -1606,10 +1471,13 @@ impl App {
         if matches!(self.route, Route::Intro | Route::Outro)
             && self.shell.pointer.config.click_skips_animation
         {
-            return self.on_key(Key {
-                code: KeyCode::Enter,
-                mods: KeyModifiers::NONE,
-            });
+            return shell::KeyRouter::replay(
+                self,
+                &Key {
+                    code: KeyCode::Enter,
+                    mods: KeyModifiers::NONE,
+                },
+            );
         }
         Outcome::Ignored
     }
@@ -2341,5 +2209,167 @@ impl PointerHost for App {
             self.host_menu.close();
         }
         Response::changed()
+    }
+}
+
+/// jackin's own shell commands ([`shell::ShellAction::App`]): the host
+/// screens' letters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JackinCmd {
+    /// `u`: Usage (from the manager and accounts).
+    Usage,
+    /// `c`: Accounts (from the manager and usage).
+    Accounts,
+    /// `s`: Settings (from the manager, accounts and usage).
+    Settings,
+    /// `q`: leave the host screen (the manager quits).
+    Leave,
+}
+
+/// jackin's shell keys: the standard set without a quit letter (`q`
+/// leaves the screen instead), the host letters before the page, and the
+/// menu bar never over an editing field.
+pub fn shell_keys() -> shell::ShellKeys<JackinCmd> {
+    use junie_tui::core::keymap::KeyBinding;
+    use shell::ShellAction::{self, App as Cmd};
+    shell::ShellKeys::new()
+        .quit(junie_tui::ui::leave::QuitKeys::DEFAULT.letter(None))
+        .bind(KeyBinding::char('u'), Cmd(JackinCmd::Usage))
+        .bind(KeyBinding::char('c'), Cmd(JackinCmd::Accounts))
+        .bind(KeyBinding::char('s'), Cmd(JackinCmd::Settings))
+        .bind_fallback(KeyBinding::char('q'), Cmd(JackinCmd::Leave))
+        .idle_only(ShellAction::MenuBar)
+}
+
+impl shell::KeyHost for App {
+    type Cmd = JackinCmd;
+
+    fn shell_keys(&self) -> &shell::ShellKeys<JackinCmd> {
+        &self.keys
+    }
+
+    /// The intro, outro and handoff own the keyboard, then the layer
+    /// stack. With neither, the user is back on the page: a quit that
+    /// waited on the leave question was cancelled.
+    fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
+        if let Some(o) = self.sequence_key(key) {
+            return Some(o);
+        }
+        if !self.layers.is_empty() {
+            return Some(App::layer_key(self, *key));
+        }
+        self.quit_after_leave = false;
+        None
+    }
+
+    fn menu_key(&mut self, key: &Key) -> Option<Outcome> {
+        if !(Self::is_host(self.route) && self.host_menu.is_open()) {
+            return None;
+        }
+        let (o, ev) = self.host_menu.on_key(key);
+        Some(match ev {
+            Some(MenuBarAction::Chosen(mi, ii)) => {
+                let label = self.host_menu.menus[mi][ii].label.clone();
+                self.run_host_menu(&label)
+            }
+            Some(MenuBarAction::Brand) => {
+                self.open_about();
+                Outcome::Changed
+            }
+            _ => o.or(Outcome::Changed),
+        })
+    }
+
+    /// The cockpit and the capsule are sessions that own the keyboard; a
+    /// host screen captures while a field edits or its own menu is open.
+    fn capturing(&self) -> bool {
+        matches!(self.route, Route::Cockpit | Route::Capsule) || self.host_editing()
+    }
+
+    fn shell_action(&mut self, action: shell::ShellAction<JackinCmd>, _key: &Key) -> Outcome {
+        use shell::ShellAction;
+        let route = self.route;
+        if !Self::is_host(route) {
+            return Outcome::Ignored;
+        }
+        match action {
+            ShellAction::MenuBar => {
+                self.sync_host_menu();
+                self.host_menu.open_menu(0);
+                Outcome::Changed
+            }
+            ShellAction::Help => {
+                self.open_help();
+                Outcome::Changed
+            }
+            ShellAction::App(JackinCmd::Usage)
+                if matches!(route, Route::Manager | Route::Accounts) =>
+            {
+                self.go(Go::Usage { select: None });
+                Outcome::Changed
+            }
+            ShellAction::App(JackinCmd::Accounts)
+                if matches!(route, Route::Manager | Route::Usage) =>
+            {
+                self.go(Go::Accounts { select: None });
+                Outcome::Changed
+            }
+            ShellAction::App(JackinCmd::Settings)
+                if matches!(route, Route::Manager | Route::Accounts | Route::Usage) =>
+            {
+                self.go(Go::Settings);
+                Outcome::Changed
+            }
+            ShellAction::App(JackinCmd::Leave) => self.leave_key(),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// The host menu bar as a focus stop (K11): Enter or ↓ opens it, ← →
+    /// move between its titles, Esc hands focus back to the page.
+    fn chrome_key(&mut self, key: &Key) -> Outcome {
+        if !(Self::is_host(self.route) && self.shell.focus.is(HOST_MENU)) {
+            return Outcome::Ignored;
+        }
+        self.sync_host_menu();
+        let (o, ev) = self.host_menu.on_key(key);
+        if let Some(MenuBarAction::Opened(_)) = ev {
+            return Outcome::Changed;
+        }
+        if o.consumed() {
+            return o;
+        }
+        if key.is(KeyCode::Esc) {
+            let pf = self.screens.get(self.route).and_then(|s| s.primary_focus());
+            self.shell.focus.set(pf);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn page_key(&mut self, key: &Key) -> Outcome {
+        let route = self.route;
+        self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_key(key, w, cx))
+    }
+
+    /// Esc at the top: the page's ladder. A session (cockpit, capsule)
+    /// keeps an Esc it does not use; a host screen at its top shows that
+    /// Esc never quits.
+    fn esc_top(&mut self) -> Outcome {
+        let route = self.route;
+        let o = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_esc_top(w, cx));
+        if Self::is_host(route) {
+            o
+        } else {
+            o.or(Outcome::Consumed)
+        }
+    }
+
+    fn request_quit(&mut self) -> Outcome {
+        App::request_quit(self)
+    }
+
+    fn note(&mut self, text: &str) {
+        self.set_status(text, Tone::Secondary);
     }
 }
