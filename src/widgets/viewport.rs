@@ -546,6 +546,14 @@ pub enum ViewportCmd {
 }
 
 impl Actions for ViewportCmd {
+    fn label(self) -> &'static str {
+        match self {
+            ViewportCmd::ToggleFollow => "Follow",
+            ViewportCmd::Copy => "Copy",
+            ViewportCmd::SelectAll => "Select all",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         let mut map = vec![
             (KeyBinding::char('f'), ViewportCmd::ToggleFollow),

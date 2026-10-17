@@ -415,6 +415,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::ty("core::hints::Binding"),
     Capability::function("core::hints::keymap_bindings"),
     Capability::function("core::hints::nav_hints"),
+    Capability::function("core::hints::actions_bindings"),
+    Capability::function("core::hints::nav_bindings"),
     // core::list
     Capability::ty("core::list::Cursor"),
     Capability::builder("core::list::Cursor::wrap"),
@@ -1785,6 +1787,10 @@ pub static CAPABILITIES: &[Capability] = &[
     // widgets::help
     Capability::ty("widgets::help::HelpCmd"),
     Capability::variant("widgets::help::HelpCmd::Close"),
+    Capability::ty("widgets::help::HelpSection"),
+    Capability::builder("widgets::help::HelpSection::row"),
+    Capability::builder("widgets::help::HelpSection::bindings"),
+    Capability::function("widgets::help::HelpSection::is_empty"),
     Capability::ty("widgets::help::HelpOverlay"),
     Capability::builder("widgets::help::HelpOverlay::nav"),
     Capability::builder("widgets::help::HelpOverlay::keymap"),

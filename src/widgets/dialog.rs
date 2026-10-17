@@ -177,6 +177,13 @@ pub enum DialogCmd {
 }
 
 impl Actions for DialogCmd {
+    fn label(self) -> &'static str {
+        match self {
+            DialogCmd::Confirm => "Confirm",
+            DialogCmd::Cancel => "Cancel",
+        }
+    }
+
     /// Empty: the label mnemonics ([`Dialog::mnemonics`]) are the
     /// letter keys of a dialog. Bind `y`/`n` here to restore them.
     fn default_keymap() -> KeyMap<Self> {
