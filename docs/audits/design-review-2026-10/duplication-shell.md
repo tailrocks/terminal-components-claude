@@ -73,3 +73,26 @@ Pages implement `shell::Page<World>` (render, keymap, hints, key and mouse hooks
 7. `Router`/tabs, `Chrome` menu bar, context menus, `QuitGuard`, `Clipboard`.
 
 Each step deletes the matching rows above in all four apps together. Drift gets decided once, in the library defaults: Press focus, 5 s status on the shell clock, Ctrl+C = interrupt then force quit, F1 and `?` for help, `Reduced` motion everywhere, auto "Tab Next" with de-duplication. Estimated removal: about 4.5–5k lines from the four `app.rs` + `main.rs`.
+## Status (T19 sync, 2026-10-17)
+
+Every row is consolidated into the plan ([`shared-components-plan.md`](../../architecture/shared-components-plan.md)); rows are numbered in table order, and each names its owning step, with the commits from the plan's "Step status" checked against the code at `942b869d7` (`git log -S`, `rg`). Open ids are those of [`docs/remaining-work.md`](../../remaining-work.md).
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 Mouse routing | Fixed (S6) | `d821cd98e`, `85f6781cf`, `2fbbb0a12`, `1c039a735`, `13cea0a2c`, `a8bf23d30`, `69383ed6e` | `PointerRouter` + `MouseTarget` in every app; `on_mouse`, `route_mouse`, `on_release`, `modal_click` gone. Drift settled per plan §3 (Press focus, flash, drag-end, middle click). |
+| 2 Modal layer dispatch | Fixed (S5, S7) | `4851af3e3`, `0afc08a4b`, `5d7422edb`, `7606cd962`, `521e1437e`, `ffbb3f2a1` | `ShellLayers` in all four apps (showcase in S7); `Modal` enums, `ModalTag`, `modal_key`, `deliver`, `push_modal`/`pop_modal` gone. Dismissal resolves to the cancel result. |
+| 3 Page contract, Cx, Request | Fixed (S7) | `14d6cdbc1`, `dce094419`, `fb7df2aa2`, `d0101b8d0`, `a8da160c0`, `8513a9cd6` | One `shell::Page`, library `Cx`/`Request`; background pages keep statuses only. CO9 (holla background tick and message requests) stays with S8a. |
+| 4 Keyboard routing order | Open → S8a | — | Four `on_key` functions still in the apps (`src/bin/*/app.rs`); `KeyRouter`/`ShellKeys` not started. Ctrl+C rule is SI17 (S14). |
+| 5 Focus upkeep | Fixed (S7) | `14d6cdbc1`, `777adce9a`, `ca36871d7` | Shell focus upkeep (`FocusFallback::Nearest`, primary on page change, K8) and blur fan-out to every layer and page; four `forward_blur` and render tails deleted. |
+| 6 Help overlay | Open → S8b | — | `HelpOverlay::from_keymaps` not built; per-app help renderers remain. |
+| 7 Hint bar + status line | Open → S8b (status line Fixed in S2) | `ae4d7eb41` (status) | `shell::StatusLine`: 5 s on the app clock, errors persist (SV11). Four `draw_footer` functions remain for `shell::Footer` (S8b, CO4, CO5). |
+| 8 Tick, animation, clock, motion | Fixed (S2, S7) | `a5b1a82cf`, `45968977b`, `8396c3d11`, `14d6cdbc1` | `motion::Motion` with Reduced and `<APP>_NO_MOTION` everywhere, `clock::{WallClock, SimClock}`; H/J `clock.rs` deleted; the shell drives tick and `Interaction`. |
+| 9 CLI, theme, runtime wiring | Fixed (S2) | `262b70d60`, `45968977b` | `cli::CommonArgs` flattened in every `main.rs`; stale-input drain in all apps (`shell::run`); `tests/cli.rs`. `--no-motion` flag replaced by the env var (S2 deviation 4). |
+| 10 Render prologue + too-small | Fixed (S2, S7) | `96af80573`, `14d6cdbc1` | `widgets::too_small::TooSmall` in all apps; the four render prologues deleted with `shell::render`. |
+| 11 Menu bar | Open → S14 | — | `Chrome::menu_bar` with typed `Cmd`; label-string re-dispatch (H, J) still present. |
+| 12 Context-menu routing | Open → S22, CO15 | — | tablepro's menu is a `Layer` since S5 (`5d7422edb`); holla `row_anchor`/`open_context` moved to `shell` in S7. jackin per-screen menus and `CommandMenu`/`ContextAnchor` remain (S22). |
+| 13 Quit / leave guards | Open → S14 | — | `request_quit`/`open_quit_confirm` remain; library `ui::leave::LeaveGuard` exists (keyboard.md #4). |
+| 14 Navigation / routing | Open → S14 | — | `shell::Router` not built; per-app `go`/`goto` remain. |
+| 15 Clipboard | Open → S14 | — | `shell::Clipboard` not built; holla `copy_osc52` remains. |
+| 16 Small helpers | Open → A16 for paste routing; rest Fixed (S2) | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::plural` and `Theme::centred_hints` adopted. Paste still routed per app (`Input::Paste` in all four `app.rs`); no step names it; suggested owner S8a. |
+| Gap: `InputConfig` per app | Fixed | `8016cb3ab` | `runtime::Application::input_config` lets an app set its `InputConfig` (SC28 commit). |

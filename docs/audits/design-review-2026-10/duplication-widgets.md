@@ -105,3 +105,27 @@ Notes:
 - Line numbers are from `origin/design/interaction-polish` at `6dc41693b`, paths under `src/`.
 - I read the code from a `git archive` copy (the worktree checkout was slow to finish). The worktree has since been removed. Nothing in the repo was edited, and the `visual-baseline` tag was not touched. No tests were run.
 - The leftover snapshot and grep files are under `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/dup-widgets/`.
+## Status (T19 sync, 2026-10-17)
+
+Every row is consolidated into the plan ([`shared-components-plan.md`](../../architecture/shared-components-plan.md)); rows are numbered in table order, and each names its owning step, with the commits from the plan's "Step status" checked against the code at `942b869d7` (`git log -S`, `rg`). Open ids are those of [`docs/remaining-work.md`](../../remaining-work.md).
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 Cursor stepping, NavKeys | Fixed (S4) | `7c35fe986`, `bce2a2080`, `78241eebf`, `33f217bf3`, `0cb707165`, `40cb73b1d` | `core::list::{Cursor, RowSource}`; 21 `nav.action` blocks step through `Cursor`; `tests/navigable.rs`. Widgets keep `cursor: usize` until `ListCore` (S13). |
+| 2 Type-ahead, chord guard | Fixed (S4) | `7c35fe986`, `bce2a2080`, `78241eebf` | `Cursor::type_ahead`, miss = Consumed, enabled-row predicate everywhere. Guard is `keymap::unassigned_chord` per widget; one call in `KeyRouter` is CO1 (S8a). |
+| 3 Multi-selection model | Open → S9 | — | `SelectGesture`, `RowSelection::apply` not built; List `checked`/`anchor`, Grid `selected_rows` remain. |
+| 4 Scroll pane | Fixed (S3, S6) | `d2f591b80`, `72af0091c`, `3760a4dff`, `f81a86465`, `780e4f18a`, `7efcf8e45` | 17 widgets embed `ScrollPane`; h-step and dead bars fixed (`tests/scroll_panes.rs`). Select, OptionEditor, ContextMenu wait for S12 (CO6). |
+| 5 Popup option lists | Open → S12, CO6 | — | `OptionList` not built; wheel policy decided in plan §3 (scroll the view). |
+| 6 Click count, activation | Open → S9, S11 | `d821cd98e` (count) | `PointerEvent::count()` reaches every widget (S6). `ClickPolicy`/`Activate` is S9 (CO10); CodeEditor multi-click is M2 (S11). |
+| 7 Text editing outside `TextBuffer` | Open → S11 | — | `EditField` not built; picker and combo queries, table/grid cell editors still separate. |
+| 8 Validation | Open → S11 | — | `Validate`/`Validator`/`ValidateWhen` not built; three validator types remain. |
+| 9 Row painting | Open → S10 | — | `RowUi`/`RowPaint` not built. |
+| 10 Hit-id plumbing | Fixed (S1, S6) | `cbcde8d64`, `69383ed6e`, `5b9a37413` | Part-tagged hits; `rg 'fn owns\b\|fn locate\b' src` = 0. Remaining `PartMap`, `item_of`, `contains_id` are CO8 (S15). |
+| 11 Overlay dismissal API | Fixed (S5) | `4851af3e3`, `0afc08a4b`, `5ff329332`, `bcbf5fa1b` | `Overlay` on Dialog, Form, Choice, Info, Help, Picker, ContextMenu, MenuBar, Select, Completion. `ChoiceEditor` waits for S12 (S5 deviation 7). |
+| 12 Event and `Outcome` conventions | Open → S15 (`Response` Fixed in S0) | `a3e367e8f` | `Response<A>` and `XAction` naming exist; one `handle` signature (`Component`) is S15. |
+| 13 Render signatures | Open → S15 | — | `Draw`/`Measure` and removal of free render functions are S15. |
+| 14 Hint generation | Open → S8b | — | `HasHints` from key maps not built. |
+| 15 Context-menu sources | Open → S13 (`context_select` Fixed in S4) | `ffa83cf8a` | `context_select` goes through `Cursor::select`; `ContextSource` for Props, Steps, Viewport, text widgets, Picker, Chips is S13. |
+| 16 Reveal and truncation | Open → S10, A12 | — | Keyboard reveal in other widgets is K12/SI8 (S10). |
+| 17 Empty, loading, disabled | Open → S13 | — | `ContentState` not built; List still has two empty APIs. |
+| 18 Builder naming | Open → S15 | — | `wrap_cursor`/`wrap_lines`/`scroll(ScrollConfig)` renames are S15. |
