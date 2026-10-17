@@ -58,18 +58,18 @@ drive (hover, `→`, an overflow menu); **c** audit limitation.
 
 | Id | Kind | Cause | Where (examples) | Shared fix |
 |---|---|---|---|---|
-| R-apps-1 | a | **Fixed** (rapps-6-1): chrome strips dropped whole items by priority with no `…` and no reveal: the top strip / header segments and the status bar. Now the dropped items collapse into one `…` overflow item (`ui::reveal::overflow`, first of the right side) whose expansion tooltip shows them on hover; the audit counts them as reached through that reveal, like text cut with `…` (`ui::reveal::overflowed`). 46 allow lines gone, 58 shrank. Tests `dropped_segments_collapse_into_an_overflow_item_that_reveals_them`, `dropped_items_collapse_into_an_overflow_item_that_reveals_them`. Open: the `…` is pointer-only; strips are chrome outside the focus ring, so the keyboard path is A11 (focusable status bar peek line). Allow lines still tagged R-apps-1 hold words of other classes (re-triage). | `widgets/segments.rs:104` (tablepro `app.rs:2137`, jackin `app.rs:1919`), `widgets/statusbar.rs:199-226` (jackin capsule, holla) | Dropped segments and status items collapse into one `…` item that reveals them (`ui::reveal`). |
+| R-apps-1 | a | **Fixed** (rapps-6-1): chrome strips dropped whole items by priority with no `…` and no reveal: the top strip / header segments and the status bar. Now the dropped items collapse into one `…` overflow item (`ui::reveal::overflow`, first of the right side) whose expansion tooltip shows them on hover; the audit counts them as reached through that reveal, like text cut with `…` (`ui::reveal::overflowed`). 46 allow lines gone, 58 shrank. Tests `dropped_segments_collapse_into_an_overflow_item_that_reveals_them`, `dropped_items_collapse_into_an_overflow_item_that_reveals_them`. Open: the `…` is pointer-only; strips are chrome outside the focus ring, so the keyboard path is A11 (focusable status bar peek line). Re-triaged (rapps-6b-2): the 68 allow lines still tagged R-apps-1 hold only words of other classes (the strips' dropped items are reached through the `…`); the tag is gone from them. | `widgets/segments.rs:104` (tablepro `app.rs:2137`, jackin `app.rs:1919`), `widgets/statusbar.rs:199-226` (jackin capsule, holla) | Dropped segments and status items collapse into one `…` item that reveals them (`ui::reveal`). |
 | R-apps-2 | a | Hand-rolled master-detail drops the detail (or a third column) below a width instead of collapsing into the library's summary and drawer. | tablepro connections `connections.rs:1230` (<80), EXPLAIN node card `tabs.rs:1880` (<110); jackin manager aside `manager.rs:2488` (<150), editor/settings detail `config.rs:768` (<150), usage `usage.rs:939`; holla plan summary drawn over the drawer `plan.rs:993` | `ui::master_detail::MasterDetail` (drawer when narrow; an aside pane that stacks under the detail). |
 | R-apps-3 | a | A metadata column is dropped (all rows or per row) without `…`, or a hand-rolled table zeroes columns. | `widgets/tree.rs:980,1073` (explorer counts "312"), `widgets/list.rs:309` (history "412 ms"); holla files `files.rs:762-800`, plan headings `plan.rs:1646`; jackin mounts `config.rs:2556` | Tree / List cut the meta with `…` and reveal it; tables move onto `widgets::table` (column priority, horizontal bar, cell reveal). |
 | R-apps-4 | a | Text cut with `…` but no reveal registered. | `widgets/input.rs:877,944`, `widgets/picker.rs:708`, `widgets/page_header.rs:120-150`, `Heading` (`page_header.rs:197`); holla `review.rs:521`, `snapshot.rs:1497`, `disk.rs:1635`; jackin `manager.rs:1812`, `cockpit.rs:911` | One `ui::text` cut that registers its reveal, so no caller can cut without one. |
 | R-apps-5 | a | Line clamps drop text without `…`. | tablepro safe-mode description `connections.rs:1523` (`.take(2)`), `widgets/notice.rs:90` (`max_lines = 2`, the error card) | `Notice` and a shared wrap-clamp mark the cut and reveal or scroll it. |
-| R-apps-6 | a | Fixed-size bodies drop rows with no scrollbar. **Partly fixed**: holla disk no longer drops its Filesystems below 22 rows (the tree under them scrolls; test `a_short_screen_keeps_the_disk_filesystems`). Open: | `widgets/props.rs:182,199` (`props::render`, no `RenderCtx`, so it cannot host a `ScrollView`), tablepro `tabs.rs:2706,1820,1846`; holla fact sheets `review.rs:488`; jackin detail `manager.rs:1265`, the settings Agents footnote, cockpit credentials | The shared two-axis scroll container (branch `responsive-lib`) around page bodies; `PropsList` scrolls. |
+| R-apps-6 | a | Fixed-size bodies drop rows with no scrollbar. **Partly fixed**: holla disk no longer drops its Filesystems below 22 rows (the tree under them scrolls; test `a_short_screen_keeps_the_disk_filesystems`). 2026-10-17 (rapps-6b-2): `props::render_in` draws a sheet through a vertical `ScrollView` at its natural height; holla gate, trust and snapshot facts, tablepro history detail card (query, facts, actions) and executed-statement card, and the jackin settings Agents tab now scroll instead of dropping rows. A wheel notch never moves further than its view (`ScrollPane::wheel`): a two-row view no longer skips a row per notch (this also cleared tablepro result-rows 72×20, R-apps-12). Tests `a_sheet_taller_than_its_area_scrolls_to_its_last_row`, `a_notch_never_moves_further_than_the_view`, `a_short_screen_scrolls_the_review_facts` (holla), `a_short_result_pane_scrolls_the_statement_facts` (tablepro). Open: jackin manager detail (its own row scroll over hand-drawn rows), cockpit credentials line (dropped under the rail when the centred block does not fit), holla config and cleanup-history bodies, tablepro error card | `widgets/props.rs` (`render_in`); jackin `manager.rs:1265`, `cockpit.rs:913`; tablepro error card `tabs.rs:1846` | The shared two-axis scroll container (branch `responsive-lib`) around page bodies; `PropsList` scrolls. |
 | R-apps-7 | a | Button rows drop the buttons that do not fit. | `widgets/button.rs:262` (`row_layout`): tablepro history "Copy"; holla `activity.rs:924` | `ButtonRow` wraps or moves the rest into a `…` menu. |
 | R-apps-8 | b | Cut cells reveal on hover (or `→`) only; the audit drives neither. Picker has no keyboard reveal (WCAG gap). | `widgets/picker.rs:859`; Tree, Props and List rows (holla finder, jackin manager, launch picker) | Picker registers `RevealState::cell` for `→`; the audit could drive the reveal key. |
 | R-apps-9 | a | **Fixed.** A dialog showed a scrollbar but a wheel over its fields was ignored, and FormDialog scrolled its focused field back into view every frame, undoing the wheel. | `widgets/form_dialog.rs`, `widgets/info_dialog.rs` (jackin account, env and mount forms, cockpit failure); the help overlay's padding beside its bar | `ScrollPane::draw_with_fade` registers the body under its children (`register_scroll_under`); FormDialog follows focus only when it moves. |
 | R-apps-10 | a | **Fixed.** Dialog clipped: the anchored code preview (6 lines) left the facts 0 rows. | `widgets/dialog.rs` (holla start-plan 72×20) | The preview shrinks first (`CODE_LINES`, `MIN_FACTS`): the facts keep 2 rows to scroll. |
 | R-apps-11 | b | Tabs past the strip sit behind the `+N` overflow menu. | `widgets/tabs.rs:119` (holla activity) | — (reachable; the audit does not open the menu). |
-| R-apps-12 | c | Audit limits: a 3-row grid at 72×20 the probe cannot sweep in budget; a path wrapped mid-word; a page under a modal that the open step changes. | tablepro result-rows, holla finder-children, jackin cockpit-failure | — |
+| R-apps-12 | c | Audit limits: a 3-row grid at 72×20 the probe could not sweep (fixed: a wheel notch moves at most one view, R-apps-6); a path wrapped mid-word; a page under a modal that the open step changes. | tablepro result-rows, holla finder-children, jackin cockpit-failure | — |
 | R-apps-13 | a | The too-small screen shows below 72×20 for every app, also where a scroll container could hold the layout. | `widgets/too_small.rs` (72×20) | Lower each app's minimum to its true one once its bodies scroll. |
 | R-apps-14 | a | A Dialog's code preview shows at most 6 lines and summarises the rest as "… N more", reachable at no size; at 72×20 the shrunk preview hides more. | `widgets/dialog.rs` (holla start-plan) | The preview scrolls vertically, or joins the body scroll. |
 
@@ -99,12 +99,12 @@ holds the exact words.
 | holla finder | 8 |  |  |  | 12 |  |
 | holla finder-children | 8 12 | 8 12 |  |  | 8 12 |  |
 | holla finder-page | 8 | 8 |  |  |  |  |
-| holla gate-plan | 4 6 | 4 6 | 4 6 | 4 6 | 4 6 |  |
+| holla gate-plan | 4 | 4 | 4 | 4 | 4 |  |
 | holla plan-review | 2 4 |  | 2 4 | 2 4 |  |  |
 | holla plan-running | 3 | 3 | 3 | 3 |  |  |
 | holla start-plan | 14 |  |  |  |  |  |
 | holla top-files | 4 | 4 | 4 | 4 |  |  |
-| holla trust | 6 | 6 |  |  |  |  |
+| holla trust | 4 8 | 4 8 |  |  |  |  |
 | holla upgrade-plan | 2 4 |  |  | 2 4 |  |  |
 | jackin capsule | 6 | 6 | 6 | 6 | 6 | 6 |
 | jackin capsule-zoom | 6 | 6 | 6 | 6 |  |  |
@@ -120,7 +120,7 @@ holds the exact words.
 | jackin manager-expanded | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 | 2 8 |
 | jackin manager-hard | 2 6 8 | 2 6 8 | 2 6 8 | 2 6 8 | 2 6 8 | 2 6 8 |
 | jackin settings | 4 | 4 |  |  |  |  |
-| jackin settings-agents | 6 | 6 |  |  |  |  |
+| jackin settings-agents | 4 |  |  |  |  |  |
 | jackin settings-env | 2 | 2 | 2 | 2 | 2 |  |
 | jackin settings-mounts | 3 | 3 | 3 | 3 |  |  |
 | jackin usage | 4 | 4 | 4 | 4 | 4 | 4 |
@@ -131,13 +131,12 @@ holds the exact words.
 | tablepro conn-form-new | 2 4 5 | 2 4 5 | 2 4 5 | 2 4 5 | 2 4 5 |  |
 | tablepro connections | 2 | 2 |  |  |  |  |
 | tablepro connections-empty | 2 | 2 |  |  |  |  |
-| tablepro history | 3 4 6 7 | 4 6 7 |  | 3 4 6 7 | 3 4 6 7 |  |
+| tablepro history | 4 7 | 7 |  | 3 7 | 3 7 |  |
 | tablepro query-editing |  |  |  | 3 | 3 |  |
-| tablepro result-affected | 6 |  |  | 3 | 3 |  |
+| tablepro result-affected |  |  |  | 3 | 3 |  |
 | tablepro result-error | 5 6 | 5 6 |  | 3 5 6 | 3 5 6 |  |
 | tablepro result-multi |  |  |  | 3 | 3 |  |
 | tablepro result-plan | 2 | 2 | 2 | 2 3 | 2 3 |  |
-| tablepro result-rows | 12 |  |  |  |  |  |
 | tablepro safe-mode | 8 | 8 |  |  |  |  |
 | tablepro table-ddl |  |  |  | 3 | 3 |  |
 | tablepro table-structure |  |  |  | 3 | 3 |  |
