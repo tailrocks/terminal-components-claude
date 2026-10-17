@@ -116,6 +116,11 @@ core::hit::HitRegistry::hit | covered by the demo of its owner HitRegistry (cove
 core::hit::HitRegistry::hover_at | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::hit_scroll | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::scroll_stack | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitMark | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitRegistry::mark | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitRegistry::scroll_since | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitRegistry::shift_of | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
+core::hit::HitRegistry::local | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::len | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::is_empty | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
 core::hit::HitRegistry::clip_since | covered by the demo of its owner HitRegistry (coverage.rs VIA) once SC34 shows the owner | SC34
@@ -390,6 +395,42 @@ ui::pane_tree::PaneRefusal::NothingToResize | widget actions: the Inspector Stat
 ui::pane_tree::PaneRefusal::AtMinimum | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
 ui::pane_tree::PaneRefusal::OnePane | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
 ui::pane_tree::PaneRefusal::message | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+
+# ui::scroll_view, ui::measure
+ui::measure::at_least | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::Axes | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd::PageUp | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd::PageDown | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd::PageLeft | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd::PageRight | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd::Top | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollCmd::Bottom | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ViewLayout | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ViewLayout::overflows | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::axes | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::bars | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::padding | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::scrollbar_gap | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::keys | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::follow_focus | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::context | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::track_click | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::last_layout | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::offset | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::scroll_to | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::reset | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::layout | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::render | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::begin | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::end | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::on_key | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::pointer | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollFrame | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollFrame::area | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollFrame::layout | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollFrame::buffer | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 
 # ui::layout
 ui::layout::StackScroll::pointer | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
