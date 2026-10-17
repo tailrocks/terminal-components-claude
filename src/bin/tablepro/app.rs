@@ -18,16 +18,17 @@ use junie_tui::core::pointer::{
 };
 use junie_tui::core::response::Response;
 use junie_tui::shell::{self, PageKey, Shell};
-use junie_tui::theme::{StatusKind, Theme, Tone};
+use junie_tui::theme::{StatusKind, Strings, Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers, Taken,
 };
 use junie_tui::ui::layers::LayerResult;
+use junie_tui::ui::leave::{Leave, LeaveGuard, Resolved, Stakes};
 
 use junie_tui::widgets::button::Button;
-use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
 use junie_tui::widgets::grid::CellValue;
 
 use junie_tui::widgets::input::TextInput;
@@ -63,7 +64,8 @@ const CLOSE_DIALOG: WidgetId = WidgetId::of("dialog.close");
 const COMMIT_DIALOG: WidgetId = WidgetId::of("dialog.commit");
 const PREVIEW_DIALOG: WidgetId = WidgetId::of("dialog.preview");
 const VIEWER_DIALOG: WidgetId = WidgetId::of("dialog.viewer");
-const QUIT_DIALOG: WidgetId = WidgetId::of("dialog.quit");
+/// The app's leave guard's question (quitting, disconnecting).
+const LEAVE_DIALOG: WidgetId = WidgetId::of("dialog.quit");
 
 /// What a tablepro page asks of the app beyond the library requests
 /// (its navigation and actions: [`junie_tui::shell::Request::Go`]).
@@ -148,6 +150,10 @@ pub struct App {
     /// The page stack ([`shell::Router`]): Connections at the root, the
     /// Workbench pushed over it while a connection is open.
     pub router: shell::Router<Route>,
+    /// The app's leave guard: quitting and every move that drops the
+    /// workbench ask it first. It cannot save on the way out (Cancel /
+    /// Discard); the connection form keeps its own guard, which can.
+    pub leave: LeaveGuard<shell::Nav<Route>>,
     pub connections: ConnectionsScreen,
     pub workbench: Option<Workbench>,
     pub history: History,
@@ -184,6 +190,7 @@ impl App {
         Self {
             theme,
             router: shell::Router::new(Route::Connections),
+            leave: LeaveGuard::new(LEAVE_DIALOG).save(false),
             connections,
             workbench: None,
             history: History::seeded(),
@@ -325,29 +332,73 @@ impl App {
         }
     }
 
-    /// Close the workbench and go back to the connection list. Pending row
-    /// changes or an unsaved query keep it open: the status says why.
+    /// Close the workbench and go back to the connection list
+    /// ([`shell::Nav::Back`]). Pending row changes or an unsaved query
+    /// ask first ([`shell::Router::request`]): Cancel keeps the
+    /// connection open.
     fn disconnect(&mut self) -> Outcome {
-        let Some(w) = self.workbench.as_ref() else {
+        if self.route() != Route::Workbench {
+            return Outcome::Ignored;
+        }
+        self.navigate(shell::Nav::Back)
+    }
+
+    /// Ask to move ([`shell::Router::request`]): a move that drops the
+    /// workbench with unsaved work in it opens the leave guard's question
+    /// first; anything else moves now.
+    fn navigate(&mut self, nav: shell::Nav<Route>) -> Outcome {
+        let stakes = || {
+            self.workbench
+                .as_mut()
+                .map(|w| Page::stakes(w, &self.history))
+                .unwrap_or_default()
+        };
+        match self
+            .router
+            .request(&mut self.leave, nav, stakes, &Strings::DEFAULT)
+        {
+            Ok(nav) => self.go(nav),
+            Err(d) => {
+                let name = self
+                    .workbench
+                    .as_ref()
+                    .map(|w| w.connection.name.clone())
+                    .unwrap_or_default();
+                let d = self.leave_dialog(*d, &format!("Disconnect from {name}?"), "Disconnect");
+                self.open_dialog(d);
+                Outcome::Changed
+            }
+        }
+    }
+
+    /// Apply `nav` (asked for and answered): a dropped workbench closes
+    /// its connection.
+    fn go(&mut self, nav: shell::Nav<Route>) -> Outcome {
+        let Some(dropped) = self.router.apply(nav, |r| r) else {
             return Outcome::Ignored;
         };
-        let dirty = w.pending_total() > 0
-            || w.tabs
-                .iter()
-                .any(|t| matches!(t, WorkTab::Query(q) if q.dirty()));
-        if dirty {
-            self.set_status_as(
-                StatusKind::Warn,
-                "Save or discard the pending changes before disconnecting".into(),
-            );
-            return Outcome::Changed;
+        if dropped.contains(&Route::Workbench)
+            && let Some(w) = self.workbench.take()
+        {
+            self.shell.focus.focus(crate::connections::TREE);
+            self.set_status(format!("Disconnected from {}", w.connection.name));
         }
-        let name = w.connection.name.clone();
-        self.router.apply(shell::Nav::<Route>::Back, |r| r);
-        self.workbench = None;
-        self.shell.focus.focus(crate::connections::TREE);
-        self.set_status(format!("Disconnected from {name}"));
         Outcome::Changed
+    }
+
+    /// The leave guard's question `d` in tablepro's words: what leaving
+    /// would lose (pending row changes, unsaved queries) under `title`,
+    /// confirmed by `verb`. The guard still resolves the answer (Cancel
+    /// stays, the verb discards and leaves).
+    fn leave_dialog(&self, mut d: Dialog, title: &str, verb: &str) -> Dialog {
+        d.title = title.to_owned();
+        if let Some(lost) = self.workbench.as_ref().and_then(|w| w.losses()) {
+            d.body = DialogBody::Text(format!("{lost} will be lost."));
+        }
+        if let Some(b) = d.actions.get_mut(1) {
+            b.label = verb.to_owned();
+        }
+        d
     }
 
     /// Ctrl+N on the connection list: a new form, asking first when it
@@ -366,51 +417,25 @@ impl App {
         if let Err(d) = self
             .connections
             .leave
-            .request_quit(&stakes, &junie_tui::theme::Strings::DEFAULT)
+            .request_quit(&stakes, &Strings::DEFAULT)
         {
             self.open_dialog(*d);
             return Outcome::Changed;
         }
-        let pending = self
-            .workbench
-            .as_ref()
-            .map(|w| w.pending_total())
-            .unwrap_or(0);
-        let dirty_queries = self
-            .workbench
-            .as_ref()
-            .map(|w| {
-                w.tabs
-                    .iter()
-                    .filter(|t| matches!(t, WorkTab::Query(q) if q.dirty()))
-                    .count()
-            })
-            .unwrap_or(0);
-        if pending > 0 || dirty_queries > 0 {
-            let mut parts = vec![];
-            if pending > 0 {
-                parts.push(format!(
-                    "{pending} pending row change{}",
-                    if pending == 1 { "" } else { "s" }
-                ));
+        // then the rest of the app's stakes (the workbench's pending rows
+        // and unsaved queries) through the app's leave guard
+        let stakes = shell::App::stakes(self);
+        match self
+            .shell
+            .quit_through(&mut self.leave, &stakes, &Strings::DEFAULT)
+        {
+            Ok(()) => Outcome::Consumed,
+            Err(d) => {
+                let d = self.leave_dialog(*d, "Quit TablePro?", "Quit");
+                self.open_dialog(d);
+                Outcome::Changed
             }
-            if dirty_queries > 0 {
-                parts.push(format!(
-                    "{dirty_queries} unsaved quer{}",
-                    if dirty_queries == 1 { "y" } else { "ies" }
-                ));
-            }
-            let d = Dialog::destructive(
-                QUIT_DIALOG,
-                "Quit TablePro?",
-                &format!("{} will be lost.", parts.join(" and ")),
-                "Quit",
-            );
-            self.open_dialog(d);
-            return Outcome::Changed;
         }
-        self.shell.quit = true;
-        Outcome::Consumed
     }
 
     /// A due edge-autoscroll step replays the held drag at the pointer
@@ -1791,11 +1816,16 @@ impl App {
         if self.connections.on_dialog_closed(id, result) {
             return Outcome::Changed;
         }
-        if id == QUIT_DIALOG {
-            if result == DialogResult::Action(1) {
-                self.shell.quit = true;
-            }
-            return Outcome::Changed;
+        if self.leave.is_dialog(id) {
+            return match self.leave.resolve(result) {
+                Resolved::Discard(Leave::Quit) => {
+                    self.shell.quit = true;
+                    Outcome::Changed
+                }
+                Resolved::Discard(Leave::To(nav)) => self.go(nav).or(Outcome::Changed),
+                // the guard cannot save (save is off): stay
+                Resolved::Save(_) | Resolved::Stay => Outcome::Changed,
+            };
         }
         if id == SAFETY_DIALOG {
             let Some(w) = self.workbench.as_mut() else {
@@ -2258,6 +2288,17 @@ impl shell::App for App {
     }
     fn page_key(&self) -> PageKey {
         self.router.key()
+    }
+    /// An edited connection form, the workbench's pending rows and
+    /// unsaved queries.
+    fn stakes(&mut self) -> Stakes {
+        let form = Page::stakes(&mut self.connections, &self.history);
+        let work = self
+            .workbench
+            .as_mut()
+            .map(|w| Page::stakes(w, &self.history))
+            .unwrap_or_default();
+        form.max(work)
     }
 }
 
