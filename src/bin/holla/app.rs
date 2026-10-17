@@ -833,9 +833,13 @@ impl App {
                 HollaCmd::Activities => "Activities",
                 HollaCmd::CloseTab => "Close tab",
                 HollaCmd::Tab(0) => "Here",
-                HollaCmd::Tab(_) => "Show that tab",
+                // the nine others read as one range row below
+                HollaCmd::Tab(_) => return None,
             })
         }));
+        if let Some(s) = sections.last_mut() {
+            s.rows.push(("Alt+1–9".into(), "Show that tab".into()));
+        }
         let h = HelpOverlay::from_keymaps(WidgetId::of("help"), &self.crumb(), sections)
             .title("Key reference");
         self.open_layer(Box::new(h), LayerTag::new("help"));
