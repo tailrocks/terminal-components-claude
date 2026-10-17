@@ -590,6 +590,65 @@ pub fn truncated(
     cut
 }
 
+/// The glyph of an overflow item ([`overflow`]).
+pub(crate) const OVERFLOW: &str = "…";
+
+/// The hover id of the overflow item at `area` ([`overflow`]): by
+/// position, so two strips reveal each their own.
+pub(crate) fn overflow_id(area: Rect) -> WidgetId {
+    WidgetId::of("junie.reveal.overflow").child(((area.x as usize) << 16) | area.y as usize)
+}
+
+thread_local! {
+    /// The hidden text of every overflow item drawn this frame.
+    static OVERFLOWS: std::cell::RefCell<Vec<String>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Draw an overflow item: the `…` a one-line strip (a segment bar, a
+/// status bar) shows in place of the items it had no room for, the way a
+/// macOS toolbar collapses the items past its edge into one overflow
+/// control. Resting the pointer on it reveals `hidden` (the dropped
+/// items, in order) through the expansion tooltip under the global
+/// [`RenderCtx::reveal`] policy; it lifts on hover like a clickable
+/// segment. `area` is the item's one cell. Behind a modal (`inert`) it is
+/// drawn but reveals nothing.
+pub(crate) fn overflow(
+    ctx: &mut RenderCtx,
+    buf: &mut Buffer,
+    area: Rect,
+    hidden: &str,
+    bg: ratatui::style::Color,
+) {
+    let area = area.intersection(*buf.area());
+    if area.is_empty() || hidden.is_empty() {
+        return;
+    }
+    let t = ctx.theme;
+    let id = overflow_id(area);
+    let mut vs = ctx.state(id);
+    vs.focused = false;
+    let st = t
+        .interactive(crate::theme::Kind::Title, vs, t.plane_of(bg))
+        .style;
+    let st = st.fg(t.legible(t.text_muted, st.bg.unwrap_or(bg)));
+    buf.set_string(area.x, area.y, OVERFLOW, st);
+    if ctx.inert {
+        return;
+    }
+    OVERFLOWS.with(|o| o.borrow_mut().push(hidden.to_owned()));
+    if ctx.reveal.hover {
+        ctx.hits.register_hover(id, area);
+    }
+    truncated(ctx, None, id, area, hidden);
+}
+
+/// The hidden text of the overflow items drawn in the last frame
+/// ([`overflow`]): what their reveals show.
+pub(crate) fn overflowed() -> Vec<String> {
+    OVERFLOWS.with(|o| o.borrow().clone())
+}
+
 /// The scroll state of the pointer-only tooltip ([`truncated`]): no widget
 /// owns it, and only one reveal shows per frame.
 #[derive(Debug, Default)]
@@ -615,6 +674,7 @@ thread_local! {
 /// this frame draws it again.
 pub(crate) fn begin_frame() {
     POINTER.with(|p| p.borrow_mut().drawn = None);
+    OVERFLOWS.with(|o| o.borrow_mut().clear());
     HOVER_WAIT.with(|w| w.set(None));
     FRAME.with(|f| f.set(f.get().wrapping_add(1)));
 }
