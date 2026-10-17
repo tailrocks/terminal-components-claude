@@ -299,6 +299,32 @@ sha list equals the reviewed one; `cargo xtask visual accept` per half
 (c12eccdfa). Re-captured after rebasing onto S7 part 1 (the library
 Shell, 4400f40ab): no jackin frame moved.
 
+## Overlay coverage (V4)
+
+`overlay_sites` (plan T15) now maps 121 of 125 overlay sites to scenario
+rows (was 41 of 108 listed; the scanner also found sites added since).
+The new rows are `.pending()` with both dismissals pending; each was run
+at 120x40 truecolor and its open frame read cell by cell before it was
+listed. Journeys and surfaces whose frame is an open overlay moved to
+`OVERLAYS` with their names and approvals unchanged
+(`holla/flows/{alternatives,remote/gate2,files/jump}`,
+`jackin/manager/new_workspace_prelude`, `jackin/capsule/new_tab`).
+
+For layers whose `Dismiss` policy is `ESCAPE` (typed-token gates such as
+`Dialog::facts` with a token, `FormDialog`, `ChoiceDialog`, the file
+browser), the `-dismissed-outside` capture shows the layer still open:
+that is the policy, not a missing dismissal (AGENTS.md, "Dismissing a
+dialog resolves to its cancel action. Which dismissals are allowed is the
+dialog's `Dismiss` policy").
+
+Findings (2026-10-17, found while writing the rows):
+
+| # | Finding | Owner |
+|---|---|---|
+| F1 | jackin capsule: Ctrl+B i (Container info) panics on `capsule-multi`: `screens/capsule.rs` `open_container_info` slices `run_id.replace('-', "")[..8]`, and that run id has 7 characters left ("end byte index 8 is out of bounds for string of length 7"). The row `jackin/overlays/capsule_info` reproduces it. | Open → A25 |
+| F2 | jackin editor: the role-load error dialog (`finish_role_load`, layer `roleerr`) is unreachable. `start_role_load` fails only for an untrusted `data-eng`, but it runs only for a trusted role or right after the trust gate marks the role trusted. | Open → A26 |
+| F3 | jackin: three layers open only from a virtual-time job, which needs `--motion reduced`, and the reduced frame never settles (no quiet window within 15 s): the editor's and global settings' save failure (`finish_save`, hard-cases `save_fails_once`) and the cockpit's credential error (`step`, hard-cases with 1Password locked, launch Codex). Their sites stay listed gaps in `overlay_sites` until a determinism seam runs scheduled jobs under `--motion paused`. | Open → V12 |
+
 ## Status (T19 sync, 2026-10-17)
 
 The "Regressions found and fixed" and "Stale scenario steps fixed"
