@@ -56,6 +56,9 @@ const fn rows(key: &'static str, rows: &'static [&'static str]) -> Site {
     Site { key, rows, gap: "" }
 }
 
+// no site is a gap since V12 (every one has rows); kept for the next site
+// that lands before its row
+#[allow(dead_code)]
 const fn gap(key: &'static str, gap: &'static str) -> Site {
     Site {
         key,
@@ -114,7 +117,7 @@ pub const SITES: &[Site] = &[
     rows("jackin_preview/screens/cockpit.rs::open_failure", &["jackin/overlays/cockpit_failure"]),
     rows("jackin_preview/screens/cockpit.rs::open_info", &["jackin/cockpit/info"]),
     rows("jackin_preview/screens/cockpit.rs::open_quit", &["jackin/overlays/cockpit_quit"]),
-    gap("jackin_preview/screens/cockpit.rs::step", "opens only from a virtual-time job under reduced motion, whose frame never settles: visual-reapproval.md \"Overlay coverage (V4)\" F3"),
+    rows("jackin_preview/screens/cockpit.rs::step", &["jackin/overlays/cockpit_credentials"]),
     rows("jackin_preview/screens/config.rs::on_key", &["jackin/overlays/config_env_remove", "jackin/overlays/config_env_op"]),
     rows("jackin_preview/screens/config.rs::on_modal", &["jackin/overlays/config_mount_browse"]),
     rows("jackin_preview/screens/config.rs::open_env_form", &["jackin/overlays/config_env_form"]),
@@ -122,8 +125,8 @@ pub const SITES: &[Site] = &[
     rows("jackin_preview/screens/config.rs::open_role_picker", &["jackin/overlays/config_role_picker"]),
     rows("jackin_preview/screens/config.rs::open_scope_picker", &["jackin/overlays/config_scope_picker"]),
     rows("jackin_preview/screens/editor.rs::accounts_key", &["jackin/overlays/editor_accounts_filter"]),
-    gap("jackin_preview/screens/editor.rs::finish_role_load", "opens only from a virtual-time job (a trusted role whose load fails, hard-cases `writer`), which never fires under paused motion: visual-reapproval.md \"Overlay coverage (V4)\" F2, F3"),
-    gap("jackin_preview/screens/editor.rs::finish_save", "opens only from a virtual-time job under reduced motion, whose frame never settles: visual-reapproval.md \"Overlay coverage (V4)\" F3"),
+    rows("jackin_preview/screens/editor.rs::finish_role_load", &["jackin/overlays/editor_role_load_error"]),
+    rows("jackin_preview/screens/editor.rs::finish_save", &["jackin/overlays/editor_save_failed"]),
     rows("jackin_preview/screens/editor.rs::leave", &["jackin/editor/quit_guard"]),
     rows("jackin_preview/screens/editor.rs::open_preview", &["jackin/editor/save_preview"]),
     rows("jackin_preview/screens/editor.rs::open_role_picker", &["jackin/overlays/editor_load_role"]),
@@ -139,7 +142,7 @@ pub const SITES: &[Site] = &[
     rows("jackin_preview/screens/manager.rs::stop", &["jackin/overlays/manager_stop"]),
     rows("jackin_preview/screens/modals.rs::new", &["jackin/overlays/accounts_op_picker", "jackin/overlays/config_env_op"]),
     rows("jackin_preview/screens/prelude.rs::open", &["jackin/manager/new_workspace_prelude"]),
-    gap("jackin_preview/screens/settings.rs::finish_save", "opens only from a virtual-time job under reduced motion, whose frame never settles: visual-reapproval.md \"Overlay coverage (V4)\" F3"),
+    rows("jackin_preview/screens/settings.rs::finish_save", &["jackin/overlays/settings_save_failed"]),
     rows("jackin_preview/screens/settings.rs::leave", &["jackin/settings/quit_guard"]),
     rows("jackin_preview/screens/settings.rs::open_preview", &["jackin/settings/save_preview"]),
     // ---------------------------------------------------------- showcase --
@@ -297,9 +300,11 @@ pub fn overlay_sites() {
         }
     }
     let covered = SITES.iter().filter(|s| !s.rows.is_empty()).count();
+    let gaps = SITES.len() - covered;
     eprintln!(
-        "overlay sites: {covered} of {} have scenario rows; gaps:",
-        SITES.len()
+        "overlay sites: {covered} of {} have scenario rows; {gaps} gaps{}",
+        SITES.len(),
+        if gaps == 0 { "" } else { ":" }
     );
     for site in SITES.iter().filter(|s| s.rows.is_empty()) {
         eprintln!("  {}  ({})", site.key, site.gap);

@@ -323,7 +323,9 @@ Findings (2026-10-17, found while writing the rows):
 |---|---|---|
 | F1 | jackin capsule: Ctrl+B i (Container info) panics on `capsule-multi`: `screens/capsule.rs` `open_container_info` slices `run_id.replace('-', "")[..8]`, and that run id has 7 characters left ("end byte index 8 is out of bounds for string of length 7"). The row `jackin/overlays/capsule_info` reproduces it. | Fixed → A25 (dd13d9c2a) |
 | F2 | jackin editor: the role-load error dialog (`finish_role_load`, layer `roleerr`) is unreachable. `start_role_load` fails only for an untrusted `data-eng`, but it runs only for a trusted role or right after the trust gate marks the role trusted. | Decision: reachable, kept → A26 (6098669b2) |
-| F3 | jackin: three layers open only from a virtual-time job, which needs `--motion reduced`, and the reduced frame never settles (no quiet window within 15 s): the editor's and global settings' save failure (`finish_save`, hard-cases `save_fails_once`) and the cockpit's credential error (`step`, hard-cases with 1Password locked, launch Codex). Their sites stay listed gaps in `overlay_sites` until a determinism seam runs scheduled jobs under `--motion paused`. | Open → V12 |
+| F3 | jackin: three layers open only from a virtual-time job, which needs `--motion reduced`, and the reduced frame never settles (no quiet window within 15 s): the editor's and global settings' save failure (`finish_save`, hard-cases `save_fails_once`) and the cockpit's credential error (`step`, hard-cases with 1Password locked, launch Codex). Their sites stay listed gaps in `overlay_sites` until a determinism seam runs scheduled jobs under `--motion paused`. | Fixed → V12 (seam: `ClockStep`; rows below) |
+| F4 | jackin: a job that fails leaves its progress status in the footer: after the save failure the footer still reads `Saving payments-platform…` / `Saving settings…`, after the role-load error `Loading role writer…`, until the 5 s info expiry. `finish_save` / `finish_role_load` open the error dialog but do not replace the status. Seen in the V12 rows (open and both dismissals). | Open → A27 |
+| F5 | jackin cockpit: the credential-error dialog (`cockpit.rs::step`) sets `cancel_index` to the danger `Cancel launch` and keeps `Dialog::destructive`'s `Dismiss::LIGHT`, so a stray click outside it cancels the launch (`jackin/overlays/cockpit_credentials-dismissed-outside` shows the failed instance). A light dismissal should never run a destructive action. | Open → A28 |
 
 F1 and F2 resolution (2026-10-17):
 
@@ -350,7 +352,45 @@ F1 and F2 resolution (2026-10-17):
   `app_tests_coverage::a_trusted_role_that_fails_to_load_reports_the_error_and_retries`
   (fails on the parent: the load succeeds). The load completes on a
   1,100 ms virtual-time job, so the site joins the F3 class: its
-  `overlay_sites` gap now names F3 until V12's paused-motion seam.
+  `overlay_sites` gap now names F3 until V12's paused-motion seam
+  (closed by V12: `jackin/overlays/editor_role_load_error`).
+
+F3 resolution (V12, 2026-10-17): a determinism seam in shared code. Under
+`--motion paused` the app's `SimClock` is stopped; an explicit clock step
+runs it for N virtual milliseconds through the app's own tick and stops
+it again, so a job on virtual time completes and the frame then holds
+still (no switch to `--motion reduced`, whose frame never settles).
+
+- `junie_tui::clock::ClockStep` is the in-band request (a bracketed
+  paste whose whole text is `junie-tui:advance-clock:<ms>`), so the step
+  lands after the keys sent before it; `clock::run_step` runs a stopped
+  clock through an app's tick until the step has passed and restores
+  `running`.
+- `shell::App::advance_clock` (default `None`): `shell::handle` asks it
+  only under `Motion::Paused`; otherwise, or when the app has no virtual
+  clock, the request is the ordinary paste it is. jackin implements it
+  with `run_step` over `App::on_tick`; the cockpit and the handoff now
+  read the world clock's `running` instead of `motion == Paused` (the
+  same value outside a step), so the launch pipeline runs during a step.
+- Harness: the DSL step `advance:<ms>` (`support::Session::advance_clock`);
+  `scenarios::validate` checks its argument.
+- Rows (pending, both dismissals, each read at 120x40 truecolor):
+  `jackin/overlays/editor_save_failed` (`editor.rs::finish_save`),
+  `jackin/overlays/settings_save_failed` (`settings.rs::finish_save`),
+  `jackin/overlays/editor_role_load_error` (`editor.rs::finish_role_load`,
+  F2's trusted `writer`), `jackin/overlays/cockpit_credentials`
+  (`cockpit.rs::step`, Codex · Primary with 1Password locked).
+  `overlay_sites`: 125 of 125 sites have rows, 0 gaps.
+- Tests: `clock::tests` (request parsing, a step on a stopped clock, a
+  tick that does not advance ends the step),
+  `shell::app::tests::a_clock_step_*` (a paused app's job fires and the
+  clock stops again; not paused or no clock: an ordinary paste), and
+  `jackin_preview::app_tests_clock` (the four layers open after a step
+  through `Input::Paste`, and ticks then change nothing). The shell and
+  jackin tests fail with the shell's interception disabled.
+- No approved capture changes: outside an explicit step the code paths
+  are the same (`running == (motion != Paused)`), and no approved row
+  sends a step.
 
 ## Status (T19 sync, 2026-10-17)
 
