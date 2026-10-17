@@ -2232,6 +2232,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::keyhint::render_styled"),
     Capability::function("widgets::keyhint::render_parts"),
     Capability::function("widgets::keyhint::render_parts_at"),
+    Capability::function("widgets::keyhint::width"),
     Capability::function("widgets::keyhint::key_of"),
     // widgets::keyref
     Capability::ty("widgets::keyref::KeyReference"),
