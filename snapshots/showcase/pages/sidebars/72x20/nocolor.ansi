@@ -5,17 +5,17 @@
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
-  ▸ Tables        ┃                          ‹       Tasks              [0m
-  ▾ Navigation    ┃     Workspace               ┃    ─────────────────  [0m
-      Lists       ┃  [0m[1m › T Tasks               3 [0m┃    One focus stop.    [0m
-      Trees       ┃     R Runs                  ┃    ↑↓ (or j k) move   [0m
- [0m[1m▎  › Sidebars    [0m┃     B Branches              ┆    the cursor, Enter  [0m
-      Tabs        ┃                             ┆    opens.             [0m
-      Menus       ┃     Project                 ┆                       [0m
-  ▸ Overlays      ┃  [0m[2m   M Members               [0m┆    ›  current item ·  [0m
-  ▸ Feedback      ┆                                  persists when      [0m
- [0m[2m ▸ Layout        [0m┆    Collapse                      focus leaves    …  [0m
-                                                                        [0m
+  ▸ Tables        ┃                          ‹       Tasks             ┃[0m
+  ▾ Navigation    ┃     Workspace               │    ───────────────── ┃[0m
+      Lists       ┃  [0m[1m › T Tasks               3 [0m│    One focus stop. ↑ ┃[0m
+      Trees       ┃     R Runs                  │    (or j k) move the ┆[0m
+ [0m[1m▎  › Sidebars    [0m┃     B Branches              │    cursor, Enter ope ┆[0m
+      Tabs        ┃                             │                      ┆[0m
+      Menus       ┃     Project                 │    ›  current item · ┆[0m
+  ▸ Overlays      ┃     M Members               │    persists when foc ┆[0m
+  ▸ Feedback      ┆     E Environment           │    leaves            ┆[0m
+ [0m[2m ▸ Layout        [0m┆  [0m[2m   $ Billing               [0m│    ▎  keyboard curso ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄ [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l
