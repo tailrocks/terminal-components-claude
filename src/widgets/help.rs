@@ -29,11 +29,68 @@ pub enum HelpCmd {
 }
 
 impl Actions for HelpCmd {
+    fn label(self) -> &'static str {
+        match self {
+            HelpCmd::Close => "Close",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::char('?'), HelpCmd::Close),
             (KeyBinding::char('q'), HelpCmd::Close),
         ]
+    }
+}
+
+/// One titled group of a [`HelpOverlay`]: key rows read from live key
+/// maps ([`Self::bindings`], [`crate::shell::ShellKeys::help_section`]),
+/// so the reference lists only keys that work, spelled as hints spell
+/// them (S8b, K23).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct HelpSection {
+    pub title: String,
+    /// `(keys, action)` rows in order.
+    pub rows: Vec<(String, String)>,
+}
+
+impl HelpSection {
+    pub fn new(title: &str) -> Self {
+        Self {
+            title: title.to_owned(),
+            rows: vec![],
+        }
+    }
+
+    /// Add a row by hand (a mouse gesture, a key group such as `a–z`).
+    pub fn row(mut self, keys: impl Into<String>, action: impl Into<String>) -> Self {
+        self.rows.push((keys.into(), action.into()));
+        self
+    }
+
+    /// Add a widget's or a page's [`Binding`]s: rows with the same action
+    /// share one row (`F1 ?  Help`). A binding with an empty action is
+    /// left out.
+    ///
+    /// [`Binding`]: crate::core::hints::Binding
+    pub fn bindings(mut self, bindings: &[crate::core::hints::Binding]) -> Self {
+        for b in bindings.iter().filter(|b| !b.action.is_empty()) {
+            match self.rows.iter_mut().find(|(_, a)| *a == b.action) {
+                Some((keys, _)) => {
+                    if !keys.split(' ').any(|k| k == b.label) {
+                        keys.push(' ');
+                        keys.push_str(&b.label);
+                    }
+                }
+                None => self.rows.push((b.label.to_string(), b.action.to_string())),
+            }
+        }
+        self
+    }
+
+    /// Whether the section lists nothing (it is then left out).
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
     }
 }
 
@@ -59,7 +116,11 @@ pub struct HelpOverlay {
     pub closed: bool,
     /// Frame title. Default "Keyboard shortcuts".
     pub title: String,
-    /// The closing hint row. Default "↑↓ Scroll · Esc Close".
+    /// A hint line beside the Done button. Default empty: the app's
+    /// footer is the one hint surface and names the overlay's keys
+    /// ([`HasHints`], CO4), so the overlay does not repeat them.
+    /// [`crate::theme::Strings::help_footer`] holds the old line for an
+    /// app without a footer.
     pub hint: String,
     /// Which keys scroll (default [`NavKeys::default`]).
     pub nav: NavKeys,
@@ -143,13 +204,28 @@ impl HelpOverlay {
             area: Rect::ZERO,
             closed: false,
             title: crate::theme::Strings::DEFAULT.help_title.into(),
-            hint: crate::theme::Strings::DEFAULT.help_footer.into(),
+            hint: String::new(),
             nav: NavKeys::default(),
             keymap: HelpCmd::default_keymap(),
             max_percent: 80,
             done: Button::secondary(id.sub("done"), crate::theme::Strings::DEFAULT.done),
             strings: crate::theme::Strings::DEFAULT,
         }
+    }
+
+    /// The reference built from key maps: each [`HelpSection`] with rows
+    /// becomes a titled group, in order (the shell's keys from
+    /// [`crate::shell::ShellKeys::help_section`], the page's and the
+    /// focused widget's [`crate::core::hints::Bindings`]). Empty sections
+    /// are left out, so the overlay never lists a group with nothing in it.
+    pub fn from_keymaps(id: WidgetId, scope: &str, sections: Vec<HelpSection>) -> Self {
+        let mut h = Self::new(id, scope, vec![]);
+        h.sections = sections
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .map(|s| (s.title, s.rows))
+            .collect();
+        h
     }
 
     /// See [`Self::max_percent`] (clamped to 20..=100).
@@ -226,15 +302,29 @@ impl HelpOverlay {
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;
-        // columns: as many as fit at 36 cells each
-        let col_w = 36u16;
-        let cols = (inner.width / col_w).clamp(1, 3) as usize;
-        // flatten sections into column blocks
+        // columns: as many as fit at 36 cells each, sharing the width
+        let cols = (inner.width / 36).clamp(1, 3);
+        let col_w = inner.width / cols;
+        let cols = cols as usize;
+        // the key column fits the widest key, up to 40 % of a column; a
+        // description wraps and hangs under its own column (never cut)
+        let widest = self
+            .sections
+            .iter()
+            .flat_map(|(_, rows)| rows.iter().map(|(k, _)| width(&t.glyphs.key_label(k))))
+            .max()
+            .unwrap_or(0) as u16;
+        let key_w = widest.clamp(4, col_w * 2 / 5);
+        let action_w = col_w.saturating_sub(key_w + 3).max(8) as usize;
+        // flatten sections into column blocks: (key, text, heading) lines
         let mut blocks: Vec<Vec<(String, String, bool)>> = vec![];
         for (title, rows) in &self.sections {
             let mut b = vec![(title.clone(), String::new(), true)];
             for (k, a) in rows {
-                b.push((k.clone(), a.clone(), false));
+                for (i, line) in crate::ui::text::wrap(a, action_w).into_iter().enumerate() {
+                    let key = if i == 0 { k.clone() } else { String::new() };
+                    b.push((key, line, false));
+                }
             }
             b.push((String::new(), String::new(), false));
             blocks.push(b);
@@ -262,13 +352,13 @@ impl HelpOverlay {
                     buf.set_string(
                         x,
                         y,
-                        truncate(&t.glyphs.key_label(key), 12),
+                        truncate(&t.glyphs.key_label(key), key_w as usize),
                         t.key_hint_key().bg(bg),
                     );
                     buf.set_string(
-                        x + 13,
+                        x + key_w + 1,
                         y,
-                        truncate(action, (col_w - 15) as usize),
+                        truncate(action, action_w),
                         // a reference sheet: the description is read, so
                         // it is secondary text, not the hint bar's muted
                         t.secondary().bg(bg),
@@ -372,6 +462,56 @@ mod tests {
     use crate::ui::ctx::Interaction;
     use crate::ui::popup::Dismiss;
     use ratatui::crossterm::event::KeyModifiers;
+
+    /// S8b: a long description wraps and hangs under its own column
+    /// instead of being cut, and sections built from key maps merge the
+    /// keys of one action into one row.
+    #[test]
+    fn long_descriptions_wrap_under_their_column_and_keys_share_a_row() {
+        use crate::core::hints::Binding;
+        use crate::core::keymap::KeyBinding;
+        let rows = [
+            Binding::key(KeyBinding::key(KeyCode::F(1)), "Help"),
+            Binding::key(KeyBinding::char('?'), "Help"),
+        ];
+        let section = HelpSection::new("Shell").bindings(&rows).row(
+            "Ctrl+D",
+            "Data / Structure, and the filter of the grid or the find bar of the editor",
+        );
+        assert_eq!(section.rows[0], ("F1 ?".to_owned(), "Help".to_owned()));
+        let mut h = HelpOverlay::from_keymaps(
+            WidgetId::of("help"),
+            "",
+            vec![section, HelpSection::new("Empty")],
+        );
+        assert_eq!(h.sections.len(), 1, "an empty section is left out");
+        let screen = Rect::new(0, 0, 60, 30);
+        let mut buf = Buffer::empty(screen);
+        let theme = Theme::junie();
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        h.render(screen, &mut buf, &mut ctx);
+        let lines: Vec<String> = (0..screen.height)
+            .map(|y| (0..screen.width).map(|x| buf[(x, y)].symbol()).collect())
+            .collect();
+        let first = lines
+            .iter()
+            .position(|l| l.contains("Ctrl+D"))
+            .expect("the row");
+        let col = lines[first].find("Data").unwrap();
+        let next = &lines[first + 1];
+        assert_eq!(
+            next.find(|c: char| c.is_alphanumeric()),
+            Some(col),
+            "the wrapped part hangs under its column:\n{}",
+            lines.join("\n")
+        );
+        assert!(
+            lines.join(" ").contains("editor"),
+            "nothing is cut:\n{}",
+            lines.join("\n")
+        );
+    }
 
     #[test]
     fn renders_sections_and_closes_per_policy() {
