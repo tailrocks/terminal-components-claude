@@ -414,7 +414,8 @@ impl Page for ColumnsPage {
         let menu = Panel::card(Some("Header menu"));
         let w = [
             Self::ideal_row() + 5 + 4,
-            self.rules.measure(any, ctx).width + 4,
+            self.rules.min_width(any, ctx) + 4,
+            // the resizable table's widths are the demo: they stay whole
             self.sized.measure(any, ctx).width + 4,
             sheet_width(&menu, &self.menu_facts()),
         ]

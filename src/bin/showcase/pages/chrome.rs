@@ -25,7 +25,7 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::{BadgeKind, StatusKind, Tone};
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::measure::Measure;
+use junie_tui::ui::measure::{Measure, Tile, Tiled, tiles};
 use junie_tui::ui::popup::Dismiss;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::tooltip::Tip;
@@ -456,19 +456,16 @@ impl ChromePage {
         let any = ratatui::layout::Size::new(0, 1);
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
         let spans: u16 = Self::checks_line().iter().map(|s| w(&s.text)).sum();
-        let notes = NOTES
-            .iter()
-            .map(|n| w(n))
-            .max()
-            .unwrap_or(0)
-            .max(spans)
-            .max(44);
+        // the notes wrap beside the list, or under it on a narrow page
+        let notes = NOTES_MIN.max(spans).max(44);
         let card = self
             .sessions_panel(false)
-            .outer(ratatui::layout::Size::new(LIST_W + 4 + notes, CARD_ROWS))
+            .outer(ratatui::layout::Size::new(LIST_W.max(notes), 0))
             .width;
         let (left, right) = self.strip(0, t);
-        let status = self.status_bar().measure(any, ctx).width;
+        // the strip and the status bar collapse what does not fit into
+        // their revealing `…`: they take the room the page has
+        let status = self.status_bar().min_width(any, ctx);
         let captions = [
             STRIP_CAPTION.to_owned(),
             format!(
@@ -484,7 +481,7 @@ impl ChromePage {
         [
             self.bar.measure(any, ctx).width,
             card,
-            segments::width(&left, &right, t),
+            segments::min_width(&left, &right, t),
             status,
             self.layer(ctx.interaction.focus).measure(any, ctx).width,
         ]
@@ -494,10 +491,47 @@ impl ChromePage {
         .unwrap_or(0)
     }
 
+    /// The sessions card's notes wrapped to `w` columns: the paragraph, a
+    /// blank row, the brand line.
+    fn notes_lines(w: u16) -> Vec<String> {
+        let w = w.max(1) as usize;
+        let mut lines = junie_tui::ui::text::wrap(NOTES_TEXT, w);
+        lines.push(String::new());
+        lines.extend(junie_tui::ui::text::wrap(BRAND_NOTE, w));
+        lines
+    }
+
+    /// The sessions card's content `w` wide: the list beside its notes
+    /// (and the toned lines under them), stacked when they do not fit.
+    fn card_tiles(w: u16) -> Tiled {
+        let list_h = |_: u16| LIST_ROWS;
+        let notes_h = |w: u16| Self::notes_lines(w).len() as u16 + 3;
+        tiles(
+            w,
+            &[&[
+                Tile::new(LIST_W, &list_h).fixed(),
+                Tile::new(NOTES_MIN, &notes_h),
+            ]],
+            (4, 1),
+        )
+    }
+
+    /// The sessions card's height `w` wide.
+    fn card_h(&self, w: u16) -> u16 {
+        let panel = self.sessions_panel(false);
+        let inner = panel.inner(ratatui::layout::Size::new(w, 0)).width;
+        panel
+            .outer(ratatui::layout::Size::new(
+                inner,
+                Self::card_tiles(inner).size.height,
+            ))
+            .height
+    }
+
     /// The Playground's rows at `w` columns: the menu bar, the sessions
     /// card, the readout, the strip, the status bars and the hint bar.
     fn height(&self, w: u16) -> u16 {
-        2 + CARD_ROWS + 3 + 1 + self.readout_lines(w).len() as u16 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2
+        2 + self.card_h(w) + 1 + self.readout_lines(w).len() as u16 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -513,31 +547,23 @@ impl ChromePage {
             .render(Rect::new(area.x, y, bar_w, 1), buf, ctx, t.canvas);
         y += 2;
         // body: a list of sessions in a card
-        let body = Rect::new(area.x, y, area.width, CARD_ROWS + 3);
+        let body = Rect::new(area.x, y, area.width, self.card_h(area.width));
         let panel = self.sessions_panel(ctx.interaction.focused(SESSIONS));
         let bg = panel.bg(t);
         let inner = panel.render(body, buf, t);
-        let list_area = Rect::new(
-            inner.x,
-            inner.y,
-            inner.width.min(LIST_W),
-            inner.height.min(6),
-        );
+        let tiled = Self::card_tiles(inner.width);
+        let list_area = tiled.at(0, inner);
         self.sessions.render(list_area, buf, ctx, bg);
-        let nx = inner.x + list_area.width + 4;
-        for (i, n) in NOTES.iter().enumerate() {
-            let ny = inner.y + i as u16;
-            buf.set_string(
-                nx,
-                ny,
-                junie_tui::ui::text::truncate(n, inner.right().saturating_sub(nx) as usize),
-                t.muted().bg(bg),
-            );
+        let notes = tiled.at(1, inner);
+        let nx = notes.x;
+        let lines = Self::notes_lines(notes.width);
+        for (i, n) in lines.iter().enumerate() {
+            buf.set_string(nx, notes.y + i as u16, n, t.muted().bg(bg));
         }
         // toned lines drawn by the library: spans with their own tones,
         // and a footer status led by its `StatusKind` glyph
-        let sy = inner.y + NOTES.len() as u16 + 1;
-        let max = inner.right().saturating_sub(nx);
+        let sy = notes.y + lines.len() as u16 + 1;
+        let max = notes.width;
         render_spans(buf, nx, sy, max, t, &Self::checks_line(), bg);
         junie_tui::widgets::keyhint::render_status(
             Rect::new(nx, sy + 1, max.min(44), 1),
@@ -598,19 +624,19 @@ impl ChromePage {
     }
 }
 
-/// The sessions list's width and the card's content rows.
+/// The sessions list's width.
 const LIST_W: u16 = 48;
-const CARD_ROWS: u16 = 8;
 /// The narrow status row: items leave by priority.
 const NARROW_STATUS: u16 = 64;
 
-const NOTES: [&str; 5] = [
-    "The status bar below sits on its own plane: three groups, no",
-    "separator glyphs, and items leave by priority when the row is",
-    "narrow — the 64-column row shows the center going first.",
-    "",
-    "Brand: one lockup, accent-filled, the only accent-filled control.",
-];
+const NOTES_TEXT: &str = "The status bar below sits on its own plane: three groups, no \
+     separator glyphs, and items that do not fit collapse into a … that \
+     shows them on hover, by priority — the 64-column row shows the center going first.";
+const BRAND_NOTE: &str = "Brand: one lockup, accent-filled, the only accent-filled control.";
+/// The notes beside the session list wrap; never narrower than this.
+const NOTES_MIN: u16 = 36;
+/// The session list's rows.
+const LIST_ROWS: u16 = 6;
 
 const STRIP_CAPTION: &str = "identity strip · segments drop by priority · ◆ opens the app menu";
 const HINT_CAPTION: &str = "hint bar · topmost layer wins:";

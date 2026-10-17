@@ -39,14 +39,30 @@ impl crate::ui::measure::Measure for TextArea {
     }
 
     /// The area scrolls its long lines sideways itself: it is whole at
-    /// any width that holds its label.
+    /// any width that holds its label and its message row (its error or
+    /// help, with the position readout beside it).
     fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
-        (width(&self.label) as u16 + 2).max(MIN_W)
+        // the message row: its error, or its help
+        let message = self
+            .field
+            .error
+            .as_ref()
+            .map(|e| width(&e.to_string()))
+            .unwrap_or(0)
+            .max(width(&self.help));
+        let help = if message == 0 {
+            0
+        } else {
+            message as u16 + 2 + READOUT_W
+        };
+        (width(&self.label) as u16 + 2).max(help).max(MIN_W)
     }
 }
 
 /// The narrowest a text area is laid out at: its lines scroll sideways.
 const MIN_W: u16 = 24;
+/// Room for the position readout (`1–8 of 28`) beside the help line.
+const READOUT_W: u16 = 14;
 
 /// Multi-line editor. Focus starts editing per its [`EditEntry`] like
 /// [`TextInput`](super::input::TextInput) (default
