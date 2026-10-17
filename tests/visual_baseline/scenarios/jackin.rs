@@ -21,9 +21,11 @@
 //!   Prelude route is the new-workspace flow (`n`, covered by
 //!   `new_workspace_prelude`).
 //! - `editor/save_preview`: the save completes via a +900 ms virtual-time
-//!   job (editor.rs:450) that never fires under paused motion; under reduced
-//!   the post-save Manager frame is wall-clock-nondeterministic (drawer
-//!   `ago()` labels). The deterministic boundary is the preview dialog.
+//!   job (editor.rs:450) that fires under paused motion only on an
+//!   explicit `advance:<ms>` step (V12; `overlays/editor_save_failed` uses
+//!   it); under reduced the post-save Manager frame is
+//!   wall-clock-nondeterministic (drawer `ago()` labels). This row's
+//!   boundary is the preview dialog.
 //!   Tab walks General → Name → Choose… → Keep awake: arrows no longer
 //!   leave the Name field, which takes focus already editing (1da20cc01).
 //! - `cockpit/{info,debug}`: the cockpit has no back/detach keys — `b` opens
@@ -196,10 +198,10 @@ pub const SURFACES: &[Root] = &[
     // ------------------------------------------------- hard-cases interactive --
     // hard-cases boots to the Manager in degraded chrome (! instance index
     // unreadable ▲ daemon stale). The cred-locked cockpit of the old
-    // j_hard_launch_picker is not deterministically capturable: under paused the
-    // run never advances (cockpit.rs:551), under reduced the credentials spinner
-    // rotates every 80 virtual ms so the 400 ms content-settle never holds.
-    // The reachable deterministic states are the picker and the Capsule attach.
+    // j_hard_launch_picker: under paused the run advances only on an explicit
+    // `advance:<ms>` step (V12, `overlays/cockpit_credentials`); under reduced
+    // the credentials spinner rotates every 80 virtual ms so the 400 ms
+    // content-settle never holds. Here: the picker and the Capsule attach.
     // locked attaches to jk-e0e0, the running data-pipeline instance whose
     // daemon never answers (fixtures.rs:1565-1572) — the 7f3a attach renders
     // byte-identical to the capsule-multi audit frame (the Capsule route does
@@ -301,6 +303,16 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("jackin/overlays/editor_trust", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "3", "enter", "wait:Allowed roles", "down", "down", "down", "down", "enter", "wait:Trust this role source?"]).pending().dismiss_pending(),
     Root::new("jackin/overlays/editor_accounts_filter", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "5", "enter", "sleep:300", "/", "wait:Filter accounts"]).pending().dismiss_pending(),
     Root::new("jackin/overlays/editor_workdir", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "tab", "tab", "enter", "wait:Type Filter"]).pending().dismiss_pending(),
+    // Layers that open only from a job on virtual time (V12): the paused
+    // capture runs the world clock for one explicit step (`advance:<ms>`,
+    // `junie_tui::clock::ClockStep`), then the frame is still. hard-cases
+    // fails the first save, fails the trusted `writer` role's load and
+    // keeps 1Password locked (Codex · Primary launches into the
+    // credential error).
+    Root::new("jackin/overlays/editor_save_failed", Bin::Jackin, HARD, "jackin❯").sends(&["e", "wait:General", "]", "enter", "r", "ctrl-s", "wait:Save workspace", "right", "enter", "advance:1000", "wait:Save failed"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/editor_role_load_error", Bin::Jackin, HARD, "jackin❯").sends(&["e", "wait:General", "3", "enter", "wait:Allowed roles", "a", "wait:Load role", "type:writer", "enter", "advance:1200", "wait:failed to load"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/settings_save_failed", Bin::Jackin, HARD, "jackin❯").sends(&["s", "wait:Settings › global", "5", "enter", "space", "down", "space", "ctrl-s", "wait:Save settings", "right", "enter", "advance:1000", "wait:Settings error"]).pending().dismiss_pending(),
+    Root::new("jackin/overlays/cockpit_credentials", Bin::Jackin, HARD, "jackin❯").sends(&["enter", "wait:Launch · choose Agent", "down", "enter", "advance:2000", "wait:Credential source unavailable"]).pending().dismiss_pending(),
     // Surfaces whose state is an open overlay, moved here with both
     // dismissals (V4; names and approvals unchanged): the new-workspace
     // prelude's first step and the capsule's new-tab agent picker.

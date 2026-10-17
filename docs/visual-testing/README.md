@@ -171,6 +171,12 @@ xtask visual seal` after a reviewed harness change).
 - Do not touch the `visual-baseline` tag or its release.
 - A flaky scenario is a bug. Fix the wait or the determinism hook (`--motion
   paused --frame N`, now on all four binaries); do not add retries.
+- A state reached only through a job on virtual time (a save that fails
+  after 900 ms, a launch stage) is captured paused: the step
+  `advance:<ms>` asks the app to run its stopped clock for that long
+  (`junie_tui::clock::ClockStep`, `shell::App::advance_clock`; an app
+  with a virtual clock implements it with `clock::run_step`), then the
+  frame is still. Never switch such a row to `--motion reduced`.
 - New coverage goes into the tables as `.pending()` rows; a pending row
   gates once its approval is committed.
 - Whoever changes a re-approved surface re-runs its group and approves it
