@@ -5,6 +5,9 @@ Findings from parallel audits of every interface on the
 backlog for that branch: each fix lands in the shared component or theme
 layer (see `AGENTS.md`), with a regression test, in its own commit.
 
+What is still open across these files (and the owner questions they
+raise) is collected in [`docs/remaining-work.md`](../../remaining-work.md).
+
 | File | Category |
 |---|---|
 | `focus.md` | One focus indicator: focus, selection and "active" hierarchy |
