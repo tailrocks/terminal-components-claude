@@ -6934,7 +6934,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::segments::Segment",
         Protocol,
-        &["widgets::segments::render"],
+        &["widgets::segments::render", "widgets::segments::width"],
     ),
     (
         "widgets::select::Select",

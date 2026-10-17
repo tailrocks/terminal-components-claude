@@ -64,6 +64,18 @@ impl Segment {
 
 /// Render `left` segments from the left and `right` segments from the
 /// right, separated by two cells. Returns the areas of clickable segments.
+/// The width that shows every segment of `left` and `right` (plan §1.4
+/// `Measure`): drawn this wide, [`render`] drops none.
+pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
+    let sep = 2u16;
+    let w: u16 = left
+        .iter()
+        .chain(right)
+        .map(|s| crate::ui::text::width(&s.shown()) as u16 + sep)
+        .sum();
+    w.saturating_sub(sep) + 2 * t.spacing.chrome_edge
+}
+
 pub fn render(
     area: Rect,
     buf: &mut Buffer,
@@ -225,6 +237,35 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    /// Drawn at its `width` every segment shows; one cell less drops the
+    /// lowest priority.
+    #[test]
+    fn width_shows_every_segment() {
+        let t = Theme::junie();
+        let left = [
+            Segment::new("payments", Tone::Normal).priority(9),
+            Segment::new("staging", Tone::Warning)
+                .lead("●", Tone::Warning)
+                .priority(3),
+        ];
+        let right = [Segment::new("main ↑2", Tone::Muted).priority(2)];
+        let draw = |w: u16| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, w, 1));
+            let area = buf.area;
+            render(area, &mut buf, &mut ctx, &left, &right, t.canvas);
+            (0..w).map(|x| buf[(x, 0)].symbol()).collect::<String>()
+        };
+        let w = width(&left, &right, &t);
+        let row = draw(w);
+        for part in ["payments", "● staging", "main ↑2"] {
+            assert!(row.contains(part), "{row:?} lacks {part}");
+        }
+        assert!(!draw(w - 1).contains("main"));
+    }
 
     #[test]
     fn a_lead_glyph_keeps_its_own_tone_before_the_text() {

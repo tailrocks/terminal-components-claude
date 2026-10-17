@@ -824,6 +824,23 @@ pub enum Overflow {
     Chevron,
 }
 
+/// The bar with every title shown (none behind the chevron) and the
+/// brand: drawn this wide, nothing is hidden.
+impl crate::ui::measure::Measure for MenuBar {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let mut w = ctx.theme.spacing.chrome_edge.saturating_sub(1);
+        if let Some(b) = &self.brand {
+            w += b.width() + 2;
+        }
+        let titles: u16 = self.labels.iter().map(|l| width(l) as u16 + 3).sum();
+        ratatui::layout::Size::new(w + titles.saturating_sub(1), 1)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct MenuBar {
     pub id: WidgetId,
@@ -1867,6 +1884,33 @@ mod tests {
             m.on_key(&key(KeyCode::Char('z'))),
             (Outcome::Consumed, None)
         );
+    }
+
+    /// Drawn at its measured width the bar shows every title and the
+    /// brand; one cell less hides a title behind the chevron.
+    #[test]
+    fn menubar_measure_shows_every_title() {
+        use crate::ui::measure::Measure;
+        let mut bar = MenuBar::new(
+            WidgetId::of("bar"),
+            vec![
+                ("File", vec![MenuItem::new("New")]),
+                ("View", vec![MenuItem::new("Zoom")]),
+                ("Help", vec![MenuItem::new("About")]),
+            ],
+        )
+        .overflow(Overflow::Chevron)
+        .brand(Lockup::new("app❯"));
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let w = bar.measure(ratatui::layout::Size::new(5, 1), &ctx).width;
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 1));
+        bar.render(Rect::new(0, 0, w, 1), &mut buf, &mut ctx, t.canvas);
+        assert!(bar.hidden().is_empty(), "{:?}", bar.areas);
+        bar.render(Rect::new(0, 0, w - 1, 1), &mut buf, &mut ctx, t.canvas);
+        assert!(!bar.hidden().is_empty());
     }
 
     #[test]

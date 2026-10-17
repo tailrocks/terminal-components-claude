@@ -146,6 +146,26 @@ pub struct StatusBar {
     pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
+/// The bar with every item kept and none cut: each group's items and
+/// gaps, the gaps between groups and the edges. Laid out this wide, the
+/// bar drops nothing ([`StatusBar::layout`]).
+impl crate::ui::measure::Measure for StatusBar {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        _ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let group = |items: &[StatusItem]| -> u16 {
+            let n = items.len() as u16;
+            items.iter().map(StatusItem::width).sum::<u16>() + n.saturating_sub(1) * GAP
+        };
+        let ws = [group(&self.left), group(&self.center), group(&self.right)];
+        let present = ws.iter().filter(|w| **w > 0).count() as u16;
+        let w = ws.iter().sum::<u16>() + present.saturating_sub(1) * GAP + 2 * EDGE;
+        ratatui::layout::Size::new(w, 1)
+    }
+}
+
 /// The hover region a cut, non-clickable status segment registers so its
 /// full text can be revealed.
 pub fn reveal_id(group: Group, index: usize) -> WidgetId {
@@ -467,6 +487,22 @@ mod tests {
         b.right
             .push(StatusItem::new("run 9c41", Tone::Faint).priority(2));
         b
+    }
+
+    /// Laid out at its measured width the bar keeps every item whole;
+    /// one cell less drops one.
+    #[test]
+    fn measure_keeps_every_item() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let b = bar();
+        let w = b.measure(ratatui::layout::Size::new(10, 1), &ctx).width;
+        let p = b.layout(Rect::new(0, 0, w, 1));
+        assert_eq!(p.len(), 6);
+        assert!(p.iter().all(|x| !x.text.ends_with('…')), "{p:?}");
+        assert_eq!(b.layout(Rect::new(0, 0, w - 1, 1)).len(), 5);
     }
 
     #[test]
