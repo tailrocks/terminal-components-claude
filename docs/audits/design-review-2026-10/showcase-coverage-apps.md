@@ -262,3 +262,22 @@ In priority order:
 20. A clipboard result built on the library hook (#89)
 
 Several of these are already proposed in `docs/audits/design-review-2026-10/duplication-screens.md` (sections "Ranked findings" and "New library components to add").
+
+## Status (T19 sync, 2026-10-17)
+
+Every one of the 92 rows maps to an SC step in `shared-components-plan.md`
+§7.7 ("Apps inventory"), and each capability it needs is declared in the
+showcase or held, with its step, in `tests/showcase_coverage_allow.txt`
+(the coverage gate fails otherwise). Counted from §7.7 against
+`docs/remaining-work.md` §3.3 (SC0–SC29 done, SC30 and later open), each
+row's status is:
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 32, 33, 46, 53, 85 | Decision (already covered, ✅) | — | No demo asked. |
+| 1, 2, 3, 6, 7, 11–16, 18, 19, 22–24, 30, 31, 35, 39, 40, 42–45, 47–49, 56, 63, 65, 70, 72, 86–88, 91 (37 rows) | Fixed | SC steps in plan §7.8 | Every step the row maps to is done; the commits are in that step's §7.8 row. |
+| 4, 8, 9, 17, 20, 25, 29, 34, 50, 60, 66, 67, 74, 84, 90 (15 rows) | Fixed in part; rest open → the later SC step | plan §7.7 | The done step shows the library part now; the rest waits for SC30 (25, 84), SC33 (17, 25), SC34 (20), SC36 (66, 74), SC38 (9), SC41 (29, 67), SC42 (50), SC43 (60), SC44 (34), SC45 (8) or SC46 (4, 90). |
+| 5, 10, 21, 26–28, 36–38, 41, 51, 52, 54, 55, 57–59, 61, 62, 64, 68, 69, 71, 73, 75–82, 89, 92 (34 rows) | Open → the SC step in §7.7 | SC30–SC56 | The "extract first" column of §7.7 names the S-step each waits for. |
+| 83 | Decision (product owner, 2026-10-16 and 2026-10-17: jackin's intro, outro and handoff fade stay jackin-only; no cross-fade in S26) | `docs/remaining-work.md` §2 | Allowlisted `permanent`. |
+| "Extract to the library first" 1–11, 13–18, 20 | Open → the S-step in plan §4 | S8b, S11, S14, S16–S26 | Each is the "extract first" entry of its row in §7.7. |
+| "Extract to the library first" 12, 19 | Fixed (library); demo of 12 open → SC30 | S2, S3 (plan "Step status") | `TooSmall`, `StatusLine` TTL and `Motion` landed in S2 and are demonstrated by SC30; `scrollbar::render_with_fade` landed in S3. |

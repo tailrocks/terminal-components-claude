@@ -111,3 +111,12 @@ fixed it. Where a proposal was not taken in full, the reason is given.
 | 23 | Fixed; one hint dropped | 676936c8a | The audit's `Alt+D adds one by duplicating` was left out because an empty table has no row to duplicate. |
 | 24 | Fixed | 04647eb25 | `Enter Details`. |
 | 25 | Fixed | 676936c8a | Safe Mode facts, and the status shown when a write query is refused under Safe Mode. |
+
+## Status (T19 sync, 2026-10-17)
+
+Every finding was checked against the "Status" table above, which covers
+#1–#25; only the open half of #5 had no owner, so it gets one row here.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 5 (key decoding) | Open → A9 | — | The copy half is fixed (8049ca930). With legacy encoding a terminal reports Ctrl+\ as Ctrl+4; the shared key normalisation in `core::keyboard` is A9. |

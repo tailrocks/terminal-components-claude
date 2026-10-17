@@ -242,7 +242,9 @@ remainder recorded here with its reason. Commits are on
 - **#4, quick switcher.** `Picker` still centres in the whole screen (now
   with the one-cell margin and true vertical centring from #5 and #20). It
   draws its own hint line in the footer, so its placement was left with
-  the screen.- **SC22 finding (2026-10-17): a framed title can lose to its meta below
+  the screen.
+
+- **SC22 finding (2026-10-17): a framed title can lose to its meta below
   `title_min`.** In `Panel::title_row` the room check for the meta counts
   the frame's padding once (`w - pad - (title_min + 1)`), but a framed
   title and a framed meta each take two padding cells, so a meta that
@@ -254,3 +256,28 @@ remainder recorded here with its reason. Commits are on
   (`1–9/24`) and moves framed title rows in all four apps, so it is left
   for a step that re-approves those captures on purpose; cards (no
   padding) are unaffected.
+
+## Status (T19 sync, 2026-10-17)
+
+Rows #8, #9, #21 and #23 of the "Status" table above had no commit, and
+the "Not done, with reasons" items and the SC22 finding had no owner;
+each was checked against the code at HEAD and `git log`. The "Status"
+table above covers every other finding.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 8 | Fixed | 36ce96588 | `Panel` filters `Some("")` before formatting the meta, so a framed title leaves no blank gap; showcase digest updated in the same commit. |
+| 9 | Fixed | 36ce96588 | Badge hit areas are measured with `text::width`; the `n›` badge is drawn right of `cols_area`, so the partial column cannot run into it. |
+| 21 | Fixed | 36ce96588 | Task runner labels truncate by display width with `…` instead of byte slicing. |
+| 23 | Fixed | 36ce96588 | Dialog width is clamped to the bounds last (`.max(20).min(bounds.width)`). |
+| 1 (remainder) | Open → A5 | — | `Panel::render` still returns `Rect`; callers move to `Panel::try_render` as they are touched. |
+| 4 (remainder) | Open → A5 | — | The quick switcher `Picker` still centres in the whole screen. |
+| 6 (remainder) | Open → A5 | — | `status_min_share` instead of a cap; `HintBarStyle::compact` built but off. A5 fixes each or records it as a decision. |
+| 11 (remainder) | Decision (holla and jackin help already indent wrapped lines; moving them onto `KeyReference` is a rewrite with no visible change) | "Not done, with reasons" #11 | A4 revisits it together with holla's `TextModal` close button. |
+| 12 (remainder) | Open → A5 | — | `spacing.panel` and `spacing.popup` are not wired; needs its own re-approval after V8. |
+| 14 (remainder) | Open → A5 | — | Tables and grids keep their own one-column gutter instead of `scrollbar::split`. |
+| 15 (remainder) | Open → A5 | — | TablePro connection form, showcase task runner and holla/jackin modals still use `row_layout` with no `RowOverflow::More` owner. |
+| 17 (remainder) | Open → A5 | — | Only the audited showcase pages use `Sections`. |
+| 19 (remainder) | Decision (the sidebar's switch between section headers and the compact list at 120 columns is intended responsive behaviour) | "Not done, with reasons" #19 | The divider itself no longer changes. |
+| 22 (remainder) | Decision (holla's Explore row never overflows at 72 columns or wider, so no app-level test is possible) | "Not done, with reasons" #22 | `chips::overflow_run` and `ChipBar` have unit tests. |
+| SC22 finding | Open → V10 | — | `Panel::title_row` counts the frame padding once; the fix moves framed titles in all four apps and needs its own re-approval. |

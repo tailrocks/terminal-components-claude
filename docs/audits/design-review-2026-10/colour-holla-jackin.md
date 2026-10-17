@@ -79,3 +79,45 @@ At 16 colours, ink on a fill (`highlight` is Blue) must stay `text_primary`. Usi
 10. Lift `error` to `#f05d5d` and recolour the run-id chip and the git `↓↑` counts from amber to `info`, leaving amber to mean attention.
 
 Captures and render PNGs are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/cap/` and `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/colour-b/target/tuiscotti/render/`. The parsers are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/tools/` (`ansi.py`, `sum2.py`, `seg.py`).
+
+## Status (T19 sync, 2026-10-17)
+
+Each row of the ranked findings (numbered R1–R28 in table order) was
+checked against [`colour-follow-ups.md`](colour-follow-ups.md), the
+commits that touch the per-app `app_tests_colour.rs` files and the code
+at HEAD. The roles proposed in section (1) shipped with the changes
+recorded in `colour-follow-ups.md` "Decisions where the reviews
+differed" (`info` is `#79b8ff` / 111, not `#6cb6ff` / 75). The top 10
+quick wins repeat R1–R7, R10–R15 and R21–R23 and close with them.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| (1) roles | Fixed | 0610904df, 86f6aea01 | `Tone::Info`, `Tone::Active`, `Theme::status`, `Theme::env`, `link`; `info` `#79b8ff` / 111 and `text_muted` `#8a8a8a` by the recorded decisions. Brand colours not adopted, as advised. |
+| R1 tab underline | Fixed | 5d0c4467b | `TabRule::Auto` is the accent while the tab's page is the active layer, neutral under a modal or popup. |
+| R2 usage provider rows | Fixed | 6348ef7ed, 57562ede2 | Provider rows are a table, only the status cell toned; the meter follows the window status. Test `usage_provider_rows_tone_only_the_status_cell`. |
+| R3 Health line | Fixed | 6348ef7ed, a570ca0f2 | Per-segment tones through `health_spans`; the accounts line wraps. Tests `the_usage_health_line_tones_each_part`, `the_accounts_health_line_and_warnings_tone_each_part`. |
+| R4 Limits meters | Fixed | a942f1081, 57562ede2 | The healthy (Low) run is `info`; jackin available windows take `MeterTone::Fixed(Low)`. |
+| R5 running instances | Fixed; panel metas open → A10 | 6348ef7ed, 87f250734 | `◉` and `running` in `Tone::Active`, `Segment::lead` dot. The panel metas (`manager.rs` running-instance panels) stay one faint string: `Panel::meta` has no per-part tone. |
+| R6 holla batch toast | Fixed | 299b941d2 | `HintLayer::status_parts`. Test `a_batch_summary_colours_each_count_by_what_it_says`. |
+| R7 stderr body | Fixed | 299b941d2 | Primary body behind a bold red `!` gutter. Test `failure_output_is_primary_text_behind_a_red_gutter`. |
+| R8 finished-tab suffix | Fixed | a942f1081, 299b941d2, 6348ef7ed | `TabItem::done` (library); holla activity and plan tabs, jackin capsule tabs. Tests `a_succeeded_activity_tab_is_done`, `a_finished_capsule_tab_is_done`. |
+| R9 activities/jump toast | Open → A10 | — | "exit 0" in `success` and the URL in `link` not done. |
+| R10 docker/done | Fixed (succeeded); reclaimed open → A10 | 299b941d2 | "succeeded" in `success` (`a_finished_plan_says_succeeded_in_success_and_failed_in_error`); "reclaimed 18.4 GB" still plain. |
+| R11 cleanup history | Fixed | 299b941d2 | `✓ trashed` from `Theme::status(Ok)`. Test `a_trashed_cleanup_record_carries_the_done_status`. |
+| R12 run-id chip | Fixed | 6348ef7ed | `Theme::link_style`. Test `the_debug_run_id_chip_is_a_link_not_a_warning`. |
+| R13 holla git counts | Fixed | 299b941d2 | `GitState::state_parts`. Test `the_git_state_in_the_status_bar_is_toned_per_part`. |
+| R14 finder headings | Fixed | 299b941d2 | Muted through `tone_on`. Test `section_headings_are_muted_not_faint`. |
+| R15 provider group labels | Fixed | 6348ef7ed | Test `provider_group_labels_are_muted_not_faint`. |
+| R16 checked boxes | Fixed in holla and the library; jackin open → S16 | 299b941d2 | holla `a_checked_cleanup_category_is_primary_until_its_list_has_focus`; `choice.rs` uses `t.chosen(focused)`. jackin editor Roles draws `[✓]` in `text_primary` by hand (`editor.rs` `render_roles`); moves with S16c (CO11). |
+| R17 plan step checkboxes | Fixed | 299b941d2 | Required steps say `required` beside the faint marker. Test `a_required_plan_step_says_why_it_cannot_be_toggled`. |
+| R18 accounts warnings rows | Fixed | 6348ef7ed | Glyph and phrase toned, account primary, reset time muted. |
+| R19 disk meter | Fixed | 299b941d2 | `disk::FS_METER` = `MeterTone::Level { warn: 80, crit: 95 }`. Test `a_filesystem_meter_warns_at_its_own_thresholds`. |
+| R20 stale Session meter | Fixed | 0bd69d581, 83758d825 | Stale keeps its level with a dashed run. Test `a_stale_quota_warning_keeps_its_warning_level`. |
+| R21 error contrast | Fixed | 0610904df | `error` `#f05d5d` / 203; `error_strong` on the popover. |
+| R22 info/success availability | Fixed | 0610904df | `Tone::Info`, `Tone::Active`; apps adopt `success` (299b941d2, 6348ef7ed). |
+| R23 256 pins | Fixed | 0610904df | `warning` 214, `info` 111 (decision over 75), `success` 71. |
+| R24 dirty `•` unlabelled | Open → A10 | — | jackin `manager/tree_expanded` amber `•` has no "dirty" label or tooltip. |
+| R25 cockpit stage list | Decision (keep as the reference pattern) | — | No change proposed. |
+| R26 registry · trusted | Decision (default state stays muted) | — | No change proposed. |
+| R27 help and cinematic screens | Decision (grey is acceptable) | — | No change proposed. |
+| R28 `info` on a 16-colour fill | Fixed | a67e7c787, 0610904df | Ink on a highlight fill stays primary (`Theme::row_ink`); 16-colour text selection is reversed video. |
