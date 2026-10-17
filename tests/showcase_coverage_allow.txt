@@ -292,6 +292,10 @@ widgets::field_common::Applied::Moved | widget edit events and outcomes: the Ins
 
 # widgets::form_dialog
 
+# widgets::grid
+widgets::grid::DataGrid::click | S9 click policy on the grid (double click edits): the Data grid page's knobs gain it with the SC33 click options | SC33
+widgets::grid::DataGrid::toggle_mods | S9 row-number toggle click on the grid: the Data grid page's knobs gain it with the SC33 click options | SC33
+
 # widgets::help
 
 # widgets::hintbar
