@@ -17,5 +17,5 @@
     → git -C /Users/alex/work/svc status --short · parent · read-only   [0m
                                                                         [0m
  [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1   • 1          no color · 72×20 [0m
- [0m[1mType[0m Search  …      Review 1 modified files — 1 modified · 0 untracked [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m Alternatives…  …           [0m
 [?25h[5;4H[6 q
