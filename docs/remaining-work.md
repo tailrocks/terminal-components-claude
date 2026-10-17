@@ -124,7 +124,7 @@ never in view at the smallest failing size.
 | R32 | Notices | Playground | done: Page::measure (notices at their option width, cards whole) | — |
 | R33 | Panels | Playground | done: Page::measure (cards wrap to their column, panes under them below 116 columns) | — |
 | R34 | Scrolling | Playground | done: Page::measure (cursor readout and the tree's metas whole) | — |
-| R35 | SplitsStacks | Playground | 80x24, 100x25, 106x29 | `12s Advanced Connection Credentials Danger Network Running Stack` |
+| R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::extent_for, the stack with its note) | — |
 | R36 | MasterDetail | Playground | 80x24, 100x25, 106x29, 120x40 | `014 194 204 377 655 Analyzed Columns Indexes` |
 | R37 | PaneTree | Playground | 80x24, 100x25, 106x29 | `12s WARN across binaries masterdetail minimum nextest page` |
 | R38 | Editor | Playground | 80x24, 100x25, 106x29, 120x40 | `200 Client Completion Diagnostics Err Error Exhausted Last` |

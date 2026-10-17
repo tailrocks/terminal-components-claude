@@ -75,8 +75,6 @@ PopupsTooltips | Playground | 80x24 | R27 squeezes instead of overflowing: no Pa
 PopupsTooltips | Playground | 100x25 | R27 squeezes instead of overflowing: no Page::measure yet
 PopupsTooltips | Playground | 106x29 | R27 squeezes instead of overflowing: no Page::measure yet
 PopupsTooltips | Playground | 120x40 | R27 squeezes instead of overflowing: no Page::measure yet
-SplitsStacks | Playground | 80x24 | R35 squeezes instead of overflowing: no Page::measure yet
-SplitsStacks | Playground | 100x25 | R35 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 80x24 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 100x25 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Page::measure yet
