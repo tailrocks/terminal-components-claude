@@ -1,14 +1,930 @@
-//! Disk cleanup (Screens): a planned page (plan §7.2), registered with its
-//! `--page` slug so parallel steps do not collide. SC49 replaces this
-//! stub with the page.
+//! Disk cleanup (Screens, plan §7 SC49): holla's disk usage and cleanup
+//! flow composed from library components only. Filesystem meters
+//! (`MeterList`), a usage tree with sizes and scanning nodes (`TreeView`
+//! busy nodes), the cursor node's facts (`props`), a checklist of cleanup
+//! categories (`ListBox` in multi mode, a disabled row in use), a reclaim
+//! summary, and the two-gate review: Gate 1 lists the resolved facts
+//! (`Dialog::facts`), Gate 2 arms the action with a typed phrase. The mode
+//! (Trash, permanent delete, dry run) changes the summary, the gates and
+//! the confirming button. Options: `crate::options::DISK_CLEANUP`.
+//!
+//! Gaps (recorded in docs/remaining-work.md, Priority 0): a per-row
+//! tri-state check (a category with some candidates checked) waits for
+//! S16's `RowMark`; the tree's size column for S16's `TreeView::columns`;
+//! the usage | details split for S19's `MasterDetail`.
 
-use crate::pages::Page;
-use crate::pages::stub::StubPage;
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::core::selection::{CheckClick, ClickPolicy};
+use junie_tui::theme::{StatusKind, Tone};
+use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text::{bytes, plural};
+use junie_tui::widgets::button::{Button, row_layout};
+use junie_tui::widgets::dialog::{Dialog, DialogResult};
+use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
+use junie_tui::widgets::meter_list::{MeterList, MeterRow};
+use junie_tui::widgets::notice::Notice;
+use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual};
+use junie_tui::widgets::props::{self, Prop};
+use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
+
+const ID: WidgetId = WidgetId::of("diskcleanup");
+/// The usage tree.
+pub const TREE: WidgetId = ID.sub("tree");
+/// The cleanup categories.
+pub const CATEGORIES: WidgetId = ID.sub("categories");
+/// Gate 1 (the review) and Gate 2 (the typed phrase).
+pub const GATE1: WidgetId = ID.sub("gate1");
+pub const GATE2: WidgetId = ID.sub("gate2");
+
+const GIB: u64 = 1 << 30;
+const MIB: u64 = 1 << 20;
+
+/// Ticks a rescan takes; each top-level folder finishes in turn.
+const SCAN_TICKS: u16 = 30;
+
+/// The disk thresholds the filesystems use (attention 80, danger 95).
+const DISK_TONE: MeterTone = MeterTone::Level { warn: 80, crit: 95 };
+
+/// A cleanup category: label, size, safety, enabled.
+struct Category {
+    label: &'static str,
+    size: u64,
+    safety: &'static str,
+    /// Checked when the page opens (the safe ones).
+    checked: bool,
+    /// `Some(reason)`: in use, never selectable.
+    blocked: Option<&'static str>,
+}
+
+const fn cat(label: &'static str, size: u64, safety: &'static str, checked: bool) -> Category {
+    Category {
+        label,
+        size,
+        safety,
+        checked,
+        blocked: None,
+    }
+}
+
+const CATEGORIES_DATA: [Category; 10] = [
+    cat("Xcode DerivedData", 810 * MIB, "rebuilt on demand", true),
+    cat(
+        "Xcode device support",
+        2 * GIB + 410 * MIB,
+        "safe if old",
+        true,
+    ),
+    cat("Simulator caches", 900 * MIB, "rebuilt on demand", true),
+    cat(
+        "Cargo registry cache",
+        4 * GIB + 820 * MIB,
+        "safe if old",
+        true,
+    ),
+    cat("pnpm store", 2 * GIB + 100 * MIB, "safe if old", false),
+    cat("Gradle caches", GIB + 512 * MIB, "safe if old", false),
+    cat("npm cache", 201 * MIB, "rebuilt on demand", false),
+    cat("Maven repository", 700 * MIB, "review first", false),
+    cat("User caches", GIB + 920 * MIB, "review first", false),
+    Category {
+        label: "Docker build cache",
+        size: 6 * GIB + 300 * MIB,
+        safety: "in use",
+        checked: false,
+        blocked: Some("Docker is running"),
+    },
+];
+
+/// The usage tree under `~/work` (allocated sizes, largest first).
+fn usage() -> Vec<TreeNode> {
+    let node = |label: &str, size: u64, total: u64, children: Vec<TreeNode>| {
+        let meta = format!("{:>9} · {:>3}%", bytes(size), size * 100 / total.max(1));
+        if children.is_empty() {
+            TreeNode::leaf_meta(label, &meta)
+        } else {
+            TreeNode::dir(label, children).meta(&meta)
+        }
+    };
+    let total = 31 * GIB + 820 * MIB;
+    vec![node(
+        "work",
+        total,
+        total,
+        vec![
+            node(
+                "backend",
+                12 * GIB + 700 * MIB,
+                total,
+                vec![
+                    node("target", 9 * GIB + 300 * MIB, total, vec![]),
+                    node("node_modules", 2 * GIB + 100 * MIB, total, vec![]),
+                    node("src", 410 * MIB, total, vec![]),
+                ],
+            ),
+            node(
+                "frontend",
+                8 * GIB + 800 * MIB,
+                total,
+                vec![
+                    node("node_modules", 6 * GIB + 200 * MIB, total, vec![]),
+                    node(".next", 2 * GIB + 300 * MIB, total, vec![]),
+                ],
+            ),
+            node(
+                "dumps",
+                6 * GIB + 300 * MIB,
+                total,
+                vec![node(
+                    "prod-2026-09-30.sql.gz",
+                    6 * GIB + 300 * MIB,
+                    total,
+                    vec![],
+                )],
+            ),
+            node(
+                "android",
+                4 * GIB,
+                total,
+                vec![node("build", 3 * GIB + 900 * MIB, total, vec![])],
+            ),
+            node("backend-wt", 24 * 1024, total, vec![]),
+        ],
+    )]
+}
+
+/// What the confirming action does in each mode.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    Trash,
+    Permanent,
+    DryRun,
+}
+
+impl Mode {
+    fn label(self) -> &'static str {
+        match self {
+            Mode::Trash => "Trash · space returns after the Trash is emptied",
+            Mode::Permanent => "permanent delete · not recoverable",
+            Mode::DryRun => "dry run · nothing is changed",
+        }
+    }
+    fn verb(self) -> &'static str {
+        match self {
+            Mode::Trash => "Move to Trash",
+            Mode::Permanent => "Delete permanently",
+            Mode::DryRun => "Run dry run",
+        }
+    }
+    /// The phrase Gate 2 asks for: the action and how many.
+    fn phrase(self, n: usize) -> String {
+        match self {
+            Mode::Trash => format!("TRASH {n}"),
+            Mode::Permanent => format!("DELETE {n}"),
+            Mode::DryRun => String::new(),
+        }
+    }
+}
 
 pub fn page() -> Box<dyn Page> {
-    Box::new(StubPage::new(
-        "Disk cleanup",
-        "SC49",
-        "A disk-cleanup flow: usage tree, meters, checklist and gated review",
-    ))
+    Box::new(DiskCleanupPage::new())
+}
+
+pub struct DiskCleanupPage {
+    template: Template,
+    opts: PageValues,
+    tree: TreeView,
+    list: ListBox,
+    /// The categories still on disk, parallel to the list's rows.
+    cats: Vec<usize>,
+    rescan: Button,
+    review: Button,
+    /// Ticks left of a running rescan.
+    scanning: u16,
+    /// Bytes reclaimed so far (the root filesystem drops by it).
+    reclaimed: u64,
+    sections: crate::pages::layout::Sections,
+}
+
+impl DiskCleanupPage {
+    pub fn new() -> Self {
+        let opts = PageValues::new(page_options(PageId::DiskCleanup));
+        let mut tree = TreeView::new(TREE, usage());
+        tree.expanded.insert(vec![0]);
+        tree.flatten();
+        let items = CATEGORIES_DATA
+            .iter()
+            .map(|c| {
+                let meta = format!(
+                    "{:>9}  {:<17}",
+                    bytes(c.size),
+                    c.blocked.unwrap_or(c.safety)
+                );
+                ListItem::new(c.label)
+                    .meta(&meta)
+                    .meta_tone(match c.safety {
+                        "review first" => Tone::Warning,
+                        _ => Tone::Muted,
+                    })
+                    .disabled(c.blocked.is_some())
+            })
+            .collect();
+        let mut list = ListBox::new(CATEGORIES, items, SelectMode::Multi);
+        for (i, c) in CATEGORIES_DATA.iter().enumerate() {
+            if c.checked {
+                list.set_checked(i, true);
+            }
+        }
+        let mut p = Self {
+            template: Template::new(ID, states_grid()),
+            opts,
+            tree,
+            list,
+            cats: (0..CATEGORIES_DATA.len()).collect(),
+            rescan: Button::secondary(ID.sub("rescan"), "Rescan"),
+            review: Button::primary(ID.sub("review"), "Review deletion…"),
+            scanning: 0,
+            reclaimed: 0,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
+        };
+        p.rebuild();
+        p
+    }
+
+    /// The tree and the list through their builders, from the options;
+    /// their rows, cursor and checks survive.
+    fn rebuild(&mut self) {
+        let tree = std::mem::replace(&mut self.tree, TreeView::new(TREE, vec![]));
+        self.tree = tree.show_meta(self.opts.on("diskcleanup.sizes"));
+        let list = std::mem::replace(
+            &mut self.list,
+            ListBox::new(CATEGORIES, vec![], SelectMode::Multi),
+        );
+        self.list = list.click(ClickPolicy {
+            check: match self.opts.value("diskcleanup.check_click") {
+                "row" => CheckClick::Row,
+                _ => CheckClick::BoxOnly,
+            },
+            ..ClickPolicy::DATA
+        });
+        self.sync_scan();
+    }
+
+    fn mode(&self) -> Mode {
+        match self.opts.value("diskcleanup.mode") {
+            "permanent" => Mode::Permanent,
+            "dry-run" => Mode::DryRun,
+            _ => Mode::Trash,
+        }
+    }
+
+    /// A scan holds while the option says so, or while a rescan runs.
+    fn is_scanning(&self) -> bool {
+        self.scanning > 0 || self.opts.value("diskcleanup.scan") == "scanning"
+    }
+
+    /// The top-level folders not scanned yet are busy.
+    fn sync_scan(&mut self) {
+        let n = self.tree.node(&[0]).map_or(0, |n| n.children.len());
+        // a held scan stops after the second folder
+        let done = if self.scanning > 0 {
+            n * (SCAN_TICKS - self.scanning) as usize / SCAN_TICKS as usize
+        } else if self.is_scanning() {
+            2
+        } else {
+            n
+        };
+        for i in 0..n {
+            self.tree.set_busy(&[0, i], i >= done);
+        }
+    }
+
+    /// Checked categories: (row, category).
+    fn checked(&self) -> Vec<(usize, &'static Category)> {
+        self.cats
+            .iter()
+            .enumerate()
+            .filter(|(row, _)| self.list.is_checked(*row))
+            .map(|(row, &c)| (row, &CATEGORIES_DATA[c]))
+            .collect()
+    }
+
+    fn selected_bytes(&self) -> u64 {
+        self.checked().iter().map(|(_, c)| c.size).sum()
+    }
+
+    fn filesystems(&self) -> MeterList {
+        let visual = match self.opts.value("diskcleanup.meter_visual") {
+            "block" => MeterVisual::Block,
+            _ => MeterVisual::Line,
+        };
+        let total = 926 * GIB;
+        let used = (842 * GIB).saturating_sub(self.reclaimed);
+        let root = (used * 100 / total) as u8;
+        let row = |label: &str, pct: u8, detail: String| {
+            let mut m = Meter::new(Some(pct))
+                .value(format!("{pct}%"))
+                .tone(DISK_TONE)
+                .visual(visual);
+            if self.is_scanning() {
+                m = m.tone(MeterTone::Refreshing);
+            }
+            MeterRow::new(label, m).detail(detail)
+        };
+        MeterList::new(vec![
+            row("/", root, format!("{} of 926 GiB", used / GIB)),
+            row("/Volumes/Backup", 71, "1420 of 2000 GB".into()),
+            row("/Volumes/Scratch", 12, "61 of 512 GB".into()),
+        ])
+        .label_tone(Tone::Secondary)
+        .meter_width(24)
+        .reserve(4)
+        .min_meter(8)
+    }
+
+    /// The cursor node's facts.
+    fn details(&self) -> (String, Vec<Prop>) {
+        let rows = self.tree.rows();
+        let Some(row) = rows.get(self.tree.cursor) else {
+            return (String::new(), vec![]);
+        };
+        let path: Vec<String> = {
+            let mut nodes = &self.tree.nodes;
+            let mut parts = vec!["~".to_owned()];
+            for &i in &row.path {
+                parts.push(nodes[i].label.clone());
+                nodes = &nodes[i].children;
+            }
+            parts
+        };
+        let size = row
+            .meta
+            .as_deref()
+            .and_then(|m| m.split('·').next())
+            .unwrap_or("")
+            .trim()
+            .to_owned();
+        let kind = if row.has_children {
+            "directory"
+        } else {
+            "file"
+        };
+        let fresh = if row.busy {
+            Prop::new("Freshness", "scanning…").tone(Tone::Warning)
+        } else {
+            Prop::new("Freshness", "live · complete")
+        };
+        (
+            kind.into(),
+            vec![
+                Prop::new("Path", path.join("/")),
+                Prop::new("Allocated", size),
+                fresh,
+                Prop::new("Modified", "2026-09-07 08:41"),
+                Prop::new("Rule", "hardlinks counted once"),
+            ],
+        )
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let fs = self.filesystems();
+        let focus = if ctx.interaction.has_focus(self.tree.id) {
+            Some(1)
+        } else if [self.list.id, self.rescan.id, self.review.id]
+            .iter()
+            .any(|&id| ctx.interaction.has_focus(id))
+        {
+            Some(2)
+        } else {
+            None
+        };
+        let l = self.sections.layout(
+            area,
+            &[
+                StackChild::fixed(fs.height() + 3),
+                StackChild::fixed(10),
+                StackChild::fixed(13),
+            ],
+            focus,
+            buf,
+            ctx,
+        );
+        if let Some(r) = l.slot(0) {
+            self.render_filesystems(r, &fs, buf, ctx);
+        }
+        match l.slot(1) {
+            Some(r) => self.render_usage(r, buf, ctx),
+            None => ctx.focus_stop(self.tree.id),
+        }
+        match l.slot(2) {
+            Some(r) => self.render_cleanup(r, buf, ctx),
+            None => {
+                ctx.focus_stop(self.list.id);
+                ctx.focus_stop(self.rescan.id);
+                ctx.focus_stop(self.review.id);
+            }
+        }
+    }
+
+    fn render_filesystems(
+        &mut self,
+        area: Rect,
+        list: &MeterList,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+    ) {
+        let t = ctx.theme;
+        let meta = if self.is_scanning() {
+            "scanning ~/work…".to_owned()
+        } else {
+            format!(
+                "scan complete · 31.8 GiB in ~/work · {} reclaimed",
+                bytes(self.reclaimed)
+            )
+        };
+        let panel = Panel::card(Some("Filesystems")).meta(&meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        list.render(inner, buf, ctx, bg);
+    }
+
+    fn render_usage(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(40), 2);
+        let meta = if self.is_scanning() {
+            let busy = self.tree.rows().iter().filter(|r| r.busy).count();
+            format!("scanning · {busy} left")
+        } else {
+            "largest first · allocated".into()
+        };
+        let panel = Panel::card(Some("Usage · ~/work"))
+            .meta(&meta)
+            .focused(ctx.interaction.focused(self.tree.id));
+        let bg = panel.bg(t);
+        let inner = panel.render(l, buf, t);
+        self.tree.render(inner, buf, ctx, bg);
+        if r.width > 0 {
+            let (kind, facts) = self.details();
+            let panel = Panel::card(Some("Details")).meta(&kind);
+            let bg = panel.bg(t);
+            let inner = panel.render(r, buf, t);
+            props::render(inner, buf, t, &facts, bg);
+        }
+    }
+
+    fn render_cleanup(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(40), 2);
+        let checked = self.checked();
+        let meta = format!(
+            "{} of {} · {}",
+            checked.len(),
+            self.cats.len(),
+            bytes(self.selected_bytes())
+        );
+        let panel = Panel::card(Some("Cleanup categories"))
+            .meta(&meta)
+            .focused(ctx.interaction.focused(self.list.id));
+        let bg = panel.bg(t);
+        let inner = panel.render(l, buf, t);
+        self.list.render(inner, buf, ctx, bg);
+        if r.width == 0 {
+            ctx.focus_stop(self.rescan.id);
+            ctx.focus_stop(self.review.id);
+            return;
+        }
+        let mode = self.mode();
+        let panel = Panel::card(Some("Reclaim")).meta(match mode {
+            Mode::DryRun => "dry run",
+            _ => "two gates",
+        });
+        let bg = panel.bg(t);
+        let inner = panel.render(r, buf, t);
+        let gate = if mode == Mode::DryRun {
+            "review only · nothing changes".to_owned()
+        } else if self.opts.on("diskcleanup.typed") {
+            format!("review, then type {}", mode.phrase(checked.len()))
+        } else {
+            "review, then confirm".to_owned()
+        };
+        let facts = vec![
+            Prop::new("Selected", plural(checked.len(), "category", "categories")),
+            Prop::new(
+                "Reclaim",
+                format!("{} estimated", bytes(self.selected_bytes())),
+            ),
+            Prop::new("Mode", mode.label())
+                .tone(match mode {
+                    Mode::Permanent => Tone::Danger,
+                    _ => Tone::Secondary,
+                })
+                .wrap(),
+            Prop::new("Gate", gate).wrap(),
+        ];
+        let h = props::render(inner, buf, t, &facts, bg);
+        let mut y = inner.y + h + 1;
+        let skipped = self
+            .cats
+            .iter()
+            .filter_map(|&c| {
+                CATEGORIES_DATA[c]
+                    .blocked
+                    .map(|b| (CATEGORIES_DATA[c].label, b))
+            })
+            .next();
+        if let Some((label, why)) = skipped {
+            let n = Notice::warning(format!("{label} is skipped")).detail(why);
+            let nh = n.height(inner.width);
+            if y + nh + 2 <= inner.bottom() {
+                n.render(Rect::new(inner.x, y, inner.width, nh), buf, ctx, bg);
+                y += nh + 1;
+            }
+        }
+        let y = y.min(inner.bottom().saturating_sub(1));
+        self.rescan.busy = self.scanning > 0;
+        self.review.disabled = checked.is_empty() || self.is_scanning();
+        let rects = row_layout(
+            Rect::new(inner.x, y, inner.width, 1),
+            &[self.review.width(), self.rescan.width()],
+            2,
+        );
+        self.review.render(rects[0], buf, ctx, bg);
+        self.rescan.render(rects[1], buf, ctx, bg);
+    }
+
+    fn start_rescan(&mut self, cx: &mut Cx) {
+        if self.is_scanning() {
+            cx.status("A scan is already running");
+            return;
+        }
+        self.scanning = SCAN_TICKS;
+        self.sync_scan();
+    }
+
+    /// The facts both gates show.
+    fn facts(&self) -> Vec<Prop> {
+        let checked = self.checked();
+        let mode = self.mode();
+        let names: Vec<&str> = checked.iter().map(|(_, c)| c.label).collect();
+        vec![
+            Prop::new(
+                "Action",
+                format!(
+                    "{} {}",
+                    mode.verb(),
+                    plural(checked.len(), "category", "categories")
+                ),
+            ),
+            Prop::new("Host", "mbp · local"),
+            Prop::new("Mode", mode.label()).wrap(),
+            Prop::new(
+                "Estimate",
+                format!(
+                    "{} allocated · APFS clones may overcount",
+                    bytes(self.selected_bytes())
+                ),
+            )
+            .wrap(),
+            Prop::new("Paths", names.join(" · ")).wrap(),
+            Prop::new(
+                "Recoverable",
+                match mode {
+                    Mode::Trash => "yes · until the Trash is emptied",
+                    Mode::Permanent => "no",
+                    Mode::DryRun => "nothing changes",
+                },
+            ),
+        ]
+    }
+
+    /// Gate 1: the resolved facts and the command sequence.
+    fn gate1(&self) -> Dialog {
+        let mode = self.mode();
+        let n = self.checked().len();
+        let code = self
+            .checked()
+            .iter()
+            .enumerate()
+            .map(|(i, (_, c))| {
+                format!(
+                    "{:02}  {} ~/Library/Caches/{}  # {}",
+                    i + 1,
+                    match mode {
+                        Mode::Trash => "trash",
+                        Mode::Permanent => "rm -rf",
+                        Mode::DryRun => "du -sh",
+                    },
+                    c.label.to_lowercase().replace(' ', "-"),
+                    bytes(c.size)
+                )
+            })
+            .collect();
+        let two = mode != Mode::DryRun;
+        let title = if two {
+            format!(
+                "Review · {} · gate 1 of 2",
+                plural(n, "category", "categories")
+            )
+        } else {
+            format!("Dry run · {}", plural(n, "category", "categories"))
+        };
+        let go = if two {
+            Button::primary(GATE1.sub("go"), "Continue…")
+        } else {
+            Button::primary(GATE1.sub("go"), mode.verb())
+        };
+        let d = Dialog::facts(GATE1, &title, self.facts(), code, None, go).width(76);
+        if mode == Mode::Permanent {
+            d.title_status(StatusKind::Warn)
+        } else {
+            d
+        }
+    }
+
+    /// Gate 2: the typed phrase arms the action (or a plain confirm with
+    /// the typed gate off).
+    fn gate2(&self) -> Dialog {
+        let mode = self.mode();
+        let n = self.checked().len();
+        let go = match mode {
+            Mode::Permanent => Button::danger(GATE2.sub("go"), mode.verb()),
+            _ => Button::primary(GATE2.sub("go"), mode.verb()),
+        };
+        let phrase = mode.phrase(n);
+        let token = self.opts.on("diskcleanup.typed").then_some(phrase.as_str());
+        let d = Dialog::facts(
+            GATE2,
+            &format!("{} · gate 2 of 2", mode.verb()),
+            self.facts(),
+            vec![],
+            token,
+            go,
+        )
+        .width(76);
+        if mode == Mode::Permanent {
+            d.title_status(StatusKind::Fail)
+        } else {
+            d
+        }
+    }
+
+    fn open_review(&mut self, cx: &mut Cx) {
+        if self.checked().is_empty() {
+            cx.status("Select a category first (Space)");
+            return;
+        }
+        cx.open_dialog(self.gate1());
+    }
+
+    /// The gated action ran: the checked categories leave the list.
+    fn commit(&mut self, cx: &mut Cx) {
+        let checked = self.checked();
+        let n = checked.len();
+        let size = self.selected_bytes();
+        let mode = self.mode();
+        if mode == Mode::DryRun {
+            cx.status(format!(
+                "Dry run: {} · {} would be freed",
+                plural(n, "category", "categories"),
+                bytes(size)
+            ));
+            return;
+        }
+        let rows: Vec<usize> = checked.iter().map(|(r, _)| *r).collect();
+        for &r in rows.iter().rev() {
+            self.cats.remove(r);
+        }
+        self.list.remove_rows(&rows);
+        self.reclaimed += size;
+        cx.status(format!(
+            "{} · {} reclaimed",
+            match mode {
+                Mode::Trash =>
+                    format!("Moved {} to the Trash", plural(n, "category", "categories")),
+                _ => format!("Deleted {}", plural(n, "category", "categories")),
+            },
+            bytes(size)
+        ));
+    }
+
+    fn on_tree(&mut self, a: Option<TreeAction>, cx: &mut Cx) {
+        if let Some(TreeAction::Activate(p)) = a
+            && let Some(n) = self.tree.node(&p)
+        {
+            cx.status(format!("Opened {} in Finder", n.label));
+        }
+    }
+}
+
+/// The States grid: the usage tree, the category checklist and the
+/// filesystem meters in their content states.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    let id = ID.sub("states");
+    let mut tree = TreeView::new(
+        id.child(0),
+        vec![
+            TreeNode::dir(
+                "work",
+                vec![
+                    TreeNode::leaf_meta("backend", "12.7 GiB"),
+                    TreeNode::leaf_meta("dumps", "6.3 GiB"),
+                    TreeNode::lazy("android"),
+                ],
+            )
+            .meta("31.8 GiB"),
+        ],
+    );
+    tree.expanded.insert(vec![0]);
+    tree.flatten();
+    let mut list = ListBox::new(
+        id.child(1),
+        vec![
+            ListItem::new("DerivedData").meta("810 MiB"),
+            ListItem::new("Cargo cache").meta("4.8 GiB"),
+            ListItem::new("Docker cache").meta("in use").disabled(true),
+        ],
+        SelectMode::Multi,
+    );
+    list.set_checked(0, true);
+    StateGrid::new(id)
+        .label_width(11)
+        .column_width(26)
+        .rows(&[Rest, Focused, Selected, Busy, Empty, Narrow])
+        .column("Usage tree", tree)
+        .column("Categories", list)
+        .column(
+            "Filesystems",
+            MeterList::new(vec![
+                MeterRow::new("/", Meter::new(Some(91)).value("91%").tone(DISK_TONE)),
+                MeterRow::new("/Backup", Meter::new(Some(71)).value("71%").tone(DISK_TONE)),
+            ])
+            .label_tone(Tone::Secondary)
+            .meter_width(12),
+        )
+}
+
+impl Page for DiskCleanupPage {
+    fn title(&self) -> &'static str {
+        "Disk cleanup"
+    }
+    fn blurb(&self) -> &'static str {
+        "Usage tree, filesystem meters, a cleanup checklist and a two-gate review"
+    }
+
+    fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
+        }
+    }
+
+    fn animating(&self) -> bool {
+        self.scanning > 0
+    }
+
+    fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
+        if let PageEvent::Tick = ev {
+            if self.scanning == 0 {
+                return Outcome::Ignored;
+            }
+            self.scanning -= 1;
+            self.sync_scan();
+            if self.scanning == 0 {
+                cx.status("Scan complete · 31.8 GiB in ~/work");
+            }
+            return Outcome::Changed;
+        }
+        if let PageEvent::DialogClosed { id, result, .. } = ev {
+            match (*id, *result) {
+                (GATE1, DialogResult::Action(1)) if self.mode() == Mode::DryRun => self.commit(cx),
+                (GATE1, DialogResult::Action(1)) => cx.open_dialog(self.gate2()),
+                (GATE2, DialogResult::Action(1)) => self.commit(cx),
+                (GATE1 | GATE2, _) => cx.status("Cleanup cancelled · nothing changed"),
+                _ => return Outcome::Ignored,
+            }
+            return Outcome::Changed;
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
+        match ev {
+            PageEvent::Key(key) => {
+                if cx.focus.is(self.tree.id) {
+                    let (o, a) = self.tree.on_key(key);
+                    self.on_tree(a, cx);
+                    return o;
+                }
+                if cx.focus.is(self.list.id) {
+                    if key.is_char('d') {
+                        self.open_review(cx);
+                        return Outcome::Changed;
+                    }
+                    return self.list.on_key(key);
+                }
+                if cx.focus.is(self.review.id) {
+                    let (o, act) = self.review.on_key(key);
+                    if act {
+                        self.open_review(cx);
+                    }
+                    return o;
+                }
+                if cx.focus.is(self.rescan.id) {
+                    let (o, act) = self.rescan.on_key(key);
+                    if act {
+                        self.start_rescan(cx);
+                    }
+                    return o;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Pointer(ev) => {
+                if let Some(r) = self.tree.route(ev) {
+                    let (o, a) = r.into_parts();
+                    self.on_tree(a, cx);
+                    return o;
+                }
+                if let Some(r) = self.list.route(ev) {
+                    return r.outcome();
+                }
+                if let Some(r) = self.review.route(ev)
+                    && r.outcome() != Outcome::Ignored
+                {
+                    if r.into_action().is_some() {
+                        self.open_review(cx);
+                    }
+                    return Outcome::Changed;
+                }
+                if let Some(r) = self.rescan.route(ev)
+                    && r.outcome() != Outcome::Ignored
+                {
+                    if r.into_action().is_some() {
+                        self.start_rescan(cx);
+                    }
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        if focus == Some(self.tree.id) {
+            return vec![("↑↓", "Move"), ("←→", "Fold / open"), ("Enter", "Open")];
+        }
+        if focus == Some(self.list.id) {
+            return vec![
+                ("↑↓", "Move"),
+                ("Space", "Select"),
+                ("a", "All"),
+                ("d", "Review deletion…"),
+            ];
+        }
+        vec![("Enter", "Activate")]
+    }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.rebuild();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
 }
