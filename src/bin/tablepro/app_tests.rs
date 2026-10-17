@@ -929,18 +929,21 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     assert!(h.text().contains("public › orders"));
 }
 
-/// K8: a control that vanishes on the same page hands focus to its nearest
-/// neighbour. Narrowing the window drops the Connections detail card; the
-/// focused Delete button's place goes to the tree before it, not to the
-/// first control (the filter), which the `First` fallback picked.
+/// K8: narrowing the window no longer drops the focused Delete button
+/// (R-apps-2): the card becomes the master-detail's drawer and keeps it
+/// focused, and Esc hands focus back to the tree, not to the first
+/// control (the filter).
 #[test]
-fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
+fn a_narrowed_card_keeps_its_focused_button_in_the_drawer() {
     let mut h = H::new(120, 30);
     let del = junie_tui::core::id::WidgetId::of("connections").sub("del");
     h.tab_to(del);
     assert_eq!(h.focus(), Some(del));
     h.resize(76, 24);
     h.draw();
+    assert_eq!(h.focus(), Some(del), "{}", h.text());
+    assert!(h.text().contains("Engine"), "{}", h.text());
+    h.key(KeyCode::Esc);
     assert_eq!(h.focus(), Some(crate::connections::TREE));
     assert_ne!(
         h.focus(),
@@ -1788,4 +1791,24 @@ fn ctrl_page_keys_step_workbench_tabs_over_an_editing_field() {
     assert_eq!(h.wb().active, 0);
     step(&mut h, KeyCode::PageDown);
     assert_eq!(h.wb().active, 1);
+}
+
+/// The connections list moves onto `MasterDetail` (R-apps-2): below 80
+/// columns the selected connection's card was dropped with no way to
+/// reach it; now Tab from the list focuses its Connect button and opens
+/// the card as a drawer over the body, and Esc returns to the list.
+#[test]
+fn a_narrow_connections_screen_opens_the_card_as_a_drawer() {
+    let tree = WidgetId::of("connections").sub("tree");
+    let connect = WidgetId::of("connections").sub("connect");
+    let mut h = H::new(72, 20);
+    assert_eq!(h.focus(), Some(tree), "{}", h.text());
+    assert!(!h.text().contains("Engine"), "{}", h.text());
+    h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(connect), "{}", h.text());
+    assert!(h.text().contains("Engine"), "{}", h.text());
+    assert!(h.text().contains("Connect"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert_eq!(h.focus(), Some(tree), "{}", h.text());
+    assert!(!h.text().contains("Engine"), "{}", h.text());
 }
