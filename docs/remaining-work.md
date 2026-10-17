@@ -140,7 +140,7 @@ never in view at the smallest failing size.
 | R46 | Activity | Playground | 80x24, 100x25, 106x29, 120x40 | `184 201 404 412 4821 4822 Command Exit` |
 | R47 | Workspaces | Playground | 80x24, 100x25, 106x29, 120x40 | `04d7 9b02 Accounts Claude Codex Delete Edit Environments` |
 | R48 | AccountsUsage | Playground | 80x24, 100x25, 106x29, 120x40 | `100 1Password 212 Account Cost Credential Engineering Mon` |
-| R49 | LaunchCockpit | Playground | 80x24, 100x25, 106x29 | `Binari Build Cancel Capsule Construct Derived Hardline Identity` |
+| R49 | LaunchCockpit | Playground | done: Page::measure (rail at 30 beside the log's lines unwrapped) | — |
 | R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, Notice Measure, ButtonRow::width) | — |
 | R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
 | R52 | Sidebars | Playground | 80x24, 100x25 | `Appearance Ctrl Disabled Keyboard Last and are behind` |
