@@ -197,6 +197,11 @@ components work; they are not where behaviour lives.
   If `mkdir` fails, the lock is held: keep working and retry at the next
   checkpoint. Remove someone else's lock only when its owner file is older
   than 50 minutes.
+- Handoff: whoever stops with unfinished work (coordinator or agent)
+  pushes it to `wip/<name>` on origin and lists it (tip, item, state,
+  exact next steps) in `docs/handoff/README.md` before stopping. On
+  restart, read that file first and land or resume the `wip/*` branches
+  before new work (`docs/GOAL.md`, "Continue from a handoff").
 - Never `pkill -f`, `killall` or kill processes by name: other sessions and
   agents share the machine. Stop only processes (PIDs) and tasks you
   started yourself.
