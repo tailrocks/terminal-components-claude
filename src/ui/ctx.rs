@@ -265,6 +265,16 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// `id` holds a selection its copy command copies: the shell routes
+    /// Ctrl+C to it instead of quitting while it has focus (copy-first,
+    /// SI17; [`crate::shell::KeyHost::selection`]). Widgets with a
+    /// selection call it while they draw.
+    pub fn selection(&mut self, id: WidgetId) {
+        if !self.inert {
+            self.ring.mark_selection(id);
+        }
+    }
+
     /// Register a clickable-only region (no keyboard focus).
     pub fn clickable(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {

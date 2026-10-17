@@ -20,7 +20,9 @@
 //!    bindings stay quiet while it captures.
 //! 5. **Interrupt**: Ctrl+C goes to [`KeyHost::interrupt`]
 //!    ([`super::Page::on_interrupt`]: cancel a running query, the
-//!    remaining steps of a plan) before it may quit.
+//!    remaining steps of a plan) before it may quit. Over a selection
+//!    ([`KeyHost::selection`]) Ctrl+C does neither: it reaches the
+//!    focused control, which copies (copy-first, SI17).
 //! 6. **Shell keys before the page** ([`ShellKeys::keys`]): the quit
 //!    chords, help, the menu bar, next and previous page, and the app's
 //!    own commands ([`ShellAction::App`]).
@@ -307,9 +309,14 @@ pub trait KeyHost: App {
         false
     }
 
-    /// There is a selection Ctrl+C would copy.
+    /// There is a selection Ctrl+C would copy: the focused control
+    /// marked one while it drew ([`crate::ui::ctx::RenderCtx::selection`]),
+    /// so Ctrl+C skips the interrupt and the quit and reaches the control,
+    /// which copies (copy-first, SI17). Every app gets it from the shell;
+    /// override only to report a selection the frame does not mark.
     fn selection(&self) -> bool {
-        false
+        let s = self.shell();
+        s.focus.current().is_some_and(|f| s.ring.has_selection(f))
     }
 
     /// Run a shell action. `Ignored` passes the key on. The router runs
@@ -426,7 +433,10 @@ impl KeyRouter {
                 return out;
             }
         }
-        if quit.ctrl_c && key.ctrl_char('c') {
+        // copy-first (SI17): Ctrl+C over a selection neither interrupts
+        // nor quits; it reaches the focused control, which copies
+        let copy = quit.ctrl_c && key.ctrl_char('c') && host.selection();
+        if quit.ctrl_c && key.ctrl_char('c') && !copy {
             let out = host.interrupt();
             if out.consumed() {
                 return out;
@@ -436,7 +446,7 @@ impl KeyRouter {
             let kc = KeyContext {
                 text_focus: text,
                 dirty: false,
-                selection: host.selection(),
+                selection: copy,
             };
             if quit.classify(key, kc) == Some(LeaveKey::Quit) {
                 return host.request_quit();

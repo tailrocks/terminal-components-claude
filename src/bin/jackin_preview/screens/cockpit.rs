@@ -606,7 +606,9 @@ impl Page<Jackin> for CockpitScreen {
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        if key.ctrl_char('c') {
+        // Ctrl+C over the open log's selection copies it (copy-first,
+        // SI17); otherwise it is the hard abort
+        if key.ctrl_char('c') && !(self.log_open && self.log.has_selection()) {
             // hard abort: immediate, no cleanup wait
             cx.status("Aborted · terminal restored, cleanup deferred");
             self.run.cancel();
@@ -630,7 +632,10 @@ impl Page<Jackin> for CockpitScreen {
                     return Outcome::Changed;
                 }
                 _ => {
-                    let (o, _) = self.log.on_key(key);
+                    let (o, ev) = self.log.on_key(key);
+                    if let Some(junie_tui::widgets::viewport::ViewportAction::Copy(text)) = ev {
+                        cx.copy(text);
+                    }
                     return o.or(Outcome::Consumed);
                 }
             }

@@ -357,6 +357,7 @@ ui::ctx::Interaction::hovered_any | covered by the demo of its owner Interaction
 ui::ctx::Interaction::flash_within | covered by the demo of its owner Interaction (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::control | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::focus_stop | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
+ui::ctx::RenderCtx::selection | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::clickable | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::register_part | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
 ui::ctx::RenderCtx::register_part_as | covered by the demo of its owner RenderCtx (coverage.rs VIA) once SC34 shows the owner | SC34
