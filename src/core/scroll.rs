@@ -172,6 +172,36 @@ impl ScrollState {
         self.offset != before
     }
 
+    /// Bring rows `start..start + len` fully into view, scrolling the
+    /// least, with [`context`](Self::context) rows beyond them where the
+    /// view can spare them (a focused control several rows tall, a
+    /// [`ScrollView`](crate::ui::scroll_view::ScrollView) child). A span
+    /// taller than the view shows its start. Returns whether the offset
+    /// moved.
+    pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
+        if self.viewport_len == 0 {
+            return false;
+        }
+        let len = len.max(1);
+        let before = self.offset;
+        if len >= self.viewport_len {
+            self.offset = start;
+        } else {
+            let ctx = if self.viewport_len >= len + 2 * self.context {
+                self.context
+            } else {
+                0
+            };
+            if start < self.offset + ctx {
+                self.offset = start.saturating_sub(ctx);
+            } else if start + len + ctx > self.offset + self.viewport_len {
+                self.offset = start + len + ctx - self.viewport_len;
+            }
+        }
+        self.clamp();
+        self.offset != before
+    }
+
     /// Keep a list cursor in view the way the list's
     /// [`follow_cursor`](Self::follow_cursor) policy says. Call it from
     /// render: under the default `OnMove` the viewport moves only when the
@@ -693,11 +723,20 @@ impl ScrollPane {
     /// A wheel notch of `delta` on `axis`. Vertical moves `delta` rows.
     /// Horizontal moves one [`Self::h_step`] per notch whatever the
     /// notch's size, and is ignored while horizontal scrolling is off or
-    /// the content fits, so the notch can reach an owner that can still
-    /// move. At a boundary the notch is consumed without a repaint.
+    /// the content fits. A pane whose content fits on the notch's axis
+    /// ignores it either way, so the notch reaches an owner that can
+    /// scroll (scroll chaining: a short list inside a scrolled page lets
+    /// the page scroll). At a boundary of content that overflows the notch
+    /// is consumed without a repaint: the pane under the pointer keeps the
+    /// wheel while the user scrolls it to its end.
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let moved = match axis {
-            Axis::Vertical => self.v.scroll_by(delta as isize),
+            Axis::Vertical => {
+                if !self.v.overflows() {
+                    return Response::ignored();
+                }
+                self.v.scroll_by(delta as isize)
+            }
             Axis::Horizontal => {
                 if !self.h_scrolls() {
                     return Response::ignored();
