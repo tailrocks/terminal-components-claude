@@ -89,3 +89,40 @@ This review was read-only. The scratch worktree was based on `origin/design/inte
 4. `MasterDetail`.
 5. `HelpOverlay::from_keymaps`.
 6. Everything else is quick, low-risk work.
+## Status (T19 sync, 2026-10-17)
+
+Every row is consolidated into the plan ([`shared-components-plan.md`](../../architecture/shared-components-plan.md), §2 and §4); findings are numbered in table order (F1–F27) and the "Bugs found along the way" as B1–B4, each with its owning step, and commits from the plan's "Step status" checked against the code at `942b869d7` (`git log -S`, `rg`). Open ids are those of [`docs/remaining-work.md`](../../remaining-work.md).
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| F1 Own app shell per app | Open → S8a, S8b (loop, pointer, layers, blur Fixed in S5–S7) | `14d6cdbc1`, `d821cd98e`, `4851af3e3`, `fb7df2aa2` | `Shell`/`App`, `PointerRouter`, `ShellLayers`, blur fan-out landed. Each app still has its own `on_key` (S8a) and `draw_footer` (S8b). |
+| F2 Duplicated screen framework | Fixed (S2, S5, S7) | `0e8d8c0a0`, `521e1437e`, `7606cd962`, `dce094419`, `fb7df2aa2` | `ModalTag`, `Modal`, `ModalResult` gone (S5); `Cx`, `Request`, `Page` are library types (S7); `plural` is `ui::text::plural` (S2). |
+| F3 Hand-drawn list and table rows | Open → S16, CO11 | — | `Column::marker`, `RowMark`, `ListItem::header` not built. |
+| F4 List keys per screen | Open → S16 | — | The 69 screen list-key arms go when rows move onto widgets. |
+| F5 Faded edge plus scrollbar | Fixed (S3) | `d2f591b80`, `c96a5b802` | The 26 copies call `scrollbar::render_with_fade`. holla `scroll_press`/`scroll_drag` remain (CO11, S16/S17). |
+| F6 Form engines in screens | Open → S18 | — | `FormPanel` not built. |
+| F7 Hand-built modals | Open → S18, S22, A4 | `5d7422edb` | tablepro filter editor is a `Layer` in `filter_editor.rs` (S5), `FormDialog` move is S18; jackin `FileBrowser` is S22; holla `TextModal` onto `KeyReference` is A4. |
+| F8 Master-detail split | Open → S19 | — | `MasterDetail` not built. |
+| F9 Hand-rolled tree rows | Open → S16 | — | S16c (jackin manager/accounts, double toggle hit), S16d (tablepro EXPLAIN). |
+| F10 Editor shell twice in jackin | Open → S20 | — | `EditorShell` not built. |
+| F11 Filter input over tree/list | Open → S21 | — | `FilterTree`/`FilterList` not built. |
+| F12 NavList kept in showcase | Open → S17 | — | Still `src/bin/showcase/pages/sidebars.rs:32`. |
+| F13 Text fields drawn by hand | Open → S11, S17 | — | holla finder query is K36 (S11); `TextInput::readout` and the showcase fake input are S17. |
+| F14 Help three ways | Open → S8b | — | `HelpOverlay::from_keymaps` not built. |
+| F15 Key/value detail panels | Open → S17, CO11 | — | `DetailCard` (S17); holla screens moving onto widgets are CO11. |
+| F16 Panel bodies scrolled by hand | Open → CO11 (S16/S17) | — | holla review/snapshot and jackin capsule panes are listed in CO11. |
+| F17 Page headers | Open → S17 | — | `PageHeader`/`Heading` not built. |
+| F18 Find inside a viewport | Open → S22 | — | `TextViewport::find` + `FindState` not built. |
+| F19 Button rows by hand | Open → S17 | — | `ActionRow` not built; button-row navigation rule is already one (`ButtonRow::step`, K32, S5). |
+| F20 Library modal hints in apps | Open → S8b, CO4 | — | jackin's empty `modal_hints` was deleted in S5 (`521e1437e`); fallback hints sit in `layer_hints` (CO4). |
+| F21 Context anchor, app menu type | Open → S22 | — | `CommandMenu`, `ContextAnchor::row`; holla row helpers moved to `shell` in S7 (`fb7df2aa2`). |
+| F22 Too-small screen, frame regions | Open → A17 for regions; too-small Fixed (S2) | `96af80573` | `TooSmall` in all apps. Header/body/footer `Rect` arithmetic still per app; no step names `AppShell` regions; suggested owner S14 (`Chrome`). |
+| F23 Tab strip body offset | Open → S17 | — | `Tabs::{layout, passive}` not built. |
+| F24 Spinners on the wall clock | Open → S22 | — | 12 wall-clock spinner sites (also SVg8 under reduced motion). |
+| F25 Text formatting in apps | Fixed (S2) except `describe_key`: Open → A18 | `a5b1a82cf`, `96af80573`, `0e8d8c0a0` | `ui::text::{plural, truncate_sep, duration, bytes, crumb_fit}`, `Theme::centred_hints`. showcase `describe_key` (`app.rs:2485`) still formats keys itself; suggested owner S8b. |
+| F26 Text centred by hand | Open → CO12 (S17/S22) | — | `ui::text::center_x` exists (S2); jackin capsule, cockpit, prelude, rain still centre by `chars().count()`. |
+| F27 Smaller hand-rolled pieces | Open → S12, S17, S22 | — | `PickerItem` literals and `value` payload (S12), `Notice`/`MeterList`/chip row (S17), `StepLine`/`Wizard` (S22). |
+| B1 Blur drift | Fixed (S5, S7) | `7606cd962`, `14d6cdbc1` | Every layer gets the blur fan-out in all apps (S5 behaviour fix 8); the shell drives it (S7). |
+| B2 Unstable row ids | Fixed (S1) | `20f182ccd` | jackin roster rows keyed by instance; the test passes on the parent too (S1 deviation 5). |
+| B3 Dead code | Open → S22 (`modal_hints` Fixed in S5) | `521e1437e` | `wrapped_arrow` (`cockpit.rs:561`) and unused `saved_focus` (`capsule.rs:1659`) remain. |
+| B4 Tab-list mismatch | Open → S12 | — | tablepro tab-list glyph, detail and tag rebuilt differently on filter. |
