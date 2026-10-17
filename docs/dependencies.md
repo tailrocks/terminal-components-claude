@@ -99,6 +99,12 @@ release in `.velnor/release-manifest.json`) and the tuiscotti CLI
   velnor-actions drift. The other tools match the versions CI installs
   (`docs/ci.md`); zizmor stays at CI's 1.30.1 (1.31.1 is out) until the
   velnor `[tools]` raise above lands.
+- `mise.lock` (committed) locks every pin with `linux-x64` and
+  `macos-arm64` checksums for velnor's install audit (`docs/ci.md` "Tool
+  lock"). After any pin change run `mise lock --platform
+  linux-x64,macos-arm64` and commit the lock with the pin; the xtask test
+  `mise_lock_covers_every_mise_pin` fails when a pin is missing from the
+  lock, locked at another version, or lacks the CI platform.
 - A `minimum_release_age` in someone's mise settings hides young releases
   from `latest` (`mise ls-remote rust` warns "newer rust releases hidden"),
   but not from an exact pin: on 2026-10-17 the `1.99.1` pin resolved while
