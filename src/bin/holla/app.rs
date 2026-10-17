@@ -19,7 +19,7 @@ use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, Layer, LayerCx, LayerPointer, LayerTag, Taken,
 };
-use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys, Stakes};
+use junie_tui::ui::leave::Stakes;
 use junie_tui::ui::text::{crumb_fit, truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
@@ -78,8 +78,8 @@ pub struct TabEntry {
     pub kind: TabKind,
     pub stack: Vec<Box<dyn Screen>>,
     /// Status and error messages a screen of this tab raised while the
-    /// tab was in the background (a field's blur hook): shown when the
-    /// tab is active again.
+    /// tab was in the background (a blur, a tick, a message): shown when
+    /// the tab is active again.
     pub pending: Vec<Request>,
 }
 
@@ -123,9 +123,11 @@ pub struct App {
     pub quitting: bool,
     /// The query that led to the last invocation, for query learning.
     pub last_query: Option<String>,
-    /// Which keys ask to quit. Default [`QuitKeys::DEFAULT`]: Ctrl+C
-    /// (after the page) and Ctrl+Q; Esc never quits.
-    pub quit_keys: QuitKeys,
+    /// The shell's keys ([`shell::KeyRouter`], [`shell_keys`]): the quit
+    /// keys (Ctrl+C after the page's first refusal, Ctrl+Q; no quit
+    /// letter; Esc never quits), Ctrl+G activities, Ctrl+W close tab and
+    /// Alt+digit the tabs.
+    pub keys: shell::ShellKeys<HollaCmd>,
 }
 
 impl App {
@@ -176,7 +178,7 @@ impl App {
             quitting: false,
             last_query: None,
             // `q` is a search letter here, never a quit key
-            quit_keys: QuitKeys::DEFAULT.letter(None),
+            keys: shell_keys(),
         };
         app.start();
         // frames advance through the scripted timeline, then freeze
@@ -329,17 +331,27 @@ impl App {
     /// Hand a focus change to every open layer and to the top screen of
     /// every tab, so fields end their edits on the event path.
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
-        let mut out = self.modals.on_blur(ch);
+        let out = self.modals.on_blur(ch);
+        out.or(self.deliver_all(|s, w, cx| s.on_blur(ch, w, cx)))
+    }
+
+    /// Hand one event to the top screen of every tab. The shown tab's
+    /// requests apply now; a background tab keeps only what the shell's
+    /// background-request policy allows (its statuses and errors,
+    /// [`shell::background`]), and those wait for the tab to be shown
+    /// ([`Self::apply_pending`]). One rule for blur, tick and message
+    /// alike (CO9).
+    fn deliver_all(
+        &mut self,
+        mut f: impl FnMut(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome,
+    ) -> Outcome {
+        let mut out = Outcome::Ignored;
         for ti in 0..self.tabs.len() {
             let shown = ti == self.active;
-            let (o, reqs) =
-                self.deliver_tab(ti, shown, Outcome::Ignored, |s, w, cx| s.on_blur(ch, w, cx));
-            out = out.or(o);
+            let (o, reqs) = self.deliver_tab(ti, shown, Outcome::Ignored, &mut f);
             if shown {
-                out = out.or(self.apply_requests(reqs, ti));
+                out = out.or(o).or(self.apply_requests(reqs, ti));
             } else {
-                // a background tab's messages wait for the tab; what
-                // would act on the screen (navigation, modals) does not
                 self.tabs[ti].pending.extend(reqs);
             }
         }
@@ -364,11 +376,7 @@ impl App {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
             Input::Paste(text) => self.on_paste(&text),
-            Input::Key(key) => {
-                self.shell.pointer.suppress_hover();
-                // shortcuts first, then type-ahead (one rule, in the library)
-                junie_tui::core::list::route_key(&key, || self.on_key(key))
-            }
+            Input::Key(key) => shell::KeyRouter::route(self, &key),
             Input::Mouse(m) => PointerRouter::route(self, m),
         }
     }
@@ -444,16 +452,7 @@ impl App {
             out = Outcome::Changed;
         }
         // every screen on every tab ticks so background tabs keep their state
-        let active = self.active;
-        for ti in 0..self.tabs.len() {
-            let (o, reqs) = self.deliver_tab(ti, ti == active, Outcome::Ignored, |s, w, cx| {
-                s.on_tick(w, cx)
-            });
-            // a background tab's tick reports nothing
-            if ti == active {
-                out = out.or(o).or(self.apply_requests(reqs, ti));
-            }
-        }
+        out = out.or(self.deliver_all(|s, w, cx| s.on_tick(w, cx)));
         for m in msgs {
             out = out.or(self.dispatch_msg(m));
         }
@@ -461,7 +460,7 @@ impl App {
     }
 
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
-        let mut out;
+        let out;
         match &m {
             Msg::ActivityEnded { id, ok } => {
                 if let Some(a) = self.world.activity(id) {
@@ -532,16 +531,7 @@ impl App {
                 out = Outcome::Changed
             }
         }
-        for ti in 0..self.tabs.len() {
-            let shown = ti == self.active;
-            let (_, reqs) =
-                self.deliver_tab(ti, shown, Outcome::Ignored, |s, w, cx| s.on_msg(&m, w, cx));
-            // a background tab's message reports nothing
-            if shown {
-                out = out.or(self.apply_requests(reqs, ti));
-            }
-        }
-        out
+        out.or(self.deliver_all(|s, w, cx| s.on_msg(&m, w, cx)))
     }
 
     fn on_paste(&mut self, text: &str) -> Outcome {
@@ -563,110 +553,36 @@ impl App {
             )
     }
 
-    fn on_key(&mut self, key: Key) -> Outcome {
-        if self.shell.too_small {
-            if key.is_char('q') || key.ctrl_char('c') {
-                self.request_quit();
+    /// A key for the open menu bar: a chosen item runs, the brand opens
+    /// About.
+    fn open_menu_key(&mut self, key: &Key) -> Outcome {
+        let (o, ev) = self.menu.on_key(key);
+        match ev {
+            Some(MenuBarAction::Chosen(mi, ii)) => {
+                let label = self.menu.menus[mi][ii].label.clone();
+                self.run_menu(&label)
             }
-            return Outcome::Consumed;
-        }
-        if !self.modals.is_empty() {
-            return self.layer_key(key);
-        }
-        if self.menu.is_open() {
-            let (o, ev) = self.menu.on_key(&key);
-            return match ev {
-                Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.menu.menus[mi][ii].label.clone();
-                    self.run_menu(&label)
-                }
-                Some(MenuBarAction::Brand) => {
-                    self.open_about();
-                    Outcome::Changed
-                }
-                _ => o.or(Outcome::Changed),
-            };
-        }
-        let attached = self.attached();
-        if attached {
-            // an attached program owns the keyboard except for the detach chord
-            if key.ctrl_char(']') {
-                return self.with_top(|s, w, cx| s.on_key(&key, w, cx));
+            Some(MenuBarAction::Brand) => {
+                self.open_about();
+                Outcome::Changed
             }
-            let o = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
-            // a key the editing owner does not take (an Alt chord in input
-            // mode) still reaches the shell chords below
-            if o != Outcome::Ignored {
-                return o;
-            }
+            _ => o.or(Outcome::Changed),
         }
-        // the context key opens the focused cursor row's menu; a page with
-        // none leaves it alone (it never opens the menu bar)
-        let context_key = self.shell.context.keys.matches(&key);
-        if context_key {
+    }
+
+    /// A key for a focused control outside the page: the context key
+    /// opens the cursor row's menu (a page with none leaves it alone), the
+    /// menu bar as a focus stop (← → move, Enter opens, K11) and the tab
+    /// strip; Esc on either hands focus back to the page.
+    fn chrome_focus_key(&mut self, key: &Key) -> Outcome {
+        if self.shell.context.keys.matches(key) {
             let o = self.with_top(|s, w, cx| s.on_context_key(w, cx));
             if o != Outcome::Ignored {
                 return o;
             }
         }
-        let typing = self.top().is_some_and(|s| s.typing_hot());
-        // global chords
-        match key.code {
-            KeyCode::F(10) if !context_key => {
-                self.menu.open_menu(0);
-                return Outcome::Changed;
-            }
-            KeyCode::F(1) => {
-                self.open_help();
-                return Outcome::Changed;
-            }
-            KeyCode::Char('?') if !typing && key.plain() => {
-                self.open_help();
-                return Outcome::Changed;
-            }
-            KeyCode::Char('q' | 'c') if key.ctrl() => {
-                let kc = KeyContext {
-                    text_focus: typing,
-                    ..KeyContext::default()
-                };
-                match self.quit_keys.classify(&key, kc) {
-                    Some(LeaveKey::Quit) => {
-                        // the page has the first chance at Ctrl+C (the Plan
-                        // tab cancels its remaining steps)
-                        if key.ctrl_char('c') {
-                            let o = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
-                            if o != Outcome::Ignored {
-                                return o;
-                            }
-                        }
-                        self.request_quit();
-                        return Outcome::Changed;
-                    }
-                    Some(LeaveKey::Copy) | None => {}
-                }
-            }
-            KeyCode::Char('g') if key.ctrl() => {
-                self.open_activities();
-                return Outcome::Changed;
-            }
-            KeyCode::Char('w') if key.ctrl() => {
-                self.go(Go::CloseTab);
-                return Outcome::Changed;
-            }
-            KeyCode::Char(c) if key.alt() && c.is_ascii_digit() => {
-                let n = c as usize - '0' as usize;
-                if n < self.tabs.len() {
-                    self.activate_tab(n);
-                } else {
-                    self.set_status(&format!("No tab {n}"), Tone::Secondary);
-                }
-                return Outcome::Changed;
-            }
-            _ => {}
-        }
-        // the menu bar is a focus stop: ← → move the cursor, Enter opens
         if self.shell.focus.is(MENU) {
-            let (o, ev) = self.menu.on_key(&key);
+            let (o, ev) = self.menu.on_key(key);
             if let Some(MenuBarAction::Opened(_)) = ev {
                 return Outcome::Changed;
             }
@@ -679,9 +595,8 @@ impl App {
                 return Outcome::Changed;
             }
         }
-        // the tab strip is a focus stop
         if self.shell.focus.is(TABS) {
-            let (o, ev) = self.strip.on_key(&key);
+            let (o, ev) = self.strip.on_key(key);
             match ev {
                 Some(TabAction::Activated(i)) => {
                     self.activate_tab(i);
@@ -704,49 +619,17 @@ impl App {
                 return Outcome::Changed;
             }
         }
-        let out = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
-        if out.consumed() {
-            if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
-                && key.plain()
-                && !typing
-                && let Some(f) = self.shell.focus.current()
-            {
-                let now = self.now_ms();
-                self.shell.pointer.flash(f, now);
-            }
-            return out;
+        Outcome::Ignored
+    }
+
+    /// Show tab `n` (Alt+digit); a missing tab says so.
+    fn tab_key(&mut self, n: usize) -> Outcome {
+        if n < self.tabs.len() {
+            self.activate_tab(n);
+        } else {
+            self.set_status(&format!("No tab {n}"), Tone::Secondary);
         }
-        match key.code {
-            KeyCode::Tab => {
-                self.shell.focus.next(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::BackTab => {
-                self.shell.focus.prev(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::Esc => {
-                if self.active != 0 {
-                    self.activate_tab(0);
-                    return Outcome::Changed;
-                }
-                let o = self.with_top(|s, w, cx| s.on_esc_top(w, cx));
-                if o != Outcome::Ignored {
-                    return o;
-                }
-                let kc = KeyContext {
-                    text_focus: typing,
-                    ..KeyContext::default()
-                };
-                if self.quit_keys.classify(&key, kc) == Some(LeaveKey::Quit) {
-                    self.request_quit();
-                } else {
-                    self.set_status("Esc never quits · Ctrl+Q quits", Tone::Secondary);
-                }
-                Outcome::Changed
-            }
-            _ => Outcome::Ignored,
-        }
+        Outcome::Changed
     }
 
     // ------------------------------------------------------------- menus
@@ -1494,7 +1377,7 @@ impl App {
         // a footer hint naming one key runs it (mouse #1)
         if ev.on(HintBar::ID) {
             return match self.shell.footer_keys.clicked(ev) {
-                Some(key) => self.on_key(key).or(Outcome::Changed),
+                Some(key) => shell::KeyRouter::replay(self, &key).or(Outcome::Changed),
                 None => Outcome::Consumed,
             };
         }
@@ -3391,4 +3274,125 @@ fn derived_supported(alt: &str) -> bool {
         .strip_prefix("activity.")
         .is_some_and(|s| s.ends_with(".stop") || s.ends_with(".restart"));
     mise_dry || ssh || activity || alt.ends_with(".alias")
+}
+
+/// holla's own shell commands ([`shell::ShellAction::App`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HollaCmd {
+    /// Ctrl+G: the activities picker.
+    Activities,
+    /// Ctrl+W: close the active tab.
+    CloseTab,
+    /// Alt+digit: show that tab.
+    Tab(u8),
+}
+
+/// holla's shell keys: the standard set without a quit letter, and its
+/// chords before the page (an attached program still gets them first).
+pub fn shell_keys() -> shell::ShellKeys<HollaCmd> {
+    use junie_tui::core::keymap::KeyBinding;
+    use shell::ShellAction::App as Cmd;
+    let mut keys = shell::ShellKeys::new()
+        .quit(junie_tui::ui::leave::QuitKeys::DEFAULT.letter(None))
+        .bind(KeyBinding::ctrl('g'), Cmd(HollaCmd::Activities))
+        .bind(KeyBinding::ctrl('w'), Cmd(HollaCmd::CloseTab));
+    for d in 0..=9u8 {
+        keys = keys.bind(KeyBinding::alt(char::from(b'0' + d)), Cmd(HollaCmd::Tab(d)));
+    }
+    keys
+}
+
+impl shell::KeyHost for App {
+    type Cmd = HollaCmd;
+
+    fn shell_keys(&self) -> &shell::ShellKeys<HollaCmd> {
+        &self.keys
+    }
+
+    fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
+        if self.modals.is_empty() {
+            return None;
+        }
+        Some(App::layer_key(self, *key))
+    }
+
+    fn menu_key(&mut self, key: &Key) -> Option<Outcome> {
+        self.menu.is_open().then(|| self.open_menu_key(key))
+    }
+
+    /// An attached program owns the keyboard: it sees every key first,
+    /// the detach chord included; a key it does not take still reaches
+    /// the shell's chords.
+    fn capturing(&self) -> bool {
+        self.attached()
+    }
+
+    fn text_focus(&self) -> bool {
+        self.attached() || self.top().is_some_and(|s| s.typing_hot())
+    }
+
+    fn interrupt(&mut self) -> Outcome {
+        self.with_top(|s, w, cx| s.on_interrupt(w, cx))
+    }
+
+    fn shell_action(&mut self, action: shell::ShellAction<HollaCmd>, key: &Key) -> Outcome {
+        use shell::ShellAction;
+        match action {
+            // a context key bound to F10 opens the row's menu instead
+            ShellAction::MenuBar if self.shell.context.keys.matches(key) => Outcome::Ignored,
+            ShellAction::MenuBar => {
+                self.menu.open_menu(0);
+                Outcome::Changed
+            }
+            ShellAction::Help => {
+                self.open_help();
+                Outcome::Changed
+            }
+            ShellAction::NextPage | ShellAction::PrevPage if self.tabs.is_empty() => {
+                Outcome::Ignored
+            }
+            ShellAction::NextPage => self.tab_key((self.active + 1) % self.tabs.len()),
+            ShellAction::PrevPage => {
+                let n = self.tabs.len();
+                self.tab_key((self.active + n - 1) % n)
+            }
+            ShellAction::App(HollaCmd::Activities) => {
+                self.open_activities();
+                Outcome::Changed
+            }
+            ShellAction::App(HollaCmd::CloseTab) => {
+                self.go(Go::CloseTab);
+                Outcome::Changed
+            }
+            ShellAction::App(HollaCmd::Tab(n)) => self.tab_key(n as usize),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn chrome_key(&mut self, key: &Key) -> Outcome {
+        self.chrome_focus_key(key)
+    }
+
+    fn page_key(&mut self, key: &Key) -> Outcome {
+        self.with_top(|s, w, cx| s.on_key(key, w, cx))
+    }
+
+    /// Esc on another tab shows the Here tab; on the Here tab, the page's
+    /// own ladder.
+    fn esc_top(&mut self) -> Outcome {
+        if self.active != 0 {
+            self.activate_tab(0);
+            return Outcome::Changed;
+        }
+        self.with_top(|s, w, cx| s.on_esc_top(w, cx))
+    }
+
+    fn request_quit(&mut self) -> Outcome {
+        App::request_quit(self);
+        Outcome::Changed
+    }
+
+    fn note(&mut self, text: &str) {
+        self.set_status(text, Tone::Secondary);
+    }
 }
