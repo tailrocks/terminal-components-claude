@@ -174,7 +174,7 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | Gap 1 | Fixed | b34ead943 | The runtime enables `?1004`; `runtime::FocusClickGuard` drops the click within 300 ms of FocusIn (`set_focus_click_guard`). |
 | Gap 2 | Fixed (S9) | S9 list commit | A click sets the anchor (`SelectGesture::Only`) and Shift+arrows extend from it, growing and shrinking (`SelectGesture::Extend`; `shift_arrows_extend_and_shrink_from_the_clicked_anchor`), in List and Table. |
 | Gap 3 | Open → S14, A11 | — | S14 owns the `Clipboard` and OSC 52 writes; documenting the terminal's bypass modifier and in-app selection under capture is A11. |
-| Gap 4 | Fixed (S8b) | "Footer composes hints" | `shell::deliverable` and `KeyBinding::deliverable` feed `super_delivered` into the footer, help and component docs: a Cmd chord shows only once the terminal delivers it. |
+| Gap 4 | Fixed (S8b, A29) | "Footer composes hints"; A29 | `shell::deliverable` and `KeyBinding::deliverable` feed `super_delivered` into the footer, help and component docs: a Cmd chord shows only once the terminal delivers it. A29 does the same for Alt (`keyboard::alt_delivered`); see "Alt (Option) chords (A29)" below. |
 | Gap 5 | Fixed (S11) | S11 | A bracketed paste reaches the focused control as `Input::Paste`, never as keys, in every app; `EditField::paste` is one undoable edit and flattens line breaks in every one-line field (TextInput, cells, Picker, Combo, find, finder). Table and grid cells took the raw newline before (`the_cell_editor_selects_by_pointer_undoes_and_flattens_pastes`). |
 | Gap 6 | Fixed (S10) | "a selected row is bold" | Selected rows are bold at every colour level (`StateModifiers::selected`). |
 | Gap 7 | Partial; Open → A21 | d5ad6ffb6 | Fields: Ctrl+Z undo and Ctrl+Shift+Z redo (`UndoStack`, K15). DataGrid undoes pending changes with `u` only; DataTable has no undo. No step owns table undo. |
@@ -205,3 +205,71 @@ Open panel, then GNOME's file chooser):
   exactly as the `Dismiss` policy allows (default `ESCAPE`); the footer
   shows Esc only when it closes.
 
+## Alt (Option) chords (A29, 2026-10-17)
+
+AGENTS.md: hints never advertise keys the terminal cannot deliver. macOS
+Terminal types a character for Option+letter (Option+Z is `Ω`) and sends
+Option+← as Esc b unless "Use Option as Meta key" is on; iTerm2 behaves
+the same unless "Option key acts as Esc+". WezTerm sends Option as Alt by
+default; Ghostty and kitty compose with Option unless configured, and a
+terminal speaking the kitty keyboard protocol reports the Alt modifier
+unambiguously.
+
+Decision (library, `core::keyboard`):
+
+- `AltKeys::from_env(platform, env)` detects, in order: `JUNIE_TUI_ALT_KEYS`
+  (`on`/`off`, the user's override); a client that is not macOS delivers;
+  macOS Terminal or iTerm2 (`TERM_PROGRAM`, `LC_TERMINAL=iTerm2` over SSH)
+  wait until an Alt key is seen (`UntilSeen`); WezTerm delivers; any
+  other macOS terminal (Ghostty, kitty) delivers while the kitty protocol
+  is on (`WithProtocol`), as the task asked. A Ghostty or kitty that
+  still composes with Option under the protocol is the
+  `JUNIE_TUI_ALT_KEYS=off` case. `set_alt_keys` installs another
+  detection, `set_alt_delivered` is the app's own say (it wins).
+- `alt_delivered()` is read by `KeyBinding::deliverable` (so `hint_key`,
+  `label_for`, help sections, `SplitKeys::hint`, `PaneTree::hints` and the
+  component docs), by `keyboard::label_deliverable` (footer hints, help
+  rows, menu shortcuts, `Picker::hints` through `keyhint::deliverable_line`)
+  and by `KeyBinding::matches` for stand-ins.
+- An Alt key proves delivery only when it cannot be a stray Esc prefix:
+  under the protocol any key; under the legacy encoding a named key
+  (an arrow, Home, a function key), whose modifier rides in its own
+  sequence. A legacy Alt+letter, Alt+Enter or Alt+Backspace is Esc then the
+  key, which a quick Esc then the key also produces, and Option+← in macOS
+  Terminal arrives as Alt+b.
+- Menus keep their width when a shortcut is hidden, so they lay out alike
+  on every terminal. Generated component docs pin Alt as delivered (they
+  document every chord, the same on every host).
+- Captures run as a macOS client with no `TERM_PROGRAM` and no protocol
+  reply, so the approved footers show the deliverable alternatives below.
+
+Every Alt-only action gets a deliverable path (standard first):
+
+| Action | Alt chord | Deliverable path | Why |
+|---|---|---|---|
+| `PaneCmd::Next`/`Prev` | — | F6, Shift+F6 | Windows and GNOME pane key; the hint already named it |
+| `PaneCmd::Focus*` | Alt+arrows | F6 cycles | directional focus has no non-Alt convention; F6 reaches every pane |
+| `PaneCmd::Zoom` | Alt+Z | Ctrl+Shift+F12 (new default binding) | JetBrains' maximize-editor chord; an F-key chord every encoding carries |
+| `SplitCmd` (MasterDetail, PaneTree) | Alt+Shift+arrows | Ctrl+Shift+arrows as an `alt_stand_in` | Active only where Alt is not delivered: elsewhere Ctrl+Shift+arrows keep selecting by word in the panes (Option+Shift+arrows, the macOS word selection, is not delivered there either); the seam also drags |
+| jackin Capsule resize | Alt+Shift+arrows | Ctrl+B then H J K L | tmux's common resize keys beside the prefix's h j k l focus; the panes' programs keep every other key |
+| tablepro Run all | Alt+R | Shift+F5 | F5 runs; Shift widens it to the script |
+| tablepro EXPLAIN ANALYZE | Alt+X | Shift+F7 | pgAdmin's EXPLAIN ANALYZE key |
+| tablepro Duplicate (connection, row) | Alt+D | Shift+F10 › Duplicate; the Duplicate button | the context menu is the keyboard path; Ctrl+D stays Data / Structure |
+| holla Alternatives… | Alt+Enter | F10 › File › Alternatives…; Enter on a file hit | menu bar path; the preview row names "Alternatives…" instead of the chord |
+| holla tab by number | Alt+digit | Ctrl+PgDn / Ctrl+PgUp; Go › Here | already shared shell keys |
+| Grid/Table popup | Alt+↓ | Enter, Space | WAI-ARIA combobox keeps Alt+↓; Enter/Space already open it |
+| Grid duplicate row | Alt+D | Ctrl+D (default keymap) | unchanged |
+| Text fields | Alt+arrows, Alt+Backspace, Alt+B/F, Alt+W | Ctrl+arrows, Ctrl+W, Ctrl+C per preset | unchanged |
+
+Open (recorded, not fixed here):
+
+- `Picker` alternate choice (Alt+Enter, tablepro Open Quickly "New tab",
+  holla's picker) has no deliverable key: Ctrl+Enter and Shift+Enter are
+  not distinguishable from Enter in the legacy encoding, and the picker
+  offers no row menu. The hint is hidden where Alt is not delivered;
+  Alt+click (pointer) still picks it. Needs a product decision (a row
+  menu, or a dedicated key).
+- Option or Alt *clicks* are pointer modifiers and are not filtered:
+  whether macOS Terminal reports Option on a mouse report is unverified.
+- `label_deliverable` recognises a Cmd label only when it starts with `⌘`,
+  `Cmd+` or `Super+`; a menu shortcut spelled `⇧⌘N` is still drawn.
