@@ -42,6 +42,11 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/editable", Bin::Showcase, &["--page", "editabletables"], BOOT),
     Root::new("showcase/pages/panels", Bin::Showcase, &["--page", "panels"], BOOT),
     Root::new("showcase/pages/sidebars", Bin::Showcase, &["--page", "sidebars"], BOOT),
+    // Priority 0: the Sidebars page on the template
+    Root::new("showcase/sections/sidebars-options", Bin::Showcase, &["--page", "sidebars"], BOOT).sends(&["tab", "2", "wait:Rail when hidden"]).pending(),
+    Root::new("showcase/sections/sidebars-states", Bin::Showcase, &["--page", "sidebars"], BOOT).sends(&["tab", "3", "wait:focus + hover"]).pending(),
+    Root::new("showcase/flows/sidebars/collapsed", Bin::Showcase, &["--page", "sidebars", "--opt", "sidebars.collapsed=on"], BOOT).sends(&["wait:Collapse keeps rows"]).pending(),
+    Root::new("showcase/flows/sidebars/hidden", Bin::Showcase, &["--page", "sidebars", "--opt", "sidebars.hidden=on"], BOOT).sends(&["wait:Collapse keeps rows"]).pending(),
     Root::new("showcase/pages/dialogs", Bin::Showcase, &["--page", "dialogs"], BOOT),
     Root::new("showcase/pages/codeeditor", Bin::Showcase, &["--page", "codeeditor"], BOOT),
     // SC24: the Code editor's sections, a read-only editor and the
