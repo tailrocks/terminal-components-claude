@@ -1711,3 +1711,68 @@ fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
     assert_eq!(bars.len(), 1, "{}", h.text());
     assert!(bars[0].contains("Edit"), "{}", h.text());
 }
+
+/// The editor's Environments list moves onto `MasterDetail` (R-apps-2):
+/// below 150 columns the variable card was dropped with no way to reach
+/// it; now it is a focus stop after the list, and narrow, focusing it
+/// opens it as a drawer over the body; Esc returns to the list.
+#[test]
+fn a_narrow_editor_opens_the_variable_card_as_a_drawer() {
+    use junie_tui::core::id::WidgetId;
+    let list = WidgetId::of("editor.cfg").sub("envs");
+    let card = WidgetId::of("editor.cfg").sub("card");
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.app.go(crate::screens::Go::Editor {
+        workspace: Some(1),
+        pending: None,
+    });
+    h.draw();
+    h.key(KeyCode::Char('4'));
+    h.tab_to(list);
+    // to the first variable row: the card follows the cursor
+    for _ in 0..8 {
+        h.key(KeyCode::Tab);
+        if h.app.shell.focus.current() == Some(card) {
+            break;
+        }
+        h.tab_to(list);
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(h.app.shell.focus.current(), Some(card), "{}", h.text());
+    assert!(h.text().contains("Resolution"), "{}", h.text());
+    assert!(h.find("Variable · ").is_some(), "{}", h.text());
+    let bars = focus_bars(&h);
+    assert_eq!(bars.len(), 1, "{}", h.text());
+    assert!(bars[0].contains("Variable"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.shell.focus.current(), Some(list), "{}", h.text());
+    assert!(!h.text().contains("Resolution"), "{}", h.text());
+}
+
+/// Wide, the card keeps its place (56 columns, two from the right) and
+/// Tab reaches it after the list, as the narrow drawer does.
+#[test]
+fn a_wide_settings_card_is_a_tab_stop_after_the_list() {
+    use junie_tui::core::id::WidgetId;
+    let list = WidgetId::of("settings.cfg").sub("envs");
+    let card = WidgetId::of("settings.cfg").sub("card");
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 160, 50);
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('3'));
+    h.tab_to(list);
+    let mut found = false;
+    for _ in 0..8 {
+        if h.text().contains("Resolution") {
+            found = true;
+            break;
+        }
+        h.key(KeyCode::Down);
+    }
+    assert!(found, "{}", h.text());
+    let (x, _) = h.find("Variable · ").expect("card title");
+    h.key(KeyCode::Tab);
+    assert_eq!(h.app.shell.focus.current(), Some(card), "{}", h.text());
+    assert_eq!(h.find("Variable · ").unwrap().0, x, "the card did not move");
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app.shell.focus.current(), Some(list));
+}

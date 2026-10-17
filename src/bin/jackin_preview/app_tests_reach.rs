@@ -176,7 +176,8 @@ fn cases() -> Vec<Case<H>> {
         page("editor-env", |h| {
             editor(h);
             h.key(KeyCode::Char('4'));
-        }),
+        })
+        .reveals(DRAWERS),
         page("editor-accounts", |h| {
             editor(h);
             h.key(KeyCode::Char('5'));
@@ -189,7 +190,8 @@ fn cases() -> Vec<Case<H>> {
         page("settings-env", |h| {
             settings(h);
             h.key(KeyCode::Char('3'));
-        }),
+        })
+        .reveals(DRAWERS),
         page("settings-agents", |h| {
             settings(h);
             h.key(KeyCode::Char('4'));
