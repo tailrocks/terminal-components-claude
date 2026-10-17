@@ -235,10 +235,19 @@ fn ctrl_c_over_the_build_log_selection_copies_instead_of_aborting() {
     h.ctrl('a');
     let selected = h.app.router.cockpit().unwrap().log.selected_text();
     assert!(selected.is_some(), "Ctrl+A selects the log: {}", h.text());
+    junie_tui::shell::clipboard::take_output();
     h.ctrl('c');
     assert_eq!(h.app.route(), Route::Cockpit, "the launch goes on");
     assert_eq!(h.app.world.clipboard, selected);
     assert!(status(&h).starts_with("Copied "), "{}", status(&h));
+    // the copy reaches the real terminal's clipboard (OSC 52), not only
+    // the preview's simulated one
+    assert_eq!(
+        junie_tui::shell::clipboard::take_output(),
+        [junie_tui::shell::clipboard::osc52(
+            selected.as_deref().unwrap()
+        )]
+    );
     // Esc closes the log; Ctrl+C aborts again
     h.key(KeyCode::Esc);
     h.ctrl('c');
