@@ -12,15 +12,14 @@ use junie_tui::core::pointer::{
 };
 use junie_tui::core::response::Response;
 use junie_tui::shell::{self, PageKey, Shell};
-use junie_tui::theme::{BadgeKind, Theme, Tone};
+use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
     DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, ShellLayers, Taken,
 };
-use junie_tui::ui::text::truncate;
 use junie_tui::widgets::dialog::Dialog;
-use junie_tui::widgets::hintbar::{HintBar, HintLayer};
-use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::hintbar::HintBar;
+use junie_tui::widgets::keyhint::hint;
 use junie_tui::widgets::picker::{Picker, PickerAction};
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::too_small::TooSmall;
@@ -37,9 +36,7 @@ use crate::screens::capsule::CapsuleScreen;
 use crate::screens::cockpit::CockpitScreen;
 use crate::screens::editor::EditorScreen;
 use crate::screens::manager::ManagerScreen;
-use crate::screens::modals::{
-    ChoiceDialog, FormAction, FormDialog, HelpOverlay, InfoDialog, InfoResult,
-};
+use crate::screens::modals::{FormAction, FormDialog, HelpOverlay, InfoResult};
 use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
 use crate::screens::usage::UsageScreen;
@@ -204,7 +201,7 @@ impl App {
         let mut shell = Shell::new();
         shell.motion = motion;
         let mut app = Self {
-            theme: theme.centred_hints(),
+            theme,
             scenario,
             world,
             route: Route::Manager,
@@ -1377,60 +1374,6 @@ impl App {
         self.layers.top().is_some_and(|t| t.layer.is_editing())
     }
 
-    /// The footer's hints for the top layer: its own, or this app's line
-    /// for the library modals that report none.
-    fn layer_hints(&self) -> Vec<Hint> {
-        let Some(top) = self.layers.top() else {
-            return vec![];
-        };
-        let own = top.layer.hints(self.shell.focus.current());
-        if !own.is_empty() {
-            return own;
-        }
-        if let Some(p) = top.get::<Picker>() {
-            let mut v = vec![];
-            if p.searchable {
-                v.push(hint("Type", "Filter"));
-            }
-            v.push(hint("↑↓", "Move"));
-            v.push(hint("Enter", "Choose"));
-            v.push(if p.searchable && !p.query.text().is_empty() {
-                hint("Esc", "Clear")
-            } else {
-                hint("Esc", "Cancel")
-            });
-            v
-        } else if top.get::<ChoiceDialog>().is_some() {
-            vec![
-                hint("↑↓", "Choose"),
-                hint("Enter", "Confirm"),
-                hint("Tab", "Buttons"),
-                hint("Esc", "Cancel"),
-            ]
-        } else if let Some(f) = top.get::<FormDialog>() {
-            if f.is_editing() {
-                junie_tui::widgets::keyhint::EDIT_FIELD.to_vec()
-            } else {
-                vec![
-                    hint("Tab", "Next field"),
-                    hint("Enter", "Edit / Save"),
-                    hint("Esc", "Cancel"),
-                ]
-            }
-        } else if let Some(i) = top.get::<InfoDialog>() {
-            let mut v = vec![hint("↑↓", "Move")];
-            if let Some((k, a)) = i.props.reveal.hint() {
-                v.push(hint(k, a));
-            }
-            v.extend([hint("y", "Copy"), hint("Esc", "Close")]);
-            v
-        } else if top.get::<HelpOverlay>().is_some() {
-            vec![hint("↑↓", "Scroll"), hint("Esc", "Close")]
-        } else {
-            vec![]
-        }
-    }
-
     // ------------------------------------------------------------- mouse
 
     /// One pointer event the router resolved: the footer's hints first
@@ -1913,7 +1856,7 @@ impl App {
                 if !self.layers.is_empty() {
                     // footer hints for the modal
                     let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-                    self.draw_footer(footer, buf, ctx, true);
+                    self.footer(true).render(footer, buf, ctx, &mut self.shell);
                 }
             }
         }
@@ -1951,7 +1894,7 @@ impl App {
         if let Some(s) = self.screens.get_mut(route) {
             s.render(body, buf, ctx, &self.world);
         }
-        self.draw_footer(footer, buf, ctx, false);
+        self.footer(false).render(footer, buf, ctx, &mut self.shell);
     }
 
     fn construct_state(&self, route: Route) -> (&'static str, Tone) {
@@ -2064,64 +2007,41 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, modal: bool) {
-        let t = self.theme;
-        let reveal = ctx.reveal_hint;
-        fill(buf, area, t.base());
-        let hints: Vec<Hint> = if modal {
-            self.layer_hints()
-        } else {
-            let focus = self.shell.focus.current();
-            self.screens
-                .get(self.route)
-                .map(|s| s.hints(focus, &self.world))
-                .unwrap_or_default()
-        };
-        // the focused cursor row is cut: name the reveal key
-        let mut hints = hints;
-        junie_tui::ui::reveal::advertise(&mut hints, reveal, |h| h.key, hint);
+    /// The footer ([`shell::Footer`]): the top layer's hints while one is
+    /// open (library modals name their own keys, CO4), else the open host
+    /// menu's, else the screen's, else `? Help · Esc Back`; the EDIT badge
+    /// while a field edits; the status line, where the Manager's
+    /// still-inside feedback takes an empty slot.
+    fn footer(&self, modal: bool) -> shell::Footer {
+        use junie_tui::core::hints::{HasHints, HintCx};
+        let focus = self.shell.focus.current();
         let editing =
             self.screens.get(self.route).is_some_and(|s| s.is_editing()) || self.layer_editing();
-        let badge = if editing {
-            Some(("EDIT", BadgeKind::Edit))
-        } else {
-            None
-        };
-        let status = self.shell.status.get();
-        // still-inside feedback takes the status slot when present
         let still = self
             .screens
             .manager
             .still_inside
             .as_ref()
-            .map(|(s, _, _)| s.clone());
-        let status = match (&still, status) {
-            (Some(s), None) if self.route == Route::Manager => Some((s.as_str(), Tone::Secondary)),
+            .map(|(s, _, _)| s.as_str());
+        let status = match (still, self.shell.status.get()) {
+            (Some(s), None) if self.route == Route::Manager => Some((s, Tone::Secondary)),
             (_, s) => s,
         };
-        let status =
-            status.map(|(s, tone)| (truncate(s, area.width.saturating_sub(4) as usize), tone));
-        // one hint surface: topmost modal › open menu › the screen's own context › fallback
-        let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
-        let menu_layer =
-            (!modal && Self::is_host(self.route) && self.host_menu.is_open()).then(|| {
-                HintLayer::new(vec![
-                    hint("←→", "Menu"),
-                    hint("↑↓", "Move"),
-                    hint("Enter", "Choose"),
-                    hint("Esc", "Close"),
-                ])
-            });
-        let screen_layer = (!modal && !hints.is_empty()).then(|| HintLayer::new(hints.clone()));
-        let fallback = HintLayer::new(vec![hint("?", "Help"), hint("Esc", "Back")]);
-        let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
-        layer.badge = badge;
-        layer.status = status;
-        let spots = HintBar::render_at(area, buf, &t, &layer);
-        // an inert frame (the handoff) takes no clicks
-        if !ctx.inert {
-            self.shell.footer_drawn(layer.hints, spots);
-        }
+        let footer = if modal {
+            shell::Footer::new().layer(self.layers.top().map(|t| t.layer.hints(focus)))
+        } else {
+            let menu = Self::is_host(self.route)
+                .then(|| HasHints::hints(&self.host_menu, &HintCx::new(focus)));
+            shell::Footer::new()
+                .layer(menu)
+                .layer(
+                    self.screens
+                        .get(self.route)
+                        .map(|s| s.hints(focus, &self.world)),
+                )
+                .fallback(vec![hint("?", "Help"), hint("Esc", "Back")])
+        };
+        footer.editing(editing).status(status)
     }
 }
 
