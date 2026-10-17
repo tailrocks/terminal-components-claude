@@ -12,12 +12,15 @@
 //!   trait only adds its own extras.
 //! - [`KeyRouter`], [`ShellKeys`] and [`ShellAction`]: the one key order
 //!   every app routes keys in ([`KeyHost`] names its stages).
+//! - [`Footer`]: the one footer composition (hints of the top layer, the
+//!   EDIT badge, the status line with errors over hints, click targets).
 //! - [`StatusLine`]: the transient status message and its expiry rule.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
 
 mod app;
 mod cx;
+mod footer;
 mod page;
 mod router;
 mod status;
@@ -25,6 +28,7 @@ mod status;
 pub use crate::ui::layer::LayerTag;
 pub use app::{App, PageKey, Shell, blur_fan_out, handle, render};
 pub use cx::{Cx, Request, background};
+pub use footer::{Footer, FooterStatus, deliverable};
 pub use page::{
     Page, PageCx, PageTypes, open_context, rebuild_on_tick, replay_key, row_anchor, row_choice,
 };
