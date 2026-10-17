@@ -202,7 +202,7 @@ impl PopupsTooltipsPage {
             .fit(self.place())
             .dismiss(self.dismiss())
             .title("report.pdf");
-        m.placement = self.placement("popupstooltips.placement");
+        m.list.placement = self.placement("popupstooltips.placement");
         self.popover.open(m, ());
     }
 
@@ -458,7 +458,7 @@ impl Page for PopupsTooltipsPage {
             match chosen {
                 Some(((), i)) => {
                     let items = popover_items();
-                    let label = items.get(i).map_or("?", |it| it.label.as_str());
+                    let label = items.get(i).map_or("?", |it| it.item.label.as_str());
                     self.last = format!("{:?} · {label}", MenuAction::Chosen(i));
                 }
                 None if !self.popover.is_open() => {

@@ -889,7 +889,7 @@ impl Specimen for crate::widgets::menu::ContextMenu {
         let v = state.visual();
         let row = 1.min(m.items.len() - 1);
         if v.disabled {
-            m.items[row].disabled = true;
+            m.items[row].item.disabled = true;
         }
         if v.hovered {
             ctx.interaction.hover = Some(m.row_id(row));

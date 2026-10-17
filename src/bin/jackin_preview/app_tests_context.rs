@@ -176,7 +176,7 @@ fn manager_instance_menu_disables_what_cannot_run_and_inspects() {
     let (ix, iy) = tree_row(&h, "c41e");
     h.mouse(MouseKind::Secondary, ix, iy);
     let menu = h.app.screens.manager.menu.menu().unwrap();
-    let labels: Vec<&str> = menu.items.iter().map(|i| i.label.as_str()).collect();
+    let labels: Vec<&str> = menu.items.iter().map(|i| i.item.label.as_str()).collect();
     assert_eq!(
         labels,
         [
@@ -189,7 +189,7 @@ fn manager_instance_menu_disables_what_cannot_run_and_inspects() {
         ]
     );
     assert!(
-        menu.items[1].disabled && menu.items[2].disabled && menu.items[4].disabled,
+        menu.items[1].item.disabled && menu.items[2].item.disabled && menu.items[4].item.disabled,
         "a stopped instance has no session, shell or stop: {labels:?}"
     );
     assert!(menu.items[5].danger);
@@ -330,7 +330,7 @@ fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
     let labels: Vec<String> = accounts_menu(&h)
         .items
         .iter()
-        .map(|i| i.label.clone())
+        .map(|i| i.item.label.clone())
         .collect();
     assert_eq!(
         labels,
@@ -360,14 +360,18 @@ fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
     let (px, py) = find_left(&h, "Personal", 40).unwrap();
     h.mouse(MouseKind::Secondary, px, py);
     let set_default = &accounts_menu(&h).items[4];
-    assert!(set_default.disabled, "{set_default:?}");
+    assert!(set_default.item.disabled, "{set_default:?}");
     h.key(KeyCode::Esc);
     // a discovered account is read-only: no edit, no remove
     let (dx, dy) = find_left(&h, "discovered", 40).unwrap();
     h.mouse(MouseKind::Secondary, dx, dy);
     let m = accounts_menu(&h);
-    assert!(!m.items[0].disabled, "Refresh still runs");
-    assert!(m.items[3].disabled && m.items[6].disabled, "{:?}", m.items);
+    assert!(!m.items[0].item.disabled, "Refresh still runs");
+    assert!(
+        m.items[3].item.disabled && m.items[6].item.disabled,
+        "{:?}",
+        m.items
+    );
 }
 
 #[test]
@@ -437,7 +441,7 @@ fn editor_mount_menu_opens_at_the_pointer_and_toggles_read_only() {
     let m = editor_menu(&h);
     assert_eq!((m.area.x, m.area.y), (x + 4, y + 1), "at the pointer");
     assert!(row(&h, m.area.y + 1).contains("/workspace/libs"), "titled");
-    let labels: Vec<&str> = m.items.iter().map(|i| i.label.as_str()).collect();
+    let labels: Vec<&str> = m.items.iter().map(|i| i.item.label.as_str()).collect();
     assert_eq!(
         labels,
         [
@@ -451,8 +455,8 @@ fn editor_mount_menu_opens_at_the_pointer_and_toggles_read_only() {
             "Remove"
         ]
     );
-    assert!(m.items[4].disabled, "a workspace mount has no scope");
-    assert!(m.items[5].disabled, "nothing to revert yet");
+    assert!(m.items[4].item.disabled, "a workspace mount has no scope");
+    assert!(m.items[5].item.disabled, "nothing to revert yet");
     assert!(m.items[7].danger);
     let id = m.id;
     // Make read-write: the r key's path
@@ -461,8 +465,8 @@ fn editor_mount_menu_opens_at_the_pointer_and_toggles_read_only() {
     assert!(libs.contains(" rw "), "{libs}");
     h.mouse(MouseKind::Secondary, x + 4, y);
     let m = editor_menu(&h);
-    assert_eq!(m.items[1].label, "Make read-only");
-    assert!(!m.items[5].disabled, "the change can be reverted");
+    assert_eq!(m.items[1].item.label, "Make read-only");
+    assert!(!m.items[5].item.disabled, "the change can be reverted");
 }
 
 #[test]
@@ -498,7 +502,10 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
     let (_, gy) = h.find("GH_TOKEN").unwrap();
     h.mouse(MouseKind::Secondary, 90, gy);
     let m = settings_menu(&h).expect("GH_TOKEN's menu");
-    assert!(m.items[1].disabled, "a 1Password reference cannot be shown");
+    assert!(
+        m.items[1].item.disabled,
+        "a 1Password reference cannot be shown"
+    );
     // KUBECONFIG sits under the open menu's backdrop, left of the menu
     let (kx, ky) = h.find("KUBECONFIG").unwrap();
     h.mouse(MouseKind::Secondary, kx, ky);
@@ -510,7 +517,7 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
     choose(&mut h, id, 1);
     assert!(settings_menu(&h).is_none());
     h.mouse(MouseKind::Secondary, kx, ky);
-    assert_eq!(settings_menu(&h).unwrap().items[1].label, "Mask value");
+    assert_eq!(settings_menu(&h).unwrap().items[1].item.label, "Mask value");
 }
 
 /// K26: the Capsule's Ctrl+B prefix waits for its command without a

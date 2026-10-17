@@ -81,10 +81,10 @@ mod tests {
         let menu = || vec![MenuItem::new("a"), MenuItem::new("b")];
         let mut m = ContextMenu::new(WidgetId::of("m"), menu());
         m.on_key(&k(KeyCode::Up));
-        assert_eq!(m.cursor, 1, "a menu wraps by default");
+        assert_eq!(m.list.cursor.index, 1, "a menu wraps by default");
         let mut m = ContextMenu::new(WidgetId::of("m"), menu()).wrap(false);
         m.on_key(&k(KeyCode::Up));
-        assert_eq!(m.cursor, 0, "and clamps on request");
+        assert_eq!(m.list.cursor.index, 0, "and clamps on request");
 
         let mut bar = MenuBar::new(WidgetId::of("bar"), vec![("A", menu()), ("B", menu())]);
         bar.on_key(&k(KeyCode::Left));

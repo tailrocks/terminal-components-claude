@@ -239,7 +239,7 @@ impl MenusPage {
         let m = ContextMenu::new(ACTIONS_MENU, action_items())
             .anchor_control(self.actions.id, Rect::ZERO);
         let mut m = self.opts.style(m);
-        m.placement = self.opts.placement();
+        m.list.placement = self.opts.placement();
         if self.opts.on("menus.title") {
             m = m.title("Actions");
         }
@@ -248,7 +248,7 @@ impl MenusPage {
     }
 
     fn chose(&mut self, what: &str, i: usize, items: &[MenuItem]) {
-        let label = items.get(i).map_or("?", |it| it.label.as_str());
+        let label = items.get(i).map_or("?", |it| it.item.label.as_str());
         self.last = format!("{:?} · {label} on {what}", MenuAction::Chosen(i));
     }
 

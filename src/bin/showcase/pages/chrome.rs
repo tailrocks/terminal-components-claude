@@ -373,7 +373,7 @@ impl ChromePage {
     }
 
     fn act(&mut self, menu: usize, item: usize, cx: &mut Cx) {
-        let label = self.bar.menus[menu][item].label.clone();
+        let label = self.bar.menus[menu][item].item.label.clone();
         if menu == 2 && item == 0 {
             self.zoomed = !self.zoomed;
         }
@@ -608,7 +608,7 @@ impl Page for ChromePage {
         }
         if let Some((o, chosen)) = self.context.handle(ev) {
             if let Some((target, i)) = chosen {
-                let label = self.context_items(target)[i].label.clone();
+                let label = self.context_items(target)[i].item.label.clone();
                 self.last = match target {
                     Target::Session(_) => format!("tab › {label}"),
                     Target::Env => format!("production › {label}"),

@@ -491,7 +491,7 @@ fn the_gate_sequence_menu_copies_or_cancels_but_never_continues() {
         .modals
         .top_as::<junie_tui::widgets::menu::ContextMenu>()
     {
-        Some(m) => m.items.iter().map(|i| i.label.clone()).collect(),
+        Some(m) => m.items.iter().map(|i| i.item.label.clone()).collect(),
         _ => panic!("no menu"),
     };
     assert_eq!(labels, ["Copy sequence", "Cancel"], "never Continue");
