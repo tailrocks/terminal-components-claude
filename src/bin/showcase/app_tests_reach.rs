@@ -53,6 +53,8 @@ fn words(buf: &Buffer, area: Rect, out: &mut BTreeSet<String>) {
 struct Shot {
     app: App,
     term: Terminal<TestBackend>,
+    /// Words to look for: scrolling stops once all are seen.
+    want: Option<BTreeSet<String>>,
 }
 
 impl Shot {
@@ -62,7 +64,11 @@ impl Shot {
         let t = app.pages[page.index()].template_mut()?;
         t.set_section(section);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
-        let mut s = Self { app, term };
+        let mut s = Self {
+            app,
+            term,
+            want: None,
+        };
         s.draw();
         Some(s)
     }
@@ -84,6 +90,11 @@ impl Shot {
 
     /// Words in the section body at every scroll position: a window per
     /// view on each axis, and the end of each.
+    /// Whether every wanted word was seen.
+    fn done(&self, out: &BTreeSet<String>) -> bool {
+        self.want.as_ref().is_some_and(|w| w.is_subset(out))
+    }
+
     fn reachable(&mut self, inner: bool) -> BTreeSet<String> {
         let mut out = BTreeSet::new();
         self.words(&mut out);
@@ -102,6 +113,9 @@ impl Shot {
                 self.view().scroll_to(x, y);
                 self.draw();
                 self.words(&mut out);
+                if self.done(&out) {
+                    return out;
+                }
                 if inner {
                     self.inner(&mut out);
                 }
@@ -114,8 +128,10 @@ impl Shot {
     /// that shows a scrollbar (a list, a table, a log, a stack of panels)
     /// says it holds more than its window, so what scrolling it brings
     /// into view is reachable. Wheel each such scroller in view from its
-    /// bar to its end (until it stops moving, or the notch chains on to
-    /// the section's view), then put the section back where it was.
+    /// bars to its start and then to its end (until it stops moving, or
+    /// the notch chains on to the section's view); one with both bars is
+    /// swept sideways at each window of rows. Then put the section back
+    /// where it was.
     fn inner(&mut self, out: &mut BTreeSet<String>) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
@@ -128,28 +144,83 @@ impl Shot {
             .filter(|b| b.owner != view && b.track.intersects(viewport))
             .copied()
             .collect();
-        for bar in bars {
-            let at = bar.track.intersection(viewport);
-            let pos = Position::new(at.x, at.y);
-            let kind = match bar.axis {
-                Axis::Vertical => MouseKind::WheelDown,
-                Axis::Horizontal => MouseKind::WheelRight,
-            };
-            let start = self.view().offset();
-            let mut last = text(self.term.backend().buffer());
-            for _ in 0..INNER_NOTCHES {
-                self.app.handle(Input::Mouse(Mouse::new(kind, pos)));
-                self.draw();
-                self.words(out);
-                let now = text(self.term.backend().buffer());
-                if self.view().offset() != start || now == last {
-                    break;
-                }
-                last = now;
+        let mut owners = Vec::new();
+        for b in &bars {
+            if !owners.contains(&b.owner) {
+                owners.push(b.owner);
             }
-            self.view().scroll_to(start.0, start.1);
-            self.draw();
         }
+        for owner in owners {
+            if self.done(out) {
+                return;
+            }
+            let at = |axis: Axis| {
+                bars.iter()
+                    .find(|b| b.owner == owner && b.axis == axis)
+                    .map(|b| {
+                        let r = b.track.intersection(viewport);
+                        Position::new(r.x, r.y)
+                    })
+            };
+            let (v, h) = (at(Axis::Vertical), at(Axis::Horizontal));
+            // sideways once a window of rows went by (a notch moves about
+            // three rows; the track is as tall as the window)
+            let rows = bars
+                .iter()
+                .find(|b| b.owner == owner && b.axis == Axis::Vertical)
+                .map_or(1, |b| (b.track.height / 3).max(1) as usize);
+            let start = self.view().offset();
+            let mut notch = 0usize;
+            let mut across = |s: &mut Self, out: &mut BTreeSet<String>| {
+                notch += 1;
+                if notch % rows != 0 {
+                    return;
+                }
+                if let Some(h) = h {
+                    // to its end sideways and back
+                    s.sweep(MouseKind::WheelRight, h, start, out, &mut |_, _| {});
+                    s.sweep(MouseKind::WheelLeft, h, start, out, &mut |_, _| {});
+                }
+            };
+            if let Some(h) = h {
+                self.sweep(MouseKind::WheelRight, h, start, out, &mut |_, _| {});
+                self.sweep(MouseKind::WheelLeft, h, start, out, &mut |_, _| {});
+            }
+            if let Some(v) = v {
+                // to its start (a log that follows sits at its end), then
+                // to its end
+                self.sweep(MouseKind::WheelUp, v, start, out, &mut across);
+                self.sweep(MouseKind::WheelDown, v, start, out, &mut across);
+            }
+        }
+    }
+
+    /// Wheel `kind` at `pos` until the screen stops changing or the notch
+    /// chains on to the section's view (it left `start`), calling `each`
+    /// after every notch that moved something; then the section's view
+    /// back at `start`.
+    fn sweep(
+        &mut self,
+        kind: MouseKind,
+        pos: Position,
+        start: (usize, usize),
+        out: &mut BTreeSet<String>,
+        each: &mut dyn FnMut(&mut Self, &mut BTreeSet<String>),
+    ) {
+        let mut last = text(self.term.backend().buffer());
+        for _ in 0..INNER_NOTCHES {
+            self.app.handle(Input::Mouse(Mouse::new(kind, pos)));
+            self.draw();
+            self.words(out);
+            let now = text(self.term.backend().buffer());
+            if self.view().offset() != start || now == last || self.done(out) {
+                break;
+            }
+            last = now;
+            each(self, out);
+        }
+        self.view().scroll_to(start.0, start.1);
+        self.draw();
     }
 }
 
@@ -170,12 +241,16 @@ fn allowed() -> BTreeSet<String> {
         .collect()
 }
 
-#[test]
-fn every_section_reaches_its_whole_content_by_scrolling() {
+/// The gate over every `PARTS`-th page from `part` (the pages split so
+/// nextest runs the parts side by side): each section at each size, and
+/// the allowlist's entries for those pages.
+fn reach_part(part: usize) {
     let allowed = allowed();
     let mut problems = Vec::new();
     let mut failing = BTreeSet::new();
-    for entry in NAV_ENTRIES {
+    let mut pages = BTreeSet::new();
+    for entry in NAV_ENTRIES.iter().skip(part).step_by(PARTS) {
+        pages.insert(format!("{:?}", entry.id));
         for section in Section::ALL {
             let Some(mut big) = Shot::new(REFERENCE.0, REFERENCE.1, entry.id, section) else {
                 break;
@@ -183,6 +258,7 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
             let want = big.reachable(false);
             for (w, h) in SIZES {
                 let mut small = Shot::new(w, h, entry.id, section).unwrap();
+                small.want = Some(want.clone());
                 let seen = small.reachable(true);
                 let missing: Vec<&String> = want.difference(&seen).collect();
                 let key = format!("{:?} | {} | {w}x{h}", entry.id, section.label());
@@ -202,8 +278,11 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
             }
         }
     }
-    for key in allowed.difference(&failing) {
-        if !problems.iter().any(|p| p.contains(key.as_str())) {
+    let mine = allowed
+        .iter()
+        .filter(|k| pages.contains(k.split(" | ").next().unwrap_or_default()));
+    for key in mine {
+        if !failing.contains(key) && !problems.iter().any(|p| p.contains(key.as_str())) {
             problems.push(format!(
                 "stale: {key} is listed but not failing; delete its line"
             ));
@@ -214,6 +293,56 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
         "content cut off for good (tests/showcase_reach_allow.txt):\n{}",
         problems.join("\n")
     );
+}
+
+/// The parts the gate runs in.
+const PARTS: usize = 8;
+
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_0() {
+    reach_part(0);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_1() {
+    reach_part(1);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_2() {
+    reach_part(2);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_3() {
+    reach_part(3);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_4() {
+    reach_part(4);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_5() {
+    reach_part(5);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_6() {
+    reach_part(6);
+}
+#[test]
+fn every_section_reaches_its_whole_content_by_scrolling_7() {
+    reach_part(7);
+}
+
+/// Every allowlisted page is a page the gate walks (a renamed page's
+/// lines would otherwise never be checked).
+#[test]
+fn every_reach_allowlist_entry_names_a_page() {
+    let pages: BTreeSet<String> = NAV_ENTRIES.iter().map(|e| format!("{:?}", e.id)).collect();
+    for key in allowed() {
+        let page = key.split(" | ").next().unwrap_or_default();
+        assert!(
+            pages.contains(page),
+            "showcase_reach_allow.txt: no page {page}"
+        );
+    }
 }
 
 /// Toggles enough to fill any page twice over.
