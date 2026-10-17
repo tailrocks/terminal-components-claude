@@ -141,7 +141,7 @@ never in view at the smallest failing size.
 | R49 | LaunchCockpit | Playground | done: Page::measure (rail at 30 beside the log's lines unwrapped) | — |
 | R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, Notice Measure, ButtonRow::width) | — |
 | R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
-| R52 | Sidebars | Playground | 80x24, 100x25 | `Appearance Ctrl Disabled Keyboard Last and are behind` |
+| R52 | Sidebars | Playground | done: Page::measure (content card's lines unwrapped beside the sidebar) | — |
 | R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
 | R54 | TaskRunner | Playground | done: Page::measure (pipeline as wide as its two buttons) | — |
 
