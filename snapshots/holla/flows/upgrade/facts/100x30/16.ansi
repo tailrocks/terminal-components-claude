@@ -15,7 +15,7 @@
 [0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mIn[0m[38;5;15;48;5;0m         / · devbox                                                                            [0m
 [0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mNeeds[0m[38;5;15;48;5;0m      nothing · starts first                                                                [0m
 [0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mUnlocks[0m[38;5;15;48;5;0m    02 Refresh Debian metadata · 05 Inspect global mise tools                             [0m
-[0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mL6 required · 2 optional · 2 branches run in parallel where independent[0m[38;5;15;48;5;0m                          [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mLane[0m[38;5;15;48;5;0m       · trunk · ordered                                                                     [0m
 [0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mPrivilege[0m[38;5;15;48;5;0m  [0m[38;5;3;48;5;0msudo[0m[38;5;15;48;5;0m                                                                                  [0m
 [0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mEffect[0m[38;5;15;48;5;0m     checks OS, privileges, package lock, network, free space, pending reboot              [0m
 [0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mState[0m[38;5;15;48;5;0m      ready                                                                                 [0m
