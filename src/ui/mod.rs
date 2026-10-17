@@ -8,6 +8,7 @@ pub mod layer;
 pub mod layers;
 pub mod layout;
 pub mod leave;
+pub mod master_detail;
 pub mod modal;
 pub mod popup;
 pub mod reveal;
