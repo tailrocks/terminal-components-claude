@@ -122,12 +122,12 @@ never in view at the smallest failing size.
 | R30 | EmptyError | Playground | done: Page::measure (EmptyState Measure, Panel::outer) | — |
 | R31 | Meters | Playground | done: Page::measure (PageHeader, Heading, MeterList Measure) | — |
 | R32 | Notices | Playground | done: Page::measure (notices at their option width, cards whole) | — |
-| R33 | Panels | Playground | done: Page::measure (cards wrap to their column, panes under them below 116 columns) | — |
+| R33 | Panels | Playground | done: Page::measure (cards wrap to their column, the nested note under its group when narrow, panes under the cards below 74 columns) | — |
 | R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 | `008 009 010 011 012 013 014 015` |
-| R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::extent_for, the stack with its note) | — |
-| R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
-| R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size) | — |
-| R38 | Editor | Playground | done: Page::measure (State facts and the empty diagnostics whole beside the editor) | — |
+| R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::natural_extent, the starting ratio: a drag never resizes the page; the stack with its note) | — |
+| R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width at the starting ratio, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
+| R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size at the starting ratios) | — |
+| R38 | Editor | Playground | done: Page::measure (right column at its need with EmptyState::min_width, the editor gives way down to 40 and scrolls itself; stacked under the editor when narrower) | — |
 | R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
 | R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
 | R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
@@ -138,26 +138,28 @@ never in view at the smallest failing size.
 | R46 | Activity | Playground | 80x24, 100x25, 106x29, 120x40 | `184 201 404 412 4821 4822 Command Exit` |
 | R47 | Workspaces | Playground | 80x24, 100x25, 106x29, 120x40 | `04d7 9b02 Accounts Claude Codex Delete Edit Environments` |
 | R48 | AccountsUsage | Playground | 80x24, 100x25, 106x29, 120x40 | `100 1Password 212 Account Cost Credential Engineering Mon` |
-| R49 | LaunchCockpit | Playground | done: Page::measure (rail at 30 beside the log's lines unwrapped) | — |
-| R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, Notice Measure, ButtonRow::width) | — |
+| R49 | LaunchCockpit | Playground | done: Page::measure (rail at 30 beside the log, the log asking at most 48 columns: it wraps or scrolls itself) | — |
+| R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, ButtonRow::width; notices wrap, asking at most 40 columns) | — |
 | R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
-| R52 | Sidebars | Playground | done: Page::measure (content card's lines unwrapped beside the sidebar) | — |
-| R53 | Settings | Playground | done: Page::measure (TextArea::width, Toggle::width) | — |
+| R52 | Sidebars | Playground | done: Page::measure (content card wraps to the room, as tall as its wrapped lines; the nav scrolls itself) | — |
+| R53 | Settings | Playground | done: Page::measure (two columns when both fit, else stacked; the description at TextArea::min_width) | — |
 | R54 | TaskRunner | Playground | done: Page::measure (pipeline as wide as its two buttons) | — |
 
-Reach-b landing (2026-10-17): landed the shared pieces only: `Measure` for
+Reach-b landing (2026-10-17): landed the shared pieces: `Measure` for
 ListBox, MasterDetail, PaneTree, TreeView, Notice, Toggle, TextArea and
 CodeEditor; the reach gate's inner-scroller sweep both ways (R17, R39 done);
-the scroll_view gutter follow and the nav_list wheel pass-on. The page
-commits for R33, R35, R36, R37, R38, R49, R50, R52, R53 and R54 (each page
-at its natural size through `Page::measure`) stay open: laid out at their
-natural size they broke 22 showcase tests (code editor find and keymaps,
-settings save and quit guard, panels scrolling and pointer, splits seam,
-master-detail and pane-tree readouts, cockpit and report metas, the
-sidebar nav scrollbar), and only Panels had its captures re-approved. The
-work is kept on branch `reach-b-wip` (commits `1d0251cf3`..`dfba8d849`,
-`21a0058f4`) with a partial test update; redo each page as one commit with
-its tests and its capture re-approval.
+the scroll_view gutter follow and the nav_list wheel pass-on. Reach-c then
+redid the ten page commits (R33, R35, R36, R37, R38, R49, R50, R52, R53,
+R54) one per page with their tests and capture re-approvals: tests that
+relied on the squeezed layout read the page through
+`Harness::page_text` (every scroll position), ask at a size where the
+content fits, or focus the control first, never checking less. Library:
+`Split::natural_extent` (a split's natural size is its starting ratio's,
+so a seam drag never resizes its container; PaneTree and MasterDetail
+measure through it) and `EmptyState`'s `Measure::min_width` (its hint
+wraps). Self-overflowing content asks only for its minimum (TextArea
+`min_width`, the cockpit log, wrapping notices and cards), so these pages
+scroll sideways only where content cannot wrap or scroll itself.
 
 ## Priority order (owner, 2026-10-17, budget-constrained)
 
