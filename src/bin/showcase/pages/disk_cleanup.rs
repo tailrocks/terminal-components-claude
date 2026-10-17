@@ -30,7 +30,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
-use junie_tui::ui::text::{bytes, plural};
+use junie_tui::ui::text::{bytes, plural, truncate};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
@@ -461,8 +461,8 @@ impl DiskCleanupPage {
             Some(r) => self.render_cleanup(r, buf, ctx),
             None => {
                 ctx.focus_stop(self.list.id);
-                ctx.focus_stop(self.rescan.id);
                 ctx.focus_stop(self.review.id);
+                ctx.focus_stop(self.rescan.id);
             }
         }
     }
@@ -530,7 +530,13 @@ impl DiskCleanupPage {
                 l.summary,
                 buf,
                 ctx,
-                &[Segment::new(line, Tone::Muted)],
+                &[Segment::new(
+                    truncate(
+                        &line,
+                        l.summary.width.saturating_sub(2 * t.spacing.chrome_edge) as usize,
+                    ),
+                    Tone::Muted,
+                )],
                 &[],
                 t.canvas,
             );
@@ -563,7 +569,13 @@ impl DiskCleanupPage {
                 md.summary,
                 buf,
                 ctx,
-                &[Segment::new(line, Tone::Muted)],
+                &[Segment::new(
+                    truncate(
+                        &line,
+                        md.summary.width.saturating_sub(2 * t.spacing.chrome_edge) as usize,
+                    ),
+                    Tone::Muted,
+                )],
                 &[],
                 t.canvas,
             );
@@ -571,8 +583,8 @@ impl DiskCleanupPage {
         if r.is_empty() {
             // collapsed: the drawer's stops stay reachable (the review
             // through the master-detail)
-            ctx.focus_stop(self.rescan.id);
             self.clean_md.finish(ctx);
+            ctx.focus_stop(self.rescan.id);
             return;
         }
         let mode = self.mode();
