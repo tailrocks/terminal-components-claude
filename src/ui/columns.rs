@@ -349,11 +349,9 @@ pub fn render_seam(
             ..Default::default()
         };
         let style = t.interactive(Kind::Seam, s, t.plane_of(bg)).style.bg(bg);
-        let glyph = if pressed {
-            t.glyphs.scroll_thumb
-        } else {
-            t.glyphs.divider
-        };
+        // the same states as a splitter seam: heavy rule on hover and
+        // drag, the seam ladder carries the colour
+        let glyph = t.glyphs.scroll_thumb;
         buf.set_string(glyph_x, hit.y, glyph, style);
     }
     ctx.register_part(owner, part, hit);

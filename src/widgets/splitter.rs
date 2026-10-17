@@ -1,9 +1,10 @@
 //! Split handle: the gap strip between two panes of a [`Split`]. Mouse-only
 //! affordance (keyboard resize stays a chord on the owning pane). Rest,
-//! hover and pressed walk the theme's seam ladder ([`Kind::Seam`]): a quiet
-//! rule at rest, a brighter heavy rule under the pointer, the brightest
-//! heavy rule while dragged, so the affordance survives monochrome
-//! terminals.
+//! hover and pressed walk the theme's seam ladder ([`Kind::Seam`]): a thin
+//! rule in the divider grey at rest, a heavy rule in a brighter grey under
+//! the pointer, the heavy rule in the phosphor accent while dragged. The
+//! glyph swap plus the monochrome state modifiers keep the three states
+//! apart without colour.
 //!
 //! Pointer behaviour follows desktop split views: the press target is the
 //! seam padded by [`Splitter::hit_pad`] cells on each side (a 1-cell rule
@@ -297,6 +298,65 @@ mod tests {
             assert_ne!(rest, hover, "{level:?}");
             assert_ne!(hover, drag, "{level:?}");
             assert_ne!(rest, drag, "{level:?}");
+        }
+    }
+
+    /// Rest is the thin divider in the divider grey, hover the heavy rule
+    /// in a brighter grey, a drag the heavy rule in the phosphor accent
+    /// (the scrollbar thumb's pressed ink), in both directions and at
+    /// every colour level; monochrome keeps a modifier per state.
+    #[test]
+    fn seam_states_are_thin_grey_heavy_grey_and_heavy_accent() {
+        let id = WidgetId::of("seam");
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            for dir in [SplitDir::Horizontal, SplitDir::Vertical] {
+                let draw = |interaction: Interaction| {
+                    let mut hits = HitRegistry::default();
+                    let mut ring = FocusRing::default();
+                    let mut ctx = RenderCtx::new(&t, interaction, &mut hits, &mut ring);
+                    let area = Rect::new(0, 0, 3, 3);
+                    let mut buf = Buffer::empty(area);
+                    let strip = match dir {
+                        SplitDir::Horizontal => Rect::new(1, 0, 1, 3),
+                        SplitDir::Vertical => Rect::new(0, 1, 3, 1),
+                    };
+                    Splitter::new(id, dir).render(strip, &mut buf, &mut ctx, t.canvas);
+                    buf[(1, 1)].clone()
+                };
+                let rest = draw(Interaction::default());
+                let hover = draw(Interaction {
+                    hover: Some(id),
+                    ..Default::default()
+                });
+                let drag = draw(Interaction {
+                    hover: Some(id),
+                    pressed: Some(id),
+                    ..Default::default()
+                });
+                let (thin, heavy) = match dir {
+                    SplitDir::Horizontal => (t.glyphs.divider, t.glyphs.scroll_thumb),
+                    SplitDir::Vertical => (t.glyphs.h_divider, t.glyphs.scroll_h_thumb),
+                };
+                let at = format!("{level:?} {dir:?}");
+                assert_eq!(rest.symbol(), thin, "{at}");
+                assert_eq!(hover.symbol(), heavy, "{at}");
+                assert_eq!(drag.symbol(), heavy, "{at}");
+                assert_eq!(rest.fg, t.ladders.seam.rest, "{at}");
+                assert_eq!(hover.fg, t.ladders.seam.hover, "{at}");
+                if level == ColorLevel::Mono {
+                    assert!(hover.modifier.contains(t.mods.thumb_hover), "{at}");
+                    assert!(drag.modifier.contains(t.mods.thumb_pressed), "{at}");
+                    assert_ne!(hover.modifier, drag.modifier, "{at}");
+                } else {
+                    assert_ne!(rest.fg, hover.fg, "{at}: hover is a brighter grey");
+                    assert_eq!(
+                        drag.fg, t.ladders.handle.pressed,
+                        "{at}: drag is the accent"
+                    );
+                    assert_ne!(drag.fg, hover.fg, "{at}");
+                }
+            }
         }
     }
 

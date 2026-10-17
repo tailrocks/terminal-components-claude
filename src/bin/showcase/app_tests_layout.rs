@@ -180,3 +180,68 @@ fn splits_states_grid_shows_both_seams() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
+
+/// Hovering or pressing a seam restyles only that seam's own line of
+/// cells: no other seam or rule changes, the hover is the heavy rule in a
+/// brighter grey without an underline (it drew a ladder of ticks on `┃`
+/// and a double rule under `━`), and a held seam is the phosphor accent.
+/// Checked on the Splits & stacks page and the Query workbench.
+#[test]
+fn hovering_or_pressing_a_seam_restyles_only_its_own_line() {
+    let theme = junie_tui::theme::Theme::junie();
+    let pages = [
+        (PageId::SplitsStacks, "splitsstacks"),
+        (PageId::QueryWorkbench, "queryworkbench"),
+    ];
+    for (page, slug) in pages {
+        for (part, vertical) in [("outer", true), ("inner", false)] {
+            let at = format!("{slug} {part}");
+            let mut h = Harness::new(117, 33, page);
+            h.section(Section::Playground);
+            let id = WidgetId::of(slug).sub(part);
+            let seam = h.area(id);
+            let snap = |h: &Harness| h.term.backend().buffer().clone();
+            let rest = snap(&h);
+            let (x, y) = if vertical {
+                (seam.x, seam.y + seam.height / 2)
+            } else {
+                (seam.x + seam.width / 2, seam.y)
+            };
+            let line = |cx: u16, cy: u16| if vertical { cx == x } else { cy == y };
+            let check = |h: &Harness, heavy: &str, fg: ratatui::style::Color, what: &str| {
+                let now = snap(h);
+                let mut changed = 0;
+                for pos in rest.area.positions() {
+                    if rest[pos] != now[pos] {
+                        assert!(
+                            line(pos.x, pos.y),
+                            "{at} {what}: {pos:?} is off the seam\n{}",
+                            h.text()
+                        );
+                        changed += 1;
+                    }
+                }
+                assert!(changed > 0, "{at} {what}: the seam reacts");
+                let c = &now[(x, y)];
+                assert_eq!(c.symbol(), heavy, "{at} {what}");
+                assert_eq!(c.fg, fg, "{at} {what}");
+                assert!(
+                    !c.modifier.contains(ratatui::style::Modifier::UNDERLINED),
+                    "{at} {what}: no underline on the rule"
+                );
+            };
+            let (thin, heavy) = if vertical {
+                (theme.glyphs.divider, theme.glyphs.scroll_thumb)
+            } else {
+                (theme.glyphs.h_divider, theme.glyphs.scroll_h_thumb)
+            };
+            assert_eq!(rest[(x, y)].symbol(), thin, "{at} rest");
+            assert_eq!(rest[(x, y)].fg, theme.ladders.seam.rest, "{at} rest");
+            h.mouse(MouseKind::Move, x, y);
+            check(&h, heavy, theme.ladders.seam.hover, "hover");
+            h.mouse(MouseKind::Down, x, y);
+            check(&h, heavy, theme.ladders.handle.pressed, "pressed");
+            h.mouse(MouseKind::Up, x, y);
+        }
+    }
+}
