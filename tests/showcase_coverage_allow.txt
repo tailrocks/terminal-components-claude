@@ -714,6 +714,7 @@ widgets::progress::Tally::text | public function registered by SC-G1 (a query, l
 
 # widgets::props
 widgets::props::measure_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+widgets::props::width_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::props::PropsList::click | S9 click policy on the property list (double click activates, M32): the Text utilities page gains a click option with the SC33 click options | SC33
 
 # widgets::scrollbar

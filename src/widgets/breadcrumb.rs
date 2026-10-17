@@ -149,6 +149,21 @@ impl Breadcrumb {
     }
 }
 
+/// The whole trail on one row: every level and separator, nothing
+/// collapsed into `…` and no label cut. A container that lays the trail
+/// out at this width shows all of it (a narrower row still collapses).
+impl crate::ui::measure::Measure for Breadcrumb {
+    fn measure(&self, _avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        if self.segments.is_empty() {
+            return ratatui::layout::Size::new(0, 0);
+        }
+        let sep = width(&format!(" {} ", ctx.theme.glyphs.overflow_right)) as u16;
+        let labels: u16 = self.segments.iter().map(|s| width(s) as u16).sum();
+        let gaps = sep * (self.segments.len() - 1) as u16;
+        ratatui::layout::Size::new(labels + gaps, 1)
+    }
+}
+
 /// A trail drawn alone, in a forced state, for a States grid
 /// ([`crate::ui::specimen`]): hover and press land on the first link (where
 /// the pointer would be), overflow is a deeper trail than its cell holds
@@ -249,6 +264,28 @@ mod tests {
 
     fn text(buf: &Buffer) -> String {
         buf.content().iter().map(|c| c.symbol()).collect()
+    }
+
+    #[test]
+    fn measure_is_the_width_that_shows_the_whole_trail() {
+        use crate::ui::measure::Measure;
+        let theme = Theme::junie();
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let b = trail();
+        let size = b.measure(ratatui::layout::Size::new(5, 5), &ctx);
+        assert_eq!(size.height, 1);
+        let mut whole = trail();
+        let (buf, _) = draw(&mut whole, size.width, None);
+        let shown = text(&buf);
+        assert!(
+            shown.contains("Finder") && shown.contains("Top files"),
+            "{shown}"
+        );
+        assert!(!shown.contains('…'), "{shown}");
+        // one cell less collapses or cuts
+        let (buf, _) = draw(&mut trail(), size.width - 1, None);
+        assert!(text(&buf).contains('…'));
     }
 
     fn trail() -> Breadcrumb {

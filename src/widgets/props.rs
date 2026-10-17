@@ -178,6 +178,35 @@ pub fn measure_with(props: &[Prop], width: u16, sheet: Sheet) -> u16 {
     rows(props, width, sheet).len() as u16
 }
 
+/// The narrowest width at which the sheet shows every label and value
+/// whole (plan §1.4 `Measure`): each label beside its value, a value that
+/// does not wrap on one row, a wrapping value at least as wide as its
+/// longest word. Its height at a width is [`measure`].
+pub fn width(props: &[Prop]) -> u16 {
+    width_with(props, Sheet::default())
+}
+
+/// [`width`] with explicit column rules.
+pub fn width_with(props: &[Prop], sheet: Sheet) -> u16 {
+    if props.is_empty() {
+        return 0;
+    }
+    let w = |s: &str| crate::ui::text::width(s) as u16;
+    let label = props.iter().map(|p| w(&p.label) + 2).max().unwrap_or(2);
+    let value = props
+        .iter()
+        .map(|p| {
+            if p.wrap {
+                p.value.split_whitespace().map(w).max().unwrap_or(0)
+            } else {
+                w(&p.value)
+            }
+        })
+        .max()
+        .unwrap_or(0);
+    label + value.max(sheet.value_min)
+}
+
 /// Draw the sheet; returns the number of rows used.
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, props: &[Prop], bg: Color) -> u16 {
     render_with(area, buf, t, props, bg, Sheet::default())
@@ -953,6 +982,27 @@ mod tests {
         // with room for the values the column stays as wide as its labels
         let lines = sheet_text(&props, 60);
         assert_eq!(lines[0], "Name                              orders");
+    }
+
+    /// At its `width` every label sits beside its whole value; a
+    /// wrapping value breaks between words only.
+    #[test]
+    fn width_shows_every_label_and_value_whole() {
+        let props = vec![
+            Prop::new("Name", "orders-archive"),
+            Prop::new("Keys", "Enter opens · Backspace goes up").wrap(),
+        ];
+        let w = width(&props);
+        assert_eq!(w, 6 + 14);
+        let lines = sheet_text(&props, w);
+        assert_eq!(lines[0], "Name  orders-archive");
+        assert_eq!(lines[1], "Keys  Enter opens ·");
+        assert_eq!(lines[2], "      Backspace goes");
+        assert_eq!(lines[3], "      up");
+        assert_eq!(measure(&props, w), 4);
+        assert!(lines.iter().all(|l| !l.contains('…')), "{lines:?}");
+        // a short sheet still keeps `value_min` for its values
+        assert_eq!(width(&[Prop::new("A", "b")]), 3 + 12);
     }
 
     #[test]
