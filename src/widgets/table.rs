@@ -1852,13 +1852,22 @@ impl DataTable {
                         fill(buf, cell_rect, st);
                     }
                     buf.set_string(r.x, y, &text, st);
-                    crate::ui::reveal::truncated(
+                    let cut = crate::ui::reveal::truncated(
                         ctx,
                         self.reveal,
                         self.cell_id(di, ci),
                         Rect::new(r.x, y, text_w as u16, 1),
                         &shown,
                     );
+                    // the cursor's cut value reads in full on the peek
+                    // line: the cursor cell, or the row's first cut cell
+                    // (K12, SI8)
+                    if cut && s.focused && (!self.cell_nav || ci == self.cursor_col) {
+                        let cfg = self.reveal.unwrap_or(ctx.reveal);
+                        if cfg.hover || cfg.keyboard.is_some() {
+                            crate::ui::reveal::peek(ctx, &shown);
+                        }
+                    }
                     if affordance {
                         let mark = Rect::new(r.right() - 1, y, 1, 1);
                         let ms = if is_cursor_cell || is_choice_cell {
@@ -2688,6 +2697,34 @@ mod tests {
         let (_, ev) = t.on_key(&tab);
         assert_eq!(ev, Some(TableAction::LeaveForward));
         assert!(!t.is_editing());
+    }
+
+    /// K12, SI8: the focused cursor cell's cut value reads in full on the
+    /// peek line, with no key and no pointer; another cell, or the table
+    /// without focus, publishes nothing.
+    #[test]
+    fn the_cut_cursor_cell_peeks_its_full_value() {
+        const LONG: &str = "a value far too long for the narrow name column";
+        let peek = |col: usize, focused: bool| {
+            let mut t = table();
+            t.rows[0][0] = Cell::new(LONG);
+            t.cursor_col = col;
+            let interaction = Interaction {
+                focus: focused.then_some(t.id),
+                ..Default::default()
+            };
+            let theme = Theme::junie();
+            let area = Rect::new(0, 0, 24, 5);
+            let mut buf = Buffer::empty(area);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            t.render(area, &mut buf, &mut ctx, theme.surface);
+            ctx.peek
+        };
+        assert_eq!(peek(0, true).as_deref(), Some(LONG));
+        assert_eq!(peek(0, false), None);
+        assert_eq!(peek(1, true), None);
     }
 
     fn render_with(table: &mut DataTable, interaction: Interaction) -> Buffer {

@@ -137,3 +137,31 @@ fn the_edit_badge_leads_the_row() {
     );
     assert!(r.trim_start().starts_with("EDIT"), "{r:?}");
 }
+
+/// SI8: the focused widget's cut value shows in full on the peek line (the
+/// footer's status slot) while nothing else is said there; a status wins,
+/// and `peek(false)` turns it off.
+#[test]
+fn the_peek_line_shows_the_focused_cut_value_in_full() {
+    let theme = Theme::junie();
+    let draw_peek = |footer: Footer| {
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        crate::ui::reveal::peek(&mut ctx, "a value\nfar too long for its cell");
+        let area = Rect::new(0, 0, 80, 1);
+        let mut buf = Buffer::empty(area);
+        let mut shell: Shell = Shell::new();
+        footer.render(area, &mut buf, &ctx, &mut shell);
+        row(&buf)
+    };
+    let shown = draw_peek(Footer::new().fallback(vec![hint("F1", "Help")]));
+    assert!(
+        shown.contains("a value far too long for its cell"),
+        "{shown}"
+    );
+    let status = draw_peek(Footer::new().status(Some(("Saved", Tone::Success))));
+    assert!(!status.contains("far too long"), "{status}");
+    let off = draw_peek(Footer::new().peek(false));
+    assert!(!off.contains("far too long"), "{off}");
+}
