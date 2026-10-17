@@ -917,15 +917,6 @@ impl App {
                         ),
                     ],
                 ),
-                (
-                    "Everywhere",
-                    vec![
-                        ("Esc", "back one level"),
-                        ("s", "Settings"),
-                        ("?", "this help"),
-                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
-                    ],
-                ),
             ],
             Route::Usage => vec![
                 (
@@ -1083,21 +1074,7 @@ impl App {
                         ("p", "purge…"),
                     ],
                 ),
-                (
-                    "Everywhere",
-                    vec![
-                        ("Tab Shift+Tab", "next / previous"),
-                        ("Esc", "back one level"),
-                        ("u", "Usage overlay"),
-                        ("c", "Accounts & Usage"),
-                        ("s", "Settings"),
-                        ("F5", "refresh now"),
-                        ("?", "this help"),
-                        ("q", "back / quit"),
-                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
-                        ("Ctrl+C", "quit · same as Ctrl+Q"),
-                    ],
-                ),
+                ("Everywhere", vec![("F5", "refresh now")]),
                 (
                     "Editor and Settings",
                     vec![
@@ -1118,7 +1095,26 @@ impl App {
                 ),
             ],
         };
-        let h = HelpOverlay::new(WidgetId::of("help"), &scope, sections);
+        // the screen keys each screen handles in its own code, by hand
+        // until they move onto key maps (S16); the shell's from ShellKeys
+        let mut sections: Vec<junie_tui::widgets::help::HelpSection> = sections
+            .into_iter()
+            .map(|(title, rows)| {
+                rows.into_iter().fold(
+                    junie_tui::widgets::help::HelpSection::new(title),
+                    |s, (k, v)| s.row(k, v),
+                )
+            })
+            .collect();
+        sections.push(self.keys.help_section("Shell", |c| {
+            Some(match c {
+                JackinCmd::Usage => "Usage",
+                JackinCmd::Accounts => "Accounts",
+                JackinCmd::Settings => "Settings",
+                JackinCmd::Leave => "Leave this screen",
+            })
+        }));
+        let h = HelpOverlay::from_keymaps(WidgetId::of("help"), &scope, sections);
         self.open_layer(Box::new(h), LayerTag::new("help"), self.route);
     }
 
