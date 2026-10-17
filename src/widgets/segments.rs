@@ -97,8 +97,11 @@ pub fn render(
             .filter(|(_, k)| **k)
             .map(|(s, _)| w(s) + sep)
             .sum();
+        // the overflow item `…` stands for the segments that left
+        let gone = kl.iter().chain(kr).any(|k| !k);
+        let more = if gone { 1 + sep } else { 0 };
         // separators sit between segments only; the edges are kept clear
-        (l + r).saturating_sub(sep) + 2 * edge
+        (l + r + more).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
         // drop the lowest priority surviving segment (rightmost on ties)
@@ -186,6 +189,30 @@ pub fn render(
         draw(buf, ctx, start, s);
         rx = rx.saturating_sub(sep);
     }
+    // the dropped segments collapse into one `…` between the two sides
+    // (first of the right side, or last of the left when it has none):
+    // resting the pointer on it reveals them (R-apps-1)
+    let hidden: Vec<String> = left
+        .iter()
+        .zip(&keep_l)
+        .chain(right.iter().zip(&keep_r))
+        .filter(|(_, k)| !**k)
+        .map(|(s, _)| s.shown())
+        .collect();
+    if !hidden.is_empty() && area.width > 2 * edge {
+        let at = if right.is_empty() {
+            x.min(area.right().saturating_sub(edge + 1))
+        } else {
+            rx.saturating_sub(1).max(area.x + edge)
+        };
+        crate::ui::reveal::overflow(
+            ctx,
+            buf,
+            Rect::new(at, area.y, 1, 1),
+            &hidden.join("  "),
+            bg,
+        );
+    }
 }
 
 /// A segment drawn alone, in a forced state, for a States grid
@@ -242,5 +269,61 @@ mod tests {
         assert_eq!(&row[at..at + "● 2 running".len()], "● 2 running");
         assert_eq!(buf[(x, 0)].fg, t.accent);
         assert_eq!(buf[(x + 2, 0)].fg, t.text_secondary);
+    }
+
+    /// R-apps-1: segments with no room collapse into one `…` overflow
+    /// item; resting the pointer on it reveals them.
+    #[test]
+    fn dropped_segments_collapse_into_an_overflow_item_that_reveals_them() {
+        let t = Theme::junie();
+        let left = [
+            Segment::new("TablePro", Tone::Secondary).priority(9),
+            Segment::new("acme_prod", Tone::Secondary).priority(8),
+        ];
+        let right = [
+            Segment::new("truecolor", Tone::Secondary).priority(1),
+            Segment::new("? help", Tone::Secondary).priority(7),
+        ];
+        let draw = |hover: Option<WidgetId>| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let i = Interaction {
+                hover,
+                ..Interaction::default()
+            };
+            let mut ctx = RenderCtx::new(&t, i, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 34, 3));
+            render(
+                Rect::new(0, 2, 34, 1),
+                &mut buf,
+                &mut ctx,
+                &left,
+                &right,
+                t.canvas,
+            );
+            ctx.flush_overlays(&mut buf);
+            drop(ctx);
+            let rows: Vec<String> = (0..3u16)
+                .map(|y| (0..34u16).map(|x| buf[(x, y)].symbol()).collect())
+                .collect();
+            (rows, hits)
+        };
+        let (rows, hits) = draw(None);
+        let strip = &rows[2];
+        assert!(!strip.contains("truecolor"), "{strip:?}");
+        let at = strip
+            .find('…')
+            .unwrap_or_else(|| panic!("no overflow item: {strip:?}"));
+        let x = strip[..at].chars().count() as u16;
+        let id = crate::ui::reveal::overflow_id(Rect::new(x, 2, 1, 1));
+        assert_eq!(
+            hits.hover_at(ratatui::layout::Position::new(x, 2)),
+            Some(id)
+        );
+        let (rows, _) = draw(Some(id));
+        assert!(
+            rows.iter().any(|r| r.contains("truecolor")),
+            "the hover reveals the dropped segment: {rows:#?}"
+        );
     }
 }

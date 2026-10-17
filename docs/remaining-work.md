@@ -154,7 +154,7 @@ This is the single triage of the open items in section 3.
 
 - Priority 0b reach R1-R54 (two agents), `tests/showcase_reach_allow.txt` to empty.
 - R-apps: app screens (jackin, holla, tablepro) responsive and reachable audit, then fixes.
-- R-apps-1: strips and status bars drop items with no way to reach them (overflow `…`/menu).
+- R-apps-1: done (rapps-6-1); keyboard access to the strip `…` goes with A11.
 - R-apps-6: fixed-size page bodies move onto `ScrollView`.
 - Flake fixes that make the gate reliable (a red or flaky gate costs more budget than any feature).
 
@@ -507,7 +507,7 @@ known gap with its row id here, and a fix drops its lines. Branch
 
 | Id | What | Depends on | Acceptance | Source |
 |---|---|---|---|---|
-| R-apps-1 | Segments and StatusBar drop whole items by priority with no `…` and no reveal (tablepro and jackin top strips, holla and jackin status bars). | — | dropped items collapse into a revealing `…` item; their allow lines gone | `responsive.md` R-apps-1 |
+| R-apps-1 | **Done 2026-10-17** (rapps-6-1): Segments and StatusBar collapse the items they drop into one `…` overflow item (`ui::reveal::overflow`) that reveals them on hover; the reach audit reads them through that reveal; 46 allow lines gone. Residual: keyboard access to the `…` (strips are outside the focus ring) goes with A11. | — | done | `responsive.md` R-apps-1 |
 | R-apps-2 | Hand-rolled master-detail drops the detail or aside below a width (tablepro connections and EXPLAIN card, jackin manager aside, editor/settings detail, usage swap; holla plan summary over the drawer). | `MasterDetail` | screens on `MasterDetail`; allow lines gone | `responsive.md` R-apps-2 |
 | R-apps-3 | Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
 | R-apps-4 | Text cut with `…` but no reveal (input placeholder and help, picker hint, PageHeader, Heading, app line lists). | — | one cut helper that registers the reveal | `responsive.md` R-apps-4 |
