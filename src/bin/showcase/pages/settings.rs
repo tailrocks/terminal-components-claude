@@ -5,7 +5,7 @@
 //! and the environment list.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -17,6 +17,7 @@ use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{RadioGroup, Toggle};
@@ -244,6 +245,57 @@ impl SettingsPage {
 }
 
 impl SettingsPage {
+    /// The columns the General card's two sides need: the description
+    /// at TextArea's `Measure::min_width` (it scrolls sideways itself),
+    /// the visibility choices and the toggles with their state words.
+    fn general_needs(&self, ctx: &RenderCtx) -> (u16, u16) {
+        let w = |s: &str| junie_tui::ui::text::width(s) as u16;
+        // the description scrolls sideways itself: its minimum, not its
+        // longest line
+        let left = self.description.min_width(Size::ZERO, ctx);
+        let right = self
+            .auto_merge
+            .width()
+            .max(self.protect.width())
+            .max(w(&self.visibility.label) + 2)
+            .max(
+                self.visibility
+                    .options
+                    .iter()
+                    .map(|o| w(o) + 6)
+                    .max()
+                    .unwrap_or(0),
+            );
+        (left, right)
+    }
+
+    /// The left column's width when both sides fit beside each other in
+    /// a card `inner` columns wide (halves when they fit in halves, else
+    /// the right side at its need), `None` to stack them.
+    fn general_columns(&self, inner: u16, ctx: &RenderCtx) -> Option<u16> {
+        let (left, right) = self.general_needs(ctx);
+        let half = (inner / 2).saturating_sub(2);
+        if half >= left && inner.saturating_sub(half + 4) >= right {
+            Some(half)
+        } else if inner >= left + 4 + right {
+            Some(inner - 4 - right)
+        } else {
+            None
+        }
+    }
+
+    /// The General card's height with an `inner`-wide content area: its
+    /// 16 rows side by side, taller when the sides stack.
+    fn general_height(&self, inner: u16, ctx: &RenderCtx) -> u16 {
+        if self.general_columns(inner, ctx).is_some() {
+            return 16;
+        }
+        // name, description, a blank row, visibility and the toggles, a
+        // blank row, the save row; the title rows
+        let rows = TextInput::HEIGHT + self.description.height() + 1 + 7 + 1 + 1;
+        (rows + 3).max(16)
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (strip, body) = Tabs::layout(area);
@@ -257,12 +309,29 @@ impl SettingsPage {
                 };
                 let panel = Panel::card(Some(title));
                 let bg = panel.bg(t);
+                let inner_w = panel.inner(Size::new(body.width, 0)).width;
+                let card_h = self.general_height(inner_w, ctx);
                 let inner = panel.render(
-                    Rect::new(body.x, body.y, body.width, body.height.min(16)),
+                    Rect::new(body.x, body.y, body.width, body.height.min(card_h)),
                     buf,
                     t,
                 );
-                let (l, r) = crate::pages::layout::columns(inner, inner.width / 2 - 2, 4);
+                let (l, r) = match self.general_columns(inner.width, ctx) {
+                    Some(lw) => crate::pages::layout::columns(inner, lw, 4),
+                    None => {
+                        // the right side under the left one
+                        let top = TextInput::HEIGHT + self.description.height() + 1;
+                        (
+                            inner,
+                            Rect::new(
+                                inner.x,
+                                inner.y + top.min(inner.height),
+                                inner.width,
+                                inner.height.saturating_sub(top),
+                            ),
+                        )
+                    }
+                };
                 self.name.render(
                     Rect::new(l.x, l.y, l.width, TextInput::HEIGHT),
                     buf,
@@ -363,6 +432,27 @@ impl Page for SettingsPage {
     }
     fn blurb(&self) -> &'static str {
         "Composed: tabs, form, editable table, list, dialogs"
+    }
+
+    /// The General card's fields whole (the description at its minimum,
+    /// the toggles with their state words, the visibility choices): two
+    /// columns when the room takes both, else the right column under the
+    /// left one ([`SettingsPage::general_columns`]); as wide as the room
+    /// when wider. The other tabs' rows under the strip.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let top = Tabs::STRIP_H + 1;
+        let (left, right) = self.general_needs(ctx);
+        let panel = Panel::card(Some("General · unsaved"));
+        let width = avail
+            .width
+            .max(panel.outer(Size::new(left.max(right), 0)).width);
+        let inner = panel.inner(Size::new(width, 0)).width;
+        let height = match self.tabs.active {
+            0 => top + self.general_height(inner, ctx),
+            1 => top + (self.members.len() as u16 + 1).max(2) + 5,
+            _ => avail.height,
+        };
+        Size::new(width, height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
