@@ -5,7 +5,7 @@
  │   ▾ Claude                                 !   3  │ │  Provider            Anthropic / Claude                                                                [0m
  │     ★ Personal                     current 4 min  │ │  Agent runtime       Claude Code                                                                       [0m
  │       Archived contractor laptop prof…  disabled  │ │  Usage surface       Claude                                                                            [0m
- │       Work                      !   stale 47 min  │ │  Identity            alexey@chainargos.com                                                             [0m
+ │ [0m[1m    [0m [0m[1m Work                      !   [0mstale 47 min[0m[1m [0m │ │  Identity            alexey@chainargos.com                                                             [0m
  │   ▾ Codex                                      2  │ │  Plan                Team                                                                              [0m
  │     ★ Primary                      current 2 min  │ │  Credential          1Password · Engineering › Anthropic · Work › credential                           [0m
  │       Experiments                   ⠋ refreshing  │ │                      chainargos.1password.com · op://v_eng01/it_ant01/credential · ••••••••…3c9e       [0m
