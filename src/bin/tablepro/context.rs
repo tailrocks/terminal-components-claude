@@ -16,6 +16,7 @@ use ratatui::layout::{Position, Rect};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::PointerEvent;
+use junie_tui::shell::Menus;
 use junie_tui::ui::columns::HeaderAction;
 use junie_tui::ui::context::{ContextConfig, ContextRequest};
 use junie_tui::ui::ctx::RenderCtx;
@@ -72,19 +73,25 @@ pub enum AppCommand {
 /// `connection`), then Quit.
 pub fn app_menu(connection: Option<&str>, pos: Position) -> CtxMenu {
     let mut items = vec![];
-    let mut app = vec![];
     if connection.is_some() {
-        items.push(MenuItem::new("Open tabs…").shortcut("Ctrl+G"));
-        app.push(AppCommand::OpenTabs);
-        items.push(MenuItem::new("Disconnect").separator());
-        app.push(AppCommand::Disconnect);
+        items.push((
+            MenuItem::new("Open tabs…").shortcut("Ctrl+G"),
+            AppCommand::OpenTabs,
+        ));
+        items.push((
+            MenuItem::new("Disconnect").separator(),
+            AppCommand::Disconnect,
+        ));
     }
-    items.push(MenuItem::new("Quit TablePro").shortcut("Ctrl+Q"));
-    app.push(AppCommand::Quit);
+    items.push((
+        MenuItem::new("Quit TablePro").shortcut("Ctrl+Q"),
+        AppCommand::Quit,
+    ));
     let keys = vec![None; items.len()];
     let title = connection.unwrap_or("TablePro").to_owned();
+    let app = Menus::new().menu(title.clone(), items);
     CtxMenu {
-        menu: ContextMenu::new(MENU, items).at(pos).title(title),
+        menu: ContextMenu::new(MENU, app.items(0)).at(pos).title(title),
         target: Target::App,
         owner: crate::workbench::EXPLORER,
         keys,
@@ -103,8 +110,9 @@ pub struct CtxMenu {
     /// For a [`Target::Header`] menu: the command of each item (header
     /// commands run on the grid, not as a replayed key).
     pub header: Vec<HeaderAction>,
-    /// For a [`Target::App`] menu: the command of each item.
-    pub app: Vec<AppCommand>,
+    /// For a [`Target::App`] menu: its items, each with its command
+    /// ([`Menus`]: a choice resolves to the command, never to a label).
+    pub app: Menus<AppCommand>,
 }
 
 /// The menu on the app's layer stack: the library [`ContextMenu`] layer,
@@ -208,7 +216,7 @@ pub fn on_secondary(w: &mut Workbench, cfg: &ContextConfig, ev: &PointerEvent) -
             owner,
             keys,
             header,
-            app: Vec::new(),
+            app: Menus::default(),
         });
     }
     let req = match w.active_tab_mut()? {
@@ -474,7 +482,7 @@ fn finish(req: ContextRequest<Target>, title: String, owner: WidgetId, items: It
         owner,
         keys,
         header: Vec::new(),
-        app: Vec::new(),
+        app: Menus::default(),
     }
 }
 
