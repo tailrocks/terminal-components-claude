@@ -6270,7 +6270,11 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     ),
     ("ui::context::ContextKeys", Plumbing, &["matches"]),
     ("ui::context::ContextRequest", Plumbing, &["menu"]),
-    ("ui::layout::Split", Protocol, &["layout", "handle"]),
+    (
+        "ui::layout::Split",
+        Protocol,
+        &["layout", "handle", "extent_for"],
+    ),
     ("ui::layout::Split", Protocol, &["vertical", "horizontal"]),
     (
         "ui::layout::Split",
