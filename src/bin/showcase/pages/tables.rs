@@ -424,9 +424,9 @@ impl TablesPage {
     }
 }
 
-/// The cards' heights: the tasks table shows twenty rows and scrolls the
+/// The cards' heights: the tasks table shows twenty rows (and its sideways bar) and scrolls the
 /// rest; the reviewers and the empty checks table show all of theirs.
-const TASKS_H: u16 = 3 + 1 + 20;
+const TASKS_H: u16 = 3 + 1 + 20 + 1;
 const REVIEWERS_H: u16 = 8;
 const CHECKS_H: u16 = 6;
 
@@ -445,7 +445,9 @@ impl Page for TablesPage {
         let any = ratatui::layout::Size::new(0, 0);
         let w = [&self.table, &self.reviewers, &self.empty]
             .iter()
-            .map(|t| t.measure(any, ctx).width + 4)
+            // the tables scroll sideways themselves: they take the room
+            // the page has
+            .map(|t| t.min_width(any, ctx) + 4)
             .fold(avail.width, u16::max);
         ratatui::layout::Size::new(w, TASKS_H + REVIEWERS_H + CHECKS_H + 2)
     }

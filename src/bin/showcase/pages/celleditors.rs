@@ -681,10 +681,8 @@ impl Page for CellEditorsPage {
             .max()
             .unwrap_or(0);
         let w = [
-            self.table
-                .measure(ratatui::layout::Size::new(0, 0), ctx)
-                .width
-                + 4,
+            // the table scrolls sideways itself: it takes the room it has
+            self.table.min_width(ratatui::layout::Size::new(0, 0), ctx) + 4,
             legend,
             sheet_width(&Panel::card(Some("Option sets")), &sets),
         ]

@@ -1,7 +1,7 @@
 120x40 TrueColor Overview c73c0962823499cc
 120x40 TrueColor Overview · Options 2983c2c6b07ec1f6
 120x40 TrueColor Overview · States 3f81148fa4d62b56
-120x40 TrueColor Chrome 36afe6b7f39b63bf
+120x40 TrueColor Chrome 0affc7ec151f03b2
 120x40 TrueColor Chrome · Options 28358fa110c484b6
 120x40 TrueColor Chrome · States dae60f275dd7de62
 120x40 TrueColor Status & hints f84f52c72a012739
@@ -25,7 +25,7 @@
 120x40 TrueColor Inputs b86a3ce3618fd8a7
 120x40 TrueColor Inputs · Options 7d8cdede9b290cf5
 120x40 TrueColor Inputs · States 5841b4f5dd9c0985
-120x40 TrueColor Text areas c531e585a13b59ad
+120x40 TrueColor Text areas 955ea5f0bc633484
 120x40 TrueColor Text areas · Options 4b0916d7693295f1
 120x40 TrueColor Text areas · States a655233233e7d367
 120x40 TrueColor Chips & selects cdbb0da43d9f53ea
@@ -40,10 +40,10 @@
 120x40 TrueColor Toolbars b9ab8aebf7ec244f
 120x40 TrueColor Toolbars · Options 51b9f3ed7509bb8c
 120x40 TrueColor Toolbars · States 777a8e4c3c6fd61c
-120x40 TrueColor Basic table 91a343c1c3684827
+120x40 TrueColor Basic table c720d8f5419df579
 120x40 TrueColor Basic table · Options 6cae7f0760145762
 120x40 TrueColor Basic table · States 6c03d65748eef9d1
-120x40 TrueColor Editable fdc6e19c78c17749
+120x40 TrueColor Editable 8f7192d859141a80
 120x40 TrueColor Editable · Options 3acb76f803a52d46
 120x40 TrueColor Editable · States a1211dfb0931518e
 120x40 TrueColor Data grid 551b09a0e7f3e135
@@ -52,7 +52,7 @@
 120x40 TrueColor Selection c07df11f2ceab0e9
 120x40 TrueColor Selection · Options 634785e4520e2479
 120x40 TrueColor Selection · States 0fc1f5ced7f04967
-120x40 TrueColor Cell editors 3d1d9d1e8990e893
+120x40 TrueColor Cell editors 5d3c609a648f194b
 120x40 TrueColor Cell editors · Options 761173a038ef0ed5
 120x40 TrueColor Cell editors · States 438ef7c0313e0d0c
 120x40 TrueColor Columns 0618f96f1cd9da33
@@ -165,7 +165,7 @@
 120x40 Ansi256 Overview 92af368628f90ec2
 120x40 Ansi256 Overview · Options 73246a9a22b46881
 120x40 Ansi256 Overview · States 07e7f6f9b8cb7029
-120x40 Ansi256 Chrome 6ece2515a8718c49
+120x40 Ansi256 Chrome 8b4fe8ca092e4fa6
 120x40 Ansi256 Chrome · Options 4f32082ec845a678
 120x40 Ansi256 Chrome · States abc6e09319309a08
 120x40 Ansi256 Status & hints 170606edcaf661e4
@@ -189,7 +189,7 @@
 120x40 Ansi256 Inputs 042f0f9779e0e2fa
 120x40 Ansi256 Inputs · Options a7d9fdbe1974ce27
 120x40 Ansi256 Inputs · States 83506914a8eb5176
-120x40 Ansi256 Text areas 62b8298897e96acf
+120x40 Ansi256 Text areas 5957f8012a4f32c9
 120x40 Ansi256 Text areas · Options a03e920bffb52f0e
 120x40 Ansi256 Text areas · States baaafd1047210075
 120x40 Ansi256 Chips & selects d52a3bcbc299388d
@@ -204,10 +204,10 @@
 120x40 Ansi256 Toolbars 3db9ccb6b090c74b
 120x40 Ansi256 Toolbars · Options c278cd532f17bfb6
 120x40 Ansi256 Toolbars · States 416556abfbd7ccd9
-120x40 Ansi256 Basic table 2413bac4921acb3e
+120x40 Ansi256 Basic table d679cce30421d4a7
 120x40 Ansi256 Basic table · Options 1eaa6a2f4783465b
 120x40 Ansi256 Basic table · States c3321f95b9222b3a
-120x40 Ansi256 Editable 80e28d4e3226b760
+120x40 Ansi256 Editable b26fc83cab3d7e90
 120x40 Ansi256 Editable · Options 6595baad10d1ba0a
 120x40 Ansi256 Editable · States 0832a50fb8176bcf
 120x40 Ansi256 Data grid f75221e563486603
@@ -216,7 +216,7 @@
 120x40 Ansi256 Selection 19bc0f11a5f1eee9
 120x40 Ansi256 Selection · Options 6ff3b664e75beb69
 120x40 Ansi256 Selection · States c11cd67ce08fa531
-120x40 Ansi256 Cell editors c476fee19d16bd11
+120x40 Ansi256 Cell editors 788224e319beecb1
 120x40 Ansi256 Cell editors · Options ff5308dc06f3b9ad
 120x40 Ansi256 Cell editors · States 45040880d744bfdf
 120x40 Ansi256 Columns 5ef6e6c7c9bae5e2
@@ -329,7 +329,7 @@
 120x40 Ansi16 Overview 9f30bafedfff60bd
 120x40 Ansi16 Overview · Options 0eee1eb78e5a8c2e
 120x40 Ansi16 Overview · States 9fb9f2b3edcdd24d
-120x40 Ansi16 Chrome 7f9ae63244a02715
+120x40 Ansi16 Chrome 31f7e33c41cbe4b3
 120x40 Ansi16 Chrome · Options 09e003a2c6db51a4
 120x40 Ansi16 Chrome · States 1049ae69664ead26
 120x40 Ansi16 Status & hints fb51a42e8b413e7f
@@ -353,7 +353,7 @@
 120x40 Ansi16 Inputs 36e3197f92241a49
 120x40 Ansi16 Inputs · Options e3b3553eca38fe29
 120x40 Ansi16 Inputs · States 2c55003f8bd26246
-120x40 Ansi16 Text areas 92c680737f0f0cc0
+120x40 Ansi16 Text areas 5e01a4ec1922fab3
 120x40 Ansi16 Text areas · Options 9ef48b068491e68b
 120x40 Ansi16 Text areas · States e2a536cd78fb9326
 120x40 Ansi16 Chips & selects 6228e5c4fd00e845
@@ -368,10 +368,10 @@
 120x40 Ansi16 Toolbars 4f3db8a0fedea813
 120x40 Ansi16 Toolbars · Options 5f74df9afb8282a3
 120x40 Ansi16 Toolbars · States 129d01e91e0716aa
-120x40 Ansi16 Basic table 2968cd8f54919f28
+120x40 Ansi16 Basic table f529881d6e587fdf
 120x40 Ansi16 Basic table · Options eaecbe1322e953be
 120x40 Ansi16 Basic table · States b3746fa22642b143
-120x40 Ansi16 Editable 907100ec238f3616
+120x40 Ansi16 Editable 66c725d3ea8e7eaf
 120x40 Ansi16 Editable · Options 6e14a1c264bbfb4e
 120x40 Ansi16 Editable · States 150955cdffd0ebf7
 120x40 Ansi16 Data grid 5a1765c285ebfc9e
@@ -380,7 +380,7 @@
 120x40 Ansi16 Selection 54c06de234fe6c3e
 120x40 Ansi16 Selection · Options 8324764e0c9f7f20
 120x40 Ansi16 Selection · States b7db5dd0ac04363d
-120x40 Ansi16 Cell editors 77e0ffac615d8f17
+120x40 Ansi16 Cell editors e9ae508dc8a000b9
 120x40 Ansi16 Cell editors · Options cf4bd25929db24e5
 120x40 Ansi16 Cell editors · States cf457f2916780ba5
 120x40 Ansi16 Columns 033b8ef6644344c9
@@ -493,7 +493,7 @@
 120x40 Mono Overview 6a373d4c32be57d5
 120x40 Mono Overview · Options 7d3225c21c417475
 120x40 Mono Overview · States 626f1baf903ede86
-120x40 Mono Chrome 5a65e597fd34ecaf
+120x40 Mono Chrome a867b9e4030aa2a8
 120x40 Mono Chrome · Options ded315b289e1ea33
 120x40 Mono Chrome · States b3722ced3812ed29
 120x40 Mono Status & hints b292ad5657254f38
@@ -517,7 +517,7 @@
 120x40 Mono Inputs b5561e90428f4390
 120x40 Mono Inputs · Options bcc586db9bf97c16
 120x40 Mono Inputs · States 0da44237cef19de1
-120x40 Mono Text areas 537de16d20867357
+120x40 Mono Text areas 8f90ce24e3ac2994
 120x40 Mono Text areas · Options 261f8d3000d7d758
 120x40 Mono Text areas · States 13253127eeacd1ad
 120x40 Mono Chips & selects 3211c761c2209705
@@ -532,10 +532,10 @@
 120x40 Mono Toolbars efbee1c070d927b6
 120x40 Mono Toolbars · Options 1278fd092f67828e
 120x40 Mono Toolbars · States 0e88fe990eb11297
-120x40 Mono Basic table 66cff62d495e0dcf
+120x40 Mono Basic table 2b2f7a729daa9474
 120x40 Mono Basic table · Options 7a7966ced04241a9
 120x40 Mono Basic table · States 84db21a9db26a8ac
-120x40 Mono Editable 9f64f63a1313aefc
+120x40 Mono Editable db35ce0c63af70a3
 120x40 Mono Editable · Options 5085bc9bfa61f8c3
 120x40 Mono Editable · States 89ae8bf1309b1374
 120x40 Mono Data grid b1f92c24e7201775
@@ -544,7 +544,7 @@
 120x40 Mono Selection 888a9a229598031c
 120x40 Mono Selection · Options d402e72ddc5e2a8f
 120x40 Mono Selection · States 33c76274518cc114
-120x40 Mono Cell editors 88ad1729ca498d7a
+120x40 Mono Cell editors 4d2c9426edb4e502
 120x40 Mono Cell editors · Options 658f3f9e2ec1a9b8
 120x40 Mono Cell editors · States ab8e2dab97806224
 120x40 Mono Columns caaf60b38919efb1
@@ -657,7 +657,7 @@
 80x24 TrueColor Overview 106373a415794203
 80x24 TrueColor Overview · Options 809faa3865fdce52
 80x24 TrueColor Overview · States d2a8aeae459fa41d
-80x24 TrueColor Chrome 22bd1a55e08bb017
+80x24 TrueColor Chrome 849329db51aed4ed
 80x24 TrueColor Chrome · Options eb5f94ccdd658f11
 80x24 TrueColor Chrome · States a55202bf42fff5c2
 80x24 TrueColor Status & hints 5a3daef37947cd61
@@ -681,7 +681,7 @@
 80x24 TrueColor Inputs 37adc89312d2824e
 80x24 TrueColor Inputs · Options 945089aac5d82e8f
 80x24 TrueColor Inputs · States b25402db66517a97
-80x24 TrueColor Text areas 4574118f8c4212ef
+80x24 TrueColor Text areas 574c1c3514f54fa2
 80x24 TrueColor Text areas · Options 457997c02911c2ac
 80x24 TrueColor Text areas · States 312a006609c1f364
 80x24 TrueColor Chips & selects f415bb26c7c65842
@@ -696,10 +696,10 @@
 80x24 TrueColor Toolbars 1104d3cef15c0225
 80x24 TrueColor Toolbars · Options 176b001dc19de306
 80x24 TrueColor Toolbars · States 7c1e503fcc6a6669
-80x24 TrueColor Basic table ba24f55ad5707654
+80x24 TrueColor Basic table 06d6badeca20854e
 80x24 TrueColor Basic table · Options 0d9610a5a2c9d0ff
 80x24 TrueColor Basic table · States 88ca44c4bfa2e021
-80x24 TrueColor Editable 0c7b2f67a9737391
+80x24 TrueColor Editable 0c9653903f892b96
 80x24 TrueColor Editable · Options bd2858ec4e87fb34
 80x24 TrueColor Editable · States a14db13fb9ecf2c0
 80x24 TrueColor Data grid d980d3480356f9da
@@ -708,7 +708,7 @@
 80x24 TrueColor Selection 04210a97603841ac
 80x24 TrueColor Selection · Options 361b232c0ceb9b8a
 80x24 TrueColor Selection · States b86b1cda344010ee
-80x24 TrueColor Cell editors e94849b498c913e0
+80x24 TrueColor Cell editors 3baca597e2b64c74
 80x24 TrueColor Cell editors · Options 4db11ea60c849c18
 80x24 TrueColor Cell editors · States 6568c4e6f4305296
 80x24 TrueColor Columns d2dec290068c84a8
@@ -821,7 +821,7 @@
 80x24 Ansi256 Overview 16beba92f48940e1
 80x24 Ansi256 Overview · Options fb8f98b1586b7eca
 80x24 Ansi256 Overview · States 637012f80b355274
-80x24 Ansi256 Chrome f614793dabc9cc91
+80x24 Ansi256 Chrome 2bc59f075abd103f
 80x24 Ansi256 Chrome · Options c9fb83cdcbb0870a
 80x24 Ansi256 Chrome · States a214260b243cf283
 80x24 Ansi256 Status & hints 8b7b8e79636b6eee
@@ -845,7 +845,7 @@
 80x24 Ansi256 Inputs 30bfbf2fc9a63039
 80x24 Ansi256 Inputs · Options 26fe9284127d3603
 80x24 Ansi256 Inputs · States 471a87e099f77b68
-80x24 Ansi256 Text areas fcfd6cfaedaa4b4d
+80x24 Ansi256 Text areas ac1c6d11613fbc70
 80x24 Ansi256 Text areas · Options 88c0a8e7039a0f52
 80x24 Ansi256 Text areas · States b38376cbf3b0b32b
 80x24 Ansi256 Chips & selects 93b197edaf8cc483
@@ -860,10 +860,10 @@
 80x24 Ansi256 Toolbars 294e64dff2db92c2
 80x24 Ansi256 Toolbars · Options d26d59ca1089804f
 80x24 Ansi256 Toolbars · States 4625ab023a947069
-80x24 Ansi256 Basic table 283a4028e1990b94
+80x24 Ansi256 Basic table 935c27815c0bd40e
 80x24 Ansi256 Basic table · Options b5c936c6a4ba45f6
 80x24 Ansi256 Basic table · States d55a342a6dc58dac
-80x24 Ansi256 Editable 26acfacf1c283965
+80x24 Ansi256 Editable d663595cbd5d7a10
 80x24 Ansi256 Editable · Options 41051233b7aa1700
 80x24 Ansi256 Editable · States 123cb6ef686df1b9
 80x24 Ansi256 Data grid 21437532e4958425
@@ -872,7 +872,7 @@
 80x24 Ansi256 Selection ae4b9b195ee7fe01
 80x24 Ansi256 Selection · Options 9924e30bdc68fd25
 80x24 Ansi256 Selection · States 2f309d1b94564352
-80x24 Ansi256 Cell editors ad734681f0315045
+80x24 Ansi256 Cell editors 33e566d9eb6322d7
 80x24 Ansi256 Cell editors · Options f131f2fddd1a411a
 80x24 Ansi256 Cell editors · States 7983352bf4984422
 80x24 Ansi256 Columns 08023b6999ab02ac
@@ -985,7 +985,7 @@
 80x24 Ansi16 Overview 19962fb000e136f0
 80x24 Ansi16 Overview · Options 7a64385f27d4136c
 80x24 Ansi16 Overview · States 8cbcbf8695536141
-80x24 Ansi16 Chrome f9047dd40c814755
+80x24 Ansi16 Chrome 8de9294a3505d333
 80x24 Ansi16 Chrome · Options eb4195fb5755e833
 80x24 Ansi16 Chrome · States 188677e85dfac510
 80x24 Ansi16 Status & hints 9d527f4718b83554
@@ -1009,7 +1009,7 @@
 80x24 Ansi16 Inputs 6881f0e12b222529
 80x24 Ansi16 Inputs · Options bb1eb43b35a5b477
 80x24 Ansi16 Inputs · States 0d91ffec47c0f9a2
-80x24 Ansi16 Text areas 1be4056af4c79360
+80x24 Ansi16 Text areas 5e4d6f5ec95323d9
 80x24 Ansi16 Text areas · Options 23bfd67edb0fd94d
 80x24 Ansi16 Text areas · States 2b90489c435197f8
 80x24 Ansi16 Chips & selects 434fa5b5df0432b4
@@ -1024,10 +1024,10 @@
 80x24 Ansi16 Toolbars a89f46373475af8c
 80x24 Ansi16 Toolbars · Options 21c8d24b81a5cb13
 80x24 Ansi16 Toolbars · States 61d39b07414b8295
-80x24 Ansi16 Basic table dfe0cce07c2c70f6
+80x24 Ansi16 Basic table 95dd5d22e7926985
 80x24 Ansi16 Basic table · Options 6e68ef78d94d7853
 80x24 Ansi16 Basic table · States 0b983cc90490b55f
-80x24 Ansi16 Editable e47ac6e3b5aa0bb3
+80x24 Ansi16 Editable 6ef4a0ce78687b5b
 80x24 Ansi16 Editable · Options e700ece679f11a98
 80x24 Ansi16 Editable · States 098ac5058602ac8c
 80x24 Ansi16 Data grid b9472776ce09dbdd
@@ -1036,7 +1036,7 @@
 80x24 Ansi16 Selection d129b08120a19d21
 80x24 Ansi16 Selection · Options 73f6d2941fe9c813
 80x24 Ansi16 Selection · States 33e160f81839577b
-80x24 Ansi16 Cell editors 0ca407245a362afd
+80x24 Ansi16 Cell editors 0f3e9371aa541710
 80x24 Ansi16 Cell editors · Options 79f34f49e7493120
 80x24 Ansi16 Cell editors · States 409eaf959fab5f54
 80x24 Ansi16 Columns 76e6a1c3b6fc9d6b
@@ -1149,7 +1149,7 @@
 80x24 Mono Overview 515200e01d1f6603
 80x24 Mono Overview · Options f95644bd142b63f7
 80x24 Mono Overview · States a8afe160c46cfdd6
-80x24 Mono Chrome 0943235e2a7b5049
+80x24 Mono Chrome a2f2713debd8070f
 80x24 Mono Chrome · Options 8d0aaa6bd2ed5dd5
 80x24 Mono Chrome · States 976bdba781bfef14
 80x24 Mono Status & hints cc99c0ae761cad64
@@ -1173,7 +1173,7 @@
 80x24 Mono Inputs 4266f52deba889b5
 80x24 Mono Inputs · Options 651667cda3f3038d
 80x24 Mono Inputs · States 45d752186271ace6
-80x24 Mono Text areas 79929bc6e2f9f4e8
+80x24 Mono Text areas 300960b04fcbb6e1
 80x24 Mono Text areas · Options be313610cf552287
 80x24 Mono Text areas · States 365e1effb5d02c7c
 80x24 Mono Chips & selects d69b529f632edb8a
@@ -1188,10 +1188,10 @@
 80x24 Mono Toolbars 561470315c314638
 80x24 Mono Toolbars · Options c7def7e3bca60aad
 80x24 Mono Toolbars · States 656c9bc9ea13ca35
-80x24 Mono Basic table ed07cdffc45de858
+80x24 Mono Basic table 1a2968ed5073ccb7
 80x24 Mono Basic table · Options 30e22b8bb604d289
 80x24 Mono Basic table · States 8ab647f68d9ce943
-80x24 Mono Editable f3472fad6da03853
+80x24 Mono Editable 5c68eb7de3c2ac3b
 80x24 Mono Editable · Options d45be298ff4895ba
 80x24 Mono Editable · States 2a52f38466ef62cc
 80x24 Mono Data grid 3920036dd076d0cf
@@ -1200,7 +1200,7 @@
 80x24 Mono Selection e9235df6bf2bf7a3
 80x24 Mono Selection · Options e00c9b1ea8afca31
 80x24 Mono Selection · States f3e9a20da1bdefd3
-80x24 Mono Cell editors 9f0a3fc9fead63ef
+80x24 Mono Cell editors 48a6c66fdae5c28a
 80x24 Mono Cell editors · Options 66a3a06e916727ee
 80x24 Mono Cell editors · States cffcd026331a7fc9
 80x24 Mono Columns ce0d50e610386573
@@ -1313,7 +1313,7 @@
 72x20 TrueColor Overview df02edf41150e7e9
 72x20 TrueColor Overview · Options 2d1dbc25b3713b15
 72x20 TrueColor Overview · States d07bb38fbbdc405b
-72x20 TrueColor Chrome 48986df7059afc6a
+72x20 TrueColor Chrome adbc1c3b7330eef5
 72x20 TrueColor Chrome · Options 2fb05ebdc990a0cf
 72x20 TrueColor Chrome · States 4ab1a7ee7e555e7f
 72x20 TrueColor Status & hints 7b3fcbc3d6345776
@@ -1337,7 +1337,7 @@
 72x20 TrueColor Inputs 4436d83affd60c9b
 72x20 TrueColor Inputs · Options 03e38b81ef50a346
 72x20 TrueColor Inputs · States dcd023113176d015
-72x20 TrueColor Text areas f31ac16c880652d1
+72x20 TrueColor Text areas a9bd749d4fe022d4
 72x20 TrueColor Text areas · Options 161bf086e6c77648
 72x20 TrueColor Text areas · States 8d3dfd01707e5ec3
 72x20 TrueColor Chips & selects 69af34de967af4e6
@@ -1352,10 +1352,10 @@
 72x20 TrueColor Toolbars 0ea365afc629bf2d
 72x20 TrueColor Toolbars · Options 63c14d840ce8a40b
 72x20 TrueColor Toolbars · States 1c427bb532ba2218
-72x20 TrueColor Basic table 771df595b8b5a574
+72x20 TrueColor Basic table 24ee10e45551e57e
 72x20 TrueColor Basic table · Options 7ed567b20e44785f
 72x20 TrueColor Basic table · States ba549b2219bd5bf8
-72x20 TrueColor Editable d93fcfe401074319
+72x20 TrueColor Editable 8e59e2144acd5f41
 72x20 TrueColor Editable · Options 3fa853fd0ebe83e0
 72x20 TrueColor Editable · States fbcdfa932d586ad9
 72x20 TrueColor Data grid ade11e7c1121f6a8
@@ -1364,7 +1364,7 @@
 72x20 TrueColor Selection 6ade0397f90aa05a
 72x20 TrueColor Selection · Options 0f0ff3221d0d9934
 72x20 TrueColor Selection · States 3d0e703adee28b07
-72x20 TrueColor Cell editors b1565bbdc4ccb476
+72x20 TrueColor Cell editors 10135c49af530c06
 72x20 TrueColor Cell editors · Options f50b8cee1608e580
 72x20 TrueColor Cell editors · States f9dc02a2b305dd2c
 72x20 TrueColor Columns 0e5ee98a11765a38
@@ -1477,7 +1477,7 @@
 72x20 Ansi256 Overview 03a542a44efa14d1
 72x20 Ansi256 Overview · Options 334177ae9009eb10
 72x20 Ansi256 Overview · States 4a9af399d3dc78ce
-72x20 Ansi256 Chrome 4e16d4d255a0f6ff
+72x20 Ansi256 Chrome c7e54f46dcb732b4
 72x20 Ansi256 Chrome · Options 7beedfaf4d123b6e
 72x20 Ansi256 Chrome · States 4276c01ae1a09c3b
 72x20 Ansi256 Status & hints 2326c7eca22e8e04
@@ -1501,7 +1501,7 @@
 72x20 Ansi256 Inputs 651dcc3f2f401da1
 72x20 Ansi256 Inputs · Options 7250189604a75f59
 72x20 Ansi256 Inputs · States 54e94196fc6f926d
-72x20 Ansi256 Text areas 21646fb3c07d5124
+72x20 Ansi256 Text areas 36b1d3d01d2f420f
 72x20 Ansi256 Text areas · Options d6ed7bc01566b119
 72x20 Ansi256 Text areas · States ef35358703b3c087
 72x20 Ansi256 Chips & selects 6b1b8331a6535008
@@ -1516,10 +1516,10 @@
 72x20 Ansi256 Toolbars 189774c37e9b3d80
 72x20 Ansi256 Toolbars · Options cdf717d6da03e71b
 72x20 Ansi256 Toolbars · States 71432bbfa614557e
-72x20 Ansi256 Basic table e1bc99cc7bc52037
+72x20 Ansi256 Basic table e790234bd2634714
 72x20 Ansi256 Basic table · Options 004693a5e020787e
 72x20 Ansi256 Basic table · States 3b5a5d16325fce9c
-72x20 Ansi256 Editable 2724782b288470aa
+72x20 Ansi256 Editable c096026389e7bae1
 72x20 Ansi256 Editable · Options 72abb3cb3ce78001
 72x20 Ansi256 Editable · States e1401cd378b2ffde
 72x20 Ansi256 Data grid b86fcd57f79b9ba2
@@ -1528,7 +1528,7 @@
 72x20 Ansi256 Selection b6a49a11bd2b2d7b
 72x20 Ansi256 Selection · Options 06092135777263ab
 72x20 Ansi256 Selection · States e3292c7c2553d2a1
-72x20 Ansi256 Cell editors fb0c8b9cf16ff589
+72x20 Ansi256 Cell editors 93a5259092a3d9e9
 72x20 Ansi256 Cell editors · Options ca7712e6c6ab3efd
 72x20 Ansi256 Cell editors · States 9972dd29421eb814
 72x20 Ansi256 Columns ce52ca7a0c2b0324
@@ -1641,7 +1641,7 @@
 72x20 Ansi16 Overview 78f94202a9fd09b2
 72x20 Ansi16 Overview · Options 521c2bac9bfde5fc
 72x20 Ansi16 Overview · States 87d7487a3135cc1d
-72x20 Ansi16 Chrome e980014590fd5727
+72x20 Ansi16 Chrome edefcbda87c17ee9
 72x20 Ansi16 Chrome · Options a7787765afc0805d
 72x20 Ansi16 Chrome · States 7b9181ed4e34cfb7
 72x20 Ansi16 Status & hints dda7c30f2f848ade
@@ -1665,7 +1665,7 @@
 72x20 Ansi16 Inputs 91fc3adac2fe2597
 72x20 Ansi16 Inputs · Options ce71262f2b29584b
 72x20 Ansi16 Inputs · States 967f0fda79c1cc8d
-72x20 Ansi16 Text areas 02083d00da288953
+72x20 Ansi16 Text areas 41d8ee706d8dca04
 72x20 Ansi16 Text areas · Options d9800d46b7b281f7
 72x20 Ansi16 Text areas · States 57d96bd47e2d2a12
 72x20 Ansi16 Chips & selects 3f67428b532d8405
@@ -1680,10 +1680,10 @@
 72x20 Ansi16 Toolbars 41b0ef0ff779ea0f
 72x20 Ansi16 Toolbars · Options 0da4905c41753fef
 72x20 Ansi16 Toolbars · States fb69bc0e038fdd87
-72x20 Ansi16 Basic table 0767aa022a377b77
+72x20 Ansi16 Basic table 1fbac98980fb6190
 72x20 Ansi16 Basic table · Options 205e458238fef11b
 72x20 Ansi16 Basic table · States ddbba33c8236d7cd
-72x20 Ansi16 Editable b680ec7e55af9b95
+72x20 Ansi16 Editable dfa1394ead8d6561
 72x20 Ansi16 Editable · Options 4a0b9cbb505ad9fb
 72x20 Ansi16 Editable · States f757b3849d500919
 72x20 Ansi16 Data grid 20ed1a00ebbb5828
@@ -1692,7 +1692,7 @@
 72x20 Ansi16 Selection ad676ff2224bec7d
 72x20 Ansi16 Selection · Options 512feae68db2b129
 72x20 Ansi16 Selection · States 474a3e2220fc008c
-72x20 Ansi16 Cell editors 51e27ac7649d1e77
+72x20 Ansi16 Cell editors 907e6dd8a523a772
 72x20 Ansi16 Cell editors · Options 7f53eb15e6d24f3c
 72x20 Ansi16 Cell editors · States 5333313ccc54becd
 72x20 Ansi16 Columns c58db905660e823f
@@ -1805,7 +1805,7 @@
 72x20 Mono Overview 26e09bde3fa99a02
 72x20 Mono Overview · Options d051a629c00d5c36
 72x20 Mono Overview · States 0d444efe05eca3f7
-72x20 Mono Chrome e21e7ea02dbf2e45
+72x20 Mono Chrome 2be3e16500d9bf23
 72x20 Mono Chrome · Options 0625cdef86fe5f7b
 72x20 Mono Chrome · States 1efb0a6004155a4b
 72x20 Mono Status & hints 9521e58032031da4
@@ -1829,7 +1829,7 @@
 72x20 Mono Inputs 381af1421fd5d6d3
 72x20 Mono Inputs · Options 9d8af1a1c27c3789
 72x20 Mono Inputs · States b52ac0ebc8d5ae47
-72x20 Mono Text areas 84b1cfcb20dc66bd
+72x20 Mono Text areas 7bfcf73cac267df6
 72x20 Mono Text areas · Options 5c1f44e564b3750d
 72x20 Mono Text areas · States 8beb9ede78f31ae4
 72x20 Mono Chips & selects 98640faea00bd4f7
@@ -1844,10 +1844,10 @@
 72x20 Mono Toolbars 9120edec43a46177
 72x20 Mono Toolbars · Options 79d99eaee5d3fdfd
 72x20 Mono Toolbars · States bb2d38b6928a2f1f
-72x20 Mono Basic table 585d6f49a5198f19
+72x20 Mono Basic table a8bc68648a7db70a
 72x20 Mono Basic table · Options dbef8e28ae01fca1
 72x20 Mono Basic table · States f83a42ba20105e55
-72x20 Mono Editable a6d10d12a6dcf119
+72x20 Mono Editable 3d1029f5db3e6845
 72x20 Mono Editable · Options fc64e653e61a13dd
 72x20 Mono Editable · States 2b7ddb9c356c4aa5
 72x20 Mono Data grid 628a892c3b9a1db8
@@ -1856,7 +1856,7 @@
 72x20 Mono Selection fadf8f3e18d5c547
 72x20 Mono Selection · Options 568e41929fea2843
 72x20 Mono Selection · States 7336742dfac1b408
-72x20 Mono Cell editors 0c1df9b510ee4663
+72x20 Mono Cell editors c722627a74668b44
 72x20 Mono Cell editors · Options 862b06cc6451d026
 72x20 Mono Cell editors · States 7bc6174f06694304
 72x20 Mono Columns 103f117ba91957e7
@@ -1969,7 +1969,7 @@
 100x30 TrueColor Overview 61c57a965f052c0a
 100x30 TrueColor Overview · Options ce6e780efe43095c
 100x30 TrueColor Overview · States 0198b5e154baa43a
-100x30 TrueColor Chrome 0c3f15f6bc71edae
+100x30 TrueColor Chrome 02c16558f37b0b3e
 100x30 TrueColor Chrome · Options d5af876619fa322f
 100x30 TrueColor Chrome · States 8633d6ab8b5e5ff5
 100x30 TrueColor Status & hints ca4ab40afbb0080f
@@ -1993,7 +1993,7 @@
 100x30 TrueColor Inputs 0a825fd9921e5a82
 100x30 TrueColor Inputs · Options 12cc78b275880280
 100x30 TrueColor Inputs · States f1791409653a300e
-100x30 TrueColor Text areas cdb4b80e0d02b510
+100x30 TrueColor Text areas 0048d03355328e62
 100x30 TrueColor Text areas · Options 5d16efada7f34512
 100x30 TrueColor Text areas · States 2cc59f11740a72d4
 100x30 TrueColor Chips & selects 344c0d2e4a40e0d4
@@ -2008,10 +2008,10 @@
 100x30 TrueColor Toolbars 0b80a8e9134a538e
 100x30 TrueColor Toolbars · Options 5878a11056c500d3
 100x30 TrueColor Toolbars · States 72c5d47f30186f80
-100x30 TrueColor Basic table f9127ea11a4b4608
+100x30 TrueColor Basic table c221537caffed78e
 100x30 TrueColor Basic table · Options f27842d862582357
 100x30 TrueColor Basic table · States 56ae624cc178313d
-100x30 TrueColor Editable 94a63bd9e5c1566d
+100x30 TrueColor Editable 8ecbd15fec197ad2
 100x30 TrueColor Editable · Options f7c31f0ffb5049d7
 100x30 TrueColor Editable · States 8bb92b75c23f734c
 100x30 TrueColor Data grid 3becc227907b67a4
@@ -2020,7 +2020,7 @@
 100x30 TrueColor Selection c8ee703eacb932ab
 100x30 TrueColor Selection · Options ed3403479f2aa64c
 100x30 TrueColor Selection · States dace92d257f0fc80
-100x30 TrueColor Cell editors 63fedbc5f0c9a3e5
+100x30 TrueColor Cell editors 5e7e08d17bc8aaeb
 100x30 TrueColor Cell editors · Options 28b54538eb514511
 100x30 TrueColor Cell editors · States fc76b4641ca7a3af
 100x30 TrueColor Columns d7972ece9278a23e
@@ -2133,7 +2133,7 @@
 100x30 Ansi256 Overview 4b9ee7853f4f05bc
 100x30 Ansi256 Overview · Options b3e6271ba0de08ed
 100x30 Ansi256 Overview · States 05b7a7bff9324549
-100x30 Ansi256 Chrome 418ae2e2d24a4dc7
+100x30 Ansi256 Chrome 8bedd10985a7d8fd
 100x30 Ansi256 Chrome · Options 3437da54c6f5549e
 100x30 Ansi256 Chrome · States c39d36f2f112d630
 100x30 Ansi256 Status & hints a32aaff6fcf97c97
@@ -2157,7 +2157,7 @@
 100x30 Ansi256 Inputs c818c0aeef116b9f
 100x30 Ansi256 Inputs · Options 6b230458bcbf7737
 100x30 Ansi256 Inputs · States ec395ae88e82fec6
-100x30 Ansi256 Text areas f0d2124c9b5229ff
+100x30 Ansi256 Text areas 5dcc04db26f12314
 100x30 Ansi256 Text areas · Options bc92c264c169ce13
 100x30 Ansi256 Text areas · States fa97f53f46e0b98c
 100x30 Ansi256 Chips & selects feeab721c4b22ade
@@ -2172,10 +2172,10 @@
 100x30 Ansi256 Toolbars 0a067d8ab1b4c08b
 100x30 Ansi256 Toolbars · Options 6942bb8ae936b1fa
 100x30 Ansi256 Toolbars · States 4d1a46f89c288fc3
-100x30 Ansi256 Basic table 38d9559ca8592dde
+100x30 Ansi256 Basic table 7193a261e16e3de3
 100x30 Ansi256 Basic table · Options 34f31f225c46ad65
 100x30 Ansi256 Basic table · States b3dfba55554a0ba5
-100x30 Ansi256 Editable c9f37e3a77900c68
+100x30 Ansi256 Editable 92948a291c9c8a75
 100x30 Ansi256 Editable · Options ec29e999767bbf1c
 100x30 Ansi256 Editable · States 36a9cf8b4214c5ab
 100x30 Ansi256 Data grid c45391634de6c54f
@@ -2184,7 +2184,7 @@
 100x30 Ansi256 Selection e01d5514e545217e
 100x30 Ansi256 Selection · Options 8dd966f98517acef
 100x30 Ansi256 Selection · States 0291f853080f9e8c
-100x30 Ansi256 Cell editors 21773cb157c41676
+100x30 Ansi256 Cell editors 14420256195d02ec
 100x30 Ansi256 Cell editors · Options af412fbfed81e257
 100x30 Ansi256 Cell editors · States 6bca35d8d861f97b
 100x30 Ansi256 Columns a0ffb2fe72a02dda
@@ -2297,7 +2297,7 @@
 100x30 Ansi16 Overview 7493de74409e04be
 100x30 Ansi16 Overview · Options 9980a95c35ddaff5
 100x30 Ansi16 Overview · States 284fc1e72d855b0a
-100x30 Ansi16 Chrome 53d3146d1f90e4b0
+100x30 Ansi16 Chrome d59e65c47b65b9cf
 100x30 Ansi16 Chrome · Options 0a99ef77d7ccbbec
 100x30 Ansi16 Chrome · States 1dd25de35720ec05
 100x30 Ansi16 Status & hints 344442ce246e1414
@@ -2321,7 +2321,7 @@
 100x30 Ansi16 Inputs a4c5b5096714840a
 100x30 Ansi16 Inputs · Options aa26cd24e1c32ab4
 100x30 Ansi16 Inputs · States 7cba4109c2ec91d0
-100x30 Ansi16 Text areas 8fbf7d878b693771
+100x30 Ansi16 Text areas 60cee6de9a2be9fc
 100x30 Ansi16 Text areas · Options 22d3587ac35f04a7
 100x30 Ansi16 Text areas · States 9878c77282e12204
 100x30 Ansi16 Chips & selects 33492b9485be8928
@@ -2336,10 +2336,10 @@
 100x30 Ansi16 Toolbars 5536fde5ae4e26dd
 100x30 Ansi16 Toolbars · Options 5454e111f53a1b3a
 100x30 Ansi16 Toolbars · States d5d4cb2fc59f3ab7
-100x30 Ansi16 Basic table 29ae07e4960ff8c6
+100x30 Ansi16 Basic table 8e6a6fd687b75e1c
 100x30 Ansi16 Basic table · Options 6414df8ac3d78dd5
 100x30 Ansi16 Basic table · States bdf8ad96d97c4bc4
-100x30 Ansi16 Editable 03015e8853c7e7d4
+100x30 Ansi16 Editable 267944846a4544ff
 100x30 Ansi16 Editable · Options c054901c2766436e
 100x30 Ansi16 Editable · States 54f0a822a958556b
 100x30 Ansi16 Data grid bf7e20dfa761847a
@@ -2348,7 +2348,7 @@
 100x30 Ansi16 Selection c922b24b04d60642
 100x30 Ansi16 Selection · Options f776301b6bc9f971
 100x30 Ansi16 Selection · States 4a1622939fbd428d
-100x30 Ansi16 Cell editors cbd787f9d85c0447
+100x30 Ansi16 Cell editors 325c7bbf9e6d7e47
 100x30 Ansi16 Cell editors · Options cfe3cfd0968d7320
 100x30 Ansi16 Cell editors · States 64a090bbee1e177a
 100x30 Ansi16 Columns 8d9d20b4d0d5ab30
@@ -2461,7 +2461,7 @@
 100x30 Mono Overview f45fe8976c5dbba4
 100x30 Mono Overview · Options a16ac3e0a98ddccc
 100x30 Mono Overview · States 0ed6ddbea15e7e43
-100x30 Mono Chrome e16e6489145a281e
+100x30 Mono Chrome 1077ea6596de817e
 100x30 Mono Chrome · Options 36d2c6c2b4dd5069
 100x30 Mono Chrome · States e684be077353207a
 100x30 Mono Status & hints 2b2110366f9eb957
@@ -2485,7 +2485,7 @@
 100x30 Mono Inputs f8ab204df359bdbb
 100x30 Mono Inputs · Options 446294a2b0e10cfd
 100x30 Mono Inputs · States a6febd2edd7b38dd
-100x30 Mono Text areas f595fde4f541565c
+100x30 Mono Text areas 9ac0286c4c4297b3
 100x30 Mono Text areas · Options 3971c77aa6c6386e
 100x30 Mono Text areas · States 3e23d2c436c1b2d3
 100x30 Mono Chips & selects c6be88d375f27523
@@ -2500,10 +2500,10 @@
 100x30 Mono Toolbars e429abc0f47082ba
 100x30 Mono Toolbars · Options 5dc87ae57e565029
 100x30 Mono Toolbars · States fcc820c370535bde
-100x30 Mono Basic table 06c37b9ae1229514
+100x30 Mono Basic table d317e44f3872daa2
 100x30 Mono Basic table · Options 3975d3daa3335928
 100x30 Mono Basic table · States 1a2e34a13434e167
-100x30 Mono Editable 5a5b5ac4e413748e
+100x30 Mono Editable a85336e2db5675d7
 100x30 Mono Editable · Options 4972d6e9dc62027f
 100x30 Mono Editable · States 4788a109c7f300f3
 100x30 Mono Data grid d49603d1b438fedd
@@ -2512,7 +2512,7 @@
 100x30 Mono Selection 2758b8d893dcdb91
 100x30 Mono Selection · Options e5ca8343cc82aaf4
 100x30 Mono Selection · States 636c0362ab36850c
-100x30 Mono Cell editors bb334d7086eb181e
+100x30 Mono Cell editors a44c31b992dff05a
 100x30 Mono Cell editors · Options aaf7c1e13c49b353
 100x30 Mono Cell editors · States 2ffc7003cdef03af
 100x30 Mono Columns 6e80b59799f27c61
@@ -2625,7 +2625,7 @@
 160x50 TrueColor Overview 066d88b253361a1d
 160x50 TrueColor Overview · Options a055878c271822bf
 160x50 TrueColor Overview · States 94bc1bfda8f58d30
-160x50 TrueColor Chrome 3ee4a12d0fad2ea7
+160x50 TrueColor Chrome 4fbb21da3825f049
 160x50 TrueColor Chrome · Options 002765eb8051b951
 160x50 TrueColor Chrome · States d77216412411a5ec
 160x50 TrueColor Status & hints 406b6ace7ddc5ef5
@@ -2664,7 +2664,7 @@
 160x50 TrueColor Toolbars 2bf660b0f7929f10
 160x50 TrueColor Toolbars · Options deb5beedb2189e71
 160x50 TrueColor Toolbars · States c8fcab50218ac199
-160x50 TrueColor Basic table 265813332e155257
+160x50 TrueColor Basic table 36be393b82d19659
 160x50 TrueColor Basic table · Options 5599bfe059c63269
 160x50 TrueColor Basic table · States 2d343755270b3131
 160x50 TrueColor Editable 1d339a29680bfc69
@@ -2676,7 +2676,7 @@
 160x50 TrueColor Selection 9866015d38937330
 160x50 TrueColor Selection · Options cee088f7b0eb0646
 160x50 TrueColor Selection · States 4fdf9b98d6593ff0
-160x50 TrueColor Cell editors 5275fd2b0face31f
+160x50 TrueColor Cell editors ae4b08f6d97af4df
 160x50 TrueColor Cell editors · Options 84aeb880bc09f2c0
 160x50 TrueColor Cell editors · States 654bc1f1a4c48085
 160x50 TrueColor Columns e751a04a56bb4bb1
@@ -2789,7 +2789,7 @@
 160x50 Ansi256 Overview 0b8300ef9a5d26ad
 160x50 Ansi256 Overview · Options cfcba3a9e30d6e1e
 160x50 Ansi256 Overview · States b87c31c9ac8d9bcf
-160x50 Ansi256 Chrome 8e11ff96a5bb9be7
+160x50 Ansi256 Chrome e3189dd0bbbe7964
 160x50 Ansi256 Chrome · Options a4945745a37c9c0f
 160x50 Ansi256 Chrome · States ed3986900b1b8d6a
 160x50 Ansi256 Status & hints 378dd42767ff949a
@@ -2828,7 +2828,7 @@
 160x50 Ansi256 Toolbars 23b0680c466ffc78
 160x50 Ansi256 Toolbars · Options 85b3ea5992797533
 160x50 Ansi256 Toolbars · States 2f88370a3e287242
-160x50 Ansi256 Basic table b8f9aae4cda43cbe
+160x50 Ansi256 Basic table db38cbc88a1b0122
 160x50 Ansi256 Basic table · Options c8090e8b1b6fa87c
 160x50 Ansi256 Basic table · States 212685d4e2c96c44
 160x50 Ansi256 Editable 8bf698b48f62cf1c
@@ -2840,7 +2840,7 @@
 160x50 Ansi256 Selection 7edd89a19ea070d2
 160x50 Ansi256 Selection · Options 92a56120db7464de
 160x50 Ansi256 Selection · States 5272fdd1216cd986
-160x50 Ansi256 Cell editors a7922083a60c75ae
+160x50 Ansi256 Cell editors 7d476f8654c86ef2
 160x50 Ansi256 Cell editors · Options b5452b3dec97c506
 160x50 Ansi256 Cell editors · States 7671e6abaedde423
 160x50 Ansi256 Columns 0f81ea293fa1da38
@@ -2953,7 +2953,7 @@
 160x50 Ansi16 Overview 3951fe12328a367e
 160x50 Ansi16 Overview · Options 973d673a37af28eb
 160x50 Ansi16 Overview · States d56309baa57103bb
-160x50 Ansi16 Chrome df4d3e18a29ccd04
+160x50 Ansi16 Chrome c43b66fe9e87015e
 160x50 Ansi16 Chrome · Options 19892c00d6b8f821
 160x50 Ansi16 Chrome · States 9e636b8cdaf38c0b
 160x50 Ansi16 Status & hints e1297d5ad0efb8e6
@@ -2992,7 +2992,7 @@
 160x50 Ansi16 Toolbars 3f1986bffe396174
 160x50 Ansi16 Toolbars · Options d55ac3a33a8c4a16
 160x50 Ansi16 Toolbars · States e05d3898f00a6a9d
-160x50 Ansi16 Basic table d8644b8e0cca465c
+160x50 Ansi16 Basic table 629accf05ff0daa0
 160x50 Ansi16 Basic table · Options 1e85338eccd4e4c1
 160x50 Ansi16 Basic table · States f9e86b00da6f2d28
 160x50 Ansi16 Editable b5514b0951b3800b
@@ -3004,7 +3004,7 @@
 160x50 Ansi16 Selection e75e6b765a31bc1b
 160x50 Ansi16 Selection · Options 2dc5ba89d614ac53
 160x50 Ansi16 Selection · States 2e6bb99c0b4c3839
-160x50 Ansi16 Cell editors 1292a6edc5b1886d
+160x50 Ansi16 Cell editors 3aa87575ae236856
 160x50 Ansi16 Cell editors · Options eb74169e86e1f16a
 160x50 Ansi16 Cell editors · States 71191b9c1a742c30
 160x50 Ansi16 Columns 9dee0d32cb5cc5ca
@@ -3117,7 +3117,7 @@
 160x50 Mono Overview 713d4d258b936b08
 160x50 Mono Overview · Options 9ebc98a5b2a8e134
 160x50 Mono Overview · States 3fa20cd263c34568
-160x50 Mono Chrome 5713aa377edccd06
+160x50 Mono Chrome 4e2c00c9c3ca5453
 160x50 Mono Chrome · Options caaa1cc543ba75dc
 160x50 Mono Chrome · States 8fc086c45bd6d2cb
 160x50 Mono Status & hints 5553c2db39395b27
@@ -3156,7 +3156,7 @@
 160x50 Mono Toolbars da7beb2571617c23
 160x50 Mono Toolbars · Options 83a0bb96ce0332ef
 160x50 Mono Toolbars · States ffebb850f5000df2
-160x50 Mono Basic table 6847a7c2f13f8eab
+160x50 Mono Basic table 7cdbc77504815083
 160x50 Mono Basic table · Options bf26e238ee684f4a
 160x50 Mono Basic table · States 846c3234bfa66117
 160x50 Mono Editable 7a948759efaa70f9
@@ -3168,7 +3168,7 @@
 160x50 Mono Selection a082708c755cf779
 160x50 Mono Selection · Options 8ffff7b85fcae880
 160x50 Mono Selection · States 253ff06641d73814
-160x50 Mono Cell editors 941911051e784f07
+160x50 Mono Cell editors bd5c9f8a765e7844
 160x50 Mono Cell editors · Options 4d257fae5f473957
 160x50 Mono Cell editors · States fb67da9d3bb3bc97
 160x50 Mono Columns c984b46e6cc62453
