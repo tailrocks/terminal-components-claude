@@ -3806,7 +3806,11 @@ mod tests {
         };
         let (hovered, _) = render_at(&mut g, area, hover);
         assert_eq!(rest[(x + 5, 0)].symbol(), " ", "invisible at rest");
-        assert_eq!(hovered[(x + 5, 0)].symbol(), glyphs.divider);
+        assert_eq!(
+            hovered[(x + 5, 0)].symbol(),
+            glyphs.scroll_thumb,
+            "heavy on hover"
+        );
         // off: no seam is registered
         let mut g = wide_grid().resizable_columns(false);
         let (_, hits) = render_at(&mut g, area, Interaction::default());
