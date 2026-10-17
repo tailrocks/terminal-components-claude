@@ -308,7 +308,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 | S6 | Done, 2026-10-17 | `d821cd98e` (expand: `PointerRouter`, `MouseTarget`, clickable footer), `695509660`, `c2d6f3262`, `94310233c` (M18), `99093bb58`, `79b40b343` (Picker backdrop, S5 deviation 5) (widgets), `8fa3385ea` (stacks, status footers), `85f6781cf` (tablepro), `2fbbb0a12`, `1c039a735` (drift fixes), `e6b2ba9ad`, `539af308d`, `cf09e3a28`, `72c275f59`, `57cf628e7` (showcase), `74e10e5ad` + `13cea0a2c` (holla), `a8bf23d30`, `dda518ca4`, `18647f61c`, `4f8c5aff4`, `4fb4108df` (jackin), `e57fe76e8` (frame backdrops, SC18 finding), "delete the Scrollable Outcome adapters", "delete the widgets' public owns and locate", "PartMap leaves the public API" (contract) | See "S6 outcome" below. |
 | S7 | Done, 2026-10-17 | `14d6cdbc1` (expand: `Shell`, `App`, `PageKey`), `caf9d040c` (tablepro), `2053d0963` (holla), `4400f40ab` (jackin), `80c902af8` (showcase), `58f1bc043` (contract: `impl_application!`), `50174a567` (tablepro re-approval), `dce094419` (expand: `Cx`, `Request`, background policy), `d028ac178` (holla), `3376dcabf` (jackin), part 2: `fb7df2aa2` (`Page`), `e033dbdbb` (tablepro `Cx`), `d0101b8d0` (tablepro pages), `a8da160c0` (`Shell::deliver`), `232a6b59f`, `037f5ac1a` (`Layer::is_editing`/`animating`), `ca36871d7` (K27), `f83b4cbb2` (K30), `777adce9a` and `3825da948` (K8 tests), `156224cc7` (SC34 focus bug), `9a3dd2e69`, `ffbb3f2a1`, `8513a9cd6` (showcase `Cx`, `ShellLayers`, `PageEvent` adapter), `d70e92706`, `f64103fe4`, "page layers on the shell's ShellLayers" (the showcase pages' `LayerHost`) | See "S7 outcome (part 1)" and "S7 outcome (part 2)" below. |
 | S8a | In progress | — | Unblocked by S7. |
-| S9 | In progress | — | Unblocked by S4 and S6. |
+| S9 | Done, 2026-10-17 | "SelectGesture, RowSelection::apply and ClickPolicy" (expand), "a double click activates or edits; a right click selects" (table), "RowSelection, ClickPolicy and desktop click modifiers" (list), "ClickPolicy replaces row_click_toggles; a double click connects in tablepro" (tree), "RowSelection marks, click modifiers, double-click edit, right-click rule" (grid), "the tags checklist keeps a RowSelection", "a click selects a fact, a double click activates or copies" (props), "a node's glyph is a hit part; TreeView::row_at; double click selects a word", "a disk row click only moves the cursor; its mark selects" (holla, CO10), "Alt+click on a row chooses its alternative" (A24); two re-approvals (Lists, Trees readouts) | See "S9 outcome" below. |
 | S10 | Not started | — | Unblocked (S4 done). |
 | S8b | Not started | — | Waits for S8a. |
 | S11 | Not started | — | Unblocked (S4, S6 done). K1's default flip already landed (`1da20cc01`, `DEFAULT_EDIT_ENTRY` is `Immediate`); only the K1 walk remains. |
@@ -582,6 +582,37 @@ Each step's agent updates its row when the step lands: state, commits, and every
 - S8b: the footer registers its hints through `Shell::footer_drawn`; `shell::Footer` should call it so no app touches `HintKeys::register`.
 - S14: `Shell::quit` is the one quit flag; `request_quit`/`open_quit_confirm` set it.
 - S15/S16/S17: screens read `ev.count()`; there is no `Cx.clicks`.
+
+**S9 outcome.** One selection model and one click rule for every row widget:
+- `core::selection`: `SelectGesture { Only, Toggle, Extend { from }, All }` with `from_mods(mods, toggle, from)` (Shift extends and wins, the toggle set toggles, else only) and `from_key(key, from)` (plain Space toggles, Shift on a move extends, a plain move is `None`); the platform toggle sets (`TOGGLE_CTRL_CMD`, `TOGGLE_OPTION_CMD`, `TOGGLE_WITH_ALT`, `toggle_mods_for`, `toggle_mods`) moved here from `DataTable` (which aliases them). `RowSelection::apply(g, to, order, enabled)` is the one entry point; `RowSelection::context_select` is the M10 right-click rule (inside: kept; outside: only that row); `RowSelection::set` seeds marks. `ClickPolicy { activate, edit_on, check }` with `Activate { Single, Double, ClickAgain, Never }` (`fires(count, again)`) and `CheckClick { BoxOnly, Row }`; presets `ClickPolicy::DATA` (default: double click activates and edits, only the box toggles) and `NAVIGATION` (one click activates).
+- Widgets: `DataTable::click` (+ `on_click_cell_count`, `context_selection`); `ListBox::{selection, click, toggle_mods, select, is_checked, set_checked, remove_rows, mark_id, on_click_at}` (the `✓` column is `Part::MARKER`); `TreeView::{click, on_click_row_count, on_click_at, row_at, glyph_id}` (a node's glyph is `Part::MARKER`); `DataGrid::{selection, click, toggle_mods, select_rows, context_selection, on_click_with}`; `ChoiceEditor::selection` (tags); `PropsList::{click, on_click_count}`; `TextViewport` selects the word under a double click. Every pointer impl passes `ev.count()` and `ev.mods()`.
+- Deleted: `ListBox::checked` and its anchor, `ClickAction`, `TreeView::row_click_toggles`, `DataGrid::selected_rows`, `ChoiceEditor::checked`, the four click-to-activate rules (list double, tree and props single, table and grid click-again), tablepro `connections.rs`' empty double-click branch, holla `disk.rs`' toggle-on-click, jackin's folder picker click-again rule, the showcase Selectable page's own right-click rule, and seven app copies of "ROW or ICON" (`TreeView::row_at`). `rg 'ev\.count\(\) >= 2' src/bin` = 0 (CO10 activation half).
+- Tests: `core::selection` model table (`apply_follows_the_selection_model_table`, gestures, policies, context rule); per-widget regressions below; the M15 harness `m15_a_click_on_a_disk_row_selects_nothing_and_its_mark_selects_it` (holla) flips.
+
+**S9 behaviour changes** (each with a test that fails on its parent):
+1. M15, SI14: data lists, tables, trees and property lists select on one click and activate on a double click (`ClickPolicy::DATA`); the showcase sidebar opts into `NAVIGATION`. Tests: `select_clicks_move_the_cursor_and_double_clicks_activate` (list), `branch_rows_toggle_or_activate_per_config` (tree), `multi_clicks_follow_desktop_modifiers` (table), `a_double_click_opens_a_row_and_a_slow_second_click_only_selects` (showcase Selectable), `a_double_click_on_a_connection_connects_and_one_click_selects` (tablepro).
+2. M15 (holla Disk): a tree row click marks nothing; the node's mark toggles it (`CheckClick::BoxOnly`).
+3. M9: a grid or table cell edits on a double click; the focusing click and a slow second click never do (`a_double_click_edits_a_cell_and_one_click_never_does`, `a_select_cell_opens_chooses_and_cancels_by_mouse`).
+4. M10: a right click outside a table's selection or a grid's range selects only the clicked row or cell; inside, it keeps the selection (`a_right_click_outside_the_selection_selects_only_that_row`, `a_right_click_outside_the_range_ends_it`, the Selectable menu tests).
+5. M16: List and Grid take Shift-click (extend) and the platform toggle click; a grid row number marks only its row on a plain click (it toggled); Shift-click on a grid cell extends the range (`multi_clicks_follow_the_selection_gestures`, `row_numbers_and_cells_take_the_click_modifiers`).
+6. SI5: a click on a list's `✓` column (or a tree node's mark) toggles with no modifier (`a_click_on_the_mark_column_toggles_through_the_hit_regions`).
+7. SIg2 and the List's range: Shift+arrows extend from the clicked anchor and the range shrinks back (`shift_arrows_extend_and_shrink_from_the_clicked_anchor`; it only grew).
+8. M32: a click on a property row selects it; a double click activates it, and only then does InfoDialog copy (`a_click_selects_a_fact_and_a_double_click_copies_it`).
+9. A24: Alt+click on a picker row reports `ChosenAlt` (`an_alt_click_on_a_row_chooses_its_alternative`).
+
+**S9 deviations from the row above:**
+1. `edit_on` is an `Activate` (the same `Single`/`Double`/`ClickAgain`/`Never` rule), not a separate `EditOn` type.
+2. SI24 (commit on selection change, ask only on invalid) needed no new code: table and grid clicks already commit a valid edit and keep an invalid one with its error (`clicking_another_cell_preserves_invalid_edit_and_cursor`), and the Selectable page asks Save / Don't Save / Cancel only on invalid edits (`changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel`). Its right click now goes through the same guard. That page-level editor guard moves into the library with `FormPanel` (S18).
+3. A multi `ListBox` is a selection: a plain click on a label selects only that row; a checklist opts into `CheckClick::Row`. Keyboard Enter and Space still toggle.
+4. The audit's "visible Copy chip on hover" (M32) is not added; `y` and Enter copy. Recorded in the mouse audit.
+5. `DataGrid::click`/`toggle_mods` and `PropsList::click` are allowlisted for SC33 (the Data grid and Text utilities pages' knobs); `SelectGesture` and `ClickPolicy::edit_on` too. Lists (`lists.click`, `lists.check`, `lists.toggle_mods`), Trees (`trees.click`) and Selection (`selection.activate`) show the rest.
+6. The CO10 contract is written `rg 'ev\.count\(\) >= 2' src/bin` = 0: the literal `count\(\) >= 2` also matches iterator counts in jackin `capsule.rs` and two tests. The bars half of CO10 stays with S16.
+7. Visual: the Lists and Trees readouts and the Selection Options rows changed (re-approved in their own commits); no other capture moved.
+
+**Notes for later steps:**
+- S13: `ListCore` takes `ListBox::selection` (a `RowSelection`) and `click` as they are; `Selectable` can return them.
+- S16: hand-drawn lists ask `ClickPolicy::DATA.activates(ev.count(), again)` today; on widgets they read the widget's `click`.
+- S24: the tree's tri-state checks can build on the glyph's `Part::MARKER`.
 
 ## 5. Per-widget documentation (`docs/components/<widget>.md`)
 
@@ -879,7 +910,7 @@ Every ⚠️ and ❌ row of both inventories maps to at least one SC step; the �
 | widgets | TextInput required_message/wrap_label/blur_action/focus_select/field_keys/text_keymap/pointer_select/label_hit | ❌ | SC8 |
 | widgets | `keyhint` render/hint/Hint/constants | ⚠️ | SC4 |
 | widgets | `KeyReference` | ❌ | SC6 |
-| widgets | ListBox ClickAction/skip_disabled/wrap/type_ahead/reveal/empty()/scrollbar_gap/track_click/nav/keymap, `ListCmd` | ❌ | SC15; SC33 (`ClickPolicy`, after S9) |
+| widgets | ListBox ClickPolicy (`click`, `toggle_mods`)/skip_disabled/wrap/type_ahead/reveal/empty()/scrollbar_gap/track_click/nav/keymap, `ListCmd` | ❌ | SC15; SC33 (`ClickPolicy`, after S9) |
 | widgets | MenuItem danger_if/separator_if | ❌ | SC16 |
 | widgets | ContextMenu placement/anchor(_control)/fit/min_width/max_rows/edge_margin/release_selects/hide_owner_focus/nav/wrap/type_ahead | ❌ | SC16 |
 | widgets | MenuBar OpenOn, Overflow Hide/Chevron, hover_switch, press_drag, hide_owner_focus, nav | ❌ | SC4 |
