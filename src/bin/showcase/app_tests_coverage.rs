@@ -919,6 +919,7 @@ fn lists_and_trees_accept_mouse_selection() {
     trees.key(KeyCode::Right);
     let (x, y) = trees.find("auth.rs").expect("tree leaf");
     trees.click(x, y);
+    trees.click(x, y);
     assert_eq!(
         trees.app.shell.focus.current(),
         Some(WidgetId::of("trees").sub("tree"))

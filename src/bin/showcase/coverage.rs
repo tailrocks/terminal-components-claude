@@ -3829,8 +3829,8 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("trees", "trees.branch"),
     ),
     (
-        "widgets::tree::TreeView::row_click_toggles",
-        Option("trees", "trees.row_click"),
+        "widgets::tree::TreeView::click",
+        Option("trees", "trees.click"),
     ),
     (
         "widgets::tree::TreeView::wrap",

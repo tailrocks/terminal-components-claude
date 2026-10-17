@@ -1518,7 +1518,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("widgets::tree::TreeCmd::ExpandAll"),
     Capability::variant("widgets::tree::TreeCmd::CollapseAll"),
     Capability::builder("widgets::tree::TreeView::branch_activate"),
-    Capability::builder("widgets::tree::TreeView::row_click_toggles"),
+    Capability::builder("widgets::tree::TreeView::click"),
     Capability::builder("widgets::tree::TreeView::wrap"),
     Capability::builder("widgets::tree::TreeView::nav"),
     Capability::builder("widgets::tree::TreeView::keymap"),

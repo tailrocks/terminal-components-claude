@@ -932,7 +932,7 @@ static TREES: &[Opt] = &[
         "Enter on a branch",
         &["toggle", "activate", "both"],
     ),
-    Opt::new("trees.row_click", "Row click toggles", OFF_ON).default(1),
+    Opt::new("trees.click", "Click", &["double", "single"]),
     Opt::new("trees.indent", "Indent", &["2", "1", "4"]),
     Opt::new("trees.divider", "Divider", OFF_ON),
     Opt::new("trees.alt_click", "Alt-click recursive", OFF_ON).default(1),

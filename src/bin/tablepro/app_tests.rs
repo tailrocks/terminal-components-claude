@@ -181,6 +181,35 @@ fn connections_screen_lists_and_connects_with_keyboard() {
     );
 }
 
+/// M15 (the connection list's empty double-click branch): one click
+/// selects a connection, however often; a double click connects, as Enter
+/// does (the tree's `ClickPolicy`).
+#[test]
+fn a_double_click_on_a_connection_connects_and_one_click_selects() {
+    use crate::connections::ConnState;
+    let mut h = H::new(120, 40);
+    let (x, y) = h.find("Production").expect("the connection row");
+    h.click(x, y);
+    // the click chain runs out (the wall clock barely moves in a test):
+    h.app.shell.pointer.reset_clicks();
+    h.click(x, y);
+    assert!(
+        matches!(h.app.connections.state, ConnState::Idle),
+        "a slow second click only selects"
+    );
+    assert!(h.text().contains("Safe Mode"), "the row is selected");
+    h.app.shell.pointer.reset_clicks();
+    h.click(x, y);
+    h.click(x, y);
+    assert!(
+        matches!(h.app.connections.state, ConnState::Connecting { .. }),
+        "the double click connects"
+    );
+    h.ticks(14);
+    assert_eq!(h.app.screen, Screen::Workbench);
+    assert_eq!(h.wb().connection.name, "Production");
+}
+
 #[test]
 fn failed_connection_shows_error_and_retry() {
     let mut h = H::new(120, 40);
