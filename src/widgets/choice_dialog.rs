@@ -6,6 +6,7 @@
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
+use crate::core::hints::{HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::theme::{ButtonKind, Strings, Tone};
@@ -13,6 +14,7 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::choice::RadioGroup;
+use crate::widgets::keyhint::Hint;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -67,6 +69,37 @@ pub struct ChoiceDialog {
     /// click) while its button is disabled: the frame shows the refusal
     /// in the warning tone until the next input.
     refused: bool,
+}
+
+/// The footer while the dialog is on top: on the options, how to choose
+/// and what Enter confirms (the primary button's label); on a button, what
+/// Enter presses there; Tab between them; Esc as the cancel button.
+impl HasHints for ChoiceDialog {
+    fn hints(&self, cx: &HintCx) -> Vec<Hint> {
+        let mut v = vec![];
+        if cx.focus == Some(self.radio.id) || cx.focus.is_none() {
+            if let Some(k) = self.nav.move_hint(false) {
+                v.push(Hint::new(k, self.strings.hint_choose));
+            }
+            let primary = self
+                .buttons
+                .iter()
+                .find(|b| b.kind == ButtonKind::Primary || b.kind == ButtonKind::Danger)
+                .or(self.buttons.last());
+            if let Some(b) = primary {
+                v.push(b.hint());
+            }
+        } else if let Some(b) = self.buttons.iter().find(|b| cx.focus == Some(b.id)) {
+            v.push(b.hint());
+        }
+        v.push(Hint::new("Tab", self.strings.hint_next));
+        if self.dismiss.escape
+            && let Some(b) = self.buttons.get(self.cancel_index)
+        {
+            v.push(Hint::new("Esc", b.label.clone()));
+        }
+        v
+    }
 }
 
 impl ChoiceDialog {

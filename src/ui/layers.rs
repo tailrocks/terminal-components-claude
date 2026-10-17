@@ -12,6 +12,7 @@ use ratatui::layout::{Position, Rect};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::FocusChange;
+use crate::core::hints::{HasHints, HintCx};
 use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::pointer::{MouseTarget, PointerEvent};
@@ -142,6 +143,10 @@ fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker {
+    /// Its own footer hints ([`HasHints`]).
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        HasHints::hints(self, &HintCx::new(focused))
+    }
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
@@ -195,6 +200,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
 // ------------------------------------------------------------- ContextMenu
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ContextMenu {
+    /// Its own footer hints ([`HasHints`]).
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        HasHints::hints(self, &HintCx::new(focused))
+    }
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
@@ -237,6 +246,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
 // -------------------------------------------------------------- FormDialog
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDialog {
+    /// Its own footer hints ([`HasHints`]).
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        HasHints::hints(self, &HintCx::new(focused))
+    }
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
@@ -300,6 +313,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
 // ------------------------------------------------------------ ChoiceDialog
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ChoiceDialog {
+    /// Its own footer hints ([`HasHints`]).
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        HasHints::hints(self, &HintCx::new(focused))
+    }
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
@@ -328,6 +345,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Choice
 // -------------------------------------------------------------- InfoDialog
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDialog {
+    /// Its own footer hints ([`HasHints`]).
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        HasHints::hints(self, &HintCx::new(focused))
+    }
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
@@ -373,6 +394,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
 // ------------------------------------------------------------- HelpOverlay
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOverlay {
+    /// Its own footer hints ([`HasHints`]).
+    fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
+        HasHints::hints(self, &HintCx::new(focused))
+    }
     fn spec(&self) -> LayerSpec {
         Overlay::spec(self)
     }
