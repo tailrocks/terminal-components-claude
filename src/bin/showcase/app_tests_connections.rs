@@ -172,11 +172,37 @@ fn every_frame_option_value_changes_the_playground() {
 }
 
 #[test]
-fn at_80_by_24_the_list_and_details_stack() {
-    let h = Harness::on(80, 24, PageId::Connections);
+fn at_80_by_24_the_details_are_a_drawer_over_the_list() {
+    let mut h = Harness::on(80, 24, PageId::Connections);
     let text = h.text();
     assert!(text.contains("Connections"), "{text}");
     assert!(text.contains("Production"), "{text}");
+    // narrow: the list and a one-line summary; the card waits in a drawer
+    assert!(text.contains("→ Production · production"), "{text}");
+    assert!(!text.contains("Engine"), "{text}");
+    h.focus(page(&h).new.id);
+    h.key(KeyCode::Tab);
+    assert!(page(&h).md.drawer_open(), "Tab past the list opens the details");
+    assert!(h.text().contains("Engine"), "{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!page(&h).md.drawer_open(), "Esc returns to the list");
+    assert!(h.app.shell.focus.is(page(&h).tree.id), "focus back on the list");
+}
+
+#[test]
+fn the_detail_card_ends_with_its_actions_and_a_failure_is_a_notice() {
+    let mut h = Harness::on(120, 40, PageId::Connections);
+    let card_end = page(&h).connect.area.y;
+    let (_, last) = h.find("Last used").expect("the last fact");
+    assert_eq!(card_end, last + 2, "the actions follow the facts");
+    pick(&mut h, "Staging");
+    h.key(KeyCode::Enter);
+    ticks(&mut h, 10);
+    let (_, y) = h.find("Authentication failed").expect("the notice");
+    let (gx, gy) = h.find("!").expect("the notice glyph");
+    assert_eq!(gy, y, "the error glyph leads the message");
+    assert!(gx < h.find("Authentication failed").unwrap().0);
+    assert_eq!(page(&h).connect.label, "Reconnect");
 }
 
 #[test]
