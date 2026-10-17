@@ -2832,6 +2832,24 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tabs::Tabs",
         Demo("settings", "General Members Environment"),
     ),
+    // Settings on the template (Priority 0): its option table and States
+    (
+        "widgets::table::DataTable::cell_nav",
+        Option("settings", "settings.cell_nav"),
+    ),
+    (
+        "widgets::list::SelectMode::Single",
+        Option("settings", "settings.env_select=single"),
+    ),
+    (
+        "widgets::tabs::TabItem::dirty",
+        Option("settings", "settings.tab_dirty"),
+    ),
+    ("widgets::tabs::Tabs", StateRow("settings", "focused")),
+    (
+        "widgets::table::DataTable",
+        StateRow("settings", "selected"),
+    ),
     (
         "widgets::dialog::Dialog",
         Demo("dialogs", "Confirm run Rename task…"),
