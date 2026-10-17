@@ -34,8 +34,18 @@ impl PageTypes for Showcase {
 }
 
 impl shell::Page<Showcase> for dyn Page {
+    /// A key the page leaves unused scrolls a templated page's body
+    /// (Page Up/Down, Home/End: [`ScrollView::on_key`]).
+    ///
+    /// [`ScrollView::on_key`]: junie_tui::ui::scroll_view::ScrollView::on_key
     fn on_key(&mut self, key: &Key, _: &mut (), cx: &mut Cx) -> Outcome {
-        self.handle(&PageEvent::Key(*key), cx)
+        let out = self.handle(&PageEvent::Key(*key), cx);
+        if out == Outcome::Ignored
+            && let Some(o) = self.template_mut().and_then(|t| t.on_unused_key(key))
+        {
+            return o;
+        }
+        out
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _: &mut (), cx: &mut Cx) -> Outcome {
@@ -73,8 +83,25 @@ impl shell::Page<Showcase> for dyn Page {
         }
     }
 
+    /// A templated page draws its section body inside the template's
+    /// scroll view: laid out at its natural size (the page's
+    /// [`Page::measure`] for the Playground), scrolled where that is
+    /// larger than the page. Every page gets it here, with no code of its
+    /// own.
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
-        Page::render(self, area, buf, ctx);
+        let avail = super::template::Template::body_of(area).as_size();
+        let playground = Page::measure(self, avail, ctx);
+        let Some(mut frame) = self
+            .template_mut()
+            .map(|t| t.begin(area, playground, buf, ctx))
+        else {
+            Page::render(self, area, buf, ctx);
+            return;
+        };
+        Page::render(self, area, frame.buffer(buf), ctx);
+        if let Some(t) = self.template_mut() {
+            t.end(frame, buf, ctx);
+        }
     }
 
     fn hints(&self, focus: Option<WidgetId>, _: &()) -> Vec<Hint> {
