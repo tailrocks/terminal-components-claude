@@ -224,3 +224,17 @@ fn a_query_tab_close_plate_lights_whole_and_closes_the_tab() {
     h.click(plate.right() - 1, plate.y);
     assert_eq!(h.wb().tabs.len(), n - 1, "{}", h.text());
 }
+
+/// R-apps-9: the wheel scrolls an overlay anywhere over its body, also in
+/// the padding column beside its scrollbar (that column took no wheel).
+#[test]
+fn the_wheel_beside_the_help_scrollbar_scrolls_the_help() {
+    use junie_tui::core::event::MouseKind;
+    use ratatui::crossterm::event::KeyCode;
+    let mut h = H::connected(120, 40);
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("1–29 of 33"), "{}", h.text());
+    let (bx, by) = h.find("┃").expect("the help scrollbar");
+    h.mouse(MouseKind::WheelDown, bx - 1, by + 10);
+    assert!(!h.text().contains("1–29 of 33"), "{}", h.text());
+}

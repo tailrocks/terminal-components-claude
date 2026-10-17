@@ -65,10 +65,6 @@ holla trust 72x20 Node after before build changes depends description dev develo
 holla trust 80x24 changes runs team truecolor # R-apps-1 R-apps-6
 holla upgrade-plan 72x20 excluded included # R-apps-2 R-apps-4
 holla upgrade-plan 106x29 Lane ordered trunk # R-apps-2 R-apps-4
-jackin account-form 72x20 API Agent Credential Local Plain agent chosen field item recommended reference runtime source # R-apps-9
-jackin account-form 80x24 API Local Plain agent chosen field item recommended reference # R-apps-9
-jackin account-form 100x25 API Local Plain agent chosen reference # R-apps-9
-jackin account-form 106x29 chosen # R-apps-9
 jackin accounts 72x20 Construct inside launches running # R-apps-1 R-apps-8
 jackin accounts 80x24 Construct inside running # R-apps-1
 jackin accounts 100x25 running # R-apps-1
@@ -90,9 +86,9 @@ jackin cockpit 100x25 1Password Codex Grok OpenCode Personal Primary Team accoun
 jackin cockpit 106x29 Grok OpenCode Primary Team help subscription # R-apps-1 R-apps-4 R-apps-6
 jackin cockpit 120x40 Grok OpenCode Team subscription # R-apps-4 R-apps-6
 jackin cockpit 160x50 OpenCode subscription # R-apps-4 R-apps-6
-jackin cockpit-failure 72x20 1600 400 800 build capsule cleanup container inspection kept lines log retry sidecar started # R-apps-9 R-apps-12
-jackin cockpit-failure 80x24 build cleanup container inspection kept lines log # R-apps-9 R-apps-12
-jackin cockpit-failure 100x25 build inspection log # R-apps-9 R-apps-12
+jackin cockpit-failure 72x20 build lines log # R-apps-12
+jackin cockpit-failure 80x24 build lines log # R-apps-12
+jackin cockpit-failure 100x25 build log # R-apps-12
 jackin editor 72x20 Workspaces edit inside running # R-apps-1
 jackin editor 80x24 inside running # R-apps-1
 jackin editor 100x25 running # R-apps-1
@@ -114,7 +110,6 @@ jackin editor-roles 72x20 Claude Code Construct Kubernetes Workspaces edit insid
 jackin editor-roles 80x24 Claude Code Construct Kubernetes inside limited running scope # R-apps-1 R-apps-4
 jackin editor-roles 100x25 running # R-apps-1
 jackin editor-roles 106x29 running # R-apps-1
-jackin env-form 72x20 Scope # R-apps-9
 jackin launch-picker 72x20 default provider # R-apps-8
 jackin launch-picker 80x24 default # R-apps-8
 jackin manager 72x20 Daemon Preserved Refresh Running Usage account degraded every exhausted healthy instances min pane panes records refreshing stale tab tabs throttled warnings # R-apps-1 R-apps-2 R-apps-8
@@ -141,7 +136,6 @@ jackin manager-hard 100x25 Construct Daemon Preserved Refresh Running Usage acco
 jackin manager-hard 106x29 Construct Daemon Preserved Refresh Running Usage account degraded every exhausted idle inside instances min pane panes record records refreshing tab tabs throttled unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
 jackin manager-hard 120x40 Daemon Preserved Refresh Running Usage account degraded every exhausted idle instances min pane panes record records refreshing unavailable warnings # R-apps-1 R-apps-2 R-apps-6 R-apps-8
 jackin manager-hard 160x50 ask refreshing # R-apps-2 R-apps-6 R-apps-8
-jackin mount-form 72x20 Shared edits land only read # R-apps-9
 jackin prelude 72x20 Construct inside running the # R-apps-1
 jackin prelude 80x24 Construct inside running the # R-apps-1
 jackin prelude-source 72x20 inside running # R-apps-1

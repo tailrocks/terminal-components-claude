@@ -445,7 +445,7 @@ known gap with its row id here, and a fix drops its lines. Branch
 | R-apps-6 | Fixed-size bodies drop rows with no scrollbar (`props::render`, fact sheets, detail cards, holla disk compact mode, jackin settings and cockpit). | responsive-lib (scroll container) | bodies scroll; allow lines gone | `responsive.md` R-apps-6 |
 | R-apps-7 | Button rows drop the buttons that do not fit (`button::row_layout`). | — | wrap or `…` menu | `responsive.md` R-apps-7 |
 | R-apps-8 | Cut cells reveal on hover only; Picker has no `→` reveal (WCAG keyboard gap). | — | keyboard reveal in Picker; audit drives it | `responsive.md` R-apps-8 |
-| R-apps-9 | FormDialog and InfoDialog ignore the wheel over their fields although they show a bar. | — | wheel over any child scrolls the dialog; regression test | `responsive.md` R-apps-9 |
+| R-apps-9 | **Done 2026-10-17**: a scroll pane registers its whole body under its children (`HitRegistry::register_scroll_under`, from `ScrollPane::draw_with_fade`), so the wheel scrolls a dialog or overlay over a field, a label or the padding beside its bar; FormDialog follows focus only when focus moves, so the wheel can scroll away from the focused field. Tests `the_wheel_over_a_form_field_scrolls_the_form` (jackin), `the_wheel_beside_the_help_scrollbar_scrolls_the_help` (tablepro). | — | done | `responsive.md` R-apps-9 |
 | R-apps-10 | Dialog with a code preview leaves its facts 0 rows at 72×20 (holla start-plan). | — | minimum facts viewport | `responsive.md` R-apps-10 |
 | R-apps-11 | Tabs behind the `+N` overflow (reachable). | — | recorded (kind b) | `responsive.md` R-apps-11 |
 | R-apps-12 | Audit limits (3-row grid sweep budget, mid-word wrap, page changed under a modal). | — | recorded (kind c) | `responsive.md` R-apps-12 |
