@@ -6,7 +6,7 @@
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                  [0m
   ▸ Tables             Tokens · planes and text                                                    ┃[0m
-  ▸ Navigation                                                                                     ┆[0m
+  ▸ Navigation                                                                                     ┃[0m
   ▸ Overlays               ▏ canvas                                                        Black   ┆[0m
   ▸ Feedback               ▏ surface                                                       Black   ┆[0m
   ▸ Layout                 ▏ surface.elevated                                              Black   ┆[0m
@@ -25,7 +25,7 @@
                            ▏ text.muted                                                     Gray   ┆[0m
                            ▏ text.faint                                                     Gray   ┆[0m
                            ▏ text.ghost                                                 DarkGray   ┆[0m
-                                                                                                   ┆[0m
+                           ▏ text.on_accent                                                Black   ┆[0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l
