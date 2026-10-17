@@ -10,7 +10,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 
@@ -23,6 +23,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowFn, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
+use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::core::text::TextBuffer;
 use crate::theme::{SyntaxTone, Theme};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
@@ -423,7 +424,9 @@ pub struct DataGrid {
     pub cursor: (usize, usize),
     /// Range selection anchor (display row, col).
     anchor: Option<(usize, usize)>,
-    pub selected_rows: BTreeSet<usize>,
+    /// The marked rows (source rows; the gutter `✓`): Space, the row
+    /// numbers and Select All change them through [`RowSelection::apply`].
+    pub selection: RowSelection,
     pub pending: PendingChanges,
     undo: Vec<UndoAction>,
     /// Rows (`scroll`, the vertical state) and columns (`scroll.h`) with both bars
@@ -431,6 +434,14 @@ pub struct DataGrid {
     pub scroll: ScrollPane,
     pub edit: Option<EditState>,
     pub editable: bool,
+    /// What a click on a cell does beyond moving the cursor: when it
+    /// starts editing (or, read-only, activates the row). Default
+    /// [`ClickPolicy::DATA`]: a double click, so the focusing click never
+    /// edits (M9).
+    pub click: ClickPolicy,
+    /// Modifiers that make a click on a row number toggle that row's mark;
+    /// Shift extends. Default [`SelectGesture::toggle_mods`].
+    pub toggle_mods: KeyModifiers,
     /// What a cell edit in progress does when the grid loses focus
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
@@ -604,12 +615,14 @@ impl DataGrid {
             filtered_cols: BTreeSet::new(),
             cursor: (0, 0),
             anchor: None,
-            selected_rows: BTreeSet::new(),
+            selection: RowSelection::new(),
             pending: PendingChanges::default(),
             undo: vec![],
             scroll: ScrollPane::default().columns(true),
             edit: None,
             editable: true,
+            click: ClickPolicy::DATA,
+            toggle_mods: SelectGesture::toggle_mods(),
             blur_action: BlurAction::Commit,
             read_only_reason: None,
             loading: false,
@@ -846,6 +859,18 @@ impl DataGrid {
         self
     }
 
+    /// See [`Self::click`].
+    pub fn click(mut self, policy: ClickPolicy) -> Self {
+        self.click = policy;
+        self
+    }
+
+    /// See [`Self::toggle_mods`].
+    pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
+        self.toggle_mods = mods;
+        self
+    }
+
     /// The keys that duplicate the cursor row (default Ctrl+D and Alt+D):
     /// replaces the [`GridCmd::DuplicateRow`] bindings in
     /// [`Self::keymap`]. An empty list turns the shortcut off;
@@ -992,7 +1017,7 @@ impl DataGrid {
         self.undo.clear();
         self.cell_errors.clear();
         self.row_errors.clear();
-        self.selected_rows.clear();
+        self.selection.clear();
         self.anchor = None;
         self.edit = None;
         self.cursor.0 = self.cursor.0.min(self.rows.len().saturating_sub(1));
@@ -1533,11 +1558,11 @@ impl DataGrid {
                     out.push('\n');
                 }
             }
-        } else if !self.selected_rows.is_empty() || with_header {
-            let rows: Vec<usize> = if self.selected_rows.is_empty() {
+        } else if !self.selection.is_empty() || with_header {
+            let rows: Vec<usize> = if self.selection.is_empty() {
                 self.cursor_src().into_iter().collect()
             } else {
-                self.selected_rows.iter().copied().collect()
+                self.selection.to_vec()
             };
             if with_header {
                 out.push_str(
@@ -1745,17 +1770,13 @@ impl DataGrid {
                 if self.on_more_row() {
                     return (Outcome::Changed, Some(GridAction::FetchMore));
                 }
-                if let Some(src) = self.cursor_src()
-                    && !self.selected_rows.remove(&src)
-                {
-                    self.selected_rows.insert(src);
-                }
+                self.select_rows(SelectGesture::Toggle, self.cursor.0);
                 (Outcome::Changed, None)
             }
             KeyCode::Esc => {
-                if self.anchor.is_some() || !self.selected_rows.is_empty() {
+                if self.anchor.is_some() || !self.selection.is_empty() {
                     self.anchor = None;
-                    self.selected_rows.clear();
+                    self.selection.clear();
                     (Outcome::Changed, None)
                 } else {
                     (Outcome::Ignored, None)
@@ -1772,8 +1793,8 @@ impl DataGrid {
                 if !self.editable {
                     return (Outcome::Consumed, None);
                 }
-                if !self.selected_rows.is_empty() {
-                    let rows: Vec<usize> = self.selected_rows.iter().copied().collect();
+                if !self.selection.is_empty() {
+                    let rows: Vec<usize> = self.selection.to_vec();
                     let mut last = None;
                     for src in rows {
                         last = self.toggle_delete(src);
@@ -1847,9 +1868,7 @@ impl DataGrid {
             }
             GridCmd::Discard => (Outcome::Changed, Some(GridAction::DiscardRequested)),
             GridCmd::SelectAll => {
-                let before = self.selected_rows.len();
-                self.selected_rows.extend(self.order.iter().copied());
-                if self.selected_rows.len() != before {
+                if self.select_rows(SelectGesture::All, 0) {
                     (Outcome::Changed, None)
                 } else {
                     (Outcome::Consumed, None)
@@ -1968,7 +1987,50 @@ impl DataGrid {
         Outcome::Changed
     }
 
+    /// A single plain click on `id` ([`Self::on_click_with`]).
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridAction>) {
+        self.on_click_with(id, pos, KeyModifiers::NONE, 1)
+    }
+
+    /// The right-click selection rule (M10) on the cell at (`display`,
+    /// `col`), a valid cell: inside the cell range the range and the cursor
+    /// stay, so Copy acts on the range; outside it the range ends and the
+    /// cursor moves there. Row marks the row is not part of give way to
+    /// that row alone ([`RowSelection::context_select`]).
+    pub fn context_selection(&mut self, display: usize, col: usize) {
+        if self.anchor.is_some() && self.in_range(display, col) {
+            return;
+        }
+        self.anchor = None;
+        self.cursor = (display, col);
+        if !self.selection.is_empty() {
+            self.selection
+                .context_select(display, &self.order, |_| true);
+        }
+    }
+
+    /// Apply `g` aimed at display row `display` to the row marks
+    /// ([`RowSelection::apply`]). Returns whether they changed.
+    pub fn select_rows(&mut self, g: SelectGesture, display: usize) -> bool {
+        self.selection.apply(g, display, &self.order, |_| true)
+    }
+
+    /// The `count`th click of a multi-click on `id` with `mods` held. A
+    /// click on a row number is a [`SelectGesture`] on the row marks
+    /// ([`SelectGesture::from_mods`] with [`Self::toggle_mods`]: a plain
+    /// click marks only that row, the toggle modifiers toggle it, Shift
+    /// extends; M16). A click on a cell moves the cursor; it edits the cell
+    /// (or activates the row of a read-only grid) only when
+    /// [`Self::click`] says so: a double click by default, so the click
+    /// that gives a cell the cursor never edits (M9).
+    pub fn on_click_with(
+        &mut self,
+        id: WidgetId,
+        pos: Position,
+        mods: KeyModifiers,
+        count: u8,
+    ) -> (Outcome, Option<GridAction>) {
+        let count = count.max(1);
         if self.seam_of(id).is_some() {
             // the release of a seam press or drag: the resize is done
             self.sizing.release();
@@ -2035,11 +2097,11 @@ impl DataGrid {
             {
                 return (Outcome::Changed, None);
             }
-            if let Some(&src) = self.order.get(d) {
+            if d < self.order.len() {
+                let from = self.cursor.0;
                 self.point_cursor(d, self.cursor.1, false);
-                if !self.selected_rows.remove(&src) {
-                    self.selected_rows.insert(src);
-                }
+                let g = SelectGesture::from_mods(mods, self.toggle_mods, from);
+                self.select_rows(g, d);
             }
             return (Outcome::Changed, None);
         }
@@ -2080,11 +2142,16 @@ impl DataGrid {
                     Some(GridAction::FollowReference { row: src, col: c }),
                 );
             }
-            self.point_cursor(d, c, false);
-            if same && self.editable {
+            // Shift-click extends the cell range from the cursor (M16)
+            let extend = mods.contains(KeyModifiers::SHIFT);
+            self.point_cursor(d, c, extend);
+            if extend {
+                return (Outcome::Changed, None);
+            }
+            if self.editable && self.click.edits(count, same) {
                 return self.begin_edit();
             }
-            if same && !self.editable {
+            if !self.editable && self.click.activates(count, same) {
                 return (
                     Outcome::Changed,
                     self.cursor_src().map(GridAction::Activated),
@@ -2183,7 +2250,7 @@ impl DataGrid {
                     return Outcome::Ignored;
                 }
                 let src = self.order.get(from).copied();
-                (from, !src.is_some_and(|s| self.selected_rows.contains(&s)))
+                (from, !src.is_some_and(|s| self.selection.contains(s)))
             }
             _ => return Outcome::Ignored,
         };
@@ -2195,9 +2262,9 @@ impl DataGrid {
         for r in from.min(d)..=from.max(d) {
             if let Some(&src) = self.order.get(r) {
                 if mark {
-                    self.selected_rows.insert(src);
+                    self.selection.set(src, true);
                 } else {
-                    self.selected_rows.remove(&src);
+                    self.selection.set(src, false);
                 }
             }
         }
@@ -2629,7 +2696,7 @@ impl DataGrid {
                 .interaction
                 .pressed_any(visible_cols.map(|c| self.cell_id(d, c)));
             s.focused = focused && d == self.cursor.0;
-            s.selected = self.selected_rows.contains(&src);
+            s.selected = self.selection.contains(src);
             let state = self.row_state_with(src, |r| edited_rows.contains(&r));
             let mut row_style = t.row(s, bg);
             if state == RowState::Deleted {
@@ -3216,7 +3283,7 @@ impl crate::core::pointer::MouseTarget for DataGrid {
         match ev.phase() {
             Some(Phase::Press) => self.on_press(id, pos, ev.count()).into(),
             Some(Phase::Drag) => self.on_drag(id, pos).into(),
-            Some(Phase::Click) => self.on_click(id, pos).into(),
+            Some(Phase::Click) => self.on_click_with(id, pos, ev.mods(), ev.count()).into(),
             _ => Response::ignored(),
         }
     }
@@ -3990,7 +4057,7 @@ mod tests {
         g.on_key(&key(KeyCode::Right));
         assert_eq!(g.cursor, (1, 1));
         g.on_key(&key(KeyCode::Char(' ')));
-        assert!(g.selected_rows.contains(&1));
+        assert!(g.selection.contains(1));
         let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
         assert_eq!(ev, Some(GridAction::SortRequested(Some((1, SortDir::Asc)))));
         let (_, ev) = g.on_key(&key(KeyCode::Char('s')));
@@ -4257,6 +4324,91 @@ mod tests {
         }
     }
 
+    /// M9: the click that gives a cell the cursor never edits it, nor does
+    /// a slow second click; a double click does (`ClickPolicy::DATA`).
+    #[test]
+    fn a_double_click_edits_a_cell_and_one_click_never_does() {
+        let mut g = grid();
+        let area = Rect::new(0, 0, 60, 8);
+        render_at(&mut g, area, Interaction::default());
+        let cell = g.cell_id(2, 1);
+        let at = Position::new(g.col_rects[1].x, g.body.y + 2);
+        g.on_click(cell, at);
+        g.on_click(cell, at);
+        assert!(g.edit.is_none(), "one click, however often, only moves");
+        assert_eq!(g.cursor, (2, 1));
+        g.on_click_with(cell, at, KeyModifiers::NONE, 2);
+        assert!(g.edit.is_some(), "a double click edits");
+        // the earlier rule stays an option
+        let mut again =
+            grid().click(ClickPolicy::DATA.edit_on(crate::core::selection::Activate::ClickAgain));
+        render_at(&mut again, area, Interaction::default());
+        again.on_click(cell, at);
+        again.on_click(cell, at);
+        assert!(again.edit.is_some());
+    }
+
+    /// M16: a row number takes the desktop click modifiers (a plain click
+    /// marks only that row, Ctrl toggles, Shift extends; it used to toggle
+    /// on any click), and Shift-click on a cell extends the cell range.
+    #[test]
+    fn row_numbers_and_cells_take_the_click_modifiers() {
+        let mut g = grid().toggle_mods(SelectGesture::TOGGLE_CTRL_CMD);
+        let area = Rect::new(0, 0, 60, 8);
+        render_at(&mut g, area, Interaction::default());
+        let p = Position::ORIGIN;
+        g.on_click_with(g.rownum_id(1), p, KeyModifiers::NONE, 1);
+        g.on_click_with(g.rownum_id(1), p, KeyModifiers::NONE, 1);
+        assert_eq!(g.selection.to_vec(), vec![1], "a plain click marks only");
+        g.on_click_with(g.rownum_id(3), p, KeyModifiers::SHIFT, 1);
+        assert_eq!(g.selection.to_vec(), vec![1, 2, 3], "Shift extends");
+        g.on_click_with(g.rownum_id(2), p, KeyModifiers::CONTROL, 1);
+        assert_eq!(g.selection.to_vec(), vec![1, 3], "Ctrl toggles");
+        g.on_click_with(g.rownum_id(0), p, KeyModifiers::NONE, 1);
+        assert_eq!(g.selection.to_vec(), vec![0]);
+        // Shift-click on a cell extends the range from the cursor
+        let from = g.cell_id(1, 1);
+        g.on_click(from, Position::new(g.col_rects[1].x, g.body.y + 1));
+        let to = g.cell_id(3, 2);
+        g.on_click_with(
+            to,
+            Position::new(g.col_rects[2].x, g.body.y + 3),
+            KeyModifiers::SHIFT,
+            1,
+        );
+        assert_eq!(g.anchor, Some((1, 1)));
+        assert_eq!(g.cursor, (3, 2));
+    }
+
+    /// M10: a right click inside the cell range keeps it (and the cursor);
+    /// outside, the range gives way to the clicked cell.
+    #[test]
+    fn a_right_click_outside_the_range_ends_it() {
+        use crate::ui::context::ContextSource;
+        let mut g = grid();
+        let area = Rect::new(0, 0, 60, 8);
+        render_at(&mut g, area, Interaction::default());
+        g.on_click(g.cell_id(0, 1), Position::new(g.col_rects[1].x, g.body.y));
+        g.on_click_with(
+            g.cell_id(2, 2),
+            Position::new(g.col_rects[2].x, g.body.y + 2),
+            KeyModifiers::SHIFT,
+            1,
+        );
+        assert_eq!((g.anchor, g.cursor), (Some((0, 1)), (2, 2)));
+        g.context_select((1, 1));
+        assert_eq!((g.anchor, g.cursor), (Some((0, 1)), (2, 2)), "inside: kept");
+        g.context_select((4, 3));
+        assert_eq!((g.anchor, g.cursor), (None, (4, 3)), "outside: ends");
+        // marks the row is not part of give way to it
+        g.select_rows(SelectGesture::Toggle, 0);
+        g.select_rows(SelectGesture::Toggle, 1);
+        g.context_select((1, 0));
+        assert_eq!(g.selection.to_vec(), vec![0, 1], "a marked row keeps them");
+        g.context_select((5, 0));
+        assert_eq!(g.selection.to_vec(), vec![5]);
+    }
+
     #[test]
     fn a_range_drag_held_past_the_bottom_edge_keeps_scrolling_and_extending() {
         let mut g = grid();
@@ -4300,16 +4452,13 @@ mod tests {
             g.on_drag(origin, Position::new(gutter_x, g.body.y + 2)),
             Outcome::Changed
         );
-        assert_eq!(
-            g.selected_rows.iter().copied().collect::<Vec<_>>(),
-            [0, 1, 2]
-        );
+        assert_eq!(g.selection.to_vec(), [0, 1, 2]);
         // back on the origin and released there: the click keeps the
         // painted marks instead of toggling the origin off
         g.on_drag(origin, Position::new(gutter_x, g.body.y));
         let (out, _) = g.on_click(origin, Position::new(gutter_x, g.body.y));
         assert_eq!(out, Outcome::Changed);
-        assert!(g.selected_rows.contains(&0), "{:?}", g.selected_rows);
+        assert!(g.selection.contains(0), "{:?}", g.selection);
         // a fresh press and drag held below the body marks rows as they
         // scroll in
         render_at(&mut g, area, Interaction::default());
@@ -4320,11 +4469,7 @@ mod tests {
             render_at(&mut g, area, holding(origin));
         }
         assert!(g.scroll.offset > 0);
-        assert!(
-            (3..8).all(|r| g.selected_rows.contains(&r)),
-            "{:?}",
-            g.selected_rows
-        );
+        assert!((3..8).all(|r| g.selection.contains(r)), "{:?}", g.selection);
     }
 }
 
@@ -4358,7 +4503,7 @@ mod select_all_tests {
                 mods,
             });
             assert_eq!(out, Outcome::Changed);
-            assert_eq!(g.selected_rows.len(), 4);
+            assert_eq!(g.selection.len(), 4);
             assert_eq!(g.cursor.0, 0, "never a type-ahead `a`");
         }
     }
