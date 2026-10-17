@@ -15,10 +15,6 @@ Grid | Playground | 120x40 | R16 squeezes instead of overflowing: no Page::measu
 Selectable | Playground | 80x24 | R17 squeezes instead of overflowing: no Page::measure yet
 Selectable | Playground | 100x25 | R17 squeezes instead of overflowing: no Page::measure yet
 Selectable | Playground | 106x29 | R17 squeezes instead of overflowing: no Page::measure yet
-Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Tabs | Playground | 120x40 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Panels | Playground | 80x24 | R33 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 100x25 | R33 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 106x29 | R33 squeezes instead of overflowing: no Page::measure yet
@@ -80,7 +76,4 @@ Forms | Playground | 120x40 | R51 squeezes instead of overflowing: no Page::meas
 Sidebars | Playground | 80x24 | R52 squeezes instead of overflowing: no Page::measure yet
 Sidebars | Playground | 100x25 | R52 squeezes instead of overflowing: no Page::measure yet
 Settings | Playground | 80x24 | R53 squeezes instead of overflowing: no Page::measure yet
-Settings | Playground | 100x25 | R53 squeezes instead of overflowing: no Page::measure yet
-Settings | Playground | 106x29 | R53 squeezes instead of overflowing: no Page::measure yet
-Settings | Playground | 120x40 | R53 squeezes instead of overflowing: no Page::measure yet
 TaskRunner | Playground | 80x24 | R54 squeezes instead of overflowing: no Page::measure yet

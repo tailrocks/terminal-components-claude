@@ -18,7 +18,6 @@
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Input, Mouse, MouseKind};
-use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::runtime::Application;
 use junie_tui::shell::reach::Words;
@@ -109,10 +108,11 @@ impl Shot {
         out
     }
 
-    /// The shared rule for inner scrollers: a scroller in the section
-    /// that shows a scrollbar (a list, a table, a log, a stack of panels)
-    /// says it holds more than its window, so what scrolling it brings
-    /// into view is reachable. Wheel each such scroller in view, over its
+    /// The shared rule for inner scrollers: a scroller in the section (a
+    /// list, a table, a log, a text area, a stack of panels; what the
+    /// wheel scrolls) holds more than its window by design, so what
+    /// scrolling it brings into view is reachable. Wheel each scroller in
+    /// view, over its
     /// part in view, on each axis from its start to its end (until it
     /// stops moving, or the notch chains on to the section's view), then
     /// sideways and down together (its far corner: the bar of the other
@@ -121,7 +121,14 @@ impl Shot {
     fn inner(&mut self, out: &mut Words) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
+        // every scroller in view but the section's own view: its bars
+        // may be out of view, the wheel over its body still scrolls it
         let mut owners: Vec<WidgetId> = Vec::new();
+        for (id, area) in self.app.shell.hits.scrollers() {
+            if id != view && !owners.contains(&id) && area.intersects(viewport) {
+                owners.push(id);
+            }
+        }
         for b in self.app.shell.hits.bars() {
             if b.owner == view || owners.contains(&b.owner) {
                 continue;
@@ -131,12 +138,20 @@ impl Shot {
                 owners.push(b.owner);
             }
         }
-        use Axis::{Horizontal, Vertical};
+        use MouseKind::{WheelDown as Down, WheelLeft as Left, WheelRight as Right, WheelUp as Up};
+        // each axis from its start to its end; sideways along the first
+        // rows and along the last ones
+        let passes: [&[MouseKind]; 4] = [
+            &[Up, Down],
+            &[Up, Left, Right],
+            &[Down, Left, Right],
+            &[Right, Up, Down],
+        ];
         for owner in owners {
-            for axes in [&[Vertical][..], &[Horizontal], &[Horizontal, Vertical]] {
+            for pass in passes {
                 let start = self.view().offset();
-                for &axis in axes {
-                    self.wheel(owner, axis, viewport, out);
+                for &kind in pass {
+                    self.wheel(owner, kind, viewport, out);
                 }
                 self.view().scroll_to(start.0, start.1);
                 self.draw();
@@ -152,10 +167,10 @@ impl Shot {
             .unwrap_or_else(|| track.intersection(viewport))
     }
 
-    /// Wheel `owner` along `axis` to its start (an earlier pass may have
-    /// left it scrolled), then to its end, reading the words of every
-    /// step; a notch that chains on to the section's view ends the run.
-    fn wheel(&mut self, owner: WidgetId, axis: Axis, viewport: Rect, out: &mut Words) {
+    /// Wheel `owner` with `kind` as far as it goes, reading the words of
+    /// every step; a notch that chains on to the section's view ends the
+    /// run.
+    fn wheel(&mut self, owner: WidgetId, kind: MouseKind, viewport: Rect, out: &mut Words) {
         let track = self
             .app
             .shell
@@ -168,12 +183,9 @@ impl Shot {
         if at.is_empty() {
             return;
         }
-        let pos = Position::new(at.x, at.y);
-        let kinds = match axis {
-            Axis::Vertical => [MouseKind::WheelUp, MouseKind::WheelDown],
-            Axis::Horizontal => [MouseKind::WheelLeft, MouseKind::WheelRight],
-        };
-        for kind in kinds {
+        // its middle: clear of a header, a checkbox column or an edge
+        let pos = Position::new(at.x + at.width / 2, at.y + at.height / 2);
+        {
             let start = self.view().offset();
             let mut last = text(self.term.backend().buffer());
             for _ in 0..INNER_NOTCHES {
