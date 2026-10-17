@@ -254,9 +254,11 @@ fn ticks(h: &mut Harness, n: usize) {
 
 #[test]
 fn cockpit_shows_rail_log_and_actions_not_the_stub() {
+    // at its natural size the cockpit scrolls: read what scrolling the
+    // page brings into view
     for (w, h) in [(120, 40), (80, 24)] {
-        let h = Harness::new(w, h, PageId::LaunchCockpit);
-        let text = h.text();
+        let mut h = Harness::new(w, h, PageId::LaunchCockpit);
+        let text = h.page_text();
         assert!(!text.contains("arrives with"), "{text}");
         for needle in [
             "Launch · payments-platform",
@@ -266,7 +268,7 @@ fn cockpit_shows_rail_log_and_actions_not_the_stub() {
             assert!(text.contains(needle), "{w}: {needle}: {text}");
         }
     }
-    let text = Harness::new(120, 40, PageId::LaunchCockpit).text();
+    let text = Harness::new(120, 40, PageId::LaunchCockpit).page_text();
     for needle in [
         "Stages",
         "Derived Image",
