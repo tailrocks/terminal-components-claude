@@ -18,6 +18,7 @@ use junie_tui::core::selection::ClickPolicy;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextSource};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
+use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -105,7 +106,8 @@ pub struct DiskPage {
     overview: Vec<OverviewRow>,
     top: Vec<TopRow>,
     top_state: Option<String>,
-    drawer: bool,
+    /// The tree or list beside the details; a drawer when narrow.
+    md: MasterDetail,
     compact: bool,
     last_tick: u64,
     last_revealed: usize,
@@ -137,7 +139,7 @@ impl DiskPage {
             overview: vec![],
             top: vec![],
             top_state: None,
-            drawer: false,
+            md: MasterDetail::new(TREE, DETAIL).detail_share(38, 34, 50),
             compact: false,
             last_tick: u64::MAX,
             last_revealed: usize::MAX,
@@ -1006,13 +1008,7 @@ impl DiskPage {
                 let items = vec![
                     select,
                     copy,
-                    MenuItem::new(if self.drawer {
-                        "Hide details"
-                    } else {
-                        "Show details"
-                    })
-                    .shortcut("p")
-                    .separator(),
+                    self.md.menu_item().shortcut("p").separator(),
                     review,
                     clean,
                     MenuItem::new("Rescan").shortcut("r"),
@@ -1143,8 +1139,20 @@ impl DiskPage {
     }
 }
 
+impl DiskPage {
+    /// The master pane of the current view.
+    fn main_id(&self) -> WidgetId {
+        if self.view == View::Tree { TREE } else { LIST }
+    }
+}
+
 impl ShellPage<Holla> for DiskPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
+        // the master is this view's tree or list; Esc on the details returns to it
+        self.md.master = self.main_id();
+        if let Some(o) = self.md.on_key(key, cx.focus) {
+            return o;
+        }
         if cx.focus.is(DETAIL) {
             match key.code {
                 KeyCode::Up | KeyCode::Char('k') if key.plain() => {
@@ -1153,12 +1161,6 @@ impl ShellPage<Holla> for DiskPage {
                 }
                 KeyCode::Down | KeyCode::Char('j') if key.plain() => {
                     self.detail_scroll.scroll_by(1);
-                    return Outcome::Changed;
-                }
-                KeyCode::Esc => {
-                    self.drawer = false;
-                    cx.focus
-                        .focus(if self.view == View::Tree { TREE } else { LIST });
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -1170,14 +1172,8 @@ impl ShellPage<Holla> for DiskPage {
         // shared letters first
         match key.code {
             KeyCode::Char('p') if key.plain() => {
-                self.drawer = !self.drawer;
-                cx.focus.focus(if self.drawer {
-                    DETAIL
-                } else if self.view == View::Tree {
-                    TREE
-                } else {
-                    LIST
-                });
+                self.md.master = self.main_id();
+                self.md.toggle_drawer(cx.focus);
                 return Outcome::Changed;
             }
             KeyCode::Char('y') if key.plain() => {
@@ -1672,7 +1668,6 @@ impl ShellPage<Holla> for DiskPage {
             area.width,
             area.bottom().saturating_sub(body_y),
         );
-        let split = area.width >= crate::screens::finder::SPLIT_MIN;
         let render_main =
             |me: &mut Self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx| match me.view {
                 View::Tree => {
@@ -1702,33 +1697,17 @@ impl ShellPage<Holla> for DiskPage {
                 }
                 _ => me.render_list(r, buf, ctx, w),
             };
-        if split {
-            let dw = (area.width * 38 / 100).clamp(34, 50);
-            let main = Rect::new(
-                body.x,
-                body.y,
-                body.width.saturating_sub(dw + 2),
-                body.height,
-            );
-            let detail = Rect::new(main.right() + 2, body.y, dw, body.height);
-            render_main(self, main, buf, ctx);
-            self.render_detail(detail, buf, ctx, w);
-        } else if (self.drawer || ctx.interaction.focused(DETAIL))
-            && !ctx
-                .interaction
-                .focused(if self.view == View::Tree { TREE } else { LIST })
-        {
-            self.drawer = true;
-            // only this view's list keeps a stop: Tab returns to it and the
-            // drawer gives the body back
-            let main = if self.view == View::Tree { TREE } else { LIST };
-            ctx.control(main, Rect::ZERO, false);
-            self.render_detail(body, buf, ctx, w);
-        } else {
-            self.drawer = false;
-            render_main(self, body, buf, ctx);
-            ctx.control(DETAIL, Rect::ZERO, false);
+        // only this view's tree or list keeps a stop: Tab returns to it
+        // and the drawer gives the body back
+        self.md.master = self.main_id();
+        let l = self.md.layout(body, buf, ctx, ctx.theme.canvas);
+        if !l.master.is_empty() {
+            render_main(self, l.master, buf, ctx);
         }
+        if !l.detail.is_empty() {
+            self.render_detail(l.detail, buf, ctx, w);
+        }
+        self.md.finish(ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
