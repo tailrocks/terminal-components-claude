@@ -1,16 +1,17 @@
 //! Connections (Screens, plan §7.5 SC47): tablepro's connection manager
-//! composed from the library only. A list card (`TextInput` filter over a
-//! `TreeView` grouped by folder or environment, env glyphs from
-//! `Glyphs::env` in `EnvKind::tone`) beside a detail card (`props` with a
-//! Warning row, the connect bar, an `EmptyState::error` failure block
-//! with Reconnect, and the Connect / Edit / Duplicate / Delete… buttons).
-//! New and Edit open the library `FormDialog`; Delete asks through a
-//! destructive `Dialog`. Options: `crate::options::CONNECTIONS`.
+//! composed from the library only. A `MasterDetail`: the list card
+//! (`TextInput` filter over a `TreeView` grouped by folder or environment,
+//! env glyphs from `Glyphs::env` in `EnvKind::tone`) beside a `DetailCard`
+//! (its facts with a Warning row, the connect bar or a `Notice` with the
+//! failure, and an `ActionRow` of Connect (Reconnect after a failure) /
+//! Edit… / Duplicate / Delete…). Narrow, the list takes the page with a
+//! one-line summary and the card is a drawer. New and Edit open the
+//! library `FormDialog`; Delete asks through a destructive `Dialog`.
+//! Options: `crate::options::CONNECTIONS`.
 //!
 //! Gaps (recorded in docs/remaining-work.md SC47): the inline
-//! `FormPanel` form (S18; today the modal `FormDialog`), `MasterDetail`
-//! with its narrow drawer (S19; today two columns that stack), the
-//! `FilterTree` (S21) and `DetailCard`/`ActionRow` (S17).
+//! `FormPanel` form (S18; today the modal `FormDialog`) and the
+//! `FilterTree` (S21).
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -28,22 +29,26 @@ use junie_tui::theme::{EnvKind, Glyphs, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::layers::LayerResult;
+use junie_tui::ui::layout::Split;
+use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
-use junie_tui::widgets::button::{Button, ButtonRow, RowOverflow};
+use junie_tui::widgets::action_row::ActionRow;
+use junie_tui::widgets::button::Button;
+use junie_tui::widgets::detail_card::DetailCard;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::empty::{self, EmptyAction, EmptyState};
 use junie_tui::widgets::form_dialog::{FieldValue, FormAction, FormDialog, FormField};
 use junie_tui::widgets::input::{InputAction, TextInput};
+use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::render_indeterminate;
-use junie_tui::widgets::props::{self, Prop};
+use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 const ID: WidgetId = WidgetId::of("connections");
 const FORM: WidgetId = ID.sub("form");
 const DELETE_DLG: WidgetId = ID.sub("delete");
-const RECONNECT: WidgetId = ID.sub("reconnect");
 const NEW_EMPTY: WidgetId = ID.sub("new-empty");
 /// Ticks a connect attempt takes.
 const CONNECT_TICKS: u8 = 8;
@@ -207,6 +212,8 @@ pub struct ConnectionsPage {
     pub new: Button,
     /// The connection the open form edits (`None`: a new one).
     editing: Option<Option<usize>>,
+    /// The list beside its detail card; narrow, a drawer.
+    pub md: MasterDetail,
 }
 
 impl ConnectionsPage {
@@ -227,11 +234,17 @@ impl ConnectionsPage {
             delete: Button::danger(ID.sub("delete-btn"), "Delete…"),
             new: Button::secondary(ID.sub("new"), "New connection…"),
             editing: None,
+            md: master_detail(40),
         };
         page.rebuild_tree();
         // the riskiest connection first, as tablepro opens it
         page.select_name("Production");
         page
+    }
+
+    /// The list's share of the width from the option (percent).
+    fn list_share(&self) -> u16 {
+        self.opts.number("connections.list_width").unwrap_or(40)
     }
 
     /// The tree from the connections and the option values, keeping the
@@ -491,7 +504,7 @@ impl ConnectionsPage {
 
     /// A button's activation (keyboard or click).
     fn activate(&mut self, id: WidgetId, cx: &mut Cx) -> Outcome {
-        if id == self.connect.id || id == RECONNECT {
+        if id == self.connect.id {
             self.start_connect(cx);
         } else if id == self.edit.id {
             self.open_form(self.selected, cx);
@@ -512,30 +525,32 @@ impl ConnectionsPage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let mut list_w = self.opts.number("connections.list_width").unwrap_or(36);
-        if area.width < list_w + 44 {
-            // narrow: the list gives up columns before the details do (the
-            // drawer waits on `MasterDetail`, S19)
-            list_w = (area.width * 2 / 5).max(22);
+        let t = ctx.theme;
+        // the list beside the detail card; narrow, the list takes the body
+        // with a one-line summary and the card becomes a drawer
+        let l = self.md.layout(area, buf, ctx, t.canvas);
+        if !l.master.is_empty() {
+            self.render_list(l.master, buf, ctx);
         }
-        let (left, right) = crate::pages::layout::columns(area, list_w, 2);
-        let stacked = left.y != right.y;
-        if stacked {
-            // narrow: the list on top, the detail under it
-            let h = (self.tree.rows().len() as u16 + 7).min(area.height / 2);
-            let l = Rect::new(area.x, area.y, area.width, h);
-            let r = Rect::new(
-                area.x,
-                area.y + h + 1,
-                area.width,
-                area.height.saturating_sub(h + 1),
+        if !l.detail.is_empty() {
+            self.render_detail(l.detail, buf, ctx);
+        }
+        if !l.summary.is_empty()
+            && let Some(i) = self.selected.filter(|_| !self.empty())
+        {
+            let c = &self.conns[i];
+            let line = format!(
+                "→ {} · {} · {} · Tab shows details",
+                c.name, ENVS[c.env], c.host
             );
-            self.render_list(l, buf, ctx);
-            self.render_detail(r, buf, ctx);
-        } else {
-            self.render_list(left, buf, ctx);
-            self.render_detail(right, buf, ctx);
+            buf.set_string(
+                l.summary.x + 1,
+                l.summary.y,
+                junie_tui::ui::text::truncate(&line, l.summary.width.saturating_sub(1) as usize),
+                t.muted().bg(t.canvas),
+            );
         }
+        self.md.finish(ctx);
     }
 
     fn render_list(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -584,23 +599,23 @@ impl ConnectionsPage {
     fn render_detail(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let selected = if self.empty() { None } else { self.selected };
+        let focused = ctx.interaction.focused(self.md.detail);
         let Some(i) = selected else {
-            let panel = Panel::card(Some("Details"));
+            // nothing to detail: the card keeps its frame and says so
+            let panel = Panel::card(Some("Details")).focused(focused);
             let bg = panel.bg(t);
             if let Some(inner) = panel.try_render(r, buf, t) {
-                let e = EmptyState::new("Select a connection")
-                    .hint("Its host, environment and safety settings show here");
-                empty::render_ctx(inner, buf, ctx, &e, bg);
+                DetailCard::empty(
+                    EmptyState::new("Select a connection")
+                        .hint("Its host, environment and safety settings show here"),
+                )
+                .render(inner, buf, ctx, bg, &mut []);
             }
+            ctx.focus_stop(self.connect.id);
             return;
         };
         let c = self.conns[i].clone();
         let env = env_kind(c.env);
-        let panel = Panel::card(Some(&c.name)).meta(ENVS[c.env]);
-        let bg = panel.bg(t);
-        let Some(inner) = panel.try_render(r, buf, t) else {
-            return;
-        };
         let mut facts = vec![
             Prop::new("Engine", ENGINES[c.engine]),
             Prop::new("Host", c.host.clone()).copyable(),
@@ -636,71 +651,58 @@ impl ConnectionsPage {
         }
         let busy = matches!(self.state, ConnState::Connecting { .. });
         self.connect.disabled = busy;
-        // the action row wraps rather than cut a label, and keeps its
-        // place at the card's foot when the facts run long
-        let row_kind = ButtonRow::new().overflow(RowOverflow::Wrap);
-        let shown = [
-            self.connect.clone(),
-            self.edit.clone(),
-            self.duplicate.clone(),
-            self.delete.clone(),
-        ];
-        let actions_h = row_kind.rows(inner.width, &shown, t);
         let failure = match &self.state {
             ConnState::Failed {
                 name,
                 message,
                 detail,
-            } if *name == c.name => Some(
-                EmptyState::error(message)
-                    .hint(detail)
-                    .actions(vec![EmptyAction::primary(RECONNECT, "Reconnect")]),
-            ),
+            } if *name == c.name => Some(Notice::error(message.as_str()).detail(detail.as_str())),
             _ => None,
+        };
+        // a failed connection is tried again from the same button
+        self.connect.label = if failure.is_some() {
+            "Reconnect".into()
+        } else {
+            "Connect".into()
         };
         let connecting =
             matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
+        // the facts leave room for the state (the bar or the notice), a
+        // blank row and the action row
         let state_h = match &failure {
-            Some(e) => empty::height(e, inner.width) + 3,
+            Some(n) => n.height(r.width.saturating_sub(4)) + 1,
             None if connecting => 2,
             None => 0,
         };
-        let need = props::measure(&facts, inner.width);
-        let room = inner.height.saturating_sub(state_h + actions_h + 1);
-        let facts_h = need.min(room);
-        props::render(
-            Rect::new(inner.x, inner.y, inner.width, facts_h),
+        let card = DetailCard::new(&c.name)
+            .meta(ENVS[c.env])
+            .props(facts)
+            .focused(focused)
+            .fit(true)
+            .reserve(state_h + 2)
+            .actions(ActionRow::new());
+        let l = card.render(
+            r,
             buf,
-            t,
-            &facts,
-            bg,
+            ctx,
+            t.canvas,
+            &mut [
+                &mut self.connect,
+                &mut self.edit,
+                &mut self.duplicate,
+                &mut self.delete,
+            ],
         );
-        let mut y = inner.y + facts_h + 1;
         if connecting {
             render_indeterminate(
-                Rect::new(inner.x, y, inner.width, 1),
+                Rect::new(l.slot.x, l.slot.y, l.slot.width, 1),
                 buf,
                 ctx,
                 "Connecting  ",
-                bg,
+                l.bg,
             );
-        } else if let Some(e) = &failure {
-            let h = state_h - 1;
-            empty::render_ctx(Rect::new(inner.x, y, inner.width, h), buf, ctx, e, bg);
-        }
-        y += state_h;
-        let y = y.min(inner.bottom().saturating_sub(actions_h));
-        let l = row_kind.layout(Rect::new(inner.x, y, inner.width, actions_h), &shown, t);
-        let buttons = [
-            &mut self.connect,
-            &mut self.edit,
-            &mut self.duplicate,
-            &mut self.delete,
-        ];
-        for (b, r) in buttons.into_iter().zip(l.rects) {
-            if let Some(r) = r {
-                b.render(r, buf, ctx, bg);
-            }
+        } else if let Some(n) = &failure {
+            n.render(l.slot, buf, ctx, l.bg);
         }
     }
 
@@ -750,8 +752,8 @@ impl ConnectionsPage {
             }
             return o;
         }
-        // the empty state's and the failure block's own buttons
-        if click && (ev.on(RECONNECT) || ev.on(NEW_EMPTY)) {
+        // the empty list's own button
+        if click && ev.on(NEW_EMPTY) {
             return self.activate(ev.id, cx);
         }
         Outcome::Ignored
@@ -784,7 +786,7 @@ impl ConnectionsPage {
             }
             return o;
         }
-        if f == RECONNECT || f == NEW_EMPTY {
+        if f == NEW_EMPTY {
             let (o, act) = Button::secondary(f, "").on_key(key);
             if act {
                 return self.activate(f, cx);
@@ -918,9 +920,19 @@ impl Page for ConnectionsPage {
         }
         match ev {
             PageEvent::Blur(ch) => forward_blur(*ch, &mut [&mut self.filter]),
-            PageEvent::Key(key) => self.key(key, cx),
+            PageEvent::Key(key) => {
+                if let Some(o) = self.md.on_key(key, cx.focus) {
+                    return o;
+                }
+                self.key(key, cx)
+            }
             PageEvent::Paste(text) if cx.focus.is(self.filter.id) => self.filter.on_paste(text),
-            PageEvent::Pointer(p) => self.pointer(p, cx),
+            PageEvent::Pointer(p) => {
+                if let Some(o) = self.md.on_pointer(p) {
+                    return o;
+                }
+                self.pointer(p, cx)
+            }
             _ => Outcome::Ignored,
         }
     }
@@ -962,12 +974,20 @@ impl Page for ConnectionsPage {
         if let Some(h) = self.template.hints(focus) {
             return h;
         }
-        match focus {
+        let v = match focus {
             Some(f) if f == self.tree.id => {
                 vec![("↑↓", "Move"), ("Enter", "Connect"), ("Tab", "Next")]
             }
             _ => vec![("Enter", "Activate"), ("Tab", "Next")],
-        }
+        };
+        let mut v = v;
+        v.extend(
+            self.md
+                .hints(focus)
+                .into_iter()
+                .map(crate::pages::master_detail::page_hint),
+        );
+        v
     }
 
     fn option_value(&self, key: &str) -> Option<usize> {
@@ -976,6 +996,9 @@ impl Page for ConnectionsPage {
 
     fn set_option(&mut self, key: &str, value: usize) {
         if self.opts.set(key, value) {
+            if key == "connections.list_width" {
+                self.md = master_detail(self.list_share());
+            }
             self.rebuild_tree();
             if key == "connections.state" {
                 self.apply_state_option();
@@ -994,4 +1017,16 @@ impl Page for ConnectionsPage {
     fn template_mut(&mut self) -> Option<&mut Template> {
         Some(&mut self.template)
     }
+}
+
+/// The list and its detail card: a resizable seam (the list takes
+/// `share` percent, at least 24 columns; the card at least 44), a
+/// one-row summary and a drawer below 80 columns.
+fn master_detail(share: u16) -> MasterDetail {
+    MasterDetail::new(ID.sub("tree"), ID.sub("connect"))
+        .detail_owns(&[ID.sub("edit"), ID.sub("duplicate"), ID.sub("delete-btn")])
+        .resizable(Split::new(share, 24, 44))
+        // both panes fit from 80 columns (24 + 2 + 44 and room to spare)
+        .collapse_below(80)
+        .summary_rows(1)
 }
