@@ -20,9 +20,10 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
@@ -33,12 +34,15 @@ use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::context::{ContextAnchor, ContextConfig, ContextKeys, ContextRequest};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::{Tile, Tiled, tiles};
 use junie_tui::ui::popup::{Dismiss, Place, Placement};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::menu::{ContextMenu, MenuAction, MenuItem, UnknownKey};
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 
 const ID: WidgetId = WidgetId::of("menus");
 const ROW_MENU: WidgetId = ID.sub("row-menu");
@@ -252,66 +256,87 @@ impl MenusPage {
         self.last = format!("{:?} · {label} on {what}", MenuAction::Chosen(i));
     }
 
+    fn last_facts(&self) -> Vec<Prop> {
+        vec![
+            Prop::new("Request", self.request.clone()).wrap(),
+            Prop::new("Action", self.last.clone()).wrap(),
+            Prop::new("Keys", keys_readout(&self.row_menu.config)).wrap(),
+        ]
+    }
+
+    /// The files beside the actions menu (stacked when they do not fit
+    /// side by side), then the Last card. `measure` and
+    /// `render_playground` share it.
+    fn tiled(&self, width: u16) -> Tiled {
+        let w = |s: &str| text::width(s) as u16;
+        let files_p = Panel::card(Some("Files")).meta(FILES_META);
+        let actions_p = Panel::card(Some("Actions menu")).meta(ACTIONS_META);
+        let last_p = Panel::card(Some("Last"));
+        let facts = self.last_facts();
+        let rows = self.files.items.len() as u16;
+        let files_w = files_p.outer(Size::new(FILES_W, 0)).width;
+        let notes = NOTES.iter().map(|n| w(n)).max().unwrap_or(0);
+        let actions_w = actions_p
+            .outer(Size::new(notes.max(self.actions.width()), 0))
+            .width;
+        let files_h = |_: u16| files_p.outer(Size::new(0, rows)).height;
+        let actions_h = |_: u16| actions_p.outer(Size::new(0, 2 + NOTES.len() as u16)).height;
+        let last_h = |w: u16| sheet_height(&last_p, &facts, w);
+        tiles(
+            width,
+            &[
+                &[
+                    Tile::new(files_w, &files_h),
+                    Tile::new(actions_w, &actions_h),
+                ],
+                &[Tile::new(sheet_width(&last_p, &facts), &last_h)],
+            ],
+            (2, 1),
+        )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[11, 1, 6, 0]);
-        let (left, right) = crate::pages::layout::columns(rows[0], rows[0].width / 2, 2);
+        let tiled = self.tiled(area.width);
 
         let panel = Panel::card(Some("Files"))
-            .meta("right-click · Shift+F10")
+            .meta(FILES_META)
             .focused(ctx.interaction.focused(self.files.id));
         let bg = panel.bg(t);
-        let inner = panel.render(left, buf, t);
+        let inner = panel.render(tiled.at(0, area), buf, t);
         self.files.render(inner, buf, ctx, bg);
 
-        let panel = Panel::card(Some("Actions menu")).meta("click · Enter");
+        let panel = Panel::card(Some("Actions menu")).meta(ACTIONS_META);
         let bg = panel.bg(t);
-        let inner = panel.render(right, buf, t);
+        let inner = panel.render(tiled.at(1, area), buf, t);
         let bw = self.actions.width().min(inner.width);
         self.actions
             .render(Rect::new(inner.x, inner.y, bw, 1), buf, ctx, bg);
-        let notes = [
-            "Right-press a file, drag onto an item,",
-            "release: the release chooses it.",
-            "A right-click outside an open menu",
-            "closes it and opens the one beneath.",
-        ];
-        for (i, n) in notes.iter().enumerate() {
-            let y = inner.y + 2 + i as u16;
-            if y < inner.bottom() {
-                buf.set_string(inner.x, y, n, t.muted().bg(bg));
-            }
+        for (i, n) in NOTES.iter().enumerate() {
+            buf.set_string(inner.x, inner.y + 2 + i as u16, n, t.muted().bg(bg));
         }
 
         let card = Panel::card(Some("Last"));
         let bg = card.bg(t);
-        let inner = card.render(rows[2], buf, t);
-        let keys = keys_readout(&self.row_menu.config);
-        let lines = [
-            ("Request", self.request.clone()),
-            ("Action", self.last.clone()),
-            ("Keys", keys),
-        ];
-        for (i, (k, v)) in lines.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            buf.set_string(inner.x, y, k, t.muted().bg(bg));
-            let w = inner.width.saturating_sub(10) as usize;
-            buf.set_string(
-                inner.x + 10,
-                y,
-                junie_tui::ui::text::truncate(v, w),
-                t.primary().bg(bg),
-            );
-        }
+        let inner = card.render(tiled.at(2, area), buf, t);
+        props::render(inner, buf, t, &self.last_facts(), bg);
         // the open menus float above the page, placed on the whole screen
         let screen = *buf.area();
         self.row_menu.render(screen, buf, ctx);
         self.actions_menu.render(screen, buf, ctx);
     }
 }
+
+const FILES_META: &str = "right-click · Shift+F10";
+const ACTIONS_META: &str = "click · Enter";
+/// The file list's width; it shows every file.
+const FILES_W: u16 = 30;
+const NOTES: [&str; 4] = [
+    "Right-press a file, drag onto an item,",
+    "release: the release chooses it.",
+    "A right-click outside an open menu",
+    "closes it and opens the one beneath.",
+];
 
 /// Which keys open a row's menu.
 fn keys_readout(c: &ContextConfig) -> String {
@@ -376,6 +401,10 @@ impl Page for MenusPage {
 
     fn blurb(&self) -> &'static str {
         "Context menus: anchors, placement, reasons, danger, separators, keys and press-drag-release"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

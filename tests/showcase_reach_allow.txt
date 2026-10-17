@@ -43,8 +43,6 @@ Tabs | Playground | 80x24 | R22 squeezes instead of overflowing: no Page::measur
 Tabs | Playground | 100x25 | R22 squeezes instead of overflowing: no Page::measure yet
 Tabs | Playground | 106x29 | R22 squeezes instead of overflowing: no Page::measure yet
 Tabs | Playground | 120x40 | R22 squeezes instead of overflowing: no Page::measure yet
-Menus | Playground | 80x24 | R23 squeezes instead of overflowing: no Page::measure yet
-Menus | Playground | 100x25 | R23 squeezes instead of overflowing: no Page::measure yet
 Dialogs | Playground | 80x24 | R24 squeezes instead of overflowing: no Page::measure yet
 Dialogs | Playground | 100x25 | R24 squeezes instead of overflowing: no Page::measure yet
 Dialogs | Playground | 106x29 | R24 squeezes instead of overflowing: no Page::measure yet
