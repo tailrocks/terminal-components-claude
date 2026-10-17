@@ -6,9 +6,9 @@
  │  ▾ Personal                  │    ─────────━━━━━━━━━━━────────────────────────────────────────   [0m
  │        Local PostgreSQL  pg  │                                                                   [0m
  │        Scratch       sqlite  │     ○── Use SSL / TLS off                Startup commands         [0m
- │  ▾ Acme                      │                                          SET statement_timeo…     [0m
- │      · Development       pg  │     ○── SSH tunnel off                                            [0m
- │      ◇ Staging           pg  │      SSH host  optional                                           [0m
+ │  ▾ Acme                      │                                          SET                      [0m
+ │      · Development       pg  │     ○── SSH tunnel off                   statement_timeout =      [0m
+ │      ◇ Staging           pg  │      SSH host  optional                  '60s';                   [0m
  │      ◆ Analytics      mysql  │    [0m[2m  bastion.example.com           [0m      Run after every conne…   [0m
  │      ◆ Production        pg  │                                                                   [0m
  │                              │      SSH user  optional                  External clients: rea…   [0m
