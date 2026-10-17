@@ -143,6 +143,73 @@ never in view at the smallest failing size.
 | R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
 | R54 | TaskRunner | Playground | 80x24, 100x25 | `Cancel Log Press Ready following libs publish shared` |
 
+## Priority order (owner, 2026-10-17, budget-constrained)
+
+Budget is nearly spent (weekly 89%, session 59%). Order: (1) every showcase
+page real on Playground | Options | States: DONE; (2) every screen fully
+reachable at any size (scroll both axes); (3) the rest of section 1.
+This is the single triage of the open items in section 3.
+
+### NOW (in progress, must finish)
+
+- Priority 0b reach R1-R54 (two agents), `tests/showcase_reach_allow.txt` to empty.
+- R-apps: app screens (jackin, holla, tablepro) responsive and reachable audit, then fixes.
+- R-apps-1: strips and status bars drop items with no way to reach them (overflow `…`/menu).
+- R-apps-6: fixed-size page bodies move onto `ScrollView`.
+- Flake fixes that make the gate reliable (a red or flaky gate costs more budget than any feature).
+
+### NEXT (max 8, best user-visible value per effort)
+
+1. A20: `Strings::not_in_preview` unused, apps hard-code "Not in this preview". Tiny, one shared string.
+2. A15: terminal viewport SGR 7 draws a white flood. Visible bug, one widget.
+3. T (SV3, SVg7, SV2): `text_faint` contrast and mono hover/press. Hard rule (4.5:1; states differ at every colour level).
+4. A11: no-room sheet and focusable status bar peek line. Hard rule (no hidden content), pairs with 0b.
+5. A19: `MenuBar::render` mutates hover while drawing. Correctness bug, one function.
+6. A12: hscroll reveal for cut labels in Tree/List/Picker/DataTable. Hard rule (no hidden content); same family as 0b.
+7. V10: framed panel title cut below `title_min`. Visible clipping on every framed panel in all apps.
+8. S23-Q: `QuotaTone` into the library meter API (D5=a). Removes an app-local rule, small, unblocks jackin usage/capsule cleanup.
+
+### LATER (grouped, one line each)
+
+- S-steps: S15 (`Component`/`Draw` traits; big, unblocks CO8, M28, K19), S16, S18, S19 (rest), S20, S21, S22 (rest), S23, S24, S25, S26 (rest), S27.
+- Carry-overs: CO1, CO8, CO10, CO11, CO12, CO13, CO16, CO17.
+- Showcase coverage: SC31-SC58 and the allowlist (729 pending lines), SC50/SC54 (no stub pages).
+- Visual oracle: V1, V2, V3, V5, V7, V8 (oracle v0), V11 (oracle v1 and `main` port).
+- Audits: A3-A9, A10, A13, A14, A17, A21 (the other A items are done).
+- Upstream: U1-U7 (U1 blocks C3). CI: C1, C2, C3 (all wait on V8).
+
+### OWNER DECISIONS
+
+D1-D8 are in section 2; D9-D11 are added there too. Current behaviour stays until answered.
+
+| # | Recommended | Blocks |
+|---|---|---|
+| D1 | (b) measure label width via `ui::columns` | jackin `usage/overview` re-approval |
+| D2 | (b) pin the commit action while dirty (library `Footer` rule) | A11 footer work, `editor/mounts_dirty` |
+| D3 | (a) Save-time validation for every `FormDialog` | S18 `FormPanel`, form journeys |
+| D4 | (a) fixed-choice pickers show fill only; add wording to AGENTS.md | picker re-approvals, V2 |
+| D5 | (a) domain status decides; move `QuotaTone` into the library | S23-Q (NEXT 8) |
+| D6 | (a) keep `Group > Page` crumb | showcase header re-approval, V1 |
+| D7 | (a) file the crossterm issue upstream | U4 |
+| D8 | (a) keep `visual-baseline` frozen until oracle v1 | V11 end state only |
+| D9 | keep soft frames (plane separates; WCAG 1.4.11 not required when the fill identifies the component) | menu frame contrast work |
+| D10 | yes: durations count script time only | holla `input_cancelled` flake (fix on `v1-showcase` c1a49af0f) |
+| D11 | second row action in the picker context menu / Shift+F10 | picker Alt+Enter on legacy terminals |
+
+### Which "done when" criteria (section 1) fit the remaining budget
+
+| # | Criterion | Verdict |
+|---|---|---|
+| 1 | All S-steps and T Done | Not realistic: S15-S27 are large. Do T only. |
+| 2 | All SC steps Done, allowlist permanent-only | Not realistic: 729 pending lines. |
+| 3 | Every audit finding fixed or decided | Partly: NEXT items plus owner answers D1-D8; record the rest with a reason. |
+| 4 | Oracle v0 imported, `snapshots/` removed | Not realistic: 1,650 legacy scenarios, V1-V3, V8. Defer. |
+| 5 | CI visual jobs required, `Publish baseline` green | Not realistic: needs V8 and U1 first. |
+| 6 | Full gate green on branch head | Realistic and required: do this last, after NOW. |
+
+Realistic scope: NOW, the 8 NEXT items, owner answers D1-D8, green gate.
+Owner decision: criteria 1, 2, 4, 5 move to a later budget.
+
 Status: 2026-10-17, derived from the repository at `42f0b372e`
 (`origin/design/interaction-polish`). This is the one list of everything
 started on this branch and not finished. Every item names the document and
@@ -204,6 +271,9 @@ answer say so.
 | D6 | Showcase header crumb: SC5 replaced the baseline's `/ Group / Page` with the library `Breadcrumb` (`Group › Page`, current page bold), re-approved as a deliberate visual change. | (a) keep `Group › Page` (one crumb style across apps); (b) restore `/ Group / Page` as a `Breadcrumb` separator option for the showcase. | (a) today. Recommend (a); confirm so the change against `visual-baseline` is accepted. | `shared-components-plan.md` "SC5 outcome" (Shell line) |
 | D7 | crossterm 0.29 input starvation: the runtime re-arms the reader (`tcsetattr TCSANOW`) in `src/runtime.rs` `poll_input`/`tty_input::rearm`. File the bug upstream? | (a) file a crossterm issue (reader should read until `WouldBlock`) and track it in `docs/upstream/`; (b) keep the workaround untracked. | Not filed. Recommend (a): `dependencies.md` already says "Drop the re-arm once crossterm reads until `WouldBlock`", which needs an upstream fix to ever happen. | `dependencies.md` (crossterm paragraph); `src/runtime.rs` `poll_input` doc, `rearm` |
 | D8 | `visual-baseline` tag replacement: when (and whether) the branch's oracle replaces the frozen tag. | (a) keep the tag frozen and let `baselines/oracle/` (v0 then v1) be the reference; (b) the owner creates a new tag or release after oracle v1. | Agents never touch the tag. Recommend (a) until oracle v1 and M7 sign-off; the owner alone acts on the tag. | `visual-testing/plan.md` D4, E1, §F4 M7 |
+| D9 | Truecolor/256 menu frames are soft (~1.1:1 against the plane). | (a) keep soft; (b) raise to 3:1. | Recommend (a): the plane separates and WCAG 1.4.11 is not required when the fill identifies the component. | contrast audit |
+| D10 | holla task durations: count script time only, excluding prompt wait? | (a) yes; (b) wall time. | Recommend (a); also fixes the `input_cancelled` flake (fix committed on `v1-showcase` c1a49af0f). | holla |
+| D11 | Picker alternate choice (Alt+Enter) has no deliverable non-Alt key on legacy terminals. | (a) second row action in the picker context menu / Shift+F10; (b) leave Alt only. | Recommend (a); hints never advertise undeliverable keys. | A29 |
 
 Already decided by the owner (not open): holla captures keep
 `HOLLA_NO_HISTORY=1` (`visual-reapproval.md`, 2026-10-17); jackin's intro,
