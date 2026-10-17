@@ -109,7 +109,7 @@ impl TextAreasPage {
                 }
                 // what was typed survives a rebuild
                 if let Some(old) = self.areas.get(i) {
-                    a = a.value(old.buffer.text());
+                    a = a.value(old.field.buffer.text());
                 }
                 a
             })

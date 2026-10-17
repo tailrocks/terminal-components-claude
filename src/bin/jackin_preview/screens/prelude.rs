@@ -194,7 +194,7 @@ impl PreludeScreen {
                     .placeholder("/work/project")
                     .help("Absolute path inside the Construct")
                     .value(&value);
-                input.error = error;
+                input.field.error = error.map(Into::into);
                 input.begin_edit();
                 let mut d = Dialog::prompt(EDIT, Self::title(step), input, "Next").actions(
                     vec![
@@ -240,7 +240,7 @@ impl PreludeScreen {
                     .placeholder("workspace name")
                     .help("Directory basename by default")
                     .value(&value);
-                input.error = error;
+                input.field.error = error.map(Into::into);
                 input.begin_edit();
                 let mut d = Dialog::prompt(NAME, Self::title(step), input, "Create").actions(
                     vec![

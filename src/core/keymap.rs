@@ -917,12 +917,12 @@ mod widget_tests {
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
             .edit_entry(crate::core::edit::EditEntry::Explicit);
         e.on_key(&c('j'));
-        assert_eq!(e.buffer.cursor_pos().line, 1);
+        assert_eq!(e.field.buffer.cursor_pos().line, 1);
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
             .edit_entry(crate::core::edit::EditEntry::Explicit)
             .nav(NavKeys::NO_VIM);
         assert_eq!(e.on_key(&c('j')).0, Outcome::Ignored);
-        assert_eq!(e.buffer.cursor_pos().line, 0);
+        assert_eq!(e.field.buffer.cursor_pos().line, 0);
 
         let mut e = CodeEditor::new(WidgetId::of("e"), text)
             .edit_entry(crate::core::edit::EditEntry::Explicit);
@@ -1138,7 +1138,7 @@ mod widget_tests {
         p.set_items(items());
         p.on_key(&c('j'));
         assert_eq!(p.cursor, 0, "a searchable picker types its letters");
-        assert_eq!(p.query, "j");
+        assert_eq!(p.query.text(), "j");
         p.on_key(&k(KeyCode::Down));
         assert_eq!(p.cursor, 1);
         let mut p = Picker::new(WidgetId::of("p"), "P");

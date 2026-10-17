@@ -258,7 +258,7 @@ impl ConnForm {
             format!("{c:?}"),
             self.password.text().to_owned(),
             self.ssh_user.text().to_owned(),
-            self.startup.buffer.text().to_owned(),
+            self.startup.field.buffer.text().to_owned(),
             self.prompt_pw.checked.to_string(),
             self.local_only.on.to_string(),
         ]
@@ -927,7 +927,7 @@ impl ConnectionsScreen {
                 junie_tui::theme::StatusKind::Warn,
                 "Fix the highlighted fields",
             );
-            cx.focus.focus(if form.name.error.is_some() {
+            cx.focus.focus(if form.name.field.error.is_some() {
                 form.name.id
             } else {
                 form.port.id
@@ -1453,7 +1453,8 @@ impl ConnectionsScreen {
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(r.x, r.y, r.width.min(84), r.height), buf, t);
         // mark tabs with required-field errors
-        form.tabs.items[0].error = form.name.error.is_some() || form.port.error.is_some();
+        form.tabs.items[0].error =
+            form.name.field.error.is_some() || form.port.field.error.is_some();
         form.tabs
             .render(Rect::new(inner.x, inner.y, inner.width, 2), buf, ctx, bg);
         let body = Rect::new(

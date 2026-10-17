@@ -384,7 +384,7 @@ impl EditorPage {
 
     fn accept(&mut self, i: usize) {
         if let Some(item) = self.completion.items.get(i).cloned() {
-            item.apply(&mut self.editor.buffer, self.completion.replace_len);
+            item.apply(&mut self.editor.field.buffer, self.completion.replace_len);
         }
         self.completion.close();
     }
@@ -457,7 +457,7 @@ impl EditorPage {
         let panel = Panel::card(Some("State"));
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(12)), buf, t);
-        let pos = self.editor.buffer.cursor_pos();
+        let pos = self.editor.field.buffer.cursor_pos();
         let all = self.editor.blocks();
         let cur = self.editor.cursor_offset();
         let block = all
@@ -468,9 +468,14 @@ impl EditorPage {
         let diags = self.editor.diagnostics.len();
         let find = match &self.editor.find {
             None => "closed".to_owned(),
-            Some(f) if f.needle.is_empty() => "type to find".to_owned(),
-            Some(f) if f.matches.is_empty() => format!("“{}” · no matches", f.needle),
-            Some(f) => format!("“{}” · {} of {}", f.needle, f.current + 1, f.matches.len()),
+            Some(f) if f.needle.text().is_empty() => "type to find".to_owned(),
+            Some(f) if f.matches.is_empty() => format!("“{}” · no matches", f.needle.text()),
+            Some(f) => format!(
+                "“{}” · {} of {}",
+                f.needle.text(),
+                f.current + 1,
+                f.matches.len()
+            ),
         };
         let props = vec![
             Prop::new(

@@ -120,7 +120,7 @@ fn text_selection_uses_reverse_video_only_without_a_selection_hue() {
         let theme = Theme::for_level(level);
         let mut input = TextInput::new(id, "").value("select");
         input.editing = true;
-        input.buffer.select_all();
+        input.field.buffer.select_all();
         let area = Rect::new(0, 0, 16, 3);
         let mut buf = Buffer::empty(area);
         let mut hits = HitRegistry::default();
