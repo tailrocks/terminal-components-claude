@@ -13,6 +13,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable};
+use crate::core::selection::ClickPolicy;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
@@ -270,6 +271,10 @@ pub struct PropsList {
     pub nav: NavKeys,
     /// The list's action keys (default [`PropsCmd::default_keymap`]).
     pub keymap: KeyMap<PropsCmd>,
+    /// When a click activates a row ([`PropsAction::Activate`]). Default
+    /// [`ClickPolicy::DATA`]: one click selects the row, a double click (or
+    /// Enter) activates it, so a click meant to select never acts (M32).
+    pub click: ClickPolicy,
 }
 
 /// A [`PropsList`] action a key can be bound to. Enter always activates.
@@ -311,6 +316,7 @@ impl PropsList {
             sheet: Sheet::default(),
             nav: NavKeys::default(),
             keymap: PropsCmd::default_keymap(),
+            click: ClickPolicy::DATA,
         }
     }
 
@@ -397,13 +403,29 @@ impl PropsList {
         }
     }
 
+    /// A single click on `row` ([`Self::on_click_count`]).
     pub fn on_click(&mut self, row: usize) -> (Outcome, Option<PropsAction>) {
+        self.on_click_count(row, 1)
+    }
+
+    /// The `count`th click of a multi-click on `row`: the cursor moves
+    /// there; the row activates only when [`Self::click`] says so (a
+    /// double click by default, M32).
+    pub fn on_click_count(&mut self, row: usize, count: u8) -> (Outcome, Option<PropsAction>) {
         if row >= self.props.len() {
             return (Outcome::Consumed, None);
         }
+        let again = self.cursor == row;
         self.scroll.pointer_move();
         self.set_cursor(row);
-        (Outcome::Changed, Some(PropsAction::Activate(row)))
+        let act = self.click.activates(count.max(1), again);
+        (Outcome::Changed, act.then_some(PropsAction::Activate(row)))
+    }
+
+    /// See [`Self::click`].
+    pub fn click(mut self, policy: ClickPolicy) -> Self {
+        self.click = policy;
+        self
     }
 
     /// Cells kept for the `y copy` hint on the focused copyable row.
@@ -650,7 +672,7 @@ impl crate::core::pointer::MouseTarget for PropsList {
             return r.lift();
         }
         match ev.index_of(Part::ROW) {
-            Some(row) if ev.is(Phase::Click) => self.on_click(row).into(),
+            Some(row) if ev.is(Phase::Click) => self.on_click_count(row, ev.count()).into(),
             _ => crate::core::response::Response::ignored(),
         }
     }

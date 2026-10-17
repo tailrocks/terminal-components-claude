@@ -1014,6 +1014,7 @@ widgets::props::PropsList::row_id | widget protocol (render, input, hit ids, mea
 widgets::props::PropsList::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::props::PropsList::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::props::PropsList::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::PropsList::click | S9 click policy on the property list (double click activates, M32): the Text utilities page gains a click option with the SC33 click options | SC33
 
 # widgets::scrollbar
 widgets::scrollbar::id_for | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
