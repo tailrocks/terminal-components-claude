@@ -7,6 +7,21 @@ heading ends and the body starts. Framed panels are fine (the title sits in
 the frame) and stay as they are. The current look stays the default; a
 distinct heading is an option.
 
+## Decision (2026-10-17): Rule is the default
+
+The owner chose `Rule` as the default card heading across the library and
+every app: `CardHeading::default()` and `Theme::card_heading` are
+`CardHeading::Rule`, so every titled card draws the faint rule under its
+title. `Plain` (the previous look), `Band` and `Emphasis` stay available,
+app-wide via `Theme::with_card_heading` or per card via
+`Panel::heading_style`. Framed panels are unaffected. This is a deliberate
+visual change from the `visual-baseline` look: every titled card's blank
+row under the title now carries the rule, nothing else moves (the content
+area is unchanged). The showcase's `shell.card_heading` option now starts
+at `rule`.
+
+The sections below are the original study that led to the decision.
+
 ## Where the card stands today
 
 `Panel::card` (`src/widgets/panel.rs`) fills `surface`, draws the title on
@@ -24,8 +39,8 @@ the framed variant.
 
 | Style | Truecolor / 256 | 16 colours | Monochrome (`NO_COLOR`) | Notes |
 |---|---|---|---|---|
-| **Plain** (default) | today's look | today's look | bold only while focused | byte-identical to the baseline |
-| **Rule** | `Glyphs::h_divider` (`─`) across the blank row 1 in `Theme::rule_on(surface)` | `DarkGray` rule on `Black` | the glyph shape carries it; ASCII `-` | no new plane, no focus interaction |
+| **Plain** | the pre-decision look | same | bold only while focused | byte-identical to the baseline |
+| **Rule** (default) | `Glyphs::h_divider` (`─`) across the blank row 1 in `Theme::rule_on(surface)` | `DarkGray` rule on `Black` | the glyph shape carries it; ASCII `-` | no new plane, no focus interaction |
 | **Band** | row 0 on the plane one step up (`Plane::up` → raised), inks via `Theme::legible` | `DarkGray` band, ink kept ≥ 4.5:1 (black) | fill is stripped: title underlined | raised plane is also the plane of buttons and chips |
 | **Emphasis** | title bold in every state (secondary at rest, primary focused) | same | bold is already the focus-within cue, so the focused title also underlines | weakest separation; changes the focus cue's contrast |
 
@@ -35,7 +50,7 @@ a non-text separator, not information-bearing (WCAG 1.4.11 does not apply),
 but it is still visible at every level and in monochrome by its shape.
 
 ```
-Plain (default)                       Rule (recommended)
+Plain                                 Rule (default)
   Titled card                surface    Titled card                surface
                                         ──────────────────────────────────
   A card is a filled surface. Its       A card is a filled surface. Its
@@ -47,7 +62,7 @@ Band                                  Emphasis
   A card is a filled surface. Its       A card is a filled surface. Its
 ```
 
-## Recommendation: Rule
+## Recommendation: Rule (adopted as the default, see Decision)
 
 - **Reference.** macOS inspectors and grouped settings sections separate a
   section's header from its content with a hairline separator, not with a
@@ -63,11 +78,11 @@ Band                                  Emphasis
   separation is the same in monochrome as in truecolor.
 - **Zero layout cost.** It uses the blank row a titled card already keeps.
 
-`Band` and `Emphasis` stay available for apps that want them.
+`Plain`, `Band` and `Emphasis` stay available for apps that want them.
 
 ## API
 
-- `CardHeading { Plain (default), Rule, Band, Emphasis }` in
+- `CardHeading { Plain, Rule (default), Band, Emphasis }` in
   `widgets::panel`, with `CardHeading::ALL` and `label()`.
 - App-wide: `Theme::card_heading` / `Theme::with_card_heading(style)`.
 - Per card: `Panel::heading_style(style)`, which wins over the theme.
@@ -75,5 +90,6 @@ Band                                  Emphasis
   as `Plain`.
 - Showcase: Layout › Panels option `panels.heading`
   (`theme | plain | rule | band | emphasis`, `theme` = the shell's choice),
-  shell option `shell.card_heading` (every card in the showcase), and a
-  States column per style.
+  shell option `shell.card_heading` (every card in the showcase; default
+  `rule`), and a States column per style (named `Card · <style>` whenever
+  the page chooses one).
