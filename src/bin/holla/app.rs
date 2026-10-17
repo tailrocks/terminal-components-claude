@@ -7,6 +7,7 @@
 use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::FocusChange;
+use junie_tui::core::id::ItemKey;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{
@@ -30,7 +31,8 @@ use junie_tui::widgets::hintbar::HintBar;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::hint;
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuBarAction, MenuItem, Placement};
-use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
+use junie_tui::widgets::option_list;
+use junie_tui::widgets::picker::{Picker, PickerAction};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::statusbar::{StatusBar, StatusItem};
@@ -129,6 +131,12 @@ pub struct App {
     /// letter; Esc never quits), Ctrl+G activities, Ctrl+W close tab and
     /// Alt+digit the tabs.
     pub keys: shell::ShellKeys<HollaCmd>,
+}
+
+/// The identity of a plan's row in the activities picker, apart from an
+/// activity's (`ItemKey::text` of the activity id).
+fn plan_key(id: &str) -> ItemKey {
+    ItemKey::text(&format!("plan:{id}"))
 }
 
 impl App {
@@ -940,7 +948,7 @@ impl App {
         self.open_layer(Box::new(d), LayerTag::new("quit"));
     }
 
-    fn activity_picker_items(&self) -> Vec<PickerItem> {
+    fn activity_picker_items(&self) -> Vec<option_list::Item> {
         let mut v = vec![];
         for a in &self.world.activities {
             let glyph = match a.state {
@@ -959,44 +967,40 @@ impl App {
             if a.waiting.is_some() {
                 detail = format!("{detail} · waiting for input");
             }
-            v.push(PickerItem {
-                label: a.name.clone(),
-                detail,
-                glyph,
-                group: "activities",
-                tag: a
+            v.push(option_list::Item {
+                tag: (a
                     .waiting
                     .as_ref()
-                    .map(|p| if p.secret { "password" } else { "input" }),
-                matched: vec![],
-                disabled: false,
-                key: a.id.clone(),
+                    .map(|p| if p.secret { "password" } else { "input" }))
+                .map(Into::into),
+                ..option_list::Item::new(a.name.clone())
+                    .detail(detail)
+                    .glyph(glyph)
+                    .group("activities")
+                    .key(ItemKey::text(&a.id))
             });
         }
         for p in &self.world.plans {
             if p.phase != PlanPhase::Review {
                 let (ok, failed, ..) = p.outcome();
-                v.push(PickerItem {
-                    label: p.title.clone(),
-                    detail: format!(
-                        "plan · {} · {ok} done · {failed} failed",
-                        if p.phase == PlanPhase::Done {
-                            "finished"
+                v.push(
+                    option_list::Item::new(p.title.clone())
+                        .detail(format!(
+                            "plan · {} · {ok} done · {failed} failed",
+                            if p.phase == PlanPhase::Done {
+                                "finished"
+                            } else {
+                                "running"
+                            }
+                        ))
+                        .glyph(if p.phase == PlanPhase::Done {
+                            if failed > 0 { "!" } else { "✓" }
                         } else {
-                            "running"
-                        }
-                    ),
-                    glyph: if p.phase == PlanPhase::Done {
-                        if failed > 0 { "!" } else { "✓" }
-                    } else {
-                        "⠋"
-                    },
-                    group: "plans",
-                    tag: None,
-                    matched: vec![],
-                    disabled: false,
-                    key: format!("plan:{}", p.id),
-                });
+                            "⠋"
+                        })
+                        .group("plans")
+                        .key(plan_key(&p.id)),
+                );
             }
         }
         v
@@ -1005,8 +1009,8 @@ impl App {
     fn open_activities(&mut self) {
         let items = self.activity_picker_items();
         let mut p = Picker::new(WidgetId::of("activities"), "Activities").choose_hint("Switch");
-        p.searchable = false;
-        p.width = 70;
+        p.set_searchable(false);
+        p.list.width = (70, 70);
         p.empty_text = "Nothing has been started yet".into();
         p.scope = Some(format!("{} live", self.world.live_activities()));
         p.set_items(items);
@@ -1189,24 +1193,26 @@ impl App {
                 if let ModalResult::Picked(i) = result {
                     // the row's identity, never its index: rows refresh
                     // while the picker is open
-                    let key = entry
+                    let row = entry
                         .get::<Picker>()
                         .and_then(|p| p.items.get(i))
-                        .map(|it| it.key.clone());
-                    match key.as_deref() {
-                        Some(k) if k.starts_with("plan:") => {
-                            let pid = k.trim_start_matches("plan:").to_owned();
-                            if self.world.plan(&pid).is_some() {
-                                self.open_plan_tab(&pid);
-                            } else {
-                                self.set_status("That plan is gone", Tone::Secondary);
+                        .map(|it| (it.key, it.group == "plans"));
+                    match row {
+                        Some((k, true)) => {
+                            let plans = self.world.plans.iter();
+                            match plans.map(|p| p.id.clone()).find(|id| plan_key(id) == k) {
+                                Some(pid) => self.open_plan_tab(&pid),
+                                None => self.set_status("That plan is gone", Tone::Secondary),
                             }
                         }
-                        Some(k) if self.world.activity(k).is_some() => {
-                            let id = k.to_owned();
-                            self.open_activity_tab(&id, true);
+                        Some((k, false)) => {
+                            let all = self.world.activities.iter();
+                            match all.map(|a| a.id.clone()).find(|id| ItemKey::text(id) == k) {
+                                Some(id) => self.open_activity_tab(&id, true),
+                                None => self.set_status("That activity is gone", Tone::Secondary),
+                            }
                         }
-                        _ => self.set_status("That activity is gone", Tone::Secondary),
+                        None => self.set_status("That activity is gone", Tone::Secondary),
                     }
                 }
                 Outcome::Changed
@@ -1258,11 +1264,7 @@ impl App {
     /// `error` in its status row.
     fn files_jump_rows(&mut self, error: Option<String>) {
         let active = self.active;
-        let Some(query) = self
-            .modals
-            .top_as::<Picker>()
-            .map(|p| p.query.text().to_owned())
-        else {
+        let Some(query) = self.modals.top_as::<Picker>().map(|p| p.query().to_owned()) else {
             return;
         };
         let rows = self
@@ -1298,13 +1300,15 @@ impl App {
                     Some(entry) => entry.get::<Picker>(),
                     None => self.modals.top_as::<Picker>(),
                 };
-                let Some(query) = picker.map(|p| p.query.text().to_owned()) else {
+                let Some(query) = picker.map(|p| p.query().to_owned()) else {
                     return Outcome::Consumed;
                 };
                 // Submit: a typed path with no suggestion resolves on its own
                 let selected = match ev {
                     PickerAction::Submit => None,
-                    _ => picker.and_then(|p| p.current_key()).map(str::to_owned),
+                    _ => picker
+                        .and_then(|p| p.current())
+                        .map(|it| it.insertion().to_owned()),
                 };
                 let mut cx = self.shell.cx();
                 let outcome = self

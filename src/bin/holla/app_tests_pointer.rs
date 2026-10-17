@@ -80,6 +80,7 @@ fn scroll_of(h: &H) -> usize {
         .modals
         .top_as::<junie_tui::widgets::picker::Picker>()
         .expect("the picker is open")
+        .list
         .scroll
         .offset
 }

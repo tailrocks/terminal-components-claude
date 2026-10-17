@@ -19,7 +19,8 @@ use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::option_list::Item;
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
@@ -1338,7 +1339,7 @@ impl EditorScreen {
 
     fn open_role_picker(&mut self, w: &World, cx: &mut Cx) {
         let mut p = Picker::new(WidgetId::of("editor.roles.picker"), "Load role");
-        p.width = 84;
+        p.list.width = (84, 84);
         p.scope = Some("trusted role registry".into());
         let (items, targets) = self.role_items(w, "");
         p.set_items(items);
@@ -1346,7 +1347,7 @@ impl EditorScreen {
         cx.open(p, LayerTag::new("role.load"));
     }
 
-    fn role_items(&self, w: &World, query: &str) -> (Vec<PickerItem>, Vec<String>) {
+    fn role_items(&self, w: &World, query: &str) -> (Vec<Item>, Vec<String>) {
         let q = query.to_lowercase();
         let mut items = vec![];
         let mut targets = vec![];
@@ -1360,24 +1361,22 @@ impl EditorScreen {
             }
             let already = self.pending.roles.allows(&r.name)
                 && matches!(self.pending.roles.allowed, AllowedRoles::Custom(_));
-            items.push(PickerItem {
-                label,
-                detail: format!("{} · {}", r.source.label(), r.description),
-                glyph: if r.trusted { "◆" } else { "!" },
-                group: match &r.source {
-                    RoleSource::Git { .. } => "git",
-                    RoleSource::Local { .. } => "local",
-                },
-                tag: if !r.trusted {
+            items.push(Item {
+                tag: (if !r.trusted {
                     Some("trust required")
                 } else if already {
                     Some("allowed")
                 } else {
                     None
-                },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+                })
+                .map(Into::into),
+                ..Item::new(label)
+                    .detail(format!("{} · {}", r.source.label(), r.description))
+                    .glyph(if r.trusted { "◆" } else { "!" })
+                    .group(match &r.source {
+                        RoleSource::Git { .. } => "git",
+                        RoleSource::Local { .. } => "local",
+                    })
             });
             targets.push(r.name.clone());
         }
@@ -1476,24 +1475,22 @@ impl EditorScreen {
 
     fn open_workdir_picker(&mut self, w: &World, cx: &mut Cx) {
         let mut p = Picker::new(WidgetId::of("editor.workdir.picker"), "Working directory");
-        p.width = 72;
+        p.list.width = (72, 72);
         p.scope = Some(self.pending.name.clone());
         let mut items = vec![];
         let mut targets = vec![];
         for m in &self.cfg.pending.mounts {
-            items.push(PickerItem {
-                label: m.destination.clone(),
-                detail: format!("mount · {}", w.tilde(m.source_label())),
-                glyph: "▪",
-                group: "mounts",
-                tag: if m.destination == self.pending.workdir {
+            items.push(Item {
+                tag: (if m.destination == self.pending.workdir {
                     Some("current")
                 } else {
                     None
-                },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+                })
+                .map(Into::into),
+                ..Item::new(m.destination.clone())
+                    .detail(format!("mount · {}", w.tilde(m.source_label())))
+                    .glyph("▪")
+                    .group("mounts")
             });
             targets.push(m.destination.clone());
             if let crate::domain::workspace::MountSource::Host(src) = &m.source {
@@ -1505,35 +1502,28 @@ impl EditorScreen {
                 }) {
                     let rel = &f.path[src.len()..];
                     let dest = format!("{}{rel}", m.destination);
-                    items.push(PickerItem {
-                        label: dest.clone(),
-                        detail: f.meta.clone(),
-                        glyph: "·",
-                        group: "subdirectories",
-                        tag: if dest == self.pending.workdir {
+                    items.push(Item {
+                        tag: (if dest == self.pending.workdir {
                             Some("current")
                         } else {
                             None
-                        },
-                        matched: vec![],
-                        disabled: false,
-                        key: String::new(),
+                        })
+                        .map(Into::into),
+                        ..Item::new(dest.clone())
+                            .detail(f.meta.clone())
+                            .group("subdirectories")
                     });
                     targets.push(dest);
                 }
             }
         }
         if items.is_empty() {
-            items.push(PickerItem {
-                label: self.pending.workdir.clone(),
-                detail: "no mounts yet · add one in the Mounts tab".into(),
-                glyph: "▪",
-                group: "",
-                tag: Some("current"),
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
-            });
+            items.push(
+                Item::new(self.pending.workdir.clone())
+                    .detail("no mounts yet · add one in the Mounts tab")
+                    .glyph("▪")
+                    .tag("current"),
+            );
             targets.push(self.pending.workdir.clone());
         }
         p.set_items(items);
@@ -2223,7 +2213,7 @@ impl Screen for EditorScreen {
         self.cfg.menu_hides_focus()
     }
 
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<Item>> {
         if tag.kind == "role.load" {
             let (items, targets) = self.role_items(w, query);
             self.picker_targets = targets;

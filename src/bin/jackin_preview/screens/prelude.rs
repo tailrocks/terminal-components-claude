@@ -13,7 +13,8 @@ use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::option_list::Item;
+use junie_tui::widgets::picker::Picker;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -212,8 +213,8 @@ impl PreludeScreen {
                 };
                 let mut p = Picker::new(WORKDIR, Self::title(step));
                 p.placeholder = "Search folders…".into();
-                p.width = 72;
-                p.max_rows = 8;
+                p.list.width = (72, 72);
+                p.list.max_rows = 8;
                 p.empty_text = "No folder matches".into();
                 self.workdir_rows = self.workdir_candidates(w);
                 let rows = self.workdir_rows.clone();
@@ -223,8 +224,8 @@ impl PreludeScreen {
                     .as_ref()
                     .and_then(|wd| rows.iter().position(|r| r == wd))
                 {
-                    p.cursor = cur;
-                    p.scroll.ensure_visible(cur);
+                    p.set_cursor(cur);
+                    p.list.scroll.ensure_visible(cur);
                 }
                 let _ = dest;
                 cx.open(p, LayerTag::new("prelude.workdir"));
@@ -281,20 +282,14 @@ impl PreludeScreen {
     }
 
     /// Rows show the home-shortened path (the picker caps its label column).
-    fn workdir_items(&self, rows: &[String], query: &str, w: &World) -> Vec<PickerItem> {
+    fn workdir_items(&self, rows: &[String], query: &str, w: &World) -> Vec<Item> {
         let q = query.trim().to_lowercase();
         rows.iter()
             .enumerate()
             .filter(|(_, r)| q.is_empty() || r.to_lowercase().contains(&q))
-            .map(|(i, r)| PickerItem {
-                label: w.tilde(r),
-                detail: String::new(),
-                glyph: if i == 0 { "▪" } else { "·" },
-                group: "",
-                tag: if i == 0 { Some("destination") } else { None },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+            .map(|(i, r)| Item {
+                tag: (if i == 0 { Some("destination") } else { None }).map(Into::into),
+                ..Item::new(w.tilde(r)).glyph(if i == 0 { "▪" } else { "·" })
             })
             .collect()
     }
@@ -535,7 +530,7 @@ impl Page<Jackin> for PreludeScreen {
 }
 
 impl Screen for PreludeScreen {
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<Item>> {
         if tag.kind != "prelude.workdir" {
             return None;
         }

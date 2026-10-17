@@ -1264,7 +1264,7 @@ impl App {
         let Some(p) = top.get::<Picker>() else {
             return;
         };
-        let (tag, owner, query) = (top.tag.clone(), top.owner, p.query.text().to_owned());
+        let (tag, owner, query) = (top.tag.clone(), top.owner, p.query().to_owned());
         let items = self
             .screens
             .get_mut(owner)

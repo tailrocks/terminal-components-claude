@@ -381,7 +381,7 @@ fn a_paste_into_the_palette_filters_it() {
         .app
         .top_layer::<junie_tui::widgets::picker::Picker>()
         .expect("the palette stays open");
-    assert_eq!(p.query.text(), "split");
+    assert_eq!(p.query(), "split");
     assert!(
         p.items
             .iter()
