@@ -67,7 +67,7 @@ impl HasHints for Select {
         if !self.open {
             return vec![hint("Enter", "Open")];
         }
-        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        let mut v = nav_hints(&self.list.nav, self.list.type_ahead, false);
         v.extend([hint("Enter", "Choose"), hint("Esc", "Close")]);
         v
     }
@@ -217,7 +217,7 @@ impl Bindings for DataGrid {
 impl Bindings for Select {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = vec![Binding::group("Enter Space", "Open")];
-        v.extend(nav_bindings(&self.nav, self.type_ahead));
+        v.extend(nav_bindings(&self.list.nav, self.list.type_ahead));
         v.push(Binding::group("Esc", "Close"));
         v
     }

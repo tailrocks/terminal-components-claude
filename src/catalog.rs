@@ -2162,6 +2162,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::option_list::OptionList::max_rows"),
     Capability::builder("widgets::option_list::OptionList::width"),
     Capability::builder("widgets::option_list::OptionList::query"),
+    Capability::builder("widgets::option_list::OptionList::clear_on_leave"),
     Capability::builder("widgets::option_list::OptionList::type_ahead_timeout"),
     Capability::function("widgets::option_list::OptionList::reset"),
     Capability::function("widgets::option_list::OptionList::highlighted"),
@@ -2174,6 +2175,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::option_list::OptionList::rows_area"),
     Capability::function("widgets::option_list::OptionList::key"),
     Capability::function("widgets::option_list::OptionList::nav_step"),
+    Capability::function("widgets::option_list::OptionList::type_char"),
     Capability::function("widgets::option_list::OptionList::step"),
     Capability::function("widgets::option_list::OptionList::select"),
     Capability::function("widgets::option_list::OptionList::layout"),
@@ -2437,7 +2439,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::select::Select::on_press"),
     Capability::function("widgets::select::Select::on_drag"),
     Capability::function("widgets::select::Select::on_release"),
-    Capability::function("widgets::select::Select::on_wheel"),
     Capability::function("widgets::select::Select::render"),
     // widgets::splitter
     Capability::ty("widgets::splitter::SeamDoubleClick"),

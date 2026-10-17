@@ -442,7 +442,6 @@ impl SelectablePage {
             match v {
                 Some(i) => {
                     sel_w.selected = i;
-                    sel_w.cursor = i;
                     sel_w.set_mixed(None);
                 }
                 None => sel_w.set_mixed(Some(MIXED)),
