@@ -72,6 +72,17 @@ fn level_index(level: junie_tui::theme::ColorLevel) -> usize {
     LEVELS.iter().position(|l| *l == level).unwrap_or(0)
 }
 
+/// `shell.glyphs`' and `shell.strings`' values, in order.
+const CHARSETS: [junie_tui::theme::Charset; 2] = [
+    junie_tui::theme::Charset::Unicode,
+    junie_tui::theme::Charset::Ascii,
+];
+
+/// The first [`CHARSETS`] entry `matches` accepts, else Unicode.
+fn charset_index(matches: impl Fn(junie_tui::theme::Charset) -> bool) -> usize {
+    CHARSETS.iter().position(|c| matches(*c)).unwrap_or(0)
+}
+
 /// Tick delivery (`--motion`): the library's [`Motion`].
 pub use junie_tui::motion::Motion;
 
@@ -774,6 +785,15 @@ impl App {
         shell.motion = motion;
         let mut options = ShellOptions::default();
         options.set("shell.color", level_index(theme.level));
+        // a terminal without Unicode (or `--glyphs`) shows as the options
+        options.set(
+            "shell.glyphs",
+            charset_index(|c| c.glyphs() == theme.glyphs),
+        );
+        options.set(
+            "shell.strings",
+            charset_index(|c| c.strings() == theme.strings),
+        );
         options.set(
             "shell.motion",
             match motion {
@@ -1422,7 +1442,7 @@ impl App {
         use junie_tui::core::pointer::SecondaryOutside;
         use junie_tui::core::scroll::TrackClick;
         use junie_tui::core::shape::CaretShape;
-        use junie_tui::theme::{Glyphs, LevelOverrides, Strings};
+        use junie_tui::theme::{Charset, LevelOverrides};
         use junie_tui::ui::reveal::Reveal;
         use junie_tui::ui::tooltip::Tooltips;
         let o = &self.options;
@@ -1432,11 +1452,14 @@ impl App {
             LevelOverrides::default()
         };
         let mut theme = Theme::for_level_with(LEVELS[o.get("shell.color")], &overrides);
+        // `shell.glyphs` and `shell.strings` start at the detected charset
+        // (`CommonArgs::theme`, set in `with_motion`); unicode keeps the
+        // level's own, which `shell.overrides` may have made ASCII
         if o.get("shell.glyphs") == 1 {
-            theme = theme.with_glyphs(Glyphs::ASCII);
+            theme = theme.with_glyphs(Charset::Ascii.glyphs());
         }
         if o.get("shell.strings") == 1 {
-            theme = theme.with_strings(Strings::ASCII);
+            theme = theme.with_strings(Charset::Ascii.strings());
         }
         theme = theme.with_edit_entry(
             [

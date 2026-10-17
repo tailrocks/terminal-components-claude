@@ -352,6 +352,116 @@ impl ColorLevel {
     }
 }
 
+/// The characters a terminal can draw, which pick the default
+/// [`Glyphs`] and [`Strings`]. Detected next to [`ColorLevel::detect`]
+/// (`CommonArgs::theme` in `crate::cli` applies both), so a terminal
+/// without Unicode fonts gets 7-bit output without any app code.
+///
+/// Detection ([`Charset::from_env`]) only switches to [`Charset::Ascii`]
+/// where Unicode is known to be missing: the Linux virtual console
+/// (`TERM=linux`, whose console font has no `▎`, `╭` or `⇧`), DEC VT-class
+/// and BSD console terminals, `TERM=dumb`, and the legacy Windows console
+/// (conhost without Windows Terminal, whose raster fonts lack box drawing
+/// beyond the CP437 set). Everywhere else stays [`Charset::Unicode`]; a
+/// locale check is deliberately not made, because `LANG` is unset in many
+/// Unicode-capable environments (CI, containers, SSH sessions).
+///
+/// Every layer overrides it: `--glyphs` on the command line, then
+/// [`Charset::OVERRIDE_ENV`], then detection; an app can always set
+/// [`Theme::with_glyphs`] and [`Theme::with_strings`] afterwards.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Charset {
+    /// Unicode box drawing, blocks and arrows: [`Glyphs::UNICODE`],
+    /// [`Strings::DEFAULT`].
+    #[default]
+    Unicode,
+    /// 7-bit output: [`Glyphs::ASCII`], [`Strings::ASCII`].
+    Ascii,
+}
+
+impl Charset {
+    /// The environment variable that overrides detection: `unicode` (or
+    /// `utf8`, `utf-8`) and `ascii`, any case.
+    pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_GLYPHS";
+
+    /// `TERM` values (exact, or followed by `-` and a variant such as
+    /// `linux-16color`) of terminals without Unicode glyphs. `vt` matches
+    /// every DEC VT model (`vt52`, `vt100`, `vt220`, ...).
+    pub const ASCII_TERMS: [&'static str; 5] = ["linux", "vt", "cons25", "dumb", "pcansi"];
+
+    /// The glyph set this charset draws with.
+    pub const fn glyphs(self) -> Glyphs {
+        match self {
+            Self::Unicode => Glyphs::UNICODE,
+            Self::Ascii => Glyphs::ASCII,
+        }
+    }
+
+    /// The interface copy this charset draws with.
+    pub const fn strings(self) -> Strings {
+        match self {
+            Self::Unicode => Strings::DEFAULT,
+            Self::Ascii => Strings::ASCII,
+        }
+    }
+
+    /// `theme` drawing with [`Self::glyphs`] and [`Self::strings`].
+    pub fn apply(self, theme: Theme) -> Theme {
+        theme
+            .with_glyphs(self.glyphs())
+            .with_strings(self.strings())
+    }
+
+    /// Parse an override value (`unicode`, `utf8`, `utf-8`, `ascii`; any
+    /// case); `None` for anything else.
+    fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "unicode" | "utf8" | "utf-8" => Some(Self::Unicode),
+            "ascii" => Some(Self::Ascii),
+            _ => None,
+        }
+    }
+
+    /// Detect the charset from environment lookups `get`, in order:
+    /// [`Self::OVERRIDE_ENV`] (an unknown value is ignored); `TERM` naming
+    /// one of [`Self::ASCII_TERMS`]; then, when `windows` (the process runs
+    /// on Windows), the legacy console: no `TERM`, no `WT_SESSION` (Windows
+    /// Terminal), no `TERM_PROGRAM` (VS Code, WezTerm) and no
+    /// `ConEmuANSI=ON` (ConEmu, Cmder). Otherwise [`Self::Unicode`].
+    pub fn from_env(get: impl Fn(&str) -> Option<String>, windows: bool) -> Self {
+        if let Some(charset) = get(Self::OVERRIDE_ENV).as_deref().and_then(Self::parse) {
+            return charset;
+        }
+        let term = get("TERM").filter(|t| !t.is_empty());
+        if let Some(term) = &term {
+            let term = term.to_ascii_lowercase();
+            let base = term.split('-').next().unwrap_or_default();
+            let vt = base
+                .strip_prefix("vt")
+                .is_some_and(|n| n.starts_with(|c: char| c.is_ascii_digit()));
+            if vt || Self::ASCII_TERMS.iter().any(|t| *t != "vt" && *t == base) {
+                return Self::Ascii;
+            }
+        }
+        let set = |k: &str| get(k).is_some_and(|v| !v.is_empty());
+        if windows
+            && term.is_none()
+            && !set("WT_SESSION")
+            && !set("TERM_PROGRAM")
+            && get("ConEmuANSI").is_none_or(|v| v != "ON")
+        {
+            return Self::Ascii;
+        }
+        Self::Unicode
+    }
+
+    /// [`Self::from_env`] on the process environment, `windows` from the
+    /// build target.
+    pub fn detect() -> Self {
+        Self::from_env(|k| std::env::var(k).ok(), cfg!(windows))
+    }
+}
+
 /// Raw palette. Values are the Junie references (see module docs).
 mod palette {
     use ratatui::style::Color;
@@ -2942,6 +3052,79 @@ mod tests {
     }
 
     use super::*;
+
+    /// A22 / SVg6: the Linux console, VT terminals and the legacy Windows
+    /// console draw 7-bit; every Unicode terminal keeps Unicode; the
+    /// override variable wins both ways.
+    #[test]
+    fn charset_follows_the_terminal() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| {
+            move |k: &str| {
+                pairs
+                    .iter()
+                    .find(|(key, _)| *key == k)
+                    .map(|(_, v)| (*v).to_string())
+            }
+        };
+        for term in [
+            "linux",
+            "linux-16color",
+            "LINUX",
+            "vt100",
+            "vt102",
+            "vt220",
+            "vt52",
+            "vt100-am",
+            "cons25",
+            "dumb",
+        ] {
+            let get = move |k: &str| (k == "TERM").then(|| term.to_string());
+            assert_eq!(Charset::from_env(get, false), Charset::Ascii, "{term}");
+            assert_eq!(Charset::from_env(get, true), Charset::Ascii, "{term}");
+        }
+        for term in [
+            "xterm-256color",
+            "xterm-ghostty",
+            "xterm-kitty",
+            "screen-256color",
+            "tmux-256color",
+            "alacritty",
+            "vte",
+            "linuxish",
+        ] {
+            let get = move |k: &str| (k == "TERM").then(|| term.to_string());
+            assert_eq!(Charset::from_env(get, false), Charset::Unicode, "{term}");
+        }
+        // no terminal variables: Unicode on Unix, the legacy console on Windows
+        assert_eq!(Charset::from_env(env(&[]), false), Charset::Unicode);
+        assert_eq!(Charset::from_env(env(&[]), true), Charset::Ascii);
+        for modern in [
+            &[("WT_SESSION", "1b2c")][..],
+            &[("TERM_PROGRAM", "vscode")],
+            &[("ConEmuANSI", "ON")],
+            &[("TERM", "xterm-256color")],
+        ] {
+            let get = move |k: &str| {
+                modern
+                    .iter()
+                    .find(|(key, _)| *key == k)
+                    .map(|(_, v)| (*v).to_string())
+            };
+            assert_eq!(Charset::from_env(get, true), Charset::Unicode, "{modern:?}");
+        }
+        // the override wins over detection, both ways; junk is ignored
+        let forced = env(&[("TERM", "linux"), ("JUNIE_TUI_GLYPHS", "Unicode")]);
+        assert_eq!(Charset::from_env(forced, false), Charset::Unicode);
+        let forced = env(&[("TERM", "xterm-256color"), ("JUNIE_TUI_GLYPHS", "ascii")]);
+        assert_eq!(Charset::from_env(forced, false), Charset::Ascii);
+        let junk = env(&[("TERM", "linux"), ("JUNIE_TUI_GLYPHS", "fancy")]);
+        assert_eq!(Charset::from_env(junk, false), Charset::Ascii);
+        // the charset carries both the glyphs and the copy
+        let t = Charset::Ascii.apply(Theme::junie());
+        assert_eq!((t.glyphs, t.strings), (Glyphs::ASCII, Strings::ASCII));
+        let t = Charset::Unicode.apply(t);
+        assert_eq!((t.glyphs, t.strings), (Glyphs::UNICODE, Strings::DEFAULT));
+    }
 
     #[test]
     fn accent_survives_downgrade() {

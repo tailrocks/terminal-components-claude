@@ -2,8 +2,8 @@
 //! environment of whoever runs the suite. The parent here is a re-executed
 //! copy of this test binary in tool mode, started with variables that
 //! would change the apps' output if they leaked (`NO_COLOR`, `FORCE_COLOR`,
-//! `CLICOLOR_FORCE`, `*_NO_MOTION`, `COLORTERM`, `TERM`, `LANG`, `HOME`) and a
-//! canary. No variable is set in this process, so tests running beside it
+//! `CLICOLOR_FORCE`, `*_NO_MOTION`, `COLORTERM`, `TERM`, `LANG`, `HOME`,
+//! `JUNIE_TUI_GLYPHS`) and a canary. No variable is set in this process, so tests running beside it
 //! are unaffected.
 
 use std::collections::BTreeMap;
@@ -13,7 +13,7 @@ use crate::support;
 use crate::tool::ENV_PROBE_END;
 
 /// What a careless developer or CI shell might export.
-const LEAKS: [(&str, &str); 12] = [
+const LEAKS: [(&str, &str); 13] = [
     ("SHELL", "/leaked/shell"),
     ("NO_COLOR", "1"),
     ("FORCE_COLOR", "3"),
@@ -25,6 +25,7 @@ const LEAKS: [(&str, &str); 12] = [
     ("LANG", "fr_FR.ISO8859-1"),
     ("TZ", "Asia/Bangkok"),
     ("HOME", "/nonexistent-leaked-home"),
+    ("JUNIE_TUI_GLYPHS", "ascii"),
     ("JUNIE_LEAK_CANARY", "leaked"),
 ];
 
