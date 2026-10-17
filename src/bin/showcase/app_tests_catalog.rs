@@ -3,9 +3,11 @@
 //! 1. The capability registry (`junie_tui::catalog::CAPABILITIES`) matches
 //!    the library source: every public type, variant, builder and theme
 //!    token is listed, and nothing listed is gone.
-//! 2. Every capability is shown by the showcase (`coverage::SHOWN`) or
-//!    allowlisted in `tests/showcase_coverage_allow.txt`; allowlist lines
-//!    that are stale (now shown, or an unknown id) fail.
+//! 2. Every capability is shown by the showcase (`coverage::SHOWN`, or
+//!    `coverage::VIA` for a function whose owning type is itself shown)
+//!    or allowlisted in `tests/showcase_coverage_allow.txt`; allowlist
+//!    lines that are stale (now shown, or an unknown id) fail, and so does
+//!    a `Via` whose owner is not declared directly.
 //! 3. Every declaration holds in the running showcase.
 //!
 //! On failure the messages print paste-ready lines. The remaining gaps per
@@ -22,7 +24,7 @@ use ratatui::{Terminal, backend::TestBackend};
 
 use crate::app::{App, PageId};
 use crate::catalog_scan::{self, Item};
-use crate::coverage::{SHOWN, Shown};
+use crate::coverage::{self, SHOWN, Shown, ViaRole};
 use crate::inspector::Tab;
 use crate::options::{self, Effect, Opt};
 use crate::pages::template::Section;
@@ -181,6 +183,7 @@ fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) 
             ));
         }
     }
+    problems.extend(via_problems(caps, shown));
     for cap in caps {
         if !declared.contains(cap.id) && !listed.contains(cap.id) {
             problems.push(format!(
@@ -189,6 +192,56 @@ fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) 
                 cap.kind.name(),
                 cap.id,
                 cap.id
+            ));
+        }
+    }
+    problems
+}
+
+/// `Via(owner)` holds only for a function whose owner is a type declared
+/// directly (`Demo`, `Option` or `StateRow`: another `Via` never counts),
+/// a method only through its own type, and never beside a direct
+/// declaration of the same function.
+fn via_problems(caps: &[Capability], shown: &[(&str, Shown)]) -> Vec<String> {
+    let kinds: HashMap<&str, CapKind> = caps.iter().map(|c| (c.id, c.kind)).collect();
+    let direct: HashSet<&str> = shown
+        .iter()
+        .filter(|(_, how)| !matches!(how, Shown::Via(_)))
+        .map(|(id, _)| *id)
+        .collect();
+    let mut problems = Vec::new();
+    let mut seen = HashSet::new();
+    for (id, how) in shown {
+        let Shown::Via(owner) = *how else { continue };
+        if !seen.insert(*id) {
+            problems.push(format!("coverage.rs VIA lists {id} twice"));
+        }
+        if direct.contains(id) {
+            problems.push(format!(
+                "stale Via: {id} is declared directly in SHOWN; delete it from VIA"
+            ));
+        }
+        match kinds.get(id) {
+            Some(CapKind::Function) | None => {}
+            Some(kind) => problems.push(format!(
+                "{id}: Via covers functions only; it is a {}",
+                kind.name()
+            )),
+        }
+        let parent = id.rsplit_once("::").map_or("", |(p, _)| p);
+        if kinds.get(parent) == Some(&CapKind::Type) && parent != owner {
+            problems.push(format!(
+                "{id}: Via({owner}): a method is covered only by the demo of its own type {parent}"
+            ));
+        }
+        if kinds.get(owner) != Some(&CapKind::Type) {
+            problems.push(format!(
+                "{id}: Via({owner}): {owner} is not a type in src/catalog.rs"
+            ));
+        } else if !direct.contains(owner) {
+            problems.push(format!(
+                "{id}: Via({owner}): {owner} is not demonstrated (no Demo, Option or StateRow \
+                 in SHOWN); show it, or allowlist {id} against the step that shows {owner}"
             ));
         }
     }
@@ -222,7 +275,7 @@ fn registry_matches_library_source() {
 fn every_capability_is_shown_or_allowlisted() {
     fail_on(
         "showcase coverage gate",
-        &coverage_problems(CAPABILITIES, SHOWN, ALLOWLIST),
+        &coverage_problems(CAPABILITIES, coverage::declarations(), ALLOWLIST),
     );
 }
 
@@ -429,6 +482,9 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     }
                 }
             }
+            // nothing of its own to render: the owner's direct
+            // declaration is checked here, and `via_problems` requires one
+            Shown::Via(_) => {}
         }
     }
     problems
@@ -454,14 +510,23 @@ fn remaining_gaps_per_step() {
             .unwrap_or(u32::MAX);
         *per_step.entry((n, line.step)).or_default() += 1;
     }
+    let via = coverage::declarations().len() - SHOWN.len();
     println!(
-        "showcase coverage: {} capabilities, {} shown, {} allowlisted",
+        "showcase coverage: {} capabilities, {} shown directly, {via} via their owner, {} allowlisted",
         CAPABILITIES.len(),
         SHOWN.len(),
         allow.len()
     );
     for ((_, step), count) in &per_step {
         println!("  {step:>9}: {count}");
+    }
+    for role in [ViaRole::Protocol, ViaRole::Operation, ViaRole::Plumbing] {
+        let count: usize = coverage::VIA
+            .iter()
+            .filter(|(_, r, _)| *r == role)
+            .map(|(_, _, names)| names.len())
+            .sum();
+        println!("  via {role:?}: {count} ({})", role.reason());
     }
 }
 
@@ -506,7 +571,7 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
     caps.push(Capability::ty("widgets::fixture::Gizmo"));
     caps.push(Capability::builder("widgets::fixture::Gizmo::glow"));
     assert!(registry_problems(&caps, &scanned).is_empty());
-    let gaps = coverage_problems(&caps, SHOWN, ALLOWLIST);
+    let gaps = coverage_problems(&caps, coverage::declarations(), ALLOWLIST);
     assert!(
         gaps.iter()
             .any(|p| p.contains("builder widgets::fixture::Gizmo::glow is neither shown")),
@@ -519,7 +584,7 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
          widgets::fixture::Gizmo::glow | fixture | SC7\n"
     );
     assert_eq!(
-        coverage_problems(&caps, SHOWN, &allow),
+        coverage_problems(&caps, coverage::declarations(), &allow),
         Vec::<String>::new()
     );
 }
@@ -565,7 +630,7 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
     caps.push(Capability::function("widgets::fixture::Gizmo::level"));
     caps.push(Capability::function("widgets::fixture::render_gizmo"));
     assert!(registry_problems(&caps, &scanned).is_empty());
-    let gaps = coverage_problems(&caps, SHOWN, ALLOWLIST);
+    let gaps = coverage_problems(&caps, coverage::declarations(), ALLOWLIST);
     for id in [
         "widgets::fixture::Gizmo::level",
         "widgets::fixture::render_gizmo",
@@ -596,7 +661,7 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
          widgets::fixture::render_gizmo | fixture | SC58\n"
     );
     assert_eq!(
-        coverage_problems(&caps, SHOWN, &allow),
+        coverage_problems(&caps, coverage::declarations(), &allow),
         Vec::<String>::new()
     );
 }
@@ -607,7 +672,7 @@ fn gate_fails_on_a_stale_allowlist_line() {
 
     // Allowlisted although the showcase now shows it.
     let allow = format!("{ALLOWLIST}\n{shown_id} | was pending | SC2\n");
-    let problems = coverage_problems(CAPABILITIES, SHOWN, &allow);
+    let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
         problems
             .iter()
@@ -617,7 +682,7 @@ fn gate_fails_on_a_stale_allowlist_line() {
 
     // An id the registry does not know.
     let allow = format!("{ALLOWLIST}\nwidgets::gone::Gone | removed | SC7\n");
-    let problems = coverage_problems(CAPABILITIES, SHOWN, &allow);
+    let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
         problems
             .iter()
@@ -627,7 +692,7 @@ fn gate_fails_on_a_stale_allowlist_line() {
 
     // A pending line without its SC step.
     let allow = format!("{ALLOWLIST}\nwidgets::gone::Gone | todo | later\n");
-    let problems = coverage_problems(CAPABILITIES, SHOWN, &allow);
+    let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
         problems
             .iter()
@@ -641,7 +706,7 @@ fn gate_fails_on_a_stale_allowlist_line() {
         "{ALLOWLIST}\napp::gone_app::intro | brand | permanent\n\
          app::jackin_preview::banner | brand | SC4\n"
     );
-    let problems = coverage_problems(CAPABILITIES, SHOWN, &allow);
+    let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
         problems
             .iter()
@@ -659,7 +724,7 @@ fn gate_fails_on_a_stale_allowlist_line() {
 #[test]
 fn gate_fails_when_a_declaration_is_removed() {
     let (removed, _) = SHOWN.first().expect("at least one declaration");
-    let fewer: Vec<(&str, Shown)> = SHOWN
+    let fewer: Vec<(&str, Shown)> = coverage::declarations()
         .iter()
         .filter(|(id, _)| id != removed)
         .copied()
@@ -715,4 +780,139 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
         (*id, Shown::StateRow("nosuchpage", "rest")),
     ];
     assert_eq!(declaration_problems(&wrong).len(), wrong.len());
+}
+
+/// Fixture: a widget `Gizmo` with a render method and a free render
+/// helper, filed in `VIA` under `Gizmo`.
+const GIZMO: &str = "widgets::fixture::Gizmo";
+const GIZMO_VIA: &[(&str, ViaRole, &[&str])] = &[(
+    GIZMO,
+    ViaRole::Protocol,
+    &["render", "widgets::fixture::render_gizmo"],
+)];
+
+fn gizmo_caps() -> Vec<Capability> {
+    let mut caps = CAPABILITIES.to_vec();
+    caps.push(Capability::ty(GIZMO));
+    caps.push(Capability::function("widgets::fixture::Gizmo::render"));
+    caps.push(Capability::function("widgets::fixture::render_gizmo"));
+    caps
+}
+
+/// The real declarations plus `extra` and the fixture's `Via` entries.
+fn with_gizmo(extra: &[(&'static str, Shown)]) -> Vec<(&'static str, Shown)> {
+    let mut shown = coverage::declarations().to_vec();
+    shown.extend(coverage::expand(extra, GIZMO_VIA));
+    shown
+}
+
+const GIZMO_DEMO: (&str, Shown) = (GIZMO, Shown::Demo("buttons", "Gizmo"));
+
+#[test]
+fn via_holds_when_the_owner_is_demonstrated() {
+    let caps = gizmo_caps();
+    assert_eq!(
+        coverage_problems(&caps, &with_gizmo(&[GIZMO_DEMO]), ALLOWLIST),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn via_fails_when_the_owner_is_not_demonstrated() {
+    let caps = gizmo_caps();
+    // the owner pending (or excluded) instead of shown: both functions fail
+    for step in ["SC58", "permanent"] {
+        let allow = format!("{ALLOWLIST}\n{GIZMO} | fixture | {step}\n");
+        let problems = coverage_problems(&caps, &with_gizmo(&[]), &allow);
+        for id in [
+            "widgets::fixture::Gizmo::render",
+            "widgets::fixture::render_gizmo",
+        ] {
+            assert!(
+                problems.iter().any(
+                    |p| p.contains(&format!("{id}: Via({GIZMO}): {GIZMO} is not demonstrated"))
+                ),
+                "{step} {id}: {problems:#?}"
+            );
+        }
+    }
+    // a real owner losing its own declaration takes its Via entries with it
+    let (owner, _, names) = coverage::VIA.first().expect("at least one Via group");
+    let fewer: Vec<(&str, Shown)> = coverage::declarations()
+        .iter()
+        .filter(|(id, how)| id != owner || matches!(how, Shown::Via(_)))
+        .copied()
+        .collect();
+    let allow = format!("{ALLOWLIST}\n{owner} | fixture | SC58\n");
+    let problems = coverage_problems(CAPABILITIES, &fewer, &allow);
+    assert_eq!(
+        problems
+            .iter()
+            .filter(|p| p.contains(&format!("Via({owner}): {owner} is not demonstrated")))
+            .count(),
+        names.len(),
+        "{problems:#?}"
+    );
+}
+
+#[test]
+fn a_stale_via_fails() {
+    let shown = with_gizmo(&[GIZMO_DEMO]);
+
+    // the function is gone from the catalog
+    let gone: Vec<Capability> = gizmo_caps()
+        .into_iter()
+        .filter(|c| c.id != "widgets::fixture::render_gizmo")
+        .collect();
+    let problems = coverage_problems(&gone, &shown, ALLOWLIST);
+    assert!(
+        problems.iter().any(|p| p.contains(
+            "coverage.rs declares widgets::fixture::render_gizmo, which is not a capability"
+        )),
+        "{problems:#?}"
+    );
+
+    let caps = gizmo_caps();
+    // also declared directly
+    let mut both = shown.clone();
+    both.push((
+        "widgets::fixture::Gizmo::render",
+        Shown::Demo("buttons", "Gizmo"),
+    ));
+    let problems = coverage_problems(&caps, &both, ALLOWLIST);
+    assert!(
+        problems
+            .iter()
+            .any(|p| p.contains("stale Via: widgets::fixture::Gizmo::render is declared directly")),
+        "{problems:#?}"
+    );
+
+    // also allowlisted
+    let allow = format!("{ALLOWLIST}\nwidgets::fixture::render_gizmo | fixture | SC58\n");
+    let problems = coverage_problems(&caps, &shown, &allow);
+    assert!(
+        problems.iter().any(
+            |p| p.contains("stale allowlist line: widgets::fixture::render_gizmo is now shown")
+        ),
+        "{problems:#?}"
+    );
+
+    // a method filed under a type that is not its own, and a type
+    // filed as if it were a function
+    let theme = "theme::Theme";
+    let mut wrong = shown.clone();
+    wrong.retain(|(id, _)| *id != "widgets::fixture::Gizmo::render");
+    wrong.push(("widgets::fixture::Gizmo::render", Shown::Via(theme)));
+    wrong.push(("widgets::empty::EmptyState", Shown::Via(GIZMO)));
+    let problems = coverage_problems(&caps, &wrong, ALLOWLIST);
+    for needle in [
+        "widgets::fixture::Gizmo::render: Via(theme::Theme): a method is covered only by the \
+         demo of its own type widgets::fixture::Gizmo",
+        "widgets::empty::EmptyState: Via covers functions only; it is a type",
+    ] {
+        assert!(
+            problems.iter().any(|p| p.contains(needle)),
+            "{needle}: {problems:#?}"
+        );
+    }
 }
