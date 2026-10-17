@@ -24,13 +24,12 @@ use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowFn, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
-use crate::core::text::TextBuffer;
 use crate::theme::{SyntaxTone, Theme};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
 use crate::widgets::button::{Button, row_layout_right};
-use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::edit::{EditExit, EditField, FieldError, Validator};
 use crate::widgets::option_editor::{
     Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
 };
@@ -262,8 +261,8 @@ pub enum RowState {
 pub struct EditState {
     pub row: usize,
     pub col: usize,
-    pub buffer: TextBuffer,
-    pub error: Option<String>,
+    /// The cell's text, keys, undo, pointer selection and validation.
+    pub field: EditField,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -307,32 +306,35 @@ pub enum GridAction {
     },
 }
 
-/// Validate text typed into a cell for a column. The owner can replace
-/// this with engine-aware parsing ([`DataGrid::validator`]); a closure, so
-/// it can capture state (a schema, an enum list).
-#[derive(Clone)]
-pub struct Validator(pub std::rc::Rc<ValidateFn>);
+/// Validate text typed into a cell for a column: the grid's validator is a
+/// [`Validator`] whose context is the column's [`ColumnSpec`] and whose
+/// value is the parsed [`CellValue`]. The owner can replace it with
+/// engine-aware parsing ([`DataGrid::validator`]); a closure, so it can
+/// capture state (a schema, an enum list). The default is
+/// [`default_validator`] ([`cell_validator`]).
+pub type CellParser = Validator<CellValue, ColumnSpec>;
 
-/// The function a [`Validator`] wraps.
-pub type ValidateFn = dyn Fn(&ColumnSpec, &str) -> Result<CellValue, String>;
-
-impl Validator {
-    pub fn new(f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static) -> Self {
-        Self(std::rc::Rc::new(f))
-    }
+/// A [`CellParser`] from a parse function in the message form.
+pub fn cell_validator(
+    f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
+) -> CellParser {
+    Validator::with_context(move |spec: &ColumnSpec, text: &str| {
+        f(spec, text).map_err(FieldError::from)
+    })
 }
 
-impl Default for Validator {
-    /// [`default_validator`].
-    fn default() -> Self {
-        Self::new(default_validator)
+/// What a cell edit's text means: an empty text is an empty string in a
+/// text-like column, NULL in a nullable one, an error otherwise; anything
+/// else goes through the column's `parser`.
+fn parse_cell(parser: &CellParser, spec: &ColumnSpec, text: &str) -> Result<CellValue, FieldError> {
+    if text.is_empty() {
+        return match spec.kind {
+            CellKind::Text | CellKind::Json | CellKind::Enum => Ok(CellValue::Text(String::new())),
+            _ if spec.nullable => Ok(CellValue::Null),
+            _ => Err(FieldError::from("Empty: use Delete for NULL")),
+        };
     }
-}
-
-impl std::fmt::Debug for Validator {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Validator")
-    }
+    parser.validate_in(spec, text)
 }
 
 pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, String> {
@@ -450,7 +452,7 @@ pub struct DataGrid {
     pub cell_errors: HashMap<(usize, usize), String>,
     pub row_errors: HashMap<usize, String>,
     pub empty: crate::widgets::empty::EmptyState,
-    pub validator: Validator,
+    pub validator: CellParser,
     pub row_numbers: bool,
     pub area: Rect,
     body: Rect,
@@ -629,7 +631,7 @@ impl DataGrid {
             cell_errors: HashMap::new(),
             row_errors: HashMap::new(),
             empty: crate::widgets::empty::EmptyState::new(crate::theme::Strings::DEFAULT.no_rows),
-            validator: Validator::default(),
+            validator: cell_validator(default_validator),
             row_numbers: true,
             area: Rect::ZERO,
             parts: PartMap::default(),
@@ -707,7 +709,9 @@ impl DataGrid {
         let parsed = if value.is_empty() {
             Ok(CellValue::Text(String::new()))
         } else {
-            (self.validator.0)(&self.columns[col], &value)
+            self.validator
+                .validate_in(&self.columns[col], &value)
+                .map_err(FieldError::into_message)
         }?;
         self.record_cell(src, col, parsed);
         Ok(GridAction::CellChanged { row: src, col })
@@ -850,7 +854,7 @@ impl DataGrid {
         mut self,
         f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
     ) -> Self {
-        self.validator = Validator::new(f);
+        self.validator = cell_validator(f);
         self
     }
 
@@ -1116,11 +1120,31 @@ impl DataGrid {
         }
         self.edit.is_some()
     }
+    /// The byte offset of the open cell editor's text under `pos`, by the
+    /// geometry it was drawn with (the text scrolls by the caret column).
+    /// Left of the cell names the first character, right of it the last,
+    /// so a drag past an edge selects on.
+    fn edit_offset(&self, pos: Position) -> Option<usize> {
+        let e = self.edit.as_ref()?;
+        let rect = self
+            .col_rects
+            .get(e.col.checked_sub(self.scroll.h.offset)?)?;
+        let cw = rect.width.saturating_sub(1) as usize;
+        let off = e
+            .field
+            .buffer
+            .cursor_pos()
+            .col
+            .saturating_sub(cw.saturating_sub(1));
+        let c = (off as isize + (pos.x as isize - rect.x as isize)).max(0) as usize;
+        Some(e.field.buffer.offset_at(0, c))
+    }
+
     pub fn edit_error(&self) -> Option<&str> {
         if let Some(c) = &self.choice {
             return c.editor.error.as_deref();
         }
-        self.edit.as_ref().and_then(|e| e.error.as_deref())
+        self.edit.as_ref().and_then(|e| e.field.error_message())
     }
 
     fn cursor_src(&self) -> Option<usize> {
@@ -1220,30 +1244,24 @@ impl DataGrid {
             }
             _ => {}
         }
+        let mut field = EditField::single(v.edit_text());
+        // typing re-checks the value once an error shows (SIg9), with the
+        // same rule the commit uses
+        let (parser, spec) = (self.validator.clone(), self.columns[col].clone());
+        field.validator = Some(Validator::new(move |text| {
+            parse_cell(&parser, &spec, text).map(|_| ())
+        }));
         self.edit = Some(EditState {
             row: src,
             col,
-            buffer: TextBuffer::single(v.edit_text()),
-            error: None,
+            field,
         });
         (Outcome::Changed, None)
     }
 
     pub fn commit_edit(&mut self) -> Option<GridAction> {
-        let e = self.edit.take()?;
-        let spec = &self.columns[e.col];
-        let text = e.buffer.text().to_owned();
-        let parsed = if text.is_empty() {
-            match spec.kind {
-                CellKind::Text | CellKind::Json | CellKind::Enum => {
-                    Ok(CellValue::Text(String::new()))
-                }
-                _ if spec.nullable => Ok(CellValue::Null),
-                _ => Err("Empty: use Delete for NULL".to_owned()),
-            }
-        } else {
-            (self.validator.0)(spec, &text)
-        };
+        let mut e = self.edit.take()?;
+        let parsed = parse_cell(&self.validator, &self.columns[e.col], e.field.text());
         match parsed {
             Ok(v) => {
                 self.record_cell(e.row, e.col, v);
@@ -1252,11 +1270,9 @@ impl DataGrid {
                     col: e.col,
                 })
             }
-            Err(msg) => {
-                self.edit = Some(EditState {
-                    error: Some(msg),
-                    ..e
-                });
+            Err(err) => {
+                e.field.set_error(Some(err));
+                self.edit = Some(e);
                 None
             }
         }
@@ -1605,16 +1621,17 @@ impl DataGrid {
             return self.begin_edit();
         }
         if let Some(e) = self.edit.as_mut() {
-            return match edit_key(key, false) {
-                EditAction::Commit => match self.commit_edit() {
+            let r = e.field.on_key(key);
+            return match r.exit {
+                Some(EditExit::Commit) => match self.commit_edit() {
                     Some(ev) => (Outcome::Changed, Some(ev)),
                     None => (Outcome::Changed, None),
                 },
-                EditAction::Cancel => {
+                Some(EditExit::Cancel) => {
                     self.cancel_edit();
                     (Outcome::Changed, None)
                 }
-                EditAction::Tab { backward } => {
+                Some(EditExit::Tab { backward }) => {
                     let ev = self.commit_edit();
                     if self.edit.is_some() {
                         return (Outcome::Changed, None);
@@ -1642,33 +1659,7 @@ impl DataGrid {
                     let _ = self.begin_edit();
                     (Outcome::Changed, ev)
                 }
-                EditAction::Apply(f) => {
-                    f(&mut e.buffer);
-                    (Outcome::Changed, None)
-                }
-                action @ (EditAction::Undo
-                | EditAction::Redo
-                | EditAction::Copy
-                | EditAction::Cut
-                | EditAction::Paste
-                | EditAction::SelectAll) => {
-                    // a cell edit is short-lived: clipboard keys work, its
-                    // undo is Esc
-                    crate::widgets::field_common::apply_edit(
-                        &mut e.buffer,
-                        &mut crate::core::edit::UndoStack::new(),
-                        action,
-                        key.code,
-                        false,
-                    );
-                    (Outcome::Changed, None)
-                }
-                EditAction::Insert(c) => {
-                    e.buffer.insert_char(c);
-                    e.error = None;
-                    (Outcome::Changed, None)
-                }
-                EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
+                None => (r.outcome, None),
             };
         }
         // pending bar buttons are separate focus stops; grid keys only here
@@ -1971,6 +1962,21 @@ impl DataGrid {
     /// header seam starts a resize (keeping the grab offset); the second
     /// press of a double click autofits the column.
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
+        // the open cell editor anchors a drag selection; the second press
+        // of a double click selects the word
+        if let Some((d, c)) = self.cell_of(id)
+            && self
+                .edit
+                .as_ref()
+                .is_some_and(|e| self.order.get(d) == Some(&e.row) && e.col == c)
+        {
+            if let Some(at) = self.edit_offset(pos)
+                && let Some(e) = self.edit.as_mut()
+            {
+                e.field.press(at, count, false);
+            }
+            return Outcome::Changed;
+        }
         let Some(c) = self.seam_of(id) else {
             return Outcome::Ignored;
         };
@@ -2108,20 +2114,12 @@ impl DataGrid {
         if let Some((d, c)) = self.cell_of(id) {
             if let Some(e) = &self.edit {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
-                    // click inside the editor places the cursor
-                    if let Some(rect) = self.col_rects.get(c.saturating_sub(self.scroll.h.offset)) {
-                        let cw = rect.width.saturating_sub(1) as usize;
-                        let off = e
-                            .buffer
-                            .cursor_pos()
-                            .col
-                            .saturating_sub(cw.saturating_sub(1));
-                        let col = pos.x.saturating_sub(rect.x) as usize + off;
-                        self.edit
-                            .as_mut()
-                            .unwrap()
-                            .buffer
-                            .set_cursor_line_col(0, col);
+                    // a click inside the editor places the caret, a double
+                    // click selects a word, a triple click the value
+                    if let Some(at) = self.edit_offset(pos)
+                        && let Some(e) = self.edit.as_mut()
+                    {
+                        e.field.click(at, count, false);
                     }
                     return (Outcome::Changed, None);
                 }
@@ -2163,6 +2161,14 @@ impl DataGrid {
     }
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
+        if self.edit.as_ref().is_some_and(|e| e.field.pressed()) {
+            if let Some(at) = self.edit_offset(pos)
+                && let Some(e) = self.edit.as_mut()
+            {
+                e.field.drag(at);
+            }
+            return Outcome::Changed;
+        }
         if self.seam_of(pressed).is_some() {
             return match self.sizing.drag_to(pos.x) {
                 Some(_) => Outcome::Changed,
@@ -2278,7 +2284,7 @@ impl DataGrid {
         }
         match self.edit.as_mut() {
             Some(e) => {
-                e.buffer.insert_str(text);
+                e.field.paste(text);
                 Outcome::Changed
             }
             None => Outcome::Ignored,
@@ -2767,21 +2773,21 @@ impl DataGrid {
                     });
                     fill(buf, cell_rect, es);
                     let cw = rect.width.saturating_sub(1) as usize;
-                    let cur = e.buffer.cursor_pos().col;
+                    let cur = e.field.buffer.cursor_pos().col;
                     let off = cur.saturating_sub(cw.saturating_sub(1));
-                    let text = e.buffer.text();
+                    let text = e.field.text();
                     let shown = crate::ui::text::slice_cells(text, off, cw);
                     let mut ts = es
                         .add_modifier(Modifier::UNDERLINED)
                         .underline_color(t.accent);
-                    if e.error.is_some() {
+                    if e.field.error.is_some() {
                         ts = ts.underline_color(t.error);
                     }
                     buf.set_string(rect.x, y, &shown, ts);
                     if cw > 0 {
                         ctx.set_cursor(Position::new(rect.x + (cur - off) as u16, y));
                     }
-                    if e.error.is_some() {
+                    if e.field.error.is_some() {
                         buf.set_string(
                             rect.right().saturating_sub(1),
                             y,
@@ -3366,7 +3372,7 @@ mod tests {
         let mut g = grid();
         g.set_cursor(0, 1, false);
         g.begin_edit();
-        g.edit.as_mut().unwrap().buffer.set_text("renamed");
+        g.edit.as_mut().unwrap().field.buffer.set_text("renamed");
         render_at(&mut g, Rect::new(0, 0, 80, 12), Interaction::default());
         assert!(g.is_editing(), "render is not a blur");
         assert!(
@@ -3383,7 +3389,7 @@ mod tests {
             assert_eq!(g.on_blur(), (Outcome::Ignored, None));
             g.set_cursor(0, 1, false);
             g.begin_edit();
-            g.edit.as_mut().unwrap().buffer.set_text("renamed");
+            g.edit.as_mut().unwrap().field.buffer.set_text("renamed");
             g
         };
         let mut commit = edited(BlurAction::Commit);
@@ -3407,7 +3413,12 @@ mod tests {
         let mut bad = grid();
         bad.set_cursor(0, 2, false);
         bad.begin_edit();
-        bad.edit.as_mut().unwrap().buffer.set_text("not a number");
+        bad.edit
+            .as_mut()
+            .unwrap()
+            .field
+            .buffer
+            .set_text("not a number");
         assert_eq!(bad.on_blur(), (Outcome::Changed, None));
         assert!(bad.edit_error().is_some());
     }
@@ -3445,16 +3456,51 @@ mod tests {
         g.scroll.h.set_viewport(g.columns.len());
         g.set_cursor(0, 2, false);
         g.begin_edit();
-        g.edit.as_mut().unwrap().buffer.set_text("not a number");
+        g.edit
+            .as_mut()
+            .unwrap()
+            .field
+            .buffer
+            .set_text("not a number");
         // a click names a cell the grid drew
         render_at(&mut g, Rect::new(0, 0, 80, 10), Interaction::default());
         g.on_click(g.cell_id(1, 2), Position::ORIGIN);
         assert_eq!(g.cursor, (0, 2));
-        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");
+        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "not a number");
         assert!(g.edit_error().is_some());
         g.on_click(g.cell_id(1, 2), Position::ORIGIN);
-        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");
+        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "not a number");
         assert!(g.pending.is_empty());
+    }
+
+    /// SIg9 (S11): a cell edit validates on commit; once its error shows,
+    /// typing re-checks the value, so the error stays while the text is
+    /// still invalid and goes the moment it is valid (it used to clear on
+    /// any typed character). Ctrl+Z undoes typing in the cell (A21), and
+    /// a pasted line break never lands in the one-line cell.
+    #[test]
+    fn a_cell_edit_rechecks_after_an_error_undoes_and_flattens_pastes() {
+        let ctrl = |c| Key {
+            code: KeyCode::Char(c),
+            mods: KeyModifiers::CONTROL,
+        };
+        let mut g = grid();
+        g.set_cursor(0, 2, false);
+        g.begin_edit();
+        g.edit.as_mut().unwrap().field.buffer.set_text("x");
+        g.on_key(&key(KeyCode::Enter));
+        assert!(g.edit_error().is_some(), "the commit marks the value");
+        g.on_key(&key(KeyCode::Char('y')));
+        assert!(g.edit_error().is_some(), "still invalid: the error stays");
+        g.on_key(&ctrl('z'));
+        assert_eq!(g.edit.as_ref().unwrap().field.text(), "x", "Ctrl+Z");
+        for _ in 0..2 {
+            g.on_key(&key(KeyCode::Backspace));
+        }
+        g.on_key(&key(KeyCode::Char('7')));
+        assert_eq!(g.edit_error(), None, "valid again: the error goes at once");
+        g.on_paste("8\n9\n");
+        assert_eq!(g.edit.as_ref().unwrap().field.text(), "78 9");
     }
 
     #[test]
@@ -3462,11 +3508,16 @@ mod tests {
         let mut g = grid();
         g.set_cursor(0, 2, false);
         g.begin_edit();
-        g.edit.as_mut().unwrap().buffer.set_text("not a number");
+        g.edit
+            .as_mut()
+            .unwrap()
+            .field
+            .buffer
+            .set_text("not a number");
         let (_, event) = g.on_click(g.header_id(2), Position::ORIGIN);
         assert_eq!(event, None);
         assert_eq!(g.sort, None);
-        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");
+        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "not a number");
         assert!(g.edit_error().is_some());
     }
 
@@ -3477,7 +3528,7 @@ mod tests {
             g.set_cursor(0, 1, false);
             g.begin_edit();
             let (before, _) = render_editor(&mut g, level);
-            g.edit.as_mut().unwrap().buffer.select_all();
+            g.edit.as_mut().unwrap().field.buffer.select_all();
             let text = format!("{}終", "日本語👩‍💻cafe\u{301}".repeat(8));
             g.on_paste(&text);
             let (after, cursor) = render_editor(&mut g, level);
@@ -3489,10 +3540,14 @@ mod tests {
                 .edit
                 .as_ref()
                 .unwrap()
+                .field
                 .buffer
                 .offset_at(0, crate::ui::text::width(&text) - 2);
             g.on_click(g.cell_id(0, 1), Position::new(cursor.x - 2, cursor.y));
-            assert_eq!(g.edit.as_ref().unwrap().buffer.cursor_offset(), expected);
+            assert_eq!(
+                g.edit.as_ref().unwrap().field.buffer.cursor_offset(),
+                expected
+            );
             g.on_key(&Key {
                 code: KeyCode::Home,
                 mods: ratatui::crossterm::event::KeyModifiers::NONE,
@@ -3948,7 +4003,7 @@ mod tests {
         g.cursor = (0, 2);
         g.begin_edit();
         assert!(g.is_editing());
-        g.edit.as_mut().unwrap().buffer.insert_str("abc");
+        g.edit.as_mut().unwrap().field.buffer.insert_str("abc");
         assert!(g.commit_edit().is_none());
         assert_eq!(g.edit_error(), Some("Must be a number"));
         g.cancel_edit();
@@ -3970,7 +4025,7 @@ mod tests {
         });
         g.cursor = (0, 2);
         g.begin_edit();
-        g.edit.as_mut().unwrap().buffer.insert_str("green");
+        g.edit.as_mut().unwrap().field.buffer.insert_str("green");
         assert!(g.commit_edit().is_none());
         assert_eq!(g.edit_error(), Some("One of red, blue"));
     }
