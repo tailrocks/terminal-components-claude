@@ -34,11 +34,11 @@ use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
 use junie_tui::widgets::button::Button;
+use junie_tui::widgets::detail_card::DetailCard;
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::info_dialog::InfoDialog;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
-use junie_tui::widgets::detail_card::DetailCard;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
@@ -453,8 +453,13 @@ impl FinderPage {
             let panel = Panel::card(Some("Preview"));
             let bg = panel.bg(t);
             if let Some(inner) = panel.try_render(r, buf, t) {
-                DetailCard::empty(EmptyState::new("Nothing selected"))
-                    .render(inner, buf, ctx, bg, &mut []);
+                DetailCard::empty(EmptyState::new("Nothing selected")).render(
+                    inner,
+                    buf,
+                    ctx,
+                    bg,
+                    &mut [],
+                );
             }
             return;
         };
