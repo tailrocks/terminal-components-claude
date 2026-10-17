@@ -11,7 +11,7 @@
  │        ▸ T organizations     1.2 k  │││      11 1df94d71-f415-4c62-a174-35b8102d68ce           10010  d8755486-2a99-4a4c-8da…e8cf504ad9b →  2bee…9f →    ┃ │ [0m
  │        ▸ T customers        48.9 k  │││      12 272ceb33-e750-4f60-a033-8fe3ac0de925           10011  7557d493-6762-4302-a06…a3ecf869377 →  26e6…aa →    ┃ │ [0m
  │        ▸ T products            312  │││      13 e420b1cb-f102-48d9-9449-cc74d87ca6b7           10012  03ec066a-66ba-4257-bf2…7f3450f7c29 →  c04a…ff →    ┆ │ [0m
- │        ▸ T [0m[1morders           [0m 1.2 M  │││      14 cbc419eb-5897-4d5d-84be-5b4e319a287a           10013  1fd69c1a-6c1d-4004-a21…29d250e5b5e →  5e08…a2 →    ┆ │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders            1.2 M [0m │││      14 cbc419eb-5897-4d5d-84be-5b4e319a287a           10013  1fd69c1a-6c1d-4004-a21…29d250e5b5e →  5e08…a2 →    ┆ │ [0m
  │        ▸ T order_items       3.8 M  │││      15 319a287a-5b4e-44be-9004-6c1d1fd69c1a           10014  250e5b5e-529d-421b-9d8…5725e08138a →  9ab0…2b →    ┆ │ [0m
  │        ▸ T payments          1.2 M  │││      16 497e7f9f-f117-4939-8b04-13524c81d354           10015  44842f3f-c910-4cc2-86b…bdcbfbaee95 →  c7c8…8b →    ┆ │ [0m
  │        ▸ T subscriptions     1.1 k  │││      17 2e505aaa-ff7a-41b9-b1ff-0b8121ee3631           10016  e0ada9f0-d147-4112-800…2d482f763e1 →  856e…8f →    ┆ │ [0m

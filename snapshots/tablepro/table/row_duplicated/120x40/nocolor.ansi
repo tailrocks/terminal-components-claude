@@ -11,7 +11,7 @@
  │        ▸ T organizations  │││     478 29839ddb-3da3-41e0-9581-b69c40ed4990           10477  f1ecd42b-f…8b1d →    ┆ │ [0m
  │        ▸ T customers      │││     479 4ed3119f-b5a4-4697-ac8f-a35c5c3d99dc           10478  71162bfb-7…017b →    ┆ │ [0m
  │        ▸ T products       │││     480 5c3d99dc-a35c-4c8f-9c56-7fbb71162bfb           10479  67d1017b-e…9dfb →    ┆ │ [0m
- │        ▸ T [0m[1morders       [0m  │││     481 910fb65a-b88a-4f11-adbf-a4c3852d0f2e           10480  0578e0c7-0…1696 →    ┆ │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders        [0m │││     481 910fb65a-b88a-4f11-adbf-a4c3852d0f2e           10480  0578e0c7-0…1696 →    ┆ │ [0m
  │        ▸ T order_items    │││     482 9773dce2-1422-4d46-848f-df53a0922de2           10481  708ed4da-e…a0f6 →    ┆ │ [0m
  │        ▸ T payments       │││     483 b47520f6-7e87-42b7-bb4a-5fd129ba9378           10482  6bfe6a8c-f…2984 →    ┆ │ [0m
  │        ▸ T subscriptions  │││     484 b6062a21-a66c-41cd-80d3-35a241666cad           10483  021b8808-f…6cf2 →    ┆ │ [0m
