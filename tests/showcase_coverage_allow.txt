@@ -1017,7 +1017,6 @@ widgets::option_list::Item::insert | OptionList, the one popup-list body (S12): 
 widgets::option_list::Item::reason | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::value | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::insertion | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
-widgets::option_list::RowPaint | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::wheel_mode | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::hover_moves_cursor | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
