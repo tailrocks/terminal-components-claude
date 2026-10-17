@@ -492,6 +492,7 @@ widgets::button::ButtonRow::rows | public function registered by SC-G1 (a query,
 widgets::button::ButtonRow::rows_at_gap | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::chips
+widgets::chips::ChipBar::context_items | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
 widgets::chips::ChipAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::Activate | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
 widgets::chips::ChipAction::Toggle | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
@@ -594,6 +595,8 @@ widgets::form_dialog::FormDialog::choice | public function registered by SC-G1 (
 widgets::form_dialog::FormDialog::values | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::grid
+widgets::grid::DataGrid::context_items | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
+widgets::grid::DataGrid::run | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
 widgets::grid::DataGrid::click | S9 click policy on the grid (double click edits): the Data grid page's knobs gain it with the SC33 click options | SC33
 widgets::grid::DataGrid::toggle_mods | S9 row-number toggle click on the grid: the Data grid page's knobs gain it with the SC33 click options | SC33
 
@@ -754,6 +757,11 @@ core::selection::SelectGesture::from_key | covered by the demo of its owner Sele
 ui::columns::header_menu | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # ui::context
+ui::context::ContextCmd | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
+ui::context::ContextCmd::unless | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
+ui::context::ContextCmd::group_end | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
+ui::context::ContextCmd::danger | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
+ui::context::command_items | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
 
 # ui::edit_menu
 ui::edit_menu::EditCaps | the standard Edit context menu on every text widget (S13 M3), shown on the States grids of the text widgets | SC34
