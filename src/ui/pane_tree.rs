@@ -97,7 +97,8 @@ impl PaneNode {
 
     /// The natural size of the subtree (plan §1.4 `Measure`): each pane
     /// at `pane(id)`, each split at the extent that gives both sides
-    /// theirs ([`Split::extent_for`]) and the larger side across it.
+    /// theirs at its starting ratio ([`Split::natural_extent`]: a resize
+    /// never resizes the tree's container) and the larger side across it.
     pub fn natural_size(&self, gap: u16, pane: &dyn Fn(PaneId) -> Size) -> Size {
         match self {
             PaneNode::Leaf(id) => pane(*id),
@@ -113,12 +114,12 @@ impl PaneNode {
                 );
                 match dir {
                     SplitDir::Horizontal => Size::new(
-                        split.extent_for(a.width, b.width, gap),
+                        split.natural_extent(a.width, b.width, gap),
                         a.height.max(b.height),
                     ),
                     SplitDir::Vertical => Size::new(
                         a.width.max(b.width),
-                        split.extent_for(a.height, b.height, gap),
+                        split.natural_extent(a.height, b.height, gap),
                     ),
                 }
             }
@@ -940,6 +941,20 @@ mod tests {
 
     /// Laid out at its natural size, every pane's content rect is at
     /// least what it asked for; zoomed, the zoomed pane's alone.
+    #[test]
+    fn a_resize_leaves_the_natural_size_as_it_was() {
+        let mut t = three();
+        let want = |p: PaneId| Size::new(10 + p as u16 * 7, 3 + p as u16);
+        let before = t.natural_size(&want);
+        t.resize(Direction::Right, 6).unwrap();
+        t.layout(Rect::new(0, 0, 80, 24));
+        assert_eq!(
+            t.natural_size(&want),
+            before,
+            "the container keeps its size"
+        );
+    }
+
     #[test]
     fn a_tree_at_its_natural_size_gives_every_pane_its_content() {
         let mut t = three();
