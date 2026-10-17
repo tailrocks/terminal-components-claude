@@ -6,7 +6,7 @@
 //! and the rail.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -135,13 +135,47 @@ impl SidebarsPage {
         }
     }
 
+    /// The content card's lines: the keys, the three marks, the rules,
+    /// the last item opened.
+    fn lines(&self) -> [String; 11] {
+        let keys = if self.opts.value("sidebars.keys") == "desktop" {
+            "One focus stop. ↑↓ move the cursor, Enter opens."
+        } else {
+            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens."
+        };
+        [
+            keys,
+            "",
+            "›  current item · persists when focus leaves",
+            "▎  keyboard cursor · only while focused",
+            "░  hover · follows the pointer",
+            "",
+            "Disabled items are skipped and ignore the pointer.",
+            "Collapse keeps rows and markers, initials only.",
+            "‹ on the frame or Ctrl+B hides the sidebar behind its rail.",
+            "",
+            &format!("Last: {}", self.last),
+        ]
+        .map(str::to_owned)
+    }
+
+    /// Columns left of the content card: the sidebar's frame and a gap,
+    /// or the rail it hides behind.
+    fn side_width(&self) -> u16 {
+        if self.hidden {
+            self.rail.width() + 1
+        } else {
+            self.nav.width() + 4 + 2
+        }
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let content_x = if self.hidden {
             // the hidden sidebar leaves its rail (none without one)
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
             self.rail.render_rail(col, buf, ctx, t.canvas);
-            area.x + self.rail.width() + 1
+            area.x + self.side_width()
         } else {
             let w = self.nav.width() + 4;
             let side = Rect::new(area.x, area.y, w, area.height.min(20));
@@ -172,7 +206,7 @@ impl SidebarsPage {
                 ctx,
                 bg,
             );
-            side.right() + 2
+            area.x + self.side_width()
         };
 
         let content = Rect::new(
@@ -189,25 +223,7 @@ impl SidebarsPage {
             buf,
             t,
         );
-        let last = format!("Last: {}", self.last);
-        let keys = if self.opts.value("sidebars.keys") == "desktop" {
-            "One focus stop. ↑↓ move the cursor, Enter opens."
-        } else {
-            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens."
-        };
-        let lines = [
-            keys,
-            "",
-            "›  current item · persists when focus leaves",
-            "▎  keyboard cursor · only while focused",
-            "░  hover · follows the pointer",
-            "",
-            "Disabled items are skipped and ignore the pointer.",
-            "Collapse keeps rows and markers, initials only.",
-            "‹ on the frame or Ctrl+B hides the sidebar behind its rail.",
-            "",
-            last.as_str(),
-        ];
+        let lines = self.lines();
         let mut y = inner.y;
         let mut clipped = false;
         for (i, l) in lines.iter().enumerate() {
@@ -268,6 +284,20 @@ impl Page for SidebarsPage {
     }
     fn blurb(&self) -> &'static str {
         "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons"
+    }
+
+    /// The sidebar beside a content card whose lines show unwrapped, 20
+    /// rows tall as before.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        let widest = self
+            .lines()
+            .iter()
+            .map(|l| junie_tui::ui::text::width(l) as u16)
+            .max()
+            .unwrap_or(0);
+        let current = &self.nav.items[self.nav.current].label;
+        let card = Panel::card(Some(current)).outer(Size::new(widest, 0));
+        Size::new(self.side_width() + card.width, 20)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
