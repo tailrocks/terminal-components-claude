@@ -29,6 +29,7 @@ pub mod keyref;
 pub mod list;
 pub mod menu;
 pub mod option_editor;
+pub mod option_list;
 pub mod panel;
 pub mod picker;
 pub mod progress;
