@@ -307,7 +307,7 @@ fn frame_text(app: &mut App) -> String {
 /// States template renders each of its sections.
 fn page_text(page: PageId) -> String {
     let mut app = App::new(Theme::junie());
-    app.goto(page);
+    app.open_page(page);
     let sections = app.pages[page.index()].template().is_some();
     if !sections {
         return frame_text(&mut app);
@@ -326,7 +326,7 @@ fn page_text(page: PageId) -> String {
 /// and the frame's text; `None` when the page has no States section.
 fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
     let mut app = App::new(Theme::junie());
-    app.goto(page);
+    app.open_page(page);
     app.pages[page.index()]
         .template_mut()?
         .set_section(Section::States);
@@ -348,7 +348,7 @@ fn frame_cells(app: &mut App) -> Vec<ratatui::buffer::Cell> {
 /// tab instead. `needs` are set first, each through `--opt`.
 fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer::Cell>, String) {
     let mut app = App::new(Theme::junie());
-    app.goto(page);
+    app.open_page(page);
     let set = |app: &mut App, key: &str, value: &str| {
         let arg = format!("{key}={value}");
         app.apply_opt(options::parse_opt(&arg).unwrap_or_else(|e| panic!("{arg}: {e}")));

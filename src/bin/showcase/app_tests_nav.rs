@@ -24,7 +24,7 @@ struct Harness {
 impl Harness {
     fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -155,11 +155,11 @@ fn the_current_pages_group_is_open_by_default_and_follows_navigation() {
         h.sidebar()
     );
     // navigation opens the new group and closes the one it opened itself
-    h.app.goto(PageId::Grid);
+    h.app.open_page(PageId::Grid);
     h.draw();
     assert_eq!(h.open_groups(), ["Tables"], "{:#?}", h.sidebar());
     assert!(h.nav_row("Data grid").is_some());
-    h.app.goto(PageId::Buttons);
+    h.app.open_page(PageId::Buttons);
     h.draw();
     assert_eq!(h.open_groups(), ["Inputs & forms"]);
     // a group the user opens stays open
@@ -167,7 +167,7 @@ fn the_current_pages_group_is_open_by_default_and_follows_navigation() {
     let (x, y) = h.nav_row("Overlays").unwrap();
     h.click(x, y);
     assert!(h.open_groups().contains(&"Overlays"));
-    h.app.goto(PageId::Grid);
+    h.app.open_page(PageId::Grid);
     h.draw();
     assert_eq!(h.open_groups(), ["Tables", "Overlays"]);
 }
@@ -182,7 +182,7 @@ fn the_expansion_policy_is_configurable() {
     h.key(KeyCode::Char('0'));
     let (x, y) = h.nav_row("Overlays").unwrap();
     h.click(x, y);
-    h.app.goto(PageId::Selectable);
+    h.app.open_page(PageId::Selectable);
     h.draw();
     assert_eq!(h.open_groups(), ["Tables"], "accordion: one group open");
 }
@@ -214,7 +214,7 @@ fn arrows_fold_groups_and_enter_opens_pages() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.page, PageId::Editable);
+    assert_eq!(h.app.page(), PageId::Editable);
     assert_eq!(
         h.app.shell.focus.current(),
         Some(NAV),
@@ -244,11 +244,11 @@ fn clicks_toggle_groups_and_open_pages() {
         .expect("closed disclosure");
     h.click(disclosure, y);
     assert!(h.open_groups().contains(&"Tables"));
-    assert_eq!(h.app.page, PageId::Overview, "a group is not a page");
+    assert_eq!(h.app.page(), PageId::Overview, "a group is not a page");
     // a single click on a page row opens the page (navigation, not data)
     let (x, y) = h.nav_row("Selection").unwrap();
     h.click(x, y);
-    assert_eq!(h.app.page, PageId::Selectable);
+    assert_eq!(h.app.page(), PageId::Selectable);
     assert_eq!(h.app.shell.focus.current(), Some(NAV));
     // the group row itself toggles too
     let (x, y) = h.nav_row("App shell").unwrap();
@@ -323,7 +323,7 @@ fn slash_filters_the_sidebar_and_enter_opens_the_match() {
     assert!(rows[0].contains("Components"), "the card title: {rows:#?}");
     assert!(rows[2].contains("/ grid"), "the query row: {rows:#?}");
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.page, PageId::Grid);
+    assert_eq!(h.app.page(), PageId::Grid);
     assert!(h.app.nav_filter.is_none(), "opening ends the filter");
     // Esc clears a filter and shows the whole tree again
     h.key(KeyCode::Char('/'));
@@ -337,19 +337,19 @@ fn slash_filters_the_sidebar_and_enter_opens_the_match() {
 #[test]
 fn brackets_walk_pages_in_tree_order_across_groups() {
     let mut h = Harness::new(120, 40, PageId::Overview);
-    let mut seen = vec![h.app.page];
+    let mut seen = vec![h.app.page()];
     for _ in 0..NAV_ENTRIES.len() {
         h.key(KeyCode::Char(']'));
-        seen.push(h.app.page);
+        seen.push(h.app.page());
         // the current page is always visible in the tree
-        let label = NAV_ENTRIES[h.app.page.index()].label;
+        let label = NAV_ENTRIES[h.app.page().index()].label;
         assert!(h.nav_row(label).is_some(), "{label}: {:#?}", h.sidebar());
     }
     let order: Vec<PageId> = NAV_ENTRIES.iter().map(|e| e.id).collect();
     assert_eq!(&seen[..order.len()], &order[..]);
     assert_eq!(seen.last(), Some(&PageId::Overview), "wraps");
     h.key(KeyCode::Char('['));
-    assert_eq!(h.app.page, NAV_ENTRIES.last().unwrap().id);
+    assert_eq!(h.app.page(), NAV_ENTRIES.last().unwrap().id);
 }
 
 #[test]
@@ -458,7 +458,7 @@ fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
             Some(NAV),
             "a click at ({x},{y})"
         );
-        assert_eq!(h.app.page, PageId::Lists, "the padding opens no page");
+        assert_eq!(h.app.page(), PageId::Lists, "the padding opens no page");
     }
     let cell = title(&h);
     assert_eq!(cell.fg, t.text_primary);
