@@ -25,7 +25,7 @@ struct Harness {
 impl Harness {
     fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -42,7 +42,7 @@ impl Harness {
     }
 
     fn section(&mut self, s: Section) {
-        let page = self.app.page;
+        let page = self.app.page();
         self.app.pages[page.index()]
             .template_mut()
             .unwrap()
@@ -107,7 +107,7 @@ impl Harness {
 
     #[allow(dead_code)]
     fn states(&self) -> Vec<SpecimenState> {
-        self.app.pages[self.app.page.index()]
+        self.app.pages[self.app.page().index()]
             .template()
             .unwrap()
             .state_rows()

@@ -159,7 +159,7 @@ fn main() -> std::io::Result<()> {
     let motion = cli.common.motion(NO_MOTION_ENV);
     let mut app = App::with_motion(cli.common.theme(), motion, cli.common.frame);
     if let Some(p) = cli.page {
-        app.goto(p);
+        app.open_page(p);
     }
     app.set_nav_expand(cli.nav.map(NavExpand::from).unwrap_or_default());
     for set in cli.opt {

@@ -39,8 +39,10 @@ pub enum Request<R, W: ?Sized = (), G = ()> {
     /// root route). A page's Esc at the top of its ladder asks for it by
     /// default ([`super::Page::on_esc_top`]).
     Back,
-    /// Copy text to the clipboard; the shell reports the result.
-    Copy(String),
+    /// Copy text to the clipboard; the shell reports the true result
+    /// ([`super::Clipboard::report`]), naming it by the second field
+    /// ("Copied Host") when there is one.
+    Copy(String, Option<String>),
     /// Open the keyboard reference.
     Help,
     /// A layer of the page refused an outside click under its
@@ -154,7 +156,14 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
     }
 
     pub fn copy(&mut self, s: impl Into<String>) {
-        self.requests.push(Request::Copy(s.into()));
+        self.requests.push(Request::Copy(s.into(), None));
+    }
+
+    /// Copy `s`; the shell's status names it `what` ("Copied Host") when
+    /// it reached the system clipboard, and says why when it did not.
+    pub fn copy_as(&mut self, s: impl Into<String>, what: impl Into<String>) {
+        self.requests
+            .push(Request::Copy(s.into(), Some(what.into())));
     }
 
     pub fn help(&mut self) {

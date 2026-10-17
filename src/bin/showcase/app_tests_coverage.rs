@@ -25,7 +25,7 @@ struct Harness {
 impl Harness {
     fn new(width: u16, height: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let mut term = Terminal::new(TestBackend::new(width, height)).unwrap();
         term.draw(|frame| app.render(frame)).unwrap();
         Self { app, term }
@@ -224,8 +224,8 @@ fn navigation_edges_and_page_entry_are_deterministic() {
 
     // → on a page opens it
     h.key(KeyCode::Right);
-    assert_eq!(h.app.page, PageId::Overview);
-    assert_eq!(h.app.page, PageId::Overview);
+    assert_eq!(h.app.page(), PageId::Overview);
+    assert_eq!(h.app.page(), PageId::Overview);
 }
 
 #[test]

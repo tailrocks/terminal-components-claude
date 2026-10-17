@@ -578,8 +578,7 @@ impl Page for LaunchCockpitPage {
                     if let Some(PropsAction::Copy(i)) = a
                         && let Some(p) = self.facts.props.get(i)
                     {
-                        cx.copy(p.value.clone());
-                        cx.status(format!("Copied {}", p.label));
+                        cx.copy_as(p.value.clone(), p.label.clone());
                     }
                     return o;
                 }
@@ -590,11 +589,10 @@ impl Page for LaunchCockpitPage {
                     let (o, a) = self.log.on_key(key);
                     if let Some(ViewportAction::Copy(text)) = a {
                         let n = text.lines().count();
-                        cx.copy(text);
-                        cx.status(format!(
-                            "Copied {n} log line{}",
-                            if n == 1 { "" } else { "s" }
-                        ));
+                        cx.copy_as(
+                            text,
+                            format!("{n} log line{}", if n == 1 { "" } else { "s" }),
+                        );
                         return Outcome::Changed;
                     }
                     return o;
