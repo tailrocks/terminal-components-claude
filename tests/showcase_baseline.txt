@@ -106,7 +106,9 @@
 120x40 TrueColor Master-detail 82d782dbe48a8759
 120x40 TrueColor Master-detail · Options 6c1bf1d9ae6ef16d
 120x40 TrueColor Master-detail · States 6ab61b596f2bdf55
-120x40 TrueColor Pane tree 1b3370108ff5d148
+120x40 TrueColor Pane tree 171c594edd024f89
+120x40 TrueColor Pane tree · Options 7a1d350adaf918a7
+120x40 TrueColor Pane tree · States 2b48ac36e2ea0238
 120x40 TrueColor Code editor 09aef7f2809b0b93
 120x40 TrueColor Code editor · Options 0e81848254c4f146
 120x40 TrueColor Code editor · States 2bb08aa6f930ce40
@@ -240,7 +242,9 @@
 120x40 Ansi256 Master-detail 946dfb6d81aca3a0
 120x40 Ansi256 Master-detail · Options 956e1574b9d6f61b
 120x40 Ansi256 Master-detail · States efb54a00e2447bf4
-120x40 Ansi256 Pane tree 7613891f83e788de
+120x40 Ansi256 Pane tree 3510d7495b78892b
+120x40 Ansi256 Pane tree · Options bfaa30127362b81d
+120x40 Ansi256 Pane tree · States b70bb399b0feeadc
 120x40 Ansi256 Code editor 50a09cf63960de6e
 120x40 Ansi256 Code editor · Options d496ac85ba8fc239
 120x40 Ansi256 Code editor · States 989227b41f29e817
@@ -374,7 +378,9 @@
 120x40 Ansi16 Master-detail a29059953c2b40b4
 120x40 Ansi16 Master-detail · Options 77fdcf6f9423c548
 120x40 Ansi16 Master-detail · States 3f6526dfaf05bee4
-120x40 Ansi16 Pane tree 738a0789a35582db
+120x40 Ansi16 Pane tree 55fba9ae357001b7
+120x40 Ansi16 Pane tree · Options 4758afd139cc8bc0
+120x40 Ansi16 Pane tree · States c1c91e50cdfeb9ec
 120x40 Ansi16 Code editor 7e69b79985cc478a
 120x40 Ansi16 Code editor · Options ed0752cc6102a005
 120x40 Ansi16 Code editor · States 95b76b9fc2173064
@@ -508,7 +514,9 @@
 120x40 Mono Master-detail 6ae7000158036829
 120x40 Mono Master-detail · Options cefb124fe2efd72f
 120x40 Mono Master-detail · States 6041cf44e2564faf
-120x40 Mono Pane tree 5632a9e2a6ea85c6
+120x40 Mono Pane tree 8aab4d932a5c6a3a
+120x40 Mono Pane tree · Options 77acfcf7e5062293
+120x40 Mono Pane tree · States 05142a0e2396c49d
 120x40 Mono Code editor 594fb14b2c9f065b
 120x40 Mono Code editor · Options bc9bf7da3a611ee0
 120x40 Mono Code editor · States f367891ef59c6774
@@ -642,7 +650,9 @@
 80x24 TrueColor Master-detail 6c4d60073a07d0d1
 80x24 TrueColor Master-detail · Options b7398e633c29d4d7
 80x24 TrueColor Master-detail · States 806ce55e68479ba5
-80x24 TrueColor Pane tree 6f2136fefcda2fec
+80x24 TrueColor Pane tree d948acc1eea89d97
+80x24 TrueColor Pane tree · Options 997908b7cfd1ec0b
+80x24 TrueColor Pane tree · States fed4c9889736c755
 80x24 TrueColor Code editor 9f7ca5d0f80cd37b
 80x24 TrueColor Code editor · Options cde601464ec7a784
 80x24 TrueColor Code editor · States a356285b4445dba0
@@ -776,7 +786,9 @@
 80x24 Ansi256 Master-detail 60bafabfd8539bb6
 80x24 Ansi256 Master-detail · Options 49bc6c13087dbfe9
 80x24 Ansi256 Master-detail · States 88cdfab1ec83a37b
-80x24 Ansi256 Pane tree 6446c7bd15a5c53f
+80x24 Ansi256 Pane tree 90b3e863c7cd26fb
+80x24 Ansi256 Pane tree · Options 551029245c3d449a
+80x24 Ansi256 Pane tree · States c7850876ac7cd747
 80x24 Ansi256 Code editor 52f3cb90c2000227
 80x24 Ansi256 Code editor · Options d80a67874c4a636b
 80x24 Ansi256 Code editor · States 62eec49ba311929c
@@ -910,7 +922,9 @@
 80x24 Ansi16 Master-detail d3bfb7e53035d98d
 80x24 Ansi16 Master-detail · Options cd2f186d152c0f77
 80x24 Ansi16 Master-detail · States fd87255e9d956122
-80x24 Ansi16 Pane tree 812fcdb8278e4d97
+80x24 Ansi16 Pane tree 269488cfd8ca6d5a
+80x24 Ansi16 Pane tree · Options cef75c9f44fde08d
+80x24 Ansi16 Pane tree · States 879b1192b0054411
 80x24 Ansi16 Code editor 9dbf0f2a402700b7
 80x24 Ansi16 Code editor · Options 3af9717c1a375c56
 80x24 Ansi16 Code editor · States f815c771ca2adb9c
@@ -1044,7 +1058,9 @@
 80x24 Mono Master-detail 71ed512addac64e9
 80x24 Mono Master-detail · Options 3cc3902bb698f951
 80x24 Mono Master-detail · States e22433920f47c0e0
-80x24 Mono Pane tree 469f942be5bb6d5d
+80x24 Mono Pane tree fd78c077fa138bca
+80x24 Mono Pane tree · Options e326d9b6e2569a9b
+80x24 Mono Pane tree · States 3b0444d2527a8347
 80x24 Mono Code editor 3ddf6a7239d1b06b
 80x24 Mono Code editor · Options b37085a27ecc758c
 80x24 Mono Code editor · States 0659ae5bb8073a52
@@ -1178,7 +1194,9 @@
 72x20 TrueColor Master-detail bbaf2e54263c81d1
 72x20 TrueColor Master-detail · Options aa9f433f0e9fc3a2
 72x20 TrueColor Master-detail · States ce063fcb3cdd05b8
-72x20 TrueColor Pane tree 183900da7d005835
+72x20 TrueColor Pane tree 1f430435166c5189
+72x20 TrueColor Pane tree · Options a74e96902aedc831
+72x20 TrueColor Pane tree · States 33741c1cbfdaae8a
 72x20 TrueColor Code editor f66e7cd3d954d2d2
 72x20 TrueColor Code editor · Options 800ce4da2daa6f23
 72x20 TrueColor Code editor · States 31c6f7d898e67ff1
@@ -1312,7 +1330,9 @@
 72x20 Ansi256 Master-detail fc6928d414e0a827
 72x20 Ansi256 Master-detail · Options 1468d39307f3f346
 72x20 Ansi256 Master-detail · States 4237bdcc98c85b71
-72x20 Ansi256 Pane tree 1ef3956b8c5cf406
+72x20 Ansi256 Pane tree 4bdff2ac1ff721ac
+72x20 Ansi256 Pane tree · Options 2e29511cc02cc641
+72x20 Ansi256 Pane tree · States 93710f310f1e27cf
 72x20 Ansi256 Code editor 5aec5a376e3ed2ba
 72x20 Ansi256 Code editor · Options 6cce19b34ff886d7
 72x20 Ansi256 Code editor · States b07991c58b52d81a
@@ -1446,7 +1466,9 @@
 72x20 Ansi16 Master-detail 49eb371410283317
 72x20 Ansi16 Master-detail · Options 7575158cf0659304
 72x20 Ansi16 Master-detail · States e2ad420412ae80d1
-72x20 Ansi16 Pane tree da823f1fd6e1bd72
+72x20 Ansi16 Pane tree 50e44401f915c44c
+72x20 Ansi16 Pane tree · Options d783faa21cf5fce1
+72x20 Ansi16 Pane tree · States 7d3d1a46ba312f45
 72x20 Ansi16 Code editor 2b627ce83d1bfa81
 72x20 Ansi16 Code editor · Options 0ab24d5dc4bdd397
 72x20 Ansi16 Code editor · States 4c17ae94f965bd86
@@ -1580,7 +1602,9 @@
 72x20 Mono Master-detail 48e4a1f84ac37e47
 72x20 Mono Master-detail · Options 9f249ba350d8f286
 72x20 Mono Master-detail · States dc6b838ff67d1197
-72x20 Mono Pane tree 7c926a64eeba3f64
+72x20 Mono Pane tree 55c43c18ef4c3ab0
+72x20 Mono Pane tree · Options da75d3a5a453f553
+72x20 Mono Pane tree · States 1cf617eec895fee7
 72x20 Mono Code editor f653bc84ef68a163
 72x20 Mono Code editor · Options 359e92111798a69d
 72x20 Mono Code editor · States c8959647b1d50716
@@ -1714,7 +1738,9 @@
 100x30 TrueColor Master-detail 96bc885f009adb48
 100x30 TrueColor Master-detail · Options 9baf9badb3044258
 100x30 TrueColor Master-detail · States fc361e973a827ab3
-100x30 TrueColor Pane tree 70ad0bf1cc22ca35
+100x30 TrueColor Pane tree 491e8d410668de73
+100x30 TrueColor Pane tree · Options d8358f05eb610983
+100x30 TrueColor Pane tree · States a9b91fbf3e306a98
 100x30 TrueColor Code editor 486a1eb0647cc148
 100x30 TrueColor Code editor · Options 05ee93645f4abb19
 100x30 TrueColor Code editor · States 51f82c44fa6034a0
@@ -1848,7 +1874,9 @@
 100x30 Ansi256 Master-detail 960597002b502792
 100x30 Ansi256 Master-detail · Options 3d3aff3c0998c383
 100x30 Ansi256 Master-detail · States 64ee7b9489a4e714
-100x30 Ansi256 Pane tree 16e1c8433dde2881
+100x30 Ansi256 Pane tree 5c6b107b0d1eb2e8
+100x30 Ansi256 Pane tree · Options 39baa34135c66ff2
+100x30 Ansi256 Pane tree · States 325f110d2cce6373
 100x30 Ansi256 Code editor e5418a887c9457f1
 100x30 Ansi256 Code editor · Options c971e17a144bb978
 100x30 Ansi256 Code editor · States bf1a521b27304ca5
@@ -1982,7 +2010,9 @@
 100x30 Ansi16 Master-detail 577782e68131dafe
 100x30 Ansi16 Master-detail · Options 1107f93f3963bc55
 100x30 Ansi16 Master-detail · States b21974cb36f72a2b
-100x30 Ansi16 Pane tree 5245c3462c59a2b6
+100x30 Ansi16 Pane tree ce87b2c2bb3f76be
+100x30 Ansi16 Pane tree · Options cb05943b83e87821
+100x30 Ansi16 Pane tree · States 83f04e80842316b5
 100x30 Ansi16 Code editor 060a7c5d7c735f26
 100x30 Ansi16 Code editor · Options 8036d6db750de1e4
 100x30 Ansi16 Code editor · States 3e325956be5a4faa
@@ -2116,7 +2146,9 @@
 100x30 Mono Master-detail 81dfd5644a80097b
 100x30 Mono Master-detail · Options fd9f91981dcc7568
 100x30 Mono Master-detail · States ca3e6738b9bc75b6
-100x30 Mono Pane tree 86bbd5a364d2100f
+100x30 Mono Pane tree d7d4bdd8f66bb18d
+100x30 Mono Pane tree · Options daea10942e17285a
+100x30 Mono Pane tree · States 1f64c1c0da5bad04
 100x30 Mono Code editor d74a71600c6e5757
 100x30 Mono Code editor · Options 2515717694225fcf
 100x30 Mono Code editor · States 0ef1810cc6363fdb
@@ -2250,7 +2282,9 @@
 160x50 TrueColor Master-detail 436934c9a04bd2d4
 160x50 TrueColor Master-detail · Options 7084f463cc2e7b9e
 160x50 TrueColor Master-detail · States b0fe4f1746c0cb7e
-160x50 TrueColor Pane tree 9560012405bb3aeb
+160x50 TrueColor Pane tree 8a3f534244b7be46
+160x50 TrueColor Pane tree · Options c81020c521be408e
+160x50 TrueColor Pane tree · States 46979d28d42a58f7
 160x50 TrueColor Code editor 207f880880343a91
 160x50 TrueColor Code editor · Options f1679475effb1f97
 160x50 TrueColor Code editor · States d56e2e4db78e1d1b
@@ -2384,7 +2418,9 @@
 160x50 Ansi256 Master-detail 9702fbf5c65364dc
 160x50 Ansi256 Master-detail · Options 2fef2eac64a98242
 160x50 Ansi256 Master-detail · States dd17b144894d7719
-160x50 Ansi256 Pane tree 47911932e5265e61
+160x50 Ansi256 Pane tree 738a4076f285612c
+160x50 Ansi256 Pane tree · Options c235a1f0c85fb916
+160x50 Ansi256 Pane tree · States 7def3144990745c5
 160x50 Ansi256 Code editor a65728f769883e85
 160x50 Ansi256 Code editor · Options da7294333ff2ba96
 160x50 Ansi256 Code editor · States 7bc87c93b73a6c88
@@ -2518,7 +2554,9 @@
 160x50 Ansi16 Master-detail 6cdfd1b9ca8d4220
 160x50 Ansi16 Master-detail · Options 5176d2a92be0d465
 160x50 Ansi16 Master-detail · States 3e9b578c9db50981
-160x50 Ansi16 Pane tree 415a35268efc5186
+160x50 Ansi16 Pane tree bd1bba2d673863c4
+160x50 Ansi16 Pane tree · Options 63cc1d183fdc85c1
+160x50 Ansi16 Pane tree · States 1a5824944bd539ef
 160x50 Ansi16 Code editor aa44e0067d24f17d
 160x50 Ansi16 Code editor · Options 09153b1c9cb03d9b
 160x50 Ansi16 Code editor · States c2a5fca093b501d9
@@ -2652,7 +2690,9 @@
 160x50 Mono Master-detail d28f27057bb37d5d
 160x50 Mono Master-detail · Options b6404469a8a9b656
 160x50 Mono Master-detail · States 9fa709c4fcd19834
-160x50 Mono Pane tree 91114ee98f009617
+160x50 Mono Pane tree cfc8e8d8d4819737
+160x50 Mono Pane tree · Options d1d357345dc331b6
+160x50 Mono Pane tree · States 7614cc1ef0fd068c
 160x50 Mono Code editor 25ee79819ab72668
 160x50 Mono Code editor · Options 7e645ceff379518e
 160x50 Mono Code editor · States 7c7c84b8396b166b
