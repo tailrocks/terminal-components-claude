@@ -29,9 +29,9 @@
                                                                                                                        ┆[0m
                             Segment strip                                                                              ┆[0m
                                                                                                                        ┆[0m
-                              ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m                    3 pending  ? help     ┆[0m
+                              ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m                 …  3 pending  ? help     ┆[0m
                                                                                                                        ┆[0m
-                              ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  [0m[1msafe[0m                                                              ┆[0m
+                              ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  [0m[1msafe[0m            …                                                 ┆[0m
                             the same strip at 44 columns: low-priority segments leave first, from the right            ┆[0m
                                                                                                                        ┆[0m
                                                                                                                        ┆[0m
