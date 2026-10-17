@@ -20,6 +20,9 @@ use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::edit_menu::{
+    EditCaps, EditMenu, EditMenuHost, edit_menu_key, edit_menu_pointer, edit_menu_route,
+};
 use crate::widgets::field_common::PointerSelect;
 use crate::widgets::scrollbar;
 use crate::widgets::text_select::{self, TextSelect};
@@ -428,6 +431,10 @@ pub struct ScrollPanel {
     /// The text width the selection's rows were laid out for: a wrapped
     /// panel that reflows drops its selection.
     select_w: u16,
+    /// The standard Edit context menu for read-only text (Copy, Select
+    /// all) a secondary click or Shift+F10 / the Menu key opens
+    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+    pub edit_menu: EditMenu,
 }
 
 /// A [`ScrollPanel`] action a key can be bound to.
@@ -496,7 +503,15 @@ impl ScrollPanel {
             pointer_select: PointerSelect::DEFAULT,
             select: TextSelect::default(),
             select_w: 0,
+            edit_menu: EditMenu::default(),
         }
+    }
+
+    /// Whether a secondary click or a context key opens the Edit menu
+    /// ([`EditMenu::enabled`]). Default `true`.
+    pub fn context_menu(mut self, on: bool) -> Self {
+        self.edit_menu.enabled = on;
+        self
     }
 
     /// See [`Self::pointer_select`].
@@ -546,6 +561,10 @@ impl ScrollPanel {
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
+        // the open Edit menu takes the keys; Shift+F10 opens it
+        if let Some(o) = edit_menu_key(self, key) {
+            return o;
+        }
         match lookup(&self.keymap, key) {
             Some(PanelCmd::SelectAll) => return self.select_all(),
             Some(PanelCmd::Copy) => {
@@ -662,6 +681,19 @@ impl ScrollPanel {
         bg: Color,
         style_line: fn(&Theme, &str) -> Style,
     ) {
+        self.render_panel(area, buf, ctx, bg, style_line);
+        // the Edit menu floats above everything drawn after the panel
+        self.edit_menu.render(self.area, buf, ctx);
+    }
+
+    fn render_panel(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: Color,
+        style_line: fn(&Theme, &str) -> Style,
+    ) {
         self.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -670,7 +702,10 @@ impl ScrollPanel {
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.measure(area);
         let t = ctx.theme;
-        let focused = ctx.interaction.focused(self.id);
+        // under its open Edit menu the panel shows no focus
+        let focused = ctx
+            .interaction
+            .focused_under(self.id, self.edit_menu.is_open());
         let text_w = area.width.saturating_sub(2);
         let lines: &Vec<String> = if self.wrap {
             &self.wrapped_cache.1
@@ -1076,6 +1111,9 @@ impl crate::core::pointer::MouseTarget for ScrollPanel {
         ev: &crate::core::pointer::PointerEvent,
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
+        if let Some(o) = edit_menu_pointer(self, ev) {
+            return o.into();
+        }
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r;
         }
@@ -1085,6 +1123,56 @@ impl crate::core::pointer::MouseTarget for ScrollPanel {
             Some(Phase::Click) => self.on_click_with(ev.pos(), ev.count()).into(),
             _ => Response::ignored(),
         }
+    }
+
+    fn route(&mut self, ev: &crate::core::pointer::PointerEvent) -> Option<Response<()>> {
+        edit_menu_route(self, ev)
+    }
+}
+
+/// The panel's Edit menu for read-only text: Copy (the selection onto the
+/// field clipboard and its OSC 52 hook) and Select all, named by the
+/// panel's own key map. The selection stays where a right click lands.
+impl EditMenuHost for ScrollPanel {
+    fn edit_menu(&mut self) -> &mut EditMenu {
+        &mut self.edit_menu
+    }
+    fn edit_owner(&self) -> WidgetId {
+        self.id
+    }
+    fn edit_caps(&self) -> EditCaps {
+        EditCaps::read_only(
+            self.select.range().is_some(),
+            self.lines.iter().any(|l| !l.is_empty()),
+        )
+    }
+    fn edit_shortcut(&self, cmd: crate::core::edit::TextCmd) -> Option<String> {
+        use crate::core::edit::TextCmd;
+        let cmd = match cmd {
+            TextCmd::Copy => PanelCmd::Copy,
+            TextCmd::SelectAll => PanelCmd::SelectAll,
+            _ => return None,
+        };
+        crate::core::keymap::label_for(&self.keymap, cmd)
+    }
+    fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        // the text, not a scrollbar
+        ev.id == self.id
+    }
+    fn edit_run(&mut self, cmd: crate::core::edit::TextCmd) -> bool {
+        use crate::core::edit::TextCmd;
+        match cmd {
+            TextCmd::SelectAll => {
+                self.select_all();
+            }
+            TextCmd::Copy => {
+                if let Some(t) = self.selected_text() {
+                    crate::core::edit::clipboard::copy(&t);
+                }
+            }
+            _ => {}
+        }
+        false
     }
 }
 
