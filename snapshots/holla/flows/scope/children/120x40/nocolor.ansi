@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                    scope ‹ children ›  [0m
                                                                                                                         [0m
     Children · 3 projects · 11 entries                                           Clean developer artifa… plan · child   [0m
- [0m[1;7m › Clean developer artifact…  [0m[7mplan[0m[1;7m  [0m[7mchild[0m[1;7m  [0m[7m2 candidates in 3 …[0m[1;7m  [0m[7mdestructive[0m[1;7m [0m                                           [0m
+ [0m[1;7m › Clean developer artifact…  [0m[7mplan[0m[1;7m  [0m[7mchild[0m[1;7m  [0m[7m2 candidates in 3 …[0m[1;7m  [0m[7mdestructive[0m[1;7m [0m    ────────────────────────────────────   [0m
     Run //apps/frontend:build  task  child  defined by ~/work/…                  Does       Cargo targets, Gradle       [0m
     Run //apps/frontend:dev    task  child  defined by ~/work/…                             outputs and Node            [0m
     Run //apps/frontend:lint   task  child  defined by ~/work/…                             dependency trees beneath    [0m

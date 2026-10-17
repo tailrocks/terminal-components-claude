@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
                                                                                                                         [0m
     Suggested here                                                               Clean Gradle outputs… cleanup · here   [0m
- [0m[1;7m › Clean Gradle outputs und…  [0m[7mcleanup[0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m4 candidates[0m[1;7m       [0m[7mdestructive[0m[1;7m [0m                                           [0m
+ [0m[1;7m › Clean Gradle outputs und…  [0m[7mcleanup[0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m4 candidates[0m[1;7m       [0m[7mdestructive[0m[1;7m [0m    ────────────────────────────────────   [0m
     gradle build               gradle   here  build.gradle.kts…                  Does       gradle --stop, then move    [0m
     gradle clean               gradle   here  build.gradle.kts…                             every .gradle and build     [0m
     gradle test                gradle   here  build.gradle.kts…                             directory below this        [0m
