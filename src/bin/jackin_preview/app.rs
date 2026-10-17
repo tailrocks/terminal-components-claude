@@ -367,9 +367,8 @@ impl App {
         match input {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
-            Input::Paste(text) => self.on_paste(&text),
-            Input::Key(key) => shell::KeyRouter::route(self, &key),
             Input::Mouse(m) => PointerRouter::route(self, m),
+            other => shell::KeyRouter::input(self, other),
         }
     }
 
@@ -485,15 +484,6 @@ impl App {
             s.enter(w, cx);
             Outcome::Ignored
         });
-    }
-
-    fn on_paste(&mut self, text: &str) -> Outcome {
-        if let Some(top) = self.layers.top_mut() {
-            let o = top.layer.on_paste(text).or(Outcome::Consumed);
-            return self.settle_layers(o);
-        }
-        let route = self.route;
-        self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
     /// A key on a full-screen sequence (the intro, the outro, the
@@ -2350,6 +2340,17 @@ impl shell::KeyHost for App {
     fn page_key(&mut self, key: &Key) -> Outcome {
         let route = self.route;
         self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_key(key, w, cx))
+    }
+
+    fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
+        let top = self.layers.top_mut()?;
+        let o = top.layer.on_paste(text).or(Outcome::Consumed);
+        Some(self.settle_layers(o))
+    }
+
+    fn page_paste(&mut self, text: &str) -> Outcome {
+        let route = self.route;
+        self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
     /// Esc at the top: the page's ladder. A session (cockpit, capsule)

@@ -37,10 +37,15 @@
 //! whole order inside [`route_key`] (CO2, `TypeAheadPrecedence`), so a
 //! letter a shortcut takes is never typed into a focused list, and a
 //! letter none takes types.
+//!
+//! A paste ([`KeyRouter::input`]) takes the same path in short: the top
+//! layer takes it and nothing under it does; otherwise the shown page
+//! (and its focused field). On the too-small screen it is inert, as
+//! keys are (A16).
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::core::event::{Key, Outcome};
+use crate::core::event::{Input, Key, Outcome};
 use crate::core::keymap::{KeyBinding, KeyMap, lookup};
 use crate::core::list::route_key;
 use crate::ui::leave::{KeyContext, LeaveKey, QuitKeys};
@@ -278,6 +283,16 @@ pub trait KeyHost: App {
         Outcome::Ignored
     }
 
+    /// An open layer takes a paste. `None` when no layer is open.
+    fn layer_paste(&mut self, _text: &str) -> Option<Outcome> {
+        None
+    }
+
+    /// The shown page (and its focused field) takes a paste.
+    fn page_paste(&mut self, _text: &str) -> Outcome {
+        Outcome::Ignored
+    }
+
     /// Quit through the app's guard.
     fn request_quit(&mut self) -> Outcome;
 
@@ -289,6 +304,27 @@ pub trait KeyHost: App {
 pub struct KeyRouter;
 
 impl KeyRouter {
+    /// Route a key or a paste through `host`; any other input is not the
+    /// router's (`Ignored`).
+    pub fn input<H: KeyHost + ?Sized>(host: &mut H, input: Input) -> Outcome {
+        match input {
+            Input::Key(key) => Self::route(host, &key),
+            Input::Paste(text) => Self::paste(host, &text),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// Route a paste: the top layer, else the shown page.
+    pub fn paste<H: KeyHost + ?Sized>(host: &mut H, text: &str) -> Outcome {
+        if host.shell().too_small {
+            return Outcome::Consumed;
+        }
+        if let Some(out) = host.layer_paste(text) {
+            return out.or(Outcome::Consumed);
+        }
+        host.page_paste(text)
+    }
+
     /// Route a typed `key` through `host`. Typing hides the hover
     /// highlight until the pointer moves again.
     pub fn route<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Outcome {
