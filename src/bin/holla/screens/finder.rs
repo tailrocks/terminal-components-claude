@@ -644,7 +644,14 @@ impl FinderPage {
         alts.push("Pin".into());
         alts.push("Alias".into());
         alts.push("Why here?".into());
-        v.push(("Alt+Enter".into(), alts.join(" · "), Tone::Muted, true));
+        // the key where the terminal delivers it, else the File menu
+        // item that does the same (A29)
+        let key = if junie_tui::core::keyboard::label_deliverable("Alt+Enter") {
+            "Alt+Enter"
+        } else {
+            "Alternatives…"
+        };
+        v.push((key.into(), alts.join(" · "), Tone::Muted, true));
         let _ = reasons;
         v
     }

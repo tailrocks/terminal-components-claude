@@ -559,7 +559,12 @@ impl Picker {
     /// Dim `screen` and draw the picker with its [`Self::hints`] row.
     pub fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let hints = std::mem::take(&mut self.hints);
-        self.paint(screen, buf, ctx, &hints);
+        self.paint(
+            screen,
+            buf,
+            ctx,
+            &crate::widgets::keyhint::deliverable_line(&hints),
+        );
         self.hints = hints;
     }
 

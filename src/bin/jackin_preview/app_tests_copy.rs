@@ -148,3 +148,42 @@ fn every_quit_confirmation_says_quit() {
         assert!(!t.contains("Exit"), "{t}");
     }
 }
+
+/// A29: on macOS Terminal (Option types a character) the Capsule footer
+/// names no Alt chord; Ctrl+B then H J K L resizes instead and the prefix
+/// footer says so. With the kitty keyboard protocol Alt+Shift+arrows are
+/// named again.
+#[test]
+fn capsule_resize_is_hinted_only_where_the_terminal_delivers_alt() {
+    use junie_tui::core::event::ClientPlatform;
+    use junie_tui::core::keyboard::{self, AltKeys, KeyboardProtocol};
+    keyboard::set_alt_keys(AltKeys::from_env(ClientPlatform::MacOs, |k| {
+        (k == "TERM_PROGRAM").then(|| "Apple_Terminal".to_owned())
+    }));
+    let footer = |h: &H| h.text().lines().last().unwrap_or_default().to_owned();
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 200, 40);
+    assert_eq!(h.app.route, Route::Capsule);
+    let f = footer(&h);
+    assert!(f.contains("Ctrl+B"), "{f}");
+    assert!(!f.contains("Alt+"), "{f}");
+    h.ctrl('b');
+    assert!(footer(&h).contains("H J K L Resize"), "{}", footer(&h));
+    // H or L moves a seam beside the focused pane
+    let before = h.text();
+    h.key(KeyCode::Char('L'));
+    if h.text() == before {
+        h.ctrl('b');
+        h.key(KeyCode::Char('H'));
+    }
+    assert_ne!(h.text(), before, "Ctrl+B then H or L resizes");
+
+    keyboard::set_alt_keys(AltKeys::WithProtocol);
+    keyboard::session::enter(KeyboardProtocol::On, || true);
+    h.draw();
+    assert!(
+        footer(&h).contains("Alt+Shift+↑↓←→ Resize"),
+        "{}",
+        footer(&h)
+    );
+    keyboard::session::leave();
+}

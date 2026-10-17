@@ -20,7 +20,9 @@
 //! (AGENTS.md). Pushing the flags is not proof: a macOS terminal can still
 //! keep Cmd+A for its own menu. [`super_delivered`] turns true only once a
 //! super-modified key actually arrived ([`observe`]), or when an app that
-//! knows its terminal says so ([`set_super_delivered`]).
+//! knows its terminal says so ([`set_super_delivered`]). Alt (Option) is
+//! the same question on a macOS client, whose terminals type a character
+//! for Option by default: [`alt_delivered`] (A29).
 
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
@@ -218,6 +220,10 @@ static ENABLED: AtomicBool = AtomicBool::new(false);
 static PUSHED: AtomicBool = AtomicBool::new(false);
 /// 0 unknown, 1 confirmed by an app, 2 refused by an app, 3 observed.
 static SUPER: AtomicU8 = AtomicU8::new(0);
+/// The same states as `SUPER`, for Alt.
+static ALT: AtomicU8 = AtomicU8::new(0);
+/// The installed [`AltKeys`] (0: not detected yet).
+static ALT_KEYS: AtomicU8 = AtomicU8::new(0);
 
 /// The process's protocol state (the terminal session is one per
 /// process; the panic hook restores through it too).
@@ -281,14 +287,188 @@ pub fn set_super_delivered(on: bool) {
 }
 
 /// Note an input the runtime decoded: a key carrying the super modifier
-/// proves Cmd chords are delivered.
+/// proves Cmd chords are delivered; an Alt-modified key proves Alt chords
+/// are ([`alt_delivered`]) when it cannot be a stray Esc prefix: under
+/// the protocol any key, under the legacy encoding only a named key
+/// (an arrow, Home, a function key), whose modifier rides in its own
+/// escape sequence. A legacy Alt+letter is `Esc` then the letter, which a
+/// quick Esc, letter also produces, and macOS Terminal sends Option+←
+/// as Esc b, so neither proves Option reaches the app as Alt.
 pub fn observe(input: &Input) {
-    if let Input::Key(k) = input
-        && k.mods.contains(KeyModifiers::SUPER)
-        && SUPER.load(Ordering::SeqCst) != 2
-    {
+    let Input::Key(k) = input else { return };
+    if k.mods.contains(KeyModifiers::SUPER) && SUPER.load(Ordering::SeqCst) != 2 {
         SUPER.store(3, Ordering::SeqCst);
     }
+    if k.mods.contains(KeyModifiers::ALT)
+        && (active()
+            || !matches!(
+                k.code,
+                KeyCode::Char(_)
+                    | KeyCode::Esc
+                    | KeyCode::Enter
+                    | KeyCode::Backspace
+                    | KeyCode::Tab
+                    | KeyCode::BackTab
+            ))
+        && ALT.load(Ordering::SeqCst) == 0
+    {
+        ALT.store(3, Ordering::SeqCst);
+    }
+}
+
+/// Whether the terminal delivers Alt (Option) chords, as detected from the
+/// environment ([`AltKeys::from_env`]). macOS Terminal and iTerm2 type a
+/// character for Option+letter (Option+Z is `Ω`) and send Option+← as a
+/// word move unless "Use Option as Meta key" (Terminal) or "Option key
+/// acts as Esc+" (iTerm2) is on, so on a macOS client an Alt chord is
+/// not advertised until it is known to arrive (AGENTS.md: hints never
+/// advertise keys the terminal cannot deliver).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AltKeys {
+    /// Alt chords arrive: a Linux, Windows or BSD client, a macOS
+    /// terminal that sends Option as Alt by default (WezTerm), or
+    /// [`AltKeys::ENV`] `on`.
+    Delivered,
+    /// Alt chords do not arrive: [`AltKeys::ENV`] `off`.
+    Refused,
+    /// A macOS terminal that keeps Option for typing by default (macOS
+    /// Terminal, iTerm2): delivered only once an Alt key arrives
+    /// ([`observe`]).
+    UntilSeen,
+    /// Another terminal on a macOS client (Ghostty, kitty): delivered
+    /// while the kitty keyboard protocol is on ([`active`]), whose
+    /// terminals report the Alt modifier unambiguously, or once an Alt
+    /// key arrives. Ghostty and kitty keep Option for composing unless
+    /// configured (`macos-option-as-alt`, `macos_option_as_alt`); set
+    /// [`AltKeys::ENV`] `off` where neither is.
+    WithProtocol,
+}
+
+impl AltKeys {
+    /// The environment variable that overrides detection: `on` (or `1`,
+    /// `true`, `yes`) and `off` (or `0`, `false`, `no`), any case. Set it
+    /// to `on` after turning on "Use Option as Meta key" in macOS
+    /// Terminal.
+    pub const ENV: &'static str = "JUNIE_TUI_ALT_KEYS";
+
+    /// `TERM_PROGRAM` values of macOS terminals that type a character for
+    /// Option unless configured otherwise.
+    pub const OPTION_TYPES_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
+
+    /// `TERM_PROGRAM` values (any case) of terminals that send Option as
+    /// Alt on macOS by default.
+    pub const OPTION_IS_ALT_TERM_PROGRAMS: [&'static str; 1] = ["wezterm"];
+
+    /// Detect from environment lookups `get` for a client on `platform`,
+    /// in order: [`Self::ENV`]; a client that is not macOS delivers;
+    /// `LC_TERMINAL` `iTerm2` (forwarded over SSH) or a `TERM_PROGRAM` in
+    /// [`Self::OPTION_TYPES_TERM_PROGRAMS`] waits to see an Alt key; a
+    /// `TERM_PROGRAM` in [`Self::OPTION_IS_ALT_TERM_PROGRAMS`] delivers;
+    /// any other macOS terminal delivers with the kitty keyboard
+    /// protocol.
+    pub fn from_env(
+        platform: crate::core::event::ClientPlatform,
+        get: impl Fn(&str) -> Option<String>,
+    ) -> Self {
+        match get(Self::ENV)
+            .map(|v| v.trim().to_ascii_lowercase())
+            .as_deref()
+        {
+            Some("on" | "1" | "true" | "yes") => return Self::Delivered,
+            Some("off" | "0" | "false" | "no") => return Self::Refused,
+            _ => {}
+        }
+        if !platform.is_macos() {
+            return Self::Delivered;
+        }
+        let program = get("TERM_PROGRAM").unwrap_or_default();
+        if get("LC_TERMINAL").is_some_and(|v| v == "iTerm2")
+            || Self::OPTION_TYPES_TERM_PROGRAMS.contains(&program.as_str())
+        {
+            return Self::UntilSeen;
+        }
+        if Self::OPTION_IS_ALT_TERM_PROGRAMS.contains(&program.to_ascii_lowercase().as_str()) {
+            return Self::Delivered;
+        }
+        Self::WithProtocol
+    }
+
+    /// [`Self::from_env`] on the process environment and
+    /// [`crate::core::event::ClientPlatform::current`], or what
+    /// [`set_alt_keys`] installed.
+    pub fn current() -> Self {
+        match ALT_KEYS.load(Ordering::SeqCst) {
+            1 => Self::Delivered,
+            2 => Self::Refused,
+            3 => Self::UntilSeen,
+            4 => Self::WithProtocol,
+            _ => {
+                let d = Self::from_env(crate::core::event::ClientPlatform::current(), |k| {
+                    std::env::var(k).ok()
+                });
+                set_alt_keys(d);
+                d
+            }
+        }
+    }
+}
+
+/// Install the Alt detection (an app or a test that knows its terminal;
+/// [`AltKeys::current`] detects from the environment otherwise).
+pub fn set_alt_keys(keys: AltKeys) {
+    let v = match keys {
+        AltKeys::Delivered => 1,
+        AltKeys::Refused => 2,
+        AltKeys::UntilSeen => 3,
+        AltKeys::WithProtocol => 4,
+    };
+    ALT_KEYS.store(v, Ordering::SeqCst);
+}
+
+/// True when Alt (Option) chords are known to reach the application: an
+/// app said so ([`set_alt_delivered`]), else the detection
+/// ([`AltKeys::current`]) says so, else an Alt key arrived ([`observe`]).
+/// Hints name an Alt chord only then; a key map's stand-in for an Alt
+/// chord ([`crate::core::keymap::KeyBinding::alt_stand_in`]) is active
+/// only while this is false.
+pub fn alt_delivered() -> bool {
+    match ALT.load(Ordering::SeqCst) {
+        1 => return true,
+        2 => return false,
+        _ => {}
+    }
+    match AltKeys::current() {
+        AltKeys::Delivered => true,
+        AltKeys::Refused => false,
+        AltKeys::UntilSeen => ALT.load(Ordering::SeqCst) == 3,
+        AltKeys::WithProtocol => active() || ALT.load(Ordering::SeqCst) == 3,
+    }
+}
+
+/// Whether a key label (a hint's key, a help row, a menu shortcut) names
+/// keys the terminal delivers: a Cmd chord only once Cmd is confirmed
+/// ([`super_delivered`]); an Alt (Option) key chord only while
+/// [`alt_delivered`] (A29; an Alt or Option click is a pointer modifier,
+/// not a key chord); never Shift+click or Shift+drag, which terminals
+/// keep for their own text selection while the app captures the mouse.
+pub fn label_deliverable(key: &str) -> bool {
+    let cmd = key.starts_with('⌘') || key.starts_with("Cmd+") || key.starts_with("Super+");
+    let pointer = |rest: &str| rest.starts_with("click") || rest.starts_with("drag");
+    let alt = ["Alt+", "Ctrl+Alt+", "Option+", "⌥"]
+        .iter()
+        .find_map(|p| key.strip_prefix(p))
+        .is_some_and(|rest| !pointer(rest));
+    let shift_pointer = key.starts_with("Shift+click")
+        || key.starts_with("Shift+drag")
+        || key.starts_with("Shift-click")
+        || key.starts_with("⇧click");
+    !shift_pointer && (!cmd || super_delivered()) && (!alt || alt_delivered())
+}
+
+/// An app that knows its terminal delivers Alt (or does not) says so;
+/// `false` also forgets an observation.
+pub fn set_alt_delivered(on: bool) {
+    ALT.store(if on { 1 } else { 2 }, Ordering::SeqCst);
 }
 
 #[cfg(test)]
@@ -399,5 +579,102 @@ mod tests {
             KeyboardProtocol::Auto
         );
         assert_eq!(KeyboardProtocol::from_env(|_| None), KeyboardProtocol::Auto);
+    }
+
+    fn env<'a>(vars: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
+        move |k| {
+            vars.iter()
+                .find(|(n, _)| *n == k)
+                .map(|(_, v)| (*v).to_owned())
+        }
+    }
+
+    #[test]
+    fn alt_detection_per_platform_and_terminal() {
+        use crate::core::event::ClientPlatform::{MacOs, Other};
+        assert_eq!(AltKeys::from_env(Other, env(&[])), AltKeys::Delivered);
+        assert_eq!(
+            AltKeys::from_env(Other, env(&[("TERM_PROGRAM", "Apple_Terminal")])),
+            AltKeys::Delivered,
+            "the client decides, not the terminal's name"
+        );
+        let apple = [("TERM_PROGRAM", "Apple_Terminal")];
+        assert_eq!(AltKeys::from_env(MacOs, env(&apple)), AltKeys::UntilSeen);
+        assert_eq!(
+            AltKeys::from_env(MacOs, env(&[("TERM_PROGRAM", "iTerm.app")])),
+            AltKeys::UntilSeen
+        );
+        assert_eq!(
+            AltKeys::from_env(MacOs, env(&[("LC_TERMINAL", "iTerm2")])),
+            AltKeys::UntilSeen,
+            "iTerm2 over SSH"
+        );
+        assert_eq!(
+            AltKeys::from_env(MacOs, env(&[("TERM_PROGRAM", "WezTerm")])),
+            AltKeys::Delivered
+        );
+        for vars in [
+            &[("TERM_PROGRAM", "ghostty"), ("TERM", "xterm-ghostty")][..],
+            &[("TERM", "xterm-kitty")],
+            &[("TERM", "xterm-256color")],
+        ] {
+            assert_eq!(AltKeys::from_env(MacOs, env(vars)), AltKeys::WithProtocol);
+        }
+        // the override wins either way
+        let on = [("TERM_PROGRAM", "Apple_Terminal"), (AltKeys::ENV, "ON")];
+        assert_eq!(AltKeys::from_env(MacOs, env(&on)), AltKeys::Delivered);
+        assert_eq!(
+            AltKeys::from_env(Other, env(&[(AltKeys::ENV, "off")])),
+            AltKeys::Refused
+        );
+        assert_eq!(
+            AltKeys::from_env(MacOs, env(&[(AltKeys::ENV, "maybe")])),
+            AltKeys::WithProtocol,
+            "an unknown value is ignored"
+        );
+    }
+
+    #[test]
+    fn macos_terminal_delivers_alt_only_once_an_unambiguous_alt_key_arrives() {
+        set_alt_keys(AltKeys::UntilSeen);
+        assert!(!alt_delivered());
+        assert!(!label_deliverable("Alt+Z"));
+        assert!(label_deliverable("Option+click"), "a pointer modifier");
+        // a legacy Alt+letter is Esc then the letter: no proof
+        observe(&Input::Key(key(KeyCode::Char('b'), KeyModifiers::ALT)));
+        assert!(!alt_delivered());
+        observe(&Input::Key(key(KeyCode::Enter, KeyModifiers::ALT)));
+        assert!(!alt_delivered());
+        // a modified arrow carries Alt in its own sequence
+        observe(&Input::Key(key(KeyCode::Left, KeyModifiers::ALT)));
+        assert!(alt_delivered());
+        assert!(label_deliverable("Alt+Shift+←→"));
+        set_alt_delivered(false);
+        assert!(!alt_delivered(), "an app's refusal stands");
+    }
+
+    #[test]
+    fn another_macos_terminal_delivers_alt_with_the_kitty_protocol() {
+        set_alt_keys(AltKeys::WithProtocol);
+        assert!(!alt_delivered());
+        session::enter(KeyboardProtocol::On, || false);
+        assert!(alt_delivered());
+        session::leave();
+        assert!(!alt_delivered());
+        // under the protocol even an Alt+letter is unambiguous
+        session::enter(KeyboardProtocol::On, || false);
+        observe(&Input::Key(key(KeyCode::Char('z'), KeyModifiers::ALT)));
+        session::leave();
+        assert!(alt_delivered(), "seen once, delivered for the session");
+    }
+
+    #[test]
+    fn alt_refused_or_delivered_by_detection() {
+        set_alt_keys(AltKeys::Refused);
+        observe(&Input::Key(key(KeyCode::Left, KeyModifiers::ALT)));
+        assert!(!alt_delivered(), "the user's off stands");
+        set_alt_keys(AltKeys::Delivered);
+        assert!(alt_delivered());
+        assert!(label_deliverable("Alt+Enter"));
     }
 }

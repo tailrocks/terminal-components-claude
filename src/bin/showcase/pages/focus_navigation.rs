@@ -271,6 +271,13 @@ impl FocusNavPage {
             .map(|(b, _)| b.label())
             .collect();
         let protocol = KeyboardProtocol::current();
+        // the split resize chord and its stand-in where Alt is not
+        // delivered (A29)
+        let stand_in = KeyBinding::new(
+            KeyCode::Left,
+            ratatui::crossterm::event::KeyModifiers::CONTROL
+                | ratatui::crossterm::event::KeyModifiers::SHIFT,
+        );
         // what a session under `On` writes on enter and on leave
         let mut state = ProtocolState::default();
         let push = state
@@ -308,6 +315,21 @@ impl FocusNavPage {
                     on_off(keyboard::super_delivered()),
                     printable(&push),
                     printable(pop)
+                ),
+            ),
+            (
+                "Alt keys",
+                format!(
+                    "{:?} · delivered {} · resize {} · stand-in {}",
+                    keyboard::AltKeys::current(),
+                    on_off(keyboard::alt_delivered()),
+                    KeyBinding::new(
+                        KeyCode::Left,
+                        ratatui::crossterm::event::KeyModifiers::ALT
+                            | ratatui::crossterm::event::KeyModifiers::SHIFT
+                    )
+                    .label(),
+                    stand_in.alt_stand_in().label()
                 ),
             ),
         ];

@@ -234,6 +234,20 @@ pub static SHELL: &[Opt] = &[
         &["auto", "on", "off"],
     )
     .behaviour(),
+    // whether the terminal delivers Alt (Option) chords (A29); auto
+    // honours JUNIE_TUI_ALT_KEYS and the terminal detection
+    Opt::new(
+        "shell.alt_keys",
+        "Alt keys",
+        &[
+            "auto",
+            "delivered",
+            "refused",
+            "until-seen",
+            "with-protocol",
+        ],
+    )
+    .behaviour(),
 ];
 
 /// A page's own option table. Each page step (SC3 onward) adds its page's

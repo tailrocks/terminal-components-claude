@@ -1305,7 +1305,7 @@ impl QueryTab {
         if self.editor.wants_text_input() {
             let mut h = vec![
                 hint("Ctrl+R", "Run"),
-                hint("Alt+R", "Run all"),
+                hint(crate::app::key_label(&crate::app::RUN_ALL), "Run all"),
                 hint("Ctrl+Space", "Complete"),
             ];
             h.extend(self.editor.hints());
@@ -1337,7 +1337,7 @@ impl QueryTab {
             Some(f) if f == self.editor.id => vec![
                 junie_tui::widgets::widget_hints::EDIT,
                 hint("Ctrl+R", "Run"),
-                hint("Alt+R", "Run all"),
+                hint(crate::app::key_label(&crate::app::RUN_ALL), "Run all"),
                 hint("Ctrl+X", "Explain"),
                 hint("/", "Find"),
             ],
@@ -1633,7 +1633,7 @@ impl QueryTab {
                 .disabled(running),
             Button::subtle(TOOLBAR_RUN_ALL, "Run all")
                 .tooltip("Run every statement")
-                .shortcut("Alt+R")
+                .shortcut(crate::app::key_label(&crate::app::RUN_ALL))
                 .disabled(running),
             Button::subtle(TOOLBAR_EXPLAIN, "Explain")
                 .tooltip("Show the plan of the statement at the cursor")
@@ -1812,8 +1812,10 @@ impl QueryTab {
                 body,
                 buf,
                 t,
-                &EmptyState::new("No results yet")
-                    .hint("Ctrl+R runs the statement under the cursor · Alt+R runs all"),
+                &EmptyState::new("No results yet").hint(&format!(
+                    "Ctrl+R runs the statement under the cursor · {} runs all",
+                    crate::app::key_label(&crate::app::RUN_ALL)
+                )),
                 bg,
             );
         } else {
@@ -2082,7 +2084,8 @@ const PLAN_COLS_W: u16 = 40;
 
 /// The query toolbar's commands: Run, Run all, Explain and, while a query
 /// runs, Cancel, as buttons above the editor (mouse audit #7). Each one is
-/// also a chord (Ctrl+R, Alt+R, Ctrl+X, Esc) the toolbar's tooltips name.
+/// also a chord (Ctrl+R, Alt+R or Shift+F5, Ctrl+X, Esc) the toolbar's
+/// tooltips name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
     Run,

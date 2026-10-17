@@ -130,3 +130,37 @@ fn pane_tree_reads_at_80x24() {
         "{text}"
     );
 }
+
+/// A29: on macOS Terminal (Option types a character) the footer names no
+/// Alt chord: Ctrl+Shift+arrows resize and Ctrl+Shift+F12 zooms, and both
+/// work; with the kitty keyboard protocol the Alt chords are named.
+#[test]
+fn pane_tree_footer_names_no_alt_chord_on_macos_terminal_and_alt_with_the_kitty_protocol() {
+    use junie_tui::core::event::ClientPlatform;
+    use junie_tui::core::keyboard::{self, AltKeys, KeyboardProtocol};
+    keyboard::set_alt_keys(AltKeys::from_env(ClientPlatform::MacOs, |k| {
+        (k == "TERM_PROGRAM").then(|| "Apple_Terminal".to_owned())
+    }));
+    let footer = |h: &Harness| h.text().lines().last().unwrap_or_default().to_owned();
+    let mut h = Harness::new(160, 40, PageId::PaneTree);
+    h.focus(TREE);
+    let f = footer(&h);
+    assert!(!f.contains("Alt+"), "{f}");
+    assert!(f.contains("F6 Next pane"), "{f}");
+    assert!(f.contains("Ctrl+Shift+←→ Resize"), "{f}");
+    assert!(f.contains("Ctrl+Shift+F12 Zoom"), "{f}");
+    let w = pane_width(&h, "shell");
+    h.key_mod(KeyCode::Right, KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+    assert_eq!(pane_width(&h, "shell"), w + 2);
+    h.key_mod(KeyCode::F(12), KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+    assert!(h.text().contains("zoomed"), "{}", h.text());
+    h.key_mod(KeyCode::F(12), KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+
+    keyboard::set_alt_keys(AltKeys::WithProtocol);
+    keyboard::session::enter(KeyboardProtocol::On, || true);
+    h.draw();
+    let f = footer(&h);
+    assert!(f.contains("Alt+Shift+←→ Resize"), "{f}");
+    assert!(f.contains("Alt+Z Zoom"), "{f}");
+    keyboard::session::leave();
+}

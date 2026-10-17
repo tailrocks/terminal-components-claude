@@ -13,6 +13,9 @@ fn footer(h: &H) -> String {
 
 #[test]
 fn alt_enter_is_alternatives_in_the_finder_and_the_files_find_page() {
+    // Alt chords delivered (a Linux client, WezTerm): the hints this
+    // test reads do not depend on the host terminal (A29)
+    junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 200, 40);
     h.ticks(4);
     let f = footer(&h);
@@ -38,6 +41,9 @@ fn alt_enter_is_alternatives_in_the_finder_and_the_files_find_page() {
 
 #[test]
 fn the_files_browser_names_alt_enter_alternatives() {
+    // Alt chords delivered (a Linux client, WezTerm): the hints this
+    // test reads do not depend on the host terminal (A29)
+    junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 0, 200, 40);
     h.ticks(4);
     open(&mut h, "Browse ~/work/site");
@@ -71,4 +77,31 @@ fn an_error_status_is_never_cut_for_the_hints() {
     h.draw();
     let f = footer(&h);
     assert!(f.contains(msg), "{f}");
+}
+
+/// A29: on macOS Terminal (Option types a character) the finder's footer
+/// names no Alt chord and the File menu's Alternatives… stands for
+/// Alt+Enter; with the kitty keyboard protocol Alt+Enter is named again.
+#[test]
+fn alt_enter_is_hinted_only_where_the_terminal_delivers_alt() {
+    use junie_tui::core::event::ClientPlatform;
+    use junie_tui::core::keyboard::{self, AltKeys, KeyboardProtocol};
+    keyboard::set_alt_keys(AltKeys::from_env(ClientPlatform::MacOs, |k| {
+        (k == "TERM_PROGRAM").then(|| "Apple_Terminal".to_owned())
+    }));
+    let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 200, 40);
+    h.ticks(4);
+    let f = footer(&h);
+    assert!(!f.contains("Alt+"), "finder: {f}");
+    assert!(f.contains("Tab Preview"), "finder: {f}");
+
+    keyboard::set_alt_keys(AltKeys::WithProtocol);
+    keyboard::session::enter(KeyboardProtocol::On, || true);
+    h.ticks(1);
+    assert!(
+        footer(&h).contains("Alt+Enter Alternatives…"),
+        "{}",
+        footer(&h)
+    );
+    keyboard::session::leave();
 }
