@@ -7,11 +7,11 @@
  [0m[1m▎  › Chrome            [0m                                                                                                                                        [0m
       Status & hints       [0m[1;7m app❯ [0m   File   Edit   View   Session   Help                                                                                         [0m
       Breadcrumbs & ra…                                                                                                                                         [0m
-      Help & keys           Sessions                                                                                 right-click or Shift+F10 for the tab menu  [0m
+      Help & keys           Sessions                                                                                                                            [0m
       Quit & leave                                                                                                                                              [0m
       Focus & navigati…        1 Claude Code (Work)                 working     The status bar below sits on its own plane: three groups, no                    [0m
   ▸ Inputs & forms             2 Codex (Primary)                       idle     separator glyphs, and items leave by priority when the row is                   [0m
-  ▸ Tables                     3 Shell                                          narrow — resize the terminal to watch the center go first.                      [0m
+  ▸ Tables                     3 Shell                                          narrow — the 64-column row shows the center going first.                        [0m
   ▸ Navigation                 4 docs                               blocked                                                                                     [0m
   ▸ Overlays                                                                    Brand: one lockup, accent-filled, the only accent-filled control.               [0m
   ▸ Feedback                                                                                                                                                    [0m
@@ -24,28 +24,28 @@
                           last MenuBarAction: —   (Opened(menu) · Chosen(menu, item) · Closed · Brand)                                                          [0m
                                                                                                                                                                 [0m
                           identity strip · segments drop by priority · ◆ opens the app menu                                                                     [0m
-                            [0m[1mpayments-platform[0m  ◆ production  ◇ staging  ⠋ deploying                                                       · 3 pending  main ↑2  [0m
+                            [0m[1mpayments-platform[0m  ◆ production  ◇ staging  ⠋ deploying                                                                             [0m
                                                                                                                                                                 [0m
+                           status bar · StatusBar::layout places 8 of 8 · Left 2, Center 1, Right 5                                                             [0m
+                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff   ⠋ Claude Code · working · 2 tabs    Weekly 59%    disk ━━━━━━━━─── 72%     quota ╍[0m
                                                                                                                                                                 [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                                                                                                                                                                [0m
-                           status bar · StatusBar::layout places 5 of 8 · Left 2, Center 0, Right 3                                                             [0m
-                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff                      Weekly 59%    disk ━━━━━━━━─── 72%     quota ╍╍╍╍╍╍╍╍╍╍─ [0m[3m88%[0m ! [0m
+                           at 64 columns · StatusBar::layout places 2 of 8 · Left 2, Center 0, Right 0                                                          [0m
+                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff                                                                                     [0m
                                                                                                                                                                 [0m
                            hint bar · topmost layer wins:                                                                                                       [0m
-                           [0m[1m↑↓[0m Move  [0m[1mShift+F10[0m Context menu  [0m[1mright-click[0m Context menu  [0m[1mTab[0m Next                                                last: nothing yet [0m
+                           [0m[1m↑↓[0m Move  [0m[1mShift+F10[0m Context menu  [0m[1mright-click[0m Context menu  [0m[1mTab[0m Next    last: nothing yet                                             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[0m
                                                                                                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
 [?25l
