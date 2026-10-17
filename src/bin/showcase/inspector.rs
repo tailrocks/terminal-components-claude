@@ -120,7 +120,10 @@ impl Inspector {
                 self.ticks += 1;
                 return;
             }
-            Input::Key(k) => format!("Key {}", crate::app::describe_key(k)),
+            Input::Key(k) => format!(
+                "Key {}",
+                junie_tui::core::keymap::KeyBinding::new(k.code, k.mods).label()
+            ),
             Input::Mouse(m) => {
                 let mods = crate::app::describe_mods(m.mods);
                 format!("{mods}{:?} {}·{}", m.kind, m.pos.x, m.pos.y)
