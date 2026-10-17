@@ -97,8 +97,11 @@ pub fn render(
             .filter(|(_, k)| **k)
             .map(|(s, _)| w(s) + sep)
             .sum();
+        // the overflow item `…` stands for the segments that left
+        let gone = kl.iter().chain(kr).any(|k| !k);
+        let more = if gone { 1 + sep } else { 0 };
         // separators sit between segments only; the edges are kept clear
-        (l + r).saturating_sub(sep) + 2 * edge
+        (l + r + more).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
         // drop the lowest priority surviving segment (rightmost on ties)
@@ -185,6 +188,24 @@ pub fn render(
         };
         draw(buf, ctx, start, s);
         rx = rx.saturating_sub(sep);
+    }
+    // the dropped segments collapse into one `…` between the two sides
+    // (first of the right side, or last of the left when it has none):
+    // resting the pointer on it reveals them (R-apps-1)
+    let hidden: Vec<String> = left
+        .iter()
+        .zip(&keep_l)
+        .chain(right.iter().zip(&keep_r))
+        .filter(|(_, k)| !**k)
+        .map(|(s, _)| s.shown())
+        .collect();
+    if !hidden.is_empty() && area.width > 2 * edge {
+        let at = if right.is_empty() {
+            x.min(area.right().saturating_sub(edge + 1))
+        } else {
+            rx.saturating_sub(1).max(area.x + edge)
+        };
+        crate::ui::reveal::overflow(ctx, buf, Rect::new(at, area.y, 1, 1), &hidden.join("  "), bg);
     }
 }
 
