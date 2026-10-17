@@ -124,6 +124,26 @@ pub struct EditState {
     pub field: EditField,
 }
 
+/// The table with every column in view (no sideways scroll): the gutter,
+/// the selection checkboxes, each column at its width and the gaps, the
+/// vertical bar's column; as tall as its header and every row (an owner
+/// that shows fewer rows lets the table scroll them).
+impl crate::ui::measure::Measure for DataTable {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let n = self.columns.len();
+        let check_w: u16 = if self.multi() && self.selection_column {
+            4
+        } else {
+            0
+        };
+        let cols: u16 = (0..n)
+            .map(|i| self.sizing.width(i, self.columns[i].min_width()))
+            .sum::<u16>()
+            + 2 * n.saturating_sub(1) as u16;
+        ratatui::layout::Size::new(cols + 5 + check_w + 1, 1 + self.rows.len().max(1) as u16)
+    }
+}
+
 /// Data table with header sorting, row/cell keyboard navigation, hover,
 /// row selection and optional in-place cell editing.
 ///
@@ -2195,6 +2215,47 @@ impl crate::core::pointer::MouseTarget for DataTable {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drawn at its measured width every column is in view: no column
+    /// behind the sideways scroll.
+    #[test]
+    fn measure_shows_every_column() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = crate::theme::Theme::junie();
+        let cols: Vec<Column> = (0..6)
+            .map(|i| Column::new(&format!("col{i}"), Constraint::Length(10)))
+            .collect();
+        let rows = (0..30)
+            .map(|r| (0..6).map(|c| Cell::new(format!("{r}:{c}"))).collect())
+            .collect();
+        let mut table = DataTable::new(WidgetId::of("t"), cols, rows);
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let size = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            table.measure(ratatui::layout::Size::new(1, 1), &ctx)
+        };
+        assert_eq!(size.height, 31);
+        // fewer rows than the table has: the vertical bar is in
+        for (w, all) in [(size.width, true), (size.width - 3, false)] {
+            let mut ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            let area = Rect::new(0, 0, w, 12);
+            let mut buf = Buffer::empty(area);
+            table.render(area, &mut buf, &mut ctx, t.canvas);
+            assert_eq!(table.scroll.h.viewport_len == 6, all, "width {w}");
+        }
+    }
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::{ColorLevel, Theme};
     use crate::ui::ctx::Interaction;
