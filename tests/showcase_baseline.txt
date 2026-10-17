@@ -115,7 +115,9 @@
 120x40 TrueColor Text utilities · States 47a3c29be1d2185c
 120x40 TrueColor Settings ef598501c7b97fe0
 120x40 TrueColor Task runner bf5ea91213ed43f5
-120x40 TrueColor Query workbench 2b98ad79cd3b19f1
+120x40 TrueColor Query workbench c29bac0f7b653b33
+120x40 TrueColor Query workbench · Options d61248e841dd1686
+120x40 TrueColor Query workbench · States ef5a2f7480bfd6cf
 120x40 TrueColor Connections f28a9d1ad3d14a08
 120x40 TrueColor Finder f8827e3d4df057c0
 120x40 TrueColor Disk cleanup 6bfed458263b29ff
@@ -243,7 +245,9 @@
 120x40 Ansi256 Text utilities · States 05c65d6675d36dd0
 120x40 Ansi256 Settings bc0108445be69e64
 120x40 Ansi256 Task runner 55560c86bb05d223
-120x40 Ansi256 Query workbench a415db402f01bd8e
+120x40 Ansi256 Query workbench 9758607d06589913
+120x40 Ansi256 Query workbench · Options 2cad43cc07405ad1
+120x40 Ansi256 Query workbench · States 8e598980df0279d2
 120x40 Ansi256 Connections 44cab3767288e2a2
 120x40 Ansi256 Finder f436b904e24cdadf
 120x40 Ansi256 Disk cleanup 8fc0c2cc4fb0bfeb
@@ -371,7 +375,9 @@
 120x40 Ansi16 Text utilities · States d39522237997b3a0
 120x40 Ansi16 Settings 6fa846002a903531
 120x40 Ansi16 Task runner f1ad91ab036f84e0
-120x40 Ansi16 Query workbench b97b5ff14f0c9cb7
+120x40 Ansi16 Query workbench aa4bd647d3451a19
+120x40 Ansi16 Query workbench · Options f0b00cb1db98eac2
+120x40 Ansi16 Query workbench · States 51744000c5bd1cff
 120x40 Ansi16 Connections 94e68e0c99bbfaea
 120x40 Ansi16 Finder eea90ec3eb9bdf02
 120x40 Ansi16 Disk cleanup e9cda4e4578635c5
@@ -499,7 +505,9 @@
 120x40 Mono Text utilities · States 265f7f649d555971
 120x40 Mono Settings 5bf727ead41bee88
 120x40 Mono Task runner 9aa360bd6f16b90a
-120x40 Mono Query workbench 9ebdb58b1cf0e7e8
+120x40 Mono Query workbench 207789cfc05b0ede
+120x40 Mono Query workbench · Options 0f36e0da498269ab
+120x40 Mono Query workbench · States 775c590544c92528
 120x40 Mono Connections a86e7b4e39323af3
 120x40 Mono Finder 7ff40bc12a289f31
 120x40 Mono Disk cleanup d7d281eba9fd4512
@@ -627,7 +635,9 @@
 80x24 TrueColor Text utilities · States e19ade457a9a4392
 80x24 TrueColor Settings 6c77605fc529ac06
 80x24 TrueColor Task runner 072461e73bed2e50
-80x24 TrueColor Query workbench 7c2b59e93d28b480
+80x24 TrueColor Query workbench 0327d050f7b9b42c
+80x24 TrueColor Query workbench · Options 33a0ca1ac1e1dccd
+80x24 TrueColor Query workbench · States 97832ec4d5a17502
 80x24 TrueColor Connections 1ab6b6b80033fb66
 80x24 TrueColor Finder 206ca50821da05bd
 80x24 TrueColor Disk cleanup 3105da758793d3ed
@@ -755,7 +765,9 @@
 80x24 Ansi256 Text utilities · States 1db565db06a63454
 80x24 Ansi256 Settings 23d23d0de0d0a6f0
 80x24 Ansi256 Task runner 0aff91eb2d5efd9c
-80x24 Ansi256 Query workbench e7e174dd3717be05
+80x24 Ansi256 Query workbench 63f1a590faba6543
+80x24 Ansi256 Query workbench · Options 9c97737a3e84d514
+80x24 Ansi256 Query workbench · States b38d1af1c7983267
 80x24 Ansi256 Connections 650f549c89e0cc7f
 80x24 Ansi256 Finder 079f06dfb53d80f4
 80x24 Ansi256 Disk cleanup bded21c71f433eb8
@@ -883,7 +895,9 @@
 80x24 Ansi16 Text utilities · States 99a40332234440be
 80x24 Ansi16 Settings 6299d09111387234
 80x24 Ansi16 Task runner ed88b588a214ff7e
-80x24 Ansi16 Query workbench 3abbf1918aafdc52
+80x24 Ansi16 Query workbench 546dc45e0fbcd206
+80x24 Ansi16 Query workbench · Options 66b8c356d2ef9757
+80x24 Ansi16 Query workbench · States 73e766f14b7e8d3e
 80x24 Ansi16 Connections 03b60d2656ecd6fe
 80x24 Ansi16 Finder e060106cbaeb2c19
 80x24 Ansi16 Disk cleanup 35ad40fd78eb2b19
@@ -1011,7 +1025,9 @@
 80x24 Mono Text utilities · States 16f171dab429543a
 80x24 Mono Settings e8abbcce24f04a04
 80x24 Mono Task runner 981f28189d966349
-80x24 Mono Query workbench eaddb5ad6bfa5ed4
+80x24 Mono Query workbench 7da64a82c0099876
+80x24 Mono Query workbench · Options 9570ce047cc87ad5
+80x24 Mono Query workbench · States f9cdf6ba718f2986
 80x24 Mono Connections 4b8aa6063e6ea43c
 80x24 Mono Finder de19b5555d1e36df
 80x24 Mono Disk cleanup 4a2357051d584d7f
@@ -1139,7 +1155,9 @@
 72x20 TrueColor Text utilities · States 3b95fc6509cf4464
 72x20 TrueColor Settings 51dbd34202e28cab
 72x20 TrueColor Task runner 6575c4f45b59c9ed
-72x20 TrueColor Query workbench cd691febad989a66
+72x20 TrueColor Query workbench 2f18868ca8c6a4af
+72x20 TrueColor Query workbench · Options 9d68ff9903bb86d6
+72x20 TrueColor Query workbench · States fb9397375cd39b09
 72x20 TrueColor Connections b04847b946779250
 72x20 TrueColor Finder b2c25ebfa121ca13
 72x20 TrueColor Disk cleanup 06847dbe35e2d370
@@ -1267,7 +1285,9 @@
 72x20 Ansi256 Text utilities · States 6272839c18aa7467
 72x20 Ansi256 Settings bdb9b5ffee8d8265
 72x20 Ansi256 Task runner 1b501c9a3c00fabb
-72x20 Ansi256 Query workbench 02acae62a1456198
+72x20 Ansi256 Query workbench 0efa4ff1ba19daeb
+72x20 Ansi256 Query workbench · Options e62856a0c3ee3d0a
+72x20 Ansi256 Query workbench · States 2b65bc7c88cebb7b
 72x20 Ansi256 Connections 4f9857609a57a703
 72x20 Ansi256 Finder 5642671a94e2ab36
 72x20 Ansi256 Disk cleanup 8575c5ad08e0a1fd
@@ -1395,7 +1415,9 @@
 72x20 Ansi16 Text utilities · States cdb71bf55d3a173c
 72x20 Ansi16 Settings a59c8d42510148ef
 72x20 Ansi16 Task runner 1cd1236468343597
-72x20 Ansi16 Query workbench ac13b2a7836529ae
+72x20 Ansi16 Query workbench b1ecfc0f28671c84
+72x20 Ansi16 Query workbench · Options 8b609ada177c19ae
+72x20 Ansi16 Query workbench · States 6cefd5194c64c67b
 72x20 Ansi16 Connections 1f25ffb2b706aa66
 72x20 Ansi16 Finder 64616c0eec3064cb
 72x20 Ansi16 Disk cleanup de2cd612577ab98a
@@ -1523,7 +1545,9 @@
 72x20 Mono Text utilities · States 61ee3e5542fc5e0e
 72x20 Mono Settings fb79204da69bfb3f
 72x20 Mono Task runner f5597829f1a6cece
-72x20 Mono Query workbench 515ea81976b32480
+72x20 Mono Query workbench c415a9972567da0c
+72x20 Mono Query workbench · Options e48f406193180df0
+72x20 Mono Query workbench · States 3a7e17068da61219
 72x20 Mono Connections 73f6893c594e834c
 72x20 Mono Finder 01e22b91e24e51c5
 72x20 Mono Disk cleanup dc69fab49d38fcec
@@ -1651,7 +1675,9 @@
 100x30 TrueColor Text utilities · States 90bea62ef91605ed
 100x30 TrueColor Settings 41eea47e8911434e
 100x30 TrueColor Task runner 071676120b6242b9
-100x30 TrueColor Query workbench c8a12345ebfe6b50
+100x30 TrueColor Query workbench 2c388a0e06891650
+100x30 TrueColor Query workbench · Options 93260647cbd81f57
+100x30 TrueColor Query workbench · States ccf93e7f63fb32dd
 100x30 TrueColor Connections c3c8b8b3e85cc611
 100x30 TrueColor Finder facf264f7eb648ea
 100x30 TrueColor Disk cleanup 1ef520002c892f4d
@@ -1779,7 +1805,9 @@
 100x30 Ansi256 Text utilities · States 46a31a107b2f8057
 100x30 Ansi256 Settings 4e2ef12e28fd982a
 100x30 Ansi256 Task runner f5c3939078f6c1bf
-100x30 Ansi256 Query workbench 9393c6bb63228a9d
+100x30 Ansi256 Query workbench c69b169d8eb29294
+100x30 Ansi256 Query workbench · Options 87a2a532205b24fb
+100x30 Ansi256 Query workbench · States a2f214b23dba40e8
 100x30 Ansi256 Connections 5e7f82d6b7466959
 100x30 Ansi256 Finder 95da6fbace87dd19
 100x30 Ansi256 Disk cleanup 27ee1f6590e368fc
@@ -1907,7 +1935,9 @@
 100x30 Ansi16 Text utilities · States d1644297a82935e6
 100x30 Ansi16 Settings a78c4d570dbeaca4
 100x30 Ansi16 Task runner 1bec6213b563ff0f
-100x30 Ansi16 Query workbench a14e22ab3780c8fc
+100x30 Ansi16 Query workbench 0f8124edf45045d3
+100x30 Ansi16 Query workbench · Options e2aea8616e7056f9
+100x30 Ansi16 Query workbench · States a6e0d092565c3779
 100x30 Ansi16 Connections 5d03bed71057715b
 100x30 Ansi16 Finder 0a5e9bd782ae042e
 100x30 Ansi16 Disk cleanup 948dc76fb01c46f1
@@ -2035,7 +2065,9 @@
 100x30 Mono Text utilities · States f3230a208f1f824b
 100x30 Mono Settings e94daec9748c7a0f
 100x30 Mono Task runner b29217855b41f71f
-100x30 Mono Query workbench 7e9f8d6fc4090dcf
+100x30 Mono Query workbench 207952aa520e28e8
+100x30 Mono Query workbench · Options 5343de2dc88836a6
+100x30 Mono Query workbench · States 3f03c387972a89d6
 100x30 Mono Connections 3c8333dc46d29df6
 100x30 Mono Finder 5dec7d0e2adf0f09
 100x30 Mono Disk cleanup 3b20fad3a1808d0c
@@ -2163,7 +2195,9 @@
 160x50 TrueColor Text utilities · States d1cba7f1a7aa12dc
 160x50 TrueColor Settings 679e7f76ab52b77a
 160x50 TrueColor Task runner a1a2c25f94767f60
-160x50 TrueColor Query workbench 9a53767e4c21518a
+160x50 TrueColor Query workbench 095f0f5f895959fb
+160x50 TrueColor Query workbench · Options 9a0f17c0397dc465
+160x50 TrueColor Query workbench · States ece2218807c0815e
 160x50 TrueColor Connections 76b7153d9f0e3f71
 160x50 TrueColor Finder e39de55b861fb611
 160x50 TrueColor Disk cleanup 9ff75c9f2216ed2a
@@ -2291,7 +2325,9 @@
 160x50 Ansi256 Text utilities · States ebca1e05ad5de966
 160x50 Ansi256 Settings 81b21bd99453a2d9
 160x50 Ansi256 Task runner df4aad6d6f1d589c
-160x50 Ansi256 Query workbench 3724b341338c8001
+160x50 Ansi256 Query workbench 0494098ba8badb48
+160x50 Ansi256 Query workbench · Options 3ce03b2fbcbc72ec
+160x50 Ansi256 Query workbench · States 9ca5c120054cf149
 160x50 Ansi256 Connections 3bf5f4662d13c3d1
 160x50 Ansi256 Finder a9174e4378343c40
 160x50 Ansi256 Disk cleanup 9ca8b2ca3ea7cdbc
@@ -2419,7 +2455,9 @@
 160x50 Ansi16 Text utilities · States 667086e132644d40
 160x50 Ansi16 Settings 0aa46c792c918839
 160x50 Ansi16 Task runner 5fca6b63cb458b7f
-160x50 Ansi16 Query workbench 788b6b65a5499508
+160x50 Ansi16 Query workbench 0f2268f218cb7489
+160x50 Ansi16 Query workbench · Options 8140b144ac41aaa9
+160x50 Ansi16 Query workbench · States eed835d14d911840
 160x50 Ansi16 Connections 5c87a8913a9e5315
 160x50 Ansi16 Finder ffc0ae5e960f1dad
 160x50 Ansi16 Disk cleanup d30ca01d6f4f35c4
@@ -2547,7 +2585,9 @@
 160x50 Mono Text utilities · States 1a2fbfaad5a8a7b1
 160x50 Mono Settings d9cd4267b5b3923a
 160x50 Mono Task runner ac2f3efe2ece60dd
-160x50 Mono Query workbench 22c67ca41cbf8e1f
+160x50 Mono Query workbench a9c92a0d8c100f95
+160x50 Mono Query workbench · Options f51920f88afa8718
+160x50 Mono Query workbench · States e095c6c6ec720a8f
 160x50 Mono Connections d27c1fc005c572d8
 160x50 Mono Finder 8557229e44814b4a
 160x50 Mono Disk cleanup e24def8df359da6b
