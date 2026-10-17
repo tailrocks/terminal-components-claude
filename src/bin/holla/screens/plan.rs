@@ -1606,8 +1606,15 @@ impl ShellPage<Holla> for PlanTab {
             t.canvas,
         );
         let has_follow = p.phase == PlanPhase::Done && !self.follow_ups.is_empty();
+        // the follow-ups after "Next" wrap instead of dropping (R-apps-7)
+        let follow_w: Vec<u16> = self.follow_ups.iter().map(|b| b.width()).collect();
+        let follow_lines = if has_follow {
+            junie_tui::widgets::button::row_lines(area.width.saturating_sub(7), &follow_w, 2)
+        } else {
+            0
+        };
         let summary_h: u16 = if p.phase == PlanPhase::Done {
-            2 + u16::from(has_follow)
+            2 + follow_lines
         } else {
             0
         };
@@ -1697,7 +1704,7 @@ impl ShellPage<Holla> for PlanTab {
             ctx.control(OUTPUT, Rect::ZERO, false);
         }
         if summary_h > 0 {
-            let y = area.bottom().saturating_sub(summary_h - 1);
+            let y = area.bottom().saturating_sub(2 + follow_lines - 1);
             let line = outcome_line(ok, failed, excluded, skipped, never);
             junie_tui::widgets::viewport::render_spans(
                 buf,
@@ -1709,16 +1716,15 @@ impl ShellPage<Holla> for PlanTab {
                 t.canvas,
             );
             if has_follow {
-                let y = area.bottom().saturating_sub(1);
+                let y = area.bottom().saturating_sub(follow_lines);
                 buf.set_string(area.x + 1, y, "Next", t.faint());
-                let mut x = area.x + 7;
-                for b in &mut self.follow_ups {
-                    let bw = b.width();
-                    if x + bw > area.right() {
-                        break;
-                    }
-                    b.render(Rect::new(x, y, bw, 1), buf, ctx, t.canvas);
-                    x += bw + 2;
+                let rects = junie_tui::widgets::button::row_layout(
+                    Rect::new(area.x + 7, y, area.width.saturating_sub(7), 1),
+                    &follow_w,
+                    2,
+                );
+                for (b, r) in self.follow_ups.iter_mut().zip(rects) {
+                    b.render(r, buf, ctx, t.canvas);
                 }
             } else {
                 for b in &mut self.follow_ups {

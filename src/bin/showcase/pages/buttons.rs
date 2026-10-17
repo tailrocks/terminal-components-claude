@@ -22,7 +22,9 @@ use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::tooltip::Tip;
 use junie_tui::widgets::action_row::ActionRow;
-use junie_tui::widgets::button::{Button, ButtonRow, RowAlign, RowLayout, RowOverflow, row_layout};
+use junie_tui::widgets::button::{
+    Button, ButtonRow, RowAlign, RowLayout, RowOverflow, row_layout, row_lines,
+};
 use junie_tui::widgets::icon_button::IconButton;
 use junie_tui::widgets::panel::Panel;
 
@@ -285,7 +287,14 @@ impl ButtonsPage {
     fn heights(&self, width: u16, t: &junie_tui::theme::Theme) -> [u16; 4] {
         let room = width.saturating_sub(4);
         let row_lines = self.button_row().rows(self.row_width(room), &self.row, t);
-        [15, 6, row_lines + 7, 6]
+        [15, 5 + self.tool_lines(room), row_lines + 7, 6]
+    }
+
+    /// Lines the toolbar takes in `width` cells: a narrow page wraps the
+    /// tools rather than drop one (`row_layout`, R-apps-7).
+    fn tool_lines(&self, width: u16) -> u16 {
+        let widths: Vec<u16> = self.tools.iter().map(Button::width).collect();
+        row_lines(width, &widths, 1)
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -386,14 +395,16 @@ impl ButtonsPage {
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let widths: Vec<u16> = self.tools.iter().map(Button::width).collect();
+        // a narrow card wraps the tools onto more lines, none dropped
         let rects = row_layout(Rect::new(inner.x, inner.y, inner.width, 1), &widths, 1);
         for (b, r) in self.tools.iter_mut().zip(rects) {
             b.render(r, buf, ctx, bg);
         }
-        if inner.y + 2 < inner.bottom() {
+        let note_y = inner.y + row_lines(inner.width, &widths, 1) + 1;
+        if note_y < inner.bottom() {
             buf.set_string(
                 inner.x,
-                inner.y + 2,
+                note_y,
                 junie_tui::ui::text::truncate(TOOL_NOTE, inner.width as usize),
                 t.faint().bg(bg),
             );

@@ -258,27 +258,75 @@ impl Button {
     }
 }
 
-/// Lay out buttons in a row with a 1-cell gap, returning their areas.
-pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
-    let mut x = area.x;
-    let mut out = Vec::new();
-    for &w in widths {
-        let w = w.min(area.right().saturating_sub(x));
-        out.push(Rect::new(x, area.y, w, area.height.min(1)));
-        x = x.saturating_add(w).saturating_add(gap);
+/// The lines of a row of buttons `widths` wide in `width` cells with `gap`
+/// cells between them, each a list of indices: a button that does not fit
+/// beside the ones before it starts the next line. One rule for
+/// [`row_layout`] and [`ButtonRow`] (R-apps-7).
+fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
+    let mut lines: Vec<Vec<usize>> = vec![vec![]];
+    let mut used = 0u16;
+    for (i, &w) in widths.iter().enumerate() {
+        let line = lines.last_mut().expect("one line");
+        let need = if line.is_empty() {
+            w
+        } else {
+            used.saturating_add(gap).saturating_add(w)
+        };
+        if line.is_empty() || need <= width {
+            line.push(i);
+            used = need;
+        } else {
+            lines.push(vec![i]);
+            used = w;
+        }
     }
-    out
+    lines
 }
 
-/// Right-aligned row layout (used by dialog action bars).
+/// Lines a row of buttons `widths` wide takes in `width` cells
+/// ([`row_layout`]): 1 while they fit side by side.
+pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
+    if widths.is_empty() {
+        return 1;
+    }
+    wrap_lines(width, widths, gap).len() as u16
+}
+
+/// Lay out buttons in a row, `gap` cells apart, returning their areas.
+///
+/// A button never drops or gets cut because the row is full (R-apps-7):
+/// one that does not fit beside the ones before it wraps onto the next
+/// line, as a wrapping toolbar does, so every button stays a Tab stop and
+/// a click target. Reserve [`row_lines`] lines below `area.y`. Only a
+/// button wider than the whole row is cut to it.
+pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
+    place_lines(area, widths, gap, false)
+}
+
+/// Right-aligned row layout (used by dialog action bars): every line of
+/// [`row_layout`] packed to the right.
 pub fn row_layout_right(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
-    let total: u16 = widths.iter().sum::<u16>() + gap * widths.len().saturating_sub(1) as u16;
-    let x = area.right().saturating_sub(total).max(area.x);
-    row_layout(
-        Rect::new(x, area.y, area.right().saturating_sub(x), area.height),
-        widths,
-        gap,
-    )
+    place_lines(area, widths, gap, true)
+}
+
+fn place_lines(area: Rect, widths: &[u16], gap: u16, right: bool) -> Vec<Rect> {
+    let mut out = vec![Rect::ZERO; widths.len()];
+    for (k, line) in wrap_lines(area.width, widths, gap).iter().enumerate() {
+        let y = area.y.saturating_add(k as u16);
+        let total = line.iter().map(|&i| widths[i]).sum::<u16>()
+            + gap * line.len().saturating_sub(1) as u16;
+        let mut x = if right {
+            area.right().saturating_sub(total).max(area.x)
+        } else {
+            area.x
+        };
+        for &i in line {
+            let w = widths[i].min(area.right().saturating_sub(x));
+            out[i] = Rect::new(x, y, w, area.height.min(1));
+            x = x.saturating_add(w).saturating_add(gap);
+        }
+    }
+    out
 }
 
 /// Where a [`ButtonRow`] puts its buttons along the row.
@@ -415,20 +463,7 @@ impl ButtonRow {
 
     /// The lines of buttons, each a list of indices, for `width` cells.
     fn lines(&self, width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
-        let mut lines: Vec<Vec<usize>> = vec![vec![]];
-        let mut used = 0u16;
-        for (i, &w) in widths.iter().enumerate() {
-            let line = lines.last_mut().expect("one line");
-            let need = if line.is_empty() { w } else { used + gap + w };
-            if line.is_empty() || need <= width {
-                line.push(i);
-                used = need;
-            } else {
-                lines.push(vec![i]);
-                used = w;
-            }
-        }
-        lines
+        wrap_lines(width, widths, gap)
     }
 
     /// The row's natural width (plan §1.4 `Measure`): every button on one
@@ -480,8 +515,18 @@ impl ButtonRow {
                 RowAlign::Start => area.x,
                 RowAlign::End => area.right().saturating_sub(total).max(area.x),
             };
-            let ws: Vec<u16> = line.iter().map(|(_, w)| *w).collect();
-            let rects = row_layout(Rect::new(x, y, area.right().saturating_sub(x), 1), &ws, gap);
+            // one line, already fitted (only a primary wider than the
+            // whole row is cut to it)
+            let mut cx = x;
+            let rects: Vec<Rect> = line
+                .iter()
+                .map(|(_, w)| {
+                    let w = (*w).min(area.right().saturating_sub(cx));
+                    let r = Rect::new(cx, y, w, 1);
+                    cx = cx.saturating_add(w).saturating_add(gap);
+                    r
+                })
+                .collect();
             for ((i, _), r) in line.iter().zip(&rects) {
                 if *i < out.rects.len() {
                     out.rects[*i] = Some(*r);
@@ -652,10 +697,32 @@ mod tests {
         for pair in drawn.windows(2) {
             assert!(pair[0].right() + 2 <= pair[1].x, "{drawn:?}");
         }
-        // the old layout cut the primary
+    }
+
+    /// R-apps-7: the free row layout never drops or cuts a button the row
+    /// has no room for; it wraps onto the next line ([`row_lines`]), left
+    /// or right aligned.
+    #[test]
+    fn row_layout_wraps_the_buttons_that_do_not_fit_instead_of_dropping_them() {
+        let buttons = drawer_actions();
         let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
-        let old = row_layout(area, &widths, 2);
-        assert!(old[3].width < buttons[3].width());
+        let area = Rect::new(4, 3, 30, 1);
+        assert_eq!(row_lines(area.width, &widths, 2), 2);
+        for rects in [
+            row_layout(area, &widths, 2),
+            row_layout_right(area, &widths, 2),
+        ] {
+            for (r, w) in rects.iter().zip(&widths) {
+                assert_eq!(r.width, *w, "never cut: {rects:?}");
+                assert!(r.x >= area.x && r.right() <= area.right(), "{rects:?}");
+            }
+            assert_eq!(rects[0].y, 3);
+            assert_eq!(rects[3].y, 4, "the last button wraps: {rects:?}");
+        }
+        // a row with room is one line, unchanged
+        let wide = Rect::new(0, 0, 80, 1);
+        assert_eq!(row_lines(wide.width, &widths, 2), 1);
+        assert!(row_layout(wide, &widths, 2).iter().all(|r| r.y == 0));
     }
 
     #[test]
