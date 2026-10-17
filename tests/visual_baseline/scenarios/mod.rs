@@ -188,7 +188,8 @@ pub struct Root {
     /// Boot needle on the first full frame (`""`: non-blank + quiet).
     pub ready: &'static str,
     /// DSL steps after boot: key names, `type:<text>`, `sleep:<ms>`,
-    /// `wait:<needle>`.
+    /// `wait:<needle>`, `advance:<ms>` (run a paused app's virtual clock
+    /// for a step, so a job on it completes: `junie_tui::clock::ClockStep`).
     pub steps: &'static [&'static str],
     pub timeout_ms: u64,
     pub variants: &'static [Variant],
@@ -687,6 +688,15 @@ pub fn check_tables() -> Result<(), String> {
             .root
             .case(scenario.cols, scenario.rows, scenario.color);
         for step in case.sends {
+            if let Some(ms) = step.strip_prefix("advance:") {
+                if !ms.parse::<u64>().is_ok_and(|ms| ms > 0) {
+                    problems.push(format!(
+                        "`{}` step `{step}`: advance:<ms> takes a positive integer",
+                        scenario.name
+                    ));
+                }
+                continue;
+            }
             if ["sleep:", "wait:", "type:"]
                 .iter()
                 .any(|p| step.starts_with(p))

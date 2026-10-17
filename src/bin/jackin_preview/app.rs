@@ -424,7 +424,9 @@ impl App {
                 return Outcome::Changed;
             }
             Route::Handoff => {
-                if self.shell.motion != Motion::Paused {
+                // a paused clock holds the handoff (an explicit clock step
+                // runs it, `advance_clock`)
+                if self.world.clock.running {
                     let h = self.handoff.unwrap_or(0) + 1;
                     self.handoff = Some(h);
                     if h >= HANDOFF_LEN {
@@ -2287,6 +2289,17 @@ impl shell::App for App {
     }
     fn on_input(&mut self, input: Input) -> Outcome {
         self.handle_input(input)
+    }
+    /// Paused captures step the world clock through the app's own tick,
+    /// so jobs on virtual time (a failing save, a role load, the launch
+    /// pipeline) complete and the frame then settles.
+    fn advance_clock(&mut self, ms: u64) -> Option<Outcome> {
+        Some(junie_tui::clock::run_step(
+            self,
+            |a| &mut a.world.clock,
+            ms,
+            Self::on_tick,
+        ))
     }
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         self.blur_all(ch)
