@@ -5,7 +5,7 @@ use ratatui::layout::Rect;
 
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::{EnvKind, Glyphs, StatusKind, Tone};
@@ -368,9 +368,7 @@ impl Page for TaskRunnerPage {
             }
             PageEvent::Pointer(ev) => {
                 if let Some(r) = self.tree.route(ev) {
-                    if ev.is(Phase::Click)
-                        && (ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some())
-                    {
+                    if ev.is(Phase::Click) && self.tree.row_at(ev).is_some() {
                         cx.focus.focus(self.tree.id);
                     }
                     return r.outcome();
