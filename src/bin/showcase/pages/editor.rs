@@ -29,8 +29,9 @@ use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::code::{CodeCmd, CodeEditor, Diagnostic, EditorAction, Severity};
-use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionItem, TEXT_INSET};
+use junie_tui::widgets::completion::{Completion, CompletionAction, TEXT_INSET};
 use junie_tui::widgets::empty::{self, EmptyState};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 
@@ -351,24 +352,21 @@ impl EditorPage {
             self.completion.close();
             return;
         }
-        let mut ranked: Vec<(u32, CompletionItem)> = CANDIDATES
+        let mut ranked: Vec<(u32, Item)> = CANDIDATES
             .iter()
             .filter_map(|(label, detail, glyph)| {
                 let (penalty, matched) = fuzzy(label, &word)?;
                 Some((
                     penalty,
-                    CompletionItem {
-                        label: (*label).to_owned(),
-                        glyph: (*glyph).into(),
-                        detail: (*detail).to_owned(),
-                        insert: (*label).to_owned(),
-                        matched,
-                    },
+                    Item::new(*label)
+                        .glyph(*glyph)
+                        .detail(*detail)
+                        .matched(matched),
                 ))
             })
             .collect();
         ranked.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.label.cmp(&b.1.label)));
-        let items: Vec<CompletionItem> = ranked.into_iter().map(|r| r.1).collect();
+        let items: Vec<Item> = ranked.into_iter().map(|r| r.1).collect();
         let replace = word.len();
         let anchor = self
             .editor
@@ -383,9 +381,7 @@ impl EditorPage {
     }
 
     fn accept(&mut self, i: usize) {
-        if let Some(item) = self.completion.items.get(i).cloned() {
-            item.apply(&mut self.editor.field.buffer, self.completion.replace_len);
-        }
+        self.completion.apply(i, &mut self.editor.field.buffer);
         self.completion.close();
     }
 

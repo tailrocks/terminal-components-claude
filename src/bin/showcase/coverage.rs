@@ -354,7 +354,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("codeeditor", "codeeditor.track_click"),
     ),
     (
-        "widgets::completion::CompletionItem",
+        "widgets::option_list::Item",
         Option("codeeditor", "codeeditor.completion_rows"),
     ),
     (
@@ -5558,14 +5558,13 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::completion::Completion",
         Operation,
-        &["open", "close"],
+        &["open", "close", "apply"],
     ),
     (
         "widgets::completion::Completion",
         Protocol,
         &["row_id", "on_key", "on_click", "render"],
     ),
-    ("widgets::completion::CompletionItem", Operation, &["apply"]),
     (
         "widgets::dialog::Dialog",
         Protocol,

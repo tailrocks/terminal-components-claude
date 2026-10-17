@@ -685,11 +685,11 @@ impl Overlay for Select {
 impl Overlay for Completion {
     type Action = CompletionAction;
     fn dismiss(&self) -> Dismiss {
-        self.dismiss
+        self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
         // the editor keeps the keyboard and its caret
-        LayerSpec::popover(self.dismiss).hides_page_focus(false)
+        LayerSpec::popover(self.list.dismiss).hides_page_focus(false)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<CompletionAction> {
         self.close();

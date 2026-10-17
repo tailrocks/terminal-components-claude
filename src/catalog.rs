@@ -1341,7 +1341,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::code::CodeEditor::on_paste"),
     Capability::function("widgets::code::CodeEditor::render"),
     // widgets::completion
-    Capability::ty("widgets::completion::CompletionItem"),
     Capability::ty("widgets::completion::Completion"),
     Capability::ty("widgets::completion::CompletionAction"),
     Capability::variant("widgets::completion::CompletionAction::Accept"),
@@ -1353,7 +1352,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::completion::Completion::fit"),
     Capability::builder("widgets::completion::Completion::cursor_style"),
     Capability::builder("widgets::completion::Completion::dismiss"),
-    Capability::function("widgets::completion::CompletionItem::apply"),
+    Capability::function("widgets::completion::Completion::apply"),
     Capability::function("widgets::completion::Completion::open"),
     Capability::function("widgets::completion::Completion::is_open"),
     Capability::function("widgets::completion::Completion::close"),

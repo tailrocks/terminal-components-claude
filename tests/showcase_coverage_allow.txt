@@ -996,7 +996,6 @@ widgets::input::TextInput::set_error | EditField, Validate, ValidateWhen, FieldE
 widgets::edit::LineLook | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 
 # widgets::option_list
-widgets::option_list::Item | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::key | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::glyph | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::detail | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
