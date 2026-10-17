@@ -2,7 +2,7 @@
 
 use ratatui::crossterm::event::KeyCode;
 
-use crate::app::Screen;
+use crate::app::Route;
 use crate::app_tests::H;
 
 /// Ctrl+D switches Data / Structure in the workbench; duplicating is Alt+D
@@ -13,7 +13,7 @@ fn ctrl_d_is_data_structure_and_alt_d_duplicates() {
     // test reads do not depend on the host terminal (A29)
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(200, 40);
-    assert_eq!(h.app.screen, Screen::Connections);
+    assert_eq!(h.app.route(), Route::Connections);
     h.key(KeyCode::Down);
     let footer = h.text().lines().last().unwrap_or_default().to_owned();
     assert!(footer.contains("Alt+D Duplicate"), "{footer}");
