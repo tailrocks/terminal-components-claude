@@ -239,9 +239,8 @@ impl ContextSource for ListBox {
 impl ContextSource for TreeView {
     type Target = usize;
     fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
-        // a row or its disclosure toggle
-        ev.on(self.id)
-            .then(|| ev.index_of(Part::ROW).or_else(|| ev.index_of(Part::ICON)))?
+        // a row, its disclosure toggle or its glyph
+        self.row_at(ev)
     }
     fn context_select(&mut self, row: usize) {
         if let Some(i) = Navigable::cursor(self).select(row, self).index() {
