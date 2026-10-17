@@ -5,6 +5,7 @@ pub mod catalog;
 pub mod cli;
 pub mod clock;
 pub mod core;
+pub mod docs;
 pub mod motion;
 pub mod runtime;
 pub mod shell;
