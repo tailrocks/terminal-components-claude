@@ -613,8 +613,11 @@ impl Overlay for HelpOverlay {
     fn dismiss(&self) -> Dismiss {
         self.dismiss
     }
+    /// Focus opens on Done, the reference's one focus stop: the single
+    /// `▎` shows there in the topmost layer (WCAG 2.4.7), and the
+    /// overlay's keys reach it wherever focus is.
     fn spec(&self) -> LayerSpec {
-        LayerSpec::modal(self.dismiss).initial_focus(self.id)
+        LayerSpec::modal(self.dismiss).initial_focus(self.done.id)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<()> {
         self.closed = true;
