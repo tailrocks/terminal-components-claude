@@ -1469,8 +1469,8 @@ mod scroll_tests {
         let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
         assert_eq!(
             l.wheel(Axis::Vertical, -1).outcome(),
-            Outcome::Consumed,
-            "nothing above"
+            Outcome::Ignored,
+            "not laid out yet: nothing to scroll, the notch passes on"
         );
         render(&mut l);
         assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);

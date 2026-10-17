@@ -1380,9 +1380,10 @@ mod tests {
 
     #[test]
     fn wheel_at_the_boundary_is_consumed_not_changed() {
+        // rows that fit pass the notch on (scroll chaining)
         let mut p = picker(3);
         render(&mut p);
-        assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Consumed);
+        assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Ignored);
         let mut p = picker(30);
         render(&mut p);
         assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
