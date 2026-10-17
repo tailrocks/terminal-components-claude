@@ -101,7 +101,7 @@
 120x40 TrueColor Notices · Options b782737677331e81
 120x40 TrueColor Notices · States 784f42a68b5f4d50
 120x40 TrueColor Panels 792a6aad94f66d22
-120x40 TrueColor Panels · Options 0fd87fc052d0f268
+120x40 TrueColor Panels · Options 12beea5795b39fb9
 120x40 TrueColor Panels · States dfb774a5924a0a64
 120x40 TrueColor Scrolling d571f01627743bc2
 120x40 TrueColor Scrolling · Options c921908cbfb30d9c
@@ -161,7 +161,7 @@
 120x40 TrueColor Read-only report · Options e51a458516bd7373
 120x40 TrueColor Read-only report · States 58a2a50c94dcf1b0
 120x40 TrueColor Inspector · State b295ae7f38dd5107
-120x40 TrueColor Inspector · Options b463bc7158821b7f
+120x40 TrueColor Inspector · Options 64d25bc6e28c4c64
 120x40 Ansi256 Overview 92af368628f90ec2
 120x40 Ansi256 Overview · Options 73246a9a22b46881
 120x40 Ansi256 Overview · States 07e7f6f9b8cb7029
@@ -265,7 +265,7 @@
 120x40 Ansi256 Notices · Options ed39127e4ed44e4b
 120x40 Ansi256 Notices · States cb90fa7e40e67789
 120x40 Ansi256 Panels adfccb604f56e4a2
-120x40 Ansi256 Panels · Options 34f7d8c1ac385cb7
+120x40 Ansi256 Panels · Options c1c34c0ce5199fc6
 120x40 Ansi256 Panels · States bec2f20a2fda7ac5
 120x40 Ansi256 Scrolling 6550a3b9aa1edba4
 120x40 Ansi256 Scrolling · Options 6e68b763816bba87
@@ -325,7 +325,7 @@
 120x40 Ansi256 Read-only report · Options f6f42483b734023b
 120x40 Ansi256 Read-only report · States 7d85273da553b813
 120x40 Ansi256 Inspector · State abe0fcb092b641b7
-120x40 Ansi256 Inspector · Options c0cfd1365628421f
+120x40 Ansi256 Inspector · Options 5ba6f708781857fb
 120x40 Ansi16 Overview 9f30bafedfff60bd
 120x40 Ansi16 Overview · Options 0eee1eb78e5a8c2e
 120x40 Ansi16 Overview · States 9fb9f2b3edcdd24d
@@ -429,7 +429,7 @@
 120x40 Ansi16 Notices · Options dc4b1ee4455e13f7
 120x40 Ansi16 Notices · States f3a5eb4e526b8d6d
 120x40 Ansi16 Panels c58df64b3f3803a2
-120x40 Ansi16 Panels · Options 47e3d6683ab81d2c
+120x40 Ansi16 Panels · Options f184ab2eb4417175
 120x40 Ansi16 Panels · States 50dcf201b2556d6f
 120x40 Ansi16 Scrolling 826ffaca227b5f0a
 120x40 Ansi16 Scrolling · Options 931524ed6d3daea8
@@ -489,7 +489,7 @@
 120x40 Ansi16 Read-only report · Options 86faaa062b9ebac9
 120x40 Ansi16 Read-only report · States 1384d1e0c69e7f65
 120x40 Ansi16 Inspector · State 4dd0766a38f9cd0e
-120x40 Ansi16 Inspector · Options 6d5e925e1501a9d9
+120x40 Ansi16 Inspector · Options c5afbf3f0554a92f
 120x40 Mono Overview 6a373d4c32be57d5
 120x40 Mono Overview · Options 7d3225c21c417475
 120x40 Mono Overview · States 626f1baf903ede86
@@ -593,7 +593,7 @@
 120x40 Mono Notices · Options a268e1a533e2c092
 120x40 Mono Notices · States d70966e15df52019
 120x40 Mono Panels 1a5ebe9eb67fae7b
-120x40 Mono Panels · Options 3a22ed7049efc21b
+120x40 Mono Panels · Options 0db0b6a006a2f1c0
 120x40 Mono Panels · States 8137280d098acfe2
 120x40 Mono Scrolling e39436eb44857b6b
 120x40 Mono Scrolling · Options 82f59a659b5affd3
@@ -653,7 +653,7 @@
 120x40 Mono Read-only report · Options c8e9ed2df76584b8
 120x40 Mono Read-only report · States 99bfbb289a575e57
 120x40 Mono Inspector · State 5ee0355fb5c86677
-120x40 Mono Inspector · Options 797e602295111bd5
+120x40 Mono Inspector · Options e63e17999b8d8287
 80x24 TrueColor Overview 106373a415794203
 80x24 TrueColor Overview · Options 809faa3865fdce52
 80x24 TrueColor Overview · States d2a8aeae459fa41d
@@ -757,7 +757,7 @@
 80x24 TrueColor Notices · Options 4eb08599bf70cb34
 80x24 TrueColor Notices · States 59d05ecc4aa9aafa
 80x24 TrueColor Panels 1912760bc1b923a6
-80x24 TrueColor Panels · Options 7f8519844b2bb801
+80x24 TrueColor Panels · Options a822cdfe3161408d
 80x24 TrueColor Panels · States d9efb7a3b6b9b9c3
 80x24 TrueColor Scrolling a479ee0273cb4c57
 80x24 TrueColor Scrolling · Options cf2ff62317fcf93c
@@ -921,7 +921,7 @@
 80x24 Ansi256 Notices · Options d02839b539c89f15
 80x24 Ansi256 Notices · States dc8bd1c1d53e4ff9
 80x24 Ansi256 Panels f8f7030a6390a68d
-80x24 Ansi256 Panels · Options b6a6d5445e28a151
+80x24 Ansi256 Panels · Options a84f42b4c5357b6f
 80x24 Ansi256 Panels · States 1a2526613a875312
 80x24 Ansi256 Scrolling c3fd5d7913cddee1
 80x24 Ansi256 Scrolling · Options 90d0a7acd38471ec
@@ -1085,7 +1085,7 @@
 80x24 Ansi16 Notices · Options 233847afbf3cad94
 80x24 Ansi16 Notices · States cb3aa0c2dfc294b7
 80x24 Ansi16 Panels 8b7f2b57862f9985
-80x24 Ansi16 Panels · Options dd451520e502dfab
+80x24 Ansi16 Panels · Options 543a8a9b7c1c9b4b
 80x24 Ansi16 Panels · States b286df70f3cb2801
 80x24 Ansi16 Scrolling 6a8d9a40235c94bc
 80x24 Ansi16 Scrolling · Options 317268a4767693f7
@@ -1249,7 +1249,7 @@
 80x24 Mono Notices · Options a30148f56c5d9f9e
 80x24 Mono Notices · States 5e6d0fd4c0ca23ad
 80x24 Mono Panels 9f399ab498ca14e5
-80x24 Mono Panels · Options 051af22f2c8cc759
+80x24 Mono Panels · Options 1671dd2decab67d1
 80x24 Mono Panels · States eb9e9991512494ff
 80x24 Mono Scrolling aada18bdf7e9b276
 80x24 Mono Scrolling · Options 7c8d0ada61631485
@@ -1413,7 +1413,7 @@
 72x20 TrueColor Notices · Options cb113e821667814d
 72x20 TrueColor Notices · States d3d03708fd1a0d6e
 72x20 TrueColor Panels 9b20f78c8da8a75a
-72x20 TrueColor Panels · Options a82f56fc296ac5b6
+72x20 TrueColor Panels · Options 4ef90ee6edbfbc17
 72x20 TrueColor Panels · States a9b2402830b95c9d
 72x20 TrueColor Scrolling 31d0c6f6c77bed9e
 72x20 TrueColor Scrolling · Options 29e753391e595dfb
@@ -1577,7 +1577,7 @@
 72x20 Ansi256 Notices · Options 3e72b0af56ed47c0
 72x20 Ansi256 Notices · States 016ffc2ccdb68ab0
 72x20 Ansi256 Panels 4175337efe86e7e9
-72x20 Ansi256 Panels · Options d91c6e46c3cedd4a
+72x20 Ansi256 Panels · Options a93d6affb6290ca8
 72x20 Ansi256 Panels · States baa59dc34e148677
 72x20 Ansi256 Scrolling 96a3b4cb8ba5b494
 72x20 Ansi256 Scrolling · Options ce18c7aa797f46f7
@@ -1741,7 +1741,7 @@
 72x20 Ansi16 Notices · Options ad0558cf56b4df85
 72x20 Ansi16 Notices · States 0bf844f57c75d60c
 72x20 Ansi16 Panels f0b79ee1d0225255
-72x20 Ansi16 Panels · Options 158d6c2877fd920e
+72x20 Ansi16 Panels · Options 40010aa4aabd67e9
 72x20 Ansi16 Panels · States e5718a4de4d4908f
 72x20 Ansi16 Scrolling cb0d57c004a57df9
 72x20 Ansi16 Scrolling · Options 0f3de6efc6cd9a6d
@@ -1905,7 +1905,7 @@
 72x20 Mono Notices · Options 517664d81ad9eb8f
 72x20 Mono Notices · States 99336602fbf44ff1
 72x20 Mono Panels 0503688b3ce4d09d
-72x20 Mono Panels · Options 8d86acf691515e08
+72x20 Mono Panels · Options 4228b85f85945257
 72x20 Mono Panels · States 1f582051fd1dbd51
 72x20 Mono Scrolling 8ce1c637aabe95cb
 72x20 Mono Scrolling · Options 4a419a774c2a4657
@@ -2069,7 +2069,7 @@
 100x30 TrueColor Notices · Options d5a3888c2b6df892
 100x30 TrueColor Notices · States 004f82a9238a87ce
 100x30 TrueColor Panels 3ad849ac805401b4
-100x30 TrueColor Panels · Options 9ab276dfd0cf09ca
+100x30 TrueColor Panels · Options bb1ba1d26d959ef0
 100x30 TrueColor Panels · States 5fc1ff99a4798b21
 100x30 TrueColor Scrolling 4a3323ea65a058a0
 100x30 TrueColor Scrolling · Options e570bf832940628b
@@ -2129,7 +2129,7 @@
 100x30 TrueColor Read-only report · Options c522ed7cbcf1c5f5
 100x30 TrueColor Read-only report · States 6c2da075162c44f3
 100x30 TrueColor Inspector · State 9fae66bb82553a95
-100x30 TrueColor Inspector · Options 3b9b90e221d6dca0
+100x30 TrueColor Inspector · Options 047c8eafc24128f5
 100x30 Ansi256 Overview 4b9ee7853f4f05bc
 100x30 Ansi256 Overview · Options b3e6271ba0de08ed
 100x30 Ansi256 Overview · States 05b7a7bff9324549
@@ -2233,7 +2233,7 @@
 100x30 Ansi256 Notices · Options 86fd2669086b0ff5
 100x30 Ansi256 Notices · States 533c3452ac447051
 100x30 Ansi256 Panels 92ac6f117292f4a4
-100x30 Ansi256 Panels · Options 0d274575be474eee
+100x30 Ansi256 Panels · Options b611f36e37afb80d
 100x30 Ansi256 Panels · States 50ac162365865a6d
 100x30 Ansi256 Scrolling 1ee379e37ce37a00
 100x30 Ansi256 Scrolling · Options c18fbfb0fc2329a5
@@ -2293,7 +2293,7 @@
 100x30 Ansi256 Read-only report · Options d2babec8f4a87a61
 100x30 Ansi256 Read-only report · States af2e4d681854b339
 100x30 Ansi256 Inspector · State 2a687160b5d8f4c4
-100x30 Ansi256 Inspector · Options 1af6e782d40ecd0e
+100x30 Ansi256 Inspector · Options 37394ec6f976f71f
 100x30 Ansi16 Overview 7493de74409e04be
 100x30 Ansi16 Overview · Options 9980a95c35ddaff5
 100x30 Ansi16 Overview · States 284fc1e72d855b0a
@@ -2397,7 +2397,7 @@
 100x30 Ansi16 Notices · Options 12ba802d4f86fce0
 100x30 Ansi16 Notices · States c7055cbb03ca994a
 100x30 Ansi16 Panels 4cf29b00179e6ea7
-100x30 Ansi16 Panels · Options c7cc2fef41775e1d
+100x30 Ansi16 Panels · Options 3781ce97ae76b0c0
 100x30 Ansi16 Panels · States 050dc26d2c96df0d
 100x30 Ansi16 Scrolling 6c5bcb79ecba6767
 100x30 Ansi16 Scrolling · Options ce3b9a666e0253aa
@@ -2457,7 +2457,7 @@
 100x30 Ansi16 Read-only report · Options 83d5898c85178715
 100x30 Ansi16 Read-only report · States 553823b77efc07ff
 100x30 Ansi16 Inspector · State a74583b6f86fb9fa
-100x30 Ansi16 Inspector · Options c4528d4b86d9e46f
+100x30 Ansi16 Inspector · Options c7680ab3740d1a66
 100x30 Mono Overview f45fe8976c5dbba4
 100x30 Mono Overview · Options a16ac3e0a98ddccc
 100x30 Mono Overview · States 0ed6ddbea15e7e43
@@ -2561,7 +2561,7 @@
 100x30 Mono Notices · Options d0263e91f06fbf6f
 100x30 Mono Notices · States 8d404b9e83884680
 100x30 Mono Panels 577e632d02a53fb5
-100x30 Mono Panels · Options f67e5b90d7bc8076
+100x30 Mono Panels · Options 0a5cce4bcc6fa3b1
 100x30 Mono Panels · States fe29149f5c72f1ca
 100x30 Mono Scrolling 3c6d712f1b336620
 100x30 Mono Scrolling · Options 0333d2a54438299d
@@ -2621,7 +2621,7 @@
 100x30 Mono Read-only report · Options e53eafbd698c1cfc
 100x30 Mono Read-only report · States b51156a5f492a011
 100x30 Mono Inspector · State 1337e9c9133dd630
-100x30 Mono Inspector · Options 6ed48c45406673e4
+100x30 Mono Inspector · Options 175b28a81a3bf3dd
 160x50 TrueColor Overview 066d88b253361a1d
 160x50 TrueColor Overview · Options a055878c271822bf
 160x50 TrueColor Overview · States 94bc1bfda8f58d30
@@ -2725,7 +2725,7 @@
 160x50 TrueColor Notices · Options 6681bfc8a06ca756
 160x50 TrueColor Notices · States 92b383f7427799f3
 160x50 TrueColor Panels 519065734d0defc3
-160x50 TrueColor Panels · Options 180368090e8cc869
+160x50 TrueColor Panels · Options a88c80246f0fe88a
 160x50 TrueColor Panels · States a81fdbedd7d93dfd
 160x50 TrueColor Scrolling b96ae88091933c05
 160x50 TrueColor Scrolling · Options eb867024bf3101df
@@ -2785,7 +2785,7 @@
 160x50 TrueColor Read-only report · Options e10ac83903028181
 160x50 TrueColor Read-only report · States e46fad4347e22186
 160x50 TrueColor Inspector · State 31f873e6741f2317
-160x50 TrueColor Inspector · Options 5068ec3d7536252e
+160x50 TrueColor Inspector · Options 79a950c68a87b642
 160x50 Ansi256 Overview 0b8300ef9a5d26ad
 160x50 Ansi256 Overview · Options cfcba3a9e30d6e1e
 160x50 Ansi256 Overview · States b87c31c9ac8d9bcf
@@ -2889,7 +2889,7 @@
 160x50 Ansi256 Notices · Options fb7126367c015306
 160x50 Ansi256 Notices · States 76d26af393df27fe
 160x50 Ansi256 Panels dd1924c06e4bb54e
-160x50 Ansi256 Panels · Options b74db72fd8d1f170
+160x50 Ansi256 Panels · Options 516890d3e3f14999
 160x50 Ansi256 Panels · States 9817f3120bc0bdd6
 160x50 Ansi256 Scrolling 3442d24d079cd87b
 160x50 Ansi256 Scrolling · Options 04da28b2aa5b7ee8
@@ -2949,7 +2949,7 @@
 160x50 Ansi256 Read-only report · Options 091014ddb93d6009
 160x50 Ansi256 Read-only report · States 87f9960554451911
 160x50 Ansi256 Inspector · State 82798e3653b059f3
-160x50 Ansi256 Inspector · Options 852bdfa690db00bb
+160x50 Ansi256 Inspector · Options d1f55a77249600b6
 160x50 Ansi16 Overview 3951fe12328a367e
 160x50 Ansi16 Overview · Options 973d673a37af28eb
 160x50 Ansi16 Overview · States d56309baa57103bb
@@ -3053,7 +3053,7 @@
 160x50 Ansi16 Notices · Options ecdb1656791a2158
 160x50 Ansi16 Notices · States 19439c54ab104fe4
 160x50 Ansi16 Panels 170c4faca6469d6a
-160x50 Ansi16 Panels · Options c6048125abf448f1
+160x50 Ansi16 Panels · Options 5f6f738f8912529a
 160x50 Ansi16 Panels · States 1b254e30a6e13bfa
 160x50 Ansi16 Scrolling 170e4fddbf38b130
 160x50 Ansi16 Scrolling · Options a709828c14a10a7b
@@ -3113,7 +3113,7 @@
 160x50 Ansi16 Read-only report · Options 81af164ee3eb91cb
 160x50 Ansi16 Read-only report · States ef68561d2cd1d217
 160x50 Ansi16 Inspector · State 5ebb1e0cfd43c009
-160x50 Ansi16 Inspector · Options 9191bdcfc2c53f73
+160x50 Ansi16 Inspector · Options 6085f12ae39e8905
 160x50 Mono Overview 713d4d258b936b08
 160x50 Mono Overview · Options 9ebc98a5b2a8e134
 160x50 Mono Overview · States 3fa20cd263c34568
@@ -3217,7 +3217,7 @@
 160x50 Mono Notices · Options 51f8cd1bbc274855
 160x50 Mono Notices · States f3ffb6903505ce02
 160x50 Mono Panels 48dd6125c73ceaed
-160x50 Mono Panels · Options b6a53774af157e02
+160x50 Mono Panels · Options 427f74223261ea0f
 160x50 Mono Panels · States 8f77c4aaad9e2fc5
 160x50 Mono Scrolling 0def60066d002961
 160x50 Mono Scrolling · Options adc5dbcd871c2b84
@@ -3277,4 +3277,4 @@
 160x50 Mono Read-only report · Options a7f766c47d49e64a
 160x50 Mono Read-only report · States 41476cc4bc6c6635
 160x50 Mono Inspector · State ebfe26d9daf93127
-160x50 Mono Inspector · Options 4296d6f44c4b6c3e
+160x50 Mono Inspector · Options f90d769a57bfc31a
