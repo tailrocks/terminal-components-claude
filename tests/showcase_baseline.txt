@@ -40,7 +40,7 @@
 120x40 TrueColor Toolbars b9ab8aebf7ec244f
 120x40 TrueColor Toolbars · Options 51b9f3ed7509bb8c
 120x40 TrueColor Toolbars · States 777a8e4c3c6fd61c
-120x40 TrueColor Basic table 34321c07cfd0f099
+120x40 TrueColor Basic table 91a343c1c3684827
 120x40 TrueColor Basic table · Options 6cae7f0760145762
 120x40 TrueColor Basic table · States 6c03d65748eef9d1
 120x40 TrueColor Editable c07bd4987d0e7636
@@ -204,7 +204,7 @@
 120x40 Ansi256 Toolbars 3db9ccb6b090c74b
 120x40 Ansi256 Toolbars · Options c278cd532f17bfb6
 120x40 Ansi256 Toolbars · States 416556abfbd7ccd9
-120x40 Ansi256 Basic table 9d83679abacdfccd
+120x40 Ansi256 Basic table 2413bac4921acb3e
 120x40 Ansi256 Basic table · Options 1eaa6a2f4783465b
 120x40 Ansi256 Basic table · States c3321f95b9222b3a
 120x40 Ansi256 Editable 4858ded7455d6945
@@ -368,7 +368,7 @@
 120x40 Ansi16 Toolbars 4f3db8a0fedea813
 120x40 Ansi16 Toolbars · Options 5f74df9afb8282a3
 120x40 Ansi16 Toolbars · States 129d01e91e0716aa
-120x40 Ansi16 Basic table 3882b6fad1574e2b
+120x40 Ansi16 Basic table 2968cd8f54919f28
 120x40 Ansi16 Basic table · Options eaecbe1322e953be
 120x40 Ansi16 Basic table · States b3746fa22642b143
 120x40 Ansi16 Editable 5cb865c788194409
@@ -532,7 +532,7 @@
 120x40 Mono Toolbars efbee1c070d927b6
 120x40 Mono Toolbars · Options 1278fd092f67828e
 120x40 Mono Toolbars · States 0e88fe990eb11297
-120x40 Mono Basic table 0850fb0aa450556d
+120x40 Mono Basic table 66cff62d495e0dcf
 120x40 Mono Basic table · Options 7a7966ced04241a9
 120x40 Mono Basic table · States 84db21a9db26a8ac
 120x40 Mono Editable 0a665374ac1609fd
@@ -696,7 +696,7 @@
 80x24 TrueColor Toolbars 1104d3cef15c0225
 80x24 TrueColor Toolbars · Options 176b001dc19de306
 80x24 TrueColor Toolbars · States 7c1e503fcc6a6669
-80x24 TrueColor Basic table 289d2ff4e7327c28
+80x24 TrueColor Basic table ba24f55ad5707654
 80x24 TrueColor Basic table · Options 0d9610a5a2c9d0ff
 80x24 TrueColor Basic table · States 88ca44c4bfa2e021
 80x24 TrueColor Editable 7b78b080ec11a273
@@ -860,7 +860,7 @@
 80x24 Ansi256 Toolbars 294e64dff2db92c2
 80x24 Ansi256 Toolbars · Options d26d59ca1089804f
 80x24 Ansi256 Toolbars · States 4625ab023a947069
-80x24 Ansi256 Basic table 07aa40f671aaecdd
+80x24 Ansi256 Basic table 283a4028e1990b94
 80x24 Ansi256 Basic table · Options b5c936c6a4ba45f6
 80x24 Ansi256 Basic table · States d55a342a6dc58dac
 80x24 Ansi256 Editable 29d5867e47d3c491
@@ -1024,7 +1024,7 @@
 80x24 Ansi16 Toolbars a89f46373475af8c
 80x24 Ansi16 Toolbars · Options 21c8d24b81a5cb13
 80x24 Ansi16 Toolbars · States 61d39b07414b8295
-80x24 Ansi16 Basic table c98829a25a2a8d2f
+80x24 Ansi16 Basic table dfe0cce07c2c70f6
 80x24 Ansi16 Basic table · Options 6e68ef78d94d7853
 80x24 Ansi16 Basic table · States 0b983cc90490b55f
 80x24 Ansi16 Editable 1ee9cb94b334d44e
@@ -1188,7 +1188,7 @@
 80x24 Mono Toolbars 561470315c314638
 80x24 Mono Toolbars · Options c7def7e3bca60aad
 80x24 Mono Toolbars · States 656c9bc9ea13ca35
-80x24 Mono Basic table 315c9f76ed716f4d
+80x24 Mono Basic table ed07cdffc45de858
 80x24 Mono Basic table · Options 30e22b8bb604d289
 80x24 Mono Basic table · States 8ab647f68d9ce943
 80x24 Mono Editable c2476d92cc03daae
@@ -1352,7 +1352,7 @@
 72x20 TrueColor Toolbars 0ea365afc629bf2d
 72x20 TrueColor Toolbars · Options 63c14d840ce8a40b
 72x20 TrueColor Toolbars · States 1c427bb532ba2218
-72x20 TrueColor Basic table 66af8ad1e7a502b7
+72x20 TrueColor Basic table 771df595b8b5a574
 72x20 TrueColor Basic table · Options 7ed567b20e44785f
 72x20 TrueColor Basic table · States ba549b2219bd5bf8
 72x20 TrueColor Editable 5bc574d78bd8fa4e
@@ -1516,7 +1516,7 @@
 72x20 Ansi256 Toolbars 189774c37e9b3d80
 72x20 Ansi256 Toolbars · Options cdf717d6da03e71b
 72x20 Ansi256 Toolbars · States 71432bbfa614557e
-72x20 Ansi256 Basic table 65a25830510410ae
+72x20 Ansi256 Basic table e1bc99cc7bc52037
 72x20 Ansi256 Basic table · Options 004693a5e020787e
 72x20 Ansi256 Basic table · States 3b5a5d16325fce9c
 72x20 Ansi256 Editable 94eed1b3698da6e3
@@ -1680,7 +1680,7 @@
 72x20 Ansi16 Toolbars 41b0ef0ff779ea0f
 72x20 Ansi16 Toolbars · Options 0da4905c41753fef
 72x20 Ansi16 Toolbars · States fb69bc0e038fdd87
-72x20 Ansi16 Basic table 57a27902bbcc6b91
+72x20 Ansi16 Basic table 0767aa022a377b77
 72x20 Ansi16 Basic table · Options 205e458238fef11b
 72x20 Ansi16 Basic table · States ddbba33c8236d7cd
 72x20 Ansi16 Editable afa02f15d04e5053
@@ -1844,7 +1844,7 @@
 72x20 Mono Toolbars 9120edec43a46177
 72x20 Mono Toolbars · Options 79d99eaee5d3fdfd
 72x20 Mono Toolbars · States bb2d38b6928a2f1f
-72x20 Mono Basic table eb0e02c7dc5b02d7
+72x20 Mono Basic table 585d6f49a5198f19
 72x20 Mono Basic table · Options dbef8e28ae01fca1
 72x20 Mono Basic table · States f83a42ba20105e55
 72x20 Mono Editable 9c954aa0fc4cbd87
@@ -2008,7 +2008,7 @@
 100x30 TrueColor Toolbars 0b80a8e9134a538e
 100x30 TrueColor Toolbars · Options 5878a11056c500d3
 100x30 TrueColor Toolbars · States 72c5d47f30186f80
-100x30 TrueColor Basic table c44e8e8ab7ad1aec
+100x30 TrueColor Basic table f9127ea11a4b4608
 100x30 TrueColor Basic table · Options f27842d862582357
 100x30 TrueColor Basic table · States 56ae624cc178313d
 100x30 TrueColor Editable d0826d6576772a7d
@@ -2172,7 +2172,7 @@
 100x30 Ansi256 Toolbars 0a067d8ab1b4c08b
 100x30 Ansi256 Toolbars · Options 6942bb8ae936b1fa
 100x30 Ansi256 Toolbars · States 4d1a46f89c288fc3
-100x30 Ansi256 Basic table 866d15ca119d871d
+100x30 Ansi256 Basic table 38d9559ca8592dde
 100x30 Ansi256 Basic table · Options 34f31f225c46ad65
 100x30 Ansi256 Basic table · States b3dfba55554a0ba5
 100x30 Ansi256 Editable 964d89e990829abf
@@ -2336,7 +2336,7 @@
 100x30 Ansi16 Toolbars 5536fde5ae4e26dd
 100x30 Ansi16 Toolbars · Options 5454e111f53a1b3a
 100x30 Ansi16 Toolbars · States d5d4cb2fc59f3ab7
-100x30 Ansi16 Basic table e6e88d3a879dd954
+100x30 Ansi16 Basic table 29ae07e4960ff8c6
 100x30 Ansi16 Basic table · Options 6414df8ac3d78dd5
 100x30 Ansi16 Basic table · States bdf8ad96d97c4bc4
 100x30 Ansi16 Editable 517877f2f7df4bdc
@@ -2500,7 +2500,7 @@
 100x30 Mono Toolbars e429abc0f47082ba
 100x30 Mono Toolbars · Options 5dc87ae57e565029
 100x30 Mono Toolbars · States fcc820c370535bde
-100x30 Mono Basic table c7aefadbe524a191
+100x30 Mono Basic table 06c37b9ae1229514
 100x30 Mono Basic table · Options 3975d3daa3335928
 100x30 Mono Basic table · States 1a2e34a13434e167
 100x30 Mono Editable c73bfe0f9387e1f4
