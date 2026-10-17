@@ -181,3 +181,27 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | Gap 8 | Fixed | 3d0f10bd8 | Popups re-place against the current screen every frame; a showcase test locks it (S5). Focus kept visible is SVg9 in `standards-visual.md`. |
 | Gap 9 | Fixed (S11) | S11 | `ValidateWhen { Commit, AfterError (default), Live }` on `EditField` (`TextInput::validate_when`): an ended edit validates; while an error shows, typing re-checks. The grid cell drift (it cleared on any typed character) is fixed (`a_cell_edit_rechecks_after_an_error_undoes_and_flattens_pastes`). The error text stays under the field; the form-level timing is D3. |
 | Gap 10 | Partial; Open → A11 | f46630729 | Type-ahead reset and wrap: see "Status (plan S4)". Wide-character truncation, ellipsis and column snapping remain A11. |
+
+## File browser keys (S22, 2026-10-17)
+
+Decisions for `widgets::file_browser::FileBrowser` (reference: the macOS
+Open panel, then GNOME's file chooser):
+
+- Enter (and →) opens the folder under the cursor; Space chooses. In the
+  macOS panel Return presses the default button and ⌘↓ goes into a
+  folder; a terminal has no Cmd, and every terminal file manager uses
+  Enter to go in, so Enter keeps that meaning and Space is the choose key
+  (jackin's shipped behaviour). Both are `FileCmd` bindings an app remaps
+  (`FileBrowser::keys`); `FileCmd::vim_keymap` adds `h`/`l`/`s`/`g`.
+- `.` shows or hides hidden files: Finder's ⇧⌘. without the Cmd the
+  terminal does not deliver. Punctuation is not type-ahead, so letters
+  keep jumping. A "Show hidden files" check box offers the same to the
+  pointer (`hidden_toggle`, default on).
+- `/` or `~` types a location (Finder's Go to Folder, which also opens on
+  those keys); Ctrl+F moves to the optional name filter.
+- The path bar (`path_bar`) is off by default: the editable path field
+  already names the folder, and the panel stays one row shorter.
+- Esc, the close button and an outside click resolve to `Cancelled`
+  exactly as the `Dismiss` policy allows (default `ESCAPE`); the footer
+  shows Esc only when it closes.
+
