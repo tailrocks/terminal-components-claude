@@ -512,3 +512,34 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
     h.mouse(MouseKind::Secondary, kx, ky);
     assert_eq!(settings_menu(&h).unwrap().items[1].label, "Mask value");
 }
+
+/// K26: the Capsule's Ctrl+B prefix waits for its command without a
+/// timeout (slower typists), and Esc cancels it. Before, it timed out
+/// after 2 s.
+#[test]
+fn the_capsule_prefix_waits_until_esc() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Capsule);
+    let waiting = |h: &H| {
+        h.app
+            .screens
+            .capsule
+            .as_ref()
+            .is_some_and(|c| c.prefix_until.is_some())
+    };
+    h.ctrl('b');
+    assert!(waiting(&h), "Ctrl+B starts the prefix");
+    h.ticks(200);
+    assert!(waiting(&h), "the prefix still waits after 200 ticks");
+    h.key(KeyCode::Esc);
+    assert!(!waiting(&h), "Esc cancels the prefix");
+    // the override brings a timeout back (and shows the ticks above
+    // outlast it)
+    if let Some(c) = h.app.screens.capsule.as_mut() {
+        c.prefix_timeout_ms = Some(2_000);
+    }
+    h.ctrl('b');
+    assert!(waiting(&h));
+    h.ticks(200);
+    assert!(!waiting(&h), "a configured timeout still expires");
+}
