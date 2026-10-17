@@ -16,6 +16,7 @@ use junie_tui::core::selection::ClickPolicy;
 use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
+use junie_tui::ui::master_detail::{MasterDetail, Mode};
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::Dialog;
@@ -133,11 +134,11 @@ pub struct ManagerScreen {
     pub detail_scroll: ScrollState,
     pub detail_cursor: usize,
     detail_rows: Vec<DetailRow>,
-    pub split: Split,
-    seam: Splitter,
+    /// The workspace tree beside the detail: a resizable seam wide, the
+    /// tree with a summary and the detail as a drawer narrow.
+    md: MasterDetail,
     tree_area: Rect,
     detail_area: Rect,
-    pub drawer_open: bool,
     actions: Vec<Button>,
     pub still_inside: Option<(String, Vec<String>, i64)>,
     pub busy_rows: Vec<(RowKey, &'static str)>,
@@ -145,9 +146,7 @@ pub struct ManagerScreen {
     pending_session: Option<String>,
     picker_targets: Vec<(Agent, Option<String>)>,
     last_refresh_error: bool,
-    body_narrow: bool,
     wide: bool,
-    seam_container: Rect,
     /// The tree rows' context menu (right-click, Shift+F10, Menu key);
     /// its `config` is the knob.
     pub menu: RowMenu<RowKey, &'static str>,
@@ -169,11 +168,13 @@ impl ManagerScreen {
             detail_scroll: ScrollState::default(),
             detail_cursor: 0,
             detail_rows: vec![],
-            split: Split::new(32, 28, 40),
-            seam: Splitter::new(SEAM, SplitDir::Horizontal),
+            md: MasterDetail::new(TREE, DETAIL)
+                .resizable(Split::new(32, 28, 40))
+                .seam(Splitter::new(SEAM, SplitDir::Horizontal))
+                .collapse_below(100)
+                .summary_rows(6),
             tree_area: Rect::ZERO,
             detail_area: Rect::ZERO,
-            drawer_open: false,
             actions: vec![],
             still_inside: None,
             busy_rows: vec![],
@@ -181,9 +182,7 @@ impl ManagerScreen {
             pending_session: None,
             picker_targets: vec![],
             last_refresh_error: false,
-            body_narrow: false,
             wide: false,
-            seam_container: Rect::ZERO,
             menu: RowMenu::new(MENU),
         }
     }
@@ -1045,12 +1044,6 @@ impl ManagerScreen {
         }
     }
 
-    fn drawer_visible(&self, focus: Option<WidgetId>) -> bool {
-        self.body_narrow
-            && (self.drawer_open
-                || focus.is_some_and(|f| f == DETAIL || self.actions.iter().any(|b| b.id == f)))
-    }
-
     // ------------------------------------------------------------- render
 
     fn draw_tree(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
@@ -1881,8 +1874,7 @@ fn agent_rows(
 impl Page<Jackin> for ManagerScreen {
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.build_rows(w);
-        cx.focus.focus(TREE);
-        self.drawer_open = false;
+        self.md.close_drawer(cx.focus);
     }
 
     fn primary_focus(&self) -> Option<WidgetId> {
@@ -2211,8 +2203,7 @@ impl Page<Jackin> for ManagerScreen {
                 }
                 KeyCode::Enter => return self.activate(w, cx),
                 KeyCode::Tab => {
-                    self.drawer_open = true;
-                    cx.focus.focus(DETAIL);
+                    self.md.open_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -2256,12 +2247,11 @@ impl Page<Jackin> for ManagerScreen {
                     return self.activate(w, cx);
                 }
                 KeyCode::Esc | KeyCode::Left | KeyCode::BackTab => {
-                    self.drawer_open = false;
-                    cx.focus.focus(TREE);
+                    self.md.close_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 KeyCode::Tab => {
-                    self.drawer_open = true;
+                    // the actions are inside the detail: the drawer stays
                     cx.focus_next();
                     return Outcome::Changed;
                 }
@@ -2310,8 +2300,7 @@ impl Page<Jackin> for ManagerScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Esc => {
-                    self.drawer_open = false;
-                    cx.focus.focus(TREE);
+                    self.md.close_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -2336,6 +2325,10 @@ impl Page<Jackin> for ManagerScreen {
     /// menu; a drag moves the seam or the tree's bar; the wheel scrolls
     /// the pane under the pointer.
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
+        // the seam drags, and a double-click resets it
+        if let Some(o) = self.md.on_pointer(ev) {
+            return o;
+        }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -2344,7 +2337,6 @@ impl Page<Jackin> for ManagerScreen {
             };
         }
         match ev.phase() {
-            Some(Phase::Click) if id == SEAM => self.seam.on_click(&mut self.split, ev.count()),
             Some(Phase::Click) => {
                 if ClickPolicy::DATA.activates(ev.count(), false) {
                     let d = self.double_click(id, w, cx);
@@ -2490,50 +2482,23 @@ impl Page<Jackin> for ManagerScreen {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         self.build_rows(w);
         let t = ctx.theme;
-        self.body_narrow = area.width < 100;
         self.wide = area.width >= 150;
-        let focus = ctx.interaction.focus;
-        if self.body_narrow {
-            let drawer = self.drawer_visible(focus);
-            let summary_h = 6u16.min(area.height / 3);
-            let tree = Rect::new(
-                area.x,
-                area.y,
-                area.width,
-                area.height.saturating_sub(summary_h + 1),
-            );
-            self.draw_tree(tree, buf, ctx, w);
-            let summary = Rect::new(area.x, tree.bottom() + 1, area.width, summary_h);
-            if drawer {
-                // the drawer covers the body; the tree is still a reachable stop
-                self.draw_detail(
-                    Rect::new(area.x, area.y, area.width, area.height),
-                    buf,
-                    ctx,
-                    w,
-                    true,
-                );
+        self.md.detail_owns = self.actions.iter().map(|b| b.id).collect();
+        let l = self.md.layout(area, buf, ctx, t.canvas);
+        if !l.master.is_empty() {
+            self.draw_tree(l.master, buf, ctx, w);
+        }
+        if l.mode != Mode::Split {
+            if l.mode == Mode::Drawer {
+                self.draw_detail(l.detail, buf, ctx, w, true);
             } else {
-                self.draw_summary(summary, buf, ctx, w);
-                // hidden-but-reachable detail stop
-                ctx.control(DETAIL, Rect::ZERO, false);
+                self.draw_summary(l.summary, buf, ctx, w);
             }
+            self.md.finish(ctx);
             self.menu.render(area, buf, ctx);
             return;
         }
-        let seam_container = area;
-        self.seam_container = seam_container;
-        self.split.min_first = 28;
-        self.split.min_second = 40;
-        let (left, right) = self.split.horizontal(area, 2);
-        let handle = self.split.handle(SplitDir::Horizontal, area, 2);
-        self.draw_tree(left, buf, ctx, w);
-        self.seam.render(
-            Rect::new(handle.x + 1, handle.y, 1, handle.height),
-            buf,
-            ctx,
-            t.canvas,
-        );
+        let right = l.detail;
         if self.wide {
             let (detail, roster) = Split::new(55, 40, 36).horizontal(right, 2);
             self.draw_detail(detail, buf, ctx, w, false);
@@ -2807,8 +2772,7 @@ impl ManagerScreen {
                 let same = self.selected == self.rows[i].key;
                 self.selected = self.rows[i].key.clone();
                 self.detail_cursor = 0;
-                cx.focus.focus(TREE);
-                self.drawer_open = false;
+                self.md.close_drawer(cx.focus);
                 if same {
                     return self.activate(w, cx);
                 }
@@ -2841,8 +2805,7 @@ impl ManagerScreen {
             return Outcome::Changed;
         }
         if id == DETAIL {
-            cx.focus.focus(DETAIL);
-            self.drawer_open = true;
+            self.md.open_drawer(cx.focus);
             return Outcome::Changed;
         }
         for i in 0..self.detail_rows.len() {
@@ -2937,8 +2900,7 @@ impl ManagerScreen {
             self.detail_cursor = 0;
             self.detail_scroll.jump_start();
         }
-        cx.focus.focus(TREE);
-        self.drawer_open = false;
+        self.md.close_drawer(cx.focus);
         self.open_menu(i, ContextAnchor::Pointer(pos), w);
         Outcome::Changed
     }
@@ -2958,10 +2920,6 @@ impl ManagerScreen {
     }
 
     fn drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        if pressed == SEAM {
-            let container = self.seam_container;
-            return self.seam.on_drag(&mut self.split, container, 2, pos);
-        }
         if pressed == scrollbar::id_for(TREE) {
             let track = Rect::new(
                 self.tree_area.right() - 1,
