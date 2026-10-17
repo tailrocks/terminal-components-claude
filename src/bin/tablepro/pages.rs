@@ -170,6 +170,15 @@ impl Page<Tablepro> for Workbench {
         Outcome::Changed
     }
 
+    /// Pending row changes and unsaved query text: leaving the workbench
+    /// (Disconnect, quitting) asks first.
+    fn stakes(&mut self, _h: &History) -> Stakes {
+        match self.pending_total() + self.unsaved_queries() {
+            0 => Stakes::Clean,
+            changes => Stakes::Unsaved { changes },
+        }
+    }
+
     /// Ctrl+C cancels the active tab's running query before it may quit.
     fn on_interrupt(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         if let Some(WorkTab::Query(q)) = self.active_tab_mut()
