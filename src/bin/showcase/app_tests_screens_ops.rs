@@ -308,3 +308,158 @@ fn activity_states_rows_render() {
         assert!(text.contains(needle), "{needle}: {text}");
     }
 }
+
+// -------------------------------------------------------------- Workspaces
+
+const WS: WidgetId = WidgetId::of("workspaces");
+
+#[test]
+fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
+    let h = Harness::new(120, 40, PageId::Workspaces);
+    let text = h.text();
+    assert!(!text.contains("arrives with"), "{text}");
+    for needle in [
+        "payments-platform",
+        "infra-control-plane",
+        "7f3a the-architect",
+        "Working dir",
+        "/workspace/payments-platform",
+        "daemon · 3 s ago",
+        "a1c0  release-automat",
+        "Launch",
+        "Delete…",
+    ] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+    // narrow: the tree alone, the detail is a drawer away
+    let h = Harness::new(80, 24, PageId::Workspaces);
+    let text = h.text();
+    assert!(!text.contains("arrives with"), "{text}");
+    assert!(text.contains("payments-platform"), "{text}");
+    assert!(!text.contains("Working dir"), "{text}");
+}
+
+#[test]
+fn workspaces_narrow_detail_is_a_drawer() {
+    let mut h = Harness::new(80, 24, PageId::Workspaces);
+    h.focus(WS.sub("tree"));
+    assert!(h.text().contains("Tab shows details"), "{}", h.text());
+    h.key(KeyCode::Tab);
+    assert!(h.app.shell.focus.is(WS.sub("detail")));
+    let text = h.text();
+    assert!(text.contains("Working dir"), "{text}");
+    assert!(text.contains("Esc back"), "{text}");
+    assert!(
+        !text.contains("infra-control-plane"),
+        "the drawer covers the tree"
+    );
+    h.key(KeyCode::Esc);
+    assert!(h.app.shell.focus.is(WS.sub("tree")));
+    assert!(h.text().contains("infra-control-plane"));
+}
+
+#[test]
+fn workspaces_detail_follows_the_tree_cursor() {
+    let mut h = Harness::new(120, 40, PageId::Workspaces);
+    h.focus(WS.sub("tree"));
+    // the workspace, its two instances, then the next workspace
+    for _ in 0..3 {
+        h.key(KeyCode::Down);
+    }
+    let text = h.text();
+    assert!(text.contains("/workspace/infra"), "{text}");
+    assert!(text.contains("9 vars · 4 [op]"), "{text}");
+}
+
+#[test]
+fn workspaces_launch_spins_its_row_until_running() {
+    let mut h = Harness::new(120, 40, PageId::Workspaces);
+    h.click_id(WS.sub("launch"));
+    assert_eq!(h.status(), "Launching payments-platform…");
+    let (_, y) = h.at("e5d9 the-architect");
+    assert!(h.row(y).contains("starting"), "{}", h.row(y));
+    assert!(h.text().contains("2 running"), "starting counts as running");
+    for _ in 0..20 {
+        h.tick();
+    }
+    assert_eq!(h.status(), "Instance e5d9 is running");
+    let (_, y) = h.at("e5d9 the-architect");
+    assert!(h.row(y).contains("just now"), "{}", h.row(y));
+}
+
+#[test]
+fn workspaces_purge_needs_the_typed_name() {
+    let mut h = Harness::new(120, 40, PageId::Workspaces);
+    h.click_id(WS.sub("delete"));
+    assert!(
+        h.text().contains("Delete payments-platform?"),
+        "{}",
+        h.text()
+    );
+    typed(&mut h, "payments");
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Delete payments-platform?"), "not armed");
+    typed(&mut h, "-platform");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.status(), "Deleted payments-platform");
+    let text = h.text();
+    assert!(!text.contains("▾ payments-platform"), "{text}");
+    assert!(text.contains("3 saved"), "{text}");
+    assert!(text.contains("/workspace/infra"), "the next one: {text}");
+}
+
+#[test]
+fn workspaces_options_drive_the_master_detail() {
+    let mut h = Harness::new(120, 40, PageId::Workspaces);
+    h.opt("workspaces.roster=off");
+    assert!(!h.text().contains("daemon · 3 s ago"));
+    h.opt("workspaces.roster=auto");
+    h.opt("workspaces.collapse_below=108");
+    assert!(!h.text().contains("Working dir"), "collapsed at 120x40");
+    h.opt("workspaces.collapse_below=80");
+    h.opt("workspaces.size=share");
+    assert!(h.text().contains("Working dir"));
+    // without the typed confirm the purge is a plain destructive confirm
+    h.opt("workspaces.typed=off");
+    h.click_id(WS.sub("delete"));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.status(), "Deleted payments-platform");
+}
+
+#[test]
+fn workspaces_states_rows_render() {
+    let mut h = Harness::new(120, 40, PageId::Workspaces);
+    h.section(Section::States);
+    let text = h.text();
+    for needle in [
+        "Workspace tree",
+        "Roster",
+        "Master-detail",
+        "busy",
+        "narrow",
+    ] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+}
+
+#[test]
+fn workspaces_tab_order_runs_tree_detail_roster_then_actions() {
+    let mut h = Harness::new(120, 40, PageId::Workspaces);
+    let order = [
+        WS.sub("sections"),
+        WS.sub("tree"),
+        WS.sub("detail"),
+        WS.sub("roster"),
+        WS.sub("launch"),
+        WS.sub("edit"),
+        WS.sub("prewarm"),
+        WS.sub("delete"),
+    ];
+    for id in order {
+        h.key(KeyCode::Tab);
+        assert!(h.app.shell.focus.is(id), "{id:?}");
+    }
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("Delete payments-platform?"));
+}

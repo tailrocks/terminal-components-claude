@@ -194,7 +194,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/activity-states", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Streams"]).pending(),
     Root::new("showcase/flows/activity/failed-find", Bin::Showcase, &["--page", "activity", "--opt", "activity.state=failed", "--opt", "activity.find=error"], BOOT).sends(&["wait:Free the port"]).pending(),
     Root::new("showcase/flows/activity/stopped-hidden-stream", Bin::Showcase, &["--page", "activity", "--opt", "activity.state=stopped"], BOOT).sends(&["wait:stopped · exit 143", "tab", "tab", "3", "wait:3 of 4 streams"]).pending(),
-    Root::new("showcase/planned/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:arrives with SC52"]).pending(),
+    // SC52 filled Workspaces: the page, its sections, the narrow drawer
+    // and the purge's typed confirmation
+    Root::new("showcase/pages/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago"]).pending(),
+    Root::new("showcase/sections/workspaces-options", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["tab", "2", "wait:Instance roster"]).pending(),
+    Root::new("showcase/sections/workspaces-states", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["tab", "3", "wait:Workspace tree"]).pending(),
+    Root::new("showcase/flows/workspaces/drawer", Bin::Showcase, &["--page", "workspaces", "--opt", "workspaces.collapse_below=108"], BOOT).sends(&["wait:Tab shows details", "tab", "tab", "tab", "wait:Esc back"]).pending(),
+    Root::new("showcase/flows/workspaces/purge", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:Delete payments-platform?"]).pending(),
     Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
     Root::new("showcase/planned/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:arrives with SC55"]).pending(),
     Root::new("showcase/planned/readonlyreport", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["wait:arrives with SC56"]).pending(),
