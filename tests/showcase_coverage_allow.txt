@@ -404,7 +404,6 @@ ui::pane_tree::PaneRefusal::message | widget actions: the Inspector State log of
 # ui::scroll_view, ui::measure
 ui::measure::at_least | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::measure::Tile | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
-ui::measure::Tile::new | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::Tile::fixed | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::Tiled | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
 ui::measure::Tiled::at | measured tiles: showcase Playgrounds lay their cards out at their natural size with it (Priority 0b, reach-a); SC59 shows it on the Scrolling page | SC59
@@ -418,6 +417,7 @@ ui::scroll_view::ScrollCmd::PageRight | the two-axis scroll container: the showc
 ui::scroll_view::ScrollCmd::Top | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::scroll_view::ScrollCmd::Bottom | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::scroll_view::ViewLayout | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
+ui::scroll_view::ScrollView::fit | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::scroll_view::ViewLayout::overflows | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::scroll_view::ScrollView | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
 ui::scroll_view::ScrollView::axes | the two-axis scroll container: the showcase page template draws every section in it (SC59, responsive-lib template step) | SC59
