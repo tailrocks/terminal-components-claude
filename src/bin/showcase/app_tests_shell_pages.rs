@@ -150,6 +150,8 @@ mod breadcrumbs_rails {
     fn enter_descends_and_a_crumb_goes_back() {
         let mut h = page();
         let (x, y) = h.find("Projects").expect("the folder list");
+        // a double click opens a folder, as in Finder
+        h.click(x, y);
         h.click(x, y);
         assert!(h.app.shell.focus.is(LIST));
         assert!(
@@ -161,6 +163,7 @@ mod breadcrumbs_rails {
         let (x, y) = h
             .find("payments-plat")
             .unwrap_or_else(|| panic!("{}", h.text()));
+        h.click(x, y);
         h.click(x, y);
         assert!(h.text().contains("› Projects › payments-platform"));
         // a click on an earlier level goes back to it
