@@ -106,9 +106,6 @@ PopupsTooltips | Playground | 80x24 | R27 squeezes instead of overflowing: no Pa
 PopupsTooltips | Playground | 100x25 | R27 squeezes instead of overflowing: no Page::measure yet
 PopupsTooltips | Playground | 106x29 | R27 squeezes instead of overflowing: no Page::measure yet
 PopupsTooltips | Playground | 120x40 | R27 squeezes instead of overflowing: no Page::measure yet
-FileBrowser | Playground | 80x24 | R28 squeezes instead of overflowing: no Page::measure yet
-FileBrowser | Playground | 100x25 | R28 squeezes instead of overflowing: no Page::measure yet
-FileBrowser | Playground | 106x29 | R28 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 80x24 | R29 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 100x25 | R29 squeezes instead of overflowing: no Page::measure yet
 Progress | Playground | 106x29 | R29 squeezes instead of overflowing: no Page::measure yet
