@@ -5,17 +5,17 @@
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
-  ▸ Tables        ┃    Language          Files to in…      Search res…  [0m
-  ▾ Navigation    ┃                                                     [0m
- [0m[1m▎  › Lists       [0m┃    Chosen: Rust      Space toggl…                   [0m
-      Trees       ┃                                                     [0m
-      Sidebars    ┃    [0m[1m › Rust    [0m┃      [0m[1m ✓ src/ap… [0m┃                   [0m
-      Tabs        ┃       TypeSc… ┆      [0m[1m ✓ src/ap… [0m┃                   [0m
-      Menus       ┃       Python  ┆      [0m[2m   src/db… [0m┃      No results…  [0m
-  ▸ Overlays      ┃       Kotlin  ┆         tests/… ┆                   [0m
-  ▸ Feedback      ┆       Go      ┆      [0m[2m   Cargo.… [0m┆                   [0m
- [0m[2m ▸ Layout        [0m┆    [0m[2m   Java    [0m┆      [0m[2m   docs/w… [0m┆                   [0m
-                                                                        [0m
+  ▸ Tables        ┃    Language                           1–13 of 20   ┃[0m
+  ▾ Navigation    ┃                                                    ┆[0m
+ [0m[1m▎  › Lists       [0m┃    Chosen: Rust                                    ┆[0m
+      Trees       ┃                                                    ┆[0m
+      Sidebars    ┃    [0m[1m › Rust                                     [0m┃   ┆[0m
+      Tabs        ┃       TypeScript                               ┃   ┆[0m
+      Menus       ┃       Python                                   ┃   ┆[0m
+  ▸ Overlays      ┃       Kotlin                                   ┃   ┆[0m
+  ▸ Feedback      ┆       Go                                       ┃   ┆[0m
+ [0m[2m ▸ Layout        [0m┆       Java                                     ┃   ┆[0m
+                          Swift                                    ┃   ┆[0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l

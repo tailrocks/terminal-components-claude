@@ -5,27 +5,27 @@
     Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                  [0m
-  ▸ Tables             Language   1–13 of 20      Files to in… 2 selec…      Search results         [0m
-  ▾ Navigation                                                                                      [0m
- [0m[1m▎  › Lists        [0m    Chosen: Rust               Space toggle · a all…                             [0m
-      Trees                                                                                         [0m
-      Sidebars         [0m[1m › Rust             [0m┃      [0m[1m ✓ src/api/auth.rs   [0m                             [0m
-      Tabs                TypeScript       ┃      [0m[1m ✓ src/api/billing.rs[0m                             [0m
-      Menus               Python           ┃      [0m[2m   src/db/schema.rs  [0m                             [0m
-  ▸ Overlays              Kotlin           ┃         tests/checko… new                              [0m
-  ▸ Feedback              Go               ┃      [0m[2m   Cargo.lock        [0m                             [0m
-  ▸ Layout                Java             ┃         docs/webhooks.md        No results for “retr…  [0m
-  ▸ Text & code           Swift            ┃         src/workers/maile…                             [0m
-  ▸ Screens               C#               ┃         src/config.rs                                  [0m
-                          Ruby             ┆         README.md                                      [0m
-                          Scala            ┆         src/main.rs                                    [0m
-                          Elixir           ┆         tests/auth_f… new                              [0m
-                          Haskell          ┆         src/db/pool.rs                                 [0m
-                       [0m[2m   Zig              [0m┆                                                        [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                     nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Double, check   [0m
-                     BoxOnly · wrap false · skip_disabled true                                      [0m
+  ▸ Tables             Language                                                       1–13 of 20   ┃[0m
+  ▾ Navigation                                                                                     ┃[0m
+ [0m[1m▎  › Lists        [0m    Chosen: Rust                                                                ┃[0m
+      Trees                                                                                        ┃[0m
+      Sidebars         [0m[1m › Rust                                                                 [0m┃   ┃[0m
+      Tabs                TypeScript                                                           ┃   ┃[0m
+      Menus               Python                                                               ┃   ┃[0m
+  ▸ Overlays              Kotlin                                                               ┃   ┆[0m
+  ▸ Feedback              Go                                                                   ┃   ┆[0m
+  ▸ Layout                Java                                                                 ┃   ┆[0m
+  ▸ Text & code           Swift                                                                ┃   ┆[0m
+  ▸ Screens               C#                                                                   ┃   ┆[0m
+                          Ruby                                                                 ┆   ┆[0m
+                          Scala                                                                ┆   ┆[0m
+                          Elixir                                                               ┆   ┆[0m
+                          Haskell                                                              ┆   ┆[0m
+                       [0m[2m   Zig                                                                  [0m┆   ┆[0m
+                                                                                                   ┆[0m
+                                                                                                   ┆[0m
+                       Files to include                                               2 selected   ┆[0m
+                                                                                                   ┆[0m
                                                                                                     [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
 [?25l
