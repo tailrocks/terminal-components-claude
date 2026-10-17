@@ -3,7 +3,7 @@
 //! horizontal scrolling). Options: `crate::options::TEXTAREAS`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -18,6 +18,7 @@ use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::HScroll;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::{Measure, Tile, Tiled, tiles};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::input::InputAction;
 use junie_tui::widgets::panel::Panel;
@@ -137,6 +138,10 @@ impl Page for TextAreasPage {
         "Multi-line editing, Unicode cursor motion, horizontal and vertical scrolling"
     }
 
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width, ctx).0.size
+    }
+
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let body = self.template.render(area, buf, ctx);
         match self.template.section() {
@@ -201,22 +206,68 @@ impl Page for TextAreasPage {
 }
 
 impl TextAreasPage {
+    /// The two cards (the editable areas, then the disabled one and the
+    /// one with an error), each with its two areas side by side when both
+    /// fit whole and stacked otherwise. `measure` and `render_playground`
+    /// share it: the cards' rects, and each card's areas in its content.
+    fn tiled(&self, width: u16, ctx: &RenderCtx) -> (Tiled, [Tiled; 2]) {
+        let any = Size::new(0, 0);
+        // each area at its natural size: every line whole
+        let sizes: Vec<Size> = self.areas.iter().map(|a| a.measure(any, ctx)).collect();
+        let inner = |k: usize, w: u16| {
+            let (a, b) = (sizes[2 * k], sizes[2 * k + 1]);
+            let ha = |_: u16| a.height;
+            let hb = |_: u16| b.height;
+            tiles(
+                w,
+                &[&[Tile::new(a.width, &ha), Tile::new(b.width, &hb)]],
+                (4, 1),
+            )
+        };
+        let panels = [Self::panel(0), Self::panel(1)];
+        let card_w = |k: usize| {
+            let (a, b) = (sizes[2 * k], sizes[2 * k + 1]);
+            panels[k].outer(Size::new(a.width.max(b.width), 0)).width
+        };
+        let card_h = |k: usize, w: u16| {
+            let content = panels[k].inner(Size::new(w, 0)).width;
+            panels[k]
+                .outer(Size::new(content, inner(k, content).size.height))
+                .height
+        };
+        let h0 = |w: u16| card_h(0, w);
+        let h1 = |w: u16| card_h(1, w);
+        let cards = tiles(
+            width,
+            &[&[Tile::new(card_w(0), &h0)], &[Tile::new(card_w(1), &h1)]],
+            (0, 1),
+        );
+        let contents = [0, 1].map(|k| {
+            let w = panels[k].inner(Size::new(cards.size.width, 0)).width;
+            inner(k, w)
+        });
+        (cards, contents)
+    }
+
+    fn panel(k: usize) -> Panel<'static> {
+        match k {
+            0 => Panel::card(Some("Playground")).meta("Type to edit · Esc Done · Tab Next"),
+            _ => Panel::card(Some("Disabled and error")),
+        }
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[13, 1, 10]);
-        let panel = Panel::card(Some("Playground")).meta("Type to edit · Esc Done · Tab Next");
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        let (l, r) = crate::pages::layout::columns(inner, (inner.width / 2).saturating_sub(2), 4);
-        self.areas[0].render(l, buf, ctx, bg);
-        self.areas[1].render(r, buf, ctx, bg);
-
-        let panel = Panel::card(Some("Disabled and error"));
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[2], buf, t);
-        let (l, r) = crate::pages::layout::columns(inner, (inner.width / 2).saturating_sub(2), 4);
-        self.areas[2].render(l, buf, ctx, bg);
-        self.areas[3].render(r, buf, ctx, bg);
+        let (cards, contents) = self.tiled(area.width, ctx);
+        for k in 0..2 {
+            let panel = Self::panel(k);
+            let bg = panel.bg(t);
+            let inner = panel.render(cards.at(k, area), buf, t);
+            for i in 0..2 {
+                let r = contents[k].at(i, inner);
+                self.areas[2 * k + i].render(r, buf, ctx, bg);
+            }
+        }
     }
 
     fn handle_areas(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
