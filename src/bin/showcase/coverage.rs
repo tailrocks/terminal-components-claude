@@ -6410,6 +6410,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "ui::reveal::advertise",
             "ui::reveal::peek",
             "ui::reveal::queue_cut",
+            "ui::reveal::clamp",
             "ui::reveal::fit",
             "ui::reveal::cut",
             "ui::reveal::cut_id",
