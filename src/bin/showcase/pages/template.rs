@@ -213,7 +213,11 @@ impl Template {
         ctx: &mut RenderCtx,
     ) -> ScrollFrame {
         let body = Self::body_of(area);
-        let size = self.measure(body.as_size(), playground, ctx);
+        // a section only as tall as the page keeps its width; one taller
+        // leaves the vertical bar its columns (no sideways scroll for it)
+        let size = self
+            .view
+            .fit(body.as_size(), |a| self.measure(a, playground, ctx));
         let frame = self.view.begin(body, size, buf, ctx);
         self.content = Some(frame.area());
         frame
