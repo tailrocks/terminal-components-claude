@@ -14,7 +14,7 @@
 //! `FilterTree` (S21).
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -42,7 +42,7 @@ use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::render_indeterminate;
-use junie_tui::widgets::props::Prop;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
@@ -615,6 +615,56 @@ impl ConnectionsPage {
             return;
         };
         let c = self.conns[i].clone();
+        let facts = self.facts(i);
+        let busy = matches!(self.state, ConnState::Connecting { .. });
+        self.connect.disabled = busy;
+        let failure = self.failure(i);
+        // a failed connection is tried again from the same button
+        self.connect.label = if failure.is_some() {
+            "Reconnect".into()
+        } else {
+            "Connect".into()
+        };
+        let connecting =
+            matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
+        // the facts leave room for the state (the bar or the notice), a
+        // blank row and the action row
+        let state_h = self.state_h(i, r.width.saturating_sub(4));
+        let card = DetailCard::new(&c.name)
+            .meta(ENVS[c.env])
+            .props(facts)
+            .focused(focused)
+            .fit(true)
+            .reserve(state_h + 2)
+            .actions(ActionRow::new());
+        let l = card.render(
+            r,
+            buf,
+            ctx,
+            t.canvas,
+            &mut [
+                &mut self.connect,
+                &mut self.edit,
+                &mut self.duplicate,
+                &mut self.delete,
+            ],
+        );
+        if connecting {
+            render_indeterminate(
+                Rect::new(l.slot.x, l.slot.y, l.slot.width, 1),
+                buf,
+                ctx,
+                "Connecting  ",
+                l.bg,
+            );
+        } else if let Some(n) = &failure {
+            n.render(l.slot, buf, ctx, l.bg);
+        }
+    }
+
+    /// Connection `i`'s facts in its detail card.
+    fn facts(&self, i: usize) -> Vec<Prop> {
+        let c = &self.conns[i];
         let env = env_kind(c.env);
         let mut facts = vec![
             Prop::new("Engine", ENGINES[c.engine]),
@@ -649,60 +699,31 @@ impl ConnectionsPage {
                 Prop::new("Status", "✓ Connected · PostgreSQL 16.3 · 12 ms").tone(Tone::Success),
             );
         }
-        let busy = matches!(self.state, ConnState::Connecting { .. });
-        self.connect.disabled = busy;
-        let failure = match &self.state {
+        facts
+    }
+
+    /// The notice of connection `i`'s last failed attempt, if it failed.
+    fn failure(&self, i: usize) -> Option<Notice> {
+        match &self.state {
             ConnState::Failed {
                 name,
                 message,
                 detail,
-            } if *name == c.name => Some(Notice::error(message.as_str()).detail(detail.as_str())),
+            } if *name == self.conns[i].name => {
+                Some(Notice::error(message.as_str()).detail(detail.as_str()))
+            }
             _ => None,
-        };
-        // a failed connection is tried again from the same button
-        self.connect.label = if failure.is_some() {
-            "Reconnect".into()
-        } else {
-            "Connect".into()
-        };
-        let connecting =
-            matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
-        // the facts leave room for the state (the bar or the notice), a
-        // blank row and the action row
-        let state_h = match &failure {
-            Some(n) => n.height(r.width.saturating_sub(4)) + 1,
+        }
+    }
+
+    /// The rows connection `i`'s state takes in a card `w` cells wide:
+    /// the failure notice, the connecting bar, or nothing.
+    fn state_h(&self, i: usize, w: u16) -> u16 {
+        let connecting = matches!(&self.state, ConnState::Connecting { name, .. } if *name == self.conns[i].name);
+        match self.failure(i) {
+            Some(n) => n.height(w) + 1,
             None if connecting => 2,
             None => 0,
-        };
-        let card = DetailCard::new(&c.name)
-            .meta(ENVS[c.env])
-            .props(facts)
-            .focused(focused)
-            .fit(true)
-            .reserve(state_h + 2)
-            .actions(ActionRow::new());
-        let l = card.render(
-            r,
-            buf,
-            ctx,
-            t.canvas,
-            &mut [
-                &mut self.connect,
-                &mut self.edit,
-                &mut self.duplicate,
-                &mut self.delete,
-            ],
-        );
-        if connecting {
-            render_indeterminate(
-                Rect::new(l.slot.x, l.slot.y, l.slot.width, 1),
-                buf,
-                ctx,
-                "Connecting  ",
-                l.bg,
-            );
-        } else if let Some(n) = &failure {
-            n.render(l.slot, buf, ctx, l.bg);
         }
     }
 
@@ -881,6 +902,22 @@ impl Page for ConnectionsPage {
         "Grouped connections with env glyphs, details, connect and the form"
     }
 
+    /// The room it gets, never narrower than the list beside the detail
+    /// card (`MasterDetail::natural_width`: it does not collapse into the
+    /// list and its drawer) and never shorter than the selected
+    /// connection's card at its narrowest: every fact, its state and the
+    /// action row. The list scrolls its own rows.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let width = avail.width.max(self.md.natural_width(LIST_MIN, DETAIL_MIN));
+        let card = self.selected.filter(|_| !self.empty()).map_or(0, |i| {
+            let inner = DETAIL_MIN - 4;
+            // the card's title and rule, its facts, a blank row, the
+            // state and the action row
+            3 + props::measure(&self.facts(i), inner) + self.state_h(i, inner) + 2
+        });
+        Size::new(width, avail.height.max(card))
+    }
+
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let body = self.template.render(area, buf, ctx);
         match self.template.section() {
@@ -1019,13 +1056,17 @@ impl Page for ConnectionsPage {
     }
 }
 
+/// The list's and the detail card's narrowest.
+const LIST_MIN: u16 = 24;
+const DETAIL_MIN: u16 = 44;
+
 /// The list and its detail card: a resizable seam (the list takes
 /// `share` percent, at least 24 columns; the card at least 44), a
 /// one-row summary and a drawer below 80 columns.
 fn master_detail(share: u16) -> MasterDetail {
     MasterDetail::new(ID.sub("tree"), ID.sub("connect"))
         .detail_owns(&[ID.sub("edit"), ID.sub("duplicate"), ID.sub("delete-btn")])
-        .resizable(Split::new(share, 24, 44))
+        .resizable(Split::new(share, LIST_MIN, DETAIL_MIN))
         // both panes fit from 80 columns (24 + 2 + 44 and room to spare)
         .collapse_below(80)
         .summary_rows(1)

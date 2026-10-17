@@ -15,7 +15,7 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -40,7 +40,7 @@ use junie_tui::widgets::info_dialog::InfoDialog;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::props::Prop;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction};
@@ -53,6 +53,8 @@ const SCOPES: &[&str] = &["Here", "Project", "Everywhere"];
 const SCOPE_LINK: WidgetId = ID.sub("scope");
 /// Page width from which the preview is a card beside the results.
 const CARD_MIN: u16 = 90;
+/// The preview card's narrowest.
+const PREVIEW_MIN: u16 = 34;
 
 /// One thing the finder can run (demo data, holla's catalogue shape).
 struct Action {
@@ -413,7 +415,7 @@ impl FinderPage {
             area.height.saturating_sub(top),
         );
         if self.card(area) {
-            let preview_w = (body.width * 2 / 5).max(34);
+            let preview_w = (body.width * 2 / 5).max(PREVIEW_MIN);
             let list = Rect::new(
                 body.x,
                 body.y,
@@ -464,22 +466,7 @@ impl FinderPage {
             return;
         };
         let meta = format!("{} · {}", a.group, SCOPES[a.scope].to_lowercase());
-        let facts = vec![
-            Prop::new("Runs", a.runs).copyable(),
-            Prop::new("In", "~/work/holla"),
-            Prop::new("Host", "mbp · local"),
-            Prop::new("State", a.note),
-            Prop::new("Risk", a.risk).tone(risk_tone(a.risk)),
-            Prop::new(
-                "Gate",
-                if a.risk == "destructive" {
-                    "asks first"
-                } else {
-                    "runs directly"
-                },
-            ),
-            Prop::new("Data", "live · 2 s ago").tone(Tone::Muted),
-        ];
+        let facts = facts(a);
         // the facts, then Alternatives… and Why? right under them
         DetailCard::new(a.name)
             .meta(&meta)
@@ -628,6 +615,26 @@ impl FinderPage {
     }
 }
 
+/// The preview card's facts of action `a`.
+fn facts(a: &Action) -> Vec<Prop> {
+    vec![
+        Prop::new("Runs", a.runs).copyable(),
+        Prop::new("In", "~/work/holla"),
+        Prop::new("Host", "mbp · local"),
+        Prop::new("State", a.note),
+        Prop::new("Risk", a.risk).tone(risk_tone(a.risk)),
+        Prop::new(
+            "Gate",
+            if a.risk == "destructive" {
+                "asks first"
+            } else {
+                "runs directly"
+            },
+        ),
+        Prop::new("Data", "live · 2 s ago").tone(Tone::Muted),
+    ]
+}
+
 /// The States grid: the query with its scope readout and the results
 /// table.
 fn states_grid() -> StateGrid {
@@ -666,6 +673,23 @@ impl Page for FinderPage {
     }
     fn blurb(&self) -> &'static str {
         "Typing-hot query, scope, ranked results, preview, alternatives and why"
+    }
+
+    /// The room it gets; with the preview as a card, never narrower than
+    /// [`CARD_MIN`] (the card does not fall back to its one line) and
+    /// never shorter than the query over the selected action's card at
+    /// its narrowest: every fact and the action row. The results scroll
+    /// their own rows.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        if self.opts.value("finder.preview") == "line" {
+            return avail;
+        }
+        let card = self.current().map_or(0, |a| {
+            // the card's title and rule, its facts, a blank row and the
+            // action row
+            3 + props::measure(&facts(a), PREVIEW_MIN - 4) + 2
+        });
+        Size::new(avail.width.max(CARD_MIN), avail.height.max(3 + card))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
