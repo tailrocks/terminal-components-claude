@@ -30,6 +30,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::core::edit::TextCmd;
 use crate::core::event::{Key, Outcome};
 use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
@@ -38,6 +39,9 @@ use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, ScrollState, Scrollable, TrackClick};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::edit_menu::{
+    EditCaps, EditMenu, EditMenuHost, edit_menu_key, edit_menu_pointer, edit_menu_route,
+};
 use crate::ui::text::width;
 use crate::widgets::field_common::PointerSelect;
 use crate::widgets::scrollbar;
@@ -529,6 +533,10 @@ pub struct TextViewport {
     /// a double click a word (a drag from it extends by words), a triple
     /// click the line; Shift with a press extends the selection.
     pub pointer_select: PointerSelect,
+    /// The standard Edit context menu for read-only text (Copy, Select
+    /// all) a secondary click or Shift+F10 / the Menu key opens
+    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+    pub edit_menu: EditMenu,
 }
 
 /// A [`TextViewport`] action a key can be bound to.
@@ -595,6 +603,7 @@ impl TextViewport {
             revision: 0,
             select: TextSelect::default(),
             pointer_select: PointerSelect::DEFAULT,
+            edit_menu: EditMenu::default(),
             browse: None,
             marks: vec![],
             visual: vec![],
@@ -1746,6 +1755,10 @@ impl TextViewport {
     /// Shift+arrows extend a keyboard selection (Ctrl/Alt by word,
     /// Ctrl+Shift+Home/End to the document ends) · Esc clears.
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportAction>) {
+        // the open Edit menu takes the keys; Shift+F10 opens it
+        if let Some(o) = edit_menu_key(self, key) {
+            return (o, None);
+        }
         if key.shift()
             && matches!(
                 key.code,
@@ -1824,12 +1837,21 @@ impl TextViewport {
     // ------------------------------------------------------------ render
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.render_view(area, buf, ctx, bg);
+        // the Edit menu floats above everything drawn after the viewport
+        self.edit_menu.render(self.area, buf, ctx);
+    }
+
+    fn render_view(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
         }
         let t = ctx.theme;
-        let focused = ctx.interaction.focused(self.id);
+        // under its open Edit menu the viewport shows no focus
+        let focused = ctx
+            .interaction
+            .focused_under(self.id, self.edit_menu.is_open());
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         if h_cfg != self.scroll.h_cfg {
             self.scroll.h_cfg = h_cfg;
@@ -2056,6 +2078,9 @@ impl crate::core::pointer::MouseTarget for TextViewport {
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
+        if let Some(o) = edit_menu_pointer(self, ev) {
+            return o.into();
+        }
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r;
         }
@@ -2067,6 +2092,51 @@ impl crate::core::pointer::MouseTarget for TextViewport {
             Some(Phase::Click) => self.on_click_with(ev.pos(), ev.count()).into(),
             _ => Response::ignored(),
         }
+    }
+
+    fn route(&mut self, ev: &crate::core::pointer::PointerEvent) -> Option<Response<()>> {
+        edit_menu_route(self, ev)
+    }
+}
+
+/// The viewport's Edit menu for read-only text: Copy (the selection onto
+/// the field clipboard and its OSC 52 hook) and Select all, named by the
+/// viewport's own key map. The selection stays where a right click lands.
+impl EditMenuHost for TextViewport {
+    fn edit_menu(&mut self) -> &mut EditMenu {
+        &mut self.edit_menu
+    }
+    fn edit_owner(&self) -> WidgetId {
+        self.id
+    }
+    fn edit_caps(&self) -> EditCaps {
+        EditCaps::read_only(self.select.range().is_some(), !self.is_empty())
+    }
+    fn edit_shortcut(&self, cmd: TextCmd) -> Option<String> {
+        let cmd = match cmd {
+            TextCmd::Copy => ViewportCmd::Copy,
+            TextCmd::SelectAll => ViewportCmd::SelectAll,
+            _ => return None,
+        };
+        crate::core::keymap::label_for(&self.keymap, cmd)
+    }
+    fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        // the text, not a scrollbar
+        ev.id == self.id
+    }
+    fn edit_run(&mut self, cmd: TextCmd) -> bool {
+        match cmd {
+            TextCmd::SelectAll => {
+                self.select_all();
+            }
+            TextCmd::Copy => {
+                if let Some(t) = self.selected_text() {
+                    crate::core::edit::clipboard::copy(&t);
+                }
+            }
+            _ => {}
+        }
+        false
     }
 }
 

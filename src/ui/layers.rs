@@ -164,8 +164,9 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
     /// The picker's own gestures ([`MouseTarget`]), its backdrop's click
     /// included: an outside click cancels it under its dismiss policy.
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
-        // its backdrop is the stack's outside click (ShellLayers::pointer)
-        if ev.part().part == crate::core::id::Part::BACKDROP {
+        // its backdrop is the stack's outside click (ShellLayers::pointer);
+        // its query's Edit menu has a backdrop of its own
+        if ev.part().part == crate::core::id::Part::BACKDROP && !self.edit_menu.owns(ev) {
             return Outcome::Ignored;
         }
         let mut r = MouseTarget::pointer(self, ev);
