@@ -125,7 +125,7 @@ never in view at the smallest failing size.
 | R33 | Panels | Playground | done: Page::measure (cards wrap to their column, panes under them below 116 columns) | — |
 | R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 | `008 009 010 011 012 013 014 015` |
 | R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::extent_for, the stack with its note) | — |
-| R36 | MasterDetail | Playground | 80x24, 100x25, 106x29, 120x40 | `014 194 204 377 655 Analyzed Columns Indexes` |
+| R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size) | — |
 | R38 | Editor | Playground | 80x24, 100x25, 106x29, 120x40 | `200 Client Completion Diagnostics Err Error Exhausted Last` |
 | R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
