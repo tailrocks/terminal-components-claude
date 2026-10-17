@@ -19,7 +19,10 @@ fn explorer_width(h: &Harness) -> u16 {
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
         .map(|cx| h.cell(cx, y).symbol().to_owned())
         .collect();
-    row.iter().position(|s| s == "╮").expect("pane frame") as u16 + 1
+    row.iter()
+        .position(|s| s == "╮")
+        .unwrap_or_else(|| panic!("pane frame:\n{}", h.text())) as u16
+        + 1
 }
 
 fn drag(h: &mut Harness, from: (u16, u16), to: (u16, u16)) {
@@ -68,8 +71,14 @@ fn splits_minimum_clamps_the_default_ratio() {
     assert!(explorer_width(&h) < 40);
     h.opt("splitsstacks.min=40");
     assert_eq!(explorer_width(&h), 40, "{}", h.text());
+    // a 70% explorer with the editor whole beside it wants more than 120
+    // columns: wide enough that the page needs no sideways scroll
+    let mut h = Harness::new(240, 40, PageId::SplitsStacks);
+    h.opt("splitsstacks.min=40");
+    let at_30 = explorer_width(&h);
     h.opt("splitsstacks.percent=70");
-    assert!(explorer_width(&h) > 40);
+    let at_70 = explorer_width(&h);
+    assert!(at_70 > 40 && at_70 > at_30, "{at_30} -> {at_70}");
 }
 
 #[test]
@@ -112,7 +121,8 @@ fn splits_direction_stacks_the_panes() {
 
 #[test]
 fn stack_children_shrink_then_scroll_or_clip() {
-    let mut h = Harness::new(120, 40, PageId::SplitsStacks);
+    // tall enough for the stack card under the panes at their natural size
+    let mut h = Harness::new(120, 50, PageId::SplitsStacks);
     assert!(h.text().contains("▸ Danger zone · 1 row"));
     assert!(!h.text().contains("not in view"));
     h.opt("splitsstacks.min_child_rows=3");
