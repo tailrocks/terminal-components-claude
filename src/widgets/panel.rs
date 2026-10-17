@@ -234,6 +234,51 @@ impl<'a> Panel<'a> {
         (!inner.is_empty()).then_some(inner)
     }
 
+    /// The panel's natural size around content of `content` cells (plan
+    /// §1.4 `Measure`): the chrome a card or a frame adds, and at least the
+    /// width its title row needs to show the title and the meta whole. A
+    /// container that lays the panel out at this size gets back a content
+    /// area of `content` from [`Self::render`].
+    pub fn outer(&self, content: ratatui::layout::Size) -> ratatui::layout::Size {
+        let w = |s: &str| crate::ui::text::width(s) as u16;
+        let title = self.title.map(w).unwrap_or(0);
+        let meta = self.meta.filter(|m| !m.is_empty()).map(w).unwrap_or(0);
+        match self.kind {
+            PanelKind::Card => {
+                let pad = self.pad_x * 2;
+                let row = title + if meta > 0 { meta + 1 } else { 0 };
+                let head = if self.title.is_some() { 3 } else { 2 };
+                ratatui::layout::Size::new(
+                    (content.width + pad).max(row + pad),
+                    content.height + head,
+                )
+            }
+            PanelKind::Framed => {
+                // ` title ` and ` meta ` inside the frame's corners
+                let row = if meta > 0 {
+                    title + meta + 5
+                } else {
+                    title + 2
+                };
+                ratatui::layout::Size::new((content.width + 5).max(row + 4), content.height + 2)
+            }
+        }
+    }
+
+    /// The content area's size that [`Self::render`] gives for a panel
+    /// of `outer` cells: `outer` less the card's padding and title rows,
+    /// or less the frame.
+    pub fn inner(&self, outer: ratatui::layout::Size) -> ratatui::layout::Size {
+        let (w, h) = match self.kind {
+            PanelKind::Card => (self.pad_x * 2, if self.title.is_some() { 3 } else { 2 }),
+            PanelKind::Framed => (5, 2),
+        };
+        ratatui::layout::Size::new(
+            outer.width.saturating_sub(w),
+            outer.height.saturating_sub(h),
+        )
+    }
+
     /// Draw the panel chrome and return the inner content area.
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Rect {
         let area = area.intersection(*buf.area());
@@ -1807,5 +1852,38 @@ mod selection_tests {
             copied(&mut p).as_deref(),
             Some("one two three four five six seven")
         );
+    }
+}
+
+#[cfg(test)]
+mod outer_tests {
+    use super::*;
+    use crate::theme::Theme;
+    use ratatui::layout::Size;
+
+    /// `outer` is the size whose `render` gives back the content asked
+    /// for, and whose title row shows the title and the meta whole.
+    #[test]
+    fn outer_gives_back_the_content_and_a_whole_title_row() {
+        let t = Theme::junie();
+        let content = Size::new(10, 4);
+        for panel in [
+            Panel::card(Some("Location")).meta("clickable(false)"),
+            Panel::card(None),
+            Panel::framed(Some("Explorer")).meta("4 items"),
+            Panel::framed(Some("A")),
+        ] {
+            let size = panel.outer(content);
+            let area = Rect::new(0, 0, size.width, size.height);
+            let mut buf = Buffer::empty(area);
+            let inner = panel.render(area, &mut buf, &t);
+            assert_eq!(panel.inner(size), inner.as_size());
+            assert!(inner.width >= content.width, "{inner:?}");
+            assert_eq!(inner.height, content.height);
+            let row: String = (0..size.width).map(|x| buf[(x, 0)].symbol()).collect();
+            for part in panel.title.iter().chain(panel.meta.iter()) {
+                assert!(row.contains(part), "{row:?} lacks {part}");
+            }
+        }
     }
 }
