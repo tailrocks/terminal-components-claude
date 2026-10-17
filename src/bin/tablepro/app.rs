@@ -584,11 +584,15 @@ impl App {
                 }
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(a) => self.act(a),
+                // a copy reports what really happened ([`shell::Clipboard`])
+                Request::Copy(text, what) => {
+                    let now = self.clock.now();
+                    self.shell.copy_at(&text, what.as_deref(), now);
+                }
                 // tablepro pages do not ask for these
                 Request::Close
                 | Request::Top(_)
                 | Request::Back
-                | Request::Copy(..)
                 | Request::Help
                 | Request::RefusedOutsideClick(_) => {}
             }

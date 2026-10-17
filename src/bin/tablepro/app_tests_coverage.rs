@@ -399,7 +399,7 @@ fn history_picker_and_filter_routes() {
         _ => panic!("expected history tab"),
     }
     h.key(KeyCode::Char('y'));
-    assert!(h.text().contains("Query copied"));
+    assert!(h.text().contains("Copied query"), "{}", h.text());
     h.key(KeyCode::Char('/'));
     h.type_str("ordres");
     h.key(KeyCode::Enter);
