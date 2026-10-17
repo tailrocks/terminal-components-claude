@@ -661,7 +661,6 @@ widgets::progress::Tally::text | public function registered by SC-G1 (a query, l
 
 # widgets::props
 widgets::props::measure_with | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::props::PropsList::click | S9 click policy on the property list (double click activates, M32): the Text utilities page gains a click option with the SC33 click options | SC33
 
 # widgets::scrollbar
 
@@ -680,8 +679,6 @@ widgets::splitter::Splitter::hit_area | public function registered by SC-G1 (a q
 # widgets::steps
 widgets::steps::StepState::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::steps::StepState::terminal | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::steps::StepRail::frontier | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::steps::StepRail::failed | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 
 # widgets::textarea
@@ -859,10 +856,6 @@ widgets::toolbar::Toolbar::menu_open | public function registered by SC-G1 (a qu
 widgets::toolbar::Toolbar::hidden | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::tree
-widgets::tree::TreeView::rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::tree::TreeView::trailing | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::tree::TreeView::flatten | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::tree::TreeView::node | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # theme
 theme::Theme::change_glyph | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
@@ -1076,3 +1069,6 @@ ui::row::RowPaint::bg | the row painter every list-like widget draws with; the S
 ui::row::RowPaint::ink | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
 ui::row::RowPaint::mark | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
 ui::row::RowPaint::label | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+
+# widgets::list (S13)
+widgets::list::ListBox::skip_when_empty | focus-stop policy (K37): no visible state until Tab passes the empty list; shown with the State-tab focus readout | SC34

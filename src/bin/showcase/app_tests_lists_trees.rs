@@ -7,7 +7,7 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
 use crate::app_tests_shell_pages::Harness;
-use crate::pages::lists::{ListsPage, MULTI, SINGLE};
+use crate::pages::lists::{EMPTY, ListsPage, MULTI, SINGLE};
 use crate::pages::template::Section;
 use crate::pages::trees::{CONNECTIONS, TreesPage};
 use junie_tui::core::event::Input;
@@ -31,6 +31,22 @@ fn hint_keys(h: &Harness) -> String {
 
 fn single_cursor(h: &Harness) -> usize {
     lists(h).single().cursor
+}
+
+/// K37: the empty "Search results" list is no Tab stop (nothing to move
+/// or select); with `skip_when_empty(false)` it would be.
+#[test]
+fn tab_passes_the_empty_list() {
+    let mut h = Harness::new(120, 40, PageId::Lists);
+    h.app.shell.focus.focus(MULTI);
+    h.draw();
+    let mut seen = vec![];
+    for _ in 0..40 {
+        h.key(KeyCode::Tab);
+        seen.push(h.app.shell.focus.current());
+    }
+    assert!(seen.contains(&Some(SINGLE)), "Tab cycles the page: {seen:?}");
+    assert!(!seen.contains(&Some(EMPTY)), "the empty list is skipped");
 }
 
 /// The hinted "Ends" keys really jump, under the desktop keys and under
