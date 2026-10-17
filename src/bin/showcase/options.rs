@@ -282,6 +282,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Diff => DIFF,
         PageId::Terminal => TERMINAL,
         PageId::ReadOnlyReport => READONLY_REPORT,
+        PageId::LaunchCockpit => LAUNCH_COCKPIT,
         _ => &[],
     }
 }
@@ -1352,6 +1353,20 @@ pub static NOTICES: &[Opt] = &[
     ),
     Opt::new("notices.mark_cut", "Mark the cut …", OFF_ON).default(1),
     Opt::new("notices.width", "Width", &["wide", "narrow"]),
+];
+
+/// Launch cockpit (SC55): the path the launch takes, and the rail's and
+/// the build log's knobs.
+pub static LAUNCH_COCKPIT: &[Opt] = &[
+    Opt::new(
+        "launchcockpit.outcome",
+        "Launch outcome",
+        &["success", "credentials", "build-failure"],
+    )
+    .behaviour(),
+    Opt::new("launchcockpit.numbered", "Numbered stages", OFF_ON),
+    Opt::new("launchcockpit.selectable", "Stages take focus", OFF_ON),
+    Opt::new("launchcockpit.wrap", "Wrap the log", OFF_ON).default(1),
 ];
 
 /// Read-only report (SC56): the report's state, its meters' visual,

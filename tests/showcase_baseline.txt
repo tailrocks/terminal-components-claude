@@ -130,7 +130,9 @@
 120x40 TrueColor Activity bd55e807d7cc1b58
 120x40 TrueColor Workspaces f47356618edaae44
 120x40 TrueColor Accounts & usage 33a49843b6841cb1
-120x40 TrueColor Launch cockpit 61f8248b3953124e
+120x40 TrueColor Launch cockpit 79d7e99d31f9766e
+120x40 TrueColor Launch cockpit · Options dde2496735eb4f6c
+120x40 TrueColor Launch cockpit · States d249d8858ef333d4
 120x40 TrueColor Read-only report 149c5ad5c0ed41b4
 120x40 TrueColor Read-only report · Options e51a458516bd7373
 120x40 TrueColor Read-only report · States 78e0971726e5c3e2
@@ -268,7 +270,9 @@
 120x40 Ansi256 Activity 052634993f63e2b6
 120x40 Ansi256 Workspaces fc86e27808a6c88c
 120x40 Ansi256 Accounts & usage c3c7f2f7300fcf43
-120x40 Ansi256 Launch cockpit cb4bc87c86b30ff0
+120x40 Ansi256 Launch cockpit 445dfaa0a0425e91
+120x40 Ansi256 Launch cockpit · Options 4cf568f8ccffa22e
+120x40 Ansi256 Launch cockpit · States 1f1adc077b21a572
 120x40 Ansi256 Read-only report e669376f023192cc
 120x40 Ansi256 Read-only report · Options f6f42483b734023b
 120x40 Ansi256 Read-only report · States b8fd54afb74836e7
@@ -406,7 +410,9 @@
 120x40 Ansi16 Activity 6fa0e215bc1bd1f6
 120x40 Ansi16 Workspaces 8da08bd04e854376
 120x40 Ansi16 Accounts & usage 41d8caa67ddc436f
-120x40 Ansi16 Launch cockpit 1a61f707c2ba421a
+120x40 Ansi16 Launch cockpit 7732a63121d2eedb
+120x40 Ansi16 Launch cockpit · Options c164a24e9cd9f944
+120x40 Ansi16 Launch cockpit · States 6f747097f5cb4193
 120x40 Ansi16 Read-only report 37376d9e95a95e2c
 120x40 Ansi16 Read-only report · Options 86faaa062b9ebac9
 120x40 Ansi16 Read-only report · States c3c342f0552b1b07
@@ -544,7 +550,9 @@
 120x40 Mono Activity 7c40d47ee81627ed
 120x40 Mono Workspaces 2056e40268880f77
 120x40 Mono Accounts & usage dc56f89e62cbaf68
-120x40 Mono Launch cockpit 3c3026771207e7c3
+120x40 Mono Launch cockpit e18e09ee7f6f5d76
+120x40 Mono Launch cockpit · Options ca31154755d90fdf
+120x40 Mono Launch cockpit · States 587116726e13d0f2
 120x40 Mono Read-only report 71d1c20ef9bd7707
 120x40 Mono Read-only report · Options c8e9ed2df76584b8
 120x40 Mono Read-only report · States 4c8294b27d895007
@@ -682,7 +690,9 @@
 80x24 TrueColor Activity 1aaa2c4312c48703
 80x24 TrueColor Workspaces 47c2655d70b8bd41
 80x24 TrueColor Accounts & usage 578f5efe48df0180
-80x24 TrueColor Launch cockpit 9a17f91cd619c732
+80x24 TrueColor Launch cockpit 6a669b5cb99c2b2d
+80x24 TrueColor Launch cockpit · Options 25574bf2743a9834
+80x24 TrueColor Launch cockpit · States 5f91d1672cfb1e35
 80x24 TrueColor Read-only report cc6a8aa0bba27c5c
 80x24 TrueColor Read-only report · Options 166c66dbdeb43224
 80x24 TrueColor Read-only report · States 0c1ab35cf2cdae87
@@ -820,7 +830,9 @@
 80x24 Ansi256 Activity 24ddc78c6496e26c
 80x24 Ansi256 Workspaces 226336cd8dc8f204
 80x24 Ansi256 Accounts & usage 8bfca4874e6ea653
-80x24 Ansi256 Launch cockpit a9fc11bde8e51955
+80x24 Ansi256 Launch cockpit fbd371feeb262215
+80x24 Ansi256 Launch cockpit · Options a923cd638a4d2492
+80x24 Ansi256 Launch cockpit · States ee8b8c6670315ceb
 80x24 Ansi256 Read-only report d36fb61a31760a04
 80x24 Ansi256 Read-only report · Options 98ac593ba4dec2d6
 80x24 Ansi256 Read-only report · States ff34224c681ddbe3
@@ -958,7 +970,9 @@
 80x24 Ansi16 Activity 6a14407e7b8dabe9
 80x24 Ansi16 Workspaces 422ab527cceadea3
 80x24 Ansi16 Accounts & usage 7059ba80131fc1b4
-80x24 Ansi16 Launch cockpit ef282bdd19611286
+80x24 Ansi16 Launch cockpit 5994f686de236e3e
+80x24 Ansi16 Launch cockpit · Options 3fd9d7f2ece8db3a
+80x24 Ansi16 Launch cockpit · States 2011f6acd7617c78
 80x24 Ansi16 Read-only report 6233831ad405dbad
 80x24 Ansi16 Read-only report · Options 20a063171c2054a8
 80x24 Ansi16 Read-only report · States 8a2a77a890b87e9a
@@ -1096,7 +1110,9 @@
 80x24 Mono Activity de372762b8cab8a7
 80x24 Mono Workspaces f740dd31cb553c69
 80x24 Mono Accounts & usage adf3fcc8fb6b7cf2
-80x24 Mono Launch cockpit af96e40a5b0b9068
+80x24 Mono Launch cockpit 09737eb84b333d80
+80x24 Mono Launch cockpit · Options e0bc9cc0c7d9a1e4
+80x24 Mono Launch cockpit · States 05ca2f04b36e1db8
 80x24 Mono Read-only report 4b68486843afbdce
 80x24 Mono Read-only report · Options 6b1e16fe5f130746
 80x24 Mono Read-only report · States 2b96762cb141ee15
@@ -1234,7 +1250,9 @@
 72x20 TrueColor Activity bfe729ca286e0f92
 72x20 TrueColor Workspaces 98568ab40d36436a
 72x20 TrueColor Accounts & usage 84ade69307c1fa2c
-72x20 TrueColor Launch cockpit 0816ac4f627d1932
+72x20 TrueColor Launch cockpit e65cefb3e7007ec7
+72x20 TrueColor Launch cockpit · Options 444a5b7a0788a169
+72x20 TrueColor Launch cockpit · States 3a10ddda37850346
 72x20 TrueColor Read-only report 4f0fa47ba30d35a7
 72x20 TrueColor Read-only report · Options 2c9806da5de77558
 72x20 TrueColor Read-only report · States 9367ceb72cbb9a70
@@ -1372,7 +1390,9 @@
 72x20 Ansi256 Activity 3bc209c205abd911
 72x20 Ansi256 Workspaces 739a0098ab2e6dd9
 72x20 Ansi256 Accounts & usage aae14e064f68a35a
-72x20 Ansi256 Launch cockpit 80ac39ea8d275866
+72x20 Ansi256 Launch cockpit d071cd3c2dec3430
+72x20 Ansi256 Launch cockpit · Options 50cad7f523d366fc
+72x20 Ansi256 Launch cockpit · States 47df7f0367d1d82a
 72x20 Ansi256 Read-only report 5fe42efd8584f828
 72x20 Ansi256 Read-only report · Options 92a429a4f467814d
 72x20 Ansi256 Read-only report · States 643e0d70fc02cc8f
@@ -1510,7 +1530,9 @@
 72x20 Ansi16 Activity 5a7a986dac246f9a
 72x20 Ansi16 Workspaces d94430efb129a8c8
 72x20 Ansi16 Accounts & usage 242c9bb73187f9fe
-72x20 Ansi16 Launch cockpit befa4adf0d32478a
+72x20 Ansi16 Launch cockpit 0f0cf896e0561ffe
+72x20 Ansi16 Launch cockpit · Options 4b860176572aa3b9
+72x20 Ansi16 Launch cockpit · States 4cd8cbe40bd4eea7
 72x20 Ansi16 Read-only report 6994c589d97de3fc
 72x20 Ansi16 Read-only report · Options c48dc6de3240715c
 72x20 Ansi16 Read-only report · States b135a28485971ea5
@@ -1648,7 +1670,9 @@
 72x20 Mono Activity 98b2b364986b6ea4
 72x20 Mono Workspaces 765191300cf96f42
 72x20 Mono Accounts & usage cfcc221edb91778c
-72x20 Mono Launch cockpit 638398971d715fb8
+72x20 Mono Launch cockpit 06fcd79f33adc992
+72x20 Mono Launch cockpit · Options 26688f0d67b97ff7
+72x20 Mono Launch cockpit · States 717e1a817de021f9
 72x20 Mono Read-only report f8093dd55a34a9c7
 72x20 Mono Read-only report · Options d52c6d562cc09ea6
 72x20 Mono Read-only report · States 61aa6b38b36a94fd
@@ -1786,7 +1810,9 @@
 100x30 TrueColor Activity ad4101e2f1b25a7e
 100x30 TrueColor Workspaces 9223779887629457
 100x30 TrueColor Accounts & usage 520ff75a4adf9d26
-100x30 TrueColor Launch cockpit aeeca08656b94e47
+100x30 TrueColor Launch cockpit 0a48016921e61169
+100x30 TrueColor Launch cockpit · Options 2f8c4cf121b902e0
+100x30 TrueColor Launch cockpit · States abfd65b738fe7225
 100x30 TrueColor Read-only report 0a55cdd0ae5ae09b
 100x30 TrueColor Read-only report · Options c522ed7cbcf1c5f5
 100x30 TrueColor Read-only report · States f9907fa8ccb25a1d
@@ -1924,7 +1950,9 @@
 100x30 Ansi256 Activity dae478a7f58226bf
 100x30 Ansi256 Workspaces f8302853ba560fcb
 100x30 Ansi256 Accounts & usage df705d2fee012c60
-100x30 Ansi256 Launch cockpit 7cb27c8d028a7b8b
+100x30 Ansi256 Launch cockpit ddd3df68fdfc803c
+100x30 Ansi256 Launch cockpit · Options 130efff4fc8c94ee
+100x30 Ansi256 Launch cockpit · States 17b4ccd20b826db7
 100x30 Ansi256 Read-only report 65506a5b04235948
 100x30 Ansi256 Read-only report · Options d2babec8f4a87a61
 100x30 Ansi256 Read-only report · States 282d794e674096dd
@@ -2062,7 +2090,9 @@
 100x30 Ansi16 Activity 9711d782b24fbffc
 100x30 Ansi16 Workspaces 530440e580e2928d
 100x30 Ansi16 Accounts & usage 1b2fa20658fbdca8
-100x30 Ansi16 Launch cockpit b1a308d19d6bfbbf
+100x30 Ansi16 Launch cockpit 30d50b1d1a5438e8
+100x30 Ansi16 Launch cockpit · Options 38d3dadd8914921e
+100x30 Ansi16 Launch cockpit · States bba51037cd5ac3f4
 100x30 Ansi16 Read-only report 227fb9e44183f063
 100x30 Ansi16 Read-only report · Options 83d5898c85178715
 100x30 Ansi16 Read-only report · States e1024790e19f301d
@@ -2200,7 +2230,9 @@
 100x30 Mono Activity 412e985f6b546de1
 100x30 Mono Workspaces 201794c2b3352a38
 100x30 Mono Accounts & usage ce1eb8fba0a5c39b
-100x30 Mono Launch cockpit 14a96195f48778e6
+100x30 Mono Launch cockpit 4c4b6522cacb6ec3
+100x30 Mono Launch cockpit · Options c6e0c929f26616fd
+100x30 Mono Launch cockpit · States 6cdb811053378c6d
 100x30 Mono Read-only report 195be88d0b44d20d
 100x30 Mono Read-only report · Options e53eafbd698c1cfc
 100x30 Mono Read-only report · States 5409981f4542beeb
@@ -2338,7 +2370,9 @@
 160x50 TrueColor Activity 1c11af27abecadd7
 160x50 TrueColor Workspaces 5e1e8ee14c3b77ab
 160x50 TrueColor Accounts & usage 0491fe31f8be79ba
-160x50 TrueColor Launch cockpit d19c60c06e712763
+160x50 TrueColor Launch cockpit 6cf23b00951be064
+160x50 TrueColor Launch cockpit · Options ff4086f5749feda0
+160x50 TrueColor Launch cockpit · States 5d5cc4831b2083c0
 160x50 TrueColor Read-only report 9cda9350f0347e0a
 160x50 TrueColor Read-only report · Options e10ac83903028181
 160x50 TrueColor Read-only report · States c63662b2ddb42340
@@ -2476,7 +2510,9 @@
 160x50 Ansi256 Activity 77d82167caf79255
 160x50 Ansi256 Workspaces 9b99ca6fdda14b9b
 160x50 Ansi256 Accounts & usage 0532c36cbb541e18
-160x50 Ansi256 Launch cockpit b28fb99840ae269b
+160x50 Ansi256 Launch cockpit 129c3a8e4fd90f7f
+160x50 Ansi256 Launch cockpit · Options 8b9f939c8f6fd9d2
+160x50 Ansi256 Launch cockpit · States 217196d6399ed14e
 160x50 Ansi256 Read-only report 9e90ce4e1b7b43ea
 160x50 Ansi256 Read-only report · Options 091014ddb93d6009
 160x50 Ansi256 Read-only report · States a719bdff652c315d
@@ -2614,7 +2650,9 @@
 160x50 Ansi16 Activity 27d255630b24f315
 160x50 Ansi16 Workspaces 613aa42383b88a11
 160x50 Ansi16 Accounts & usage 6d958c363a589690
-160x50 Ansi16 Launch cockpit 0e583c8eee2c7f8f
+160x50 Ansi16 Launch cockpit cf82231177b83073
+160x50 Ansi16 Launch cockpit · Options 0175b8cda21d27f2
+160x50 Ansi16 Launch cockpit · States 556dc0172432612d
 160x50 Ansi16 Read-only report 7e07b80106cafab2
 160x50 Ansi16 Read-only report · Options 81af164ee3eb91cb
 160x50 Ansi16 Read-only report · States f5439f3edecab719
@@ -2752,7 +2790,9 @@
 160x50 Mono Activity 011a068015789a1e
 160x50 Mono Workspaces 91b78b4a83b5156c
 160x50 Mono Accounts & usage 15a0c9a62667f3d3
-160x50 Mono Launch cockpit 813b1250e80beed6
+160x50 Mono Launch cockpit 88a0bca009d6685a
+160x50 Mono Launch cockpit · Options b02ae6ffa4ee5589
+160x50 Mono Launch cockpit · States a5f93ed1730ad590
 160x50 Mono Read-only report ac814184d3f503a5
 160x50 Mono Read-only report · Options a7f766c47d49e64a
 160x50 Mono Read-only report · States 6bf7b4c30c015055
