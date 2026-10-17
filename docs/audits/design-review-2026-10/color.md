@@ -103,3 +103,34 @@ Found 22 issues, ranked below. The "Debug info" white-on-white bug comes from on
 - **Contrast test:** add one test that runs every `row`, `button` and `gutter` state through all four `ColorLevel`s and requires text contrast ≥ 4.5:1, glyph contrast ≥ 3:1, and text ≠ background.
 
 The scan scripts and output are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/audit-color/`: `scan.py`, `pal.py`, `white.py`, `eq.txt` and `lt45.txt`.
+## Status (T19 sync, 2026-10-17)
+
+Each finding was checked against `src/theme.rs` and the named widgets at HEAD, and its commit was found with `git log -S` / `--grep` on the commits that cite `color.md`; the tests named are in `src/theme.rs` unless a file is given.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Fixed | ba849cd89, 189734f49 | Pressed is the plane's pressed step with primary ink (REVERSED only in mono), never a white flood. Test `row_text_stays_readable_in_every_state_including_retinted_values`. No `row_fg`: `Theme::legible` guards the resolver's ink. |
+| 2 | Fixed | 5bf3f4311, 45521da32 | `backdrop()` treats canvas ink as blank only where it does not read on its plane. Tests `the_modal_backdrop_keeps_reversed_text_readable`, `the_modal_backdrop_dims_text_without_erasing_it`. |
+| 3 | Fixed | e40c2c08f, 45521da32 | At 16 colours and mono the backdrop keeps a readable ink plus `DIM`. Test `backdrop_text_never_lands_on_the_backdrop_grey_at_reduced_levels`. |
+| 4 | Fixed | fd58bb7c9, 0a965d6b4 | Busy ink comes from `Theme::interactive` (`text_on_accent` on a fill); the spinner takes the label ink. Test `a_busy_primary_button_keeps_its_label_and_spinner_visible` (`src/widgets/button.rs`). |
+| 5 | Fixed | e40c2c08f | `apply_mono` table plus `StateModifiers::MONO` (hover underlined, pressed and fills reversed); `LevelOverrides` is the per-level hook. Popup frames at `none` are A1. |
+| 6 | Fixed | e40c2c08f, 3aad1f2ef | Mono menu cursor is a REVERSED fill; 256 `highlight_danger` pinned to 88. Tests `no_color_buttons_and_menu_cursors_carry_state_in_modifiers`, `reduced_levels_pin_state_tokens_instead_of_snapping_to_greys`. |
+| 7 | Fixed; remainder Open → A1 | e40c2c08f, 3aad1f2ef | Hand-mapped `apply_16` table; `border_strong` Gray; `rule_on` for separators on the popover. Remainder: popup frames still DarkGray on the DarkGray popover (A1). |
+| 8 | Fixed | 189734f49, e40c2c08f | Hover on a focused-selected row walks `accent_bg` to `accent_bg_hover` (#1e5024, 256 index 28) instead of replacing the tint. Held by `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. |
+| 9 | Fixed | 189734f49, 3aad1f2ef | `lift()` and the resolver walk explicit per-plane ladders (popover hover #4f4f58); rest, hover and pressed asserted apart at every level by `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart`. |
+| 10 | Fixed | 189734f49, e40c2c08f | `accent_bg` #173f1c, 256 index 22. Row ink is primary and `legible` steps muted text up on the tint. |
+| 11 | Fixed | 3aad1f2ef | Shortcut ink is `row_ink(text_secondary)` through `legible` on the cursor fill and at rest (`src/widgets/menu.rs`). |
+| 12 | Fixed | 189734f49 | On a fill or a pressed danger button the `▎` takes the fill's ink; `Theme::gutter(on_accent)` uses `text_on_accent`. No dedicated gutter contrast test (see note 3 below). |
+| 13 | Fixed | 189734f49, 3aad1f2ef | `danger_label` #ff6b6b, danger fill #d93636 pressing to #9e2424 with primary ink via `legible`, `error_soft` #e8a0a0 (4.5:1 on popover). |
+| 14 | Fixed | f387b8498 | `text_faint` #737373, `disabled` stays #4d4d4d (DIM in mono). Test `faint_text_reads_and_stays_apart_from_disabled_and_success_from_focus`. Plane-relative faint (SV3) stays with theme track T. |
+| 15 | Fixed | f387b8498, 3aad1f2ef | `border_subtle` #3a3a3a (256 index 238, apart from `surface_overlay` 235); `Theme::rule_on` uses `border_strong` on raised, popover and field planes. |
+| 16 | Fixed | d5e1595a8 | `Theme::cell_cursor(error, pressed)` (cursor fill, destructive fill on error) shared by table and grid. Test `the_cell_cursor_is_the_cursor_fill_not_a_white_flood` (`src/widgets/table.rs`). |
+| 17 | Fixed | a67e7c787, 189734f49, d5e1595a8, 3aad1f2ef | Treatments now come from the theme only: `cursor_row` Bar (tint + `▎`) or Fill (highlight; menus, select, picker, completion, cell cursor), `selection()` (`selection_bg`) and `match_current()`. One row painter is S10 (`RowUi`). |
+| 18 | Fixed | 3aad1f2ef | `src/widgets/viewport.rs` uses `Theme::match_current` (accent fill, on-accent ink, REVERSED only in mono). |
+| 19 | Fixed | 3aad1f2ef, d5e1595a8 | `src/widgets/code.rs`: current match `match_current()`, selection `selection()` (`selection_bg` #1f3460), so the two differ. |
+| 20 | Fixed | 189734f49, e40c2c08f | `accent_pressed` #2e9a38 (on-accent ink 4.8:1), 256 index 65 (not 71, which is `accent_hover`). Ink passes `legible`; pinned by `reduced_levels_pin_state_tokens_instead_of_snapping_to_greys`. |
+| 21 | Fixed | f387b8498, 0610904df | `success` #3fb950 (256 index 71, 16 Green), apart from the accent. Every status carries a glyph: `statuses_carry_a_glyph_at_every_level_and_glyph_set`. |
+| 22 | Fixed | 3aad1f2ef, d37f14b61 | Segments keep their tone on hover through `legible` (`src/widgets/segments.rs`); the tab `×` rests in secondary ink (`Theme::close_glyph`). Test `every_tab_shows_rest_hover_and_press_and_the_close_glyph_its_own` (`src/widgets/tabs.rs`). |
+| Note 1 (overrides) | Fixed | e40c2c08f | `LevelOverrides` and `Theme::for_level_with` pin any token per level; built-in 256, 16 and mono tables replace nearest-match for state tokens. |
+| Note 2 (new tokens) | Fixed | 189734f49, 3aad1f2ef, f387b8498 | `popover_hover` is the popover ladder's hover step (`Ladders::popover`, #4f4f58), `match_current` a `Theme` method; `disabled` and `success` are separate tokens. |
+| Note 3 (contrast test) | Open → T | — | `every_kind_plane_and_level_keeps_rest_hover_and_pressed_apart` asserts text ≥ 4.5:1 and glyphs ≥ 3:1 only at truecolor, and only fg ≠ bg at 256, 16 and mono; gutter ink is not measured. 16/none frames are A1. |
