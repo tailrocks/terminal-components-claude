@@ -429,6 +429,9 @@ pub static BUTTONS: &[Opt] = &[
     Opt::new("buttons.row_gap", "Row gap", &["theme", "1", "4"]),
     Opt::new("buttons.row_width", "Row width", &["full", "48", "30"]),
     Opt::new("buttons.row_wrap", "Arrows wrap in the row", OFF_ON),
+    Opt::new("buttons.next_align", "Next row align", &["end", "start"]),
+    Opt::new("buttons.next_gap", "Next row gap", &["1", "2"]),
+    Opt::new("buttons.next_message", "Next row message", OFF_ON).default(1),
     Opt::new("buttons.icon_pad", "Icon plate pad", &["0", "1", "2"]).default(1),
     Opt::new("buttons.icon_danger", "Danger hover on ×", OFF_ON),
     Opt::new(

@@ -16,13 +16,13 @@ use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::MouseTarget;
+use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{FocusVisible, RenderCtx};
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::tooltip::Tip;
-use junie_tui::widgets::button::{
-    Button, ButtonRow, RowAlign, RowLayout, RowOverflow, row_layout, row_layout_right,
-};
+use junie_tui::widgets::action_row::ActionRow;
+use junie_tui::widgets::button::{Button, ButtonRow, RowAlign, RowLayout, RowOverflow, row_layout};
 use junie_tui::widgets::icon_button::IconButton;
 use junie_tui::widgets::panel::Panel;
 
@@ -289,6 +289,23 @@ impl ButtonsPage {
         }
     }
 
+    /// The Next row's layout from the options: its alignment, gap,
+    /// message and arrow wrap.
+    fn action_row(&self) -> ActionRow {
+        let mut row = ActionRow::new()
+            .align(if self.opts.value("buttons.next_align") == "start" {
+                RowAlign::Start
+            } else {
+                RowAlign::End
+            })
+            .gap(self.opts.number("buttons.next_gap").unwrap_or(1))
+            .wrap(self.opts.on("buttons.row_wrap"));
+        if self.opts.on("buttons.next_message") {
+            row = row.message("2 not available yet", Tone::Muted);
+        }
+        row
+    }
+
     /// Kinds and states, live.
     fn render_kinds(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -391,19 +408,20 @@ impl ButtonsPage {
                 t.muted().bg(bg),
             );
         }
-        // a "Next" row: subtle follow-up actions, some not available yet
+        // a "Next" row: subtle follow-up actions, some not available yet,
+        // as an `ActionRow` with its message
         let y = y + 2;
         if y < inner.bottom() {
             crate::pages::layout::caption(inner.x, y, buf, t, "Next", bg);
-            let widths: Vec<u16> = self.next.iter().map(Button::width).collect();
-            let rects = row_layout_right(
+            let action_row = self.action_row();
+            let mut next: Vec<&mut Button> = self.next.iter_mut().collect();
+            action_row.render(
                 Rect::new(inner.x + 5, y, inner.width.saturating_sub(5), 1),
-                &widths,
-                1,
+                buf,
+                ctx,
+                bg,
+                &mut next,
             );
-            for (b, r) in self.next.iter_mut().zip(rects) {
-                b.render(r, buf, ctx, bg);
-            }
         }
     }
 
@@ -573,6 +591,22 @@ impl Page for ButtonsPage {
                 let arrow = [KeyCode::Left, KeyCode::Right]
                     .into_iter()
                     .find(|c| key.is(*c));
+                // ←/→ along the Next row: the ActionRow's own step
+                if let Some(code) = arrow
+                    && self.next.iter().any(|b| b.id == f)
+                {
+                    let row: Vec<&Button> = self.next.iter().collect();
+                    return match self
+                        .action_row()
+                        .step(&row, Some(f), code == KeyCode::Right)
+                    {
+                        Some(id) => {
+                            cx.focus.focus(id);
+                            Outcome::Changed
+                        }
+                        None => Outcome::Consumed,
+                    };
+                }
                 if let Some(code) = arrow
                     && (self.row.iter().any(|b| b.id == f) || f == ButtonRow::more_id(ROW))
                 {

@@ -1076,3 +1076,12 @@ ui::row::RowPaint::bg | the row painter every list-like widget draws with; the S
 ui::row::RowPaint::ink | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
 ui::row::RowPaint::mark | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
 ui::row::RowPaint::label | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33
+widgets::detail_card::DetailCard::actions | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard::focused | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard::max_size | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard::meta | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard::props | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard::reserve | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard::render | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailCard | DetailCard (S17): shown by the Connections screen when it adopts it | SC47
+widgets::detail_card::DetailLayout | DetailCard (S17): shown by the Connections screen when it adopts it | SC47

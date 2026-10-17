@@ -13,7 +13,8 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::text::truncate;
-use junie_tui::widgets::button::{Button, row_layout_right};
+use junie_tui::widgets::action_row::ActionRow;
+use junie_tui::widgets::button::{Button, RowAlign};
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::page_header::PageHeader;
@@ -541,14 +542,13 @@ impl ShellPage<Holla> for GatePage {
                 focused,
             );
         }
-        let widths = [self.cancel.width(), self.cont.width()];
-        let rects = row_layout_right(
+        ActionRow::new().align(RowAlign::End).render(
             Rect::new(area.x, buttons_y, area.width.saturating_sub(1), 1),
-            &widths,
-            2,
+            buf,
+            ctx,
+            t.canvas,
+            &mut [&mut self.cancel, &mut self.cont],
         );
-        self.cancel.render(rects[0], buf, ctx, t.canvas);
-        self.cont.render(rects[1], buf, ctx, t.canvas);
         let _ = w;
     }
 
@@ -934,14 +934,13 @@ impl ShellPage<Holla> for TrustPage {
                 focused,
             );
         }
-        let widths = [self.cancel.width(), self.ok.width()];
-        let rects = row_layout_right(
+        ActionRow::new().align(RowAlign::End).render(
             Rect::new(area.x, buttons_y, area.width.saturating_sub(1), 1),
-            &widths,
-            2,
+            buf,
+            ctx,
+            t.canvas,
+            &mut [&mut self.cancel, &mut self.ok],
         );
-        self.cancel.render(rects[0], buf, ctx, t.canvas);
-        self.ok.render(rects[1], buf, ctx, t.canvas);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
@@ -1268,14 +1267,13 @@ impl ShellPage<Holla> for ArgsPage {
                 t.secondary().bg(panel.bg(t)),
             );
         }
-        let widths = [self.cancel.width(), self.run.width()];
-        let rects = row_layout_right(
+        ActionRow::new().align(RowAlign::End).render(
             Rect::new(area.x, buttons_y, area.width.saturating_sub(1), 1),
-            &widths,
-            2,
+            buf,
+            ctx,
+            t.canvas,
+            &mut [&mut self.cancel, &mut self.run],
         );
-        self.cancel.render(rects[0], buf, ctx, t.canvas);
-        self.run.render(rects[1], buf, ctx, t.canvas);
     }
 
     fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {

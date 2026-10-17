@@ -19,8 +19,8 @@
 120x40 TrueColor Focus & navigation 1f51bf8c0146a230
 120x40 TrueColor Focus & navigation · Options 19873d6f87733e74
 120x40 TrueColor Focus & navigation · States 761755ada66c3d30
-120x40 TrueColor Buttons 0c7d7bca7e95a89b
-120x40 TrueColor Buttons · Options 8a9f0381f7d40da9
+120x40 TrueColor Buttons cf63ed1db993cad5
+120x40 TrueColor Buttons · Options 91e69ee6167305cb
 120x40 TrueColor Buttons · States 79a8d67aea2e9174
 120x40 TrueColor Inputs 31f86db3964f5e2b
 120x40 TrueColor Inputs · Options 7d8cdede9b290cf5
@@ -175,8 +175,8 @@
 120x40 Ansi256 Focus & navigation fd17b8d92f12b040
 120x40 Ansi256 Focus & navigation · Options 6ebb6c457af71d6d
 120x40 Ansi256 Focus & navigation · States 9a73994d5368c8c5
-120x40 Ansi256 Buttons 7d1b9b501a4f4ba8
-120x40 Ansi256 Buttons · Options 78682e90f8b8c684
+120x40 Ansi256 Buttons 6527a887cb2786a3
+120x40 Ansi256 Buttons · Options e2213ebec844bec9
 120x40 Ansi256 Buttons · States 7ebd4cafcc314c0c
 120x40 Ansi256 Inputs 29f0817306af5163
 120x40 Ansi256 Inputs · Options a7d9fdbe1974ce27
@@ -331,8 +331,8 @@
 120x40 Ansi16 Focus & navigation 824765114d4f773d
 120x40 Ansi16 Focus & navigation · Options fb1cf4c380abbd6b
 120x40 Ansi16 Focus & navigation · States 709ad4130c6506a7
-120x40 Ansi16 Buttons 5a4b1ba506cb26db
-120x40 Ansi16 Buttons · Options f76946d56c494e71
+120x40 Ansi16 Buttons d6f18cfec58b89af
+120x40 Ansi16 Buttons · Options 861d7577cac1c7bd
 120x40 Ansi16 Buttons · States e8111a29d2623e02
 120x40 Ansi16 Inputs cdb5fc31fc5cfa10
 120x40 Ansi16 Inputs · Options e3b3553eca38fe29
@@ -487,8 +487,8 @@
 120x40 Mono Focus & navigation 1d7abb01497ee8d6
 120x40 Mono Focus & navigation · Options 515a11bd951cc138
 120x40 Mono Focus & navigation · States 8d64f3de3c8c646e
-120x40 Mono Buttons 50dea672242725b0
-120x40 Mono Buttons · Options 74008e97e2a96f24
+120x40 Mono Buttons bafa572c20a0255a
+120x40 Mono Buttons · Options fc280918e94f2e5c
 120x40 Mono Buttons · States c5aad9afb5c3a6ff
 120x40 Mono Inputs 3e80399d6e4a74f5
 120x40 Mono Inputs · Options bcc586db9bf97c16
@@ -644,7 +644,7 @@
 80x24 TrueColor Focus & navigation · Options 17c520d78130d386
 80x24 TrueColor Focus & navigation · States d92037d77d7cdfee
 80x24 TrueColor Buttons e5997d5042b220d2
-80x24 TrueColor Buttons · Options 5e3939905238bc4b
+80x24 TrueColor Buttons · Options 7cdad5862620fcf7
 80x24 TrueColor Buttons · States 1935d3b284461072
 80x24 TrueColor Inputs 816bf59be5203577
 80x24 TrueColor Inputs · Options 945089aac5d82e8f
@@ -800,7 +800,7 @@
 80x24 Ansi256 Focus & navigation · Options 19980f74d428627a
 80x24 Ansi256 Focus & navigation · States fc29a8521c19479f
 80x24 Ansi256 Buttons c251a13ca14a6527
-80x24 Ansi256 Buttons · Options 7b18dc091cd9d672
+80x24 Ansi256 Buttons · Options b168840c5e6ad47a
 80x24 Ansi256 Buttons · States f75abcce7361b20f
 80x24 Ansi256 Inputs 934fe540b6b1ccca
 80x24 Ansi256 Inputs · Options 26fe9284127d3603
@@ -956,7 +956,7 @@
 80x24 Ansi16 Focus & navigation · Options 325ce69527383f46
 80x24 Ansi16 Focus & navigation · States 192c90d71a56ee13
 80x24 Ansi16 Buttons f6a65a692f07ccd6
-80x24 Ansi16 Buttons · Options fa62046894f023d2
+80x24 Ansi16 Buttons · Options e63b719c097c1ad9
 80x24 Ansi16 Buttons · States e6040ef11d8eb3dc
 80x24 Ansi16 Inputs 6aaa84c3c66da887
 80x24 Ansi16 Inputs · Options bb1eb43b35a5b477
@@ -1112,7 +1112,7 @@
 80x24 Mono Focus & navigation · Options 4011fd144658c744
 80x24 Mono Focus & navigation · States 020cd62fe90067a1
 80x24 Mono Buttons 512656175f415ea2
-80x24 Mono Buttons · Options 7fb950fc21fc09e0
+80x24 Mono Buttons · Options 3406b54c2506cb97
 80x24 Mono Buttons · States 18ce42efec89dcaa
 80x24 Mono Inputs 8eb1e45f8ccd3c81
 80x24 Mono Inputs · Options 651667cda3f3038d
@@ -1268,7 +1268,7 @@
 72x20 TrueColor Focus & navigation · Options 835d0dd16137001a
 72x20 TrueColor Focus & navigation · States 7b296840ebbce5ca
 72x20 TrueColor Buttons cb9db3718ea0a1da
-72x20 TrueColor Buttons · Options c26624b59750adda
+72x20 TrueColor Buttons · Options 077cedfbae25f3ea
 72x20 TrueColor Buttons · States 54c93e222989fe63
 72x20 TrueColor Inputs a4ad854e82108559
 72x20 TrueColor Inputs · Options 03e38b81ef50a346
@@ -1424,7 +1424,7 @@
 72x20 Ansi256 Focus & navigation · Options 8c94804ac9b11f07
 72x20 Ansi256 Focus & navigation · States b23dc816b8c4b762
 72x20 Ansi256 Buttons c911cf2415aac7b0
-72x20 Ansi256 Buttons · Options 4beebdd822fb1919
+72x20 Ansi256 Buttons · Options f33b5303d6844b6d
 72x20 Ansi256 Buttons · States 2cfd0000ae6b4296
 72x20 Ansi256 Inputs 6b60a3c8889cb9b7
 72x20 Ansi256 Inputs · Options 7250189604a75f59
@@ -1580,7 +1580,7 @@
 72x20 Ansi16 Focus & navigation · Options 0430756a3c922136
 72x20 Ansi16 Focus & navigation · States 9008a24ac0f499e3
 72x20 Ansi16 Buttons 7ad15fbfe71ac14a
-72x20 Ansi16 Buttons · Options 43d11721141c0e06
+72x20 Ansi16 Buttons · Options e515f0423ebba649
 72x20 Ansi16 Buttons · States 98abcbb65c7a433f
 72x20 Ansi16 Inputs 405ace329ecdc155
 72x20 Ansi16 Inputs · Options ce71262f2b29584b
@@ -1736,7 +1736,7 @@
 72x20 Mono Focus & navigation · Options 3aaa0001c880ab7c
 72x20 Mono Focus & navigation · States 39409a9fa436f779
 72x20 Mono Buttons 258416c954abb220
-72x20 Mono Buttons · Options e6c7bac083ad1120
+72x20 Mono Buttons · Options 8102a00905fa116b
 72x20 Mono Buttons · States 3152367258d06fa9
 72x20 Mono Inputs 5dbe475e606245d5
 72x20 Mono Inputs · Options 9d8af1a1c27c3789
@@ -1892,7 +1892,7 @@
 100x30 TrueColor Focus & navigation · Options f93690eb6451cb64
 100x30 TrueColor Focus & navigation · States c8cd918644b972ca
 100x30 TrueColor Buttons f01d6b971c89868a
-100x30 TrueColor Buttons · Options 586311348fd8092b
+100x30 TrueColor Buttons · Options 54b363dd1c43be15
 100x30 TrueColor Buttons · States fc9fe783083d00f0
 100x30 TrueColor Inputs 2ee175e5a6fedac2
 100x30 TrueColor Inputs · Options 12cc78b275880280
@@ -2048,7 +2048,7 @@
 100x30 Ansi256 Focus & navigation · Options 4550a8c285b9b386
 100x30 Ansi256 Focus & navigation · States 2e0293c779a3c246
 100x30 Ansi256 Buttons 9604335947fa61dd
-100x30 Ansi256 Buttons · Options 5ee9ca2660efbe66
+100x30 Ansi256 Buttons · Options 041ba4000acb8c57
 100x30 Ansi256 Buttons · States af2bd8b9588e17d9
 100x30 Ansi256 Inputs 9b85743a6dc62476
 100x30 Ansi256 Inputs · Options 6b230458bcbf7737
@@ -2204,7 +2204,7 @@
 100x30 Ansi16 Focus & navigation · Options 6e9a5f8afce817fa
 100x30 Ansi16 Focus & navigation · States b1a648a1b2cd4178
 100x30 Ansi16 Buttons 28c200a4b80c93ce
-100x30 Ansi16 Buttons · Options 4f9a99f7f15b2bce
+100x30 Ansi16 Buttons · Options ee3101e6c6089772
 100x30 Ansi16 Buttons · States b840323bc50ad0f9
 100x30 Ansi16 Inputs a7fce6c2e65276a5
 100x30 Ansi16 Inputs · Options aa26cd24e1c32ab4
@@ -2360,7 +2360,7 @@
 100x30 Mono Focus & navigation · Options 637540462edfea99
 100x30 Mono Focus & navigation · States 428a107065f5f8c7
 100x30 Mono Buttons 0e8986bf92edb023
-100x30 Mono Buttons · Options 1bdadbd6e1012cc9
+100x30 Mono Buttons · Options 944dc0f4b1f2fadb
 100x30 Mono Buttons · States 7381381812b3093a
 100x30 Mono Inputs e7f760da0460c51c
 100x30 Mono Inputs · Options 446294a2b0e10cfd
@@ -2515,8 +2515,8 @@
 160x50 TrueColor Focus & navigation 7c424f086ed95ed0
 160x50 TrueColor Focus & navigation · Options 54de01da86f81fbc
 160x50 TrueColor Focus & navigation · States 968a921568e68180
-160x50 TrueColor Buttons 92e386b1bc16edb9
-160x50 TrueColor Buttons · Options 7d072c51d007a54a
+160x50 TrueColor Buttons 526504fab8ce8007
+160x50 TrueColor Buttons · Options 0f0a6096e8e5273c
 160x50 TrueColor Buttons · States e8746bd247c6fc31
 160x50 TrueColor Inputs c0594dfe455fc0d9
 160x50 TrueColor Inputs · Options 87a75ab1e4171d4a
@@ -2671,8 +2671,8 @@
 160x50 Ansi256 Focus & navigation 8c6758a04a4cc6b6
 160x50 Ansi256 Focus & navigation · Options c0f0edec0b602c67
 160x50 Ansi256 Focus & navigation · States f2fc857be789aff3
-160x50 Ansi256 Buttons 222cbf1bef7e152c
-160x50 Ansi256 Buttons · Options d1fcc391de21ce43
+160x50 Ansi256 Buttons e442e3dbd0527345
+160x50 Ansi256 Buttons · Options 301a52506a3d2610
 160x50 Ansi256 Buttons · States ca7bb7d863a1f0a1
 160x50 Ansi256 Inputs 0abb5c6c31fa006b
 160x50 Ansi256 Inputs · Options 1f50243aed3e4020
@@ -2827,8 +2827,8 @@
 160x50 Ansi16 Focus & navigation 7f79b176c1b3d5ff
 160x50 Ansi16 Focus & navigation · Options 07629ef3432c2039
 160x50 Ansi16 Focus & navigation · States 31bdc812de477ee5
-160x50 Ansi16 Buttons 056846e9b532b9c9
-160x50 Ansi16 Buttons · Options d13d8d230173d59c
+160x50 Ansi16 Buttons 00e278e0ba607f49
+160x50 Ansi16 Buttons · Options 5ce1a7d74f81efec
 160x50 Ansi16 Buttons · States eb7a15793a5c6101
 160x50 Ansi16 Inputs d2f01f31e6f0af87
 160x50 Ansi16 Inputs · Options 3c18dd605240c8ac
@@ -2983,8 +2983,8 @@
 160x50 Mono Focus & navigation 82536ed79bfa5aec
 160x50 Mono Focus & navigation · Options 7844d2c4303e8382
 160x50 Mono Focus & navigation · States 0a8b970f25d36ce8
-160x50 Mono Buttons a0dc5a830a9ea6a6
-160x50 Mono Buttons · Options 218ba022954e1805
+160x50 Mono Buttons b4edda912f7d3ecc
+160x50 Mono Buttons · Options fe762824613a44e9
 160x50 Mono Buttons · States 5ddf48e296bdd7d4
 160x50 Mono Inputs c28536dc6d507e26
 160x50 Mono Inputs · Options 357d7940e0db56cf
