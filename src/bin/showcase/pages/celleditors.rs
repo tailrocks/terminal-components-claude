@@ -4,6 +4,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
@@ -500,9 +501,36 @@ impl CellEditorsPage {
             .collect()
     }
 
+    /// The choice card's line: the commit keys and the last result.
+    fn choice_line(&self) -> String {
+        format!(
+            "Enter or a click: Commit · Tab: CommitAndTab · Esc or outside: Cancel · last: {}",
+            self.last
+        )
+    }
+
+    /// The sections at `width`: the table at every row, the legend, the
+    /// option sets (wrapped), the choice card (its line wrapped).
+    fn heights(&self, width: u16) -> [u16; 4] {
+        let sets: Vec<Prop> = self.option_sets().into_iter().map(Prop::wrap).collect();
+        let choice = Panel::card(Some("A ChoiceEditor on its own"));
+        let inner = choice.inner(ratatui::layout::Size::new(width, 0)).width;
+        let lines =
+            junie_tui::ui::text::wrap(&self.choice_line(), inner.max(1) as usize).len() as u16;
+        [
+            (self.table.len() as u16 + 5).max(8),
+            LEGEND.len() as u16,
+            sheet_height(&Panel::card(Some("Option sets")), &sets, width),
+            choice
+                .outer(ratatui::layout::Size::new(inner, 2 + lines))
+                .height,
+        ]
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let sets = self.option_sets();
+        let sets: Vec<Prop> = self.option_sets().into_iter().map(Prop::wrap).collect();
+        let heights = self.heights(area.width);
         let focus = if ctx.interaction.has_focus(self.table.id) {
             Some(0)
         } else if ctx.interaction.has_focus(self.pick.id) {
@@ -510,19 +538,9 @@ impl CellEditorsPage {
         } else {
             None
         };
-        let table_h = (self.table.len() as u16 + 5).max(8);
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::flex(8, table_h),
-                StackChild::fixed(LEGEND.len() as u16),
-                StackChild::fixed(sets.len() as u16 + 3),
-                StackChild::fixed(6),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &heights.map(StackChild::fixed), focus, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_table(r, buf, ctx),
             None => ctx.focus_stop(self.table.id),
@@ -549,12 +567,12 @@ impl CellEditorsPage {
                     let cfg = self.table.editor_config.clone();
                     c.render(at, buf, ctx, &cfg);
                 }
-                let line = format!(
-                    "Enter or a click: Commit · Tab: CommitAndTab · Esc or outside: Cancel · last: {}",
-                    self.last
-                );
-                if inner.height > 2 {
-                    crate::pages::layout::caption(inner.x, inner.y + 2, buf, t, &line, bg);
+                let line = self.choice_line();
+                for (i, l) in junie_tui::ui::text::wrap(&line, inner.width.max(1) as usize)
+                    .iter()
+                    .enumerate()
+                {
+                    crate::pages::layout::caption(inner.x, inner.y + 2 + i as u16, buf, t, l, bg);
                 }
             }
             None => ctx.focus_stop(self.pick.id),
@@ -650,6 +668,30 @@ impl Page for CellEditorsPage {
     }
     fn blurb(&self) -> &'static str {
         "Columns that only take values from a fixed set"
+    }
+
+    /// The table with every column, cell and row whole, the legend's
+    /// lines whole, the facts and the choice line wrapped.
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        use junie_tui::ui::measure::Measure;
+        let sets: Vec<Prop> = self.option_sets().into_iter().map(Prop::wrap).collect();
+        let legend = LEGEND
+            .iter()
+            .map(|(_, _, what)| 24 + junie_tui::ui::text::width(what) as u16)
+            .max()
+            .unwrap_or(0);
+        let w = [
+            self.table
+                .measure(ratatui::layout::Size::new(0, 0), ctx)
+                .width
+                + 4,
+            legend,
+            sheet_width(&Panel::card(Some("Option sets")), &sets),
+        ]
+        .into_iter()
+        .fold(avail.width, u16::max);
+        let h = self.heights(w).iter().sum::<u16>() + 3;
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
