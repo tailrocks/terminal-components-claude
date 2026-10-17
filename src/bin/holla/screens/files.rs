@@ -15,6 +15,7 @@ use junie_tui::core::selection::ClickPolicy;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
+use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::text::{fit, fit_right, truncate, truncate_middle, width};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -89,7 +90,8 @@ pub struct FilesPage {
     preview_meta: String,
     preview_lines: Vec<String>,
     preview_err: Option<String>,
-    drawer: bool,
+    /// The listing beside its preview; a drawer when narrow.
+    md: MasterDetail,
     // find
     pub query: String,
     index: Vec<String>,
@@ -151,7 +153,7 @@ impl FilesPage {
             preview_meta: String::new(),
             preview_lines: vec![],
             preview_err: None,
-            drawer: false,
+            md: MasterDetail::new(LIST, PREVIEW).detail_share(44, 36, 70),
             query: String::new(),
             index: vec![],
             hits: vec![],
@@ -310,8 +312,7 @@ impl FilesPage {
             return Outcome::Changed;
         }
         self.load_preview(&e.path, w);
-        cx.focus.focus(PREVIEW);
-        self.drawer = true;
+        self.md.open_drawer(cx.focus);
         Outcome::Changed
     }
 
@@ -551,8 +552,7 @@ impl FilesPage {
                     self.navigate(path, w, cx);
                 } else {
                     self.load_preview(path, w);
-                    cx.focus.focus(PREVIEW);
-                    self.drawer = true;
+                    self.md.open_drawer(cx.focus);
                 }
             }
         }
@@ -1211,13 +1211,11 @@ impl ShellPage<Holla> for FilesPage {
                         self.preview.clear_selection();
                         return Outcome::Changed;
                     }
-                    self.drawer = false;
-                    cx.focus.focus(LIST);
+                    self.md.close_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 KeyCode::Left if key.plain() => {
-                    self.drawer = false;
-                    cx.focus.focus(LIST);
+                    self.md.close_drawer(cx.focus);
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -1314,8 +1312,7 @@ impl ShellPage<Holla> for FilesPage {
                 if self.current().is_some_and(|e| e.is_dir) {
                     self.open_current(w, cx)
                 } else {
-                    cx.focus.focus(PREVIEW);
-                    self.drawer = true;
+                    self.md.open_drawer(cx.focus);
                     Outcome::Changed
                 }
             }
@@ -1679,36 +1676,17 @@ impl ShellPage<Holla> for FilesPage {
             area.width,
             area.height.saturating_sub(3),
         );
-        let split = area.width >= crate::screens::finder::SPLIT_MIN;
-        if split {
-            let pw = (area.width * 44 / 100).clamp(36, 70);
-            let list = Rect::new(
-                body.x,
-                body.y,
-                body.width.saturating_sub(pw + 2),
-                body.height,
-            );
-            let preview = Rect::new(list.right() + 2, body.y, pw, body.height);
+        let l = self.md.layout(body, buf, ctx, ctx.theme.canvas);
+        if !l.master.is_empty() {
             match self.mode {
-                Mode::Browse => self.render_browse_list(list, buf, ctx, w),
-                Mode::Find => self.render_find_list(list, buf, ctx, w),
+                Mode::Browse => self.render_browse_list(l.master, buf, ctx, w),
+                Mode::Find => self.render_find_list(l.master, buf, ctx, w),
             }
-            self.render_preview(preview, buf, ctx, w);
-        } else if (self.drawer || ctx.interaction.focused(PREVIEW))
-            && !ctx.interaction.focused(LIST)
-        {
-            self.drawer = true;
-            ctx.control(LIST, Rect::ZERO, false);
-            self.render_preview(body, buf, ctx, w);
-        } else {
-            // focus on the list gives the body back to it
-            self.drawer = false;
-            match self.mode {
-                Mode::Browse => self.render_browse_list(body, buf, ctx, w),
-                Mode::Find => self.render_find_list(body, buf, ctx, w),
-            }
-            ctx.control(PREVIEW, Rect::ZERO, false);
         }
+        if !l.detail.is_empty() {
+            self.render_preview(l.detail, buf, ctx, w);
+        }
+        self.md.finish(ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {

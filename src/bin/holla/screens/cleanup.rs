@@ -17,6 +17,7 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
+use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
@@ -80,7 +81,8 @@ pub struct CleanupPage {
     open: BTreeSet<usize>,
     pub mode: Mode,
     pub dry_run: bool,
-    drawer: bool,
+    /// The candidate list beside its details; a drawer when narrow.
+    md: MasterDetail,
     seeded: bool,
     last_tick: u64,
     /// The last built plan revision, to show drift.
@@ -108,7 +110,7 @@ impl CleanupPage {
             open: BTreeSet::new(),
             mode: Mode::Trash,
             dry_run: false,
-            drawer: false,
+            md: MasterDetail::new(LIST, DETAIL).detail_share(38, 34, 50),
             seeded: false,
             last_tick: u64::MAX,
             reviewed: None,
@@ -925,15 +927,7 @@ impl CleanupPage {
             every = every.reason("Nothing here is eligible");
         }
         items.push(every);
-        items.push(
-            MenuItem::new(if self.drawer {
-                "Hide details"
-            } else {
-                "Show details"
-            })
-            .shortcut("p")
-            .separator(),
-        );
+        items.push(self.md.menu_item().shortcut("p").separator());
         keys.push_str("ap");
         items.push(
             MenuItem::new(if self.mode == Mode::Permanent {
@@ -970,6 +964,10 @@ impl CleanupPage {
 
 impl ShellPage<Holla> for CleanupPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
+        // Esc on the details returns to the list
+        if let Some(o) = self.md.on_key(key, cx.focus) {
+            return o;
+        }
         if cx.focus.is(DETAIL) {
             match key.code {
                 KeyCode::Up | KeyCode::Char('k') if key.plain() => {
@@ -978,11 +976,6 @@ impl ShellPage<Holla> for CleanupPage {
                 }
                 KeyCode::Down | KeyCode::Char('j') if key.plain() => {
                     self.detail_scroll.scroll_by(1);
-                    return Outcome::Changed;
-                }
-                KeyCode::Esc => {
-                    self.drawer = false;
-                    cx.focus.focus(LIST);
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -1115,8 +1108,7 @@ impl ShellPage<Holla> for CleanupPage {
                 Outcome::Changed
             }
             KeyCode::Char('p') => {
-                self.drawer = !self.drawer;
-                cx.focus.focus(if self.drawer { DETAIL } else { LIST });
+                self.md.toggle_drawer(cx.focus);
                 Outcome::Changed
             }
             KeyCode::Char('y') => {
@@ -1301,29 +1293,14 @@ impl ShellPage<Holla> for CleanupPage {
             area.width,
             area.height.saturating_sub(3),
         );
-        let split = area.width >= crate::screens::finder::SPLIT_MIN;
-        if split {
-            let dw = (area.width * 38 / 100).clamp(34, 50);
-            let list = Rect::new(
-                body.x,
-                body.y,
-                body.width.saturating_sub(dw + 2),
-                body.height,
-            );
-            let detail = Rect::new(list.right() + 2, body.y, dw, body.height);
-            self.render_list(list, buf, ctx, w);
-            self.render_detail(detail, buf, ctx, w);
-        } else if (self.drawer || ctx.interaction.focused(DETAIL)) && !ctx.interaction.focused(LIST)
-        {
-            self.drawer = true;
-            ctx.control(LIST, Rect::ZERO, false);
-            self.render_detail(body, buf, ctx, w);
-        } else {
-            // focus on the list gives the body back to it
-            self.drawer = false;
-            self.render_list(body, buf, ctx, w);
-            ctx.control(DETAIL, Rect::ZERO, false);
+        let l = self.md.layout(body, buf, ctx, ctx.theme.canvas);
+        if !l.master.is_empty() {
+            self.render_list(l.master, buf, ctx, w);
         }
+        if !l.detail.is_empty() {
+            self.render_detail(l.detail, buf, ctx, w);
+        }
+        self.md.finish(ctx);
     }
 
     fn on_layer_result(
