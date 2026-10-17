@@ -616,9 +616,18 @@ pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: 
         area.x,
         area.y,
         t.glyphs.spinner_frame(ctx.interaction.tick),
-        t.accent_fg().bg(bg),
+        ratatui::style::Style::new()
+            .fg(t.legible_mark(t.accent, bg))
+            .bg(bg),
     );
-    buf.set_string(area.x + 2, area.y, label, t.secondary().bg(bg));
+    buf.set_string(
+        area.x + 2,
+        area.y,
+        label,
+        ratatui::style::Style::new()
+            .fg(t.legible(t.text_secondary, bg))
+            .bg(bg),
+    );
 }
 
 /// One progress bar as a value: the label, the ratio (`None` for an
@@ -839,6 +848,28 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
+
+    /// A1: the activity spinner reads at 3:1 and its label at 4.5:1 on
+    /// every plane it is given, at every level; at 16 colours the raised
+    /// and popover planes are xterm's DarkGray (LightGreen 2.9:1, Gray
+    /// 3.2:1).
+    #[test]
+    fn the_activity_spinner_and_label_read_on_every_plane_at_every_level() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            for bg in [theme.canvas, theme.surface_overlay, theme.popover] {
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                let mut buf = Buffer::empty(Rect::new(0, 0, 20, 1));
+                render_spinner(Rect::new(0, 0, 20, 1), &mut buf, &mut ctx, "sync", bg);
+                let r = |x: u16| contrast_ratio(buf[(x, 0)].fg, buf[(x, 0)].bg).unwrap();
+                assert!(r(0) >= 3.0, "{level:?} {bg:?}: spinner {:.2}", r(0));
+                assert!(r(2) >= 4.5, "{level:?} {bg:?}: label {:.2}", r(2));
+            }
+        }
+    }
 
     #[test]
     fn tally_counts_statuses_and_tones_only_the_failed_clause() {

@@ -220,14 +220,17 @@ impl StepRail {
             s.focused = focused && i == self.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
+            // the state glyph is a graphic on the row's plane (hover and
+            // press lift it): at 3:1 there at every colour level
+            let plane = st.bg.unwrap_or(bg);
+            let mark = |ink| st.fg(t.legible_mark(ink, plane));
             let (glyph, gstyle) = match step.state {
                 StepState::Queued | StepState::Skipped | StepState::Blocked => (" ", st),
-                StepState::Running => (
-                    t.glyphs.spinner_frame(ctx.interaction.tick),
-                    st.fg(t.accent),
-                ),
-                StepState::Done => (t.glyphs.done, st.fg(t.success)),
-                StepState::Failed => ("!", st.fg(t.error).add_modifier(Modifier::BOLD)),
+                StepState::Running => {
+                    (t.glyphs.spinner_frame(ctx.interaction.tick), mark(t.accent))
+                }
+                StepState::Done => (t.glyphs.done, mark(t.success)),
+                StepState::Failed => ("!", mark(t.error).add_modifier(Modifier::BOLD)),
             };
             buf.set_string(row.x + 1, y, glyph, gstyle);
             let mut x = row.x + 3;
@@ -414,6 +417,50 @@ mod tests {
             },
         );
         assert_eq!(rest, pressed);
+    }
+
+    /// A1: a step's state glyph reads on its row (3:1) in every state at
+    /// every level; at 16 colours a hovered row is xterm's DarkGray, where
+    /// the LightGreen spinner was 2.9:1 and the Green check 1.9:1.
+    #[test]
+    fn a_steps_state_glyph_reads_on_its_row_at_every_level() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        use crate::theme::{ColorLevel, Theme, contrast_ratio};
+        use crate::ui::ctx::Interaction;
+        for level in ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            let mut r = StepRail::new(
+                WidgetId::of("r"),
+                ["a", "b", "c"].iter().map(|s| Step::new(s)).collect(),
+            )
+            .selectable(true);
+            r.set_state(0, StepState::Done);
+            r.set_state(1, StepState::Failed);
+            r.set_state(2, StepState::Running);
+            for i in 0..3 {
+                let rid = r.row_id(i);
+                for pressed in [None, Some(rid)] {
+                    let mut hits = HitRegistry::default();
+                    let mut ring = FocusRing::default();
+                    let inter = Interaction {
+                        hover: Some(rid),
+                        pressed,
+                        ..Default::default()
+                    };
+                    let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+                    let mut buf = Buffer::empty(Rect::new(0, 0, 20, 3));
+                    r.render(Rect::new(0, 0, 20, 3), &mut buf, &mut ctx, theme.canvas);
+                    let c = &buf[(1, i as u16)];
+                    let ratio = contrast_ratio(c.fg, c.bg).unwrap();
+                    assert!(
+                        ratio >= 3.0,
+                        "{level:?} row {i} pressed {}: {:?} {ratio:.2}",
+                        pressed.is_some(),
+                        c.symbol()
+                    );
+                }
+            }
+        }
     }
 }
 
