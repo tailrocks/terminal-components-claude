@@ -377,8 +377,9 @@ fn every_open_layer_hears_focus_changes_not_only_dialogs() {
 }
 
 /// R-apps-10: at 72×20 the start dialog's code preview took every row,
-/// leaving its facts none; the preview now shrinks first, so the facts
-/// keep rows to scroll through.
+/// leaving its facts none. R-apps-14: the preview now scrolls with the
+/// facts, so the facts show first and every preview line (none only
+/// summarised as "… N more") is reached by scrolling the body.
 #[test]
 fn a_short_screen_keeps_a_dialogs_facts_beside_its_code_preview() {
     let mut h = H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 72, 20);
@@ -389,8 +390,17 @@ fn a_short_screen_keeps_a_dialogs_facts_beside_its_code_preview() {
         text.contains("Plan       Upgrade"),
         "the facts show:\n{text}"
     );
+    let mut seen = text;
+    for _ in 0..30 {
+        h.key(KeyCode::Down);
+        seen.push_str(&h.text());
+    }
     assert!(
-        text.contains("cat /etc/os-release"),
-        "the preview too:\n{text}"
+        seen.contains("cat /etc/os-release"),
+        "the preview is reached:\n{seen}"
+    );
+    assert!(
+        seen.contains("apt-get update"),
+        "past its sixth line too:\n{seen}"
     );
 }
