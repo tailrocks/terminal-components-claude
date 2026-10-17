@@ -44,6 +44,8 @@ mod app_tests_options;
 #[cfg(test)]
 mod app_tests_overview;
 #[cfg(test)]
+mod app_tests_pane_tree;
+#[cfg(test)]
 mod app_tests_pickers;
 #[cfg(test)]
 mod app_tests_pointer;

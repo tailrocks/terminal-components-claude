@@ -490,6 +490,120 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter::double_click",
         Option("splitsstacks", "splitsstacks.double_click"),
     ),
+    // SC45: Pane tree
+    (
+        "ui::layout::SplitCmd::Up",
+        Demo("panetree", "Alt+Shift+arrows resize"),
+    ),
+    (
+        "ui::layout::SplitCmd::Down",
+        Demo("panetree", "Alt+Shift+arrows resize"),
+    ),
+    (
+        "ui::pane_tree::PaneNode",
+        Option("panetree", "panetree.layout"),
+    ),
+    (
+        "ui::pane_tree::PaneNode::Leaf",
+        Option("panetree", "panetree.layout=single"),
+    ),
+    (
+        "ui::pane_tree::PaneNode::Split",
+        Option("panetree", "panetree.layout=grid"),
+    ),
+    (
+        "ui::pane_tree::Seam",
+        Option("panetree", "panetree.hit_pad"),
+    ),
+    (
+        "ui::pane_tree::Direction",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::Direction::Left",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::Direction::Right",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::Direction::Up",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::Direction::Down",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd",
+        Option("panetree", "panetree.keys"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::Next",
+        Demo("panetree", "F6 next pane"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::Prev",
+        Option("panetree", "panetree.keys=custom"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::FocusLeft",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::FocusRight",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::FocusUp",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::FocusDown",
+        Demo("panetree", "Alt+arrows move"),
+    ),
+    (
+        "ui::pane_tree::PaneCmd::Zoom",
+        Demo("panetree", "Alt+Z zoom"),
+    ),
+    (
+        "ui::pane_tree::Frames",
+        Option("panetree", "panetree.frames"),
+    ),
+    (
+        "ui::pane_tree::Frames::WhenSplit",
+        Option("panetree", "panetree.frames=when-split"),
+    ),
+    (
+        "ui::pane_tree::Frames::Always",
+        Option("panetree", "panetree.frames=always"),
+    ),
+    (
+        "ui::pane_tree::Frames::Never",
+        Option("panetree", "panetree.frames=never"),
+    ),
+    ("ui::pane_tree::PaneTree", StateRow("panetree", "focused")),
+    (
+        "ui::pane_tree::PaneTree::keys",
+        Option("panetree", "panetree.keys"),
+    ),
+    (
+        "ui::pane_tree::PaneTree::split_keys",
+        Option("panetree", "panetree.step"),
+    ),
+    (
+        "ui::pane_tree::PaneTree::min_size",
+        Option("panetree", "panetree.min"),
+    ),
+    (
+        "ui::pane_tree::PaneTree::frames",
+        Option("panetree", "panetree.frames"),
+    ),
+    (
+        "ui::pane_tree::PaneTree::hit_pad",
+        Option("panetree", "panetree.hit_pad"),
+    ),
     // SC38: Master-detail
     (
         "ui::layout::SplitCmd",
@@ -5485,6 +5599,46 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
         "ui::layout::SplitKeys",
         Protocol,
         &["delta", "apply", "hint"],
+    ),
+    (
+        "ui::pane_tree::PaneNode",
+        Protocol,
+        &["leaves", "layout", "node_at_mut", "path_to"],
+    ),
+    (
+        "ui::pane_tree::PaneNode",
+        Operation,
+        &["split_leaf", "remove_leaf"],
+    ),
+    (
+        "ui::pane_tree::PaneTree",
+        Protocol,
+        &[
+            "ui::pane_tree::nearest",
+            "render",
+            "on_key",
+            "on_pointer",
+            "hints",
+            "layout",
+            "seam_id",
+            "panes",
+            "seams",
+            "leaves",
+            "zoomed",
+            "framed",
+        ],
+    ),
+    (
+        "ui::pane_tree::PaneTree",
+        Operation,
+        &[
+            "split",
+            "close",
+            "toggle_zoom",
+            "focus_toward",
+            "focus_next",
+            "resize",
+        ],
     ),
     (
         "ui::master_detail::MasterDetail",

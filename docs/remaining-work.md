@@ -109,7 +109,7 @@ below is the dependency each step must wait for.
 | S23-Q | Move jackin `QuotaTone`/`quota_tone`/`meter_tone` (`src/bin/jackin_preview/screens/accounts.rs:2036-2068`, used by `capsule.rs:2691`, `usage.rs:22`) into the library meter API (a domain-level tone a `Meter` takes); no app keeps a tone rule | known item (owner brief); D5 | S23, D5 | jackin usage/accounts/capsule captures unchanged; a library unit test per level | SC42 or SC36 (`MeterList`) |
 | S24 | `TreeView` tri-state checks and trailing action row; `DataTable` group rows, match ranges, row marks, group folds; `StepRail` table variant | apps 57, 59–62; CO13 | S16 | §7.3 rules | SC43 |
 | S25 | `PickerChain` (jackin OpFlow `modals.rs:551-948`, holla go-to-path) | app 34 | S12, S22 | §7.3 rules | SC44 |
-| S26 | `PaneTree`, zoom (`Split::toggle_max`/`Maximized`); no cross-fade (owner decision 2026-10-17) | apps 8, 69 | S2, S19 | §7.3 rules | SC45 |
+| S26 | `PaneTree`, zoom (`Split::toggle_max`/`Maximized`); no cross-fade (owner decision 2026-10-17). Library part done with SC45 (`ui::pane_tree`); open: jackin capsule and holla plan runner onto it | apps 8, 69 | S2, S19 | §7.3 rules | SC45 |
 | S27 | Strategy B nav policies `core::nav::{FocusPolicy, AdjacentMove, AdjacentKeys, Scope, Bounds}` on Tabs, TreeView, ListBox, Select, Picker, ContextMenu/MenuBar, Dialog, Toolbar; `KeyRouter` honours `AdjacentMove` | `showcase-pages-navigation.md` SC28 6; Strategy B rows of `showcase-coverage-library.md` | S4, S7, S8a | §7.3: a widget test per `AdjacentMove` variant at both edges, a cross-app key-order test, `Scope` inside a modal without a trap, digest unchanged | SC57 |
 | T | Theme track: plane-relative `text_faint` (SV3), mono hover and press (SV2), panel title marker (SV4), `border_strong` field outlines (SVg1), one pressed direction (SVg2), success vs accent (SV14), `COLORFGBG` (SVg7) | all visual, each re-approved alone | S0 (done); can run now | contrast test on every plane | — |
 
@@ -170,7 +170,7 @@ SC33 38, SC38 7, SC32 4. Besides, 684 functions are covered via their owner
 | SC42 | Preview and pinned tabs, `FooterNote`, `ActivityLine` | S23 | — | §7.5 |
 | SC43 | Tri-state checklist tree, trailing action row, group rows, match ranges, row marks, plan outline | S24 | — | §7.5 |
 | SC44 | `PickerChain` | S25 | — | §7.5 |
-| SC45 | Pane tree page (no cross-fade) | S26 | — | §7.5 |
+| SC45 | **Done.** Pane tree page on the library `PaneTree` (nested splits, frames, focus moves, resize chords, zoom through `Split::toggle_max`; no cross-fade); plan "SC45 outcome". | S26 | — | §7.5 |
 | SC57 | Strategy B options on Focus & navigation and Toolbars, `toolbars.adjacent` | S27 | — | §7.3, §7.5 |
 | SC58 | Function coverage added by SC-G1: theme style roles, widget queries and labels, render helpers on their finished pages (plan §7.5 SC58) | SC-G1 (done) | 210 | plan "SC-G1 outcome" |
 | SC46 | Screen: query workbench | S8a, S16, S17, S19, S21, S23 | — | §7.5 "Screens" |

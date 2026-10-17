@@ -268,6 +268,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::EmptyError => EMPTY_ERROR,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::MasterDetail => MASTER_DETAIL,
+        PageId::PaneTree => PANE_TREE,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
         PageId::Editor => CODE_EDITOR,
         PageId::HelpKeys => HELP_KEYS,
@@ -1393,6 +1394,24 @@ pub static MASTER_DETAIL: &[Opt] = &[
     ),
     Opt::new("masterdetail.step", "Resize step", &["2", "1", "5"]),
     Opt::new("masterdetail.gap", "Gap between panes", &["2", "1", "4"]),
+];
+
+/// Pane tree (SC45): the `PaneTree` builders and its starting layout.
+pub static PANE_TREE: &[Opt] = &[
+    Opt::new(
+        "panetree.layout",
+        "Starting layout",
+        &["three", "grid", "single"],
+    ),
+    Opt::new(
+        "panetree.frames",
+        "Pane frames",
+        &["when-split", "always", "never"],
+    ),
+    Opt::new("panetree.min", "Pane minimum", &["12x3", "24x6"]),
+    Opt::new("panetree.keys", "Pane keys", &["default", "custom", "none"]),
+    Opt::new("panetree.step", "Resize step", &["2", "1", "5"]),
+    Opt::new("panetree.hit_pad", "Seam hit padding", &["1", "0", "3"]),
 ];
 
 /// Code editor (SC24): every `CodeEditor` knob, then the completion
