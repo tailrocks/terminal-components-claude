@@ -1418,13 +1418,12 @@ impl ConnectionsScreen {
                 message,
                 detail,
             } if *name == c.name => {
-                // the message on one row, two muted rows of detail; the cut
-                // is not marked yet (remaining-work: Notice adopters)
+                // the message on one row, two muted rows of detail; a cut
+                // ends in ` …` and reveals in full on hover (R-apps-5)
                 Notice::error(message.as_str())
                     .detail(detail.as_str())
                     .message_lines(1)
                     .detail_tone(Tone::Muted)
-                    .mark_cut(false)
                     .render(Rect::new(inner.x, sy, inner.width, 3), buf, ctx, bg);
             }
             _ => {}
@@ -1563,10 +1562,14 @@ impl ConnectionsScreen {
                 None => ctx.focus_stop(form.safe.id),
             }
             if let Some(r) = rl.slot(4) {
-                for (i, line) in desc_lines.iter().take(r.height as usize).enumerate() {
-                    let line =
-                        junie_tui::ui::text::truncate(line, r.width.saturating_sub(2) as usize);
-                    buf.set_string(r.x + 2, r.y + i as u16, line, t.muted().bg(bg));
+                // the description is the safe-mode field's: cut at its rows,
+                // it says so and reveals in full (R-apps-5)
+                let rows = r.height.min(desc_lines.len() as u16);
+                let area = Rect::new(r.x + 2, r.y, r.width.saturating_sub(2), rows);
+                let focused = focus == Some(form.safe.id);
+                let lines = junie_tui::ui::reveal::clamp(ctx, area, desc, focused);
+                for (i, line) in lines.iter().enumerate() {
+                    buf.set_string(area.x, area.y + i as u16, line, t.muted().bg(bg));
                 }
             }
         } else {
