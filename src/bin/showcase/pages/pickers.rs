@@ -25,7 +25,7 @@ use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent, Report};
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{ItemKey, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::pointer::MouseTarget;
@@ -38,8 +38,9 @@ use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::empty::EmptyState;
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem, PickerStatus};
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerStatus};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::tree::TreeNode;
 
@@ -187,10 +188,10 @@ struct Rows {
 
 impl Rows {
     fn fill(&self, kind: Kind, p: &mut Picker) {
-        let q = p.query.text().to_owned();
+        let q = p.query().to_owned();
         match kind {
             Kind::Quick => {
-                let mut ranked: Vec<(u32, PickerItem)> = self
+                let mut ranked: Vec<(u32, Item)> = self
                     .entries
                     .iter()
                     .filter(|e| match self.scope {
@@ -200,7 +201,7 @@ impl Rows {
                     })
                     .filter_map(|e| {
                         let (pen, matched) = fuzzy(&e.label, &q)?;
-                        let mut it = PickerItem::new(&e.label)
+                        let mut it = Item::new(&e.label)
                             .detail(&e.detail)
                             .glyph(e.glyph)
                             .group(e.group);
@@ -226,7 +227,7 @@ impl Rows {
                     .enumerate()
                     .filter_map(|(i, (t, run))| {
                         let (_, matched) = fuzzy(t, &q)?;
-                        let mut it = PickerItem::new(t)
+                        let mut it = Item::new(t)
                             .detail(match run {
                                 Some(s) => format!("{s}s"),
                                 None if i == 0 => "query".into(),
@@ -234,9 +235,9 @@ impl Rows {
                             })
                             .glyph(if run.is_some() { "◌" } else { "T" })
                             .group("Open tabs")
-                            .key(t.as_str());
+                            .key(ItemKey::text(t));
                         it.matched = matched;
-                        it.tag = (i == 1).then_some("active");
+                        it.tag = (i == 1).then_some("active".into());
                         Some(it)
                     })
                     .collect();
@@ -251,23 +252,23 @@ impl Rows {
                         .iter()
                         .enumerate()
                         .map(|(i, (l, d))| {
-                            let mut it = PickerItem::new(*l).detail(*d);
-                            it.tag = (i == self.level).then_some("current");
+                            let mut it = Item::new(*l).detail(*d);
+                            it.tag = (i == self.level).then_some("current".into());
                             it
                         })
                         .collect(),
                 );
-                p.cursor = self.level;
+                p.set_cursor(self.level);
             }
             Kind::Commands => p.set_items(
                 COMMANDS
                     .iter()
                     .filter(|c| fuzzy(c.0, &q).is_some())
                     .map(|(l, g, k, why)| {
-                        let it = PickerItem::new(*l)
-                            .glyph(g)
+                        let it = Item::new(*l)
+                            .glyph(*g)
                             .group("Commands")
-                            .key(*k)
+                            .key(ItemKey::text(k))
                             .detail(why.unwrap_or(k));
                         it.disabled(why.is_some())
                     })
@@ -290,7 +291,7 @@ impl Rows {
                     p.set_items(
                         BRANCHES
                             .iter()
-                            .map(|b| PickerItem::new(*b).glyph("⎇").group("origin"))
+                            .map(|b| Item::new(*b).glyph("⎇").group("origin"))
                             .collect(),
                     );
                 }
@@ -424,7 +425,7 @@ impl PickersPage {
             Kind::Level => {
                 let mut p =
                     Picker::new(ID.sub("picker.level"), "Safe Mode · this connection").width(112);
-                p.searchable = false;
+                p.set_searchable(false);
                 p
             }
             Kind::Commands => Picker::new(ID.sub("picker.commands"), "Run command")
@@ -433,7 +434,7 @@ impl PickersPage {
             Kind::Remote => {
                 let mut p =
                     Picker::new(ID.sub("picker.remote"), "Remote branches · origin").width(56);
-                p.searchable = false;
+                p.set_searchable(false);
                 p
             }
         };
@@ -567,10 +568,10 @@ impl PickersPage {
                 "Size",
                 format!(
                     "width {} · max rows {} · {:?}{}",
-                    p.width,
-                    p.max_rows,
-                    p.placement,
-                    if p.placement == Placement::Center {
+                    p.list.width.1,
+                    p.list.max_rows,
+                    p.list.placement,
+                    if p.list.placement == Placement::Center {
                         ""
                     } else {
                         " the button"
@@ -581,14 +582,14 @@ impl PickersPage {
                 "Fit",
                 format!(
                     "margin {} · {:?} · backdrop keeps {} bottom rows",
-                    p.fit.margin, p.fit.v_align, p.backdrop.keep_bottom
+                    p.list.fit.margin, p.list.fit.v_align, p.backdrop.keep_bottom
                 ),
             ),
             Prop::new(
                 "Rows",
                 format!(
                     "cursor {:?} · Delete secondary {} · nav {}",
-                    p.cursor_style,
+                    p.list.look,
                     on(p.delete_is_secondary),
                     self.opts.value("pickers.nav")
                 ),
@@ -597,8 +598,8 @@ impl PickersPage {
                 "Close",
                 format!(
                     "Esc {} · outside click {}",
-                    on(p.dismiss.escape),
-                    on(p.dismiss.outside_click)
+                    on(p.list.dismiss.escape),
+                    on(p.list.dismiss.outside_click)
                 ),
             ),
             Prop::new(
@@ -720,11 +721,11 @@ fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
     let mut p = Picker::new(id.child(0), "Remote branches").width(44);
-    p.searchable = false;
+    p.set_searchable(false);
     p.set_items(
         ["main", "feat/rate-limit", "release/4.2"]
             .iter()
-            .map(|b| PickerItem::new(*b).glyph("⎇"))
+            .map(|b| Item::new(*b).glyph("⎇"))
             .collect(),
     );
     StateGrid::new(id)
