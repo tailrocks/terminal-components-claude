@@ -204,7 +204,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/workspaces/drawer", Bin::Showcase, &["--page", "workspaces", "--opt", "workspaces.collapse_below=108"], BOOT).sends(&["wait:Tab shows details", "tab", "tab", "tab", "wait:Esc back"]).pending(),
     Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
     Root::new("showcase/planned/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:arrives with SC55"]).pending(),
-    Root::new("showcase/planned/readonlyreport", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["wait:arrives with SC56"]).pending(),
+    // SC56 filled Read-only report: the page, its sections and offline
+    // (last-good values, the warning notice)
+    Root::new("showcase/pages/readonlyreport", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["wait:Host snapshot"]).pending(),
+    Root::new("showcase/sections/readonlyreport-options", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["tab", "2", "wait:Attention notices"]).pending(),
+    Root::new("showcase/sections/readonlyreport-states", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
+    Root::new("showcase/flows/readonlyreport/offline", Bin::Showcase, &["--page", "readonlyreport", "--opt", "readonlyreport.offline=on"], BOOT).sends(&["wait:last-good 2 m ago"]).pending(),
     // ------------------------------------------- page template sections (SC2) --
     // A widget page is Playground | Options | States (plan §7, SCP2): Tab
     // focuses the section strip, a digit opens a section. Options shows the
