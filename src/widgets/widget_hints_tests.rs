@@ -171,3 +171,31 @@ fn a_text_field_waiting_for_enter_hints_edit() {
     let h = line(&i);
     assert!(h == "Enter Edit" || h.starts_with("Enter "), "{h}");
 }
+
+/// CO3: an open completion list names only its own keys (↑↓ and paging,
+/// never `Home End` or letters, which keep editing the query) under both
+/// profiles; closed, nothing.
+#[test]
+fn completion_hints_read_its_own_keys() {
+    use crate::widgets::completion::{Completion, CompletionItem};
+    let open = || {
+        let mut c = Completion::new(ID);
+        let item = CompletionItem {
+            label: "SELECT".into(),
+            glyph: "K".into(),
+            detail: String::new(),
+            insert: "SELECT".into(),
+            matched: vec![],
+        };
+        c.open(vec![item], ratatui::layout::Rect::new(0, 0, 10, 1), 0);
+        c
+    };
+    assert_eq!(
+        both(open),
+        (
+            "↑↓ Move · Enter Accept · Esc Close".into(),
+            "↑↓ Move · Enter Accept · Esc Close".into()
+        )
+    );
+    assert_eq!(line(&Completion::new(ID)), "");
+}
