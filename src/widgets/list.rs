@@ -142,6 +142,13 @@ pub enum ListCmd {
 }
 
 impl Actions for ListCmd {
+    fn label(self) -> &'static str {
+        match self {
+            ListCmd::ToggleAll => "Toggle all",
+            ListCmd::SelectAll => "Select all",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         let mut map = vec![(KeyBinding::char('a'), ListCmd::ToggleAll)];
         map.extend(select_all_bindings(ListCmd::SelectAll));

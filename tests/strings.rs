@@ -319,8 +319,16 @@ fn diffs_help_and_reveal_follow_the_theme() {
     let text = draw(&de(), (60, 20), |buf, ctx| {
         h.render(Rect::new(0, 0, 60, 20), buf, ctx)
     });
+    assert!(text.contains("Tastenkürzel"), "{text}");
+    // the overlay names its keys in the app's footer (S8b, CO4), in the
+    // theme's words
+    let hints: Vec<String> =
+        junie_tui::core::hints::HasHints::hints(&h, &junie_tui::core::hints::HintCx::default())
+            .iter()
+            .map(|h| format!("{} {}", h.key, h.action))
+            .collect();
     assert!(
-        text.contains("Tastenkürzel") && text.contains("Esc Schließen"),
-        "{text}"
+        hints.iter().any(|h| h == &format!("Esc {}", DE.hint_close)),
+        "{hints:?}"
     );
 }

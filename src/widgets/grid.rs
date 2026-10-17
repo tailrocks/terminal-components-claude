@@ -569,6 +569,29 @@ pub enum GridCmd {
 }
 
 impl Actions for GridCmd {
+    fn label(self) -> &'static str {
+        match self {
+            GridCmd::ClearCell => "Clear cell",
+            GridCmd::ToggleDelete => "Mark for deletion",
+            GridCmd::InsertRow => "Insert row",
+            GridCmd::DuplicateRow => "Duplicate row",
+            GridCmd::Copy => "Copy",
+            GridCmd::CopyWithHeader => "Copy with header",
+            GridCmd::Commit => "Save",
+            GridCmd::Sort => "Sort",
+            GridCmd::ClearSort => "Clear sort",
+            GridCmd::FilterOnCell => "Filter on cell",
+            GridCmd::OpenFilters => "Filters",
+            GridCmd::ClearFilters => "Clear filters",
+            GridCmd::Refresh => "Refresh",
+            GridCmd::Undo => "Undo",
+            GridCmd::Discard => "Discard",
+            GridCmd::PreviewSql => "Preview SQL",
+            GridCmd::FollowReference => "Follow reference",
+            GridCmd::SelectAll => "Select all",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Delete), GridCmd::ClearCell),

@@ -293,7 +293,13 @@ impl KeyBinding {
             .mods
             .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
         let mac_cmd = self.mods.contains(KeyModifiers::SUPER) && platform.is_macos();
-        if self.mods.contains(KeyModifiers::SHIFT) && !mac_cmd && (!char_shift || ctrl_or_alt) {
+        // BackTab names Shift itself
+        let back_tab = self.code == KeyCode::BackTab;
+        if self.mods.contains(KeyModifiers::SHIFT)
+            && !mac_cmd
+            && !back_tab
+            && (!char_shift || ctrl_or_alt)
+        {
             out.push_str("Shift+");
         }
         match self.code {
@@ -342,6 +348,10 @@ pub type KeyMap<A> = Vec<(KeyBinding, A)>;
 pub trait Actions: Copy + PartialEq + Sized + 'static {
     /// The bindings the widget has always had.
     fn default_keymap() -> KeyMap<Self>;
+
+    /// What the action does, as help and the component docs name it
+    /// (`Select all`, `Sort`).
+    fn label(self) -> &'static str;
 }
 
 /// The action `key` is bound to in `map`.
@@ -579,6 +589,9 @@ mod tests {
     }
 
     impl Actions for TestCmd {
+        fn label(self) -> &'static str {
+            "test"
+        }
         fn default_keymap() -> KeyMap<Self> {
             vec![
                 (KeyBinding::char('x'), TestCmd::Remove),

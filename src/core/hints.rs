@@ -13,7 +13,7 @@
 use std::borrow::Cow;
 
 use crate::core::id::WidgetId;
-use crate::core::keymap::{KeyBinding, NavKeys};
+use crate::core::keymap::{Actions, KeyBinding, NavKeys};
 use crate::widgets::keyhint::{Hint, HintPriority};
 
 /// What a widget's hints depend on beyond its own state.
@@ -94,6 +94,32 @@ pub fn keymap_bindings<A: Copy>(
         .filter(|(k, _)| k.deliverable())
         .map(|&(k, a)| Binding::key(k, label(a)))
         .collect()
+}
+
+/// A key map's rows, each named by its action's [`Actions::label`]
+/// (undeliverable chords left out).
+pub fn actions_bindings<A: Actions>(map: &[(KeyBinding, A)]) -> Vec<Binding> {
+    keymap_bindings(map, A::label)
+}
+
+/// The navigation rows of a widget configured with `nav`: the keys that
+/// move, page and jump to the ends, and `A–Z Jump to a row` under
+/// type-ahead. Only keys the configuration takes are listed.
+pub fn nav_bindings(nav: &NavKeys, type_ahead: bool) -> Vec<Binding> {
+    let mut v = vec![];
+    if let Some(k) = nav.move_hint(type_ahead) {
+        v.push(Binding::group(k, "Move"));
+    }
+    if let Some(k) = nav.page_hint() {
+        v.push(Binding::group(k, "Page"));
+    }
+    if let Some(k) = nav.ends_hint(type_ahead) {
+        v.push(Binding::group(k, "First / last"));
+    }
+    if type_ahead {
+        v.push(Binding::group("a–z", "Jump to a row by name"));
+    }
+    v
 }
 
 /// The text a type-selecting widget's hint shows: `Type to jump`.

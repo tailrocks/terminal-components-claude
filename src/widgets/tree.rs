@@ -228,6 +228,13 @@ pub enum TreeCmd {
 }
 
 impl Actions for TreeCmd {
+    fn label(self) -> &'static str {
+        match self {
+            TreeCmd::ExpandAll => "Expand all",
+            TreeCmd::CollapseAll => "Collapse all",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::char('*'), TreeCmd::ExpandAll),

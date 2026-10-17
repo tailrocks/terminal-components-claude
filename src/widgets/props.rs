@@ -285,6 +285,12 @@ pub enum PropsCmd {
 }
 
 impl Actions for PropsCmd {
+    fn label(self) -> &'static str {
+        match self {
+            PropsCmd::Copy => "Copy",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![(KeyBinding::char('y'), PropsCmd::Copy)]
     }
