@@ -31,8 +31,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use super::modals::{
-    BrowserResult, ChoiceDialog, FieldKindW, FieldValue, FileBrowser, FormDialog, FormField,
-    FormValues, OpFlow,
+    BrowserResult, ChoiceDialog, FieldKindW, FieldValue, FormDialog, FormField, FormValues, OpFlow,
 };
 use super::rowmenu::RowMenu;
 use super::{Cx, LayerTag, ModalResult};
@@ -2191,7 +2190,7 @@ impl ConfigTabs {
         let out = match (tag.kind, result) {
             ("cfg.mount", ModalResult::FormAction(name, _values)) => {
                 if name == "choose:host" {
-                    let b = FileBrowser::new(
+                    let b = super::modals::file_browser(
                         self.ids.form.sub("browser"),
                         "Choose the host directory",
                         &w.cwd,
@@ -2214,7 +2213,7 @@ impl ConfigTabs {
                 });
                 Outcome::Changed
             }
-            ("cfg.mount.browse", ModalResult::Browser(BrowserResult::GitUrl(url))) => {
+            ("cfg.mount.browse", ModalResult::Browser(BrowserResult::Url(url))) => {
                 cx.with_top::<FormDialog>(move |f| {
                     if let Some(fld) = f.field_mut("kind")
                         && let FieldKindW::Radio(r) = &mut fld.kind

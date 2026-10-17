@@ -37,7 +37,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
-use super::modals::{BrowserResult, FileBrowser, FormDialog, FormField, FormValues, OpFlow};
+use super::modals::{BrowserResult, FormDialog, FormField, FormValues, OpFlow};
 use super::rowmenu::RowMenu;
 use super::{Cx, Go, LayerTag, ModalResult, Screen};
 use crate::domain::account::{
@@ -2506,7 +2506,7 @@ impl Page<Jackin> for AccountsScreen {
                         cx.open(flow, LayerTag::new("op"));
                     }
                     "choose:browse" => {
-                        let b = FileBrowser::new(
+                        let b = super::modals::file_browser(
                             WidgetId::of("accounts.browser"),
                             "Choose the local agent folder",
                             &w.home,
