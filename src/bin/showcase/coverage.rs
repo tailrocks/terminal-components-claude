@@ -5572,7 +5572,13 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "ui::master_detail::MasterDetail",
         Operation,
-        &["toggle_drawer", "close_drawer", "drawer_open", "menu_item"],
+        &[
+            "toggle_drawer",
+            "open_drawer",
+            "close_drawer",
+            "drawer_open",
+            "menu_item",
+        ],
     ),
     ("ui::layout::Stack", Protocol, &["measure", "layout"]),
     ("ui::layout::StackScroll", Operation, &["reset"]),

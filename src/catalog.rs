@@ -937,6 +937,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::master_detail::MasterDetail::drawer_open"),
     Capability::function("ui::master_detail::MasterDetail::last"),
     Capability::function("ui::master_detail::MasterDetail::toggle_drawer"),
+    Capability::function("ui::master_detail::MasterDetail::open_drawer"),
     Capability::function("ui::master_detail::MasterDetail::close_drawer"),
     Capability::function("ui::master_detail::MasterDetail::menu_item"),
     Capability::function("ui::master_detail::MasterDetail::layout"),
