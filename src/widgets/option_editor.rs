@@ -21,8 +21,6 @@
 //! | [`ColumnEditor::Segmented`] | a one-row strip of segments | Enter, Space, click |
 //! | [`ColumnEditor::Tags`] | a checklist (several values) | Space toggles, Enter commits |
 
-use std::collections::BTreeSet;
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -34,6 +32,7 @@ use crate::core::hit::Axis;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys, unassigned_chord};
 use crate::core::list::{Cursor, KeyStep, Moved, RowSource};
+use crate::core::selection::{RowSelection, SelectGesture};
 use crate::theme::{CursorStyle, Tone};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id, place_with, surface_for};
@@ -355,7 +354,9 @@ pub struct ChoiceEditor {
     /// out of set).
     pub current: Option<usize>,
     /// Tags: the checked options.
-    pub checked: BTreeSet<usize>,
+    /// Tags: the checked options (a checklist: a click or Space toggles
+    /// one, [`RowSelection::apply`] with [`SelectGesture::Toggle`]).
+    pub selection: RowSelection,
     /// Combo: the search text.
     pub query: String,
     /// A validator rejected the last commit; the popup stays open.
@@ -385,18 +386,22 @@ impl ChoiceEditor {
         let options = editor.options()?.clone();
         let current = options.find(raw);
         let checked = if kind == Kind::Tags {
-            editor
+            let mut s = RowSelection::new();
+            for i in editor
                 .parts(raw, cfg)
                 .iter()
                 .filter_map(|p| options.find(p))
-                .collect()
+            {
+                s.set(i, true);
+            }
+            s
         } else {
-            BTreeSet::new()
+            RowSelection::new()
         };
         let first_enabled = options.0.iter().position(|o| !o.is_disabled()).unwrap_or(0);
         let cursor = current
             .filter(|&i| !options.0[i].is_disabled())
-            .or_else(|| checked.iter().next().copied())
+            .or_else(|| checked.iter().next())
             .unwrap_or(first_enabled);
         Some(Self {
             id,
@@ -404,7 +409,7 @@ impl ChoiceEditor {
             options,
             cursor,
             current,
-            checked,
+            selection: checked,
             query: String::new(),
             error: None,
             scroll: 0,
@@ -465,9 +470,9 @@ impl ChoiceEditor {
     fn value(&self, cfg: &EditorConfig) -> Option<String> {
         if self.kind == Kind::Tags {
             return Some(
-                self.checked
+                self.selection
                     .iter()
-                    .map(|&i| self.options.0[i].value.as_str())
+                    .map(|i| self.options.0[i].value.as_str())
                     .collect::<Vec<_>>()
                     .join(cfg.tag_separator),
             );
@@ -484,12 +489,11 @@ impl ChoiceEditor {
     }
 
     fn toggle_checked(&mut self, i: usize) {
-        if !self.enabled(i) {
-            return;
-        }
-        if !self.checked.remove(&i) {
-            self.checked.insert(i);
-        }
+        let order: Vec<usize> = (0..self.options.0.len()).collect();
+        let options = &self.options;
+        self.selection.apply(SelectGesture::Toggle, i, &order, |k| {
+            !options.0[k].is_disabled()
+        });
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
@@ -810,7 +814,7 @@ impl ChoiceEditor {
                     x += width(g) as u16 + 1;
                 }
                 Kind::Tags => {
-                    let g = if self.checked.contains(&i) {
+                    let g = if self.selection.contains(i) {
                         t.glyphs.check_on
                     } else {
                         t.glyphs.check_off
@@ -1140,11 +1144,11 @@ mod tests {
         ]);
         let mut c =
             ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Tags(opts), "db", &cfg).unwrap();
-        assert_eq!(c.checked, BTreeSet::from([3]));
+        assert_eq!(c.selection.to_vec(), vec![3]);
         c.on_key(&key(KeyCode::Home), &cfg);
         c.on_key(&key(KeyCode::Char(' ')), &cfg);
         c.on_click(c.option_id(2), &cfg);
-        assert!(!c.checked.contains(&2), "a disabled tag never checks");
+        assert!(!c.selection.contains(2), "a disabled tag never checks");
         assert_eq!(
             c.on_key(&key(KeyCode::Enter), &cfg).1,
             Some(ChoiceResult::Commit("api, db".into()))
