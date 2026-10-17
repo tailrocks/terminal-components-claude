@@ -27,6 +27,7 @@ use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::theme::{SyntaxTone, Theme};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
+use crate::ui::row::{RowLook, RowUi};
 use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::edit::{EditExit, EditField, FieldError, Validator};
@@ -2683,14 +2684,7 @@ impl DataGrid {
                 let mid = self.more_id();
                 let mut s = ctx.child_state(self.id, mid, d == self.cursor.0);
                 s.focused = focused && d == self.cursor.0;
-                let st = t.row(s, bg);
-                fill(buf, row_rect, st);
-                buf.set_string(
-                    row_rect.x,
-                    y,
-                    t.gutter_symbol(s),
-                    t.gutter(s, st.bg.unwrap_or(bg), false),
-                );
+                let st = RowUi::paint(ctx, buf, row_rect, s, RowLook::Bar, bg).style();
                 let text = if self.loading {
                     format!(
                         "{} {}",
@@ -2727,19 +2721,16 @@ impl DataGrid {
             s.focused = focused && d == self.cursor.0;
             s.selected = self.selection.contains(src);
             let state = self.row_state_with(src, |r| edited_rows.contains(&r));
-            let mut row_style = t.row(s, bg);
+            let mut rp = RowUi::resolve(ctx, row_rect, s, RowLook::Bar, bg);
             if state == RowState::Deleted {
-                row_style = row_style
+                rp.look.style = rp
+                    .look
+                    .style
                     .fg(t.text_faint)
                     .add_modifier(Modifier::CROSSED_OUT);
             }
-            fill(buf, row_rect, row_style);
-            buf.set_string(
-                row_rect.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, row_style.bg.unwrap_or(bg), false),
-            );
+            rp.draw(buf);
+            let row_style = rp.style();
             if s.selected {
                 buf.set_string(
                     row_rect.x + 1,
