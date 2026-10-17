@@ -89,7 +89,7 @@ fn code_custom_keymap_moves_find_to_ctrl_f() {
 fn code_nav_vim_moves_with_j() {
     let mut h = editor(&[]);
     h.key(KeyCode::Char('j'));
-    assert!(h.text().contains("ln 1 · col 1"));
+    assert!(h.text().contains("ln 1 · col 1"), "{}", h.text());
     let mut h = editor(&["codeeditor.nav=vim"]);
     h.key(KeyCode::Char('j'));
     assert!(h.text().contains("ln 2 · col 1"), "{}", h.text());
