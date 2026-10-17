@@ -170,7 +170,7 @@ mod breadcrumbs_rails {
         let (x, y) = h.find("Users ›").expect("the trail");
         h.click(x, y);
         assert!(h.row_of("Disk ›").contains("Disk › Users"));
-        assert!(!h.text().contains("› alex ›"));
+        assert!(!h.row_of("Disk ›").contains("alex"));
         assert!(h.text().contains("Users (level 1)"));
         // Backspace walks up a level
         h.app.shell.focus.focus(LIST);

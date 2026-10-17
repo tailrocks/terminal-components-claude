@@ -91,7 +91,7 @@ never in view at the smallest failing size.
 | R1 | Overview | Playground | 80x24, 100x25, 106x29, 120x40 | `0a1c0c 173f1c 19191c 1e5024 256 262626 2e0f0f 2e9a38` |
 | R2 | Chrome | Playground | 80x24, 100x25, 106x29, 120x40 | `7f3a 9c41 Brand Center Chosen Closed Ctrl Hide` |
 | R3 | StatusHints | Playground | 80x24, 100x25, 106x29, 120x40 | `256 ASCII Apply Auto COLOR Cancel Colour Command` |
-| R4 | BreadcrumbsRails | Playground | 80x24, 100x25, 106x29, 120x40 | `154 Backspace Collapse Ctrl Enter Expand Keys SidebarRail` |
+| R4 | BreadcrumbsRails | Playground | **Done** (reach-a): `measure` from `Breadcrumb: Measure`, `Panel::outer`, `props::width`; the Trails card spans the page (the deep trail is ~90 cells, so 80-column screens scroll sideways); captions say `full width` instead of a size-dependent number | — |
 | R5 | HelpKeys | Playground | 80x24, 100x25, 106x29, 120x40 | `Dismiss End Esc Home Query Shift bottom cancel` |
 | R6 | QuitLeave | Playground | 80x24, 100x25, 106x29, 120x40 | `Discard Esc Resolved Run Save Stay and answer` |
 | R7 | FocusNavigation | Playground | 80x24, 100x25, 106x29, 120x40 | `Archive Auto Bindings Cmd Ctrl Delta Down Drafts` |
