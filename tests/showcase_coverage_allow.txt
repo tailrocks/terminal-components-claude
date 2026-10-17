@@ -490,6 +490,7 @@ widgets::chips::ChipBar::menu_open | public function registered by SC-G1 (a quer
 # widgets::choice
 
 # widgets::choice_dialog
+widgets::choice_dialog::ChoiceDialog::double_click_confirms | a pointer knob (a double click on an option fires the primary): the Dialog kinds page shows it as an option when SC32 adds the dialog pointer options | SC32
 
 # widgets::code
 widgets::code::EditorAction | widget actions: the Inspector State log of widget events (the showcase on Shell) | SC34
