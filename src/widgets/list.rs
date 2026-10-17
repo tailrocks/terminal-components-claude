@@ -964,6 +964,31 @@ mod reveal_tests {
         }
     }
 
+    /// SI8: on focus a cut cursor row publishes its full label for the
+    /// peek line, with no key pressed; an unfocused list or a row that
+    /// fits publishes nothing.
+    #[test]
+    fn a_focused_cut_cursor_row_peeks_its_full_label() {
+        let theme = Theme::junie();
+        let peek = |cursor: usize, focused: bool| {
+            let mut l = list();
+            l.cursor = cursor;
+            let interaction = Interaction {
+                focus: focused.then_some(l.id),
+                ..Default::default()
+            };
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 3));
+            l.render(Rect::new(0, 0, 20, 3), &mut buf, &mut ctx, theme.canvas);
+            ctx.peek
+        };
+        assert_eq!(peek(1, true).as_deref(), Some(LONG));
+        assert_eq!(peek(1, false), None);
+        assert_eq!(peek(0, true), None);
+    }
+
     #[test]
     fn meta_tone_colours_the_metadata_and_defaults_to_muted() {
         let theme = Theme::junie();

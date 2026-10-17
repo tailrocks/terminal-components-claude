@@ -88,6 +88,10 @@ pub struct Footer {
     pub pin_dirty: Option<&'static str>,
     /// The page reports unsaved changes (see [`Self::pin_dirty`]).
     pub dirty: bool,
+    /// Leave the status slot empty instead of showing the peek line (the
+    /// focused cut value in full, [`RenderCtx::peek`]). Default `false`:
+    /// the peek line shows (SI8). See [`Self::peek`].
+    pub hide_peek: bool,
 }
 
 impl Footer {
@@ -126,6 +130,13 @@ impl Footer {
     /// See [`Self::align`].
     pub fn align(mut self, align: HintAlign) -> Self {
         self.align = Some(align);
+        self
+    }
+
+    /// Show the peek line while the status slot is free (default `true`;
+    /// [`Self::hide_peek`]).
+    pub fn peek(mut self, on: bool) -> Self {
+        self.hide_peek = !on;
         self
     }
 
@@ -203,8 +214,26 @@ impl Footer {
 
     /// Draw the footer on `area` (one row) and register its hints as click
     /// targets with `shell` (after the overlays, [`Shell::footer_drawn`]).
-    pub fn render<P>(self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, shell: &mut Shell<P>) {
+    pub fn render<P>(
+        mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &RenderCtx,
+        shell: &mut Shell<P>,
+    ) {
         let t = ctx.theme;
+        // the peek line: the focused cut value in full, while nothing else
+        // is said in the status slot (SI8)
+        if !self.hide_peek
+            && self.status.is_none()
+            && let Some(text) = &ctx.peek
+        {
+            self.status = Some(FooterStatus::Toned {
+                text: text.clone(),
+                tone: Tone::Secondary,
+                parts: vec![],
+            });
+        }
         fill(buf, area, t.base());
         let hints = self.compose(ctx.reveal_hint);
         let badge = self.editing.then_some(("EDIT", BadgeKind::Edit));

@@ -116,7 +116,11 @@ fn the_reveal_key_shows_a_cut_row_whole() {
     h.opt("popupstooltips.reveal_key=none");
     h.focus(list);
     h.key(KeyCode::Right);
-    assert!(!h.text().contains("of every popup"), "no reveal key");
+    // the body stays cut (the footer's peek line may show the value)
+    let text = h.text();
+    let lines: Vec<&str> = text.lines().collect();
+    let body = lines[..lines.len() - 1].join("\n");
+    assert!(!body.contains("of every popup"), "no reveal key");
 }
 
 #[test]

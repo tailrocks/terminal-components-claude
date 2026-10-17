@@ -221,7 +221,19 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
     let product = "jackin-preview · deterministic redesign preview";
     let construct = "simulated · nothing here touches a real container";
     assert!(h.text().contains("Scenario"), "{}", h.text());
-    assert!(!h.text().contains(product), "cut at rest: {}", h.text());
+    // above the footer the value is cut; the footer's peek line shows the
+    // focused cursor row's value in full (SI8)
+    let body = |h: &H| {
+        let text = h.text();
+        let lines: Vec<&str> = text.lines().collect();
+        lines[..lines.len() - 1].join("\n")
+    };
+    assert!(!body(&h).contains(product), "cut at rest: {}", h.text());
+    assert!(
+        last_row(&h).contains(product),
+        "the peek line shows the cut cursor value: {}",
+        last_row(&h)
+    );
     assert!(
         last_row(&h).contains("→ Full text"),
         "the reveal key is hinted on a cut cursor row: {}",
@@ -232,14 +244,14 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
     assert!(h.text().contains(product), "{}", h.text());
     assert!(last_row(&h).contains("← Collapse"), "{}", last_row(&h));
     h.key(KeyCode::Left);
-    assert!(!h.text().contains(product), "{}", h.text());
+    assert!(!body(&h).contains(product), "{}", h.text());
     // the reveal follows the cursor; Esc closes the reveal, not the dialog
     h.key(KeyCode::Right);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     assert!(h.text().contains(construct), "{}", h.text());
     h.key(KeyCode::Esc);
-    assert!(!h.text().contains(construct), "{}", h.text());
+    assert!(!body(&h).contains(construct), "{}", h.text());
     assert!(
         h.text().contains("Scenario"),
         "dialog still open: {}",
@@ -249,12 +261,12 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
     // pointer has rested (Reveal::delay_ms): a pass over it shows nothing
     let (vx, vy) = h.find("simulated").unwrap();
     h.mouse(MouseKind::Move, vx + 2, vy);
-    assert!(!h.text().contains(construct), "not at once: {}", h.text());
+    assert!(!body(&h).contains(construct), "not at once: {}", h.text());
     h.ticks(8);
     assert!(h.text().contains(construct), "{}", h.text());
     let (px, py) = h.find("Scenario").unwrap();
     h.mouse(MouseKind::Move, px, py);
-    assert!(!h.text().contains(construct), "{}", h.text());
+    assert!(!body(&h).contains(construct), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(
         !h.text().contains("deterministic"),
