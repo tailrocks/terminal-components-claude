@@ -10,6 +10,7 @@ pub mod layout;
 pub mod leave;
 pub mod master_detail;
 pub mod modal;
+pub mod pane_tree;
 pub mod popup;
 pub mod reveal;
 pub mod row;
