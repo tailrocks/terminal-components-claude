@@ -3448,6 +3448,13 @@ pub static CAPABILITIES: &[Capability] = &[
     // the application shell (plan §1.8): Shell, App, pages, key routing,
     // navigation, chrome, clipboard, footer and status
     Capability::function("shell::run"),
+    Capability::ty("shell::reach::Reach"),
+    Capability::ty("shell::reach::Reveal"),
+    Capability::ty("shell::reach::Case"),
+    Capability::builder("shell::reach::Case::reveals"),
+    Capability::function("shell::reach::Case::run"),
+    Capability::function("shell::reach::check"),
+    Capability::function("shell::reach::dump"),
     Capability::ty("shell::clipboard::Copied"),
     Capability::variant("shell::clipboard::Copied::Copied"),
     Capability::variant("shell::clipboard::Copied::Unsupported"),
