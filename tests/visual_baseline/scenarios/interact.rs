@@ -65,12 +65,21 @@ pub fn dismiss(s: &mut Session, dismiss: Dismiss, cols: u16, rows: u16) {
     std::thread::sleep(Duration::from_millis(120));
 }
 
+/// One wheel notch, paced like a send step. Each notch must land before
+/// the next is sent: a capture waits only for an answer to the last
+/// input, and under load that answer can be the first notch's.
+fn notch(s: &mut Session, col: u16, row: u16, dir: Scroll) {
+    s.scroll(col, row, dir).expect("wheel scroll");
+    std::thread::sleep(Duration::from_millis(120));
+    s.wait_answer()
+        .unwrap_or_else(|e| panic!("wheel notch at ({col}, {row}): {e}"));
+}
+
 /// `notches` wheel-down steps over `needle`'s cell, paced like a send step.
 pub fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
-        s.scroll(col, row, Scroll::Down).expect("wheel scroll");
-        std::thread::sleep(Duration::from_millis(120));
+        notch(s, col, row, Scroll::Down);
     }
 }
 
@@ -79,8 +88,7 @@ pub fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
 pub fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
-        s.scroll(col, row + 1, Scroll::Down).expect("wheel scroll");
-        std::thread::sleep(Duration::from_millis(120));
+        notch(s, col, row + 1, Scroll::Down);
     }
 }
 
@@ -89,8 +97,7 @@ pub fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
 pub fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
-        s.scroll(col, row, Scroll::Up).expect("wheel scroll");
-        std::thread::sleep(Duration::from_millis(120));
+        notch(s, col, row, Scroll::Up);
     }
 }
 
@@ -282,21 +289,26 @@ pub fn browser_wheel(s: &mut Session, _: &Case) {
 }
 
 /// The trust definition is the scrollable body (review.rs TRUST_BODY); two
-/// notches put the fade at its top edge.
+/// notches put the fade at its top edge. At 24 rows and fewer the facts
+/// fill the page and nothing there scrolls: a wheel over `Trust scope`
+/// drew nothing (the per-notch answer wait timed out), so those captures
+/// are the unscrolled page and send no notch (`mouse.md`, flake audit
+/// row).
 pub fn trust_body_wheel(s: &mut Session, case: &Case) {
-    if case.rows <= 24 {
-        wheel_down(s, "Trust scope", 2);
-    } else {
+    if case.rows > 24 {
         wheel_down(s, "id = \"deploy.preview\"", 2);
     }
 }
 
 /// Rows are clickable children and shadow the list's scroll region, so
-/// the wheel lands on the blank line below the needle.
+/// the wheel lands on the blank line below the needle. One notch: after
+/// it scrolls, that cell is a row, so a second notch sent on its own did
+/// nothing while two coalesced into one burst scrolled twice (the
+/// approved frame is the one-notch state; `mouse.md`, flake audit row).
 pub fn cleanup_list_wheel(s: &mut Session, case: &Case) {
     if case.rows <= 24 {
-        wheel_below(s, "Xcode DerivedData", 2);
+        wheel_below(s, "Xcode DerivedData", 1);
     } else {
-        wheel_below(s, "Yarn cache", 2);
+        wheel_below(s, "Yarn cache", 1);
     }
 }

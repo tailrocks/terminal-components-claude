@@ -18,10 +18,10 @@ pub const SURFACES: &[Root] = &[
     // ------------------------------------------------------------- connections --
     Root::new("tablepro/connections/default", Bin::Tablepro, &[], "Production"),
     Root::new("tablepro/connections/form_new", Bin::Tablepro, &[], "Production").sends(&["ctrl-n"]),
-    Root::new("tablepro/connections/form_new-filled", Bin::Tablepro, &[], "Production").sends(&["ctrl-n", "type:Staging replica"]),
+    Root::new("tablepro/connections/form_new-filled", Bin::Tablepro, &[], "Production").sends(&["ctrl-n", "type:Staging replica", "wait:▎ Staging replica"]),
     // Boot focus is the tree (app.rs:147); ring order is render order:
     // filter → tree → Connect → Edit → Duplicate → Delete (connections.rs:940-1114).
-    Root::new("tablepro/connections/filter", Bin::Tablepro, &[], "Production").sends(&["/", "type:stag"]),
+    Root::new("tablepro/connections/filter", Bin::Tablepro, &[], "Production").sends(&["/", "type:stag", "wait:▎ stag"]),
     Root::new("tablepro/connections/duplicated", Bin::Tablepro, &[], "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "alt-d", "wait:(Copy)"]),
     // ctrl-n lands on the Name input; one BackTab wraps to the form tabs
     // (ring: … → tabs → name → …), Right switches Basic → Advanced.
@@ -56,8 +56,8 @@ pub const SURFACES: &[Root] = &[
     Root::new("tablepro/table/scrolled_right", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "end", "wait:updated_at"]),
     // ------------------------------------------------------------------ query --
     Root::new("tablepro/query/results", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM ord", "enter", "type: WHERE st", "tab", "type: = 'pending' ORDER BY created_at DESC LIMIT 25", "escape", "ctrl-r", "wait:25 rows", "wait:Ctrl+X Explain"]).timeout(15_000),
-    Root::new("tablepro/query/error", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM missing_table", "escape", "ctrl-r", "sleep:800"]),
-    Root::new("tablepro/query/explain", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM orders", "escape", "ctrl-x", "sleep:500"]),
+    Root::new("tablepro/query/error", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM missing_table", "wait:FROM missing_table", "escape", "ctrl-r", "sleep:800"]),
+    Root::new("tablepro/query/explain", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM orders", "wait:FROM orders", "escape", "ctrl-x", "sleep:500"]),
     Root::new("tablepro/query/new_tab", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["ctrl-t", "wait:Query 2"]),
     Root::new("tablepro/query/explain_analyze", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM orders", "escape", "alt-x", "wait:EXPLAIN ANALYZE"]).timeout(15_000),
     // Column-level completion (Member clause, model.rs:589): the dot keystroke
@@ -102,7 +102,7 @@ pub const OVERLAYS: &[Root] = &[
     // pending dismissal scenarios (`-dismissed-esc`, `-dismissed-outside`).
     Root::new("tablepro/connections/delete_dialog", Bin::Tablepro, &[], "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "d", "wait:Delete connection?"]).dismiss_pending(),
     Root::new("tablepro/table/filter_editor", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "ctrl-f", "wait:Add filter"]).dismiss_pending(),
-    Root::new("tablepro/query/completion", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM ord", "wait:order_items"]).dismiss_pending(),
+    Root::new("tablepro/query/completion", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:SELECT * FROM ord", "wait:ORDER BY"]).dismiss_pending(),
     // Dirty the fresh tab so ctrl-w asks (app.rs:625-637): the new tab's editor
     // takes focus already editing (EditEntry::Immediate, 1da20cc01), `x` is too
     // short to auto-open completion (model.rs:791-799), escape leaves edit mode.
@@ -137,7 +137,7 @@ pub const JOURNEYS: &[Root] = &[
     // Enter on a matching token runs the statement (3ec122eb2), so `armed`
     // leaves the field with Tab (to Cancel) and Right arms Execute; `executed`
     // then presses it.
-    Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "wait:Execute"]),
+    Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "wait:▎Execute"]),
     Root::new("tablepro/ack/executed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "enter", "wait:rows affected"]),
     // DELETE without WHERE is dangerous (sql.rs:799-802): the gate carries the
     // ON DELETE CASCADE risk line and the not-reversible copy the UPDATE gate
