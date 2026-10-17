@@ -13,6 +13,7 @@ use crate::core::keymap::unassigned_chord;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, NavKeys, lookup};
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::theme::{ButtonKind, Kind};
+use crate::ui::context::ContextConfig;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{truncate, width};
 use crate::ui::tooltip::Tip;
@@ -100,8 +101,17 @@ pub struct ChipBar {
     /// stream filter: each digit switches one source on or off). Default
     /// off: digits are left to the page.
     pub digit_toggles: bool,
-    /// The open overflow menu and the chip each of its rows stands for.
-    menu: Option<(ContextMenu, Vec<usize>)>,
+    /// A secondary click on a chip, or a context key on the cursor chip,
+    /// opens the chip's menu ([`Self::context_items`]: Turn off / on,
+    /// Remove, Clear all). Default `true`.
+    pub context_menu: bool,
+    /// Which keys open the chip menu at the cursor chip (default
+    /// [`ContextConfig::DEFAULT`]: Shift+F10 and the Menu key) and whether
+    /// a secondary click moves the cursor onto the chip.
+    pub context: ContextConfig,
+    /// The open menu (the overflow menu or a chip's) and what each of its
+    /// rows stands for.
+    menu: Option<(ContextMenu, BarMenu)>,
     /// Chips shown in the last render (the rest sit behind `+N`).
     shown: usize,
     /// Where the `+N` marker was drawn (the menu's anchor).
@@ -180,6 +190,8 @@ impl ChipBar {
             overflow_menu: true,
             more_button: IconButton::new(WidgetId::of("chips.more"), "+"),
             digit_toggles: false,
+            context_menu: true,
+            context: ContextConfig::DEFAULT,
             menu: None,
             shown: 0,
             more_area: Rect::ZERO,
@@ -237,17 +249,62 @@ impl ChipBar {
             .collect();
         let menu =
             ContextMenu::new(self.menu_id(), items).anchor_control(self.more_id(), self.more_area);
-        self.menu = Some((menu, hidden));
+        self.menu = Some((menu, BarMenu::Hidden(hidden)));
+    }
+
+    /// The default menu of chip `i` (M22): Turn off (or on), as Space
+    /// does; Remove and Clear all, named by the bar's key map
+    /// ([`crate::ui::context::command_items`]). A chip that cannot be
+    /// removed keeps the row with its reason. Choosing a row is the
+    /// [`ChipAction`] its key gives.
+    pub fn context_items(&self, i: usize) -> Vec<(ChipAction, MenuItem)> {
+        use crate::ui::context::{ContextCmd, command_items};
+        let Some(chip) = self.chips.get(i) else {
+            return Vec::new();
+        };
+        let toggle = MenuItem::new(if chip.enabled { "Turn off" } else { "Turn on" })
+            .shortcut("Space")
+            .separator();
+        let cmds = [
+            ContextCmd::new(ChipCmd::Remove)
+                .unless((!chip.removable).then_some("This filter stays")),
+            ContextCmd::new(ChipCmd::ClearAll).danger(),
+        ];
+        let mut items = vec![(ChipAction::Toggle(i), toggle)];
+        items.extend(
+            command_items(&self.keymap, &cmds)
+                .into_iter()
+                .map(|(c, it)| {
+                    let a = match c {
+                        ChipCmd::Remove => ChipAction::Remove(i),
+                        _ => ChipAction::ClearAll,
+                    };
+                    (a, it)
+                }),
+        );
+        items
+    }
+
+    /// Open chip `i`'s menu at `anchor`.
+    fn open_chip_menu(&mut self, i: usize, anchor: crate::ui::context::ContextAnchor) {
+        let (actions, items): (Vec<_>, Vec<_>) = self.context_items(i).into_iter().unzip();
+        if items.is_empty() {
+            return;
+        }
+        let menu = anchor.apply(ContextMenu::new(self.menu_id(), items));
+        self.menu = Some((menu, BarMenu::Chip(actions)));
     }
 
     fn menu_event(&mut self, ev: Option<MenuAction>) -> Option<ChipAction> {
         match ev? {
-            MenuAction::Chosen(k) => {
-                let (_, hidden) = self.menu.take()?;
-                let i = *hidden.get(k)?;
-                self.cursor = i;
-                Some(ChipAction::Activate(i))
-            }
+            MenuAction::Chosen(k) => match self.menu.take()?.1 {
+                BarMenu::Hidden(hidden) => {
+                    let i = *hidden.get(k)?;
+                    self.cursor = i;
+                    Some(ChipAction::Activate(i))
+                }
+                BarMenu::Chip(actions) => actions.get(k).copied(),
+            },
             MenuAction::Dismissed => {
                 self.menu = None;
                 None
@@ -317,6 +374,14 @@ impl ChipBar {
                 self.cursor = i;
                 return (Outcome::Changed, Some(ChipAction::Toggle(i)));
             }
+        }
+        if self.context_menu && self.cursor < self.chips.len() && self.context.keys.matches(key) {
+            let anchor = crate::ui::context::ContextAnchor::Control {
+                id: self.chip_id(self.cursor),
+                fallback: self.area,
+            };
+            self.open_chip_menu(self.cursor, anchor);
+            return (Outcome::Changed, None);
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
@@ -526,7 +591,7 @@ impl ChipBar {
             ctx.ring.register(self.id);
         }
         self.more_area = more_area;
-        if more_area.is_empty() {
+        if more_area.is_empty() && matches!(self.menu, Some((_, BarMenu::Hidden(_)))) {
             // nothing hides any more: the menu has nothing to list
             self.menu = None;
         }
@@ -632,9 +697,32 @@ impl crate::core::pointer::MouseTarget for ChipBar {
         }
         match ev.phase() {
             Some(Phase::Click) => self.on_click(ev.id).into(),
+            // a secondary click on a chip (or its ×) opens the chip's menu
+            // at the pointer
+            Some(Phase::Secondary) if self.context_menu => {
+                let Some(i) = (0..self.chips.len())
+                    .find(|&i| ev.id == self.chip_id(i) || ev.id == self.close_id(i))
+                else {
+                    return crate::core::response::Response::ignored();
+                };
+                if self.context.moves_cursor {
+                    self.cursor = i;
+                }
+                self.open_chip_menu(i, crate::ui::context::ContextAnchor::Pointer(ev.pos()));
+                crate::core::response::Response::changed()
+            }
             _ => crate::core::response::Response::ignored(),
         }
     }
+}
+
+/// What the rows of the bar's open menu stand for.
+#[derive(Debug, Clone)]
+enum BarMenu {
+    /// The `+N` overflow menu: the hidden chips.
+    Hidden(Vec<usize>),
+    /// A chip's menu: the action of each row.
+    Chip(Vec<ChipAction>),
 }
 
 #[cfg(test)]
@@ -659,6 +747,97 @@ mod tests {
         off.enabled = false;
         bar.chips = vec![Chip::new("alpha"), off];
         bar
+    }
+
+    /// M22: a right click on a chip opens its menu (Turn off, Remove,
+    /// Clear all, named by the bar's key map); a row gives the action its
+    /// key gives, so a filter chip is switched off or the bar cleared by
+    /// mouse. Shift+F10 opens it on the cursor chip.
+    #[test]
+    fn a_right_click_on_a_chip_offers_toggle_remove_and_clear_all() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        use ratatui::crossterm::event::KeyModifiers;
+        let t = Theme::junie();
+        let screen = Rect::new(0, 0, 40, 8);
+        let frame = |b: &mut ChipBar| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut buf = Buffer::empty(screen);
+            {
+                let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+                b.render(Rect::new(0, 0, 40, 1), &mut buf, &mut ctx, t.canvas);
+                ctx.flush_overlays(&mut buf);
+            }
+            (buf, hits)
+        };
+        let find = |buf: &Buffer, label: &str| {
+            (0..screen.height).find_map(|y| {
+                let row: String = (0..screen.width)
+                    .map(|x| buf[(x, y)].symbol().to_owned())
+                    .collect();
+                row.find(label)
+                    .map(|i| ratatui::layout::Position::new(row[..i].chars().count() as u16, y))
+            })
+        };
+        let ev = |hits: &HitRegistry, phase, pos| {
+            PointerEvent::new(
+                hits,
+                phase,
+                hits.hit(pos).expect("a target"),
+                pos,
+                1,
+                KeyModifiers::NONE,
+            )
+        };
+        let mut b = bar();
+        let (buf, hits) = frame(&mut b);
+        let beta = find(&buf, "beta").expect("the second chip");
+        let r = b
+            .route(&ev(&hits, Phase::Secondary, beta))
+            .expect("the bar's");
+        assert_eq!(r.outcome(), Outcome::Changed);
+        assert_eq!(b.cursor, 1, "the menu is about the clicked chip");
+        let (buf, hits) = frame(&mut b);
+        assert!(find(&buf, "Turn on").is_some(), "beta is off: Turn on");
+        let remove = b.context_items(1);
+        assert_eq!(
+            remove[1].1.shortcut.as_deref(),
+            Some("Delete"),
+            "from the key map"
+        );
+        let clear = find(&buf, "Clear all").expect("Clear all row");
+        let mut r = b
+            .route(&ev(&hits, Phase::Click, clear))
+            .expect("the menu's row");
+        assert_eq!(r.take_action(), Some(ChipAction::ClearAll));
+        assert!(!b.menu_open());
+        // the keyboard path: Shift+F10 on the cursor chip, then Enter on
+        // its first row toggles it
+        b.cursor = 0;
+        frame(&mut b);
+        let shift_f10 = Key {
+            code: KeyCode::F(10),
+            mods: KeyModifiers::SHIFT,
+        };
+        assert_eq!(b.on_key(&shift_f10).0, Outcome::Changed);
+        assert!(b.menu_open());
+        let enter = Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        };
+        assert_eq!(
+            b.on_key(&enter),
+            (Outcome::Changed, Some(ChipAction::Toggle(0)))
+        );
+        // knob: off, the right click is the page's
+        b.context_menu = false;
+        let (_, hits) = frame(&mut b);
+        let alpha = ratatui::layout::Position::new(2, 0);
+        assert!(
+            b.route(&ev(&hits, Phase::Secondary, alpha))
+                .is_none_or(|r| r.outcome() == Outcome::Ignored)
+        );
     }
 
     /// `1`–`9` toggle the chip of that number only when the bar asks for
