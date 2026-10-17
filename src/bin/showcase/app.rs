@@ -940,21 +940,12 @@ impl App {
         match input {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
-            Input::Paste(text) => {
-                if let Some(top) = self.layers.top_mut() {
-                    // the reference takes no text; a dialog's field does
-                    if top.get::<HelpOverlay>().is_some() {
-                        return Outcome::Consumed;
-                    }
-                    return top.layer.on_paste(&text);
-                }
-                self.with_shown(|p, cx| p.on_paste(&text, &mut (), cx))
-            }
             Input::Key(key) => {
                 self.last_key = Some(describe_key(&key));
                 shell::KeyRouter::route(self, &key)
             }
             Input::Mouse(m) => PointerRouter::route(self, m),
+            other => shell::KeyRouter::input(self, other),
         }
     }
 
@@ -2493,6 +2484,19 @@ impl shell::KeyHost for App {
 
     fn chrome_key(&mut self, key: &Key) -> Outcome {
         self.nav_key(key)
+    }
+
+    /// The reference takes no text; a dialog's field does.
+    fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
+        let top = self.layers.top_mut()?;
+        if top.get::<HelpOverlay>().is_some() {
+            return Some(Outcome::Consumed);
+        }
+        Some(top.layer.on_paste(text))
+    }
+
+    fn page_paste(&mut self, text: &str) -> Outcome {
+        self.with_shown(|p, cx| p.on_paste(text, &mut (), cx))
     }
 
     fn page_key(&mut self, key: &Key) -> Outcome {

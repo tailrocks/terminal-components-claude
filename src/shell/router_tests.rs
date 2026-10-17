@@ -31,6 +31,7 @@ enum Took {
     Page,
     EscTop,
     Note(String),
+    Pasted(String),
     Nothing,
 }
 
@@ -165,6 +166,15 @@ impl KeyHost for Host {
             return out;
         }
         Outcome::Ignored
+    }
+    fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
+        self.layer?;
+        self.took.push(Took::Pasted(format!("layer:{text}")));
+        Some(Outcome::Ignored)
+    }
+    fn page_paste(&mut self, text: &str) -> Outcome {
+        self.took.push(Took::Pasted(format!("page:{text}")));
+        Outcome::Changed
     }
     fn esc_top(&mut self) -> Outcome {
         if self.esc_top {
@@ -513,4 +523,30 @@ fn an_activation_that_changed_something_flashes_the_focused_control() {
     h.shell.focus.set(Some(WidgetId::of("ok")));
     h.key(k(KeyCode::Enter));
     assert_eq!(h.shell.pointer.flashing(0), Some(WidgetId::of("ok")));
+}
+
+/// A16: a paste goes through the router: the top layer takes it (and it
+/// never reaches the page under it), else the shown page; the too-small
+/// screen is inert.
+#[test]
+fn a_paste_goes_to_the_top_layer_else_the_page() {
+    let paste = |h: &mut Host| {
+        h.took.clear();
+        let out = KeyRouter::input(h, crate::core::event::Input::Paste("hi".into()));
+        (out, h.took.clone())
+    };
+    let mut h = Host::new();
+    assert_eq!(
+        paste(&mut h),
+        (Outcome::Changed, vec![Took::Pasted("page:hi".into())])
+    );
+    h.layer = Some(false);
+    assert_eq!(
+        paste(&mut h),
+        (Outcome::Consumed, vec![Took::Pasted("layer:hi".into())]),
+        "a layer that takes no text still keeps it from the page"
+    );
+    h.layer = None;
+    h.shell.too_small = true;
+    assert_eq!(paste(&mut h), (Outcome::Consumed, vec![]));
 }
