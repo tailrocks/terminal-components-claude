@@ -1114,7 +1114,7 @@ impl Workbench {
         }
         if ev.on(self.explorer.id) {
             let row = ev.index_of(Part::ROW);
-            if row.is_some() || ev.index_of(Part::ICON).is_some() {
+            if self.explorer.row_at(ev).is_some() {
                 cx.focus.focus(self.explorer.id);
             }
             let path = row.and_then(|r| self.explorer.rows().get(r).map(|r| r.path.clone()));

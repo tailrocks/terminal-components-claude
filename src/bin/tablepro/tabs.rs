@@ -10,7 +10,7 @@ use ratatui::style::Modifier;
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
-use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::id::WidgetId;
 use junie_tui::core::keymap::hint_key;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::{StatusKind, SyntaxTone, Tone};
@@ -1564,7 +1564,7 @@ impl QueryTab {
             },
             ResultBody::Plan { tree, raw, .. } => {
                 if ev.on(tree.id) {
-                    if ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some() {
+                    if tree.row_at(ev).is_some() {
                         cx.focus.focus(tree.id);
                     }
                     return tree.pointer(ev).outcome();

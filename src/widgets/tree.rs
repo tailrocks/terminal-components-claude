@@ -565,6 +565,24 @@ impl TreeView {
         self.id.part(PartRef::item(Part::ICON, ItemKey::index(i)))
     }
 
+    /// The row a pointer event on this tree landed on: the row itself, its
+    /// disclosure or its glyph. `None` for any other part or widget.
+    pub fn row_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
+        if !ev.on(self.id) {
+            return None;
+        }
+        ev.index_of(Part::ROW)
+            .or_else(|| ev.index_of(Part::ICON))
+            .or_else(|| ev.index_of(Part::MARKER))
+    }
+
+    /// A row's glyph ([`TreeNode::glyph`], `Part::MARKER`): an owner whose
+    /// glyph is a check mark reads a click on it as a click on the check
+    /// box ([`crate::core::selection::CheckClick::BoxOnly`]).
+    pub fn glyph_id(&self, i: usize) -> WidgetId {
+        self.id.part(PartRef::item(Part::MARKER, ItemKey::index(i)))
+    }
+
     /// The cursor with this tree's rules.
     fn nav_cursor(&self) -> Cursor {
         Cursor::new(self.cursor).wrap(self.wrap)
@@ -970,6 +988,10 @@ impl TreeView {
             // the expander is part of the row: its hover and press are the row's
             s.hovered |= ctx.interaction.hovered(tid);
             s.pressed |= ctx.interaction.pressed(tid);
+            // so is the node's glyph (a check mark an owner may toggle)
+            let gid = self.glyph_id(ri);
+            s.hovered |= ctx.interaction.hovered(gid);
+            s.pressed |= ctx.interaction.pressed(gid);
             if row.note {
                 // a note is text, not a control: it never hovers or presses
                 s.hovered = false;
@@ -1057,6 +1079,17 @@ impl TreeView {
             }
             let mut lx = x;
             if let Some(g) = row.glyph.as_deref() {
+                if !row.note {
+                    // the glyph is its own part of the row (`Part::MARKER`):
+                    // an owner whose glyph is a check mark toggles it there
+                    // (CheckClick::BoxOnly); a click on it is a row click
+                    // otherwise
+                    ctx.register_part(
+                        self.id,
+                        PartRef::item(Part::MARKER, ItemKey::index(ri)),
+                        Rect::new(lx, y, 2.min(rect.right().saturating_sub(lx)), 1),
+                    );
+                }
                 buf.set_string(
                     lx,
                     y,
@@ -1259,10 +1292,11 @@ impl crate::core::pointer::MouseTarget for TreeView {
         if !ev.is(Phase::Click) {
             return crate::core::response::Response::ignored();
         }
-        let hit = match (ev.index_of(Part::ROW), ev.index_of(Part::ICON)) {
-            (Some(row), _) => Some((row, false)),
-            (None, Some(row)) => Some((row, true)),
-            _ => None,
+        // the glyph (`Part::MARKER`) is part of the row
+        let hit = match (ev.index_of(Part::ICON), ev.index_of(Part::ROW)) {
+            (Some(row), _) => Some((row, true)),
+            (None, Some(row)) => Some((row, false)),
+            _ => ev.index_of(Part::MARKER).map(|row| (row, false)),
         };
         match hit {
             Some((row, toggle)) => self.on_click_at(row, toggle, ev.mods(), ev.count()).into(),

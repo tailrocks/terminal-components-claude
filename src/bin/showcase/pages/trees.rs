@@ -18,7 +18,7 @@ use crate::pages::row_menu::{MENU_HINTS, OPEN_HINT, RowMenu, plain};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
 use junie_tui::core::pointer::MouseTarget;
@@ -558,9 +558,7 @@ impl Page for TreesPage {
                     let Some(r) = t.route(ev) else {
                         continue;
                     };
-                    if ev.is(Phase::Click)
-                        && (ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some())
-                    {
+                    if ev.is(Phase::Click) && t.row_at(ev).is_some() {
                         cx.focus.focus(tid);
                     }
                     let (o, a) = r.into_parts();
