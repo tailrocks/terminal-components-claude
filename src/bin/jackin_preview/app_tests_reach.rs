@@ -60,7 +60,7 @@ fn shift_f10(h: &mut H) {
 fn hard_manager(h: &mut H) {
     at(h, Scenario::HardCases);
     for _ in 0..8 {
-        if h.app.route == Route::Manager {
+        if h.app.route() == Route::Manager {
             break;
         }
         h.ticks(3);
