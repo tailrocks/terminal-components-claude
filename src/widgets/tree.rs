@@ -1221,6 +1221,42 @@ impl TreeView {
     }
 }
 
+/// The narrowest the tree shows every shown row's label and meta whole,
+/// one row a shown node (plan §1.4 `Measure`): the row's indent, its
+/// disclosure and glyph, the label (never under the room a row keeps for
+/// it before it hides the meta) and the meta column, the divider and the
+/// owner's reserved strip. An empty or loading tree measures its state.
+impl crate::ui::measure::Measure for TreeView {
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        if self.rows.is_empty() || !self.core.content.is_ready() {
+            return match &self.core.empty {
+                Some(e) if self.rows.is_empty() => e.measure(avail, ctx),
+                _ => ratatui::layout::Size::new(0, self.rows.len() as u16),
+            };
+        }
+        let w = |s: &str| crate::ui::text::width(s) as u16;
+        let width = self
+            .rows
+            .iter()
+            .map(|row| {
+                let lead = 1 + (row.depth as u16) * self.indent + 2;
+                let label = if row.glyph.is_some() { 2 } else { 0 } + w(&row.label);
+                let rest = match row.meta.as_deref().filter(|_| self.show_meta) {
+                    // the meta shows while the label keeps 10 cells
+                    Some(m) => label.max(10) + 2 + w(m) + 1,
+                    None => label + 1,
+                };
+                lead + rest
+            })
+            .max()
+            .unwrap_or(0);
+        ratatui::layout::Size::new(
+            width + u16::from(self.divider) + self.reserve_right,
+            self.rows.len() as u16,
+        )
+    }
+}
+
 impl Scrollable for TreeView {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.core.scroll
@@ -1641,6 +1677,48 @@ mod scroll_tests {
                 let r = contrast_ratio(c.fg, c.bg).unwrap();
                 assert!(r >= 3.0, "{level:?} hover {}: {r:.2}", hover.is_some());
             }
+        }
+    }
+
+    /// At its measure every shown row's label and meta show whole.
+    #[test]
+    fn a_tree_at_its_measure_shows_every_label_and_meta() {
+        use crate::ui::measure::Measure;
+        let mut api = TreeNode::dir("api", vec![TreeNode::leaf_meta("handlers", "12 files")]);
+        api.meta = Some("service".into());
+        let mut t = TreeView::new(
+            WidgetId::of("t"),
+            vec![
+                api,
+                TreeNode::leaf_meta("a rather long name for a leaf", "x"),
+            ],
+        );
+        t.expand_all();
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let size = t.measure(ratatui::layout::Size::new(10, 2), &ctx);
+        assert_eq!(size.height, 3);
+        let area = Rect::new(0, 0, size.width, size.height);
+        let mut buf = Buffer::empty(area);
+        t.render(area, &mut buf, &mut ctx, theme.canvas);
+        let all: String = (0..size.height)
+            .map(|y| {
+                (0..size.width)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+                    + "\n"
+            })
+            .collect();
+        for part in [
+            "api",
+            "service",
+            "handlers",
+            "12 files",
+            "a rather long name for a leaf",
+        ] {
+            assert!(all.contains(part), "{part:?} in\n{all}");
         }
     }
 
