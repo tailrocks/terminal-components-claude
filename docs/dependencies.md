@@ -75,6 +75,38 @@ comparing both versions' `width` and `width_cjk` over every code point and
 every line), so the bump changes no rendered width. We never vendor or
 patch upstream crates to get around a pin.
 
+## Tools via mise
+
+`mise.toml` (committed, repository root) pins every developer tool to an
+exact version: Rust (with clippy and rustfmt), cargo-nextest, actionlint,
+shellcheck, zizmor, gh, velnor-actions (`github:tailrocks/velnor-new`, the
+release in `.velnor/release-manifest.json`) and the tuiscotti CLI
+(`cargo:` git backend at the `Cargo.toml` tuiscotti `rev`).
+
+- Install: `mise trust` once per checkout, then `mise install`. Inside the
+  repository mise exports `RUSTUP_TOOLCHAIN` from the `rust` pin, which
+  overrides any global `rust = "latest"`, so plain `cargo` builds with the
+  project toolchain.
+- `rust` is listed last on purpose: mise puts tool bin directories on
+  `PATH` in config order, and Rust's is `~/.cargo/bin`, where an older
+  `cargo install`ed cargo-nextest, velnor-actions or tuiscotti would
+  otherwise shadow the pinned ones.
+- Upgrade: bump the pins to the latest releases in the monthly upgrade
+  above (`mise latest <tool>`; tuiscotti follows its `Cargo.toml` rev,
+  velnor-actions its manifest). Keep `mise.toml` rust ==
+  `rust-toolchain.toml` channel == CI; the xtask test
+  `mise_pins_match_the_repository_pins` fails when Rust, tuiscotti or
+  velnor-actions drift. The other tools match the versions CI installs
+  (`docs/ci.md`); zizmor stays at CI's 1.30.1 (1.31.1 is out) until the
+  velnor `[tools]` raise above lands. On 2026-10-17 velnor-actions 0.1.12
+  and tuiscotti `main` `a1ea27f` were already out; `mise.toml` follows the
+  adopted 0.1.10 and `3382e57d` until those upgrades land (regenerate CI,
+  bump `Cargo.toml`), which the mise switch did not do.
+- A `minimum_release_age` in someone's mise settings hides young releases
+  from `latest` (`mise ls-remote rust` warns "newer rust releases hidden"),
+  but not from an exact pin: on 2026-10-17 the `1.99.1` pin resolved while
+  `mise latest rust` still said 1.99.0.
+
 ## Rust in CI
 
 Since velnor-actions 0.1.9, CI installs the toolchain from
