@@ -194,6 +194,10 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/statushints-options", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "2", "wait:F5 priority"]).pending(),
     Root::new("showcase/sections/statushints-states", Bin::Showcase, &["--page", "statushints"], BOOT).sends(&["tab", "3", "wait:Pinned F5"]).pending(),
     Root::new("showcase/sections/statushints-modal-narrow", Bin::Showcase, &["--page", "statushints", "--opt", "statushints.layer=modal", "--opt", "statushints.width=narrow"], BOOT).sends(&["wait:Enter Delete"]).pending(),
+    // SC30: the shell pieces (Tab onto "Post info" scrolls them in), and
+    // the too-small screen through its builders.
+    Root::new("showcase/sections/statushints-shell", Bin::Showcase, &["--page", "statushints", "--motion", "paused"], BOOT).sends(&["tab", "tab", "wait:CommonArgs"]).pending(),
+    Root::new("showcase/sections/statushints-too-small-custom", Bin::Showcase, &["--page", "statushints", "--motion", "paused", "--opt", "statushints.too_small_min=100x30", "--opt", "statushints.quit_hint=custom", "--opt", "statushints.brand=accent"], BOOT).sends(&["tab", "tab", "wait:resize to continue"]).pending(),
     // Text utilities (SC26): the helpers at a narrow width, the list's
     // builders, and the list in its states.
     Root::new("showcase/sections/textutilities-options", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["tab", "2", "wait:Copy key"]).pending(),

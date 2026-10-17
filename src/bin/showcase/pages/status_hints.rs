@@ -8,6 +8,12 @@
 //! hint and the reveal-key advert. Options flip each of them on the
 //! resolved bar. States: the bar in every state it has, drawn by
 //! `HintLayer` itself.
+//!
+//! A second section shows the shell pieces every app shares (SC30): the
+//! footer's `StatusLine` (buttons post information, a warning and an error
+//! to the real footer), the `Motion` levels (a job whose bar advances while
+//! its spinner turns only under full motion), `Theme::centred_hints`, the
+//! `TooSmall` screen and the `CommonArgs` command line, read from clap.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -16,14 +22,22 @@ use crate::app::PageId;
 use crate::options::page_options;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
+use junie_tui::cli::CommonArgs;
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::shell::StatusLine;
 use junie_tui::theme::{BadgeKind, HintAlign, HintBarStyle, StatusKind, Theme, Tone};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::reveal::Reveal;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text::truncate;
+use junie_tui::widgets::button::Button;
 use junie_tui::widgets::hintbar::{HintBar, HintLayer};
 use junie_tui::widgets::keyhint::{self, Hint as KeyHint, HintPriority, hint, toggle_hint};
+use junie_tui::widgets::progress::{ProgressBar, render_spinner};
+use junie_tui::widgets::too_small::TooSmall;
 
 const ID: WidgetId = WidgetId::of("statushints");
 
@@ -34,10 +48,32 @@ const NARROW: u16 = 44;
 /// Column where a row's bar starts, after its label.
 const LABEL_W: u16 = 22;
 
+/// Rows of the hint-bar section of the Playground.
+const HINTS_H: u16 = 26;
+/// Rows of the shell section of the Playground.
+const SHELL_H: u16 = 22;
+
+/// What the status buttons post to the footer: label, message, tone.
+const POSTS: [(&str, &str, Tone); 3] = [
+    ("Post info", "Saved 3 rows", Tone::Secondary),
+    ("Post warning", "2 rows skipped", Tone::Warning),
+    ("Post error", "Connection lost", Tone::Error),
+];
+
+/// How far the motion demo's job advances per tick (about 4 s at 80 ms).
+const JOB_STEP: f64 = 0.02;
+
 pub struct StatusHintsPage {
     template: Template,
     /// Value indices of the page options, in `page_options` order.
     opts: Vec<usize>,
+    /// The buttons that post to the shell's footer status line.
+    posts: Vec<Button>,
+    /// Starts the motion demo's job.
+    run: Button,
+    /// The job's progress while it runs.
+    job: Option<f64>,
+    sections: crate::pages::layout::Sections,
 }
 
 impl StatusHintsPage {
@@ -48,7 +84,37 @@ impl StatusHintsPage {
                 .iter()
                 .map(|o| o.default)
                 .collect(),
+            posts: POSTS
+                .iter()
+                .enumerate()
+                .map(|(i, (label, _, _))| Button::secondary(ID.sub("post").child(i), label))
+                .collect(),
+            run: Button::secondary(ID.sub("run"), "Run job"),
+            job: None,
+            sections: crate::pages::layout::Sections::new(ID.sub("page")),
         }
+    }
+
+    /// The motion demo's job progress (tests read it).
+    #[allow(dead_code)]
+    pub fn job(&self) -> Option<f64> {
+        self.job
+    }
+
+    /// The too-small screen the options build.
+    fn too_small(&self, t: &Theme) -> TooSmall<'static> {
+        let (w, h) = match self.opt("statushints.too_small_min") {
+            "100x30" => (100, 30),
+            _ => (TooSmall::MIN_WIDTH, TooSmall::MIN_HEIGHT),
+        };
+        let mut screen = TooSmall::new("junie showcase").min(w, h);
+        if self.opt("statushints.quit_hint") == "custom" {
+            screen = screen.quit_hint("q Quit · resize to continue");
+        }
+        if self.opt("statushints.brand") == "accent" {
+            screen = screen.brand_style(t.accent_fg().bg(t.canvas));
+        }
+        screen
     }
 
     /// The value of option `key` as the table spells it.
@@ -131,6 +197,34 @@ impl StatusHintsPage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let focus = std::iter::once(self.run.id)
+            .chain(self.posts.iter().map(|b| b.id))
+            .any(|id| ctx.interaction.has_focus(id))
+            .then_some(1);
+        let l = self.sections.layout(
+            area,
+            &[StackChild::fixed(HINTS_H), StackChild::fixed(SHELL_H)],
+            focus,
+            buf,
+            ctx,
+        );
+        if let Some(r) = l.slot(0) {
+            self.render_hints(r, buf, ctx);
+        }
+        match l.slot(1) {
+            Some(r) => self.render_shell(r, buf, ctx),
+            None => {
+                // scrolled out of view: the buttons stay focus stops
+                for b in &self.posts {
+                    ctx.focus_stop(b.id);
+                }
+                ctx.focus_stop(self.run.id);
+            }
+        }
+    }
+
+    /// The hint bar: layers, alignment, priorities, statuses and toggles.
+    fn render_hints(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let style = self.style(t);
         let mut y = area.y;
@@ -253,7 +347,22 @@ impl StatusHintsPage {
             keyhint::render_aligned(row(y, full.min(64)), buf, t, &hints, None, None, align);
             y += 1;
         }
-        y += 1;
+        // the app-wide preset: every footer centred, set once on the theme
+        if y < area.bottom() {
+            label(buf, y, "Theme::centred_hints");
+            let centred = t.centred_hints();
+            keyhint::render_parts(
+                row(y, full.min(64)),
+                buf,
+                t,
+                &hints,
+                None,
+                None,
+                &[],
+                &centred.hintbar,
+            );
+        }
+        y += 2;
 
         // priorities in a narrow row
         caption(
@@ -365,6 +474,166 @@ impl StatusHintsPage {
             );
         }
     }
+
+    /// The shell pieces every app shares: the footer `StatusLine`, the
+    /// motion levels, the too-small screen and the common command line.
+    fn render_shell(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let bg = t.canvas;
+        let mut y = area.y;
+        let caption = |buf: &mut Buffer, y: u16, text: &str| {
+            if y < area.bottom() {
+                let text = truncate(text, area.width as usize);
+                buf.set_string(area.x, y, text, t.title().bg(bg));
+            }
+        };
+        let note = |buf: &mut Buffer, y: u16, text: &str| {
+            if y < area.bottom() {
+                let text = truncate(text, area.width.saturating_sub(2) as usize);
+                buf.set_string(area.x + 2, y, text, t.faint().bg(bg));
+            }
+        };
+
+        // the footer status line
+        caption(
+            buf,
+            y,
+            "Status line · StatusLine: the shell's footer message",
+        );
+        y += 1;
+        if y < area.bottom() {
+            let mut x = area.x + 2;
+            for b in &mut self.posts {
+                let w = b.width();
+                b.render(Rect::new(x, y, w, 1), buf, ctx, bg);
+                x += w + 2;
+            }
+        }
+        y += 1;
+        note(
+            buf,
+            y,
+            &format!(
+                "information and warnings go after {} s (StatusLine::DEFAULT_TTL_MS) · an error stays until the next key, paste or click · --motion paused freezes the footer",
+                StatusLine::<()>::DEFAULT_TTL_MS / 1000
+            ),
+        );
+        y += 2;
+
+        // motion
+        caption(
+            buf,
+            y,
+            "Motion · --motion full | reduced | paused (Inspector: shell.motion)",
+        );
+        y += 1;
+        if y < area.bottom() {
+            let w = self.run.width();
+            self.run
+                .render(Rect::new(area.x + 2, y, w, 1), buf, ctx, bg);
+            let x = area.x + 4 + w;
+            let bar_w = area.right().saturating_sub(x).min(48);
+            let label = match self.job {
+                Some(p) => format!("Indexing {:>3} %", (p * 100.0).round() as u32),
+                None => "Indexing idle".to_owned(),
+            };
+            render_spinner(Rect::new(x, y, 18, 1), buf, ctx, &label, bg);
+            ProgressBar::new("", self.job.unwrap_or(0.0)).render(
+                Rect::new(x + 18, y, bar_w.saturating_sub(18), 1),
+                buf,
+                ctx,
+                bg,
+            );
+        }
+        y += 1;
+        note(
+            buf,
+            y,
+            "full: the spinner turns and the bar fills · reduced: the bar fills, the spinner keeps its first frame · paused: nothing moves; --frame N picks the tick",
+        );
+        y += 2;
+
+        // the too-small screen
+        caption(
+            buf,
+            y,
+            "Terminal too small · TooSmall: what an app draws below its minimum size",
+        );
+        y += 1;
+        let screen = self.too_small(t);
+        let boxed =
+            Rect::new(area.x + 2, y, 44.min(area.width.saturating_sub(2)), 7).intersection(area);
+        if !boxed.is_empty() {
+            let block = ratatui::widgets::Block::bordered()
+                .border_style(t.faint().bg(bg))
+                .style(ratatui::style::Style::new().bg(t.canvas));
+            let inner = block.inner(boxed);
+            ratatui::widgets::Widget::render(block, boxed, buf);
+            screen.render(inner, buf, t);
+        }
+        y += 8;
+
+        // the shared command line
+        caption(
+            buf,
+            y,
+            "Command line · CommonArgs: every app flattens it into its own clap parser",
+        );
+        y += 1;
+        for line in common_args() {
+            if y >= area.bottom() {
+                break;
+            }
+            buf.set_string(
+                area.x + 2,
+                y,
+                truncate(&line, area.width.saturating_sub(2) as usize),
+                t.secondary().bg(bg),
+            );
+            y += 1;
+        }
+    }
+
+    /// Post a status to the shell's footer.
+    fn post(i: usize, cx: &mut Cx) {
+        let (_, text, tone) = POSTS[i];
+        cx.status_in(text, tone);
+    }
+}
+
+/// The shared command-line options, read from the library's `CommonArgs`
+/// through clap (flags, value name, help and accepted values), so the
+/// page never lists them by hand.
+fn common_args() -> Vec<String> {
+    use clap::{Args, Command};
+    let cmd = CommonArgs::augment_args(Command::new("app"));
+    cmd.get_arguments()
+        .map(|a| {
+            let mut flag = String::new();
+            if let Some(s) = a.get_short() {
+                flag.push_str(&format!("-{s}, "));
+            }
+            if let Some(l) = a.get_long() {
+                flag.push_str(&format!("--{l}"));
+            }
+            if let Some(v) = a.get_value_names().and_then(|v| v.first()) {
+                flag.push_str(&format!(" <{v}>"));
+            }
+            let help = a.get_help().map(|h| h.to_string()).unwrap_or_default();
+            let values: Vec<String> = a
+                .get_possible_values()
+                .iter()
+                .filter(|v| !v.is_hide_set())
+                .map(|v| v.get_name().to_owned())
+                .collect();
+            let values = if values.is_empty() {
+                String::new()
+            } else {
+                format!("  [{}]", values.join(" | "))
+            };
+            format!("{flag:<24}{help}{values}")
+        })
+        .collect()
 }
 
 /// The States grid: the hint bar at rest, with a long status, an error
@@ -416,14 +685,88 @@ impl Page for StatusHintsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
+        // the job is work, not decoration: it advances under reduced
+        // motion too (the shell stops ticks only when paused)
+        if let PageEvent::Tick = ev {
+            return match self.job {
+                Some(p) if p < 1.0 => {
+                    self.job = Some((p + JOB_STEP).min(1.0));
+                    if self.job == Some(1.0) {
+                        cx.status_as(StatusKind::Ok, "Indexing finished");
+                    }
+                    Outcome::Changed
+                }
+                _ => Outcome::Ignored,
+            };
+        }
         if let Some(o) = self.template.handle(ev, cx) {
             return o;
         }
-        Outcome::Ignored
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        if let Some(o) = self.sections.handle(ev) {
+            return o;
+        }
+        match ev {
+            PageEvent::Key(key) => {
+                if let Some(i) = self.posts.iter().position(|b| cx.focus.is(b.id)) {
+                    let (o, act) = self.posts[i].on_key(key);
+                    if act {
+                        Self::post(i, cx);
+                    }
+                    return o;
+                }
+                if cx.focus.is(self.run.id) {
+                    let (o, act) = self.run.on_key(key);
+                    if act {
+                        self.job = Some(0.0);
+                    }
+                    return o;
+                }
+                Outcome::Ignored
+            }
+            PageEvent::Pointer(ev) => {
+                for i in 0..self.posts.len() {
+                    if let Some(r) = self.posts[i].route(ev)
+                        && r.outcome() != Outcome::Ignored
+                    {
+                        if r.into_action().is_some() {
+                            Self::post(i, cx);
+                        }
+                        return Outcome::Changed;
+                    }
+                }
+                if let Some(r) = self.run.route(ev)
+                    && r.outcome() != Outcome::Ignored
+                {
+                    if r.into_action().is_some() {
+                        self.job = Some(0.0);
+                    }
+                    return Outcome::Changed;
+                }
+                Outcome::Ignored
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    fn animating(&self) -> bool {
+        self.job.is_some_and(|p| p < 1.0)
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-        self.template.hints(focus).unwrap_or_default()
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
+        if focus.is_some_and(|f| f == self.run.id || self.posts.iter().any(|b| b.id == f)) {
+            return vec![("Enter", "Activate")];
+        }
+        Vec::new()
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
     }
 
     fn option_value(&self, key: &str) -> Option<usize> {
