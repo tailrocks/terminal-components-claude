@@ -249,7 +249,7 @@ impl MasterDetailPage {
         let panel = Panel::card(Some("Database browser")).meta(&mode);
         let bg = panel.bg(t);
         let inner = panel.render(frame, buf, t);
-        self.toggle.label = self.md.menu_item().label;
+        self.toggle.label = self.md.menu_item().item.label;
         let tw = self.toggle.width();
         self.toggle.render(
             Rect::new(inner.x, inner.y, tw.min(inner.width), 1),
