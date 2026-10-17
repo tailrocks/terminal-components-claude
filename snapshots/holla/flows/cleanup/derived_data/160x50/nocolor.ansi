@@ -6,7 +6,7 @@
   18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                                                                     [0m
                                                                                                                                                                 [0m
  [0m[1m▎[0m[–][0m[1m [0m▾[0m[1m Xcode DerivedData                     [0m810.0 MiB[0m[1m  [0mrebuilt on demand · 1 candidate · Xcode running[0m[1m   [0m    Xcode DerivedData                     category   [0m
-    [ ] ~/Library/Developer/Xcode/DerivedData       810.0 MiB  30 d         Xcode is running                                                                    [0m
+    [ ] ~/Library/Developer/Xcode/DerivedData       810.0 MiB  30 d         Xcode is running                   ──────────────────────────────────────────────   [0m
                                                                                                                Safety     rebuilt on demand                     [0m
   [✓] ▸ Xcode device support                    2.4 GiB  safe if old · 2 candidates · ≥ 90 d                   Age rule   any age                               [0m
                                                                                                                Platform   macOS only                            [0m

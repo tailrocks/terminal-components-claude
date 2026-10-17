@@ -9,7 +9,7 @@
     /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                     [0m
                                                                                                                         [0m
     largest first · apparent · noise folded                                  big                            directory   [0m
- [0m[1m▎▾ [0m [0m[1m big                                                 5.6 MiB · 100% [0m                                               [0m
+ [0m[1m▎▾ [0m [0m[1m big                                                 5.6 MiB · 100% [0m    ────────────────────────────────────────   [0m
         vm.img                                            3.5 MiB ·   7%     Path       ~/work/big                      [0m
         target                                   2.0 MiB ·  85% · folded     Allocated  2.3 MiB                         [0m
     ▸   noise                                           112.0 KiB ·   7%     Apparent   5.6 MiB · sparse                [0m

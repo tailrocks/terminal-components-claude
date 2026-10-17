@@ -6,7 +6,7 @@
   upgrade Debian packages and global mise tools on devbox                                                                                                       [0m
                                                                                                                                                                 [0m
          step                         needs  lane  note                                                    01 Preflight                              required   [0m
- [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Preflight                    [0m–    [0m[1m  [0m·   [0m[1m  [0mrequired · sudo[0m[1m                                     [0m                                                         [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Preflight                    [0m–    [0m[1m  [0m·   [0m[1m  [0mrequired · sudo[0m[1m                                     [0m    ──────────────────────────────────────────────────   [0m
   [✓] 02 Refresh Debian metadata      01     a     required · sudo                                         Runs       cat /etc/os-release                       [0m
   [✓] 03 Review Debian upgrades       02     a     required                                                           sudo -n true                              [0m
   [✓] 04 Apply Debian upgrades        03     a     required · sudo                                                    fuser /var/lib/dpkg/lock-frontend         [0m

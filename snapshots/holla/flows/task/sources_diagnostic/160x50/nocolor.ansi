@@ -5,7 +5,7 @@
  ▎ [0m[4mTaskfile[0m                                                                                                                                     scope ‹ here ›  [0m
                                                                                                                                                                 [0m
     Results · 1                                                                                                  Taskfile · Taskfile.yaml         task · here   [0m
- [0m[1;7m › Taskfile · Taskfile.yaml  [0m[7mtask[0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7mdiscovery diagnostic[0m[1;7m                                               [0m                                                   [0m
+ [0m[1;7m › Taskfile · Taskfile.yaml  [0m[7mtask[0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7mdiscovery diagnostic[0m[1;7m                                               [0m    ────────────────────────────────────────────   [0m
                                                                                                                  Does       task --list --json failed: yaml:    [0m
                                                                                                                             line 3: mapping values are not      [0m
                                                                                                                             allowed · no task was invented      [0m

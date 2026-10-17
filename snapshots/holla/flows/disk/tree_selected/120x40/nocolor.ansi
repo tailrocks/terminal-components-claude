@@ -9,7 +9,7 @@
     /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                     [0m
                                                                                                                         [0m
     largest first · allocated · noise folded                                 noise                          directory   [0m
-  ▾ ◐ big                                                 2.3 MiB · 100%                                                [0m
+  ▾ ◐ big                                                 2.3 MiB · 100%     ────────────────────────────────────────   [0m
         target                                   2.0 MiB ·  85% · folded     Path       ~/work/big/noise                [0m
  [0m[1m▎  ▸ [0m✓[0m[1m noise                                           176.0 KiB ·   7% [0m    Allocated  176.0 KiB                       [0m
         vm.img                                          160.0 KiB ·   7%     Apparent   112.0 KiB · block rounding      [0m

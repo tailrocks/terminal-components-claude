@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
                                                                                                                                                                 [0m
     Suggested here                                                                                               Inspect 12 GB of generated arti… disk · here   [0m
- [0m[1;7m › Inspect 12 GB of generated artifacts  [0m[7mdisk    [0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m12 GB generated artifacts[0m[1;7m                          [0m                                                   [0m
+ [0m[1;7m › Inspect 12 GB of generated artifacts  [0m[7mdisk    [0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m12 GB generated artifacts[0m[1;7m                          [0m    ────────────────────────────────────────────   [0m
     Pull                                  git       here  branch is 3 commits behind                             Does       1 rebuildable candidate below       [0m
     Review 5 modified files               git       here  4 modified · 1 untracked                                          this folder · 0 stale enough to     [0m
     Run tests                             task      here  5 files changed since the last run                                start selected                      [0m

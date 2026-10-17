@@ -5,7 +5,7 @@
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m cargo clean                                                                                          scope ‹ here ›  [0m
 [0m[2;38;5;7;48;5;0m                                                                                                                        [0m
 [0m[2;38;5;7;48;5;0m    Results · 3                                                                  cargo clean · 900.0 … cleanup · here   [0m
-[0m[2;38;5;7;48;5;0m  › cargo clean · 900.0 MiB    cleanup  here  900.0 MiB of gen…  destructive                                            [0m
+[0m[2;38;5;7;48;5;0m  › cargo clean · 900.0 MiB    cleanup  here  900.0 MiB of gen…  destructive     ────────────────────────────────────   [0m
 [0m[2;38;5;7;48;5;0m    cargo clean dry run        cargo    here  read-only                          Does       remove the resolved         [0m
 [0m[2;38;5;7;48;5;0m    Clean Cargo registr╭──────────────────────────────────────────────────────────────────── × ─╮t directory            [0m
 [0m[2;38;5;7;48;5;0m                       │                                                                        │k/engine/target · 2    [0m

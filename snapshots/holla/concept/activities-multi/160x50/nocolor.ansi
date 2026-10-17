@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
                                                                                                                                                                 [0m
     Suggested here                                                                                               Inspect 10 GB of generated arti… disk · here   [0m
-    Follow acme-api-1 logs                docker    here   service is unhealthy                                                                                 [0m
+    Follow acme-api-1 logs                docker    here   service is unhealthy                                  ────────────────────────────────────────────   [0m
  [0m[1;7m › Inspect 10 GB of generated artifacts  [0m[7mdisk    [0m[1;7m  [0m[7mhere [0m[1;7m  [0m[7m10 GB generated artifacts[0m[1;7m                         [0m    Does       2 rebuildable candidates below      [0m
     Install missing tools · sqlx-cli      task      here   1 tool missing                                                   this folder · 0 stale enough to     [0m
     Review cleanup candidates             cleanup   host   10.6 GiB across 4 categories                                     start selected                      [0m

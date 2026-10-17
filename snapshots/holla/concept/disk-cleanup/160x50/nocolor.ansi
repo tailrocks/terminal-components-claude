@@ -10,7 +10,7 @@
     /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB                                                                                           [0m
                                                                                                                                                                 [0m
     largest first · allocated · noise folded                                                                   work                                 directory   [0m
- [0m[1m▎▾ [0m◐[0m[1m work                                                                                 31.8 GiB · 100% [0m                                                     [0m
+ [0m[1m▎▾ [0m◐[0m[1m work                                                                                 31.8 GiB · 100% [0m    ──────────────────────────────────────────────   [0m
     ▸ ◐ backend                                                                            12.7 GiB ·  40%     Path       ~/work                                [0m
     ▸ ◐ frontend                                                                            8.8 GiB ·  28%     Allocated  31.8 GiB                              [0m
     ▸   dumps                                                                               6.3 GiB ·  20%     Apparent   31.8 GiB · block rounding             [0m

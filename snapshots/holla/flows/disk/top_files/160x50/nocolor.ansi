@@ -6,7 +6,7 @@
   3 files · regular files of 100 MiB or more · top 50 by allocated size · Space selects for the same cleanup gate                                               [0m
                                                                                                                                                                 [0m
  [0m[1m▎[0m[ ][0m[1m ~/Downloads/iso.iso                                    [0m700.0 MiB[0m[1m                                     [0m    iso.iso                                   file   [0m
-  [ ] ~/Movies/big.mov                                       400.0 MiB                                                                                          [0m
+  [ ] ~/Movies/big.mov                                       400.0 MiB                                         ──────────────────────────────────────────────   [0m
   [ ] ~/Downloads/vanished.bin                               stat failed                                       Path       ~/Downloads/iso.iso                   [0m
                                                                                                                Size       700.0 MiB allocated                   [0m
                                                                                                                Source     Spotlight · kMDItemFSSize >=          [0m

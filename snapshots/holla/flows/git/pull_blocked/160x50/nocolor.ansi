@@ -5,7 +5,7 @@
  ▎ [0m[4mPull[0m                                                                                                                                         scope ‹ here ›  [0m
                                                                                                                                                                 [0m
     Results · 3                                                                                                  Pull                            git · parent   [0m
- [0m[1;7m › Pull              [0m[7mgit[0m[1;7m  [0m[7mparent[0m[1;7m  [0m[7mblocked · 1 modified[0m[1;7m                                                      [0m                                                   [0m
+ [0m[1;7m › Pull              [0m[7mgit[0m[1;7m  [0m[7mparent[0m[1;7m  [0m[7mblocked · 1 modified[0m[1;7m                                                      [0m    ────────────────────────────────────────────   [0m
     [0m[1mPull[0m with merge   git  parent  history has diverged                                                          Does       pull (configured strategy)          [0m
     [0m[1mPull[0m with rebase  git  parent  history has diverged                                                                     ~/work/svc from origin/feature/x    [0m
                                                                                                                  Runs       git -C /Users/alex/work/svc pull    [0m

@@ -22,7 +22,7 @@
    never overwrites an existing folder                                                                                  [0m
                                                                                                                         [0m
    Command                                                                                                              [0m
-                                                                                                                        [0m
+   ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────    [0m
    gh repo clone 'alex-dev/<repository>' '~/work/holla' --protocol ssh                                                  [0m
                                                                                                                         [0m
                                                                                                         Cancel    [0m[1;7mRun [0m  [0m

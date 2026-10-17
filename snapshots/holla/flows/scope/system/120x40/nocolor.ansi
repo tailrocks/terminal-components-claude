@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                      scope ‹ system ›  [0m
                                                                                                                         [0m
     System · mbp · 45 entries                                               ┃    Review cleanup candi… cleanup · host   [0m
- [0m[1;7m › Review cleanup candidates  [0m[7mcleanup[0m[1;7m  [0m[7mhost[0m[1;7m  [0m[7m10.6 GiB across…[0m[1;7m              [0m┃                                           [0m
+ [0m[1;7m › Review cleanup candidates  [0m[7mcleanup[0m[1;7m  [0m[7mhost[0m[1;7m  [0m[7m10.6 GiB across…[0m[1;7m              [0m┃    ────────────────────────────────────   [0m
     Clean Docker completely    plan     host  7.1 GB reclaima…  destructive ┃    Does       4 detected categories ·     [0m
     List containers            docker   host  5 running                     ┃               10.6 GiB ·                  [0m
     Prune builder cache        docker   host  2.9 GB of build…  destructive ┃               rebuilt-on-demand and       [0m

@@ -9,7 +9,7 @@
     /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                     [0m
                                                                                                                         [0m
     largest first · allocated · noise folded                                 data                           directory   [0m
- [0m[1m▎▾ [0m [0m[1m data                                              852.0 KiB · 100% [0m                                               [0m
+ [0m[1m▎▾ [0m [0m[1m data                                              852.0 KiB · 100% [0m    ────────────────────────────────────────   [0m
     ▸   many                                            724.0 KiB ·  85%     Path       ~/work/data                     [0m
     ▸   media                                            52.0 KiB ·   6%     Allocated  852.0 KiB                       [0m
     ▸   skip-me                                          32.0 KiB ·   4%     Apparent   1012.0 KiB · sparse             [0m

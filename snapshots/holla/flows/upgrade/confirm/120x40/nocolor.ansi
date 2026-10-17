@@ -6,7 +6,7 @@
 [0m[2m  upgrade Debian packages and global mise tools on devbox                                                               [0m
 [0m[2m                                                                                                                        [0m
 [0m[2m         step                         needs  lane  note                   06 Upgrade selected mise tools     optional   [0m
-[0m[2m [0m [0m[2m[✓] 01 Preflight    ╭────────────────────────────────────────────────────────────────────── × ─╮                      [0m
+[0m[2m [0m [0m[2m[✓] 01 Preflight    ╭────────────────────────────────────────────────────────────────────── × ─╮───────────────────   [0m
 [0m[2m [0m [0m[2m[✓] 02 Refresh Debia│                                                                          │exclude go            [0m
 [0m[2m [0m [0m[2m[✓] 03 Review Debian│  [0m[1;2mStart upgrade everything?[0m[2m                                               │                      [0m
 [0m[2m [0m [0m[2m[✓] 04 Apply Debian │                                                                          │al mise tools         [0m

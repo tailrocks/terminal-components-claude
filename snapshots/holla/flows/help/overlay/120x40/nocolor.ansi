@@ -5,7 +5,7 @@
 [0m[2m [0m [0m[2m Search ac╭─[0m[1;2m Key reference [0m[2m─────────────────────────────────────────────────────────────────── Here ─ × ─╮e ‹ here ›  [0m
 [0m[2m            │  [0m[1;2mFinder[0m[2m                                       [0m[1;2mPages[0m[2m                                          │            [0m
 [0m[2m    Suggeste│  [0m[1;2mType[0m[2m            search actions and           [0m[1;2mDisk[0m[2m            ↑↓ move · Space select · a     │sk · here   [0m
-[0m[2m  › Inspect │                  resources together ·                         all · Enter drill · c          │            [0m
+[0m[2m  › Inspect │                  resources together ·                         all · Enter drill · c          │─────────   [0m
 [0m[2m    Pull    │                  @parent @children @system                    cleanup plan · p details       │ndidate     [0m
 [0m[2m    Review 5│                  @all narrow the scope        [0m[1;2mPlan review[0m[2m     Space include or exclude ·     │r · 0       [0m
 [0m[2m    Run test│  [0m[1;2m↑↓[0m[2m              move · PgUp PgDn Home End                    u undo · Enter step facts ·    │start       [0m

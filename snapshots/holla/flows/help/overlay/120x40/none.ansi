@@ -5,7 +5,7 @@
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m Search ac╭─[0m[1;2;38;5;15;48;5;0m Key reference [0m[2;38;5;7;48;5;0m─────────────────────────────────────────────────────────────────── Here ─ × ─╮e ‹ here ›  [0m
 [0m[2;38;5;7;48;5;0m            │  [0m[1;2;38;5;7;48;5;0mFinder[0m[2;38;5;7;48;5;0m                                       [0m[1;2;38;5;7;48;5;0mPages[0m[2;38;5;7;48;5;0m                                          │            [0m
 [0m[2;38;5;7;48;5;0m    Suggeste│  [0m[1;2;38;5;15;48;5;0mType[0m[2;38;5;7;48;5;0m            search actions and           [0m[1;2;38;5;15;48;5;0mDisk[0m[2;38;5;7;48;5;0m            ↑↓ move · Space select · a     │sk · here   [0m
-[0m[2;38;5;7;48;5;0m  › Inspect │                  resources together ·                         all · Enter drill · c          │            [0m
+[0m[2;38;5;7;48;5;0m  › Inspect │                  resources together ·                         all · Enter drill · c          │─────────   [0m
 [0m[2;38;5;7;48;5;0m    Pull    │                  @parent @children @system                    cleanup plan · p details       │ndidate     [0m
 [0m[2;38;5;7;48;5;0m    Review 5│                  @all narrow the scope        [0m[1;2;38;5;15;48;5;0mPlan review[0m[2;38;5;7;48;5;0m     Space include or exclude ·     │r · 0       [0m
 [0m[2;38;5;7;48;5;0m    Run test│  [0m[1;2;38;5;15;48;5;0m↑↓[0m[2;38;5;7;48;5;0m              move · PgUp PgDn Home End                    u undo · Enter step facts ·    │start       [0m

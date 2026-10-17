@@ -5,7 +5,7 @@
 [0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m Search actions and resources…                                                                                                                scope ‹ here ›  [0m
 [0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
 [0m[2;38;5;7;48;5;0m    Suggested here                                                                                               Inspect 10 GB of generated arti… disk · here   [0m
-[0m[2;38;5;7;48;5;0m    Follow acme-api-1 logs                docker    here   service is unhealthy                                                                                 [0m
+[0m[2;38;5;7;48;5;0m    Follow acme-api-1 logs                docker    here   service is unhealthy                                  ────────────────────────────────────────────   [0m
 [0m[2;38;5;7;48;5;0m  › Inspect 10 GB of generated artifacts  disk      here   10 GB generated artifacts                             Does       2 rebuildable candidates below      [0m
 [0m[2;38;5;7;48;5;0m    Install missing tools · sqlx-cli      task      here   1 tool missing                                                   this folder · 0 stale enough to     [0m
 [0m[2;38;5;7;48;5;0m    Review cleanup candidates             cleanup   host   10.6 GiB across 4 categories                                     start selected                      [0m

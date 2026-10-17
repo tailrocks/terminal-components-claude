@@ -6,7 +6,7 @@
   remove selected build artifacts and caches under /Users/alex/work                                                                                             [0m
                                                                                                                                                                 [0m
          step                           needs     lane  note                                               01 Trash frontend › node_modules          optional   [0m
- [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Trash frontend › node_modules  [0m–       [0m[1m  [0ma   [0m[1m  [0moptional[0m[1m                                       [0m                                                         [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Trash frontend › node_modules  [0m–       [0m[1m  [0ma   [0m[1m  [0moptional[0m[1m                                       [0m    ──────────────────────────────────────────────────   [0m
   [✓] 02 cargo clean · backend          –         b     optional                                           Runs     trash                                       [0m
   [✓] 03 ./gradlew clean · android      –         c     optional                                                    /Users/alex/work/frontend/node_modules      [0m
   [✓] 04 Rescan and report              01 02 03  join  required                                           In       ~/work/frontend · mbp                       [0m

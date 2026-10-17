@@ -5,7 +5,7 @@
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
                                                                                                                                                                 [0m
     Suggested here                                                                                               Clean IntelliJ metadata under ~… idea · here   [0m
-    Pull                                   git      here  branch is 1 commits behind                                                                            [0m
+    Pull                                   git      here  branch is 1 commits behind                             ────────────────────────────────────────────   [0m
  [0m[1;7m › Clean IntelliJ metadata under ~/work…  [0m[7midea   [0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m1 candidates[0m[1;7m                           [0m[7mdestructive[0m[1;7m [0m    Does       move every .idea directory and      [0m
     Deploy                                 custom   here  Current folder · ⚠ unreviewed                                     lowercase .iml file below this      [0m
     Run tests                              task     here  defined by ~/work/probe/mise.toml                                 folder (depth 5, no symlinks, no    [0m
