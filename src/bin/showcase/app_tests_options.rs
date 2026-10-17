@@ -324,3 +324,31 @@ fn behaviour_options_change_the_live_configuration() {
         }
     }
 }
+
+/// A22: a theme detected as ASCII (`TERM=linux`, the legacy Windows
+/// console, `--glyphs ascii`) shows as `shell.glyphs`/`shell.strings` =
+/// ascii, and stays ASCII when another shell option rebuilds the theme.
+#[test]
+fn a_detected_ascii_charset_shows_as_the_options_and_survives_a_rebuild() {
+    use junie_tui::theme::{Charset, Glyphs, Strings};
+    let mut app = App::new(Charset::Ascii.apply(Theme::junie()));
+    assert_eq!(app.options.value("shell.glyphs"), "ascii");
+    assert_eq!(app.options.value("shell.strings"), "ascii");
+    app.apply_opt(opt("shell.color=16"));
+    assert_eq!(
+        (app.theme.glyphs, app.theme.strings),
+        (Glyphs::ASCII, Strings::ASCII),
+        "rebuilding the theme keeps the detected charset"
+    );
+    // the option still switches back to Unicode
+    app.apply_opt(opt("shell.glyphs=unicode"));
+    app.apply_opt(opt("shell.strings=default"));
+    assert_eq!(
+        (app.theme.glyphs, app.theme.strings),
+        (Glyphs::UNICODE, Strings::DEFAULT)
+    );
+    // a Unicode terminal starts at unicode
+    let app = App::new(Theme::junie());
+    assert_eq!(app.options.value("shell.glyphs"), "unicode");
+    assert_eq!(app.options.value("shell.strings"), "default");
+}
