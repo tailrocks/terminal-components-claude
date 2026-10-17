@@ -311,7 +311,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 | S9 | Done, 2026-10-17 | "SelectGesture, RowSelection::apply and ClickPolicy" (expand), "a double click activates or edits; a right click selects" (table), "RowSelection, ClickPolicy and desktop click modifiers" (list), "ClickPolicy replaces row_click_toggles; a double click connects in tablepro" (tree), "RowSelection marks, click modifiers, double-click edit, right-click rule" (grid), "the tags checklist keeps a RowSelection", "a click selects a fact, a double click activates or copies" (props), "a node's glyph is a hit part; TreeView::row_at; double click selects a word", "a disk row click only moves the cursor; its mark selects" (holla, CO10), "Alt+click on a row chooses its alternative" (A24); two re-approvals (Lists, Trees readouts) | See "S9 outcome" below. |
 | S10 | Not started | — | Unblocked (S4 done). |
 | S8b | Not started | — | Waits for S8a. |
-| S11 | Not started | — | Unblocked (S4, S6 done). K1's default flip already landed (`1da20cc01`, `DEFAULT_EDIT_ENTRY` is `Immediate`); only the K1 walk remains. |
+| S11 | Done, 2026-10-17 | "EditField, Validate and ValidateWhen; table and grid cell editors on it" (expand, cells), "every text control edits through EditField; PointerField once" (TextInput, TextArea, CodeEditor, Picker, Combo, find; contract), "the finder query is the shared text field" (holla, K36), "a double click on an option confirms it" (M39), "ScrollPanel selects like TextViewport; Shift-click and triple click" (M31) | See "S11 outcome" below. |
 | S12 | Not started | — | Unblocked (S3, S4, S5 done). |
 | S13–S22 | Not started | — | Dependencies in the §4 table. |
 | T | Not started (groundwork landed) | Groundwork: `189734f49` and `ba849cd89` (one state resolver, one pressed rule), `e40c2c08f` (256, 16-colour and mono tables; `StateModifiers::MONO`), `f387b8498` (readable `text_faint`, own success green), `18f15fd5f` and `acfbe62db` (`Glyphs`, `Strings`, opt-in ASCII) | Every T item itself is still open: SV2, SV3, SV4, SV14 (success vs accent), SVg1, SVg2, SVg7 (`standards-visual.md` status table). SVg6 automatic ASCII selection is `docs/remaining-work.md` A22. |
@@ -613,6 +613,41 @@ Each step's agent updates its row when the step lands: state, commits, and every
 - S13: `ListCore` takes `ListBox::selection` (a `RowSelection`) and `click` as they are; `Selectable` can return them.
 - S16: hand-drawn lists ask `ClickPolicy::DATA.activates(ev.count(), again)` today; on widgets they read the widget's `click`.
 - S24: the tree's tri-state checks can build on the glyph's `Part::MARKER`.
+
+**S11 outcome.** One editable text field under every text control:
+- `widgets::edit`: `EditField { buffer, sel: PointerSelect, keys, text_keymap, validator, error, validate_when, multiline, read_only, required }` with `on_key`/`apply`/`apply_as` (an `EditResult { outcome, edited, exit: Option<EditExit>, unused }`; Enter, Esc and Tab come back as `EditExit` for the control to decide), `paste` (one undoable edit; a one-line field flattens line breaks, SIg5), `record`/`seal`/`can_undo`/`can_redo`, `validate`/`after_edit`/`set_error`, the pointer gestures `press`/`drag`/`click`/`pressed`, and the one one-line renderer `draw_line`/`draw_glyphs` with `line_offset_at`/`glyph_offset_at` (`LineLook`). `Validate { type Value; validate }`, `Validator<V = (), C = ()>` (a closure validator; `check` for the message form, `with_context` + `bind` for a validator shared by columns), `ValidateWhen { Commit, AfterError (default), Live }` (SIg9), `FieldError` (derefs to `str`). `Editable` (the field, its id, `offset_at`, label and focus hooks): `PointerField` is implemented once, for every `Editable`.
+- Migrated: TextInput, TextArea and CodeEditor (`field`), the DataTable and DataGrid cell editors (`EditState::field`), the Picker query, the Combo search (`ChoiceEditor::query`), the CodeEditor find query (`FindState::needle`) and holla's finder query (K36). Deleted: the table and grid `edit_key` copies and click-to-caret copies, the Picker's own caret and grapheme editing (`pop_grapheme`, `delete_forward`, `delete_word`, `caret: Option<usize>`), the Combo's push/pop editing, the finder's own undo/redo stacks and select-all flag, TextInput's scroll-and-ellipsis loop (now `draw_glyphs`), `field_common::{PressState, press_select, click_select, drag_select}` and the three `PointerField` impls. Contract: `input::TextValidator`, `table::CellValidator` and `grid::Validator` are gone (`Validator`, `Validator<(), usize>`, `grid::CellParser` = `Validator<CellValue, ColumnSpec>` with `cell_validator`). TextInput's error is its field's (`error()`, `set_error()`, `field.error`).
+
+**S11 behaviour changes** (each with a test that fails on its parent):
+1. M2: CodeEditor sets its drag anchor on the press, keeps the selection on release, selects a word or line on a double or triple click, and a drag above or left of the text runs on (signed offsets, edge autoscroll) (`a_drag_selects_from_the_press_and_multi_clicks_select_words_and_lines`).
+2. M39 (first half): a focused read-only CodeEditor shows its caret (same test).
+3. M21: the Picker query takes a click (caret), a double click (word), a drag; a long query scrolls so the caret never sits on `…` (`the_query_takes_clicks_word_selection_select_all_and_scrolls`); the open table or grid cell editor takes a double click (word) and a drag (`the_cell_editor_selects_by_pointer_undoes_and_flattens_pastes`).
+4. Select All, caret keys, clipboard keys and undo in the picker, combo and find queries (`the_query_takes_…`, `the_combo_search_edits_at_the_caret_selects_all_and_undoes`); Ctrl+Z/Ctrl+Shift+Z inside a table or grid cell edit (A21 in-edit part; they did nothing).
+5. SIg5: a pasted line break never lands in a one-line cell (it did in table and grid cells); every one-line field flattens through `EditField::paste`.
+6. SIg9: a grid cell with an error re-checks on every edit like the fields and the table (it cleared on any typed character) (`a_cell_edit_rechecks_after_an_error_undoes_and_flattens_pastes`); `TextInput::validate_when` is the knob (`validate_when_decides_whether_typing_rechecks_the_value`).
+7. K17: F6 / Shift+F6 leave a CodeEditor from editing or browsing (`f6_leaves_the_editor_from_editing_and_browsing`).
+8. K36: holla's finder query edits through the shared field under its HP02 key map; the parity test passes unchanged, and undo stays per keystroke there (`EditField::undo_runs`, the `holla/flows/query/{undone,redone}` captures unchanged).
+9. K1 walk: `every_page_shows_a_caret_at_every_text_stop` (showcase, every page of the catalogue).
+10. M31: TextViewport and ScrollPanel share one selection model (`widgets::text_select`): drag, Shift+press extend, double click word, triple click line; ScrollPanel selects and copies (`PanelCmd::{SelectAll, Copy}`, Esc clears) (`shift_click_extends_and_a_triple_click_selects_the_line`, `a_scroll_panel_selects_by_drag_shift_click_word_and_line_and_copies`, `a_wrapped_panel_selects_a_whole_line_and_copies_it_rejoined`).
+11. M39 (second half): `ChoiceDialog::double_click_confirms` (default on) (`a_double_click_on_an_option_confirms_it`).
+
+**S11 deviations from the row above:**
+1. `EditField` holds the field's key preset and text key map itself; the controls keep their `field_keys` override and resolve it into the field at render (one source of truth for the keys).
+2. `EditField::required` carries the required rule (a validator owns validation when supplied), so TextInput's live re-check is the field's `after_edit` and no control keeps its own `live_validate`.
+3. F6 is not hinted: the footer hints are derived in S8b (`HasHints`); a pane-cycling F6 in the shell is S8a's `ShellKeys` question. Recorded in `keyboard.md` #17.
+4. The Combo search takes keys and paste through `EditField` but not the pointer: `ChoiceEditor` has no `MouseTarget` until S12 (`OptionList`).
+5. holla's Files query (M21's third site) still keeps its own string; it moves with S22's `FindState` (`FindState { query: EditField }` is already that step's shape).
+6. Grid and table cells start an Enter/F2 edit with the caret at the end (the spreadsheet F2 convention), not Select All: SI6's keyboard-focus Select All is the text fields' (`FocusSelect::SelectAll`, done in `1da20cc01`). Recorded in `standards-interaction.md` #6.
+7. D3 is untouched: forms still validate on Save; `ValidateWhen` is the per-field override the owner decision names.
+8. ScrollPanel does not embed a TextViewport (its line styling, ellipsis and wrap would change); both share `widgets::text_select::TextSelect` instead.
+9. Visual: none. No capture moved, so no re-approval was needed: fields already showed the caret since `1da20cc01`, and no capture focuses a read-only CodeEditor or selects panel text.
+10. K5 and K7 needed no change (fixed in `1da20cc01`); the K1 walk confirms them across the catalogue.
+
+**Notes for later steps:**
+- S12: `OptionList { query: Option<EditField> }` takes the Picker's and Combo's `EditField` as they are; the Combo's query pointer gestures arrive with `ChoiceEditor`'s `MouseTarget`.
+- S13: the standard Edit `ContextSource` runs `EditAction`s through `EditField::apply` (Cut, Copy, Paste, Select All); every text control exposes its `field`.
+- S18: `FormPanel` reads `field.error` / `error()` and `ValidateWhen` per field; D3 decides the form-level timing.
+- S22: `FindState { query: EditField }` for holla's activity/files find and the Files query.
 
 ## 5. Per-widget documentation (`docs/components/<widget>.md`)
 
