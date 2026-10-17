@@ -18,7 +18,8 @@
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Input, Mouse, MouseKind};
-use junie_tui::core::hit::{Axis, Bar};
+use junie_tui::core::hit::Axis;
+use junie_tui::core::id::WidgetId;
 use junie_tui::runtime::Application;
 use junie_tui::shell::reach::Words;
 use ratatui::Terminal;
@@ -111,28 +112,68 @@ impl Shot {
     /// The shared rule for inner scrollers: a scroller in the section
     /// that shows a scrollbar (a list, a table, a log, a stack of panels)
     /// says it holds more than its window, so what scrolling it brings
-    /// into view is reachable. Wheel each such scroller in view from its
-    /// bar to its end (until it stops moving, or the notch chains on to
-    /// the section's view), then put the section back where it was.
+    /// into view is reachable. Wheel each such scroller in view, over its
+    /// part in view, on each axis from its start to its end (until it
+    /// stops moving, or the notch chains on to the section's view), then
+    /// sideways and down together (its far corner: the bar of the other
+    /// axis may be out of view), putting the section back where it was
+    /// each time.
     fn inner(&mut self, out: &mut Words) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
-        let bars: Vec<Bar> = self
+        let mut owners: Vec<WidgetId> = Vec::new();
+        for b in self.app.shell.hits.bars() {
+            if b.owner == view || owners.contains(&b.owner) {
+                continue;
+            }
+            let at = self.at(b.owner, b.track, viewport);
+            if !at.is_empty() {
+                owners.push(b.owner);
+            }
+        }
+        use Axis::{Horizontal, Vertical};
+        for owner in owners {
+            for axes in [&[Vertical][..], &[Horizontal], &[Horizontal, Vertical]] {
+                let start = self.view().offset();
+                for &axis in axes {
+                    self.wheel(owner, axis, viewport, out);
+                }
+                self.view().scroll_to(start.0, start.1);
+                self.draw();
+            }
+        }
+    }
+
+    /// Where to wheel `owner`: its part in view, else its bar's.
+    fn at(&self, owner: WidgetId, track: Rect, viewport: Rect) -> Rect {
+        let area = self.app.shell.hits.area_of(owner).unwrap_or_default();
+        Some(area.intersection(viewport))
+            .filter(|r| !r.is_empty())
+            .unwrap_or_else(|| track.intersection(viewport))
+    }
+
+    /// Wheel `owner` along `axis` to its start (an earlier pass may have
+    /// left it scrolled), then to its end, reading the words of every
+    /// step; a notch that chains on to the section's view ends the run.
+    fn wheel(&mut self, owner: WidgetId, axis: Axis, viewport: Rect, out: &mut Words) {
+        let track = self
             .app
             .shell
             .hits
             .bars()
             .iter()
-            .filter(|b| b.owner != view && b.track.intersects(viewport))
-            .copied()
-            .collect();
-        for bar in bars {
-            let at = bar.track.intersection(viewport);
-            let pos = Position::new(at.x, at.y);
-            let kind = match bar.axis {
-                Axis::Vertical => MouseKind::WheelDown,
-                Axis::Horizontal => MouseKind::WheelRight,
-            };
+            .find(|b| b.owner == owner)
+            .map_or(Rect::default(), |b| b.track);
+        let at = self.at(owner, track, viewport);
+        if at.is_empty() {
+            return;
+        }
+        let pos = Position::new(at.x, at.y);
+        let kinds = match axis {
+            Axis::Vertical => [MouseKind::WheelUp, MouseKind::WheelDown],
+            Axis::Horizontal => [MouseKind::WheelLeft, MouseKind::WheelRight],
+        };
+        for kind in kinds {
             let start = self.view().offset();
             let mut last = text(self.term.backend().buffer());
             for _ in 0..INNER_NOTCHES {
@@ -140,13 +181,17 @@ impl Shot {
                 self.draw();
                 self.words(out);
                 let now = text(self.term.backend().buffer());
-                if self.view().offset() != start || now == last {
+                if self.view().offset() != start {
+                    // the notch chained on to the section's view
+                    self.view().scroll_to(start.0, start.1);
+                    self.draw();
+                    break;
+                }
+                if now == last {
                     break;
                 }
                 last = now;
             }
-            self.view().scroll_to(start.0, start.1);
-            self.draw();
         }
     }
 }
