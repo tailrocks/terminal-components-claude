@@ -22,7 +22,7 @@
  │                              │                                   ┃     ( ) Safe Mode (Full)      [0m
  │                              │      Password  optional           ┆     ( ) Read-Only             [0m
  │                              │      stored in the keychain       ┆      Writes run without       [0m
- │                              │      Never written to connection… ┆      asking. Destructive      [0m
+ │                              │      Never written to connection… ┆      asking. Destructive …    [0m
  │                              │                                                                   [0m
  │                              │     Test connection    Cancel    Save    [0m[1;7mSave & connect [0m          [0m
  ╰──────────────────────────────╯                                                                   [0m

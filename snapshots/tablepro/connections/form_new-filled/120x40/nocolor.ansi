@@ -22,7 +22,7 @@
  │                                     │                                                 ( ) Safe Mode (Full)           [0m
  │                                     │      Password  optional                         ( ) Read-Only                  [0m
  │                                     │      stored in the keychain                      Writes run without asking.    [0m
- │                                     │      Never written to connections.json           Destructive statements        [0m
+ │                                     │      Never written to connections.json           Destructive statements …      [0m
  │                                     │     [ ] Prompt for password on connect                                         [0m
  │                                     │                                                                                [0m
  │                                     │                                                                                [0m
