@@ -35,7 +35,7 @@ fn disk_cleanup_shows_the_flow_not_the_stub() {
             assert!(text.contains(needle), "{w}: {needle}: {text}");
         }
     }
-    let text = Harness::new(120, 40, PageId::DiskCleanup).text();
+    let text = Harness::new(120, 40, PageId::DiskCleanup).page_text();
     for needle in [
         "Cleanup categories",
         "4 of 10 · 8.9 GiB",
@@ -49,7 +49,7 @@ fn disk_cleanup_shows_the_flow_not_the_stub() {
 
 #[test]
 fn disk_cleanup_checklist_counts_and_skips_the_category_in_use() {
-    let mut h = Harness::new(120, 40, PageId::DiskCleanup);
+    let mut h = Harness::new(140, 48, PageId::DiskCleanup);
     h.focus(DISK.sub("categories"));
     // the cursor starts on the first (checked) row: Space unchecks it
     h.key(KeyCode::Char(' '));
@@ -67,7 +67,7 @@ fn disk_cleanup_checklist_counts_and_skips_the_category_in_use() {
 
 #[test]
 fn disk_cleanup_review_takes_two_gates_and_reclaims() {
-    let mut h = Harness::new(120, 40, PageId::DiskCleanup);
+    let mut h = Harness::new(140, 48, PageId::DiskCleanup);
     h.focus(DISK.sub("categories"));
     h.key(KeyCode::Char('d'));
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
@@ -99,7 +99,7 @@ fn disk_cleanup_review_takes_two_gates_and_reclaims() {
 
 #[test]
 fn disk_cleanup_cancel_changes_nothing_and_dry_run_has_one_gate() {
-    let mut h = Harness::new(120, 40, PageId::DiskCleanup);
+    let mut h = Harness::new(140, 48, PageId::DiskCleanup);
     h.click_id(DISK.sub("review"));
     assert!(h.text().contains("gate 1 of 2"));
     h.key(KeyCode::Esc);
@@ -120,7 +120,7 @@ fn disk_cleanup_cancel_changes_nothing_and_dry_run_has_one_gate() {
 
 #[test]
 fn disk_cleanup_options_drive_the_widgets() {
-    let mut h = Harness::new(120, 40, PageId::DiskCleanup);
+    let mut h = Harness::new(140, 48, PageId::DiskCleanup);
     h.opt("diskcleanup.mode=permanent");
     assert!(h.text().contains("permanent delete"), "{}", h.text());
     assert!(h.text().contains("DELETE 4"));
@@ -145,7 +145,7 @@ fn disk_cleanup_options_drive_the_widgets() {
 
 #[test]
 fn disk_cleanup_rescan_marks_folders_busy_until_done() {
-    let mut h = Harness::new(120, 40, PageId::DiskCleanup);
+    let mut h = Harness::new(140, 48, PageId::DiskCleanup);
     h.click_id(DISK.sub("rescan"));
     assert!(h.text().contains("scanning · 5 left"), "{}", h.text());
     for _ in 0..40 {

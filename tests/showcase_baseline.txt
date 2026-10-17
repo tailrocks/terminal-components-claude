@@ -142,7 +142,7 @@
 120x40 TrueColor Finder b5c4ed8f732b5f20
 120x40 TrueColor Finder · Options 27bd70b4898191b9
 120x40 TrueColor Finder · States 589174a29440a00b
-120x40 TrueColor Disk cleanup c0dde6a9182bbdf3
+120x40 TrueColor Disk cleanup c44b62aa0bcaa8c4
 120x40 TrueColor Disk cleanup · Options 207c98bef3fc75b6
 120x40 TrueColor Disk cleanup · States 8378508bdd27866c
 120x40 TrueColor Activity c8b54ea336c040ef
@@ -306,7 +306,7 @@
 120x40 Ansi256 Finder d963a7121b6d9424
 120x40 Ansi256 Finder · Options dc6e3862ad56256c
 120x40 Ansi256 Finder · States cc73b77218c485aa
-120x40 Ansi256 Disk cleanup a478efcce6fae7c0
+120x40 Ansi256 Disk cleanup 4ae2d66f4da33919
 120x40 Ansi256 Disk cleanup · Options 4410876e23f7293a
 120x40 Ansi256 Disk cleanup · States 1f83ae6d89e80ae2
 120x40 Ansi256 Activity 4f072f3f0860774d
@@ -470,7 +470,7 @@
 120x40 Ansi16 Finder 4f418fb47ea8f76f
 120x40 Ansi16 Finder · Options ba06459f479f341b
 120x40 Ansi16 Finder · States 43a0a1889d74a0a4
-120x40 Ansi16 Disk cleanup 856f8b59c3899e96
+120x40 Ansi16 Disk cleanup 68efbd0d21da6d25
 120x40 Ansi16 Disk cleanup · Options 9c3bfa996ab32ee8
 120x40 Ansi16 Disk cleanup · States 52a50fe7ea170283
 120x40 Ansi16 Activity 4432de07b28c8ab1
@@ -634,7 +634,7 @@
 120x40 Mono Finder 14350cb80c703f88
 120x40 Mono Finder · Options 722ea0c68a830e64
 120x40 Mono Finder · States eb498ff9ee6b3fb1
-120x40 Mono Disk cleanup 74e2ed1c1637ec3b
+120x40 Mono Disk cleanup 993fc388caa36ddc
 120x40 Mono Disk cleanup · Options 51ce848793305e81
 120x40 Mono Disk cleanup · States 71f9378a46177e58
 120x40 Mono Activity 408eb7e15555c552
@@ -798,7 +798,7 @@
 80x24 TrueColor Finder d38fd550a14cb491
 80x24 TrueColor Finder · Options 573429f12125c492
 80x24 TrueColor Finder · States cc7552278e2018eb
-80x24 TrueColor Disk cleanup ea3af27d2bab05ca
+80x24 TrueColor Disk cleanup d58e9a261090d49e
 80x24 TrueColor Disk cleanup · Options cc01305193c2c945
 80x24 TrueColor Disk cleanup · States 87ffecb8e364c932
 80x24 TrueColor Activity b54ef6b75470f3c6
@@ -962,7 +962,7 @@
 80x24 Ansi256 Finder 0c91a35666c0640c
 80x24 Ansi256 Finder · Options a0b48d848249ce8e
 80x24 Ansi256 Finder · States c28ff326e01073b8
-80x24 Ansi256 Disk cleanup b93d7fc3e09a1347
+80x24 Ansi256 Disk cleanup 9a411881237234fa
 80x24 Ansi256 Disk cleanup · Options f582e4f5e0881c32
 80x24 Ansi256 Disk cleanup · States 8403ccb55787a13a
 80x24 Ansi256 Activity 3c1411626351d3e6
@@ -1126,7 +1126,7 @@
 80x24 Ansi16 Finder 116af982632edcfa
 80x24 Ansi16 Finder · Options e9adc69a93ce5744
 80x24 Ansi16 Finder · States 01e44981904cfaa9
-80x24 Ansi16 Disk cleanup f33e3a01977045f2
+80x24 Ansi16 Disk cleanup 6ccb6c417916560a
 80x24 Ansi16 Disk cleanup · Options 61bced0d57b6fe63
 80x24 Ansi16 Disk cleanup · States 6898d61f81d8e783
 80x24 Ansi16 Activity 88c3036654eb528a
@@ -1290,7 +1290,7 @@
 80x24 Mono Finder 258832c4c09ef9ec
 80x24 Mono Finder · Options 9f55ba178ed0bb08
 80x24 Mono Finder · States 9c7cab6133a5b67f
-80x24 Mono Disk cleanup 6cf2fae5e2244ff8
+80x24 Mono Disk cleanup be547d7c957040d4
 80x24 Mono Disk cleanup · Options 6af13acefd556915
 80x24 Mono Disk cleanup · States 654ce8358e360bc1
 80x24 Mono Activity c5e25e811a03780a
@@ -1454,7 +1454,7 @@
 72x20 TrueColor Finder 22dd4f34da375f0e
 72x20 TrueColor Finder · Options 006d56fdf9d73902
 72x20 TrueColor Finder · States c713eae6be22ca75
-72x20 TrueColor Disk cleanup 5d2b7e175ccd5a0f
+72x20 TrueColor Disk cleanup 278755d37ec7c2ac
 72x20 TrueColor Disk cleanup · Options 08baf1fb082c307b
 72x20 TrueColor Disk cleanup · States b3a49b5319e821d1
 72x20 TrueColor Activity 4c69f6cc975e63e8
@@ -1618,7 +1618,7 @@
 72x20 Ansi256 Finder b4797e30c564b73d
 72x20 Ansi256 Finder · Options 41a2a513702f166c
 72x20 Ansi256 Finder · States 19fce451d89c8ffb
-72x20 Ansi256 Disk cleanup 19339ef4fb829c0e
+72x20 Ansi256 Disk cleanup 9990f366f6e3d461
 72x20 Ansi256 Disk cleanup · Options 4db3364655b8a1d9
 72x20 Ansi256 Disk cleanup · States fbab3877172e1b2f
 72x20 Ansi256 Activity 5cb597d5b49e3955
@@ -1782,7 +1782,7 @@
 72x20 Ansi16 Finder ae6dbc12f23b350a
 72x20 Ansi16 Finder · Options f0910da08e04abb2
 72x20 Ansi16 Finder · States 456498b78dfa1033
-72x20 Ansi16 Disk cleanup cf3a34bfdc2e9dd5
+72x20 Ansi16 Disk cleanup 92944217ed915f3f
 72x20 Ansi16 Disk cleanup · Options f010ff6a9a570899
 72x20 Ansi16 Disk cleanup · States f84f91b452901b25
 72x20 Ansi16 Activity 7efb4ccbaea96b17
@@ -1946,7 +1946,7 @@
 72x20 Mono Finder 19c5d02ed8151024
 72x20 Mono Finder · Options 47ffd6bc30584002
 72x20 Mono Finder · States 9ac234b2dbe4eb45
-72x20 Mono Disk cleanup 7e0a2e2e429da7ef
+72x20 Mono Disk cleanup 946283cf58e5312f
 72x20 Mono Disk cleanup · Options 31f770e653ee3df9
 72x20 Mono Disk cleanup · States aa595c820b93af7d
 72x20 Mono Activity b81857bff21bddc9
@@ -2110,7 +2110,7 @@
 100x30 TrueColor Finder 1c9f5e335147be2f
 100x30 TrueColor Finder · Options 2596368a00ce474a
 100x30 TrueColor Finder · States fd7d3164e852f4fc
-100x30 TrueColor Disk cleanup a66cb7b8ce5f5cee
+100x30 TrueColor Disk cleanup 050d91bd84bc549f
 100x30 TrueColor Disk cleanup · Options 05ab6d4c017d061a
 100x30 TrueColor Disk cleanup · States 2d582fd54eb2d460
 100x30 TrueColor Activity 8d3fb8fbb6db7518
@@ -2274,7 +2274,7 @@
 100x30 Ansi256 Finder 08ad055ffa2b64df
 100x30 Ansi256 Finder · Options 01f6e7d4c217acb2
 100x30 Ansi256 Finder · States 275060d043fb75e1
-100x30 Ansi256 Disk cleanup 8181d43b99796665
+100x30 Ansi256 Disk cleanup f9807866a3ff77c2
 100x30 Ansi256 Disk cleanup · Options 0c0505168fbf2099
 100x30 Ansi256 Disk cleanup · States e36bd832d0136691
 100x30 Ansi256 Activity a36e89e1a70e415f
@@ -2438,7 +2438,7 @@
 100x30 Ansi16 Finder 52f426baa67e7855
 100x30 Ansi16 Finder · Options 6a64fa72abdf3924
 100x30 Ansi16 Finder · States 9732f0a5373e1c77
-100x30 Ansi16 Disk cleanup 253ad7f4ec7d3e43
+100x30 Ansi16 Disk cleanup 712ad2364d5c66c0
 100x30 Ansi16 Disk cleanup · Options b091307f336156ac
 100x30 Ansi16 Disk cleanup · States b228a3d8b4e7ac8a
 100x30 Ansi16 Activity e353f8680635534b
@@ -2602,7 +2602,7 @@
 100x30 Mono Finder 5fa771284ce80ad6
 100x30 Mono Finder · Options 78e1bd617361d733
 100x30 Mono Finder · States 3188cc6e5960fb4e
-100x30 Mono Disk cleanup c24569bff5039e2c
+100x30 Mono Disk cleanup 979ac2582e8c937f
 100x30 Mono Disk cleanup · Options 7c3758198d369599
 100x30 Mono Disk cleanup · States e399247fc6c62840
 100x30 Mono Activity b9976b23550d38ee
