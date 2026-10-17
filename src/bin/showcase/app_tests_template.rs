@@ -365,32 +365,20 @@ fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
     );
 }
 
-/// Every page, planned ones included, opens by its slug; a planned page
-/// names the step that fills it.
+/// Every page opens by its slug and shows its content: no page is the
+/// planned-page stub any more (Priority 0 filled them all).
 #[test]
 fn every_page_opens_by_its_slug() {
-    let mut stubs = 0;
     for e in NAV_ENTRIES {
         let id = PageId::from_name(&slug(e.label)).expect("slug");
         let h = Harness::new(120, 40, id);
         assert_eq!(h.app.page, e.id);
         let text = h.text();
         assert!(text.contains(e.label), "{}\n{text}", e.label);
-        if text.contains(&format!("{} arrives with SC", e.label)) {
-            stubs += 1;
-            // a stub is not a focus trap: Tab goes back to the sidebar
-            let mut h = h;
-            h.key(KeyCode::Tab);
-            assert_eq!(h.focus_bars(), 1, "{}", e.label);
-        }
+        assert!(
+            !text.contains(&format!("{} arrives with SC", e.label)),
+            "{} is still the planned-page stub",
+            e.label
+        );
     }
-    // the planned pages of plan §7.2 not filled yet: the page files that
-    // still build a stub (each page step replaces its own)
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bin/showcase/pages");
-    let planned = std::fs::read_dir(dir)
-        .unwrap()
-        .filter_map(|e| std::fs::read_to_string(e.unwrap().path()).ok())
-        .filter(|src| src.contains("Box::new(StubPage::new("))
-        .count();
-    assert_eq!(stubs, planned, "the planned pages of plan §7.2");
 }
