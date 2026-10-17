@@ -18,7 +18,7 @@ apps' hand-rolled copies move onto it. Agents edit their own rows here.
 | Screens › Query workbench | `queryworkbench` | SC46 | p0-screens-a | Open |
 | Screens › Connections | `connections` | SC47 | p0-screens-a | Open |
 | Screens › Finder | `finder` | SC48 | p0 screens agent | Open |
-| Screens › Disk cleanup | `diskcleanup` | SC49 | p0-screens-b | **Done** (gaps P0-G1–G3 below) |
+| Screens › Disk cleanup | `diskcleanup` | SC49 | p0-screens-b | **Done** (gaps P0-G1, P0-G2 below) |
 | Screens › Activity | `activity` | SC51 | p0-screens-b | **Done** (gap P0-G4 below) |
 | Screens › Workspaces | `workspaces` | SC52 | p0-screens-b | Open |
 | Screens › Accounts & usage | `accountsusage` | SC53 | p0 screens agent | Open |
@@ -32,7 +32,7 @@ Gaps the Priority 0 Screens pages record instead of drawing locally
 |---|---|---|---|
 | P0-G1 | Disk cleanup | A per-row tri-state check (a category with some of its candidates checked, holla `[–]`): `ListBox` multi mode has two states per row, so the page checks whole categories. | S16 (`RowMark`) |
 | P0-G2 | Disk cleanup | The usage tree's size and share column: sizes ride in `TreeNode::meta`, so they are right-aligned text, not a measured column. | S16 (`TreeView::columns`) |
-| P0-G3 | Disk cleanup | The usage \| details and categories \| reclaim pairs are two `layout::columns` cards, not a `MasterDetail` with a narrow drawer. | S19 (`MasterDetail`) |
+| P0-G3 | Disk cleanup | Closed: the usage \| details and categories \| reclaim pairs are `MasterDetail`s (S19 landed), each collapsing into a summary and a drawer (`diskcleanup.collapse_below`). | — |
 | P0-G4 | Activity | Typing a find query and stepping through its matches (`/`, `n`/`N`, the `n of m` meta): the page shows a fixed query's marks through `TextViewport::set_marks` (option `activity.find`); holla's find code is still app-local. Attach/detach and stdin input mode stay app-level (plan §7.7 row 68). | S22 (`FindState`) |
 
 Status: 2026-10-17, derived from the repository at `42f0b372e`

@@ -41,7 +41,7 @@ fn disk_cleanup_shows_the_flow_not_the_stub() {
         "4 of 10 · 8.9 GiB",
         "Docker is running",
         "Review deletion…",
-        "TRASH 4",
+        "review, then type",
     ] {
         assert!(text.contains(needle), "{needle}: {text}");
     }
@@ -156,6 +156,33 @@ fn disk_cleanup_rescan_marks_folders_busy_until_done() {
 }
 
 #[test]
+fn disk_cleanup_narrow_collapses_each_pair_into_a_drawer() {
+    let mut h = Harness::new(120, 40, PageId::DiskCleanup);
+    assert!(h.text().contains("Details"), "wide: both panes");
+    h.opt("diskcleanup.collapse_below=108");
+    h.focus(DISK.sub("tree"));
+    let text = h.text();
+    assert!(!text.contains("Details"), "{text}");
+    assert!(
+        text.contains("→ ~/work · 31.8 GiB · Tab shows details"),
+        "{text}"
+    );
+    // Tab moves into the detail: the drawer covers the tree
+    h.key(KeyCode::Tab);
+    assert!(h.app.shell.focus.is(DISK.sub("details")));
+    let text = h.text();
+    assert!(
+        text.contains("Details") && text.contains("Freshness"),
+        "{text}"
+    );
+    assert!(!text.contains("▸ frontend"), "{text}");
+    // Esc returns to the tree and closes the drawer
+    h.key(KeyCode::Esc);
+    assert!(h.app.shell.focus.is(DISK.sub("tree")));
+    assert!(h.text().contains("▸ frontend"));
+}
+
+#[test]
 fn disk_cleanup_states_rows_render() {
     let mut h = Harness::new(120, 40, PageId::DiskCleanup);
     h.section(Section::States);
@@ -166,10 +193,11 @@ fn disk_cleanup_states_rows_render() {
 }
 
 #[test]
-fn disk_cleanup_tab_order_runs_tree_then_checklist() {
+fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     let mut h = Harness::new(120, 40, PageId::DiskCleanup);
-    // the sidebar, the section strip, the usage tree, the checklist
-    for _ in 0..3 {
+    // the sidebar, the section strip, the usage tree, its details, the
+    // checklist
+    for _ in 0..4 {
         h.key(KeyCode::Tab);
     }
     assert!(h.app.shell.focus.is(DISK.sub("categories")));

@@ -6,12 +6,13 @@
 //! summary, and the two-gate review: Gate 1 lists the resolved facts
 //! (`Dialog::facts`), Gate 2 arms the action with a typed phrase. The mode
 //! (Trash, permanent delete, dry run) changes the summary, the gates and
-//! the confirming button. Options: `crate::options::DISK_CLEANUP`.
+//! the confirming button. The usage | details and categories | reclaim
+//! pairs are `MasterDetail`s: narrow, each master keeps a summary row and
+//! its detail becomes a drawer. Options: `crate::options::DISK_CLEANUP`.
 //!
 //! Gaps (recorded in docs/remaining-work.md, Priority 0): a per-row
 //! tri-state check (a category with some candidates checked) waits for
-//! S16's `RowMark`; the tree's size column for S16's `TreeView::columns`;
-//! the usage | details split for S19's `MasterDetail`.
+//! S16's `RowMark`; the tree's size column for S16's `TreeView::columns`.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -27,6 +28,7 @@ use junie_tui::core::selection::{CheckClick, ClickPolicy};
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::{bytes, plural};
 use junie_tui::widgets::button::{Button, row_layout};
@@ -36,12 +38,15 @@ use junie_tui::widgets::meter_list::{MeterList, MeterRow};
 use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual};
-use junie_tui::widgets::props::{self, Prop};
+use junie_tui::widgets::props::{self, Prop, PropsList};
+use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 const ID: WidgetId = WidgetId::of("diskcleanup");
 /// The usage tree.
 pub const TREE: WidgetId = ID.sub("tree");
+/// The cursor node's facts (the usage tree's detail).
+pub const DETAILS: WidgetId = ID.sub("details");
 /// The cleanup categories.
 pub const CATEGORIES: WidgetId = ID.sub("categories");
 /// Gate 1 (the review) and Gate 2 (the typed phrase).
@@ -210,6 +215,12 @@ pub struct DiskCleanupPage {
     cats: Vec<usize>,
     rescan: Button,
     review: Button,
+    /// The cursor node's facts, and the path they are for.
+    facts: PropsList,
+    facts_for: Option<Vec<usize>>,
+    /// Usage tree | details, and categories | reclaim.
+    usage_md: MasterDetail,
+    clean_md: MasterDetail,
     /// Ticks left of a running rescan.
     scanning: u16,
     /// Bytes reclaimed so far (the root filesystem drops by it).
@@ -254,6 +265,10 @@ impl DiskCleanupPage {
             cats: (0..CATEGORIES_DATA.len()).collect(),
             rescan: Button::secondary(ID.sub("rescan"), "Rescan"),
             review: Button::primary(ID.sub("review"), "Review deletion…"),
+            facts: PropsList::new(DETAILS, vec![]),
+            facts_for: None,
+            usage_md: MasterDetail::new(TREE, DETAILS),
+            clean_md: MasterDetail::new(CATEGORIES, ID.sub("review")),
             scanning: 0,
             reclaimed: 0,
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
@@ -278,6 +293,15 @@ impl DiskCleanupPage {
             },
             ..ClickPolicy::DATA
         });
+        let collapse = self.opts.number("diskcleanup.collapse_below").unwrap_or(72);
+        let md = |master, detail| {
+            MasterDetail::new(master, detail)
+                .detail_share(40, 30, 44)
+                .collapse_below(collapse)
+                .summary_rows(1)
+        };
+        self.usage_md = md(TREE, DETAILS);
+        self.clean_md = md(CATEGORIES, self.review.id).detail_owns(&[self.rescan.id]);
         self.sync_scan();
     }
 
@@ -399,7 +423,10 @@ impl DiskCleanupPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let fs = self.filesystems();
-        let focus = if ctx.interaction.has_focus(self.tree.id) {
+        let focus = if [self.tree.id, DETAILS]
+            .iter()
+            .any(|&id| ctx.interaction.has_focus(id))
+        {
             Some(1)
         } else if [self.list.id, self.rescan.id, self.review.id]
             .iter()
@@ -425,7 +452,10 @@ impl DiskCleanupPage {
         }
         match l.slot(1) {
             Some(r) => self.render_usage(r, buf, ctx),
-            None => ctx.focus_stop(self.tree.id),
+            None => {
+                ctx.focus_stop(self.tree.id);
+                ctx.focus_stop(DETAILS);
+            }
         }
         match l.slot(2) {
             Some(r) => self.render_cleanup(r, buf, ctx),
@@ -461,31 +491,57 @@ impl DiskCleanupPage {
 
     fn render_usage(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(40), 2);
-        let meta = if self.is_scanning() {
-            let busy = self.tree.rows().iter().filter(|r| r.busy).count();
-            format!("scanning · {busy} left")
-        } else {
-            "largest first · allocated".into()
-        };
-        let panel = Panel::card(Some("Usage · ~/work"))
-            .meta(&meta)
-            .focused(ctx.interaction.focused(self.tree.id));
-        let bg = panel.bg(t);
-        let inner = panel.render(l, buf, t);
-        self.tree.render(inner, buf, ctx, bg);
-        if r.width > 0 {
-            let (kind, facts) = self.details();
-            let panel = Panel::card(Some("Details")).meta(&kind);
+        let l = self.usage_md.layout(area, buf, ctx, t.canvas);
+        if !l.master.is_empty() {
+            let meta = if self.is_scanning() {
+                let busy = self.tree.rows().iter().filter(|r| r.busy).count();
+                format!("scanning · {busy} left")
+            } else {
+                "largest first · allocated".into()
+            };
+            let panel = Panel::card(Some("Usage · ~/work"))
+                .meta(&meta)
+                .focused(ctx.interaction.focused(self.tree.id));
             let bg = panel.bg(t);
-            let inner = panel.render(r, buf, t);
-            props::render(inner, buf, t, &facts, bg);
+            let inner = panel.render(l.master, buf, t);
+            self.tree.render(inner, buf, ctx, bg);
         }
+        let (kind, facts) = self.details();
+        if !l.detail.is_empty() {
+            let path = self.tree.cursor_path().map(<[usize]>::to_vec);
+            if path != self.facts_for || self.is_scanning() {
+                self.facts.set_props(facts.clone());
+                self.facts_for = path;
+            }
+            let panel = Panel::card(Some("Details"))
+                .meta(&kind)
+                .focused(ctx.interaction.focused(DETAILS));
+            let bg = panel.bg(t);
+            let inner = panel.render(l.detail, buf, t);
+            self.facts.render(inner, buf, ctx, bg);
+        }
+        if !l.summary.is_empty() {
+            let line = format!(
+                "→ {} · {} · Tab shows details",
+                facts.first().map_or("", |p| p.value.as_str()),
+                facts.get(1).map_or("", |p| p.value.as_str()),
+            );
+            segments::render(
+                l.summary,
+                buf,
+                ctx,
+                &[Segment::new(line, Tone::Muted)],
+                &[],
+                t.canvas,
+            );
+        }
+        self.usage_md.finish(ctx);
     }
 
     fn render_cleanup(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(40), 2);
+        let md = self.clean_md.layout(area, buf, ctx, t.canvas);
+        let (l, r) = (md.master, md.detail);
         let checked = self.checked();
         let meta = format!(
             "{} of {} · {}",
@@ -497,11 +553,26 @@ impl DiskCleanupPage {
             .meta(&meta)
             .focused(ctx.interaction.focused(self.list.id));
         let bg = panel.bg(t);
-        let inner = panel.render(l, buf, t);
-        self.list.render(inner, buf, ctx, bg);
-        if r.width == 0 {
+        if !l.is_empty() {
+            let inner = panel.render(l, buf, t);
+            self.list.render(inner, buf, ctx, bg);
+        }
+        if !md.summary.is_empty() {
+            let line = format!("→ {} · {} · Tab reviews", meta, self.mode().verb());
+            segments::render(
+                md.summary,
+                buf,
+                ctx,
+                &[Segment::new(line, Tone::Muted)],
+                &[],
+                t.canvas,
+            );
+        }
+        if r.is_empty() {
+            // collapsed: the drawer's stops stay reachable (the review
+            // through the master-detail)
             ctx.focus_stop(self.rescan.id);
-            ctx.focus_stop(self.review.id);
+            self.clean_md.finish(ctx);
             return;
         }
         let mode = self.mode();
@@ -561,6 +632,7 @@ impl DiskCleanupPage {
         );
         self.review.render(rects[0], buf, ctx, bg);
         self.rescan.render(rects[1], buf, ctx, bg);
+        self.clean_md.finish(ctx);
     }
 
     fn start_rescan(&mut self, cx: &mut Cx) {
@@ -829,6 +901,15 @@ impl Page for DiskCleanupPage {
         }
         match ev {
             PageEvent::Key(key) => {
+                if let Some(o) = self.usage_md.on_key(key, cx.focus) {
+                    return o;
+                }
+                if let Some(o) = self.clean_md.on_key(key, cx.focus) {
+                    return o;
+                }
+                if cx.focus.is(DETAILS) {
+                    return self.facts.on_key(key).0;
+                }
                 if cx.focus.is(self.tree.id) {
                     let (o, a) = self.tree.on_key(key);
                     self.on_tree(a, cx);
@@ -858,6 +939,9 @@ impl Page for DiskCleanupPage {
                 Outcome::Ignored
             }
             PageEvent::Pointer(ev) => {
+                if let Some(r) = self.facts.route(ev) {
+                    return r.into_parts().0;
+                }
                 if let Some(r) = self.tree.route(ev) {
                     let (o, a) = r.into_parts();
                     self.on_tree(a, cx);

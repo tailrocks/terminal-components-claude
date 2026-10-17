@@ -1373,6 +1373,11 @@ pub static DISK_CLEANUP: &[Opt] = &[
         &["line", "block"],
     ),
     Opt::new("diskcleanup.scan", "Scan", &["complete", "scanning"]),
+    Opt::new(
+        "diskcleanup.collapse_below",
+        "Collapse below",
+        &["72", "108"],
+    ),
 ];
 
 /// Activity (SC51): the run's state, the log's wrap, retention and find
