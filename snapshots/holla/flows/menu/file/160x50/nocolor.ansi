@@ -5,7 +5,7 @@
    Search a│  Copy command               │                                                                                                      scope ‹ here ›  [0m
            │ ─────────────────────────── │                                                                                                                      [0m
     Suggest│  Close tab           Ctrl+W │                                                                       Inspect 12 GB of generated arti… disk · here   [0m
-  › Inspect│ ─────────────────────────── │disk      here  12 GB generated artifacts                                                                             [0m
+  › Inspect│ ─────────────────────────── │disk      here  12 GB generated artifacts                              ────────────────────────────────────────────   [0m
     Pull   │  Quit                Ctrl+Q │git       here  branch is 3 commits behind                             Does       1 rebuildable candidate below       [0m
     Review ╰─────────────────────────────╯git       here  4 modified · 1 untracked                                          this folder · 0 stale enough to     [0m
     Run tests                             task      here  5 files changed since the last run                                start selected                      [0m
