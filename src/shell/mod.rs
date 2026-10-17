@@ -12,6 +12,12 @@
 //!   trait only adds its own extras.
 //! - [`KeyRouter`], [`ShellKeys`] and [`ShellAction`]: the one key order
 //!   every app routes keys in ([`KeyHost`] names its stages).
+//! - [`Router`] and [`Nav`]: the page stacks (one per tab), navigation
+//!   requests, the leave guard on every move that drops a page, and the
+//!   clickable trail ([`Breadcrumb`]).
+//! - [`Chrome`]: the frame's header, body and footer regions, and
+//!   [`Menus`] whose items carry typed commands.
+//! - [`Clipboard`]: copies with a truthful result (OSC 52).
 //! - [`Footer`]: the one footer composition (hints of the top layer, the
 //!   EDIT badge, the status line with errors over hints, click targets).
 //! - [`StatusLine`]: the transient status message and its expiry rule;
@@ -20,16 +26,23 @@
 //!   input queued before it started.
 
 mod app;
+mod chrome;
+pub mod clipboard;
 mod cx;
 mod footer;
+mod nav;
 mod page;
 mod router;
 mod status;
 
 pub use crate::ui::layer::LayerTag;
+pub use crate::widgets::breadcrumb::Breadcrumb;
 pub use app::{App, PageKey, Shell, blur_fan_out, handle, render};
+pub use chrome::{Chrome, Menus, Regions};
+pub use clipboard::{Clipboard, Copied};
 pub use cx::{Cx, Request, background};
 pub use footer::{Footer, FooterStatus, deliverable};
+pub use nav::{Nav, Router};
 pub use page::{
     Page, PageCx, PageTypes, open_context, rebuild_on_tick, replay_key, row_anchor, row_choice,
 };
