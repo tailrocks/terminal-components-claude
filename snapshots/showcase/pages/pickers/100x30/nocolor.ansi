@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Overlays › [0m[1mPickers[0m                no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
  [0m[1mComponents[0m      54  [0m[1mPickers[0m  One modal list for files, tabs, levels, commands and branches: searc… [0m
-                                                                                                    [0m
+ ──────────────────                                                                                 [0m
     Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                  [0m
   ▸ Tables             Open a picker                                               Enter · click   ┃[0m
-  ▸ Navigation                                                                                     ┃[0m
+  ▸ Navigation         ─────────────────────────────────────────────────────────────────────────   ┃[0m
   ▾ Overlays            [0m[1;7mOpen quickly [0m   Switch tab    Choose a level    Run command                ┃[0m
       Dialogs           Remote branch                                                              ┃[0m
  [0m[1m▎  › Pickers      [0m                                                                                ┃[0m
@@ -16,7 +16,7 @@
   ▸ Feedback                                                                                       ┃[0m
   ▸ Layout                                                                                         ┃[0m
   ▸ Text & code        Applied                                     read back from a built picker   ┃[0m
-  ▸ Screens                                                                                        ┃[0m
+  ▸ Screens            ─────────────────────────────────────────────────────────────────────────   ┃[0m
                        Size      width 64 · max rows 12 · Center                                   ┆[0m
                        Fit       margin 1 · Center · backdrop keeps 1 bottom rows                  ┆[0m
                        Rows      cursor Fill · Delete secondary on · nav desktop                   ┆[0m

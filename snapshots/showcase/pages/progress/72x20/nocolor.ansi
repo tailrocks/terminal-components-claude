@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Feedback › [0m[1mProgress[0m       i Inspector   ? Help  [0m
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mProgress[0m  Determinate, indeterminate, an aggregat… [0m
-                                                                        [0m
+ ──────────────────                                                     [0m
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
   ▸ Tables        ┃    Live                                            ┃[0m
-  ▸ Navigation    ┃                                                    ┃[0m
+  ▸ Navigation    ┃    ─────────────────────────────────────────────── ┃[0m
   ▸ Overlays      ┃    Building          ───────────────────────────── ┆[0m
   ▾ Feedback      ┃                                                    ┆[0m
  [0m[1m▎  › Progress    [0m┃    Resolving         ───────────────────────────── ┆[0m

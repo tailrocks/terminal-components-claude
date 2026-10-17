@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m                                    no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are… [0m
-                                                                                                                        [0m
+ ───────────────────────                                                                                                [0m
     Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                      [0m
   ▸ Tables                  Wrapped text    1–7 of 120      Long list       1–7 of 120      Log         1995–2000/2000  [0m
-  ▸ Navigation                                                                                                          [0m
+  ▸ Navigation              ──────────────────────────      ──────────────────────────      ──────────────────────────  [0m
   ▸ Overlays                Junie works through a    ┃         Row 001               ┃      [0m[2m 737.78s  info   Compil… [0m┆  [0m
   ▸ Feedback                task the way a careful   ┆         Row 002               ┆       738.15s  info   Compil… ┆  [0m
   ▾ Layout                  engineer would: it reads ┆         Row 003               ┆       738.52s  warn   unused… ┆  [0m
@@ -17,7 +17,7 @@
       Pane tree                                                                                                         [0m
   ▸ Text & code                                                                                                         [0m
   ▸ Screens                 Hand-drawn                          Divider or bar          Cursor                          [0m
-                                                                                                                        [0m
+                            ──────────────────────────────      ──────────────────      ──────────────────────────────  [0m
                             Host          Region        …       fits      over          row 1 · vertical                [0m
                             api-01        ap-south-1    …┃      item 1 │  item 1 ┃      wrap off · skip disabled on     [0m
                             auth-01       ap-southeast-2…┆      item 2 │  item 2 ┆      RowFn: 108 of 120 open          [0m
@@ -28,7 +28,7 @@
                                                                                                                         [0m
                                                                                                                         [0m
                             Type to jump · select, tree, table, grid                                                    [0m
-                                                                                                                        [0m
+                            ──────────────────────────────────────────────────────────────────────────────────────────  [0m
                               Region                 api             ┃     Region                   Service             [0m
                               eu-west-1       ▾      auth            ┃     ap-south-1      ┃      1 api              ┃  [0m
                                                      billing         ┆     ap-southeast-2  ┆      2 auth             ┆  [0m
