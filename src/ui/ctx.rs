@@ -178,6 +178,12 @@ pub struct RenderCtx<'a> {
     /// [`crate::ui::reveal::advertise`], so the key is named exactly when
     /// it does something, in every app and for every widget.
     pub reveal_hint: Option<(&'static str, &'static str)>,
+    /// The full text of the focused widget's cut cursor value, set while
+    /// it renders ([`crate::ui::reveal::peek`]): the footer drawn after
+    /// the content shows it in its status slot when nothing else is said
+    /// there (the peek line, SI8), so a cut value reads in full on focus,
+    /// with no key and no pointer.
+    pub peek: Option<String>,
 }
 
 impl<'a> RenderCtx<'a> {
@@ -200,6 +206,7 @@ impl<'a> RenderCtx<'a> {
             hscroll: crate::core::scroll::HScroll::default(),
             track_click: crate::core::scroll::TrackClick::Page,
             reveal_hint: None,
+            peek: None,
             reveal_slot: {
                 crate::ui::reveal::clear_cuts();
                 crate::ui::reveal::begin_frame();
@@ -233,6 +240,7 @@ impl<'a> RenderCtx<'a> {
             hscroll: crate::core::scroll::HScroll::default(),
             track_click: crate::core::scroll::TrackClick::Page,
             reveal_hint: None,
+            peek: None,
             reveal_slot: crate::ui::reveal::Slot::default(),
         }
     }
