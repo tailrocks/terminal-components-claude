@@ -184,3 +184,43 @@ xtask visual seal` after a reviewed harness change).
   with the change: `cargo xtask visual check-touched` before the push.
 - A new popup, menu, dialog or picker gets an `OVERLAYS` row (open + both
   dismissals) and an entry in `overlay_sites::SITES`.
+- A `wait:<needle>` waits for text only the new state shows. The harness
+  fails a capture whose needle is already on screen before the inputs it
+  should prove (`support::drive`, "vacuous `wait:`"): a footer hint or a
+  menu item that names the dialog lets the wait pass at once, and under
+  load the capture then races the app (`jackin/capsule/new_tab` waited
+  for `New tab`, which the Ctrl+B prefix footer already shows; it now
+  waits for the picker's `Type to search…`). The same audit fixed holla
+  `flows/cargo/clean` (`900.0 MiB` → `Results · 3`), `flows/cleanup/*`
+  and `fade/cleanup_list_wheel` (`18 categories` → `Cleanup review`;
+  `artifacts` waits for its detail pane, or the row where the list
+  scrolls), `flows/files/jump*` (`Go to path` → `type a path or a
+  name`), `flows/menu/file` (`Alternatives…` → `Copy command`),
+  `flows/scope/children` (→ `‹ children ›`), `flows/upgrade/facts`
+  (`Preflight` → `Back to outline`), and tablepro `ack/armed`
+  (`Execute` → `▎Execute`) and `query/completion` (`order_items` →
+  `ORDER BY`). Pending rows meet the check the first time they run
+  (`VISUAL_FULL=1`).
+- Typed text is answered one frame per character (characters are never
+  coalesced), so a step list that types and then captures, or types and
+  then presses a key, waits for the whole echo first: the focused field
+  with its text, `wait:▎ <text>` (holla finder, files, remote and the
+  three typed gates; tablepro connection form and filter), or the
+  editor line (tablepro `query/error`, `query/explain`).
+- Every capture first waits for the app to draw after the last input
+  (key, text, clock step, click, wheel, press), then for the settle
+  window (`Session::wait_answer`, called by `wait_stable`), so a slow
+  answer under load is never taken for no answer. A final input that
+  draws nothing fails the capture instead of gating a stale frame. Wheel
+  steps wait for each notch's draw before the next, because a burst of
+  notches is coalesced and latched to the region it began on
+  (`runtime::Coalesce`): the same notches sent apart or together can
+  scroll differently.
+
+## Known flakes
+
+| Capture | Cause | Status |
+|---|---|---|
+| `holla/flows/task/input_cancelled` | The task's duration counts the wall-clock time the run spent waiting at its prompts (`Password:`, `Proceed with rollout?`), so the elapsed digit (`1` → `0` at (32,4) and in the footer) depends on how fast the harness answers under load. | Pending owner decision D10 (exclude prompt wait from the duration, or pin it in captures). Not re-approved from a flaky run. |
+| `holla/flows/brew/services_stop_failed` (seen once at 160x50 `nocolor`) | `--motion reduced`: the failure notice `! stop svc02 failed · exit 1` at the right of the footer lives on the wall clock; the approved frame was taken without it, a loaded run caught it. | Open: pin the notice (paused motion with an `advance:` step) or wait for its state; found by the flake audit, not fixed here. |
+| `jackin/accounts/add_form` (seen twice at 160x50 `none`/`nocolor`) | Bold attributes on footer label letters (`p` of Apply, `l` of Cancel in the run; `e` of Next and `d` in the approved frame) sit where the Accounts footer drew bold keys: the last row keeps attributes from the frame before, so the result depends on which intermediate frames were drawn. | Open: a rendering defect (an attribute not reset on the last row); the fix changes the approved frames, so it needs its own re-approval. Found by the flake audit. |

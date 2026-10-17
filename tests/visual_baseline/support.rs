@@ -356,6 +356,9 @@ impl Screen<'_> {
 pub struct Session {
     inner: tuiscotti::Session,
     timeout: Duration,
+    /// The screen revision read just before the latest input; the next
+    /// capture first waits for a newer one ([`Session::wait_answer`]).
+    sent_at: Option<u64>,
 }
 
 /// tuiscotti's `WaitError` already ends with the last screen.
@@ -407,6 +410,41 @@ impl Session {
         self.find(needle).map(|_| ())
     }
 
+    /// Panic if `needle` is already on screen: a `wait:` for it after the
+    /// next inputs could not tell whether they took effect ([`drive`]).
+    pub fn assert_wait_not_vacuous(&self, needle: &str) {
+        let obs = self.inner.observe_now().expect("observe live session");
+        let screen = render::frame_from_screen(&obs.screen, "evidence").text();
+        assert!(
+            !screen.lines().any(|line| line.contains(needle)),
+            "vacuous `wait:{needle}`: it is already on screen before the inputs it \
+             should prove; wait for text only the new state shows\n\
+             --- screen ---\n{screen}"
+        );
+    }
+
+    /// Record the revision an input is sent against (every input method
+    /// calls it first).
+    fn sending(&mut self) {
+        self.sent_at = Some(self.inner.revision());
+    }
+
+    /// Wait until the app has drawn anything after the latest input was
+    /// sent. A settle window alone cannot tell a slow answer from no
+    /// answer: under load an input can sit unread for longer than
+    /// [`SETTLE`], and the capture would gate the frame before it. Every
+    /// capture ([`Session::wait_stable`]) calls it; a step that sends
+    /// several inputs whose answers must each land (wheel notches) calls
+    /// it between them.
+    pub fn wait_answer(&mut self) -> Result<(), String> {
+        let Some(before) = self.sent_at.take() else {
+            return Ok(());
+        };
+        self.wait(|obs| obs.revision > before)
+            .map(|_| ())
+            .map_err(|e| wait_failure("the screen never changed after the last input", &e))
+    }
+
     /// No needle: wait for a non-blank first paint (any non-whitespace
     /// cell), then a quiet window.
     pub fn wait_idle(&mut self, quiet: Duration) -> Result<(), String> {
@@ -420,6 +458,7 @@ impl Session {
 
     /// Settle (no new revision for `quiet`) and adapt the screen to a frame.
     pub fn wait_stable(&mut self, quiet: Duration) -> Result<Frame, String> {
+        self.wait_answer()?;
         let obs = self
             .inner
             .wait_stable_quiet(Instant::now() + self.timeout, quiet, &CancelToken::new())
@@ -431,10 +470,12 @@ impl Session {
     /// `backtab`, `f10`, `pagedown`, single characters such as `f`), which
     /// is tuiscotti's chord grammar (`tui::parse_chord`).
     pub fn send_key(&mut self, name: &str) -> Result<(), tuiscotti::TuiError> {
+        self.sending();
         self.inner.press(name)
     }
 
     pub fn type_text(&mut self, text: &str) -> Result<(), tuiscotti::TuiError> {
+        self.sending();
         self.inner.send_text(text)
     }
 
@@ -444,10 +485,12 @@ impl Session {
     /// (`junie_tui::clock::ClockStep`, `shell::App::advance_clock`). It is
     /// sent in band, after the inputs before it.
     pub fn advance_clock(&mut self, ms: u64) -> Result<(), tuiscotti::TuiError> {
+        self.sending();
         self.inner.paste(&junie_tui::clock::ClockStep::request(ms))
     }
 
     pub fn mouse_move(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
+        self.sending();
         self.inner.mouse_move(col, row, MouseMods::NONE)
     }
 
@@ -456,6 +499,7 @@ impl Session {
             Scroll::Up => Wheel::Up,
             Scroll::Down => Wheel::Down,
         };
+        self.sending();
         self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
     }
 
@@ -465,6 +509,7 @@ impl Session {
         col: u16,
         row: u16,
     ) -> Result<(), tuiscotti::TuiError> {
+        self.sending();
         self.inner.click(button, col, row, MouseMods::NONE)
     }
 
@@ -476,6 +521,7 @@ impl Session {
         col: u16,
         row: u16,
     ) -> Result<(), tuiscotti::TuiError> {
+        self.sending();
         self.inner.mouse_down(button, col, row, MouseMods::NONE)
     }
 
@@ -483,6 +529,7 @@ impl Session {
     /// cell crossed (as a terminal sends), release at the end.
     pub fn drag(&mut self, c0: u16, r0: u16, c1: u16, r1: u16) -> Result<(), tuiscotti::TuiError> {
         let left = MouseButton::Left;
+        self.sending();
         self.inner.mouse_down(left, c0, r0, MouseMods::NONE)?;
         let steps = c0.abs_diff(c1).max(r0.abs_diff(r1)).max(1);
         for step in 1..=steps {
@@ -586,6 +633,7 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
     Session {
         inner,
         timeout: Duration::from_millis(case.timeout_ms),
+        sent_at: None,
     }
 }
 
@@ -625,8 +673,25 @@ pub fn boot(session: &mut Session, needle: &str) {
 }
 
 /// The step loop on a live session, 120 ms pacing after each input.
+///
+/// A `wait:<needle>` must prove that the inputs before it took effect, so
+/// the needle may not already be on screen when the first of those inputs
+/// is sent (checked here, [`Session::assert_wait_not_vacuous`]). A needle
+/// that is already visible (a footer hint naming the action, a menu item
+/// naming the dialog it opens) lets the wait pass at once and the capture
+/// race the app under load (`jackin/capsule/new_tab` waited for `New tab`,
+/// which the Ctrl+B prefix footer already showed).
 pub fn drive(session: &mut Session, steps: &[&str]) {
-    for step in steps {
+    let mut segment_start = true;
+    for (i, step) in steps.iter().enumerate() {
+        if step.starts_with("wait:") {
+            segment_start = true;
+        } else if segment_start && !step.starts_with("sleep:") {
+            segment_start = false;
+            if let Some(needle) = steps[i..].iter().find_map(|s| s.strip_prefix("wait:")) {
+                session.assert_wait_not_vacuous(needle);
+            }
+        }
         if let Some(ms) = step.strip_prefix("sleep:") {
             std::thread::sleep(Duration::from_millis(ms.parse().expect("sleep:<ms>")));
         } else if let Some(needle) = step.strip_prefix("wait:") {
