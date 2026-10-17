@@ -97,6 +97,104 @@ fn report_options_drive_the_widgets() {
     }
 }
 
+// --------------------------------------------------------- Accounts & usage
+
+const ACCOUNTS: WidgetId = WidgetId::of("accountsusage");
+
+#[test]
+fn accounts_show_tree_inspector_and_usage_not_the_stub() {
+    for (w, h) in [(120, 40), (80, 24)] {
+        let h = Harness::new(w, h, PageId::AccountsUsage);
+        let text = h.text();
+        assert!(!text.contains("arrives with"), "{text}");
+        for needle in ["Accounts", "Anthropic", "Work", "★ default"] {
+            assert!(text.contains(needle), "{w}: {needle}: {text}");
+        }
+    }
+    let text = Harness::new(120, 40, PageId::AccountsUsage).text();
+    for needle in [
+        "5 accounts · 3 providers · 1 needs attention",
+        "Opus weekly is at 86 %",
+        "Max 20x",
+        "Session (5 h)",
+        "Set default",
+        "Usage",
+        "last 7 days",
+        "$212.40",
+    ] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+}
+
+#[test]
+fn accounts_inspector_follows_the_tree_cursor() {
+    let mut h = Harness::new(120, 40, PageId::AccountsUsage);
+    h.focus(ACCOUNTS.sub("tree"));
+    h.key(KeyCode::Down);
+    let text = h.text();
+    assert!(text.contains("╭─ Personal"), "{text}");
+    assert!(text.contains("local agent folder"), "{text}");
+    assert!(
+        !text.contains("Opus weekly is at 86 %"),
+        "no warning: {text}"
+    );
+    // past the OpenAI fold to the broken account
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    let text = h.text();
+    assert!(text.contains("The API key was revoked"), "{text}");
+    assert!(text.contains("Monthly spend"), "{text}");
+    // a provider row shows the provider's facts
+    h.key(KeyCode::Up);
+    h.key(KeyCode::Up);
+    assert!(h.text().contains("monthly spend"), "{}", h.text());
+}
+
+#[test]
+fn accounts_actions_and_options() {
+    let mut h = Harness::new(120, 40, PageId::AccountsUsage);
+    h.focus(ACCOUNTS.sub("tree"));
+    h.key(KeyCode::Down);
+    h.click_id(ACCOUNTS.sub("default"));
+    assert_eq!(h.status(), "Personal is now the default account");
+    h.opt("accountsusage.offline=on");
+    assert!(
+        h.text().contains("usage offline · last-good"),
+        "{}",
+        h.text()
+    );
+    h.click_id(ACCOUNTS.sub("refresh"));
+    assert!(h.status().starts_with("Offline"), "{}", h.status());
+    h.opt("accountsusage.warnings=off");
+    h.key(KeyCode::Up);
+    assert!(!h.text().contains("Opus weekly is at 86 %"));
+    h.section(Section::States);
+    let text = h.text();
+    for needle in ["Quota list", "Account warning", "narrow"] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+}
+
+#[test]
+fn accounts_narrow_collapse_to_a_summary_and_a_drawer() {
+    let mut h = Harness::new(120, 40, PageId::AccountsUsage);
+    h.opt("accountsusage.width=72");
+    let text = h.text();
+    assert!(text.contains("Tab shows details"), "{text}");
+    assert!(
+        !text.contains("Max 20x  "),
+        "the inspector is closed: {text}"
+    );
+    h.focus(ACCOUNTS.sub("tree"));
+    h.key(KeyCode::Tab);
+    let text = h.text();
+    assert!(text.contains("Esc back"), "the drawer opens: {text}");
+    assert!(text.contains("Max 20x"), "{text}");
+    h.key(KeyCode::Esc);
+    assert!(h.text().contains("Tab shows details"), "{}", h.text());
+}
+
 // ----------------------------------------------------------- Launch cockpit
 
 const COCKPIT: WidgetId = WidgetId::of("launchcockpit");
