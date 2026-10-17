@@ -1077,7 +1077,7 @@ impl App {
                     }
                 }
                 // showcase pages do not ask for these
-                Request::Back | Request::Copy(_) => {}
+                Request::Back | Request::Copy(..) => {}
             }
         }
     }
