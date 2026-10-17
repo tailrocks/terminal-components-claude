@@ -15,7 +15,8 @@ use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::reveal::{Reveal, RevealLine, RevealState};
+use crate::ui::list_core::ListCore;
+use crate::ui::reveal::{Reveal, RevealLine};
 use crate::ui::row::{MarkKind, RowLook, RowUi};
 use crate::widgets::scrollbar;
 
@@ -77,56 +78,37 @@ pub enum SelectMode {
 pub struct ListBox {
     pub id: WidgetId,
     pub items: Vec<ListItem>,
-    pub cursor: usize,
     pub mode: SelectMode,
     pub chosen: Option<usize>,
-    /// The rows selected in multi mode (row indices; the `✓` marks).
-    pub selection: RowSelection,
-    /// The scrolled rows and the bar ([`Scrollable`]).
-    pub scroll: ScrollPane,
+    /// The shared row model ([`ListCore`]): `cursor`, `wrap`,
+    /// `skip_disabled`, `nav`, `scroll`, the multi-mode `selection` (the
+    /// `✓` marks), `click`, `reveal`, type-ahead, `content` (loading, an
+    /// error) and `empty` (what an empty list shows; `None` is the
+    /// theme's empty-list text). The list dereferences to it.
+    pub core: ListCore,
     pub area: Rect,
-    pub empty_text: String,
-    /// The theme's strings as of the last render: default text still
-    /// reading them follows a change ([`crate::theme::Strings::follow`]).
-    strings: crate::theme::Strings,
-    /// A full empty state (title, hint, error tone) shown instead of
-    /// [`Self::empty_text`] when set. Default `None`.
-    pub empty: Option<crate::widgets::empty::EmptyState>,
-    /// Revealing cut labels; `reveal.config` overrides the global default.
-    pub reveal: RevealState,
     /// Blank columns between the labels and the scrollbar (default
     /// [`scrollbar::GAP`]).
     pub scrollbar_gap: u16,
-    /// Arrow, page and Home/End movement steps over disabled rows (they
-    /// cannot be used, so the cursor never parks on them). Default `true`.
-    pub skip_disabled: bool,
-    /// What a click does beyond moving the cursor: when it chooses a row
-    /// (single mode) and what toggles a check (multi mode). Default
-    /// [`ClickPolicy::DATA`]: a double click chooses, only the `✓` column
-    /// toggles (SI14, M15); [`ClickPolicy::NAVIGATION`] for a list that
-    /// navigates on one click.
-    pub click: ClickPolicy,
     /// Modifiers that make a click toggle one row in multi mode; Shift
     /// always extends. Default [`SelectGesture::toggle_mods`] (Option or
     /// Cmd on macOS, Ctrl or Cmd elsewhere).
     pub toggle_mods: KeyModifiers,
-    /// Typing a prefix jumps to the matching row (macOS lists, APG
-    /// listbox). Default from the [`crate::core::list::NavProfile`]: on
-    /// under `Desktop`, off under `Vim`. A bound key (Multi `a`) wins.
-    pub type_ahead: bool,
-    /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`] (shortcuts first).
-    pub type_ahead_precedence: Option<TypeAheadPrecedence>,
-    /// ↑ on the first row lands on the last and ↓ on the last on the
-    /// first. Default off: it stops at the end.
-    pub wrap: bool,
-    /// Which keys move the cursor (default [`NavKeys::default`]: arrows,
-    /// vim letters, paging, Home/End).
-    pub nav: NavKeys,
     /// The list's own action keys (default [`ListCmd::default_keymap`]).
     pub keymap: KeyMap<ListCmd>,
-    typeahead: crate::core::typeahead::TypeAhead,
+}
+
+impl std::ops::Deref for ListBox {
+    type Target = ListCore;
+    fn deref(&self) -> &ListCore {
+        &self.core
+    }
+}
+
+impl std::ops::DerefMut for ListBox {
+    fn deref_mut(&mut self) -> &mut ListCore {
+        &mut self.core
+    }
 }
 
 /// A [`ListBox`] action a key can be bound to.
@@ -163,32 +145,19 @@ impl ListBox {
         Self {
             id,
             items,
-            cursor: 0,
             mode,
             chosen: None,
-            selection: RowSelection::new(),
-            scroll: ScrollPane::new(n),
+            core: ListCore::new(n),
             area: Rect::ZERO,
-            empty_text: crate::theme::Strings::DEFAULT.empty_list.to_owned(),
-            strings: crate::theme::Strings::DEFAULT,
-            empty: None,
-            reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
-            skip_disabled: true,
-            click: ClickPolicy::DATA,
             toggle_mods: SelectGesture::toggle_mods(),
-            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
-            type_ahead_precedence: None,
-            wrap: false,
-            nav: NavKeys::default(),
             keymap: ListCmd::default_keymap(),
-            typeahead: Default::default(),
         }
     }
 
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.core.nav = nav;
         self
     }
 
@@ -200,7 +169,7 @@ impl ListBox {
 
     /// See [`Self::wrap`].
     pub fn wrap(mut self, on: bool) -> Self {
-        self.wrap = on;
+        self.core.wrap = on;
         self
     }
 
@@ -208,29 +177,29 @@ impl ListBox {
     /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
     /// (1 s; APG suggests 500–1000 ms).
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
-        self.typeahead.timeout = timeout;
+        self.core.typeahead.timeout = timeout;
         self
     }
 
     pub fn type_ahead(mut self, on: bool) -> Self {
-        self.type_ahead = on;
+        self.core.type_ahead = on;
         self
     }
 
     /// See [`Self::type_ahead_precedence`].
     pub fn type_ahead_precedence(mut self, precedence: TypeAheadPrecedence) -> Self {
-        self.type_ahead_precedence = Some(precedence);
+        self.core.type_ahead_precedence = Some(precedence);
         self
     }
 
     pub fn skip_disabled(mut self, on: bool) -> Self {
-        self.skip_disabled = on;
+        self.core.skip_disabled = on;
         self
     }
 
     /// See [`Self::click`].
     pub fn click(mut self, click: ClickPolicy) -> Self {
-        self.click = click;
+        self.core.click = click;
         self
     }
 
@@ -252,7 +221,7 @@ impl ListBox {
     pub fn select(&mut self, g: SelectGesture, to: usize) -> bool {
         let order = self.order();
         let items = &self.items;
-        self.selection.apply(g, to, &order, |i| {
+        self.core.selection.apply(g, to, &order, |i| {
             items.get(i).is_some_and(|it| !it.disabled)
         })
     }
@@ -275,24 +244,24 @@ impl ListBox {
             i += 1;
             keep
         });
-        self.selection.remap(map);
+        self.core.selection.remap(map);
         self.chosen = self.chosen.and_then(map);
         let n = self.items.len();
-        self.cursor = map(self.cursor)
-            .unwrap_or_else(|| self.cursor - gone.range(..self.cursor).count())
+        self.core.cursor = map(self.core.cursor)
+            .unwrap_or_else(|| self.core.cursor - gone.range(..self.core.cursor).count())
             .min(n.saturating_sub(1));
         gone.len()
     }
 
     /// Whether row `i` is selected (multi mode: its `✓`).
     pub fn is_checked(&self, i: usize) -> bool {
-        self.selection.contains(i)
+        self.core.selection.contains(i)
     }
 
     /// Check or uncheck row `i` (an owner seeding or restoring marks).
     pub fn set_checked(&mut self, i: usize, on: bool) {
         if i < self.items.len() {
-            self.selection.set(i, on);
+            self.core.selection.set(i, on);
         }
     }
 
@@ -303,9 +272,9 @@ impl ListBox {
 
     /// The cursor with this list's rules.
     fn nav_cursor(&self) -> Cursor {
-        Cursor::new(self.cursor)
-            .wrap(self.wrap)
-            .skip_disabled(self.skip_disabled)
+        Cursor::new(self.core.cursor)
+            .wrap(self.core.wrap)
+            .skip_disabled(self.core.skip_disabled)
     }
 
     /// Blank columns between the labels and the scrollbar.
@@ -316,7 +285,7 @@ impl ListBox {
 
     /// How cut labels are revealed (default: [`RenderCtx::reveal`]).
     pub fn reveal(mut self, config: Reveal) -> Self {
-        self.reveal.config = Some(config);
+        self.core.reveal.config = Some(config);
         self
     }
 
@@ -325,7 +294,7 @@ impl ListBox {
     /// render. Apps append it to the list's hints so the key is advertised
     /// exactly when it does something.
     pub fn reveal_hint(&self) -> Option<(&'static str, &'static str)> {
-        self.reveal.hint()
+        self.core.reveal.hint()
     }
 
     /// Label and metadata widths of a row in `text_w` cells: the metadata
@@ -354,21 +323,38 @@ impl ListBox {
         text_w: usize,
         room: u16,
     ) -> Option<Vec<RevealLine>> {
-        let item = self.items.get(self.cursor).filter(|it| !it.disabled)?;
+        let item = self.items.get(self.core.cursor).filter(|it| !it.disabled)?;
         let (lw, _) = Self::label_width(item, text_w);
-        let rid = self.row_id(self.cursor);
+        let rid = self.row_id(self.core.cursor);
         let label = item.label.clone();
-        self.reveal.inline(ctx, rid, lw as u16, &label, true, room)
+        self.core
+            .reveal
+            .inline(ctx, rid, lw as u16, &label, true, room)
     }
 
     /// See [`Self::empty`].
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
-        self.empty = Some(state);
+        self.core.empty = Some(state);
         self
     }
 
+    /// A plain one-line empty text: shorthand for [`Self::empty`] with a
+    /// bare [`EmptyState::new`](crate::widgets::empty::EmptyState::new).
     pub fn empty_text(mut self, s: &str) -> Self {
-        self.empty_text = s.to_owned();
+        self.core.empty = Some(crate::widgets::empty::EmptyState::new(s));
+        self
+    }
+
+    /// See [`ListCore::content`]: loading or a load error replaces the
+    /// rows.
+    pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
+        self.core.content = content;
+        self
+    }
+
+    /// See [`ListCore::skip_when_empty`].
+    pub fn skip_when_empty(mut self, on: bool) -> Self {
+        self.core.skip_when_empty = on;
         self
     }
 
@@ -390,7 +376,7 @@ impl ListBox {
     }
 
     pub fn checked_count(&self) -> usize {
-        self.selection.len()
+        self.core.selection.len()
     }
 
     /// Move the cursor to `to`; `extend` (Shift in multi mode) extends the
@@ -398,12 +384,12 @@ impl ListBox {
     /// range grows and shrinks with the cursor.
     fn move_cursor(&mut self, to: usize, extend: bool) {
         let to = to.min(self.items.len().saturating_sub(1));
-        let from = self.cursor;
-        self.cursor = to;
+        let from = self.core.cursor;
+        self.core.cursor = to;
         if self.mode == SelectMode::Multi && extend {
             self.select(SelectGesture::Extend { from }, to);
         }
-        self.scroll.ensure_visible(self.cursor);
+        self.core.scroll.ensure_visible(self.core.cursor);
     }
 
     pub fn activate(&mut self, i: usize) -> Outcome {
@@ -423,7 +409,7 @@ impl ListBox {
         if self.items.is_empty() {
             return Outcome::Ignored;
         }
-        if let Some(o) = self.reveal.on_key(key) {
+        if let Some(o) = self.core.reveal.on_key(key) {
             return o;
         }
         let shift = key.shift();
@@ -443,7 +429,8 @@ impl ListBox {
             return match action {
                 ListCmd::ToggleAll => {
                     let items = &self.items;
-                    self.selection
+                    self.core
+                        .selection
                         .toggle_all(0..items.len(), |i| !items[i].disabled);
                     Outcome::Changed
                 }
@@ -456,23 +443,15 @@ impl ListBox {
                 }
             };
         }
-        let precedence = self
-            .type_ahead_precedence
-            .unwrap_or_else(TypeAheadPrecedence::current);
-        match KeyStep::ordered(key, &self.nav, self.type_ahead, precedence) {
-            Some(KeyStep::Type(c)) => {
-                let moved = self
-                    .nav_cursor()
-                    .type_ahead(c, &mut self.typeahead, &self.items[..]);
+        let items = &self.items[..];
+        match self.core.key_step(key, items) {
+            Some((KeyStep::Type(_), moved)) => {
                 if let Moved::To(i) = moved {
                     self.move_cursor(i, false);
                 }
                 return moved.outcome();
             }
-            Some(KeyStep::Nav(nav)) => {
-                let moved = self
-                    .nav_cursor()
-                    .apply(nav, &self.items[..], self.scroll.viewport_len);
+            Some((KeyStep::Nav(_), moved)) => {
                 // ←/→ are not list keys
                 let Some(to) = moved.index() else {
                     return Outcome::Ignored;
@@ -483,7 +462,7 @@ impl ListBox {
             None => {}
         }
         match key.code {
-            KeyCode::Enter | KeyCode::Char(' ') => self.activate(self.cursor),
+            KeyCode::Enter | KeyCode::Char(' ') => self.activate(self.core.cursor),
             _ => Outcome::Ignored,
         }
     }
@@ -515,20 +494,20 @@ impl ListBox {
         if row >= self.items.len() {
             return Outcome::Consumed;
         }
-        let from = self.cursor;
+        let from = self.core.cursor;
         let again = from == row;
-        self.cursor = row;
-        self.scroll.pointer_move();
-        self.scroll.ensure_visible(row);
+        self.core.cursor = row;
+        self.core.scroll.pointer_move();
+        self.core.scroll.ensure_visible(row);
         match self.mode {
             SelectMode::Single => {
-                if self.click.activates(count.max(1), again) {
+                if self.core.click.activates(count.max(1), again) {
                     return self.activate(row);
                 }
             }
             SelectMode::Multi => {
                 let plain = !mods.intersects(self.toggle_mods | KeyModifiers::SHIFT);
-                let g = if plain && self.click.toggles(on_box) {
+                let g = if plain && self.core.click.toggles(on_box) {
                     SelectGesture::Toggle
                 } else {
                     SelectGesture::from_mods(mods, self.toggle_mods, from)
@@ -546,15 +525,12 @@ impl ListBox {
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.scroll.track_click = Some(click);
+        self.core.scroll.track_click = Some(click);
         self
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        let s = ctx.theme.strings;
-        let old = std::mem::replace(&mut self.strings, s);
-        crate::theme::Strings::follow(&mut self.empty_text, old.empty_list, s.empty_list);
-        self.scroll.begin(ctx.track_click);
+        self.core.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -562,28 +538,23 @@ impl ListBox {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        self.reveal.begin(ctx);
-        self.scroll.set_content(self.items.len());
-        self.scroll.set_viewport(area.height as usize);
-        // the container registers first so rows drawn later win hit-testing
-        ctx.control(self.id, area, false);
-        ctx.scrollable(self.id, area);
-        if self.items.is_empty() {
-            if let Some(e) = &self.empty {
-                crate::widgets::empty::render(area, buf, t, e, bg);
-                return;
-            }
-            let msg = crate::ui::text::truncate(&self.empty_text, area.width as usize);
-            let y = area.y + area.height / 2;
-            let x = area.x
-                + (area
-                    .width
-                    .saturating_sub(crate::ui::text::width(&msg) as u16))
-                    / 2;
-            buf.set_string(x, y, &msg, t.muted().bg(bg));
+        self.core.reveal.begin(ctx);
+        self.core.scroll.set_content(self.items.len());
+        self.core.scroll.set_viewport(area.height as usize);
+        let n = self.items.len();
+        // the container registers first so rows drawn later win hit-testing;
+        // a list with nothing to act on is no focus stop (K37)
+        if self.core.is_focus_stop(n, focused) {
+            ctx.control(self.id, area, false);
+            ctx.scrollable(self.id, area);
+        }
+        if self
+            .core
+            .draw_content(n, area, buf, ctx, bg, Some(t.strings.empty_list))
+        {
             return;
         }
-        let mut has_sb = self.scroll.overflows();
+        let mut has_sb = self.core.scroll.overflows();
         // labels stop at the content edge, the gap clear of the bar
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut text_w = sp.content.width.saturating_sub(1) as usize;
@@ -594,11 +565,12 @@ impl ListBox {
             expanded = self.inline_rows(ctx, text_w, area.height);
             if let Some(rows) = &expanded {
                 let extra = rows.len().saturating_sub(1);
-                self.scroll
+                self.core
+                    .scroll
                     .set_viewport((area.height as usize).saturating_sub(extra).max(1));
-                self.scroll.ensure_visible(self.cursor);
-                if self.scroll.overflows() != has_sb {
-                    has_sb = self.scroll.overflows();
+                self.core.scroll.ensure_visible(self.core.cursor);
+                if self.core.scroll.overflows() != has_sb {
+                    has_sb = self.core.scroll.overflows();
                     sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
                     text_w = sp.content.width.saturating_sub(1) as usize;
                     expanded = self.inline_rows(ctx, text_w, area.height);
@@ -606,29 +578,29 @@ impl ListBox {
             }
         }
         let mut y = area.y;
-        for li in self.scroll.visible_range() {
+        for li in self.core.scroll.visible_range() {
             if y >= area.bottom() {
                 break;
             }
             let item = &self.items[li];
-            let block = expanded.as_ref().filter(|_| li == self.cursor);
+            let block = expanded.as_ref().filter(|_| li == self.core.cursor);
             let h = block
                 .map_or(1, |r| r.len() as u16)
                 .clamp(1, area.bottom() - y);
             let row = Rect::new(area.x, y, sp.body.width, h);
             let rid = self.row_id(li);
-            let mut s = ctx.child_state(self.id, rid, li == self.cursor);
+            let mut s = ctx.child_state(self.id, rid, li == self.core.cursor);
             if self.mode == SelectMode::Multi {
                 // the row counts its `✓` column's hover and press as its own
                 let mark = self.mark_id(li);
                 s.hovered |= ctx.interaction.hovered(mark);
                 s.pressed |= ctx.interaction.pressed(mark);
             }
-            s.focused = focused && li == self.cursor;
+            s.focused = focused && li == self.core.cursor;
             s.disabled = item.disabled;
             s.selected = match self.mode {
                 SelectMode::Single => self.chosen == Some(li),
-                SelectMode::Multi => self.selection.contains(li),
+                SelectMode::Multi => self.core.selection.contains(li),
             };
             let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
             let st = rp.style();
@@ -651,7 +623,7 @@ impl ListBox {
                 }
             } else {
                 let label = Rect::new(row.x + 3, y, lw as u16, 1);
-                rp.label(ctx, buf, &mut self.reveal, rid, label, &item.label, st);
+                rp.label(ctx, buf, &mut self.core.reveal, rid, label, &item.label, st);
             }
             if let Some(m) = &item.meta
                 && meta_w > 0
@@ -689,23 +661,23 @@ impl ListBox {
                 buf,
                 ctx,
                 sp.body,
-                &self.scroll,
+                &self.core.scroll,
                 &self
                     .scroll
                     .visible_range()
-                    .position(|i| i == self.cursor)
+                    .position(|i| i == self.core.cursor)
                     .map(|k| area.y + k as u16)
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
-            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
+            self.core.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
     }
 }
 
 impl Scrollable for ListBox {
     fn pane(&mut self) -> &mut ScrollPane {
-        &mut self.scroll
+        &mut self.core.scroll
     }
 
     /// A revealed label longer than its rows reads on before the list
@@ -714,7 +686,7 @@ impl Scrollable for ListBox {
         if axis != Axis::Vertical {
             return None;
         }
-        self.reveal.on_wheel(delta).map(Response::from)
+        self.core.reveal.on_wheel(delta).map(Response::from)
     }
 }
 
@@ -770,13 +742,16 @@ impl crate::ui::specimen::Specimen for ListBox {
                 | Selected
                 | Disabled
                 | Empty
+                | Loading
+                | Error
                 | Overflow
                 | Narrow
         )
     }
 
     fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
-        if state == crate::ui::specimen::SpecimenState::Empty {
+        use crate::ui::specimen::SpecimenState::*;
+        if matches!(state, Empty | Loading | Error) {
             1
         } else {
             self.items.len().clamp(1, 3) as u16
@@ -813,6 +788,7 @@ impl crate::ui::specimen::Specimen for ListBox {
                 l.items.clear();
                 l.selection = RowSelection::new();
             }
+            Loading | Error => l.content = crate::ui::content::specimen(state),
             Overflow => {
                 if let Some(it) = l.items.get_mut(c) {
                     it.label = format!("{} and a label far longer than its row", it.label);
@@ -822,7 +798,7 @@ impl crate::ui::specimen::Specimen for ListBox {
         }
         // the pointer rests on the cursor row, not on the list
         let v = state.visual();
-        if (v.hovered || state == Disabled) && !l.items.is_empty() {
+        if (v.hovered || state == Disabled) && l.has_rows(l.items.len()) {
             ctx.interaction.hover = Some(l.row_id(c));
             if v.pressed {
                 ctx.interaction.pressed = Some(l.row_id(c));
@@ -901,6 +877,54 @@ mod reveal_tests {
             vec![ListItem::new("short"), ListItem::new(LONG)],
             SelectMode::Single,
         )
+    }
+
+    /// `ContentState` replaces the rows (loading, an error with its Retry
+    /// button) and a list with nothing to act on is no focus stop (K37).
+    #[test]
+    fn content_states_replace_the_rows_and_empty_lists_are_skipped() {
+        use crate::ui::content::ContentState;
+        use crate::widgets::empty::{EmptyAction, EmptyState};
+        let theme = Theme::junie();
+        let draw = |l: &mut ListBox| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
+            {
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                l.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, theme.canvas);
+            }
+            let s: String = (0..6)
+                .flat_map(|y| (0..30).map(move |x| (x, y)))
+                .map(|p| buf[p].symbol().to_owned())
+                .collect();
+            (ring.contains(l.id), s, hits)
+        };
+        let mut l = list();
+        assert!(draw(&mut l).0, "rows: a focus stop");
+        l.content = ContentState::loading("Loading files");
+        let (stop, s, _) = draw(&mut l);
+        assert!(
+            !stop && s.contains("Loading files") && !s.contains("short"),
+            "{s}"
+        );
+        let retry = WidgetId::of("retry");
+        l.content = ContentState::error(
+            EmptyState::new("Could not list files")
+                .actions(vec![EmptyAction::primary(retry, "Retry")]),
+        );
+        let (stop, s, hits) = draw(&mut l);
+        assert!(!stop && s.contains("Could not list files"), "{s}");
+        assert!(hits.regions().iter().any(|r| r.id == retry));
+        let mut empty = ListBox::new(WidgetId::of("e"), vec![], SelectMode::Single);
+        let (stop, s, _) = draw(&mut empty);
+        assert!(!stop, "K37: an empty list is skipped");
+        assert!(s.contains(theme.strings.empty_list), "{s}");
+        let mut kept = ListBox::new(WidgetId::of("e"), vec![], SelectMode::Single)
+            .skip_when_empty(false)
+            .empty_text("Nothing yet");
+        let (stop, s, _) = draw(&mut kept);
+        assert!(stop && s.contains("Nothing yet"), "knob: stays a stop");
     }
 
     /// The chosen mark follows `Theme::chosen` like every row widget's

@@ -16,7 +16,8 @@ use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::RenderCtx;
-use crate::ui::reveal::{Reveal, RevealLine, RevealState};
+use crate::ui::list_core::ListCore;
+use crate::ui::reveal::{Reveal, RevealLine};
 use crate::ui::row::{RowLook, RowUi};
 use crate::widgets::scrollbar;
 
@@ -254,12 +255,13 @@ struct Geometry {
 pub struct PropsList {
     pub id: WidgetId,
     pub props: Vec<Prop>,
-    pub cursor: usize,
-    /// The scrolled rows and the bar ([`Scrollable`]).
-    pub scroll: ScrollPane,
+    /// The shared row model ([`ListCore`]): `cursor`, `nav`, `scroll`,
+    /// `reveal` (cut values), `click` (default [`ClickPolicy::DATA`]: one click
+    /// selects a fact, a double click activates it), `content` and `empty`.
+    /// Type-ahead is off: facts are read, not searched. The sheet dereferences
+    /// to it.
+    pub core: ListCore,
     pub area: Rect,
-    /// Revealing cut values; `reveal.config` overrides the global default.
-    pub reveal: RevealState,
     /// Blank columns between the values and the scrollbar (default
     /// [`scrollbar::GAP`]).
     pub scrollbar_gap: u16,
@@ -268,14 +270,21 @@ pub struct PropsList {
     /// the cap are cut with `…` (rows never stack in a list). Default
     /// [`Sheet::default`].
     pub sheet: Sheet,
-    /// Which keys move the cursor (default [`NavKeys::default`]).
-    pub nav: NavKeys,
     /// The list's action keys (default [`PropsCmd::default_keymap`]).
     pub keymap: KeyMap<PropsCmd>,
-    /// When a click activates a row ([`PropsAction::Activate`]). Default
-    /// [`ClickPolicy::DATA`]: one click selects the row, a double click (or
-    /// Enter) activates it, so a click meant to select never acts (M32).
-    pub click: ClickPolicy,
+}
+
+impl std::ops::Deref for PropsList {
+    type Target = ListCore;
+    fn deref(&self) -> &ListCore {
+        &self.core
+    }
+}
+
+impl std::ops::DerefMut for PropsList {
+    fn deref_mut(&mut self) -> &mut ListCore {
+        &mut self.core
+    }
 }
 
 /// A [`PropsList`] action a key can be bound to. Enter always activates.
@@ -306,7 +315,27 @@ impl PropsList {
 
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.core.nav = nav;
+        self
+    }
+
+    /// See [`ListCore::content`]: loading or a load error replaces the
+    /// facts.
+    pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
+        self.core.content = content;
+        self
+    }
+
+    /// What a sheet with no facts shows ([`ListCore::empty`]). Default
+    /// none: blank.
+    pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
+        self.core.empty = Some(state);
+        self
+    }
+
+    /// See [`ListCore::skip_when_empty`].
+    pub fn skip_when_empty(mut self, on: bool) -> Self {
+        self.core.skip_when_empty = on;
         self
     }
 
@@ -315,22 +344,21 @@ impl PropsList {
         Self {
             id,
             props,
-            cursor: 0,
-            scroll: ScrollPane::new(n),
+            core: ListCore {
+                type_ahead: false,
+                ..ListCore::new(n)
+            },
             area: Rect::ZERO,
-            reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             sheet: Sheet::default(),
-            nav: NavKeys::default(),
             keymap: PropsCmd::default_keymap(),
-            click: ClickPolicy::DATA,
         }
     }
 
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.scroll.track_click = Some(click);
+        self.core.scroll.track_click = Some(click);
         self
     }
 
@@ -348,14 +376,14 @@ impl PropsList {
 
     /// How cut values are revealed (default: [`RenderCtx::reveal`]).
     pub fn reveal(mut self, config: Reveal) -> Self {
-        self.reveal.config = Some(config);
+        self.core.reveal.config = Some(config);
         self
     }
 
     pub fn set_props(&mut self, props: Vec<Prop>) {
         self.props = props;
-        self.cursor = self.cursor.min(self.props.len().saturating_sub(1));
-        self.scroll.set_content(self.props.len());
+        self.core.cursor = self.core.cursor.min(self.props.len().saturating_sub(1));
+        self.core.scroll.set_content(self.props.len());
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
@@ -373,20 +401,20 @@ impl PropsList {
     }
 
     fn set_cursor(&mut self, i: usize) {
-        self.cursor = i.min(self.props.len().saturating_sub(1));
-        self.scroll.ensure_visible(self.cursor);
+        self.core.cursor = i.min(self.props.len().saturating_sub(1));
+        self.core.scroll.ensure_visible(self.core.cursor);
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PropsAction>) {
         if self.props.is_empty() {
             return (Outcome::Ignored, None);
         }
-        if let Some(o) = self.reveal.on_key(key) {
+        if let Some(o) = self.core.reveal.on_key(key) {
             return (o, None);
         }
         if let Some(PropsCmd::Copy) = lookup(&self.keymap, key) {
-            if self.props[self.cursor].copyable {
-                return (Outcome::Changed, Some(PropsAction::Copy(self.cursor)));
+            if self.props[self.core.cursor].copyable {
+                return (Outcome::Changed, Some(PropsAction::Copy(self.core.cursor)));
             }
             return (Outcome::Consumed, None);
         }
@@ -395,7 +423,9 @@ impl PropsList {
             .action(key)
             .filter(|n| key.plain() || matches!(n, Nav::PageUp | Nav::PageDown | Nav::End));
         if let Some(nav) = nav {
-            let moved = self.cursor().apply(nav, self, self.scroll.viewport_len);
+            let moved = self
+                .cursor()
+                .apply(nav, self, self.core.scroll.viewport_len);
             return match moved.index() {
                 Some(i) => {
                     self.set_cursor(i);
@@ -405,7 +435,10 @@ impl PropsList {
             };
         }
         match key.code {
-            KeyCode::Enter => (Outcome::Changed, Some(PropsAction::Activate(self.cursor))),
+            KeyCode::Enter => (
+                Outcome::Changed,
+                Some(PropsAction::Activate(self.core.cursor)),
+            ),
             _ => (Outcome::Ignored, None),
         }
     }
@@ -422,16 +455,16 @@ impl PropsList {
         if row >= self.props.len() {
             return (Outcome::Consumed, None);
         }
-        let again = self.cursor == row;
-        self.scroll.pointer_move();
+        let again = self.core.cursor == row;
+        self.core.scroll.pointer_move();
         self.set_cursor(row);
-        let act = self.click.activates(count.max(1), again);
+        let act = self.core.click.activates(count.max(1), again);
         (Outcome::Changed, act.then_some(PropsAction::Activate(row)))
     }
 
     /// See [`Self::click`].
     pub fn click(mut self, policy: ClickPolicy) -> Self {
-        self.click = policy;
+        self.core.click = policy;
         self
     }
 
@@ -471,18 +504,18 @@ impl PropsList {
         geo: Geometry,
         room: u16,
     ) -> Option<Vec<RevealLine>> {
-        let p = self.props.get(self.cursor)?;
+        let p = self.props.get(self.core.cursor)?;
         let vx = self.area.x + 2 + geo.label_w;
         let vw = geo
             .value_right
             .saturating_sub(vx + Self::hint_width(p, true));
-        let rid = self.row_id(self.cursor);
+        let rid = self.row_id(self.core.cursor);
         let value = p.value.clone();
-        self.reveal.inline(ctx, rid, vw, &value, true, room)
+        self.core.reveal.inline(ctx, rid, vw, &value, true, room)
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.scroll.begin(ctx.track_click);
+        self.core.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -490,12 +523,21 @@ impl PropsList {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        self.reveal.begin(ctx);
-        self.scroll.set_content(self.props.len());
-        self.scroll.set_viewport(area.height as usize);
-        ctx.control(self.id, area, false);
-        ctx.scrollable(self.id, area);
-        let mut has_sb = self.scroll.overflows();
+        self.core.reveal.begin(ctx);
+        self.core.scroll.set_content(self.props.len());
+        self.core.scroll.set_viewport(area.height as usize);
+        let n = self.props.len();
+        // a sheet with nothing to read is no focus stop (K37)
+        if self.core.is_focus_stop(n, focused) {
+            ctx.control(self.id, area, false);
+            ctx.scrollable(self.id, area);
+        }
+        if (!self.core.content.is_ready() || self.core.empty.is_some())
+            && self.core.draw_content(n, area, buf, ctx, bg, None)
+        {
+            return;
+        }
+        let mut has_sb = self.core.scroll.overflows();
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut geo = self.geometry(sp.body, sp.content);
         // an inline reveal grows the cursor row: the rows it adds come out
@@ -505,11 +547,12 @@ impl PropsList {
             expanded = self.inline_rows(ctx, geo, area.height);
             if let Some(rows) = &expanded {
                 let extra = rows.len().saturating_sub(1);
-                self.scroll
+                self.core
+                    .scroll
                     .set_viewport((area.height as usize).saturating_sub(extra).max(1));
-                self.scroll.ensure_visible(self.cursor);
-                if self.scroll.overflows() != has_sb {
-                    has_sb = self.scroll.overflows();
+                self.core.scroll.ensure_visible(self.core.cursor);
+                if self.core.scroll.overflows() != has_sb {
+                    has_sb = self.core.scroll.overflows();
                     sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
                     geo = self.geometry(sp.body, sp.content);
                     expanded = self.inline_rows(ctx, geo, area.height);
@@ -523,20 +566,20 @@ impl PropsList {
         } = geo;
         let mut y = area.y;
         let mut cursor_rows = Vec::new();
-        for i in self.scroll.visible_range() {
+        for i in self.core.scroll.visible_range() {
             if y >= area.bottom() {
                 break;
             }
             let p = &self.props[i];
             let rid = self.row_id(i);
-            let mut s = ctx.child_state(self.id, rid, i == self.cursor);
-            s.focused = focused && i == self.cursor;
-            let block = expanded.as_ref().filter(|_| i == self.cursor);
+            let mut s = ctx.child_state(self.id, rid, i == self.core.cursor);
+            s.focused = focused && i == self.core.cursor;
+            let block = expanded.as_ref().filter(|_| i == self.core.cursor);
             let h = block
                 .map_or(1, |r| r.len() as u16)
                 .clamp(1, area.bottom() - y);
             let row = Rect::new(area.x, y, row_w, h);
-            if i == self.cursor {
+            if i == self.core.cursor {
                 cursor_rows.extend(row.y..row.bottom());
             }
             let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
@@ -561,7 +604,7 @@ impl PropsList {
                 }
             } else {
                 let cell = Rect::new(vx, y, vw as u16, 1);
-                rp.label(ctx, buf, &mut self.reveal, rid, cell, &p.value, vs);
+                rp.label(ctx, buf, &mut self.core.reveal, rid, cell, &p.value, vs);
             }
             if hint_w > 0 {
                 buf.set_string(
@@ -575,15 +618,21 @@ impl PropsList {
             y += h;
         }
         if let Some(sb) = sp.track {
-            crate::ui::fade::scroll_edges_except(buf, ctx, sp.body, &self.scroll, &cursor_rows);
-            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
+            crate::ui::fade::scroll_edges_except(
+                buf,
+                ctx,
+                sp.body,
+                &self.core.scroll,
+                &cursor_rows,
+            );
+            self.core.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
     }
 }
 
 impl Scrollable for PropsList {
     fn pane(&mut self) -> &mut ScrollPane {
-        &mut self.scroll
+        &mut self.core.scroll
     }
 
     /// A revealed value longer than its rows reads on before the view
@@ -592,7 +641,7 @@ impl Scrollable for PropsList {
         if axis != Axis::Vertical {
             return None;
         }
-        self.reveal.on_wheel(delta).map(Response::from)
+        self.core.reveal.on_wheel(delta).map(Response::from)
     }
 }
 
@@ -607,7 +656,7 @@ impl RowSource for PropsList {
 
 impl Navigable for PropsList {
     fn cursor(&self) -> Cursor {
-        Cursor::new(self.cursor)
+        self.core.cursor_model()
     }
 }
 
@@ -622,10 +671,14 @@ impl crate::ui::specimen::Specimen for PropsList {
 
     fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
         use crate::ui::specimen::SpecimenState::*;
-        matches!(state, Rest | Focused | Overflow | Narrow)
+        matches!(state, Rest | Focused | Loading | Error | Overflow | Narrow)
     }
 
-    fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
+    fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
+        use crate::ui::specimen::SpecimenState::*;
+        if matches!(state, Loading | Error) {
+            return 1;
+        }
         self.props.len().max(1) as u16
     }
 
@@ -643,6 +696,7 @@ impl crate::ui::specimen::Specimen for PropsList {
         {
             p.value = format!("{} and a value far longer than its row", p.value);
         }
+        list.core.content = crate::ui::content::specimen(state);
         list.render(area, buf, ctx, bg);
     }
 }
@@ -674,6 +728,47 @@ impl crate::core::pointer::MouseTarget for PropsList {
 #[cfg(test)]
 mod reveal_scroll_tests {
     use super::*;
+
+    /// S13: a sheet shows `ContentState` in place of its facts and is no
+    /// focus stop while it has none to read (K37).
+    #[test]
+    fn content_states_replace_the_facts_and_an_empty_sheet_is_skipped() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::theme::Theme;
+        use crate::ui::content::ContentState;
+        use crate::ui::ctx::Interaction;
+        use crate::widgets::empty::EmptyState;
+        let draw = |p: &mut PropsList| {
+            let theme = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 4));
+            {
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                p.render(Rect::new(0, 0, 40, 4), &mut buf, &mut ctx, theme.canvas);
+            }
+            let s: String = (0..4)
+                .flat_map(|y| (0..40).map(move |x| (x, y)))
+                .map(|c| buf[c].symbol().to_owned())
+                .collect();
+            (ring.contains(p.id), s)
+        };
+        let mut p = PropsList::new(WidgetId::of("p"), vec![Prop::new("Host", "db1")]);
+        assert!(draw(&mut p).0);
+        p.content = ContentState::loading("Reading facts");
+        let (stop, s) = draw(&mut p);
+        assert!(
+            !stop && s.contains("Reading facts") && !s.contains("db1"),
+            "{s}"
+        );
+        p.content = ContentState::error(EmptyState::new("No access"));
+        assert!(draw(&mut p).1.contains("! No access"));
+        let mut empty =
+            PropsList::new(WidgetId::of("e"), vec![]).empty(EmptyState::new("No facts"));
+        let (stop, s) = draw(&mut empty);
+        assert!(!stop && s.contains("No facts"), "{s}");
+    }
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
     use crate::ui::ctx::Interaction;

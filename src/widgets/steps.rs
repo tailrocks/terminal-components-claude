@@ -13,6 +13,7 @@ use crate::core::keymap::NavKeys;
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::ui::ctx::{RenderCtx, VisualState};
+use crate::ui::list_core::ListCore;
 use crate::ui::row::{RowLook, RowUi};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
@@ -69,21 +70,31 @@ pub struct StepRail {
     pub id: WidgetId,
     pub steps: Vec<Step>,
     pub selectable: bool,
-    pub cursor: usize,
-    /// The scrolled rows and the bar ([`Scrollable`]).
-    pub scroll: ScrollPane,
+    /// The shared row model ([`ListCore`]): `cursor`, `nav`, `scroll`,
+    /// `content` and `empty`. The rail dereferences to it.
+    pub core: ListCore,
     pub area: Rect,
     /// Show the ordinal (`03`) before the label.
     pub numbered: bool,
-    /// Which keys move the cursor of a selectable rail (default
-    /// [`NavKeys::default`]).
-    pub nav: NavKeys,
+}
+
+impl std::ops::Deref for StepRail {
+    type Target = ListCore;
+    fn deref(&self) -> &ListCore {
+        &self.core
+    }
+}
+
+impl std::ops::DerefMut for StepRail {
+    fn deref_mut(&mut self) -> &mut ListCore {
+        &mut self.core
+    }
 }
 
 impl StepRail {
     /// See [`Self::nav`].
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.core.nav = nav;
         self
     }
 
@@ -93,18 +104,23 @@ impl StepRail {
             id,
             steps,
             selectable: false,
-            cursor: 0,
-            scroll: ScrollPane::new(n),
+            core: ListCore::new(n),
             area: Rect::ZERO,
             numbered: true,
-            nav: NavKeys::default(),
         }
+    }
+
+    /// See [`ListCore::content`]: loading or a load error replaces the
+    /// steps.
+    pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
+        self.core.content = content;
+        self
     }
 
     /// Override the app-wide vertical track-click policy
     /// (`TrackClick::Page` pages toward the pointer).
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
-        self.scroll.track_click = Some(click);
+        self.core.scroll.track_click = Some(click);
         self
     }
 
@@ -153,8 +169,8 @@ impl StepRail {
     }
 
     fn set_cursor(&mut self, i: usize) {
-        self.cursor = i.min(self.steps.len().saturating_sub(1));
-        self.scroll.ensure_visible(self.cursor);
+        self.core.cursor = i.min(self.steps.len().saturating_sub(1));
+        self.core.scroll.ensure_visible(self.core.cursor);
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
@@ -164,12 +180,12 @@ impl StepRail {
         if !key.plain() {
             return Outcome::Ignored;
         }
-        let Some(nav) = self.nav.action(key) else {
+        let Some(nav) = self.core.nav.action(key) else {
             return Outcome::Ignored;
         };
         match self
             .cursor()
-            .apply(nav, self, self.scroll.viewport_len)
+            .apply(nav, self, self.core.scroll.viewport_len)
             .index()
         {
             Some(i) => {
@@ -184,13 +200,13 @@ impl StepRail {
         if !self.selectable || row >= self.steps.len() {
             return Outcome::Consumed;
         }
-        self.scroll.pointer_move();
+        self.core.scroll.pointer_move();
         self.set_cursor(row);
         Outcome::Changed
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        self.scroll.begin(ctx.track_click);
+        self.core.scroll.begin(ctx.track_click);
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -198,26 +214,34 @@ impl StepRail {
         self.area = area;
         let t = ctx.theme;
         let focused = self.selectable && ctx.interaction.focused(self.id);
-        self.scroll.set_content(self.steps.len());
-        self.scroll.set_viewport(area.height as usize);
-        if self.selectable {
+        self.core.scroll.set_content(self.steps.len());
+        self.core.scroll.set_viewport(area.height as usize);
+        let n = self.steps.len();
+        // only a selectable rail with steps to move through is a focus
+        // stop (K37)
+        if self.selectable && self.core.is_focus_stop(n, focused) {
             ctx.control(self.id, area, false);
         }
         ctx.scrollable(self.id, area);
-        let has_sb = self.scroll.overflows();
+        if (!self.core.content.is_ready() || self.core.empty.is_some())
+            && self.core.draw_content(n, area, buf, ctx, bg, None)
+        {
+            return;
+        }
+        let has_sb = self.core.scroll.overflows();
         let row_w = area.width.saturating_sub(u16::from(has_sb));
         let frontier = self.frontier();
-        for (k, i) in self.scroll.visible_range().enumerate() {
+        for (k, i) in self.core.scroll.visible_range().enumerate() {
             let y = area.y + k as u16;
             let step = &self.steps[i];
             let rid = self.row_id(i);
             // a read-only step list is inert: no hover, press or focus
             let mut s = if self.selectable {
-                ctx.child_state(self.id, rid, i == self.cursor)
+                ctx.child_state(self.id, rid, i == self.core.cursor)
             } else {
                 VisualState::default()
             };
-            s.focused = focused && i == self.cursor;
+            s.focused = focused && i == self.core.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
             // the state glyph is a graphic on the row's plane (hover and
@@ -307,17 +331,17 @@ impl StepRail {
                     (area.right() - 1).saturating_sub(area.x),
                     area.height,
                 ),
-                &self.scroll,
+                &self.core.scroll,
                 &self
                     .scroll
                     .visible_range()
-                    .position(|i| i == self.cursor)
+                    .position(|i| i == self.core.cursor)
                     .map(|k| area.y + k as u16)
                     .into_iter()
                     .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            self.scroll.draw_v(sb, buf, ctx, self.id, focused);
+            self.core.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         let _ = Style::new();
     }
@@ -325,7 +349,7 @@ impl StepRail {
 
 impl Scrollable for StepRail {
     fn pane(&mut self) -> &mut ScrollPane {
-        &mut self.scroll
+        &mut self.core.scroll
     }
 }
 
@@ -340,7 +364,7 @@ impl RowSource for StepRail {
 
 impl Navigable for StepRail {
     fn cursor(&self) -> Cursor {
-        Cursor::new(self.cursor)
+        self.core.cursor_model()
     }
 }
 

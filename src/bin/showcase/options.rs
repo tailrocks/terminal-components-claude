@@ -1011,6 +1011,7 @@ static LISTS: &[Opt] = &[
     Opt::new("lists.track_click", "Track click", &["page", "jump"]),
     Opt::new("lists.keymap", "Key map", &["default", "custom"]),
     Opt::new("lists.empty", "Empty", &["text", "state"]),
+    Opt::new("lists.content", "Content", &["ready", "loading", "error"]),
 ];
 
 /// Trees (SC15): every `TreeView` builder (the readout reads the built

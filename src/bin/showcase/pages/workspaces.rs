@@ -346,7 +346,8 @@ impl WorkspacesPage {
             .roster
             .cursor
             .min(self.roster.items.len().saturating_sub(1));
-        self.roster.scroll.set_content(self.roster.items.len());
+        let n = self.roster.items.len();
+        self.roster.scroll.set_content(n);
         self.facts_for = None;
     }
 
