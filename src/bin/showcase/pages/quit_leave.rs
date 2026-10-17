@@ -16,10 +16,11 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::page_options;
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
@@ -31,6 +32,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::leave::{
     KeyContext, Leave, LeaveGuard, LeaveKey, QuitKeys, Resolved, Stakes, letters_allowed,
 };
+use junie_tui::ui::measure::{Tile, Tiled, tiles};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text;
 use junie_tui::widgets::button::Button;
@@ -181,9 +183,79 @@ impl QuitLeavePage {
         }
     }
 
+    /// The document's stakes and the guard's last request and answer.
+    fn facts(&self) -> Vec<Prop> {
+        vec![
+            Prop::new("Edits", stakes_label(&self.unsaved())).wrap(),
+            Prop::new("Work", stakes_label(&self.work())).wrap(),
+            Prop::new("Stakes::max", stakes_label(&self.stakes()))
+                .tone(match self.stakes() {
+                    Stakes::Clean => Tone::Secondary,
+                    _ => Tone::Warning,
+                })
+                .wrap(),
+            Prop::new(
+                "LeaveGuard",
+                if self.guard.save {
+                    "save: Cancel Discard Save"
+                } else {
+                    "no save: Cancel Discard"
+                },
+            )
+            .wrap(),
+            Prop::new("Last request", self.last_request.clone()).wrap(),
+            Prop::new("Last answer", self.last_resolved.clone()).wrap(),
+        ]
+    }
+
+    /// The classify card's notes.
+    fn notes(&self) -> String {
+        let c = contexts();
+        format!(
+            "letters_allowed: clean {}, text focus {}, dirty {}. Quit goes through the \
+             guard; Copy copies the selection instead. The leave buttons ask \
+             Leave::To(Overview) and Leave::Quit; a dialog's answer resolves to \
+             Resolved::Stay, Resolved::Save(to) or Resolved::Discard(to). The \
+             showcase's own quit keys see this page's stakes: with edits or a running \
+             export, Ctrl+Q asks first.",
+            letters_allowed(c[0].1),
+            letters_allowed(c[1].1),
+            letters_allowed(c[2].1)
+        )
+    }
+
+    /// The document card beside the classify card, stacked when they do
+    /// not fit. `measure` and `render_playground` share it.
+    fn tiled(&self, width: u16) -> Tiled {
+        let doc = Panel::card(Some("Document")).meta("exporting");
+        let facts = self.facts();
+        // the buttons' row, with the longer export label
+        let buttons = self.leave.width() + self.quit.width() + self.export.width() + 1 + 4;
+        let doc_w = doc
+            .outer(Size::new(buttons.max(FIELD_W), 0))
+            .width
+            .max(sheet_width(&doc, &facts));
+        let fh = self.title.height();
+        let doc_h = |w: u16| sheet_height(&doc, &facts, w) + fh + 3;
+        let keys = Panel::card(Some("QuitKeys::classify")).meta("→ LeaveKey");
+        let notes = self.notes();
+        let keys_w = keys.outer(Size::new(LABEL_W + 4 * COL_W, 0)).width;
+        let keys_h = |w: u16| {
+            let inner = keys.inner(Size::new(w, 0)).width;
+            let rows = 5 + 1 + text::wrap(&notes, inner as usize).len() as u16;
+            keys.outer(Size::new(inner, rows)).height
+        };
+        tiles(
+            width,
+            &[&[Tile::new(doc_w, &doc_h), Tile::new(keys_w, &keys_h)]],
+            (2, 1),
+        )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let (left, right) = crate::pages::layout::columns(area, 50.min(area.width / 2), 2);
+        let tiled = self.tiled(area.width);
+        let (left, right) = (tiled.at(0, area), tiled.at(1, area));
 
         // the document and the ways out
         let meta = match self.stakes() {
@@ -193,8 +265,7 @@ impl QuitLeavePage {
         };
         let panel = Panel::card(Some("Document")).meta(meta);
         let bg = panel.bg(t);
-        let h = 16.min(left.height);
-        let inner = panel.render(Rect::new(left.x, left.y, left.width, h), buf, t);
+        let inner = panel.render(left, buf, t);
         let fh = self.title.height();
         self.title
             .render(Rect::new(inner.x, inner.y, inner.width, fh), buf, ctx, bg);
@@ -213,24 +284,7 @@ impl QuitLeavePage {
             x += w + 2;
         }
         y += 2;
-        let facts = vec![
-            Prop::new("Edits", stakes_label(&self.unsaved())),
-            Prop::new("Work", stakes_label(&self.work())),
-            Prop::new("Stakes::max", stakes_label(&self.stakes())).tone(match self.stakes() {
-                Stakes::Clean => Tone::Secondary,
-                _ => Tone::Warning,
-            }),
-            Prop::new(
-                "LeaveGuard",
-                if self.guard.save {
-                    "save: Cancel Discard Save"
-                } else {
-                    "no save: Cancel Discard"
-                },
-            ),
-            Prop::new("Last request", self.last_request.clone()),
-            Prop::new("Last answer", self.last_resolved.clone()),
-        ];
+        let facts = self.facts();
         if y < inner.bottom() {
             props::render(
                 Rect::new(inner.x, y, inner.width, inner.bottom() - y),
@@ -253,36 +307,12 @@ impl QuitLeavePage {
             ("Ctrl+Q".into(), ctrl('q')),
             ("Esc".into(), plain(KeyCode::Esc)),
         ];
-        let contexts: [(&str, KeyContext); 4] = [
-            ("clean", KeyContext::default()),
-            (
-                "text focus",
-                KeyContext {
-                    text_focus: true,
-                    ..KeyContext::default()
-                },
-            ),
-            (
-                "dirty",
-                KeyContext {
-                    dirty: true,
-                    ..KeyContext::default()
-                },
-            ),
-            (
-                "selection",
-                KeyContext {
-                    selection: true,
-                    ..KeyContext::default()
-                },
-            ),
-        ];
+        let contexts = contexts();
         // rows = contexts, columns = keys
         let panel = Panel::card(Some("QuitKeys::classify")).meta("→ LeaveKey");
         let bg = panel.bg(t);
-        let h = 16.min(right.height);
-        let inner = panel.render(Rect::new(right.x, right.y, right.width, h), buf, t);
-        let (label_w, col) = (12u16, 8u16);
+        let inner = panel.render(right, buf, t);
+        let (label_w, col) = (LABEL_W, COL_W);
         let mut yy = inner.y;
         let mut x = inner.x + label_w;
         for (label, _) in &cases {
@@ -312,25 +342,46 @@ impl QuitLeavePage {
             yy += 1;
         }
         yy += 1;
-        let notes = format!(
-            "letters_allowed: clean {}, text focus {}, dirty {}. Quit goes through the \
-             guard; Copy copies the selection instead. The leave buttons ask \
-             Leave::To(Overview) and Leave::Quit; a dialog's answer resolves to \
-             Resolved::Stay, Resolved::Save(to) or Resolved::Discard(to). The \
-             showcase's own quit keys see this page's stakes: with edits or a running \
-             export, Ctrl+Q asks first.",
-            letters_allowed(contexts[0].1),
-            letters_allowed(contexts[1].1),
-            letters_allowed(contexts[2].1)
-        );
+        let notes = self.notes();
         for l in text::wrap(&notes, inner.width as usize) {
-            if yy >= inner.bottom() {
-                break;
-            }
             buf.set_string(inner.x, yy, l, t.faint().bg(bg));
             yy += 1;
         }
     }
+}
+
+/// The title field's width in the document card.
+const FIELD_W: u16 = 40;
+/// The classify table: the context column and one column per key.
+const LABEL_W: u16 = 12;
+const COL_W: u16 = 8;
+
+/// The contexts the classify card reads the quit keys in.
+fn contexts() -> [(&'static str, KeyContext); 4] {
+    [
+        ("clean", KeyContext::default()),
+        (
+            "text focus",
+            KeyContext {
+                text_focus: true,
+                ..KeyContext::default()
+            },
+        ),
+        (
+            "dirty",
+            KeyContext {
+                dirty: true,
+                ..KeyContext::default()
+            },
+        ),
+        (
+            "selection",
+            KeyContext {
+                selection: true,
+                ..KeyContext::default()
+            },
+        ),
+    ]
 }
 
 fn plain(code: KeyCode) -> Key {
@@ -397,6 +448,10 @@ impl Page for QuitLeavePage {
 
     fn leave_stakes(&self) -> Stakes {
         self.stakes()
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
