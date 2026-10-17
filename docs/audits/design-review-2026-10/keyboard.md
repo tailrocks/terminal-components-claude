@@ -497,25 +497,25 @@ owner.
 |---|---|---|---|
 | 8 | Fixed | 14d6cdbc1, 777adce9a, 3825da948 | `Shell` focus upkeep defaults to `FocusFallback::Nearest` on the same page (`src/shell/app.rs`). Tests `a_vanished_control_hands_focus_to_its_nearest_neighbour` in tablepro, holla and jackin. |
 | 9 | Fixed | 57e109d55, 0afc08a4b | Pickers sit on `ShellLayers`; every layer close restores the owner's focus. Tests per layer in each app's `app_tests_layers.rs` and the showcase Pickers page. |
-| 10 | Open → S8b | — | `HasHints`, composed footer, `Tab <label>` from the ring. |
+| 10 | Partial (S8b) | "HasHints, HintCx and Bindings", "Footer composes hints", "one Enter Edit hint" | Widgets and library modals derive their hints (`HasHints`), `shell::Footer` composes them in all four apps, `widget_hints::EDIT` replaced the 19 `"Enter", "Edit"` literals. Pages still choose which widget hints to show; `Tab <label>` from the ring is open (S16 with page key maps). |
 | 11 | Fixed (S8a) | "focused menu bar keys (K11)" | holla already routed its focused menu bar; jackin's host menu bar now takes its own keys as focused chrome (`KeyHost::chrome_key`): Enter or ↓ opens, ←→ move, Esc returns focus (`the_focused_host_menu_bar_opens_with_enter`). |
 | 12 | Open → S10 | — | Keyboard reveal in Grid, Table, Menu, Picker, Select and StatusBar. |
 | 13 | Fixed | 09012333e | `Select::tab_in_open(TabInOpen)`: Tab chooses and moves on; `?` and F-keys close and pass on. |
 | 14 | Fixed | cf21436e4, 86491237c | `ContextMenu::unknown_key`; a row's one-character shortcut chooses it, other keys close and pass on (type-ahead takes letters since S4). jackin row menus: CO15. |
 | 18 | Open → S19 | — | `SplitKeys` (Alt+Shift+arrows, hinted) on `MasterDetail`. |
 | 19 | Open → S15 | — | Column cursor for table sort. |
-| 23 | Open → S8b | — | `HelpOverlay::from_keymaps`, F1 everywhere. |
+| 23 | Partial (S8b) | "HelpOverlay::from_keymaps, HelpSection" and one help commit per app | F1 and `?` open the library `HelpOverlay` in all four apps; its shell section comes from the live `ShellKeys` (`ShellKeys::help_section`), widget rows from `Bindings`. Page keys the screens handle in code are still listed by hand (`HelpSection::row`) until they move onto key maps (S16). |
 | 26 | Fixed (S8a) | "sticky Capsule prefix, Esc cancels (K26)" | `CapsuleScreen::prefix_timeout_ms`, default `None` (sticky until the next key; Esc cancels); `Some(ms)` restores a timeout (`the_capsule_prefix_waits_until_esc`). |
 | 27 | Fixed | ca36871d7 | `RenderCtx::cover`: content under a full-cover panel is inert. Test `a_form_covering_the_narrow_connection_list_keeps_tab_inside_it` (tablepro). |
 | 28 | Open → S22 | — | Still true: the cockpit registers a 1×1 `RAIL` control as its keyboard home (`cockpit.rs`, `ctx.control(RAIL, ..)` and `primary_focus`), so Tab lands on a cell that draws nothing. Replacing it (a selectable rail, or no home and focus on Cancel launch) moves the focus indicator, a visual change that belongs with the cockpit screen (S22). Not routing. |
 | 30 | Fixed | f83b4cbb2 | `RenderCtx::visual_order` with `FocusRing::sort_from`. Test `the_manager_detail_card_tabs_in_visual_order` (jackin). |
 | 31 | Fixed | a70f2eec6 | `PickerAction::PrevScope` on Shift+Tab. |
 | 32 | Fixed | 30201761d, 0cb707165 | `ButtonRow::step`, no wrap, skips disabled, for Dialog, FormDialog and ChoiceDialog. |
-| 35 | Open → S8b | — | A hint ("Working…" from `Button::hints`): S8b's `HasHints`. Not routing. |
+| 35 | Fixed (S8b) | "HasHints, HintCx and Bindings" | `Button::hint` says "Working…" while busy instead of naming Enter (`a_busy_button_says_it_is_working_instead_of_naming_enter`). |
 | 36 | Fixed (S11) | "the finder query is the shared text field" | The finder query is an `EditField` under the finder's HP02 key map (Ctrl+A select all, Ctrl+Z/Ctrl+Y undo/redo, Ctrl+W stays with the shell); its own undo stacks and select-all flag are gone. The one-row presentation is `EditField::draw_line` (the finder keeps its middle-truncated look, so no capture moves). |
 | 37 | Open → S13 | — | `skip_when_empty` is a focus-stop policy of the list cores (`ListCore`, S13), not routing. |
 | 38 | Open → S10/S12 | — | Status-bar `focusable` (chrome rows, S10) and a ChipBar lead-toggle key (`ChipCmd`, S12 with the option widgets). Not routing. |
-| 39 | Open → S8b | — | Follows from derived hints (#10, #23). |
+| 39 | Partial (S8b) | help commits | The generated help lists F10 and Ctrl+F2 (menu bar), Ctrl+PgUp/PgDn, the showcase sidebar's →/←, Home/End and type-ahead (its tree's `Bindings`), tablepro's Ctrl+↑/↓ split keys (`TpCmd`). Shift+arrow selection is still unlisted (no key map binds it). |
 
 Hash fills for rows above that read "see branch log" or a commit title:
 macOS editing chords 17caa78ab; S4 #33/#34 222641136; type-ahead
