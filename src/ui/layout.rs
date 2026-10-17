@@ -522,6 +522,226 @@ impl Stack {
     }
 }
 
+/// A keyboard resize of a [`Split`]'s seam (K18): what [`SplitKeys`] binds.
+/// A horizontal split (panes side by side) answers [`Self::Left`] and
+/// [`Self::Right`]; a vertical one (stacked) [`Self::Up`] and
+/// [`Self::Down`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SplitCmd {
+    /// Move the seam one step left: the first pane narrows.
+    Left,
+    /// Move the seam one step right: the first pane widens.
+    Right,
+    /// Move the seam one step up: the first pane gets shorter.
+    Up,
+    /// Move the seam one step down: the first pane gets taller.
+    Down,
+}
+
+impl crate::core::keymap::Actions for SplitCmd {
+    /// Alt+Shift+arrows, the pane-resize chord of terminal multiplexers
+    /// and editors: plain arrows and Alt+arrows already move a cursor or
+    /// a word inside the panes. macOS has no split-view resize chord, so
+    /// this is the closest convention a terminal delivers.
+    fn default_keymap() -> crate::core::keymap::KeyMap<Self> {
+        use crate::core::keymap::KeyBinding;
+        use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+        let m = KeyModifiers::ALT.union(KeyModifiers::SHIFT);
+        vec![
+            (KeyBinding::new(KeyCode::Left, m), SplitCmd::Left),
+            (KeyBinding::new(KeyCode::Right, m), SplitCmd::Right),
+            (KeyBinding::new(KeyCode::Up, m), SplitCmd::Up),
+            (KeyBinding::new(KeyCode::Down, m), SplitCmd::Down),
+        ]
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            SplitCmd::Left => "Move seam left",
+            SplitCmd::Right => "Move seam right",
+            SplitCmd::Up => "Move seam up",
+            SplitCmd::Down => "Move seam down",
+        }
+    }
+}
+
+/// The keyboard half of a resizable split (K18): the pane that owns the
+/// seam resizes it with chords (default Alt+Shift+arrows), the way the
+/// [`Splitter`](crate::widgets::splitter::Splitter) resizes it with the
+/// pointer. The bindings and the step are overridable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SplitKeys {
+    /// The chords (default [`SplitCmd::default_keymap`]).
+    pub keymap: crate::core::keymap::KeyMap<SplitCmd>,
+    /// Cells one chord moves the seam. Default 2.
+    pub step: u16,
+}
+
+impl Default for SplitKeys {
+    fn default() -> Self {
+        use crate::core::keymap::Actions;
+        Self {
+            keymap: SplitCmd::default_keymap(),
+            step: 2,
+        }
+    }
+}
+
+impl SplitKeys {
+    /// See [`Self::keymap`].
+    pub fn keymap(mut self, keymap: crate::core::keymap::KeyMap<SplitCmd>) -> Self {
+        self.keymap = keymap;
+        self
+    }
+
+    /// See [`Self::step`].
+    pub fn step(mut self, cells: u16) -> Self {
+        self.step = cells;
+        self
+    }
+
+    /// The signed cells `key` moves the seam of a split laid out in
+    /// `dir`; `None` when the key is not a resize chord for that axis.
+    pub fn delta(&self, key: &crate::core::event::Key, dir: SplitDir) -> Option<i16> {
+        let step = self.step.min(i16::MAX as u16) as i16;
+        match (crate::core::keymap::lookup(&self.keymap, key)?, dir) {
+            (SplitCmd::Left, SplitDir::Horizontal) | (SplitCmd::Up, SplitDir::Vertical) => {
+                Some(-step)
+            }
+            (SplitCmd::Right, SplitDir::Horizontal) | (SplitCmd::Down, SplitDir::Vertical) => {
+                Some(step)
+            }
+            _ => None,
+        }
+    }
+
+    /// Resize `split` (laid out in `area` with `gap` cells between the
+    /// panes) when `key` is one of its chords: `Changed` when the seam
+    /// moved, `Consumed` at a minimum or while a pane is maximised (the
+    /// chord is still the split's), `None` for any other key.
+    pub fn apply(
+        &self,
+        key: &crate::core::event::Key,
+        split: &mut Split,
+        dir: SplitDir,
+        area: Rect,
+        gap: u16,
+    ) -> Option<crate::core::event::Outcome> {
+        use crate::core::event::Outcome;
+        let delta = self.delta(key, dir)?;
+        if split.maximized != Maximized::None {
+            return Some(Outcome::Consumed);
+        }
+        // the seam's cell, not the stored ratio: at a minimum the ratio
+        // may round differently while the panes stay where they were
+        let before = split.layout(dir, area, gap);
+        split.nudge(dir, area, gap, delta);
+        Some(if split.layout(dir, area, gap) == before {
+            Outcome::Consumed
+        } else {
+            Outcome::Changed
+        })
+    }
+
+    /// The footer hint for a split laid out in `dir`: `Alt+Shift+←→
+    /// Resize` with the default chords, the first bound deliverable chord
+    /// otherwise; `None` when nothing deliverable is bound.
+    pub fn hint(&self, dir: SplitDir) -> Option<crate::widgets::keyhint::Hint> {
+        use crate::core::keymap::{Actions, binding_for, hint_key};
+        let (a, b, both) = match dir {
+            SplitDir::Horizontal => (SplitCmd::Left, SplitCmd::Right, "Alt+Shift+←→"),
+            SplitDir::Vertical => (SplitCmd::Up, SplitCmd::Down, "Alt+Shift+↑↓"),
+        };
+        let defaults = SplitCmd::default_keymap();
+        let default_pair = [a, b]
+            .iter()
+            .all(|c| binding_for(&self.keymap, *c) == binding_for(&defaults, *c));
+        let key = if default_pair {
+            both
+        } else {
+            hint_key(&self.keymap, a).or_else(|| hint_key(&self.keymap, b))?
+        };
+        Some(crate::widgets::keyhint::hint(key, "Resize"))
+    }
+}
+
+#[cfg(test)]
+mod split_keys_tests {
+    use super::*;
+    use crate::core::event::{Key, Outcome};
+    use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+
+    fn key(code: KeyCode, mods: KeyModifiers) -> Key {
+        Key { code, mods }
+    }
+
+    #[test]
+    fn alt_shift_arrows_move_the_seam_on_its_axis_only() {
+        let keys = SplitKeys::default();
+        let m = KeyModifiers::ALT | KeyModifiers::SHIFT;
+        let area = Rect::new(0, 0, 81, 10);
+        let mut split = Split::new(50, 10, 10);
+        let before = split.layout(SplitDir::Horizontal, area, 1).0.width;
+        let o = keys.apply(
+            &key(KeyCode::Right, m),
+            &mut split,
+            SplitDir::Horizontal,
+            area,
+            1,
+        );
+        assert_eq!(o, Some(Outcome::Changed));
+        assert_eq!(
+            split.layout(SplitDir::Horizontal, area, 1).0.width,
+            before + 2
+        );
+        // the vertical chord is not a horizontal split's
+        let up = keys.apply(
+            &key(KeyCode::Up, m),
+            &mut split,
+            SplitDir::Horizontal,
+            area,
+            1,
+        );
+        assert_eq!(up, None);
+        // a plain arrow belongs to the pane
+        let plain = keys.apply(
+            &key(KeyCode::Left, KeyModifiers::NONE),
+            &mut split,
+            SplitDir::Horizontal,
+            area,
+            1,
+        );
+        assert_eq!(plain, None);
+        // at the minimum the chord is still consumed
+        let mut tight = Split::new(50, 40, 40);
+        let o = keys.apply(
+            &key(KeyCode::Left, m),
+            &mut tight,
+            SplitDir::Horizontal,
+            area,
+            1,
+        );
+        assert_eq!(o, Some(Outcome::Consumed));
+    }
+
+    #[test]
+    fn the_hint_names_the_bound_chord() {
+        let keys = SplitKeys::default();
+        assert_eq!(keys.hint(SplitDir::Horizontal).unwrap().key, "Alt+Shift+←→");
+        let custom = SplitKeys::default().keymap(vec![(
+            crate::core::keymap::KeyBinding::ctrl('h'),
+            SplitCmd::Left,
+        )]);
+        assert_eq!(custom.hint(SplitDir::Horizontal).unwrap().key, "Ctrl+H");
+        assert!(
+            SplitKeys::default()
+                .keymap(vec![])
+                .hint(SplitDir::Vertical)
+                .is_none()
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
