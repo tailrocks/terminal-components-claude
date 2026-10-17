@@ -1,0 +1,5 @@
+# Reachability gate (src/shell/reach.rs; app_tests_reach.rs of each app).
+# One line per (app, scenario, size) whose content is not all reachable:
+# <app> <scenario> <W>x<H> <missing word>... # <finding id> <reason>
+# Findings: docs/audits/design-review-2026-10/responsive.md. A fix drops
+# its lines (the gate fails while a fixed line is still here).
