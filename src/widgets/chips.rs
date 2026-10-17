@@ -123,6 +123,11 @@ pub enum ChipCmd {
     /// key. Only while chips are hidden; otherwise the key does what it
     /// did.
     ShowHidden,
+    /// Run the leading label (`match all ▾`), as a click on it does
+    /// ([`ChipAction::Lead`]), so the lead is not click-only (K38). Default
+    /// `m`. Only while the bar has a [`ChipBar::lead`]; otherwise the key
+    /// passes on.
+    Lead,
 }
 
 impl Actions for ChipCmd {
@@ -134,6 +139,7 @@ impl Actions for ChipCmd {
             (KeyBinding::char('+'), ChipCmd::Add),
             (KeyBinding::char('X'), ChipCmd::ClearAll),
             (KeyBinding::key(KeyCode::Down), ChipCmd::ShowHidden),
+            (KeyBinding::char('m'), ChipCmd::Lead),
         ]
     }
 }
@@ -320,6 +326,9 @@ impl ChipBar {
             {
                 self.open_menu();
                 return (Outcome::Changed, None);
+            }
+            Some(ChipCmd::Lead) if self.lead.is_some() => {
+                return (Outcome::Changed, Some(ChipAction::Lead));
             }
             _ => {}
         }
@@ -659,6 +668,23 @@ mod tests {
         assert_eq!(b.cursor, 1);
         // no third chip: the digit passes on
         assert_eq!(b.on_key(&key('3')), (Outcome::Ignored, None));
+    }
+
+    /// K38: the lead (`match all ▾`) has a key, so it is not click-only;
+    /// without a lead the key passes on to the page.
+    #[test]
+    fn the_lead_key_runs_the_lead_like_a_click() {
+        let m = Key {
+            code: KeyCode::Char('m'),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        let mut b = bar();
+        assert_eq!(b.on_key(&m), (Outcome::Ignored, None));
+        b.lead = Some("match all ▾".into());
+        assert_eq!(b.on_key(&m), (Outcome::Changed, Some(ChipAction::Lead)));
+        // the click on the lead and the key report the same action
+        let lead = b.lead_id();
+        assert_eq!(b.on_click(lead).1, Some(ChipAction::Lead));
     }
 
     #[test]

@@ -1259,6 +1259,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("chipsselects", "chipsselects.chip_keymap=custom"),
     ),
     (
+        "widgets::chips::ChipCmd::Lead",
+        Option("chipsselects", "chipsselects.chip_keymap=custom"),
+    ),
+    (
         "widgets::chips::ChipBar::close_target_w",
         Option("chipsselects", "chipsselects.close_target"),
     ),

@@ -1218,6 +1218,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("widgets::chips::ChipCmd::Add"),
     Capability::variant("widgets::chips::ChipCmd::ClearAll"),
     Capability::variant("widgets::chips::ChipCmd::ShowHidden"),
+    Capability::variant("widgets::chips::ChipCmd::Lead"),
     Capability::ty("widgets::chips::ChipAction"),
     Capability::variant("widgets::chips::ChipAction::Activate"),
     Capability::variant("widgets::chips::ChipAction::Toggle"),
