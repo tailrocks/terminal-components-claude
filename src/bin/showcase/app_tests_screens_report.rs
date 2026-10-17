@@ -124,6 +124,7 @@ fn report_link_pushes_the_page_and_esc_returns_to_the_button() {
 fn report_header_trail_pops_back_to_the_report() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
     h.click_id(REPORT.sub("next-disk"));
+    assert_eq!(h.app.page(), PageId::DiskCleanup);
     let (x, y) = h.at("Read-only report");
     assert_eq!(y, 0, "the header trail");
     h.click(x + 2, y);
