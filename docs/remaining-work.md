@@ -29,7 +29,8 @@ The branch is done when all of these hold:
    at 0 hits and its deviations recorded.
 2. Every SC-step (SC30–SC58) is "Done" and
    `tests/showcase_coverage_allow.txt` holds only `permanent` lines
-   (today: 544 pending, 866 permanent).
+   (today: 717 pending, 32 permanent; 661 functions covered via their
+   owner in `coverage.rs` `VIA`).
 3. Every finding in `docs/audits/design-review-2026-10/` is "Fixed" or
    recorded with a reason the owner accepted; no "open", "recorded, not
    fixed" or "owner question" entry is left without a decision (§2).
@@ -145,18 +146,20 @@ rows for new surfaces, the step's allowlist lines deleted with the gate
 green, no app-local code in `src/bin/showcase`, and the §7.8 row updated.
 
 Allowlist today (`tests/showcase_coverage_allow.txt`, `id | reason | step`):
-1410 lines, 866 `permanent`, 544 pending: SC58 210, SC34 176, SC31 74, SC41 47,
-SC33 26, SC38 7, SC32 4.
+749 lines, 32 `permanent`, 717 pending: SC34 347, SC58 210, SC31 76, SC41 47,
+SC33 26, SC38 7, SC32 4. Besides, 661 functions are covered via their owner
+(`VIA` in `src/bin/showcase/coverage.rs`, SC-G3).
 
 | Id | What | Depends on | Allowlist lines | Source |
 |---|---|---|---|---|
-| SC-G1 | **Done.** The scan lists free `pub fn`s and inherent methods of public types (not constructors) as `CapKind::Function`; 1207 entries registered; 30 declared as existing demos, 854 `permanent` (widget protocol, widget operations, plumbing), the rest pending on SC31/SC33/SC34/SC38/SC41 or the new SC58; plan "SC-G1 outcome". | — | +1177 | owner brief; plan "SC0 outcome" (scan scope) |
+| SC-G1 | **Done.** The scan lists free `pub fn`s and inherent methods of public types (not constructors) as `CapKind::Function`; 1207 entries registered; 30 declared as existing demos, 854 `permanent` (since SC-G3: `Via` or owner-pending), the rest pending on SC31/SC33/SC34/SC38/SC41 or the new SC58; plan "SC-G1 outcome". | — | +1177 | owner brief; plan "SC0 outcome" (scan scope) |
 | SC-G2 | **Done.** `TabCmd::ShowHidden` is shown (the Tabs keys readout names "↓ hidden tabs" while the strip has an overflow menu; `the_keys_readout_names_the_hidden_tabs_key_while_the_strip_has_a_menu`). Re-pointed with reasons: `TextInput::validate_on`, `ValidateOn` and its two variants to SC32 (no playground field is an untouched empty required field, so the two variants look the same until `ValidateWhen` lands on Inputs); `ChipCmd::ShowHidden` to SC33 (named only in the `+N` tooltip; the generated keyboard reference lists it; the Chips playground has approved captures). `Theme::centred_hints` stays on SC30, which shows it on Status & hints. The `type_ahead_timeout` lines moved under `# widgets::menu`; `# core::list` is gone. | — | 7 → 0 on finished steps | allowlist |
+| SC-G3 | **Done.** `Shown::Via(owner)`: a function covered by the demo of its owning type, from one compact `VIA` table in `coverage.rs` with `ViaRole` (Protocol, Operation, Plumbing) reasons; valid only while the owner has its own `Demo`/`Option`/`StateRow`. The 854 SC-G1 `permanent` function lines became 661 `Via`, 173 pending on the owner's step (SC34 171, SC31 2) and 20 specific runtime exclusions; `permanent` 866 → 32; plan "SC-G3 outcome". | SC-G1 | −661 | coordinator brief |
 | SC30 | **Done.** Status & hints shows the footer `StatusLine` (TTL, error, paused), the `Motion` levels on a running job, `Theme::centred_hints`, `TooSmall` with its builders as options and `CommonArgs` read from clap; plan "SC30 outcome". | S2 (done) | 5 → 0 | §7.5 SC-F table |
-| SC31 | Stacked modals through `ShellLayers`/`ModalStack`, `Dismiss::{focus_out, refuse_feedback}`, `Frame::close_button`, `DismissReason` in the State log; fix the recorded SC10 finding (a select's list closes on dead space under `Dismiss::ESCAPE` because `Select::close_on_blur`, not `Dismiss::focus_out`, decides blur) | S5, S7 (done): can run now | 43 | §7.5; "SC10 outcome" recorded finding; `interaction.md` "SC10 finding" |
+| SC31 | Stacked modals through `ShellLayers`/`ModalStack`, `Dismiss::{focus_out, refuse_feedback}`, `Frame::close_button`, `DismissReason` in the State log; fix the recorded SC10 finding (a select's list closes on dead space under `Dismiss::ESCAPE` because `Select::close_on_blur`, not `Dismiss::focus_out`, decides blur) | S5, S7 (done): can run now | 76 (incl. 2 `ModalStack` functions that move to `VIA` once it is shown) | §7.5; "SC10 outcome" recorded finding; `interaction.md` "SC10 finding" |
 | SC32 | `EditField`/`Validate`/`ValidateWhen`/`FieldError` on Inputs and Dialog kinds; `OptionList` `WheelMode`, `SelectArrows`, `Item` reason | S11, S12 | — | §7.5 |
 | SC33 | `HelpOverlay::from_keymaps` replaces the hand-listed `?` (SC6 note 1), `Footer` precedence, `HasHints` in State tab, generated `KeyReference` incl. `GridCmd`, `ClickPolicy`/`Activate`/`CheckClick`/`SelectGesture`, `RowUi`/`RowLook`/`CursorStyle::Bar`, peek line | S8b, S9, S10 | — | §7.5; `showcase-pages-navigation.md` SC6 1 |
-| SC34 | `ContentState` in every list-like States grid, Edit context menu on text widgets, the showcase shell on `Shell`/`Router`/`Chrome` with a clickable crumb and page stack, truthful clipboard results, Chrome toolbar, the State-tab dispatcher readout and widget action logs, `MenuBar::type_ahead_timeout` | S7, S13, S14 | 172 | §7.5; allowlist reasons |
+| SC34 | `ContentState` in every list-like States grid, Edit context menu on text widgets, the showcase shell on `Shell`/`Router`/`Chrome` with a clickable crumb and page stack, truthful clipboard results, Chrome toolbar, the State-tab dispatcher readout and widget action logs, `MenuBar::type_ahead_timeout` | S7, S13, S14 | 347 (incl. 171 functions of owners SC34 shows: `core::{event, hit, id, intent, pointer, response, shape}`, `RenderCtx`, `EditAction`, runtime readouts; they move to `VIA` with their owner) | §7.5; allowlist reasons |
 | SC35 | Row and tree extensions demo | S16 | — | §7.5 |
 | SC36 | `PageHeader`, `ActionRow`, `DetailCard`, library `NavList` (and `SidebarRail` on the Sidebars page, SC5 1), `Notice`, `MeterList` page, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | S17 | — | §7.5; `showcase-pages-navigation.md` SC5 1 |
 | SC37 | `FormPanel`, filter editor through `FormDialog` | S18 | — | §7.5 |
