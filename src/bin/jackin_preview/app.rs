@@ -11,7 +11,7 @@ use junie_tui::core::pointer::{
     MouseTarget, PointerEvent, PointerHost, PointerParts, PointerRouter,
 };
 use junie_tui::core::response::Response;
-use junie_tui::shell::{self, PageKey, Shell};
+use junie_tui::shell::{self, Chrome, Menus, PageKey, Router, Shell};
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layer::{
@@ -29,22 +29,22 @@ use ratatui::layout::{Position, Rect};
 
 use crate::arbiter::{EntryDecision, ExitDecision};
 use crate::domain::instance::InstanceStatus;
+use crate::pages::{Page, Pages, TAB_ACCOUNTS, TAB_MANAGER, TAB_USAGE};
 use crate::rain::{self, HANDOFF_LEN, IntroState, OutroState, handoff_stage};
 use crate::scenario::{Motion, Scenario};
-use crate::screens::accounts::AccountsScreen;
 use crate::screens::capsule::CapsuleScreen;
 use crate::screens::cockpit::CockpitScreen;
 use crate::screens::editor::EditorScreen;
-use crate::screens::manager::ManagerScreen;
 use crate::screens::modals::{FormAction, FormDialog, HelpOverlay, InfoResult};
 use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
-use crate::screens::usage::UsageScreen;
 use crate::screens::{AppLayer, Cx, Go, LayerTag, ModalResult, Request, Screen};
 use crate::sim::launch::LaunchPlan;
 use crate::sim::world::{Msg, World};
 use junie_tui::shell::Page as _;
+use junie_tui::ui::leave::{LeaveGuard, Stakes};
 use junie_tui::widgets::brand::Lockup;
+use junie_tui::widgets::dialog::DialogResult;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
 /// The canonical product mark; every brand lockup renders exactly this.
@@ -91,69 +91,19 @@ impl Route {
 type Layers = ShellLayers<ModalResult, World, Route>;
 type Entry = LayerEntry<ModalResult, World, Route>;
 
-#[derive(Default)]
-pub struct Screens {
-    pub manager: ManagerScreen,
-    pub accounts: AccountsScreen,
-    pub usage: UsageScreen,
-    pub settings: Option<SettingsScreen>,
-    pub editor: Option<EditorScreen>,
-    pub prelude: Option<PreludeScreen>,
-    pub cockpit: Option<CockpitScreen>,
-    pub capsule: Option<CapsuleScreen>,
-}
-
-impl Screens {
-    fn get_mut(&mut self, route: Route) -> Option<&mut dyn Screen> {
-        match route {
-            Route::Manager => Some(&mut self.manager),
-            Route::Accounts => Some(&mut self.accounts),
-            Route::Usage => Some(&mut self.usage),
-            Route::Settings => self.settings.as_mut().map(|s| s as &mut dyn Screen),
-            Route::Editor => self.editor.as_mut().map(|s| s as &mut dyn Screen),
-            Route::Prelude => self.prelude.as_mut().map(|s| s as &mut dyn Screen),
-            Route::Cockpit => self.cockpit.as_mut().map(|s| s as &mut dyn Screen),
-            Route::Capsule => self.capsule.as_mut().map(|s| s as &mut dyn Screen),
-            Route::Intro | Route::Outro | Route::Handoff => None,
-        }
-    }
-
-    fn get(&self, route: Route) -> Option<&dyn Screen> {
-        match route {
-            Route::Manager => Some(&self.manager),
-            Route::Accounts => Some(&self.accounts),
-            Route::Usage => Some(&self.usage),
-            Route::Settings => self.settings.as_ref().map(|s| s as &dyn Screen),
-            Route::Editor => self.editor.as_ref().map(|s| s as &dyn Screen),
-            Route::Prelude => self.prelude.as_ref().map(|s| s as &dyn Screen),
-            Route::Cockpit => self.cockpit.as_ref().map(|s| s as &dyn Screen),
-            Route::Capsule => self.capsule.as_ref().map(|s| s as &dyn Screen),
-            Route::Intro | Route::Outro | Route::Handoff => None,
-        }
-    }
-}
-
-/// Every route that owns a screen, for broadcasting focus changes.
-const ROUTES: [Route; 8] = [
-    Route::Manager,
-    Route::Accounts,
-    Route::Usage,
-    Route::Settings,
-    Route::Editor,
-    Route::Prelude,
-    Route::Cockpit,
-    Route::Capsule,
-];
-
 pub struct App {
     pub theme: Theme,
     pub scenario: Scenario,
     pub world: World,
-    pub route: Route,
     pub intro: Option<IntroState>,
     pub outro: Option<OutroState>,
+    /// The handoff's frame while the cockpit hands over to the Capsule
+    /// (both are on the router, the Capsule on top).
     pub handoff: Option<u64>,
-    pub screens: Screens,
+    /// The pages ([`shell::Router`], [`crate::pages`]): the manager,
+    /// Accounts and Usage keep their tabs; every other route opens over
+    /// the manager, and Back is the manager.
+    pub router: Router<Page>,
     layers: Layers,
     /// Focus, ring, hit regions, pointer, the footer status (5 s on the
     /// world clock; an error stays until the next action), size, motion
@@ -164,11 +114,16 @@ pub struct App {
     /// host screen (never over a field or unsaved edits), `u`/`c`/`s` the
     /// host routes.
     pub keys: shell::ShellKeys<JackinCmd>,
-    /// A quit is waiting on the screen's unsaved-changes question: when
-    /// that flow leaves for the manager (Save or Discard), the app quits.
-    quit_after_leave: bool,
-    /// The application menu bar shown on every host screen.
+    /// The quit's leave guard ([`Shell::quit_through`]): while a quit
+    /// waits on the screen's unsaved-changes question it is pending, and
+    /// when that flow leaves for the manager (Save or Discard), the app
+    /// quits.
+    quit_guard: LeaveGuard<()>,
+    /// The application menu bar shown on every host screen, built from
+    /// [`Self::host_menus`].
     pub host_menu: MenuBar,
+    /// The host menus, each item with its command (M23).
+    host_menus: Menus<HostCmd>,
     host_menu_route: Route,
     intro_guard: u8,
     pub clipboard_gen: u32,
@@ -200,20 +155,23 @@ impl App {
         world.clock.running = motion != Motion::Paused;
         let mut shell = Shell::new();
         shell.motion = motion;
+        // the preview's clipboard is the simulated world's: a copy is
+        // reported truthfully and never written to the real terminal
+        shell.clipboard = shell::Clipboard::new().write(false);
         let mut app = Self {
             theme,
             scenario,
             world,
-            route: Route::Manager,
             intro: None,
             outro: None,
             handoff: None,
-            screens: Screens::default(),
+            router: crate::pages::router(),
             layers: ShellLayers::new(),
             shell,
             keys: shell_keys(),
-            quit_after_leave: false,
-            host_menu: Self::build_host_menu(Route::Manager),
+            quit_guard: LeaveGuard::new(WidgetId::of("quit.guard")),
+            host_menu: Self::host_bar(&Self::build_host_menu(Route::Manager)),
+            host_menus: Self::build_host_menu(Route::Manager),
             host_menu_route: Route::Manager,
             intro_guard: 3,
             clipboard_gen: 0,
@@ -234,7 +192,6 @@ impl App {
                     _ => Some(8_040),
                 };
                 self.outro = Some(OutroState::new(self.shell.motion, elapsed, frame));
-                self.route = Route::Outro;
                 return;
             }
             _ => {}
@@ -246,7 +203,6 @@ impl App {
                     self.enter_manager();
                 } else {
                     self.intro = Some(IntroState::new(self.shell.motion, frame));
-                    self.route = Route::Intro;
                 }
             }
             EntryDecision::JoinActive { .. } => self.enter_manager(),
@@ -286,7 +242,7 @@ impl App {
                 });
                 if frame > 0 {
                     let (_, reqs) = self.shell.deliver(true, |cx| {
-                        if let Some(c) = self.screens.cockpit.as_mut() {
+                        if let Some(c) = self.router.cockpit_mut() {
                             c.seek(frame, &mut self.world, cx);
                         }
                         Outcome::Ignored
@@ -303,11 +259,43 @@ impl App {
     }
 
     fn enter_manager(&mut self) {
-        self.route = Route::Manager;
+        self.show_tab(TAB_MANAGER);
         self.on_route(Route::Manager, Outcome::Ignored, |s, w, cx| {
             s.enter(w, cx);
             Outcome::Ignored
         });
+    }
+
+    /// The shown route: a full-screen sequence (the outro, the intro, the
+    /// handoff) over the router, else the router's shown page.
+    pub fn route(&self) -> Route {
+        if self.outro.is_some() {
+            Route::Outro
+        } else if self.intro.is_some() {
+            Route::Intro
+        } else if self.handoff.is_some() {
+            Route::Handoff
+        } else {
+            self.router.current().route()
+        }
+    }
+
+    /// Show the root of `tab` (the manager, Accounts or Usage): the pages
+    /// opened over the manager are dropped, and a sequence still on
+    /// screen ends.
+    fn show_tab(&mut self, tab: usize) {
+        self.intro = None;
+        self.handoff = None;
+        self.router.select(TAB_MANAGER);
+        self.router.pop_to(0);
+        self.router.select(tab);
+    }
+
+    /// Open `page` over the manager (Back is the manager) and enter it.
+    fn open_page(&mut self, page: Page) {
+        self.show_tab(TAB_MANAGER);
+        self.router.push(page);
+        self.enter_route();
     }
 
     pub fn set_status(&mut self, s: &str, tone: Tone) {
@@ -316,12 +304,12 @@ impl App {
 
     fn animating(&self) -> bool {
         matches!(
-            self.route,
+            self.route(),
             Route::Intro | Route::Outro | Route::Handoff | Route::Cockpit | Route::Capsule
         ) || self.shell.pointer.has_flash()
             || self
-                .screens
-                .get(self.route)
+                .router
+                .screen(self.route())
                 .is_some_and(|s| s.animating(&self.world))
             || self.layer_animates()
             || !self.world.jobs.is_empty()
@@ -332,7 +320,7 @@ impl App {
         if self.shell.motion == Motion::Paused {
             return std::time::Duration::from_millis(500);
         }
-        std::time::Duration::from_millis(self.route.tick_ms(self.animating()))
+        std::time::Duration::from_millis(self.route().tick_ms(self.animating()))
     }
 
     /// Milliseconds on the pointer clock (the simulated world clock).
@@ -352,7 +340,7 @@ impl App {
             out = self.settle_layers(out);
             // a route behind the shown one may only report a status (the
             // background-request policy, `Shell::deliver`)
-            for route in ROUTES {
+            for route in self.router.routes() {
                 out =
                     out.or(self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_blur(ch, w, cx)));
             }
@@ -370,7 +358,7 @@ impl App {
     }
 
     fn on_tick(&mut self) -> Outcome {
-        let interval = self.route.tick_ms(true) as i64;
+        let interval = self.route().tick_ms(true) as i64;
         let msgs = self.world.tick(interval);
         let mut out = if self.animating() {
             Outcome::Changed
@@ -397,7 +385,7 @@ impl App {
         if self.intro_guard > 0 {
             self.intro_guard -= 1;
         }
-        match self.route {
+        match self.route() {
             Route::Intro => {
                 if let Some(s) = self.intro.as_mut() {
                     s.on_tick();
@@ -436,7 +424,7 @@ impl App {
             out = self.settle_layers(out.or(o));
         }
         // screen tick
-        let route = self.route;
+        let route = self.route();
         out = out.or(self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_tick(w, cx)));
         // messages
         for m in msgs {
@@ -450,10 +438,10 @@ impl App {
         // owner reports the result (a failure that only opens a dialog
         // leaves no "Saving…" under it)
         let ended = m.job().is_some_and(|job| self.shell.status.end_job(job));
-        let route = self.route;
+        let route = self.route();
         let (o, reqs) = self
             .shell
-            .deliver(true, |cx| match self.screens.get_mut(route) {
+            .deliver(true, |cx| match self.router.screen_mut(route) {
                 Some(s) => s.on_msg(&m, &mut self.world, cx),
                 None => Outcome::Ignored,
             });
@@ -462,10 +450,10 @@ impl App {
         let (o, behind) = self.shell.deliver(false, |cx| {
             let mut o = o;
             if !o.consumed() && route != Route::Manager {
-                o = self.screens.manager.on_msg(&m, &mut self.world, cx);
+                o = self.router.manager_mut().on_msg(&m, &mut self.world, cx);
             }
             if !o.consumed() && route != Route::Accounts {
-                o = self.screens.accounts.on_msg(&m, &mut self.world, cx);
+                o = self.router.accounts_mut().on_msg(&m, &mut self.world, cx);
             }
             o
         });
@@ -482,8 +470,10 @@ impl App {
 
     fn finish_handoff(&mut self) {
         self.handoff = None;
-        self.screens.cockpit = None;
-        self.route = Route::Capsule;
+        // the Capsule takes the cockpit's place over the manager
+        if let Some(capsule) = self.router.back() {
+            self.router.replace(capsule);
+        }
         self.on_route(Route::Capsule, Outcome::Ignored, |s, w, cx| {
             s.enter(w, cx);
             Outcome::Ignored
@@ -494,7 +484,7 @@ impl App {
     /// handoff): Enter and Esc skip it; Ctrl+C leaves the intro and the
     /// outro at once. `None` on any other route.
     fn sequence_key(&mut self, key: &Key) -> Option<Outcome> {
-        match self.route {
+        match self.route() {
             Route::Intro => {
                 if self.intro_guard > 0 && self.shell.motion != Motion::Paused {
                     return Some(Outcome::Consumed);
@@ -541,18 +531,18 @@ impl App {
 
     /// The host screen's page is editing or has its own menu open.
     fn host_editing(&self) -> bool {
-        self.screens
-            .get(self.route)
+        self.router
+            .screen(self.route())
             .is_some_and(|s| s.is_editing() || s.layer_open())
     }
 
     /// `q` on a host screen: never over unsaved edits; the manager quits,
     /// any other host screen goes back to it.
     fn leave_key(&mut self) -> Outcome {
-        let route = self.route;
+        let route = self.route();
         let dirty = self
-            .screens
-            .get_mut(route)
+            .router
+            .screen_mut(route)
             .is_some_and(|s| !s.stakes(&self.world).is_clean());
         if dirty {
             self.set_status("Unsaved changes · save, or Esc to leave", Tone::Secondary);
@@ -570,18 +560,29 @@ impl App {
     /// Save / Discard / Cancel first, and the app quits when that flow
     /// leaves the screen.
     fn request_quit(&mut self) -> Outcome {
-        let route = self.route;
-        let dirty = self
-            .screens
-            .get_mut(route)
-            .is_some_and(|s| !s.stakes(&self.world).is_clean());
-        if !dirty {
-            self.world.arbiter.release_entry();
-            self.shell.quit = true;
-            return Outcome::Consumed;
+        let stakes = shell::App::stakes(self);
+        match self
+            .shell
+            .quit_through(&mut self.quit_guard, &stakes, &self.theme.strings)
+        {
+            Ok(()) => {
+                self.world.arbiter.release_entry();
+                Outcome::Consumed
+            }
+            // the guard keeps the quit pending; the screen asks its own
+            // Save / Discard / Cancel (its save previews first), not the
+            // guard's generic question (S20 moves it into EditorShell)
+            Err(_) => {
+                let route = self.route();
+                self.on_route(route, Outcome::Ignored, |s, w, cx| s.request_leave(w, cx))
+            }
         }
-        self.quit_after_leave = true;
-        self.on_route(route, Outcome::Ignored, |s, w, cx| s.request_leave(w, cx))
+    }
+
+    /// Quit now: the user already answered (or nothing is at stake).
+    fn quit_now(&mut self) {
+        self.world.arbiter.release_entry();
+        self.shell.quit = true;
     }
 
     fn is_host(route: Route) -> bool {
@@ -596,131 +597,143 @@ impl App {
         )
     }
 
-    /// The menu bar of the host screens: the same bar as the Capsule's, with
+    /// The menus of the host screens: the same bar as the Capsule's, with
     /// the screen's own actions under File and the destinations under Go.
-    fn build_host_menu(route: Route) -> MenuBar {
-        let file: Vec<MenuItem> = match route {
+    /// Each item carries its command; an action item presses the key it
+    /// names, so menus and keys can never disagree.
+    fn build_host_menu(route: Route) -> Menus<HostCmd> {
+        use HostCmd::{Press, Quit};
+        let k = |c: char| Press(plain(KeyCode::Char(c)));
+        let file: Vec<(MenuItem, HostCmd)> = match route {
             Route::Manager => vec![
-                MenuItem::new("New workspace…").shortcut("n"),
-                MenuItem::new("Edit workspace…").shortcut("e"),
-                MenuItem::new("Launch…").shortcut("Enter"),
-                MenuItem::new("Prewarm").shortcut("w"),
-                MenuItem::new("Delete workspace…")
-                    .shortcut("d")
-                    .danger()
-                    .separator(),
-                MenuItem::new("Refresh").shortcut("F5").separator(),
-                MenuItem::new("Quit").shortcut("Ctrl+Q"),
+                (MenuItem::new("New workspace…").shortcut("n"), k('n')),
+                (MenuItem::new("Edit workspace…").shortcut("e"), k('e')),
+                (
+                    MenuItem::new("Launch…").shortcut("Enter"),
+                    Press(plain(KeyCode::Enter)),
+                ),
+                (MenuItem::new("Prewarm").shortcut("w"), k('w')),
+                (
+                    MenuItem::new("Delete workspace…")
+                        .shortcut("d")
+                        .danger()
+                        .separator(),
+                    k('d'),
+                ),
+                (
+                    MenuItem::new("Refresh").shortcut("F5").separator(),
+                    Press(plain(KeyCode::F(5))),
+                ),
+                (MenuItem::new("Quit").shortcut("Ctrl+Q"), Quit),
             ],
             Route::Editor | Route::Settings => vec![
-                MenuItem::new("Save…").shortcut("Ctrl+S").separator(),
-                MenuItem::new("Cancel").shortcut("Esc"),
+                (
+                    MenuItem::new("Save…").shortcut("Ctrl+S").separator(),
+                    Press(Key {
+                        code: KeyCode::Char('s'),
+                        mods: KeyModifiers::CONTROL,
+                    }),
+                ),
+                (
+                    MenuItem::new("Cancel").shortcut("Esc"),
+                    Press(plain(KeyCode::Esc)),
+                ),
             ],
             Route::Accounts => vec![
-                MenuItem::new("Add account…").shortcut("a"),
-                MenuItem::new("Edit account…").shortcut("e"),
-                MenuItem::new("Validate").shortcut("v").separator(),
-                MenuItem::new("Refresh selection").shortcut("r"),
-                MenuItem::new("Refresh all").shortcut("F5"),
-                MenuItem::new("Filter…").shortcut("/"),
+                (MenuItem::new("Add account…").shortcut("a"), k('a')),
+                (MenuItem::new("Edit account…").shortcut("e"), k('e')),
+                (MenuItem::new("Validate").shortcut("v").separator(), k('v')),
+                (MenuItem::new("Refresh selection").shortcut("r"), k('r')),
+                (
+                    MenuItem::new("Refresh all").shortcut("F5"),
+                    Press(plain(KeyCode::F(5))),
+                ),
+                (MenuItem::new("Filter…").shortcut("/"), k('/')),
             ],
             Route::Usage => vec![
-                MenuItem::new("Refresh").shortcut("r"),
-                MenuItem::new("Manage in Accounts").shortcut("m"),
+                (MenuItem::new("Refresh").shortcut("r"), k('r')),
+                (MenuItem::new("Manage in Accounts").shortcut("m"), k('m')),
             ],
-            _ => vec![MenuItem::new("Cancel").shortcut("Esc")],
+            _ => vec![(
+                MenuItem::new("Cancel").shortcut("Esc"),
+                Press(plain(KeyCode::Esc)),
+            )],
         };
         let go = vec![
-            MenuItem::new("Workspace manager").shortcut("Esc"),
-            MenuItem::new("Account & Usage Center").shortcut("c"),
-            MenuItem::new("Usage").shortcut("u"),
-            MenuItem::new("Global settings").shortcut("s"),
+            (
+                MenuItem::new("Workspace manager").shortcut("Esc"),
+                HostCmd::Manager,
+            ),
+            (
+                MenuItem::new("Account & Usage Center").shortcut("c"),
+                HostCmd::Accounts,
+            ),
+            (MenuItem::new("Usage").shortcut("u"), HostCmd::Usage),
+            (
+                MenuItem::new("Global settings").shortcut("s"),
+                HostCmd::Settings,
+            ),
         ];
         let help = vec![
-            MenuItem::new("Key reference").shortcut("?"),
-            MenuItem::new("About jackin-preview"),
+            (MenuItem::new("Key reference").shortcut("?"), HostCmd::Help),
+            (MenuItem::new("About jackin-preview"), HostCmd::About),
         ];
-        MenuBar::new(HOST_MENU, vec![("File", file), ("Go", go), ("Help", help)])
-            .brand(Lockup::new(BRAND_MARK))
+        Menus::new()
+            .menu("File", file)
+            .menu("Go", go)
+            .menu("Help", help)
+    }
+
+    /// The host menu bar showing `menus`.
+    fn host_bar(menus: &Menus<HostCmd>) -> MenuBar {
+        menus.bar(HOST_MENU).brand(Lockup::new(BRAND_MARK))
     }
 
     fn sync_host_menu(&mut self) {
-        if self.host_menu_route != self.route && Self::is_host(self.route) {
-            self.host_menu = Self::build_host_menu(self.route);
-            self.host_menu_route = self.route;
+        if self.host_menu_route != self.route() && Self::is_host(self.route()) {
+            self.host_menus = Self::build_host_menu(self.route());
+            self.host_menu = Self::host_bar(&self.host_menus);
+            self.host_menu_route = self.route();
         }
     }
 
-    /// A menu item on a host screen either navigates or presses the key the
-    /// item names, so menus and keys can never disagree.
-    fn run_host_menu(&mut self, label: &str) -> Outcome {
-        let editing_screen = matches!(self.route, Route::Editor | Route::Settings | Route::Prelude);
-        let key = |code: KeyCode, mods: KeyModifiers| Input::Key(Key { code, mods });
-        match label {
-            "Workspace manager" => {
-                if editing_screen {
-                    // the editor asks about unsaved work on its own way out
-                    return shell::handle(self, key(KeyCode::Esc, KeyModifiers::NONE));
-                }
-                self.go(Go::Manager);
+    /// What the host menu bar's `action` asks for: a chosen item runs its
+    /// command, the brand opens About.
+    fn host_menu_action(&mut self, action: MenuBarAction, o: Outcome) -> Outcome {
+        if let MenuBarAction::Brand = action {
+            self.open_about();
+            return Outcome::Changed;
+        }
+        match self.host_menus.command(action) {
+            Some(cmd) => self.run_host_cmd(cmd),
+            None => o,
+        }
+    }
+
+    /// Run a host menu command: a destination navigates (an editing
+    /// screen keeps the user until it is saved or cancelled), an action
+    /// presses its key through the shell's key order.
+    fn run_host_cmd(&mut self, cmd: HostCmd) -> Outcome {
+        let editing_screen = matches!(
+            self.route(),
+            Route::Editor | Route::Settings | Route::Prelude
+        );
+        match cmd {
+            HostCmd::Manager if editing_screen => {
+                // the editor asks about unsaved work on its own way out
+                return shell::KeyRouter::replay(self, &plain(KeyCode::Esc));
             }
-            "Account & Usage Center" | "Usage" | "Global settings" => {
-                if editing_screen {
-                    self.set_status("Save or cancel this screen first", Tone::Secondary);
-                    return Outcome::Changed;
-                }
-                match label {
-                    "Account & Usage Center" => self.go(Go::Accounts { select: None }),
-                    "Usage" => self.go(Go::Usage { select: None }),
-                    _ => self.go(Go::Settings),
-                }
+            HostCmd::Manager => self.go(Go::Manager),
+            HostCmd::Accounts | HostCmd::Usage | HostCmd::Settings if editing_screen => {
+                self.set_status("Save or cancel this screen first", Tone::Secondary);
             }
-            "Key reference" => self.open_help(),
-            "About jackin-preview" => self.open_about(),
-            "Quit" => {
-                return self.request_quit();
-            }
-            "New workspace…" => {
-                return shell::handle(self, key(KeyCode::Char('n'), KeyModifiers::NONE));
-            }
-            "Edit workspace…" | "Edit account…" => {
-                return shell::handle(self, key(KeyCode::Char('e'), KeyModifiers::NONE));
-            }
-            "Launch…" => return shell::handle(self, key(KeyCode::Enter, KeyModifiers::NONE)),
-            "Prewarm" => return shell::handle(self, key(KeyCode::Char('w'), KeyModifiers::NONE)),
-            "Delete workspace…" => {
-                return shell::handle(self, key(KeyCode::Char('d'), KeyModifiers::NONE));
-            }
-            "Refresh" | "Refresh selection" => {
-                return shell::handle(
-                    self,
-                    key(
-                        if self.route == Route::Manager {
-                            KeyCode::F(5)
-                        } else {
-                            KeyCode::Char('r')
-                        },
-                        KeyModifiers::NONE,
-                    ),
-                );
-            }
-            "Refresh all" => return shell::handle(self, key(KeyCode::F(5), KeyModifiers::NONE)),
-            "Save…" => {
-                return shell::handle(self, key(KeyCode::Char('s'), KeyModifiers::CONTROL));
-            }
-            "Cancel" => return shell::handle(self, key(KeyCode::Esc, KeyModifiers::NONE)),
-            "Add account…" => {
-                return shell::handle(self, key(KeyCode::Char('a'), KeyModifiers::NONE));
-            }
-            "Validate" => return shell::handle(self, key(KeyCode::Char('v'), KeyModifiers::NONE)),
-            "Filter…" => return shell::handle(self, key(KeyCode::Char('/'), KeyModifiers::NONE)),
-            "Manage in Accounts" => {
-                return shell::handle(self, key(KeyCode::Char('m'), KeyModifiers::NONE));
-            }
-            _ => self.set_status(
-                &format!("{label}: not available in the preview"),
-                Tone::Secondary,
-            ),
+            HostCmd::Accounts => self.go(Go::Accounts { select: None }),
+            HostCmd::Usage => self.go(Go::Usage { select: None }),
+            HostCmd::Settings => self.go(Go::Settings),
+            HostCmd::Help => self.open_help(),
+            HostCmd::About => self.open_about(),
+            HostCmd::Quit => return self.request_quit(),
+            HostCmd::Press(key) => return shell::KeyRouter::replay(self, &key),
         }
         Outcome::Changed
     }
@@ -743,7 +756,7 @@ impl App {
         ];
         let d = crate::screens::modals::InfoDialog::new(WidgetId::of("host.about"), "About", props)
             .width(64);
-        self.open_layer(Box::new(d), LayerTag::new("about"), self.route);
+        self.open_layer(Box::new(d), LayerTag::new("about"), self.route());
     }
 
     /// Row zero of every host screen: the menu bar, then the Construct state
@@ -763,7 +776,7 @@ impl App {
         let rest = Rect::new(used + 2, area.y, area.right().saturating_sub(used + 2), 1);
         let (state, tone) = self.construct_state(route);
         let mut right = vec![];
-        if let Some(s) = self.screens.get(route) {
+        if let Some(s) = self.router.screen(route) {
             right.push(Segment::new(s.crumb(&self.world), Tone::Secondary).priority(7));
             right.extend(s.strip_right(&self.world));
         }
@@ -801,11 +814,11 @@ impl App {
             return;
         }
         let scope = self
-            .screens
-            .get(self.route)
+            .router
+            .screen(self.route())
             .map(|s| s.crumb(&self.world))
             .unwrap_or_default();
-        let sections: Vec<(&str, Vec<(&str, &str)>)> = match self.route {
+        let sections: Vec<(&str, Vec<(&str, &str)>)> = match self.route() {
             Route::Capsule => vec![
                 (
                     "Capsule",
@@ -1118,7 +1131,7 @@ impl App {
             })
         }));
         let h = HelpOverlay::from_keymaps(WidgetId::of("help"), &scope, sections);
-        self.open_layer(Box::new(h), LayerTag::new("help"), self.route);
+        self.open_layer(Box::new(h), LayerTag::new("help"), self.route());
     }
 
     // ------------------------------------------------------------ layers
@@ -1130,7 +1143,7 @@ impl App {
         self.layers.open(layer, tag, owner, &mut self.shell.focus);
         self.shell.pointer.hover = None;
         self.shell.pointer.pressed = None;
-        if let Some(c) = self.screens.capsule.as_mut() {
+        if let Some(c) = self.router.capsule_mut() {
             c.dialog_open = true;
         }
     }
@@ -1138,7 +1151,7 @@ impl App {
     /// A layer closed: the Capsule takes input again once none is open.
     fn layer_gone(&mut self) {
         if self.layers.is_empty()
-            && let Some(c) = self.screens.capsule.as_mut()
+            && let Some(c) = self.router.capsule_mut()
         {
             c.dialog_open = false;
         }
@@ -1185,7 +1198,7 @@ impl App {
                 ModalResult::FormAction(name, self.top_form_values())
             }
             ModalResult::Info(InfoResult::Copy(v)) => {
-                self.copy(v);
+                self.copy(v, None);
                 return Outcome::Changed;
             }
             r => r,
@@ -1219,17 +1232,6 @@ impl App {
             },
             r => r,
         };
-        if entry.tag.kind == "quit" && entry.owner == self.route {
-            if let ModalResult::Dialog {
-                action: Some(a), ..
-            } = r
-                && Some(a) != cancel_index
-            {
-                self.world.arbiter.release_entry();
-                self.shell.quit = true;
-            }
-            return Outcome::Changed;
-        }
         self.tell_owner(entry.owner, &entry.tag, r)
     }
 
@@ -1250,11 +1252,14 @@ impl App {
             .unwrap_or_default()
     }
 
-    /// Put `v` on the preview clipboard.
-    fn copy(&mut self, v: String) {
+    /// Put `v` on the preview clipboard through the shell's
+    /// ([`Shell::copy_at`]): the status says what was copied, named
+    /// `what` when the screen gave a name.
+    fn copy(&mut self, v: String, what: Option<String>) {
+        let now = self.world.clock.now();
+        self.shell.copy_at(&v, what.as_deref(), now);
         self.world.clipboard = Some(v);
         self.clipboard_gen += 1;
-        self.set_status("Copied to the preview clipboard", Tone::Secondary);
     }
 
     /// The picker on top asks its owner for rows matching its query.
@@ -1267,8 +1272,8 @@ impl App {
         };
         let (tag, owner, query) = (top.tag.clone(), top.owner, p.query().to_owned());
         let items = self
-            .screens
-            .get_mut(owner)
+            .router
+            .screen_mut(owner)
             .and_then(|s| s.picker_items(&tag, &query, &self.world));
         if let Some(items) = items
             && let Some(p) = self.layers.top_as_mut::<Picker>()
@@ -1291,7 +1296,7 @@ impl App {
         let Some(form) = top.get_mut::<FormDialog>() else {
             return;
         };
-        if let Some(s) = self.screens.get_mut(owner) {
+        if let Some(s) = self.router.screen_mut(owner) {
             s.form_changed(&tag, form, &self.world);
         }
     }
@@ -1378,7 +1383,7 @@ impl App {
     /// is open, then the chrome (host menu bar, identity strip) and the
     /// route's screen.
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
-        if matches!(self.route, Route::Intro | Route::Outro | Route::Handoff) {
+        if matches!(self.route(), Route::Intro | Route::Outro | Route::Handoff) {
             // a completed click skips the animation as Enter does
             return if ev.is(Phase::Click) {
                 self.skip_animation()
@@ -1405,7 +1410,7 @@ impl App {
     /// A completed click on the intro or the outro skips it as Enter does
     /// ([`junie_tui::core::pointer::PointerConfig::click_skips_animation`]).
     fn skip_animation(&mut self) -> Outcome {
-        if matches!(self.route, Route::Intro | Route::Outro)
+        if matches!(self.route(), Route::Intro | Route::Outro)
             && self.shell.pointer.config.click_skips_animation
         {
             return shell::KeyRouter::replay(
@@ -1439,21 +1444,14 @@ impl App {
     /// An event on the chrome around the screen: the host menu bar and
     /// the identity strip's segments; `None` when it is not the chrome's.
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
-        if Self::is_host(self.route) {
+        if Self::is_host(self.route()) {
             // a title opens on the press (MenuBar::open_on); a click
             // chooses a row, the brand opens About
             if let Some(r) = self.host_menu.route(ev) {
                 let (o, act) = r.into_parts();
                 return Some(match act {
-                    Some(MenuBarAction::Chosen(mi, ii)) => {
-                        let label = self.host_menu.menus[mi][ii].item.label.clone();
-                        self.run_host_menu(&label)
-                    }
-                    Some(MenuBarAction::Brand) => {
-                        self.open_about();
-                        Outcome::Changed
-                    }
-                    _ => o,
+                    Some(a) => self.host_menu_action(a, o),
+                    None => o,
                 });
             }
             // a click anywhere else closes the open menu
@@ -1481,7 +1479,7 @@ impl App {
 
     /// An event on the route's screen, with the requests it made.
     fn screen_pointer(&mut self, ev: &PointerEvent) -> Outcome {
-        let route = self.route;
+        let route = self.route();
         self.on_route(route, Outcome::Ignored, |s, w, cx| s.pointer(ev, w, cx))
     }
 
@@ -1496,10 +1494,10 @@ impl App {
         absent: Outcome,
         f: impl FnOnce(&mut dyn Screen, &mut World, &mut Cx) -> Outcome,
     ) -> Outcome {
-        let shown = route == self.route;
+        let shown = route == self.route();
         let (o, reqs) = self
             .shell
-            .deliver(shown, |cx| match self.screens.get_mut(route) {
+            .deliver(shown, |cx| match self.router.screen_mut(route) {
                 Some(s) => f(s, &mut self.world, cx),
                 None => absent,
             });
@@ -1526,7 +1524,7 @@ impl App {
                 Request::Go(g) => self.go(g),
                 Request::Help => self.open_help(),
                 Request::Back => self.go(Go::Manager),
-                Request::Copy(s, _) => self.copy(s),
+                Request::Copy(s, what) => self.copy(s, what),
                 Request::Top(f) => {
                     if let Some(top) = self.layers.top_mut() {
                         f(&mut *top.layer);
@@ -1540,49 +1538,43 @@ impl App {
 
     pub fn go(&mut self, g: Go) {
         // the unsaved-changes question of a quit resolved to leaving
-        if self.quit_after_leave && matches!(g, Go::Manager) {
-            self.quit_after_leave = false;
-            self.world.arbiter.release_entry();
-            self.shell.quit = true;
+        // (Save or Discard): the quit goes on
+        if self.quit_guard.pending().is_some() && matches!(g, Go::Manager) {
+            self.quit_guard.resolve(DialogResult::Action(1));
+            self.quit_now();
             return;
         }
         let now = self.world.now_ms();
         match g {
             Go::Manager => {
-                self.route = Route::Manager;
-                self.screens.editor = None;
-                self.screens.settings = None;
-                self.screens.prelude = None;
+                self.show_tab(TAB_MANAGER);
                 self.enter_route();
             }
             Go::Settings => {
-                self.screens.settings = Some(SettingsScreen::new(&self.world));
-                self.route = Route::Settings;
-                self.enter_route();
+                let page = Page::Settings(Box::new(SettingsScreen::new(&self.world)));
+                self.open_page(page);
             }
             Go::Accounts { select } => {
-                self.route = Route::Accounts;
-                self.screens.accounts.select(select);
+                self.show_tab(TAB_ACCOUNTS);
+                self.router.accounts_mut().select(select);
                 self.enter_route();
             }
             Go::Usage { select } => {
-                self.route = Route::Usage;
-                self.screens.usage.select(select);
+                self.show_tab(TAB_USAGE);
+                self.router.usage_mut().select(select);
                 self.enter_route();
             }
             Go::Editor { workspace, pending } => {
-                self.screens.editor = Some(EditorScreen::new(
+                let page = Page::Editor(Box::new(EditorScreen::new(
                     &self.world,
                     workspace,
                     pending.map(|b| *b),
-                ));
-                self.route = Route::Editor;
-                self.enter_route();
+                )));
+                self.open_page(page);
             }
             Go::Prelude => {
-                self.screens.prelude = Some(PreludeScreen::new(&self.world));
-                self.route = Route::Prelude;
-                self.enter_route();
+                let page = Page::Prelude(Box::new(PreludeScreen::new(&self.world)));
+                self.open_page(page);
             }
             Go::Launch {
                 workspace,
@@ -1591,7 +1583,7 @@ impl App {
                 account,
                 plan,
             } => {
-                self.screens.cockpit = Some(CockpitScreen::new(
+                let page = Page::Cockpit(Box::new(CockpitScreen::new(
                     &self.world,
                     workspace,
                     role,
@@ -1599,9 +1591,8 @@ impl App {
                     account,
                     plan,
                     self.shell.motion,
-                ));
-                self.route = Route::Cockpit;
-                self.enter_route();
+                )));
+                self.open_page(page);
             }
             Go::Attach { instance, pane } => {
                 if self
@@ -1621,16 +1612,21 @@ impl App {
                 if let Some(d) = self.world.daemons.get_mut(&instance) {
                     d.attached_by = Some("this terminal".into());
                 }
-                self.screens.capsule = Some(CapsuleScreen::new(&instance, &mut self.world, pane));
-                if self.route == Route::Cockpit {
+                let page = Page::Capsule(Box::new(CapsuleScreen::new(
+                    &instance,
+                    &mut self.world,
+                    pane,
+                )));
+                if self.route() == Route::Cockpit {
+                    // the cockpit hands over: the Capsule goes on top of
+                    // it until the handoff ends (`finish_handoff`)
+                    self.router.push(page);
                     self.handoff = Some(0);
-                    self.route = Route::Handoff;
                     if self.shell.motion == Motion::Reduced {
                         self.finish_handoff();
                     }
                 } else {
-                    self.route = Route::Capsule;
-                    self.enter_route();
+                    self.open_page(page);
                     let name = self
                         .world
                         .daemons
@@ -1663,17 +1659,17 @@ impl App {
             }
             Go::Detach => {
                 let inst = self
-                    .screens
-                    .capsule
-                    .as_ref()
+                    .router
+                    .capsule()
                     .map(|c| c.instance.clone())
                     .unwrap_or_default();
                 if let Some(d) = self.world.daemons.get_mut(&inst) {
                     d.attached_by = None;
                 }
-                self.screens.capsule = None;
-                self.route = Route::Manager;
-                self.screens.manager.select_instance(&inst, &self.world);
+                self.show_tab(TAB_MANAGER);
+                self.router
+                    .manager_mut()
+                    .select_instance(&inst, &self.world);
                 self.enter_route();
                 let name = self
                     .world
@@ -1706,15 +1702,16 @@ impl App {
                 self.world.daemons.remove(&instance);
                 crate::domain::fixtures::refresh_snapshots(&mut self.world);
                 self.world.sync_arbiter();
-                self.screens.capsule = None;
+                // the Capsule closes
+                self.show_tab(TAB_MANAGER);
                 self.leave_construct(&instance);
             }
             Go::LaunchFailedAck { instance } => {
-                self.screens.cockpit = None;
+                // the cockpit closes
+                self.show_tab(TAB_MANAGER);
                 if self.world.running_count() > 0 {
-                    self.route = Route::Manager;
                     if let Some(i) = instance {
-                        self.screens.manager.select_instance(&i, &self.world);
+                        self.router.manager_mut().select_instance(&i, &self.world);
                     }
                     self.enter_route();
                     self.set_status(
@@ -1733,10 +1730,8 @@ impl App {
                     self.leave_construct(instance.as_deref().unwrap_or(""));
                 }
             }
-            Go::Quit => {
-                self.world.arbiter.release_entry();
-                self.shell.quit = true;
-            }
+            // the screen asked and the user chose to quit
+            Go::Quit => self.quit_now(),
         }
     }
 
@@ -1747,12 +1742,13 @@ impl App {
         match decision {
             ExitDecision::Outro { elapsed_secs } => {
                 self.outro = Some(OutroState::new(self.shell.motion, elapsed_secs, 0));
-                self.route = Route::Outro;
                 self.layers.clear(&mut self.shell.focus);
             }
             ExitDecision::StillInside { remaining } => {
-                self.route = Route::Manager;
-                self.screens.manager.select_instance(instance, &self.world);
+                self.show_tab(TAB_MANAGER);
+                self.router
+                    .manager_mut()
+                    .select_instance(instance, &self.world);
                 self.enter_route();
                 let rows: Vec<String> = self
                     .world
@@ -1776,12 +1772,12 @@ impl App {
                     "Still inside the Construct · {}",
                     junie_tui::ui::text::plural(remaining, "instance remains", "instances remain")
                 );
-                self.screens.manager.still_inside =
+                self.router.manager_mut().still_inside =
                     Some((text.clone(), rows, self.world.now_ms() + 6_000));
                 self.set_status(&text, Tone::Secondary);
             }
             ExitDecision::AlreadyEnded => {
-                self.route = Route::Manager;
+                self.show_tab(TAB_MANAGER);
                 self.enter_route();
                 self.set_status(
                     "Another client already ended the Construct · returning to the host",
@@ -1790,7 +1786,7 @@ impl App {
                 self.exit_after_status = Some(self.world.now_ms() + 2_500);
             }
             ExitDecision::Unknown(e) => {
-                self.route = Route::Manager;
+                self.show_tab(TAB_MANAGER);
                 self.enter_route();
                 self.set_status(&format!("Could not confirm remaining instances: {} · returning to host without the outro", e.label()), Tone::Warning);
                 self.exit_after_status = Some(self.world.now_ms() + 2_500);
@@ -1799,7 +1795,7 @@ impl App {
     }
 
     fn enter_route(&mut self) {
-        let route = self.route;
+        let route = self.route();
         self.on_route(route, Outcome::Ignored, |s, w, cx| {
             s.enter(w, cx);
             Outcome::Ignored
@@ -1810,7 +1806,7 @@ impl App {
 
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        match self.route {
+        match self.route() {
             Route::Intro => {
                 let mut state = self
                     .intro
@@ -1852,10 +1848,24 @@ impl App {
                 }
                 if !self.layers.is_empty() {
                     // footer hints for the modal
-                    let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
+                    let footer = Self::chrome(r).regions(area).footer;
                     self.footer(true).render(footer, buf, ctx, &mut self.shell);
                 }
             }
+        }
+    }
+
+    /// The rows around `route`'s page ([`Chrome`]): a header row (the host
+    /// menu bar or the identity strip) and the footer, a blank row between
+    /// each and the body. The Capsule owns its chrome (menu bar, tabs,
+    /// status bar) above the footer; the cockpit keeps the identity strip
+    /// but uses the full width; a host screen keeps a column clear on each
+    /// side.
+    fn chrome(route: Route) -> Chrome {
+        match route {
+            Route::Capsule => Chrome::new().header(0).gap(0),
+            Route::Cockpit => Chrome::new(),
+            _ => Chrome::new().inset(1),
         }
     }
 
@@ -1863,32 +1873,17 @@ impl App {
     fn draw_frame(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
         fill(buf, area, t.base());
-        let header = Rect::new(area.x, area.y, area.width, 1);
-        let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-        let body = Rect::new(
-            area.x + 1,
-            area.y + 2,
-            area.width.saturating_sub(2),
-            area.height.saturating_sub(4),
-        );
-        // the Capsule owns its chrome: menu bar, tabs, status bar; the
-        // cockpit keeps the identity strip but uses the full width
-        let body = match route {
-            Route::Capsule => Rect::new(area.x, area.y, area.width, area.height.saturating_sub(1)),
-            Route::Cockpit => Rect::new(
-                area.x,
-                area.y + 2,
-                area.width,
-                area.height.saturating_sub(4),
-            ),
-            _ => body,
-        };
+        let shell::Regions {
+            header,
+            body,
+            footer,
+        } = Self::chrome(route).regions(area);
         if Self::is_host(route) {
             self.draw_host_menu(header, buf, ctx, route);
-        } else if route != Route::Capsule {
+        } else if !header.is_empty() {
             self.draw_strip(header, buf, ctx, route);
         }
-        if let Some(s) = self.screens.get_mut(route) {
+        if let Some(s) = self.router.screen_mut(route) {
             s.render(body, buf, ctx, &self.world);
         }
         self.footer(false).render(footer, buf, ctx, &mut self.shell);
@@ -1934,11 +1929,11 @@ impl App {
         if self.world.daemon_health == crate::sim::world::DaemonHealth::Stale {
             left.push(Segment::new("▲ daemon stale", Tone::Warning).priority(8))
         }
-        if let Some(s) = self.screens.get(route) {
+        if let Some(s) = self.router.screen(route) {
             left.push(Segment::new(s.crumb(&self.world), Tone::Secondary).priority(7));
         }
         let mut right = vec![];
-        if let Some(s) = self.screens.get(route) {
+        if let Some(s) = self.router.screen(route) {
             right.extend(s.strip_right(&self.world));
         }
         if !self.world.jobs.is_empty() && !matches!(route, Route::Cockpit | Route::Capsule) {
@@ -2012,28 +2007,31 @@ impl App {
     fn footer(&self, modal: bool) -> shell::Footer {
         use junie_tui::core::hints::{HasHints, HintCx};
         let focus = self.shell.focus.current();
-        let editing =
-            self.screens.get(self.route).is_some_and(|s| s.is_editing()) || self.layer_editing();
+        let editing = self
+            .router
+            .screen(self.route())
+            .is_some_and(|s| s.is_editing())
+            || self.layer_editing();
         let still = self
-            .screens
-            .manager
+            .router
+            .manager()
             .still_inside
             .as_ref()
             .map(|(s, _, _)| s.as_str());
         let status = match (still, self.shell.status.get()) {
-            (Some(s), None) if self.route == Route::Manager => Some((s, Tone::Secondary)),
+            (Some(s), None) if self.route() == Route::Manager => Some((s, Tone::Secondary)),
             (_, s) => s,
         };
         let footer = if modal {
             shell::Footer::new().layer(self.layers.top().map(|t| t.layer.hints(focus)))
         } else {
-            let menu = Self::is_host(self.route)
+            let menu = Self::is_host(self.route())
                 .then(|| HasHints::hints(&self.host_menu, &HintCx::new(focus)));
             shell::Footer::new()
                 .layer(menu)
                 .layer(
-                    self.screens
-                        .get(self.route)
+                    self.router
+                        .screen(self.route())
                         .map(|s| s.hints(focus, &self.world)),
                 )
                 .fallback(vec![hint("?", "Help"), hint("Esc", "Back")])
@@ -2094,13 +2092,30 @@ impl shell::App for App {
     fn page_under_layer(&self) -> bool {
         self.layers.hides_page_focus()
             || self.host_menu.hides_page_focus()
-            || self.screens.get(self.route).is_some_and(|s| s.layer_open())
+            || self
+                .router
+                .screen(self.route())
+                .is_some_and(|s| s.layer_open())
     }
+    /// The router's key for a page; a full-screen sequence has its own.
     fn page_key(&self) -> PageKey {
-        PageKey(self.route as u64)
+        match self.route() {
+            r @ (Route::Intro | Route::Outro | Route::Handoff) => PageKey(u64::MAX - r as u64),
+            _ => self.router.key(),
+        }
+    }
+    /// What quitting would lose: every page's stakes (only the editor
+    /// and settings ever hold unsaved edits).
+    fn stakes(&mut self) -> Stakes {
+        let world = &self.world;
+        self.router
+            .pages_mut()
+            .fold(Stakes::Clean, |s, p| s.max(p.screen_mut().stakes(world)))
     }
     fn primary_focus(&self) -> Option<WidgetId> {
-        self.screens.get(self.route).and_then(|s| s.primary_focus())
+        self.router
+            .screen(self.route())
+            .and_then(|s| s.primary_focus())
     }
 }
 
@@ -2125,7 +2140,7 @@ impl PointerHost for App {
     /// own policy decides (a refused outside click flashes); with no
     /// layer, an open host menu closes.
     fn outside(&mut self, _pos: Position) -> Response<()> {
-        if matches!(self.route, Route::Intro | Route::Outro | Route::Handoff) {
+        if matches!(self.route(), Route::Intro | Route::Outro | Route::Handoff) {
             return self.skip_animation().into();
         }
         if !self.layers.is_empty() {
@@ -2134,10 +2149,40 @@ impl PointerHost for App {
                 .or(Outcome::Changed)
                 .into();
         }
-        if Self::is_host(self.route) && self.host_menu.is_open() {
+        if Self::is_host(self.route()) && self.host_menu.is_open() {
             self.host_menu.close();
         }
         Response::changed()
+    }
+}
+
+/// What a host menu item does ([`App::build_host_menu`]): a choice
+/// resolves to its command, never to its label (M23).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HostCmd {
+    /// Go › Workspace manager.
+    Manager,
+    /// Go › Account & Usage Center.
+    Accounts,
+    /// Go › Usage.
+    Usage,
+    /// Go › Global settings.
+    Settings,
+    /// Help › Key reference.
+    Help,
+    /// Help › About jackin-preview.
+    About,
+    /// File › Quit.
+    Quit,
+    /// A screen action: press the key the item names.
+    Press(Key),
+}
+
+/// `code` with no modifier.
+fn plain(code: KeyCode) -> Key {
+    Key {
+        code,
+        mods: KeyModifiers::NONE,
     }
 }
 
@@ -2187,23 +2232,18 @@ impl shell::KeyHost for App {
         if !self.layers.is_empty() {
             return Some(App::layer_key(self, *key));
         }
-        self.quit_after_leave = false;
+        self.quit_guard.resolve(DialogResult::Cancelled);
         None
     }
 
     fn menu_key(&mut self, key: &Key) -> Option<Outcome> {
-        if !(Self::is_host(self.route) && self.host_menu.is_open()) {
+        if !(Self::is_host(self.route()) && self.host_menu.is_open()) {
             return None;
         }
         let (o, ev) = self.host_menu.on_key(key);
         Some(match ev {
-            Some(MenuBarAction::Chosen(mi, ii)) => {
-                let label = self.host_menu.menus[mi][ii].item.label.clone();
-                self.run_host_menu(&label)
-            }
-            Some(MenuBarAction::Brand) => {
-                self.open_about();
-                Outcome::Changed
+            Some(a @ (MenuBarAction::Chosen(..) | MenuBarAction::Brand)) => {
+                self.host_menu_action(a, o)
             }
             _ => o.or(Outcome::Changed),
         })
@@ -2212,12 +2252,12 @@ impl shell::KeyHost for App {
     /// The cockpit and the capsule are sessions that own the keyboard; a
     /// host screen captures while a field edits or its own menu is open.
     fn capturing(&self) -> bool {
-        matches!(self.route, Route::Cockpit | Route::Capsule) || self.host_editing()
+        matches!(self.route(), Route::Cockpit | Route::Capsule) || self.host_editing()
     }
 
     fn shell_action(&mut self, action: shell::ShellAction<JackinCmd>, _key: &Key) -> Outcome {
         use shell::ShellAction;
-        let route = self.route;
+        let route = self.route();
         if !Self::is_host(route) {
             return Outcome::Ignored;
         }
@@ -2257,7 +2297,7 @@ impl shell::KeyHost for App {
     /// The host menu bar as a focus stop (K11): Enter or ↓ opens it, ← →
     /// move between its titles, Esc hands focus back to the page.
     fn chrome_key(&mut self, key: &Key) -> Outcome {
-        if !(Self::is_host(self.route) && self.shell.focus.is(HOST_MENU)) {
+        if !(Self::is_host(self.route()) && self.shell.focus.is(HOST_MENU)) {
             return Outcome::Ignored;
         }
         self.sync_host_menu();
@@ -2269,7 +2309,10 @@ impl shell::KeyHost for App {
             return o;
         }
         if key.is(KeyCode::Esc) {
-            let pf = self.screens.get(self.route).and_then(|s| s.primary_focus());
+            let pf = self
+                .router
+                .screen(self.route())
+                .and_then(|s| s.primary_focus());
             self.shell.focus.set(pf);
             return Outcome::Changed;
         }
@@ -2277,7 +2320,7 @@ impl shell::KeyHost for App {
     }
 
     fn page_key(&mut self, key: &Key) -> Outcome {
-        let route = self.route;
+        let route = self.route();
         self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_key(key, w, cx))
     }
 
@@ -2288,7 +2331,7 @@ impl shell::KeyHost for App {
     }
 
     fn page_paste(&mut self, text: &str) -> Outcome {
-        let route = self.route;
+        let route = self.route();
         self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
@@ -2296,13 +2339,20 @@ impl shell::KeyHost for App {
     /// keeps an Esc it does not use; a host screen at its top shows that
     /// Esc never quits.
     fn esc_top(&mut self) -> Outcome {
-        let route = self.route;
+        let route = self.route();
         let o = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_esc_top(w, cx));
         if Self::is_host(route) {
             o
         } else {
             o.or(Outcome::Consumed)
         }
+    }
+
+    /// Ctrl+C before it quits: the shown page's interrupt
+    /// ([`shell::Page::on_interrupt`], SI17).
+    fn interrupt(&mut self) -> Outcome {
+        let route = self.route();
+        self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_interrupt(w, cx))
     }
 
     fn request_quit(&mut self) -> Outcome {

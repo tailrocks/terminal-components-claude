@@ -79,7 +79,7 @@ fn picker() -> (H, Option<Option<WidgetId>>) {
 fn browser() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('n'));
-    assert_eq!(h.app.route, Route::Prelude, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Prelude, "{}", h.text());
     assert!(
         h.app
             .top_layer::<crate::screens::modals::FileBrowser>()
@@ -107,7 +107,7 @@ fn choice() -> (H, Option<Option<WidgetId>>) {
 
 fn form() -> (H, Option<Option<WidgetId>>) {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     let owner = h.app.shell.focus.current();
     h.key(KeyCode::Char('a'));
     assert!(
@@ -441,7 +441,7 @@ fn only_the_new_workspace_browser_shows_the_flow_progress() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Prelude);
+    assert_eq!(h.app.route(), Route::Prelude);
     assert!(
         h.app
             .top_layer::<crate::screens::modals::FileBrowser>()
@@ -457,7 +457,7 @@ fn only_the_new_workspace_browser_shows_the_flow_progress() {
     for _ in 0..3 {
         h.key(KeyCode::Enter);
     }
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
     let (x, y) = h.find("Mounts").unwrap();
     h.click(x, y);
     let (x, y) = h.find("+ Add mount").unwrap();

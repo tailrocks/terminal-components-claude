@@ -25,7 +25,7 @@ fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
 /// The manager, after the intro.
 fn manager() -> H {
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     h
 }
 
@@ -47,7 +47,7 @@ fn a_click_on_a_footer_hint_runs_its_key() {
     let (x, y) = footer_at(&h, "u Usage");
     h.click(x, y);
     assert_eq!(
-        h.app.route,
+        h.app.route(),
         Route::Usage,
         "the click on u opened Usage\n{}",
         h.text()
@@ -86,7 +86,7 @@ fn a_press_on_the_help_overlay_scrollbar_pages_it() {
 #[test]
 fn the_wheel_over_the_session_strip_moves_its_window() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 72, 24);
-    assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Capsule, "{}", h.text());
     // more sessions than the strip shows
     for d in h.app.world.daemons.values_mut() {
         if let Some(t) = d.tabs.last().cloned() {
