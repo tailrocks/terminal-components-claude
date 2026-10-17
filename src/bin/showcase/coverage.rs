@@ -3506,6 +3506,66 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::shape::CaretShape::Terminal",
         Option("overview", "shell.caret_shape=terminal"),
     ),
+    // NavList (S17, SC36): the Sidebars page's list
+    ("widgets::nav_list::NavList", Demo("sidebars", "Workspace")),
+    (
+        "widgets::nav_list::NavItem",
+        Demo("sidebars", "Environment"),
+    ),
+    (
+        "widgets::nav_list::NavAction",
+        Demo("sidebars", "Last: none yet"),
+    ),
+    (
+        "widgets::nav_list::NavAction::Activated",
+        Demo("sidebars", "Enter opens"),
+    ),
+    (
+        "widgets::nav_list::NavItem::icon",
+        Demo("sidebars", "T Tasks"),
+    ),
+    (
+        "widgets::nav_list::NavItem::section",
+        Demo("sidebars", "Preferences"),
+    ),
+    ("widgets::nav_list::NavItem::badge", Demo("sidebars", "3")),
+    (
+        "widgets::nav_list::NavItem::disabled",
+        Demo("sidebars", "Disabled items are skipped"),
+    ),
+    (
+        "widgets::nav_list::NavList::current",
+        Demo("sidebars", "› T Tasks"),
+    ),
+    (
+        "widgets::nav_list::NavList::collapsed",
+        Demo("sidebars", "Collapse keeps rows"),
+    ),
+    (
+        "widgets::nav_list::NavList::nav",
+        Demo("sidebars", "(or j k)"),
+    ),
+    (
+        "widgets::nav_list::NavList::widths",
+        Demo("sidebars", "Collapse"),
+    ),
+    (
+        "widgets::nav_list::NavList::item_id",
+        Demo("sidebars", "Runs"),
+    ),
+    (
+        "widgets::nav_list::NavList::width",
+        Demo("sidebars", "Branches"),
+    ),
+    ("widgets::nav_list::NavList::on_key", Demo("sidebars", "↑↓")),
+    (
+        "widgets::nav_list::NavList::on_click",
+        Demo("sidebars", "Members"),
+    ),
+    (
+        "widgets::nav_list::NavList::render",
+        Demo("sidebars", "Keyboard"),
+    ),
     // Tabs (SC14)
     ("widgets::tabs::TabItem", Demo("tabs", "◆ Overview")),
     (
