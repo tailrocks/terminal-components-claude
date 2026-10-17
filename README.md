@@ -106,7 +106,10 @@ secret ever reaches a frame — 1Password references resolve only inside the
 simulated credential service, plain-text keys live in transient edit state
 and render masked with a synthetic four-character tail.
 
-Requirements: Rust 1.88+, a terminal with mouse support. Truecolor is the
+Requirements: Rust 1.99.1 (`rust-toolchain.toml`; `mise install` sets it
+and every developer tool up from `mise.toml`, see
+[docs/dependencies.md](docs/dependencies.md#tools-via-mise)), a terminal
+with mouse support. Truecolor is the
 primary target (`COLORTERM=truecolor`); 256/16-colour terminals get a mapped
 palette, `NO_COLOR` gives a monochrome fallback. Minimum size is 72×20; below
 that a reduced state is shown until the terminal grows. The workbench shows

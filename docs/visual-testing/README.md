@@ -97,14 +97,10 @@ differing cells. Each failing scenario writes:
 ## tuiscotti CLI
 
 Approving and viewing use tuiscotti's own CLI, built from the same `rev`
-as the dev-dependency in `Cargo.toml`:
-
-```sh
-cargo install --locked --git https://github.com/tailrocks/tuiscotti \
-  --rev "$(sed -n 's/^tuiscotti = .*rev = "\([0-9a-f]*\)".*/\1/p' Cargo.toml)" tuiscotti-cli
-```
-
-Reinstall it after every pin bump. To view any approved scenario:
+as the dev-dependency in `Cargo.toml`. `mise.toml` pins it
+(`"cargo:https://github.com/tailrocks/tuiscotti" = "rev:<rev>"`), so
+`mise install` builds it. Raise that pin with every `Cargo.toml` bump (an
+xtask test fails while the two differ). To view any approved scenario:
 
 ```sh
 tuiscotti render --input snapshots/<name>.ansi --format png --format html \
