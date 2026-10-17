@@ -11,8 +11,10 @@
 //! [`ClockStep::request`], sent by the visual harness's `advance:<ms>`
 //! step) asks the shell to run the stopped clock for that long through the
 //! app's own tick ([`crate::shell::App::advance_clock`], [`run_step`]),
-//! then stop it again, so the frame settles. Only a paused app honours it;
-//! everywhere else the paste is an ordinary paste.
+//! then stop it again, so the frame settles. Only a paused app whose
+//! process opted in (`JUNIE_TUI_TEST_CLOCK=1`, set by the harness for a
+//! scenario that sends a step) honours it; everywhere else the paste is
+//! an ordinary paste, so real users can never step a clock.
 
 use crate::core::event::Outcome;
 
@@ -205,6 +207,16 @@ pub struct ClockStep;
 impl ClockStep {
     /// What a request starts with; the rest is the step in milliseconds.
     pub const PREFIX: &'static str = "junie-tui:advance-clock:";
+
+    /// The environment variable a test harness sets to `1` to opt in.
+    pub const ENV: &'static str = "JUNIE_TUI_TEST_CLOCK";
+
+    /// Whether this process opted in to clock steps: [`Self::ENV`] is `1`.
+    /// Read once, at the first call (the shell's start).
+    pub fn opted_in() -> bool {
+        static OPTED_IN: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *OPTED_IN.get_or_init(|| std::env::var_os(Self::ENV).is_some_and(|v| v == "1"))
+    }
 
     /// The paste that asks for a step of `ms` virtual milliseconds.
     pub fn request(ms: u64) -> String {
