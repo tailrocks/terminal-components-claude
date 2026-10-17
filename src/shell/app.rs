@@ -282,6 +282,17 @@ pub trait App {
         None
     }
 
+    /// An explicit clock step of `ms` virtual milliseconds
+    /// ([`crate::clock::ClockStep`]): run the app's stopped clock for that
+    /// long through its own ticks ([`crate::clock::run_step`]) so jobs
+    /// scheduled on virtual time fire, then stop it again. The shell asks
+    /// only under [`Motion::Paused`]. Default `None`: the app has no
+    /// virtual clock and the request reaches [`Self::on_input`] as the
+    /// ordinary paste it is.
+    fn advance_clock(&mut self, _ms: u64) -> Option<Outcome> {
+        None
+    }
+
     /// See [`Application::coalesce`].
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
@@ -379,7 +390,18 @@ pub fn handle<A: App + ?Sized>(app: &mut A, input: Input) -> Outcome {
         app.shell_mut().size = (w, h);
     }
     let logged = input.clone();
-    let mut out = app.on_input(input);
+    // an explicit clock step (paused captures, `ClockStep`) runs the
+    // app's clock instead of pasting its request
+    let step = match &input {
+        Input::Paste(text) if app.shell().motion == Motion::Paused => {
+            crate::clock::ClockStep::parse(text)
+        }
+        _ => None,
+    };
+    let mut out = match step.and_then(|ms| app.advance_clock(ms)) {
+        Some(out) => out,
+        None => app.on_input(input),
+    };
     if seen {
         out = out.or(Outcome::Changed);
     }
