@@ -1366,23 +1366,12 @@ impl ConnectionsScreen {
         } else {
             "Connect".into()
         };
-        // the facts, the state line under them and the actions on the
-        // card's last row
+        // the facts, the state line under them, then the actions on the
+        // card's last row: drawn last, over a state block that runs long
         let l = DetailCard::new(&c.name)
             .props(facts)
             .max_size(Some(70), Some(17))
-            .render(
-                r,
-                buf,
-                ctx,
-                t.canvas,
-                &mut [
-                    &mut self.connect_btn,
-                    &mut self.edit_btn,
-                    &mut self.dup_btn,
-                    &mut self.del_btn,
-                ],
-            );
+            .render(r, buf, ctx, t.canvas, &mut []);
         let (inner, bg) = (l.slot, l.bg);
         let sy = l.slot.y;
         match &self.state {
@@ -1416,6 +1405,18 @@ impl ConnectionsScreen {
             }
             _ => {}
         }
+        ActionRow::new().render(
+            Rect::new(l.slot.x, l.slot.bottom(), l.slot.width, 1),
+            buf,
+            ctx,
+            bg,
+            &mut [
+                &mut self.connect_btn,
+                &mut self.edit_btn,
+                &mut self.dup_btn,
+                &mut self.del_btn,
+            ],
+        );
     }
 
     fn render_form(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

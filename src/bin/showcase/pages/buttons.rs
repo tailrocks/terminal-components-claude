@@ -289,16 +289,13 @@ impl ButtonsPage {
         }
     }
 
-    /// The Next row's layout from the options: its alignment, gap,
-    /// message and arrow wrap.
+    /// The Next row: right-aligned, a one-cell gap, the message and the
+    /// arrow wrap from the options.
     fn action_row(&self) -> ActionRow {
+        // packed to the end with a one-cell gap, as follow-up actions sit
         let mut row = ActionRow::new()
-            .align(if self.opts.value("buttons.next_align") == "start" {
-                RowAlign::Start
-            } else {
-                RowAlign::End
-            })
-            .gap(self.opts.number("buttons.next_gap").unwrap_or(1))
+            .align(RowAlign::End)
+            .gap(1)
             .wrap(self.opts.on("buttons.row_wrap"));
         if self.opts.on("buttons.next_message") {
             row = row.message("2 not available yet", Tone::Muted);
