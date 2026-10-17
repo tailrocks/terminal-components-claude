@@ -867,8 +867,11 @@ impl ShellPage<Holla> for ActivityTab {
             );
             y += 2;
         }
+        // the follow-ups after "Next" wrap instead of dropping (R-apps-7)
+        let follow_w: Vec<u16> = self.follow_ups.iter().map(Button::width).collect();
+        let follow_area = Rect::new(area.x + 7, 0, area.width.saturating_sub(7), 1);
         let follow_h: u16 = if !self.follow_ups.is_empty() && !a.state.live() {
-            2
+            1 + junie_tui::widgets::button::row_lines(follow_area.width, &follow_w, 2)
         } else {
             0
         };
@@ -916,16 +919,15 @@ impl ShellPage<Holla> for ActivityTab {
         let inner = panel.render(pane, buf, t);
         self.view.render(inner, buf, ctx, t.canvas);
         if follow_h > 0 {
-            let y = area.bottom().saturating_sub(1);
+            let y = area.bottom().saturating_sub(follow_h - 1);
             buf.set_string(area.x + 1, y, "Next", t.faint());
-            let mut x = area.x + 7;
-            for b in &mut self.follow_ups {
-                let w = b.width();
-                if x + w > area.right() {
-                    break;
-                }
-                b.render(Rect::new(x, y, w, 1), buf, ctx, t.canvas);
-                x += w + 2;
+            let rects = junie_tui::widgets::button::row_layout(
+                Rect::new(follow_area.x, y, follow_area.width, 1),
+                &follow_w,
+                2,
+            );
+            for (b, r) in self.follow_ups.iter_mut().zip(rects) {
+                b.render(r, buf, ctx, t.canvas);
             }
         }
         if self.attached {

@@ -1377,6 +1377,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     ("widgets::button::ButtonRow", Demo("buttons", "Button row")),
     (
+        "widgets::button::row_lines",
+        Demo("buttons", "F5 runs · Shift+F5 cancels"),
+    ),
+    (
         "widgets::button::RowLayout",
         Demo("buttons", "· every button fits"),
     ),
