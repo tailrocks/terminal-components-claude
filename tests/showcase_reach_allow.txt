@@ -55,7 +55,6 @@ Forms | Playground | 120x40 | R51 squeezes instead of overflowing: no Page::meas
 Sidebars | Playground | 80x24 | R52 squeezes instead of overflowing: no Page::measure yet
 Sidebars | Playground | 100x25 | R52 squeezes instead of overflowing: no Page::measure yet
 Settings | Playground | 80x24 | R53 squeezes instead of overflowing: no Page::measure yet
-TaskRunner | Playground | 80x24 | R54 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 80x24 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches
 MasterDetail | Playground | 100x25 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches
 MasterDetail | Playground | 106x29 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches

@@ -786,7 +786,7 @@
 80x24 TrueColor Settings 65c29ffab61bbaf4
 80x24 TrueColor Settings · Options 4ba3f6f6b76f6343
 80x24 TrueColor Settings · States a760076fba0c56fd
-80x24 TrueColor Task runner 0a7a885ebb3de7ac
+80x24 TrueColor Task runner 2d316926ff9b4d90
 80x24 TrueColor Task runner · Options 907e02388fb6ae7d
 80x24 TrueColor Task runner · States bd918fecfc9e77b8
 80x24 TrueColor Query workbench 76337fe57e81a0c6
@@ -950,7 +950,7 @@
 80x24 Ansi256 Settings 09a7344e5d85f9f6
 80x24 Ansi256 Settings · Options 524c8aeea3e3f899
 80x24 Ansi256 Settings · States a0a86e3289177596
-80x24 Ansi256 Task runner 52baca6e954a379d
+80x24 Ansi256 Task runner 39a79039d2dd89ab
 80x24 Ansi256 Task runner · Options e17290ea0931029a
 80x24 Ansi256 Task runner · States d4e4bda9bec0f583
 80x24 Ansi256 Query workbench 6661c18123b189a7
@@ -1114,7 +1114,7 @@
 80x24 Ansi16 Settings 4e3c83d85ebdaecd
 80x24 Ansi16 Settings · Options d7d986fef6a54cbb
 80x24 Ansi16 Settings · States 66fa4f9204ea1cf3
-80x24 Ansi16 Task runner e9d3f2fffcba9447
+80x24 Ansi16 Task runner c51db0cf8c50d7c5
 80x24 Ansi16 Task runner · Options 89637730b5a70ac5
 80x24 Ansi16 Task runner · States fad8fe8cd28df04d
 80x24 Ansi16 Query workbench cc3e1bfd7f06ea94
@@ -1278,7 +1278,7 @@
 80x24 Mono Settings 66131c613b006aaf
 80x24 Mono Settings · Options a7d18d28743a4a3d
 80x24 Mono Settings · States 63da199c24c5cc0c
-80x24 Mono Task runner 5cdfbc73fc753490
+80x24 Mono Task runner d07217eef98a1690
 80x24 Mono Task runner · Options b6508043ef9f1463
 80x24 Mono Task runner · States 0890da3e4d04c4d5
 80x24 Mono Query workbench ef15ba0fcef1c074
@@ -1442,7 +1442,7 @@
 72x20 TrueColor Settings d0ae7fa4a178938c
 72x20 TrueColor Settings · Options 5f0437394346efd7
 72x20 TrueColor Settings · States 3705db2c62087b83
-72x20 TrueColor Task runner 26236b90dc78121d
+72x20 TrueColor Task runner 55e9e2ee7a7dc246
 72x20 TrueColor Task runner · Options 39d365ec2497fe8a
 72x20 TrueColor Task runner · States 1e6ab147889b81bc
 72x20 TrueColor Query workbench 5d6e6b428febc3e2
@@ -1606,7 +1606,7 @@
 72x20 Ansi256 Settings 10f7dfd4d27140d4
 72x20 Ansi256 Settings · Options 1399348bc78904bf
 72x20 Ansi256 Settings · States e118a59ad0ff13d3
-72x20 Ansi256 Task runner be37eaefb4850808
+72x20 Ansi256 Task runner 560bf07de26cc107
 72x20 Ansi256 Task runner · Options ca8636afd7961a1d
 72x20 Ansi256 Task runner · States 7b76f82dec930743
 72x20 Ansi256 Query workbench 0f4b9352333050da
@@ -1770,7 +1770,7 @@
 72x20 Ansi16 Settings 181dc3ba3f517005
 72x20 Ansi16 Settings · Options 8b5e01d824460339
 72x20 Ansi16 Settings · States c179907875b9545e
-72x20 Ansi16 Task runner 445841aa13c0f520
+72x20 Ansi16 Task runner 10554e48b6d8ffc7
 72x20 Ansi16 Task runner · Options ab4d256852d3c4a6
 72x20 Ansi16 Task runner · States bcaa0769aab7da94
 72x20 Ansi16 Query workbench 5459e67ed818b622
@@ -1934,7 +1934,7 @@
 72x20 Mono Settings 8e0fae1f36087927
 72x20 Mono Settings · Options 8d92b5fdfef2343f
 72x20 Mono Settings · States d152531625947be4
-72x20 Mono Task runner 9dcbab0b1e3a28f4
+72x20 Mono Task runner 84528d9b80fa4171
 72x20 Mono Task runner · Options bfd3836326dfb4da
 72x20 Mono Task runner · States fc581e94fd3951ee
 72x20 Mono Query workbench 3eac90d7d9fdfb72
