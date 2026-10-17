@@ -687,19 +687,22 @@ fn chips_custom_keymap_rebinds_remove_add_and_clear() {
 
 #[test]
 fn chips_select_arrows_step_or_open() {
+    // SI13: by default ↓ opens the list and never changes the value
     let mut h = Harness::new(120, 40, PageId::Chips);
     focus(&mut h, CHIPS.sub("sort"));
-    h.key(KeyCode::Down);
-    assert!(!sort_select(&h).open);
-    assert_eq!(sort_select(&h).selected, 1);
-    h.opt("chipsselects.arrows=open");
     h.key(KeyCode::Down);
     assert!(sort_select(&h).open);
     assert_eq!(
         sort_select(&h).selected,
-        1,
+        0,
         "opening never changes the value"
     );
+    h.key(KeyCode::Esc);
+    h.opt("chipsselects.arrows=step");
+    focus(&mut h, CHIPS.sub("sort"));
+    h.key(KeyCode::Down);
+    assert!(!sort_select(&h).open);
+    assert_eq!(sort_select(&h).selected, 1);
 }
 
 #[test]

@@ -74,8 +74,9 @@ pub struct Select {
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
     /// What arrows do while the list is closed. Default
-    /// [`SelectArrows::Step`] (the long-standing behaviour; `Open` is the macOS
-    /// popup-button convention).
+    /// [`SelectArrows::Open`]: ↑/↓ open the list, as macOS popup buttons
+    /// and the WAI-ARIA select-only combobox do, so the value never
+    /// changes unseen (SI13); [`SelectArrows::Step`] steps it in place.
     pub arrows: SelectArrows,
     /// What Tab does while the list is open. Default
     /// [`TabInOpen::Choose`]. Help (`?`, F1) and the other function keys
@@ -139,7 +140,7 @@ impl Select {
             area: Rect::ZERO,
             list,
             reveal: None,
-            arrows: SelectArrows::Step,
+            arrows: SelectArrows::Open,
             tab_in_open: TabInOpen::Choose,
             mixed: None,
             type_ahead_precedence: None,
@@ -971,7 +972,12 @@ mod tests {
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         };
         let opts = ["a", "b", "c"];
-        let mut step = Select::new(WidgetId::of("s"), "S", &opts, 0);
+        // SI13: by default ↓ opens the list and leaves the value alone
+        let mut default = Select::new(WidgetId::of("s"), "S", &opts, 0);
+        assert_eq!(default.on_key(&k(KeyCode::Down)).1, None);
+        assert!(default.open, "the arrow opened the list");
+        assert_eq!(default.selected, 0, "the value did not change unseen");
+        let mut step = Select::new(WidgetId::of("s"), "S", &opts, 0).arrows(SelectArrows::Step);
         assert_eq!(
             step.on_key(&k(KeyCode::Down)).1,
             Some(SelectAction::Changed(1))

@@ -226,7 +226,10 @@ fn options_section_sets_an_option_like_opt() {
     h.app.shell.focus.focus(strip);
     h.draw();
     h.key(KeyCode::Tab);
+    // ↓ opens the option's list (SI13), ↓ moves, Enter chooses
     h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
     assert_eq!(
         h.app.pages[PageId::Overview.index()].option_value("overview.plane"),
         Some(3),
