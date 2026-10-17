@@ -1030,7 +1030,18 @@ impl crate::core::pointer::MouseTarget for Picker {
         let chosen = if ev.part().part == Part::BACKDROP {
             self.on_click_outside()
         } else {
-            self.on_click(ev.id)
+            match self.on_click(ev.id) {
+                // Alt (Option) picks the alternative, as Alt+Enter does
+                // (A24); a terminal that keeps Option-click leaves the key
+                Some(PickerAction::Chosen(i))
+                    if ev
+                        .mods()
+                        .contains(ratatui::crossterm::event::KeyModifiers::ALT) =>
+                {
+                    Some(PickerAction::ChosenAlt(i))
+                }
+                other => other,
+            }
         };
         match chosen {
             Some(a) => Response::emit(a),
@@ -1484,6 +1495,42 @@ mod tests {
             1,
             KeyModifiers::NONE,
         ))
+    }
+
+    /// A24: Alt+click on a row picks its alternative, as Alt+Enter does; a
+    /// plain click picks the row.
+    #[test]
+    fn an_alt_click_on_a_row_chooses_its_alternative() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        use ratatui::crossterm::event::KeyModifiers;
+        let mut p = picker(3);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let screen = Rect::new(0, 0, 80, 24);
+        let mut buf = Buffer::empty(screen);
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            p.draw(screen, &mut buf, &mut ctx);
+        }
+        let click_at = |pos, mods| {
+            let id = hits.hit(pos)?;
+            Some(PointerEvent::new(&hits, Phase::Click, id, pos, 1, mods))
+        };
+        let (pos, row) = (0..24)
+            .flat_map(|y| (0..80).map(move |x| ratatui::layout::Position::new(x, y)))
+            .find_map(|pos| Some((pos, click_at(pos, KeyModifiers::NONE)?.index_of(Part::ROW)?)))
+            .expect("a row under the pointer");
+        let click = |mods| click_at(pos, mods).unwrap();
+        assert_eq!(
+            p.pointer(&click(KeyModifiers::ALT)).into_action(),
+            Some(PickerAction::ChosenAlt(row))
+        );
+        assert_eq!(
+            p.pointer(&click(KeyModifiers::NONE)).into_action(),
+            Some(PickerAction::Chosen(row))
+        );
     }
 
     /// S5 deviation 5: a click outside the picker lands on its own
