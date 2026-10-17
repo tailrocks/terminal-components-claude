@@ -209,7 +209,7 @@ fn a_select_cell_is_edited_by_mouse() {
 
 #[test]
 fn the_tags_checklist_commits_several_values() {
-    let mut h = Harness::new(140, 40);
+    let mut h = Harness::new(220, 50);
     for _ in ENV..LABELS {
         h.key(KeyCode::Right);
     }
@@ -252,7 +252,7 @@ fn the_owner_combo_filters_and_takes_only_listed_people() {
 
 #[test]
 fn imported_values_outside_the_set_are_flagged_until_fixed() {
-    let mut h = Harness::new(140, 40);
+    let mut h = Harness::new(220, 50);
     assert!(h.text().contains("values outside the set"), "{}", h.text());
     assert!(h.text().contains("qa-legacy"));
     // fix the env of the imported row: the popup has no current value
@@ -268,10 +268,11 @@ fn imported_values_outside_the_set_are_flagged_until_fixed() {
 
 #[test]
 fn the_priority_radio_skips_its_disabled_option_and_tab_moves_on() {
-    // at 140 columns moving right lands on wider columns than the ones
-    // it left: Priority still scrolls whole into view and its editor
-    // anchors to it (finding T3)
-    let mut h = Harness::new(140, 40);
+    // the Playground lays the table out with every column in view, so
+    // the table no longer scrolls sideways here (finding T3's case: a
+    // table narrower than its columns): on a screen that shows it whole
+    // the editor anchors to Priority
+    let mut h = Harness::new(220, 50);
     for _ in ENV..PRIORITY {
         h.key(KeyCode::Right);
     }
