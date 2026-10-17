@@ -466,8 +466,9 @@ impl Tabs {
     /// active tab does not change.
     pub fn on_wheel(&mut self, dx: i32, dy: i32) -> Outcome {
         if let Some((menu, _)) = self.menu.as_mut() {
+            // the open menu's wheel: its list's shared path
             return if dy != 0 {
-                menu.on_wheel(dy)
+                crate::core::scroll::Scrollable::wheel(&mut menu.list, Axis::Vertical, dy).outcome()
             } else {
                 Outcome::Consumed
             };

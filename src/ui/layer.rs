@@ -644,10 +644,10 @@ impl Overlay for Picker {
 impl Overlay for ContextMenu {
     type Action = MenuAction;
     fn dismiss(&self) -> Dismiss {
-        self.dismiss
+        self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-        LayerSpec::popover(self.dismiss)
+        LayerSpec::popover(self.list.dismiss)
             .initial_focus(self.id)
             .hides_page_focus(self.hides_page_focus())
     }

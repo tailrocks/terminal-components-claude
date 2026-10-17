@@ -357,7 +357,7 @@ impl CapsuleScreen {
         }
         let mut zoom = MenuItem::new("Zoom pane").shortcut("Ctrl+B z").separator();
         if zoomed {
-            zoom.label = "Unzoom pane".into();
+            zoom.item.label = "Unzoom pane".into();
         } else if panes < 2 {
             zoom = zoom.reason("One pane");
         }
@@ -1930,7 +1930,7 @@ impl Page<Jackin> for CapsuleScreen {
             let (o, ev) = m.on_key(key);
             match ev {
                 Some(MenuAction::Chosen(i)) => {
-                    let label = m.items[i].label.clone();
+                    let label = m.items[i].item.label.clone();
                     let t = if tab == usize::MAX { None } else { Some(tab) };
                     self.run_menu(&label, t, w, cx);
                 }
@@ -1943,7 +1943,7 @@ impl Page<Jackin> for CapsuleScreen {
             let (o, ev) = self.menubar.on_key(key);
             match ev {
                 Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.menubar.menus[mi][ii].label.clone();
+                    let label = self.menubar.menus[mi][ii].item.label.clone();
                     self.run_menu(&label, None, w, cx);
                 }
                 Some(MenuBarAction::Brand) => self.open_brand_menu(),
@@ -2889,7 +2889,7 @@ impl CapsuleScreen {
         if let Some((tab, mut m)) = self.tab_menu.take() {
             match m.on_click(id) {
                 Some(MenuAction::Chosen(i)) => {
-                    let label = m.items[i].label.clone();
+                    let label = m.items[i].item.label.clone();
                     let t = if tab == usize::MAX { None } else { Some(tab) };
                     self.run_menu(&label, t, w, cx);
                 }
@@ -2901,7 +2901,7 @@ impl CapsuleScreen {
             let (o, act) = r.into_parts();
             match act {
                 Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.menubar.menus[mi][ii].label.clone();
+                    let label = self.menubar.menus[mi][ii].item.label.clone();
                     self.run_menu(&label, None, w, cx);
                 }
                 Some(MenuBarAction::Brand) => self.open_brand_menu(),

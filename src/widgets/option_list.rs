@@ -268,12 +268,19 @@ pub struct OptionList {
     typeahead: TypeAhead,
     /// The hover last applied to the cursor.
     hover: Option<WidgetId>,
+    /// The row under the pointer (enabled or not), until a key moves the
+    /// cursor: a disabled row says why while it is pointed at.
+    pointed: Option<usize>,
     /// The cursor sits where the pointer put it.
     hovering: bool,
     /// The pointer left the rows it moved over: no row is highlighted.
     hidden: bool,
     /// The rows' cells in the last layout (bar column excluded).
     rows_area: Rect,
+    /// The line each row starts on, plus the total, when a row may be
+    /// followed by a gap line ([`Self::set_gaps`]); empty: row `i` is
+    /// line `i`.
+    lines: Vec<usize>,
 }
 
 impl OptionList {
@@ -302,10 +309,79 @@ impl OptionList {
             query: None,
             typeahead: TypeAhead::default(),
             hover: None,
+            pointed: None,
             hovering: false,
             hidden: false,
             rows_area: Rect::ZERO,
+            lines: Vec::new(),
         }
+    }
+
+    /// The pause after which the next letter starts a new type-ahead
+    /// prefix. Default [`TypeAhead::DEFAULT_TIMEOUT`].
+    pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.typeahead.timeout = timeout;
+        self
+    }
+
+    /// Rows followed by a gap line (`true`): a menu's separator takes a
+    /// line of its own. The view scrolls by lines, so the gaps count
+    /// toward the viewport and the content; rows keep their indices.
+    /// Call it again when the rows change.
+    pub fn set_gaps(&mut self, gaps: impl IntoIterator<Item = bool>) {
+        self.lines.clear();
+        let mut line = 0;
+        let mut any = false;
+        for gap in gaps {
+            self.lines.push(line);
+            line += 1 + usize::from(gap);
+            any |= gap;
+        }
+        self.lines.push(line);
+        if !any {
+            self.lines.clear();
+        }
+    }
+
+    /// The line row `i` sits on ([`Self::set_gaps`]).
+    pub fn line_of(&self, i: usize) -> usize {
+        match self.lines.get(i) {
+            Some(&l) => l,
+            None => i,
+        }
+    }
+
+    /// The row on line `line`, `None` on a gap line.
+    fn row_on_line(&self, line: usize) -> Option<usize> {
+        if self.lines.is_empty() {
+            return Some(line);
+        }
+        let i = self.lines.binary_search(&line).ok()?;
+        (i + 1 < self.lines.len()).then_some(i)
+    }
+
+    /// The lines of `len` rows: rows and their gaps.
+    fn line_count(&self, len: usize) -> usize {
+        if self.lines.len() == len + 1 {
+            self.lines[len]
+        } else {
+            len
+        }
+    }
+
+    /// The lines in view, top first: each with the row on it (`None` on a
+    /// gap line). Draw from line `k` at `inner.y + k`.
+    pub fn visible_lines(&self) -> impl Iterator<Item = (u16, Option<usize>)> + '_ {
+        self.scroll
+            .visible_range()
+            .enumerate()
+            .map(|(k, line)| (k as u16, self.row_on_line(line)))
+    }
+
+    /// Whether a row lies below the view (a menu's ▼ marker), among `len`
+    /// rows.
+    pub fn more_below(&self, len: usize) -> bool {
+        len > 0 && self.line_of(len - 1) >= self.scroll.offset + self.scroll.viewport_len
     }
 
     /// See [`Self::wheel`] (named apart from [`Scrollable::wheel`]).
@@ -387,6 +463,7 @@ impl OptionList {
         self.scroll.v = ScrollState::new(len);
         self.typeahead.reset();
         self.hover = None;
+        self.pointed = None;
         self.hovering = false;
         self.hidden = false;
     }
@@ -433,8 +510,9 @@ impl OptionList {
         if !self.rows_area.contains(pos) {
             return None;
         }
-        let i = self.scroll.offset + (pos.y - self.rows_area.y) as usize;
-        (i < self.scroll.content_len).then_some(i)
+        let line = self.scroll.offset + (pos.y - self.rows_area.y) as usize;
+        let i = self.row_on_line(line)?;
+        (line < self.scroll.content_len).then_some(i)
     }
 
     /// The rows' cells in the last layout.
@@ -476,7 +554,7 @@ impl OptionList {
         if let Some(i) = moved.index() {
             self.hidden = false;
             self.scroll.pointer_move();
-            self.scroll.follow(i);
+            self.scroll.follow(self.line_of(i));
         }
         moved
     }
@@ -487,9 +565,11 @@ impl OptionList {
     fn keyed(&mut self, moved: Moved) -> Moved {
         if let Some(i) = moved.index() {
             self.hidden = false;
-            self.scroll.follow(i);
-            // a key after a hover: the next hover applies again
+            self.scroll.follow(self.line_of(i));
+            // a key after a hover: the next hover applies again, and the
+            // status reads the cursor's row, not the pointer's
             self.hovering = false;
+            self.pointed = None;
         }
         moved
     }
@@ -501,7 +581,7 @@ impl OptionList {
     /// queuing the overlay that paints the rows from a copy.
     pub fn layout<S: RowSource + ?Sized>(&mut self, inner: Rect, src: &S, ctx: &RenderCtx) {
         let len = src.len();
-        self.scroll.set_content(len);
+        self.scroll.set_content(self.line_count(len));
         self.scroll.set_viewport(inner.height as usize);
         self.cursor.index = self.cursor.index.min(len.saturating_sub(1));
         let with_bar = self.scroll.overflows() && inner.width >= 2;
@@ -514,7 +594,7 @@ impl OptionList {
             inner.height,
         );
         self.hover(ctx, src);
-        self.scroll.follow(self.cursor.index);
+        self.scroll.follow(self.line_of(self.cursor.index));
         if with_bar {
             let track = Rect::new(inner.right() - 1, inner.y, 1, inner.height);
             self.scroll.set_track(self.id, Axis::Vertical, track);
@@ -527,22 +607,24 @@ impl OptionList {
     /// enabled row it moves the cursor there; leaving the rows it moved
     /// over clears the highlight.
     fn hover<S: RowSource + ?Sized>(&mut self, ctx: &RenderCtx, src: &S) {
-        if !self.hover_moves_cursor {
-            return;
-        }
         let hover = ctx.interaction.live_hover();
         if hover == self.hover {
             return;
         }
         self.hover = hover;
-        match hover.and_then(|h| self.row_of(h, src.len())) {
+        let row = hover.and_then(|h| self.row_of(h, src.len()));
+        self.pointed = row;
+        if !self.hover_moves_cursor {
+            return;
+        }
+        match row {
             Some(i) if src.enabled(i) => {
                 self.cursor.index = i;
                 self.hovering = true;
                 self.hidden = false;
                 // the row is on screen under the pointer: never scroll it
                 self.scroll.pointer_move();
-                self.scroll.follow(i);
+                self.scroll.follow(self.line_of(i));
             }
             // the pointer left the rows it was moving over: no row stays
             // highlighted (macOS menus)
@@ -575,11 +657,16 @@ impl OptionList {
         let has_sb = self.scroll.overflows();
         let highlighted = self.highlighted();
         let len = src.len();
-        for (k, i) in self.scroll.visible_range().enumerate() {
-            if i >= len || k as u16 >= inner.height {
+        for (k, i) in self.visible_lines() {
+            if k >= inner.height {
                 break;
             }
-            let y = inner.y + k as u16;
+            // a gap line is the owner's to draw
+            let Some(i) = i else { continue };
+            if i >= len {
+                break;
+            }
+            let y = inner.y + k;
             let mut state = ctx.state(self.row_id(i));
             state.focused = highlighted == Some(i);
             state.disabled = !src.enabled(i);
@@ -600,15 +687,23 @@ impl OptionList {
         }
     }
 
-    /// The status line for the highlighted row: its disabled reason
-    /// (SI21/SV15). `None` on an enabled row or with no highlight.
+    /// The status line: the disabled reason of the row under the pointer,
+    /// else of the highlighted row (SI21/SV15). `None` on an enabled row
+    /// or with no highlight.
     pub fn status<'a, T: AsItem>(&self, items: &'a [T]) -> Option<&'a str> {
-        let it = items.get(self.highlighted()?)?.as_item();
-        if it.disabled {
-            it.reason.as_deref()
-        } else {
-            None
-        }
+        let reason = |i: usize| {
+            let it = items.get(i)?.as_item();
+            if it.disabled {
+                it.reason.as_deref()
+            } else {
+                None
+            }
+        };
+        // the row under the pointer first (a disabled row the pointer
+        // rests on says why), then the cursor's
+        self.pointed
+            .and_then(reason)
+            .or_else(|| self.highlighted().and_then(reason))
     }
 }
 
@@ -627,7 +722,12 @@ impl Scrollable for OptionList {
         if self.wheel == WheelMode::Viewport {
             return None;
         }
-        let last = self.scroll.content_len.saturating_sub(1);
+        let rows = if self.lines.is_empty() {
+            self.scroll.content_len
+        } else {
+            self.lines.len() - 1
+        };
+        let last = rows.saturating_sub(1);
         let from = self.cursor.index.min(last);
         let to = if delta < 0 {
             from.saturating_sub(delta.unsigned_abs() as usize)
@@ -639,7 +739,7 @@ impl Scrollable for OptionList {
         }
         self.cursor.index = to;
         self.hidden = false;
-        self.scroll.follow(to);
+        self.scroll.follow(self.line_of(to));
         Some(Response::changed())
     }
 }

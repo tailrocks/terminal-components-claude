@@ -230,9 +230,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
         }
         Outcome::Changed
     }
-    fn on_wheel(&mut self, delta: i32, _: Position) -> Outcome {
-        ContextMenu::on_wheel(self, delta)
-    }
     fn on_dismiss(&mut self, reason: DismissReason) {
         self.pending = Overlay::on_dismiss(self, reason).into_action();
     }

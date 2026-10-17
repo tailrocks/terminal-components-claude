@@ -808,12 +808,12 @@ mod widget_tests {
         };
         let mut m = ContextMenu::new(WidgetId::of("m"), menu());
         m.on_key(&c('j'));
-        assert_eq!(m.cursor, 1);
+        assert_eq!(m.list.cursor.index, 1);
         let mut m = ContextMenu::new(WidgetId::of("m"), menu()).nav(NavKeys::NO_VIM);
         m.on_key(&c('j'));
-        assert_eq!(m.cursor, 0);
+        assert_eq!(m.list.cursor.index, 0);
         m.on_key(&k(KeyCode::Down));
-        assert_eq!(m.cursor, 1);
+        assert_eq!(m.list.cursor.index, 1);
 
         let mut bar = MenuBar::new(WidgetId::of("bar"), vec![("A", menu()), ("B", menu())])
             .nav(NavKeys::NO_VIM);
@@ -824,7 +824,7 @@ mod widget_tests {
         bar.on_key(&k(KeyCode::Enter));
         let open = bar.open.as_ref().expect("menu opens");
         assert_eq!(
-            open.nav,
+            open.list.nav,
             NavKeys::NO_VIM,
             "the open menu inherits the bar's keys"
         );

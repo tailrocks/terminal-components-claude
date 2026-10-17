@@ -3,6 +3,13 @@
 //! beneath them. Rows are commands (a solid `highlight` fill on the cursor,
 //! hover lifts); shortcuts sit right-aligned in the muted tone; danger rows (soft rose, deep red under the cursor)
 //! use the error tone; disabled rows are faint and cannot be chosen.
+//!
+//! A menu's body is an [`OptionList`] (plan S12): the cursor, the scroll
+//! offset, the wheel, hover, key navigation and type-ahead, and the popup
+//! policy live there, once for every popup list. The menu keeps what is
+//! its own: the frame and title, the ▲/▼ overflow markers, separators,
+//! shortcuts and accelerators, danger rows and the press-drag-release
+//! gestures.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -16,37 +23,43 @@ use crate::core::hit::ReleaseFrom;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::unassigned_chord;
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowFn, RowSource};
+use crate::core::list::{Cursor, Moved, Navigable, RowFn, RowSource};
+use crate::core::scroll::Scrollable;
 use crate::theme::{CursorStyle, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, backdrop_id, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::brand::Lockup;
 use crate::widgets::keyhint::Hint;
+use crate::widgets::option_list::{AsItem, Item, OptionList, WheelMode};
 use ratatui::crossterm::event::KeyCode;
 
+/// One command row of a menu. Its label, disabled flag and reason are an
+/// [`Item`] ([`Self::item`]), so a menu's rows are an [`OptionList`]'s;
+/// the shortcut, the danger tone and the separator are the menu's own.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MenuItem {
-    pub label: String,
+    /// The row as the popup list sees it: `label`, `disabled`, `reason`.
+    pub item: Item,
     /// Built at runtime when needed (a user-rebound key), hence `Cow`.
     pub shortcut: Option<std::borrow::Cow<'static, str>>,
-    pub disabled: bool,
     pub danger: bool,
     pub separator_after: bool,
-    /// Why a disabled item is unavailable, shown dimmed in place of the
-    /// shortcut (e.g. "Not in this preview"). `None`: no reason shown.
-    pub reason: Option<String>,
+}
+
+impl AsItem for MenuItem {
+    fn as_item(&self) -> &Item {
+        &self.item
+    }
 }
 
 impl MenuItem {
     pub fn new(label: impl Into<String>) -> Self {
         Self {
-            label: label.into(),
+            item: Item::new(label),
             shortcut: None,
-            disabled: false,
             danger: false,
             separator_after: false,
-            reason: None,
         }
     }
     pub fn shortcut(mut self, s: impl Into<std::borrow::Cow<'static, str>>) -> Self {
@@ -54,21 +67,20 @@ impl MenuItem {
         self
     }
     pub fn disabled(mut self, d: bool) -> Self {
-        self.disabled = d;
+        self.item.disabled = d;
         self
     }
     /// Disable the item and say why. An unavailable command is shown as
     /// unavailable up front instead of failing after it is chosen.
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
-        self.reason = Some(reason.into());
-        self.disabled = true;
+        self.item = self.item.reason(reason);
         self
     }
     /// The text drawn in the right column: the reason while disabled,
     /// otherwise the shortcut.
     fn trailing(&self) -> Option<&str> {
-        match &self.reason {
-            Some(r) if self.disabled => Some(r.as_str()),
+        match &self.item.reason {
+            Some(r) if self.item.disabled => Some(r.as_str()),
             _ => self.shortcut.as_deref(),
         }
     }
@@ -119,15 +131,25 @@ pub enum MenuAction {
 pub struct ContextMenu {
     pub id: WidgetId,
     pub items: Vec<MenuItem>,
-    pub cursor: usize,
+    /// The menu's body ([`OptionList`]): the cursor (`list.cursor`, which
+    /// wraps by default as macOS menus do), the scroll offset
+    /// (`list.scroll`; items and separators count one line each), the
+    /// wheel (default [`WheelMode::Viewport`]: it scrolls, the cursor
+    /// stays), hover (the pointer moves the one highlight, which clears
+    /// when the pointer leaves the rows), the keys and type-ahead, and the
+    /// popup policy: `list.dismiss` (Esc, a click outside),
+    /// `list.placement`, `list.fit` (default [`Place::MENU`]: one free
+    /// column from the left and right edges, given up when the menu would
+    /// not fit otherwise, none above or below, and full height kept when
+    /// neither side of the anchor has room) and `list.max_rows` (default
+    /// `u16::MAX`: as tall as its items, up to the screen; a menu taller
+    /// than its room always scrolls, so every item stays reachable).
+    pub list: OptionList,
     pub anchor: Rect,
-    pub placement: Placement,
     /// Popover rectangle from the last render (frame included).
     pub area: Rect,
     /// Optional title row above the items (e.g. what the menu is about).
     pub title: Option<String>,
-    /// How the menu closes without a choice (Esc, a click outside).
-    pub dismiss: Dismiss,
     /// The last action, kept for the stack while the menu is a
     /// [`crate::ui::layer::Layer`].
     pub(crate) pending: Option<MenuAction>,
@@ -137,48 +159,18 @@ pub struct ContextMenu {
     /// How a label cut by a narrow screen reveals its full text on hover
     /// (see [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// How the menu is fitted to the screen ([`popup::place_with`]).
-    /// Default [`Place::MENU`]: one free column from the left and right
-    /// edges (given up when the menu would not fit otherwise), none above
-    /// or below, and full height kept when neither side of the anchor has
-    /// room (a menu only scrolls when it is taller than the screen or
-    /// [`Self::max_rows`]).
-    ///
-    /// [`popup::place_with`]: crate::ui::popup::place_with
-    pub fit: Place,
     /// Narrowest label column in cells (the frame and gutters add 6).
     /// Default 8.
     pub min_width: u16,
-    /// ↑ on the first item lands on the last and ↓ on the last on the
-    /// first. Default on (macOS menus wrap).
-    pub wrap: bool,
     /// A control whose rectangle this frame becomes the anchor when it is
     /// registered (a keyboard-opened context menu follows its cursor row);
     /// `anchor` is the fallback. See [`ContextMenu::anchor_control`].
     pub anchor_to: Option<WidgetId>,
-    /// Most rows (items and separators) shown before the menu scrolls.
-    /// Default `u16::MAX`: as tall as its items, up to the screen. A menu
-    /// taller than its room always scrolls, so every item stays reachable.
-    pub max_rows: u16,
-    /// First row shown (items and separators count one each).
-    pub offset: usize,
-    /// The cursor moved since the last render: the next render scrolls it
-    /// into view. The wheel leaves it alone.
-    cursor_dirty: bool,
-    /// Which keys move the cursor (default [`NavKeys::default`]).
-    /// PageUp/PageDown move by the rows shown.
-    pub nav: NavKeys,
-    /// Typing a prefix jumps to the first enabled row whose label starts
-    /// with it (macOS menus and lists). Default from the
-    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
-    /// `Vim`.
-    pub type_ahead: bool,
     /// What a key the menu has no use for does. Default
     /// [`UnknownKey::CloseAndPass`]. A row's one-character shortcut (the
     /// `a` shown beside "Select all") always chooses that row: the menu
     /// does what it advertises.
     pub unknown_key: UnknownKey,
-    typeahead: crate::core::typeahead::TypeAhead,
     /// Press, drag, release: a secondary release over an enabled row
     /// chooses it when the pointer moved at least one cell from the
     /// secondary press that opened the menu (macOS and Windows context
@@ -189,23 +181,18 @@ pub struct ContextMenu {
     /// Primary presses that may complete on a row (a menu-bar title:
     /// press the title, drag onto a row, release). Set by [`MenuBar`].
     release_from: Vec<WidgetId>,
-    /// The cursor was last placed by the pointer.
-    hovering: bool,
-    /// The pointer left the rows after placing the cursor: no row is
-    /// highlighted (macOS), until the pointer or a key brings it back.
-    cursor_hidden: bool,
     /// The tick the last hover auto-scroll ran on.
     scrolled_tick: Option<u64>,
 }
 
 /// The footer while the menu is open: how the cursor moves (its own
-/// [`ContextMenu::nav`], `Type to jump` under type-ahead), `Enter Choose`,
+/// [`OptionList::nav`], `Type to jump` under type-ahead), `Enter Choose`,
 /// and `Esc Close` when its dismiss policy lets Esc close it.
 impl HasHints for ContextMenu {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
-        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        let mut v = nav_hints(&self.list.nav, self.list.type_ahead, false);
         v.push(Hint::new("Enter", "Choose"));
-        if self.dismiss.escape {
+        if self.list.dismiss.escape {
             v.push(Hint::new("Esc", "Close"));
         }
         v
@@ -234,26 +221,27 @@ impl ContextMenu {
     /// The row highlighted as the cursor, if any: none after the pointer
     /// left the rows it was moving over.
     pub fn highlighted(&self) -> Option<usize> {
-        (!self.cursor_hidden && !self.items.is_empty()).then_some(self.cursor)
+        self.list.highlighted().filter(|_| !self.items.is_empty())
     }
 
     /// A click on a ▲/▼ marker pages the menu; `true` when `id` is one.
     fn page_marker(&mut self, id: WidgetId) -> bool {
-        let page = self.viewport().max(1) as i32;
+        let page = self.viewport().max(1) as isize;
         if id == self.more_above_id() {
-            self.on_wheel(-page);
+            self.list.scroll.scroll_by(-page);
             true
         } else if id == self.more_below_id() {
-            self.on_wheel(page);
+            self.list.scroll.scroll_by(page);
             true
         } else {
             false
         }
     }
 
-    /// See [`Self::max_rows`].
+    /// See [`OptionList::max_rows`]: most rows (items and separators)
+    /// shown before the menu scrolls.
     pub fn max_rows(mut self, rows: u16) -> Self {
-        self.max_rows = rows;
+        self.list.max_rows = rows;
         self
     }
 
@@ -275,16 +263,6 @@ impl ContextMenu {
         (self.area.height as usize).saturating_sub(2 + title)
     }
 
-    /// Scroll by `delta` rows (the wheel). The cursor stays where it is.
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        let max = self.lines().saturating_sub(self.viewport().max(1));
-        let to = (self.offset as i64 + delta as i64).clamp(0, max as i64) as usize;
-        if to == self.offset {
-            return Outcome::Consumed;
-        }
-        self.offset = to;
-        Outcome::Changed
-    }
     /// Narrowest label column in cells. Default 8.
     pub fn min_width(mut self, cols: u16) -> Self {
         self.min_width = cols;
@@ -292,54 +270,51 @@ impl ContextMenu {
     }
 
     pub fn new(id: WidgetId, items: Vec<MenuItem>) -> Self {
-        let cursor = items.iter().position(|i| !i.disabled).unwrap_or(0);
+        let cursor = items.iter().position(|i| !i.item.disabled).unwrap_or(0);
+        let mut list = OptionList::new(id)
+            .look(CursorStyle::Fill)
+            .max_rows(u16::MAX)
+            .fit(Place::MENU);
+        list.cursor = Cursor::new(cursor).wrap(true);
+        // a menu brings a row in exactly: no context row beyond it
+        list.scroll.context = 0;
+        list.set_gaps(items.iter().map(|it| it.separator_after));
         Self {
             id,
             items,
-            cursor,
+            list,
             anchor: Rect::ZERO,
-            placement: Placement::Below,
             area: Rect::ZERO,
             title: None,
-            dismiss: Dismiss::LIGHT,
             pending: None,
             hide_owner_focus: true,
             reveal: None,
-            fit: Place::MENU,
             min_width: 8,
-            wrap: true,
             anchor_to: None,
-            max_rows: u16::MAX,
-            offset: 0,
-            cursor_dirty: true,
-            nav: NavKeys::default(),
-            type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             unknown_key: UnknownKey::CloseAndPass,
-            typeahead: Default::default(),
             release_selects: true,
             release_from: Vec::new(),
-            hovering: false,
-            cursor_hidden: false,
             scrolled_tick: None,
         }
     }
 
-    /// See [`Self::nav`].
+    /// See [`OptionList::nav`]. PageUp/PageDown move by the rows shown.
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.list.nav = nav;
         self
     }
 
     /// Cells kept free between the menu and the screen's left and right
-    /// edges (`fit.margin`). Default 1.
+    /// edges (`list.fit.margin`). Default 1.
     pub fn edge_margin(mut self, cells: u16) -> Self {
-        self.fit.margin = cells;
+        self.list.fit.margin = cells;
         self
     }
 
-    /// See [`Self::wrap`].
+    /// ↑ on the first item lands on the last and ↓ on the last on the
+    /// first. Default on (macOS menus wrap).
     pub fn wrap(mut self, on: bool) -> Self {
-        self.wrap = on;
+        self.list.cursor.wrap = on;
         self
     }
 
@@ -347,24 +322,35 @@ impl ContextMenu {
     /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
     /// (1 s; APG suggests 500–1000 ms).
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
-        self.typeahead.timeout = timeout;
+        self.list = self.list.type_ahead_timeout(timeout);
         self
     }
 
-    /// See [`Self::type_ahead`].
+    /// Typing a prefix jumps to the first enabled row whose label starts
+    /// with it (macOS menus and lists). Default from the
+    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
+    /// `Vim`.
     pub fn type_ahead(mut self, on: bool) -> Self {
-        self.type_ahead = on;
+        self.list.type_ahead = on;
         self
     }
 
-    /// See [`Self::fit`].
+    /// What the wheel does over the menu ([`OptionList::wheel`]). Default
+    /// [`WheelMode::Viewport`]: it scrolls and the cursor stays.
+    pub fn wheel_mode(mut self, mode: WheelMode) -> Self {
+        self.list.wheel = mode;
+        self
+    }
+
+    /// See [`Self::list`] (`fit`).
     pub fn fit(mut self, fit: Place) -> Self {
-        self.fit = fit;
+        self.list.fit = fit;
         self
     }
 
+    /// How the menu closes without a choice (Esc, a click outside).
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
-        self.dismiss = dismiss;
+        self.list.dismiss = dismiss;
         self
     }
 
@@ -381,7 +367,7 @@ impl ContextMenu {
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
-        self.placement = placement;
+        self.list.placement = placement;
         self
     }
 
@@ -404,18 +390,13 @@ impl ContextMenu {
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.part(Self::row_part(i))
-    }
-
-    fn row_part(i: usize) -> PartRef {
-        PartRef::item(Part::ROW, ItemKey::index(i))
+        self.list.row_id(i)
     }
 
     /// The row `id` is: the inverse the id-taking methods
-    /// ([`Self::on_click`] and the hover in [`Self::render`]) need until S15
-    /// hands them the routed part.
+    /// ([`Self::on_click`]) need until S15 hands them the routed part.
     fn row_of(&self, id: WidgetId) -> Option<usize> {
-        self.id.item_of(id, Part::ROW, 0..self.items.len())
+        self.list.row_of(id, self.items.len())
     }
 
     /// Whether `id` is the menu, its backdrop, a page marker or a row: how
@@ -437,14 +418,14 @@ impl ContextMenu {
             .items
             .iter()
             .map(|i| {
-                width(&i.label) as u16 + i.trailing().map(|s| width(s) as u16 + 3).unwrap_or(0)
+                width(&i.item.label) as u16 + i.trailing().map(|s| width(s) as u16 + 3).unwrap_or(0)
             })
             .max()
             .unwrap_or(4);
         let title_w = self.title.as_ref().map(|t| width(t) as u16).unwrap_or(0);
         // gutter + marker gap + label + 2 inset + frame
         let w = label_w.max(title_w).max(self.min_width) + 6;
-        let rows = (self.lines() as u16).min(self.max_rows.max(1));
+        let rows = (self.lines() as u16).min(self.list.max_rows.max(1));
         let title_rows = if self.title.is_some() { 1 } else { 0 };
         let h = rows + title_rows + 2;
         (w, h)
@@ -452,7 +433,14 @@ impl ContextMenu {
 
     fn placed(&self, screen: Rect) -> Rect {
         let (w, h) = self.size();
-        place_with(screen, self.anchor, w, h, self.placement, self.fit)
+        place_with(
+            screen,
+            self.anchor,
+            w,
+            h,
+            self.list.placement,
+            self.list.fit,
+        )
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuAction>) {
@@ -460,12 +448,9 @@ impl ContextMenu {
             // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
-        // the keyboard takes the cursor back from the pointer; with no row
-        // highlighted, Enter has nothing to choose
-        self.hovering = false;
-        let hidden = std::mem::take(&mut self.cursor_hidden);
-        if hidden && matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) {
-            self.cursor_hidden = true;
+        // with no row highlighted (the pointer left the rows), Enter has
+        // nothing to choose; any other key takes the cursor back
+        if self.highlighted().is_none() && matches!(key.code, KeyCode::Enter | KeyCode::Char(' ')) {
             return (Outcome::Consumed, None);
         }
         // a row's one-character shortcut chooses it (K14): the menu does
@@ -473,43 +458,30 @@ impl ContextMenu {
         if let KeyCode::Char(c) = key.code
             && let Some(i) = self.accelerator(c)
         {
-            self.cursor = i;
+            self.list.select(i, &self.items[..]);
             return (Outcome::Changed, Some(MenuAction::Chosen(i)));
         }
-        match KeyStep::of(key, &self.nav, self.type_ahead) {
-            Some(KeyStep::Type(c)) => {
-                let moved = self
-                    .cursor()
-                    .type_ahead(c, &mut self.typeahead, &self.items[..]);
-                if let Moved::To(i) = moved {
-                    self.cursor = i;
-                    self.cursor_dirty = true;
-                }
-                return (moved.outcome(), None);
+        match self.list.key(key, &self.items[..]) {
+            Moved::To(_) => return (Outcome::Changed, None),
+            Moved::Stayed(_) => return (Outcome::Consumed, None),
+            // ←/→ belong to a menu bar, not to the menu
+            Moved::Ignored if self.list.nav.action(key).is_some() => {
+                return (Outcome::Consumed, None);
             }
-            Some(KeyStep::Nav(nav)) => {
-                let moved = self.cursor().apply(nav, &self.items[..], self.viewport());
-                return match moved.index() {
-                    Some(i) => {
-                        self.cursor = i;
-                        self.cursor_dirty = true;
-                        (Outcome::Changed, None)
-                    }
-                    // ←/→ belong to a menu bar, not to the menu
-                    None => (Outcome::Consumed, None),
-                };
-            }
-            None => {}
+            Moved::Ignored => {}
         }
         match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
-                if self.items.get(self.cursor).is_some_and(|i| !i.disabled) {
-                    (Outcome::Changed, Some(MenuAction::Chosen(self.cursor)))
+                let i = self.list.cursor.index;
+                if self.items.get(i).is_some_and(|it| !it.item.disabled) {
+                    (Outcome::Changed, Some(MenuAction::Chosen(i)))
                 } else {
                     (Outcome::Consumed, None)
                 }
             }
-            KeyCode::Esc if self.dismiss.escape => (Outcome::Changed, Some(MenuAction::Dismissed)),
+            KeyCode::Esc if self.list.dismiss.escape => {
+                (Outcome::Changed, Some(MenuAction::Dismissed))
+            }
             KeyCode::Esc | KeyCode::Tab | KeyCode::BackTab => (Outcome::Consumed, None),
             // a key the menu has no use for closes it and reaches the page
             // (`Ignored`), unless the owner keeps the old swallow
@@ -523,7 +495,7 @@ impl ContextMenu {
     /// The enabled row whose shortcut is exactly the character `c`.
     fn accelerator(&self, c: char) -> Option<usize> {
         self.items.iter().position(|it| {
-            !it.disabled
+            !it.item.disabled
                 && it
                     .shortcut
                     .as_deref()
@@ -544,19 +516,27 @@ impl ContextMenu {
             return None;
         }
         match self.row_of(id) {
-            Some(i) if !self.items[i].disabled => {
-                self.cursor = i;
-                self.cursor_hidden = false;
-                Some(MenuAction::Chosen(i))
-            }
-            Some(_) => None,
+            Some(i) => self.choose(i),
             None if id == self.id => None,
             None => self.on_click_outside(),
         }
     }
 
+    /// The pointer chose row `i`: an enabled row is chosen, a disabled one
+    /// never is.
+    fn choose(&mut self, i: usize) -> Option<MenuAction> {
+        if self.items.get(i).is_none_or(|it| it.item.disabled) {
+            return None;
+        }
+        self.list.select(i, &self.items[..]);
+        Some(MenuAction::Chosen(i))
+    }
+
     pub fn on_click_outside(&mut self) -> Option<MenuAction> {
-        self.dismiss.outside_click.then_some(MenuAction::Dismissed)
+        self.list
+            .dismiss
+            .outside_click
+            .then_some(MenuAction::Dismissed)
     }
 
     /// Place the menu inside `screen` and queue it as an overlay
@@ -567,9 +547,20 @@ impl ContextMenu {
         let menu = self.clone();
         ctx.overlay(move |buf, ctx| {
             ctx.hits.push_barrier();
-            crate::ui::popup::backdrop(ctx, menu.id, menu.dismiss, *buf.area());
+            crate::ui::popup::backdrop(ctx, menu.id, menu.list.dismiss, *buf.area());
             menu.paint(buf, ctx);
         });
+    }
+
+    /// The rows' area inside the frame (below the title) of `area`.
+    fn rows_inner(&self, area: Rect) -> Rect {
+        let title = u16::from(self.title.is_some());
+        Rect::new(
+            area.x + 1,
+            area.y + 1 + title,
+            area.width.saturating_sub(2),
+            area.height.saturating_sub(2 + title),
+        )
     }
 
     /// Resolve the popover rectangle and let the pointer move the cursor.
@@ -580,21 +571,15 @@ impl ContextMenu {
             self.anchor = r;
         }
         self.area = self.placed(screen).intersection(screen);
-        // a menu taller than its room scrolls: keep the cursor in view
-        // after a key moved it, and the window inside the rows
-        let view = self.viewport().max(1);
-        if self.cursor_dirty && !self.items.is_empty() {
-            let line = self.line_of(self.cursor.min(self.items.len() - 1));
-            if line < self.offset {
-                self.offset = line;
-            } else if line >= self.offset + view {
-                self.offset = line + 1 - view;
-            }
-            self.cursor_dirty = false;
-        }
-        self.offset = self.offset.min(self.lines().saturating_sub(view));
-        let hover = ctx.interaction.live_hover();
+        // a menu taller than its room scrolls: the list keeps a moved
+        // cursor in view and the window inside the rows; the pointer moves
+        // the one highlight
+        self.list
+            .set_gaps(self.items.iter().map(|it| it.separator_after));
+        let inner = self.rows_inner(self.area);
+        self.list.layout(inner, &self.items[..], ctx);
         // resting on a ▲/▼ marker scrolls one row per tick (macOS)
+        let hover = ctx.interaction.live_hover();
         let tick = ctx.interaction.tick;
         let step = if hover == Some(self.more_above_id()) {
             -1
@@ -607,21 +592,7 @@ impl ContextMenu {
             self.scrolled_tick = None;
         } else if self.scrolled_tick != Some(tick) {
             self.scrolled_tick = Some(tick);
-            self.on_wheel(step);
-        }
-        match hover.and_then(|h| self.row_of(h)) {
-            Some(i) if !self.items[i].disabled => {
-                self.cursor = i;
-                self.hovering = true;
-                self.cursor_hidden = false;
-            }
-            // the pointer left the rows it was moving over: no row stays
-            // highlighted (a stale highlight outside the menu)
-            _ if self.hovering => {
-                self.hovering = false;
-                self.cursor_hidden = true;
-            }
-            _ => {}
+            self.list.scroll.scroll_by(step);
         }
     }
 
@@ -650,17 +621,15 @@ impl ContextMenu {
             area.width.saturating_sub(2),
             area.height.saturating_sub(2),
         );
-        let mut y = inner.y;
         if let Some(title) = &self.title {
             buf.set_string(
                 inner.x + 2,
-                y,
+                inner.y,
                 truncate(title, inner.width.saturating_sub(3) as usize),
                 t.muted().bg(bg),
             );
-            y += 1;
         }
-        let first = self.offset;
+        let rows = self.rows_inner(area);
         let marker_row = |y: u16| Rect::new(area.x + 1, y, area.width.saturating_sub(2), 1);
         let marker = |ctx: &RenderCtx, id: WidgetId| {
             // rest, hover and press read apart (a pressed marker pages)
@@ -673,7 +642,7 @@ impl ContextMenu {
                 t.muted().bg(bg)
             }
         };
-        if first > 0 {
+        if self.list.scroll.offset > 0 {
             let id = self.more_above_id();
             buf.set_string(
                 area.right().saturating_sub(3),
@@ -686,44 +655,32 @@ impl ContextMenu {
         let cursor = self.highlighted();
         // an open menu is always the active control: its cursor row carries
         // the selection tint whoever holds keyboard focus
-        let mut line = 0usize;
-        for (i, item) in self.items.iter().enumerate() {
-            if y >= inner.bottom() {
-                let id = self.more_below_id();
-                let yb = area.bottom().saturating_sub(1);
-                buf.set_string(
-                    area.right().saturating_sub(3),
-                    yb,
-                    t.glyphs.more_below,
-                    marker(ctx, id),
-                );
-                ctx.register_part(self.id, PartRef::OVERFLOW_AFTER, marker_row(yb));
+        for (k, line) in self.list.visible_lines() {
+            if k >= rows.height {
                 break;
             }
-            if line < first {
-                // scrolled off the top
-                line += 1 + usize::from(item.separator_after);
-                if item.separator_after && line > first {
-                    // its separator is the first row shown
-                    for x in inner.x + 1..inner.right().saturating_sub(1) {
-                        buf.set_string(
-                            x,
-                            y,
-                            t.glyphs.bar_empty,
-                            Style::new().fg(t.rule_on(bg)).bg(bg),
-                        );
-                    }
-                    y += 1;
+            let y = rows.y + k;
+            let Some(i) = line else {
+                // a separator
+                for x in rows.x + 1..rows.right().saturating_sub(1) {
+                    buf.set_string(
+                        x,
+                        y,
+                        t.glyphs.bar_empty,
+                        Style::new().fg(t.rule_on(bg)).bg(bg),
+                    );
                 }
                 continue;
-            }
-            line += 1 + usize::from(item.separator_after);
+            };
+            let Some(item) = self.items.get(i) else {
+                break;
+            };
             let rid = self.row_id(i);
             let mut s = ctx.child_state(self.id, rid, cursor == Some(i));
             s.focused = cursor == Some(i);
-            s.disabled = item.disabled;
+            s.disabled = item.item.disabled;
             s.error = item.danger;
-            let row = Rect::new(inner.x, y, inner.width, 1);
+            let row = Rect::new(rows.x, y, rows.width, 1);
             // one highlight only: the cursor row is the highlight fill (a
             // menu row is a command, not a focus stop, so it draws no `▎`
             // bar and never the accent); hover and press walk the plane's
@@ -731,27 +688,27 @@ impl ContextMenu {
             // deep red cursor fill: the tone of the plane, not the alarm red
             let it = t.interactive(Kind::CursorRow(CursorStyle::Fill), s, plane);
             let mut st = it.style;
-            if item.danger && !it.on_fill && !item.disabled {
+            if item.danger && !it.on_fill && !item.item.disabled {
                 st = st.fg(t.legible(t.error_soft, st.bg.unwrap_or(bg)));
             }
             fill(buf, row, st);
-            let label_w = inner.width.saturating_sub(3) as usize;
-            buf.set_string(row.x + 2, y, truncate(&item.label, label_w), st);
-            if !item.disabled {
+            let label_w = rows.width.saturating_sub(3) as usize;
+            buf.set_string(row.x + 2, y, truncate(&item.item.label, label_w), st);
+            if !item.item.disabled {
                 crate::ui::reveal::truncated(
                     ctx,
                     self.reveal,
                     rid,
                     Rect::new(row.x + 2, y, label_w as u16, 1),
-                    &item.label,
+                    &item.item.label,
                 );
             }
             if let Some(sc) = item.trailing() {
                 let sw = width(sc) as u16;
-                if sw + width(&item.label) as u16 + 5 <= inner.width {
+                if sw + width(&item.item.label) as u16 + 5 <= rows.width {
                     // a shortcut reads on the cursor fill and at rest alike;
                     // a disabled row's reason takes the row's disabled ink
-                    let scs = if item.disabled {
+                    let scs = if item.item.disabled {
                         st
                     } else {
                         let ink = t.row_ink(&it, t.text_secondary);
@@ -761,8 +718,8 @@ impl ContextMenu {
                     buf.set_string(row.right().saturating_sub(sw + 1), y, sc, scs);
                 }
             }
-            ctx.register_part(self.id, Self::row_part(i), row);
-            if !item.disabled {
+            ctx.register_part(self.id, OptionList::row_part(i), row);
+            if !item.item.disabled {
                 // press-drag-release: a release here may complete a press
                 // that started elsewhere
                 if self.release_selects {
@@ -772,22 +729,20 @@ impl ContextMenu {
                     ctx.hits.accept_release(rid, ReleaseFrom::Press(from));
                 }
             }
-            y += 1;
-            if item.separator_after && y < inner.bottom() {
-                for x in inner.x + 1..inner.right().saturating_sub(1) {
-                    buf.set_string(
-                        x,
-                        y,
-                        t.glyphs.bar_empty,
-                        Style::new().fg(t.rule_on(bg)).bg(bg),
-                    );
-                }
-                y += 1;
-            }
+        }
+        if self.list.more_below(self.items.len()) {
+            let id = self.more_below_id();
+            let yb = area.bottom().saturating_sub(1);
+            buf.set_string(
+                area.right().saturating_sub(3),
+                yb,
+                t.glyphs.more_below,
+                marker(ctx, id),
+            );
+            ctx.register_part(self.id, PartRef::OVERFLOW_AFTER, marker_row(yb));
         }
     }
 }
-
 // ------------------------------------------------------------------ bar
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1517,33 +1472,24 @@ impl MenuBar {
     }
 }
 
-impl RowSource for [MenuItem] {
-    fn len(&self) -> usize {
-        <[MenuItem]>::len(self)
-    }
-    fn enabled(&self, i: usize) -> bool {
-        !self[i].disabled
-    }
-    fn label(&self, i: usize) -> &str {
-        &self[i].label
-    }
-}
-
+/// The menu's rows as the shared nav table sees them
+/// (`tests/navigable.rs`), forwarded to its items.
 impl RowSource for ContextMenu {
     fn len(&self) -> usize {
         self.items.len()
     }
     fn enabled(&self, i: usize) -> bool {
-        !self.items[i].disabled
+        self.items[..].enabled(i)
     }
     fn label(&self, i: usize) -> &str {
-        &self.items[i].label
+        &self.items[i].item.label
     }
 }
 
+/// The list's cursor.
 impl Navigable for ContextMenu {
     fn cursor(&self) -> Cursor {
-        Cursor::new(self.cursor).wrap(self.wrap)
+        self.list.cursor
     }
 }
 
@@ -1563,10 +1509,13 @@ impl Navigable for MenuBar {
     }
 }
 
-/// The menu's pointer gestures: a completed click on a row chooses it, on
-/// a ▲/▼ marker pages, on the backdrop dismisses per its dismiss policy
-/// ([`ContextMenu::on_click`]); a press, a drag or a secondary click on it
-/// is consumed (the release chooses); a vertical wheel scrolls it.
+/// The menu's pointer gestures, routed by the event's part: a completed
+/// click on a row chooses it (a disabled row never), on a ▲/▼ marker
+/// pages, on the backdrop dismisses per its dismiss policy; a press, a
+/// drag or a secondary click on it is consumed (the release chooses); the
+/// wheel goes through its [`OptionList`]'s shared path
+/// ([`Scrollable`](crate::core::scroll::Scrollable), per
+/// [`OptionList::wheel`]; a sideways notch is consumed).
 impl crate::core::pointer::MouseTarget for ContextMenu {
     type Action = MenuAction;
 
@@ -1580,21 +1529,30 @@ impl crate::core::pointer::MouseTarget for ContextMenu {
     ) -> crate::core::response::Response<MenuAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        if let Some((axis, delta)) = ev.wheel() {
+        if ev.wheel().is_some() {
             // the wheel outside the menu (its backdrop) moves nothing
-            if ev.part().part == Part::BACKDROP {
+            if self.list.on_backdrop(ev) {
                 return Response::ignored();
             }
-            return match axis {
-                Axis::Vertical => self.on_wheel(delta).into(),
-                Axis::Horizontal => Response::consumed(),
-            };
+        }
+        if let Some(r) = crate::core::pointer::scroll_input(&mut self.list, ev) {
+            return r.lift();
         }
         match ev.phase() {
-            Some(Phase::Click) => match self.on_click(ev.id) {
-                Some(a) => Response::emit(a),
-                None => Response::changed(),
-            },
+            Some(Phase::Click) => {
+                let action = if let Some(i) = self.list.row_of_event(ev) {
+                    self.choose(i)
+                } else if self.list.on_backdrop(ev) {
+                    self.on_click_outside()
+                } else {
+                    self.page_marker(ev.id);
+                    None
+                };
+                match action {
+                    Some(a) => Response::emit(a),
+                    None => Response::changed(),
+                }
+            }
             Some(Phase::Press | Phase::Drag | Phase::Secondary) => Response::consumed(),
             _ => Response::ignored(),
         }
@@ -1631,10 +1589,10 @@ impl crate::core::pointer::MouseTarget for MenuBar {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-            return match (self.open.as_mut(), axis) {
-                (Some(m), Axis::Vertical) => m.on_wheel(delta).into(),
-                (Some(_), Axis::Horizontal) => Response::consumed(),
-                (None, _) => Response::ignored(),
+            // the open menu's wheel: its list's shared path
+            return match self.open.as_mut() {
+                Some(m) => m.list.wheel(axis, delta).lift(),
+                None => Response::ignored(),
             };
         }
         match ev.phase() {
@@ -1728,15 +1686,15 @@ mod tests {
     #[test]
     fn keyboard_skips_disabled_wraps_and_chooses() {
         let mut m = ContextMenu::new(WidgetId::of("m"), items());
-        assert_eq!(m.cursor, 0);
+        assert_eq!(m.list.cursor.index, 0);
         m.on_key(&key(KeyCode::Down));
-        assert_eq!(m.cursor, 2, "disabled row skipped");
+        assert_eq!(m.list.cursor.index, 2, "disabled row skipped");
         m.on_key(&key(KeyCode::Down));
-        assert_eq!(m.cursor, 3);
+        assert_eq!(m.list.cursor.index, 3);
         m.on_key(&key(KeyCode::Down));
-        assert_eq!(m.cursor, 0, "wraps");
+        assert_eq!(m.list.cursor.index, 0, "wraps");
         m.on_key(&key(KeyCode::End));
-        assert_eq!(m.cursor, 3);
+        assert_eq!(m.list.cursor.index, 3);
         let (_, ev) = m.on_key(&key(KeyCode::Enter));
         assert_eq!(ev, Some(MenuAction::Chosen(3)));
         let (_, ev) = m.on_key(&key(KeyCode::Esc));
@@ -1806,7 +1764,7 @@ mod tests {
         );
         let mut buf = Buffer::empty(Rect::new(0, 0, 60, 20));
         m.render(Rect::new(0, 0, 60, 20), &mut buf, &mut ctx);
-        assert_eq!(m.cursor, 3);
+        assert_eq!(m.list.cursor.index, 3);
     }
 
     /// K14 in a menu-bar menu: the shortcut letter shown beside a row
@@ -2069,7 +2027,7 @@ mod tests {
         assert!(hits.area_of(m.more_above_id()).is_none(), "nothing above");
         assert!(m.contains_id(below));
         assert_eq!(m.on_click(below), None);
-        assert_eq!(m.offset, 5, "a click pages down");
+        assert_eq!(m.list.scroll.offset, 5, "a click pages down");
         // resting on the up marker scrolls one row per tick
         let above = m.more_above_id();
         let at = |tick| Interaction {
@@ -2078,11 +2036,11 @@ mod tests {
             ..Default::default()
         };
         paint_menu(&mut m, &t, at(1));
-        assert_eq!(m.offset, 4);
+        assert_eq!(m.list.scroll.offset, 4);
         paint_menu(&mut m, &t, at(1));
-        assert_eq!(m.offset, 4, "once per tick");
+        assert_eq!(m.list.scroll.offset, 4, "once per tick");
         paint_menu(&mut m, &t, at(2));
-        assert_eq!(m.offset, 3);
+        assert_eq!(m.list.scroll.offset, 3);
     }
 
     #[test]
@@ -2155,8 +2113,11 @@ mod tests {
         assert!(shows(&buf, "item 29"), "the last item scrolled into view");
         assert!(!shows(&buf, "item 00"));
         // the wheel scrolls without moving the cursor
-        assert_eq!(m.on_wheel(-3), Outcome::Changed);
-        assert_eq!(m.cursor, 29);
+        assert_eq!(
+            crate::core::scroll::Scrollable::wheel(&mut m.list, Axis::Vertical, -3).outcome(),
+            Outcome::Changed
+        );
+        assert_eq!(m.list.cursor.index, 29);
         // max_rows caps a long menu on a tall screen too
         let mut capped = ContextMenu::new(WidgetId::of("m"), items).max_rows(5);
         assert_eq!(capped.size().1, 5 + 2);
@@ -2250,7 +2211,7 @@ mod tests {
     fn a_destructive_cursor_row_is_not_grey_on_grey_at_256() {
         let t = Theme::for_level(crate::theme::ColorLevel::Ansi256);
         let mut m = ContextMenu::new(WidgetId::of("m"), items()).at(Position::new(1, 1));
-        m.cursor = 3;
+        m.list.cursor.index = 3;
         let b = paint_menu(&mut m, &t, Interaction::default());
         let (x, y) = row_y(&b, "Close");
         assert_eq!(b[(x, y)].bg, t.highlight_danger);
@@ -2270,7 +2231,7 @@ mod tests {
             ],
         )
         .at(Position::new(1, 1));
-        assert!(m.items[1].disabled);
+        assert!(m.items[1].item.disabled);
         let b = paint_menu(&mut m, &t, Interaction::default());
         let (_, y) = row_y(&b, "Stage image");
         let row: String = (0..b.area.width).map(|x| b[(x, y)].symbol()).collect();
@@ -2282,7 +2243,7 @@ mod tests {
         assert_eq!(b[(rx, ry)].fg, b[(lx, ly)].fg);
         // the keyboard never lands on it
         m.on_key(&key(KeyCode::Down));
-        assert_eq!(m.cursor, 0);
+        assert_eq!(m.list.cursor.index, 0);
     }
 
     fn wide_bar(overflow: Overflow) -> MenuBar {
@@ -2340,7 +2301,7 @@ mod tests {
             .unwrap()
             .items
             .iter()
-            .map(|i| i.label.as_str())
+            .map(|i| i.item.label.as_str())
             .collect();
         assert_eq!(items, ["Selection", "Window"]);
         // choosing one opens that title's menu under the chevron
