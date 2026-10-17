@@ -1411,7 +1411,9 @@ impl Theme {
             // a green or red fill is unreadable
             fg
         } else {
-            self.focus
+            // the bar is a graphic: at 3:1 on its plane (at 16 colours the
+            // accent is 2.9:1 on the DarkGray raised plane)
+            self.legible_mark(self.focus, bg)
         };
         Interactive {
             style,
@@ -1611,7 +1613,7 @@ impl Theme {
         } else if on_accent {
             self.text_on_accent
         } else {
-            self.focus
+            self.legible_mark(self.focus, bg)
         };
         Style::new().fg(fg).bg(bg)
     }
@@ -3435,7 +3437,7 @@ mod tests {
     /// measured at every level against the xterm palette: text 4.5:1,
     /// graphics and frames 3:1.
     #[test]
-    fn frames_and_selected_tab_marks_read_on_their_plane_at_every_level() {
+    fn frames_focus_bars_and_tab_marks_read_on_their_plane_at_every_level() {
         let states = [
             VisualState {
                 selected: true,
@@ -3495,6 +3497,59 @@ mod tests {
                         assert!(r >= 3.0, "{at}: {name} {r:.2}");
                     }
                 }
+            }
+        }
+        // the focus bar is a graphic on whatever plane its control sits on
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let kinds = [
+                Kind::Row,
+                Kind::CursorRow(CursorStyle::Bar),
+                Kind::Button(ButtonKind::Secondary),
+                Kind::Button(ButtonKind::Subtle),
+                Kind::Button(ButtonKind::Toggle),
+                Kind::Tab,
+                Kind::Title,
+                Kind::Chip,
+            ];
+            for plane in Plane::ALL.into_iter().filter(|p| !p.is_fill()) {
+                for kind in kinds {
+                    for (hovered, pressed, selected) in [
+                        (false, false, false),
+                        (true, false, false),
+                        (true, true, false),
+                        (false, false, true),
+                    ] {
+                        let s = VisualState {
+                            focused: true,
+                            hovered,
+                            pressed,
+                            selected,
+                            ..Default::default()
+                        };
+                        let look = t.interactive(kind, s, plane);
+                        if look.gutter != t.glyphs.focus_bar {
+                            continue;
+                        }
+                        let (fg, bg) = (look.gutter_style.fg, look.gutter_style.bg);
+                        let r = contrast_ratio(fg.unwrap(), bg.unwrap()).unwrap();
+                        assert!(
+                            r >= 3.0,
+                            "{level:?} {kind:?} on {plane:?} {s:?}: bar {r:.2}"
+                        );
+                    }
+                }
+                let bg = t.ladder(plane).rest;
+                let g = t.gutter(
+                    VisualState {
+                        focused: true,
+                        ..Default::default()
+                    },
+                    bg,
+                    false,
+                );
+                let r = contrast_ratio(g.fg.unwrap(), bg).unwrap();
+                assert!(r >= 3.0, "{level:?} gutter on {plane:?}: {r:.2}");
             }
         }
         // the marks keep their hue wherever the palette allows it
