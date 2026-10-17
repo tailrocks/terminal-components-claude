@@ -255,7 +255,7 @@ fn lists_menus_and_selects_draw_ascii() {
                 .collect();
             let mut l = ListBox::new(id, items, mode);
             l.chosen = Some(0);
-            l.checked = vec![true; 4];
+            (0..4).for_each(|i| l.set_checked(i, true));
             l.render(Rect::new(0, 0, 20, 4), buf, ctx, t.canvas);
         });
     }

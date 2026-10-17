@@ -668,7 +668,11 @@ mod widget_tests {
 
         let mut l = ListBox::new(WidgetId::of("l"), items(), SelectMode::Multi);
         l.on_key(&c('a'));
-        assert!(l.checked.iter().all(|c| *c), "`a` checks all by default");
+        assert_eq!(
+            l.checked_count(),
+            l.items.len(),
+            "`a` checks all by default"
+        );
         let mut l = ListBox::new(WidgetId::of("l"), items(), SelectMode::Multi)
             .keymap(vec![(KeyBinding::ctrl('a'), ListCmd::ToggleAll)]);
         assert_eq!(
@@ -680,7 +684,7 @@ mod widget_tests {
             code: KeyCode::Char('a'),
             mods: KeyModifiers::CONTROL,
         });
-        assert!(l.checked.iter().all(|c| *c), "the remapped key fires");
+        assert_eq!(l.checked_count(), l.items.len(), "the remapped key fires");
     }
 
     #[test]
