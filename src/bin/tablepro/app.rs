@@ -1346,14 +1346,8 @@ impl App {
         }
         let items: Vec<Item> = results
             .iter()
-            .map(|r| Item {
-                tag: (if r.open && r.group != "Open tabs" {
-                    Some("open")
-                } else {
-                    None
-                })
-                .map(Into::into),
-                ..Item::new(r.label.clone())
+            .map(|r| {
+                let it = Item::new(r.label.clone())
                     .detail(r.path.clone())
                     .glyph(match r.group {
                         "Tables" => "T",
@@ -1364,7 +1358,12 @@ impl App {
                         _ => "Q",
                     })
                     .group(r.group)
-                    .matched(r.matched.clone())
+                    .matched(r.matched.clone());
+                if r.open && r.group != "Open tabs" {
+                    it.tag("open")
+                } else {
+                    it
+                }
             })
             .collect();
         p.set_items(items);
@@ -1379,50 +1378,7 @@ impl App {
         let mut p = Picker::new(WidgetId::of("tablist"), "Open tabs");
         p.placeholder = "Filter tabs…".into();
         p.hints = "↑↓ Move · Enter Switch · Delete Close tab · Esc Close".to_owned();
-        let items: Vec<Item> = w
-            .tabs
-            .iter()
-            .enumerate()
-            .map(|(i, t)| Item {
-                tag: (if i == w.active {
-                    Some("active")
-                } else if t.dirty() {
-                    Some("unsaved")
-                } else {
-                    None
-                })
-                .map(Into::into),
-                ..Item::new(t.label())
-                    .detail(match t {
-                        WorkTab::Table(tt) => format!(
-                            "{} · {}",
-                            tt.qualified(),
-                            if tt.mode_tabs.active == 0 {
-                                "data"
-                            } else {
-                                "structure"
-                            }
-                        ),
-                        WorkTab::Query(q) => {
-                            if q.is_running() {
-                                "running".into()
-                            } else {
-                                q.last_status
-                                    .as_ref()
-                                    .map(|s| s.0.clone())
-                                    .unwrap_or("query".into())
-                            }
-                        }
-                        WorkTab::History(_) => "history".into(),
-                    })
-                    .glyph(match t {
-                        WorkTab::Table(_) => "T",
-                        WorkTab::Query(_) => "≡",
-                        WorkTab::History(_) => "H",
-                    })
-            })
-            .collect();
-        p.set_items(items);
+        p.set_items(tab_list_items(w, ""));
         p.set_cursor(w.active);
         self.layers.open(
             Box::new(p),
@@ -1444,11 +1400,11 @@ impl App {
             "↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection".to_owned();
         let items: Vec<Item> = SafeMode::ALL
             .iter()
-            .map(|s| Item {
-                tag: (if *s == current { Some("current") } else { None }).map(Into::into),
-                ..Item::new(s.label().to_owned())
-                    .detail(s.description().to_owned())
-                    .glyph(if *s == current { "›" } else { " " })
+            .map(|s| {
+                let it = Item::new(s.label())
+                    .detail(s.description())
+                    .glyph(if *s == current { "›" } else { " " });
+                if *s == current { it.tag("current") } else { it }
             })
             .collect();
         p.set_items(items);
@@ -1632,17 +1588,7 @@ impl App {
         let Some(p) = self.layers.top_as_mut::<Picker>() else {
             return;
         };
-        let q = p.query().to_lowercase();
-        let items: Vec<Item> = w
-            .tabs
-            .iter()
-            .enumerate()
-            .filter(|(_, t)| q.is_empty() || t.label().to_lowercase().contains(&q))
-            .map(|(i, t)| Item {
-                tag: (if i == w.active { Some("active") } else { None }).map(Into::into),
-                ..Item::new(t.label()).detail(i.to_string()).glyph("≡")
-            })
-            .collect();
+        let items = tab_list_items(w, p.query());
         p.set_items(items);
     }
 
@@ -2325,13 +2271,61 @@ impl PointerHost for App {
     }
 }
 
-/// The open tab a tab-list row stands for: a filtered row carries it in its
-/// detail.
+/// The open tab a tab-list row stands for ([`tab_list_items`] carries it
+/// in the row's value).
 fn tab_index(p: &Picker, i: usize) -> usize {
-    p.items
-        .get(i)
-        .and_then(|it| it.detail.parse::<usize>().ok())
-        .unwrap_or(i)
+    p.items.get(i).map_or(i, |it| it.value)
+}
+
+/// The tab list's rows: every open tab, or those whose label contains
+/// `query` (ignoring case). The opened list and the filtered one are built
+/// here alike, so the filter only narrows: each row keeps its tab's glyph,
+/// detail and tag, and carries its tab's index as its value.
+fn tab_list_items(w: &Workbench, query: &str) -> Vec<Item> {
+    let q = query.to_lowercase();
+    w.tabs
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| q.is_empty() || t.label().to_lowercase().contains(&q))
+        .map(|(i, t)| {
+            let it = Item::new(t.label())
+                .detail(match t {
+                    WorkTab::Table(tt) => format!(
+                        "{} · {}",
+                        tt.qualified(),
+                        if tt.mode_tabs.active == 0 {
+                            "data"
+                        } else {
+                            "structure"
+                        }
+                    ),
+                    WorkTab::Query(q) => {
+                        if q.is_running() {
+                            "running".into()
+                        } else {
+                            q.last_status
+                                .as_ref()
+                                .map(|s| s.0.clone())
+                                .unwrap_or("query".into())
+                        }
+                    }
+                    WorkTab::History(_) => "history".into(),
+                })
+                .glyph(match t {
+                    WorkTab::Table(_) => "T",
+                    WorkTab::Query(_) => "≡",
+                    WorkTab::History(_) => "H",
+                })
+                .value(i);
+            if i == w.active {
+                it.tag("active")
+            } else if t.dirty() {
+                it.tag("unsaved")
+            } else {
+                it
+            }
+        })
+        .collect()
 }
 
 fn pretty_json(j: &str) -> String {
