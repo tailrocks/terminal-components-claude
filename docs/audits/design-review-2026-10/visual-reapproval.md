@@ -407,9 +407,10 @@ item recorded as not fixed or waiting for the owner.
 | # | Status | Commit(s) / owner | Notes |
 |---|---|---|---|
 | Regressions: backdrop, input, tab pane, holla rows, history opt-out | Fixed | 45521da32, f7e8b7538, e7c743cdd, 7bbf22b44, c75f2ce25 | Hashes for the fixes the regressions table names by subject (backdrop dims without erasing; untouched field not flagged; tab pane shows no focus under a layer; holla `legible_on_fill`; `HOLLA_NO_HISTORY` from the first frame). |
-| holla: popup frames invisible at 16 colours and `none` | Open → A1 | — | `DarkGray` frame on the `DarkGray` popover plane; also in the baseline. |
-| holla: running spinner and queued `○` on the selected tab at 16 colours | Open → A1 | — | 2.9:1 and 3.2:1; Tabs should run its inks through `Theme::legible` on the selected fill. |
-| jackin: capsule tab number and editor dirty `•` on the selected tab at 16 colours | Open → A1 | — | 3.2:1 and 2.4:1; same library fix as the holla row. |
+| holla: popup frames invisible at 16 colours and `none` | Fixed (A1) | 8d76d112e, 5c04d96ec | `Theme::frame_on`: Gray on the DarkGray popover, 3.2:1 (jackin's `capsule/menu` and `manager/menu_open` too). |
+| holla: running spinner and queued `○` on the selected tab at 16 colours | Fixed (A1) | 8d76d112e, 5c04d96ec | Tabs measures its marks on the tab's plane (`Theme::legible_mark`): spinner White 4.0:1; the `○` was already a 3.2:1 graphic and stays. |
+| jackin: capsule tab number and editor dirty `•` on the selected tab at 16 colours | Fixed (A1) | 8d76d112e, c15e5563c | Tab number takes the label's ink (`Theme::beside_label`, Black 5.2:1; muted → secondary at truecolor and 256, 4.3:1 → 7.1:1); dirty dot LightYellow 3.7:1. |
+| all apps: focus bar `▎` and holla's status-bar spinner on a 16-colour DarkGray plane | Fixed (A1) | 8dc9e0e53, 992f70673; re-approvals def08b428, 3b582c771, 14c43af50, f75096cce, 421e1594d | Found by the A1 scan of the accepted captures: LightGreen 2.9:1 → White 4.0:1 through `Theme::legible_mark`. |
 | holla: `HOLLA_NO_HISTORY=1` pinned in captures | Decision (product owner, 2026-10-17) | "Decision: holla captures keep `HOLLA_NO_HISTORY=1`" | Ranking keeps coverage through three `-with-history` rows. |
 | jackin owner question 1: usage meter label width | Open → D1 | — | Owner decision pending. |
 | jackin owner question 2: pin `Ctrl+S` while dirty | Open → D2 | — | Owner decision pending; a library `Footer` rule in S8b if answered (b). |
