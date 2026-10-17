@@ -157,7 +157,7 @@ This is the single triage of the open items in section 3.
 - Priority 0b reach R1-R54 (two agents), `tests/showcase_reach_allow.txt` to empty.
 - R-apps: app screens (jackin, holla, tablepro) responsive and reachable audit, then fixes.
 - R-apps-1: done (rapps-6-1); keyboard access to the strip `…` goes with A11.
-- R-apps-6: fixed-size page bodies move onto `ScrollView`.
+- R-apps-6: fixed-size page bodies move onto `ScrollView` (fact sheets done rapps-6b-2; jackin manager detail and cockpit, holla config and cleanup-history, tablepro error card left).
 - Flake fixes that make the gate reliable (a red or flaky gate costs more budget than any feature).
 
 ### NEXT (max 8, best user-visible value per effort)
@@ -509,12 +509,12 @@ known gap with its row id here, and a fix drops its lines. Branch
 
 | Id | What | Depends on | Acceptance | Source |
 |---|---|---|---|---|
-| R-apps-1 | **Done 2026-10-17** (rapps-6-1): Segments and StatusBar collapse the items they drop into one `…` overflow item (`ui::reveal::overflow`) that reveals them on hover; the reach audit reads them through that reveal; 46 allow lines gone. Residual: keyboard access to the `…` (strips are outside the focus ring) goes with A11. | — | done | `responsive.md` R-apps-1 |
+| R-apps-1 | **Done 2026-10-17** (rapps-6-1): Segments and StatusBar collapse the items they drop into one `…` overflow item (`ui::reveal::overflow`) that reveals them on hover; the reach audit reads them through that reveal; 46 allow lines gone; the 68 lines still tagged R-apps-1 re-triaged to their other classes (rapps-6b-2). Residual: keyboard access to the `…` (strips are outside the focus ring) goes with A11. | — | done | `responsive.md` R-apps-1 |
 | R-apps-2 | Hand-rolled master-detail drops the detail or aside below a width (tablepro connections and EXPLAIN card, jackin manager aside, editor/settings detail, usage swap; holla plan summary over the drawer). | `MasterDetail` | screens on `MasterDetail`; allow lines gone | `responsive.md` R-apps-2 |
 | R-apps-3 | Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
 | R-apps-4 | Text cut with `…` but no reveal (input placeholder and help, picker hint, PageHeader, Heading, app line lists). | — | one cut helper that registers the reveal | `responsive.md` R-apps-4 |
 | R-apps-5 | Line clamps drop text without `…` (Notice `max_lines`, tablepro safe-mode description). | — | clamps marked and revealed or scrolled | `responsive.md` R-apps-5 |
-| R-apps-6 | Fixed-size bodies drop rows with no scrollbar (`props::render`, fact sheets, detail cards, jackin settings and cockpit). Holla disk compact mode **done 2026-10-17** (rapps-6-1: the Filesystems stay, the tree scrolls; its 3 allow lines gone). Next: a `props::render` variant that takes a `RenderCtx` and draws through `ScrollView`, then the callers move onto it. | responsive-lib (scroll container) | bodies scroll; allow lines gone | `responsive.md` R-apps-6 |
+| R-apps-6 | Fixed-size bodies drop rows with no scrollbar. Holla disk compact mode **done 2026-10-17** (rapps-6-1). Fact sheets and detail cards **done 2026-10-17** (rapps-6b-2): `props::render_in` (a sheet through a vertical `ScrollView`), holla gate/trust/snapshot facts, tablepro history detail and statement card, jackin settings Agents; a wheel notch moves at most one view. Next: jackin manager detail and cockpit credentials, holla config and cleanup-history bodies, tablepro error card. | responsive-lib (scroll container) | bodies scroll; allow lines gone | `responsive.md` R-apps-6 |
 | R-apps-7 | Button rows drop the buttons that do not fit (`button::row_layout`). | — | wrap or `…` menu | `responsive.md` R-apps-7 |
 | R-apps-8 | Cut cells reveal on hover only; Picker has no `→` reveal (WCAG keyboard gap). | — | keyboard reveal in Picker; audit drives it | `responsive.md` R-apps-8 |
 | R-apps-9 | **Done 2026-10-17**: a scroll pane registers its whole body under its children (`HitRegistry::register_scroll_under`, from `ScrollPane::draw_with_fade`), so the wheel scrolls a dialog or overlay over a field, a label or the padding beside its bar; FormDialog follows focus only when focus moves, so the wheel can scroll away from the focused field. Tests `the_wheel_over_a_form_field_scrolls_the_form` (jackin), `the_wheel_beside_the_help_scrollbar_scrolls_the_help` (tablepro). | — | done | `responsive.md` R-apps-9 |
