@@ -20,7 +20,7 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::context::{ContextAnchor, ContextSource};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::master_detail::MasterDetail;
-use junie_tui::ui::text::{fit, truncate, width, wrap};
+use junie_tui::ui::text::{fit, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
@@ -794,7 +794,7 @@ impl DiskPage {
             buf.set_string(
                 inner.x + label_w,
                 y,
-                truncate(v, vw),
+                junie_tui::ui::reveal::cut(Rect::new(inner.x + label_w, y, (vw) as u16, 1), v),
                 Style::new().fg(t.tone(*tone)).bg(bg),
             );
         }
@@ -906,12 +906,22 @@ impl DiskPage {
             x += label_w + 2;
             let avail = row.right().saturating_sub(x + 1) as usize;
             if avail >= 8 {
-                buf.set_string(x, y, truncate(size, avail), plain.fg(t.text_secondary));
+                buf.set_string(
+                    x,
+                    y,
+                    junie_tui::ui::reveal::cut(Rect::new(x, y, (avail) as u16, 1), size),
+                    plain.fg(t.text_secondary),
+                );
             }
             x += (width(size) as u16 + 2).min(row.right().saturating_sub(x));
             let avail = row.right().saturating_sub(x + 1) as usize;
             if avail >= 6 && !kind.is_empty() {
-                buf.set_string(x, y, truncate(kind, avail), plain.fg(t.text_muted));
+                buf.set_string(
+                    x,
+                    y,
+                    junie_tui::ui::reveal::cut(Rect::new(x, y, (avail) as u16, 1), kind),
+                    plain.fg(t.text_muted),
+                );
             }
             legible_on_fill(buf, row, t, bg);
             ctx.clickable(rid, row);
@@ -1565,7 +1575,10 @@ impl ShellPage<Holla> for DiskPage {
                         buf.set_string(
                             area.x + 1,
                             y1,
-                            truncate(&line, area.width.saturating_sub(2) as usize),
+                            junie_tui::ui::reveal::cut(
+                                Rect::new(area.x + 1, y1, area.width.saturating_sub(2), 1),
+                                &line,
+                            ),
                             Style::new().fg(t.warning),
                         );
                     } else if !scan.done(w.tick) {
@@ -1611,7 +1624,10 @@ impl ShellPage<Holla> for DiskPage {
                         buf.set_string(
                             area.x + 1,
                             y1,
-                            truncate(&line, area.width.saturating_sub(2) as usize),
+                            junie_tui::ui::reveal::cut(
+                                Rect::new(area.x + 1, y1, area.width.saturating_sub(2), 1),
+                                &line,
+                            ),
                             Style::new().fg(if errors > 0 || w.disk.partial_reason.is_some() {
                                 t.warning
                             } else {
@@ -1622,10 +1638,10 @@ impl ShellPage<Holla> for DiskPage {
                 }
             }
             View::Overview => {
-                buf.set_string(area.x + 1, y1, truncate("home folders alphabetically, then insight roots · cached sizes are hints with their age · Enter analyses live", area.width.saturating_sub(2) as usize), t.muted());
+                buf.set_string(area.x + 1, y1, junie_tui::ui::reveal::cut(Rect::new(area.x + 1, y1, area.width.saturating_sub(2), 1), "home folders alphabetically, then insight roots · cached sizes are hints with their age · Enter analyses live"), t.muted());
             }
             View::TopFiles => {
-                buf.set_string(area.x + 1, y1, truncate(&format!("{} · regular files of 100 MiB or more · top 50 by allocated size · Space selects for the same cleanup gate", self.top_state.clone().unwrap_or(format!("{} files", self.top.len()))), area.width.saturating_sub(2) as usize), t.muted());
+                buf.set_string(area.x + 1, y1, junie_tui::ui::reveal::cut(Rect::new(area.x + 1, y1, area.width.saturating_sub(2), 1), &format!("{} · regular files of 100 MiB or more · top 50 by allocated size · Space selects for the same cleanup gate", self.top_state.clone().unwrap_or(format!("{} files", self.top.len())))), t.muted());
             }
         }
         let mut body_y = area.y + 3;

@@ -1524,7 +1524,7 @@ impl ShellPage<Holla> for SnapshotPage {
             buf.set_string(
                 inner.x,
                 inner.y + k as u16,
-                truncate(line, room as usize),
+                junie_tui::ui::reveal::cut(Rect::new(inner.x, inner.y + k as u16, room, 1), line),
                 st,
             );
             for &(_, col, kind) in self.marks.iter().filter(|m| m.0 == i) {

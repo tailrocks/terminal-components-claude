@@ -1801,7 +1801,10 @@ impl AccountsScreen {
                     buf.set_string(
                         body.x + label_w,
                         y,
-                        truncate(value, body.width.saturating_sub(label_w) as usize),
+                        junie_tui::ui::reveal::cut(
+                            Rect::new(body.x + label_w, y, body.width.saturating_sub(label_w), 1),
+                            value,
+                        ),
                         Style::new().fg(t.tone(*tone)).bg(bg),
                     );
                 }
@@ -1809,7 +1812,7 @@ impl AccountsScreen {
                     buf.set_string(
                         body.x,
                         y,
-                        truncate(text, body.width as usize),
+                        junie_tui::ui::reveal::cut(Rect::new(body.x, y, body.width, 1), text),
                         Style::new().fg(t.tone(*tone)).bg(bg),
                     );
                 }
@@ -1887,7 +1890,10 @@ impl AccountsScreen {
                     buf.set_string(
                         inner.x,
                         y,
-                        truncate(&format!("{k}  {v}"), inner.width as usize),
+                        junie_tui::ui::reveal::cut(
+                            Rect::new(inner.x, y, inner.width, 1),
+                            &format!("{k}  {v}"),
+                        ),
                         Style::new().fg(t.tone(*tone)).bg(bg),
                     );
                     y += 1;
@@ -1903,7 +1909,7 @@ impl AccountsScreen {
                     buf.set_string(
                         inner.x,
                         y,
-                        truncate(v, inner.width as usize),
+                        junie_tui::ui::reveal::cut(Rect::new(inner.x, y, inner.width, 1), v),
                         Style::new().fg(t.tone(*tone)).bg(bg),
                     );
                     y += 1;
@@ -1913,7 +1919,7 @@ impl AccountsScreen {
                     buf.set_string(
                         inner.x,
                         y,
-                        truncate(&lead, inner.width as usize),
+                        junie_tui::ui::reveal::cut(Rect::new(inner.x, y, inner.width, 1), &lead),
                         t.primary().bg(bg),
                     );
                     let lw = width(&lead) as u16;

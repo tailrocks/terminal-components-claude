@@ -711,7 +711,10 @@ impl UsageScreen {
                 buf.set_string(
                     area.x,
                     title_row,
-                    truncate(&title, area.width.saturating_sub(20) as usize),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(area.x, title_row, area.width.saturating_sub(20), 1),
+                        &title,
+                    ),
                     t.title().bg(bg),
                 );
                 let meta = a.status_word();
@@ -766,7 +769,10 @@ impl UsageScreen {
                             buf.set_string(
                                 body.x,
                                 y,
-                                truncate(text, body.width as usize),
+                                junie_tui::ui::reveal::cut(
+                                    Rect::new(body.x, y, body.width, 1),
+                                    text,
+                                ),
                                 style.bg(bg),
                             );
                         }

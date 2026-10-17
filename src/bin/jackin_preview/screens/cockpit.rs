@@ -10,7 +10,7 @@ use junie_tui::core::pointer::{MouseTarget, PointerEvent, scroll_input};
 use junie_tui::shell::Page;
 use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill};
-use junie_tui::ui::text::{truncate, width};
+use junie_tui::ui::text::width;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -525,7 +525,10 @@ impl CockpitScreen {
         buf.set_string(
             inner.x,
             inner.bottom() - 1,
-            truncate(hint, inner.width as usize),
+            junie_tui::ui::reveal::cut(
+                Rect::new(inner.x, inner.bottom() - 1, inner.width, 1),
+                hint,
+            ),
             t.faint().bg(bg),
         );
         ctx.hits.register(LOG, body);
@@ -844,7 +847,12 @@ impl Page<Jackin> for CockpitScreen {
         let center = |buf: &mut Buffer, y: u16, text: &str, style: Style| {
             let n = width(text) as u16;
             let x = area.x + area.width.saturating_sub(n) / 2;
-            buf.set_string(x, y, truncate(text, area.width as usize), style);
+            buf.set_string(
+                x,
+                y,
+                junie_tui::ui::reveal::cut(Rect::new(x, y, area.width, 1), text),
+                style,
+            );
         };
         center(
             buf,
@@ -919,11 +927,19 @@ impl Page<Jackin> for CockpitScreen {
             let x = rail.x.saturating_sub(4);
             let wdt = area.right().saturating_sub(x + 2) as usize;
             fill(buf, Rect::new(area.x, y, area.width, 2), t.base());
-            buf.set_string(x, y, truncate(&line, wdt), t.muted());
+            buf.set_string(
+                x,
+                y,
+                junie_tui::ui::reveal::cut(Rect::new(x, y, (wdt) as u16, 1), &line),
+                t.muted(),
+            );
             buf.set_string(
                 x + 13,
                 y + 1,
-                truncate(val, wdt.saturating_sub(13)),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(x + 13, y + 1, (wdt.saturating_sub(13)) as u16, 1),
+                    val,
+                ),
                 Style::new().fg(t.tone(*tone)),
             );
             y += 3;
@@ -957,7 +973,10 @@ impl Page<Jackin> for CockpitScreen {
         buf.set_string(
             ax,
             ay,
-            truncate(&activity, area.width.saturating_sub(2) as usize),
+            junie_tui::ui::reveal::cut(
+                Rect::new(ax, ay, area.width.saturating_sub(2), 1),
+                &activity,
+            ),
             act_style,
         );
         if !self.log.is_empty() {
@@ -965,7 +984,10 @@ impl Page<Jackin> for CockpitScreen {
             buf.set_string(
                 ax,
                 ay + 1,
-                truncate(&lines, area.width.saturating_sub(2) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(ax, ay + 1, area.width.saturating_sub(2), 1),
+                    &lines,
+                ),
                 t.faint(),
             );
             ctx.clickable(CHIP_ACTIVITY, Rect::new(ax, ay, width(&activity) as u16, 2));

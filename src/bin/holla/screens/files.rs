@@ -793,7 +793,7 @@ impl FilesPage {
                 buf.set_string(
                     x,
                     y,
-                    truncate(&tail, avail),
+                    junie_tui::ui::reveal::cut(Rect::new(x, y, (avail) as u16, 1), &tail),
                     plain.fg(if e.error.is_some() {
                         t.error
                     } else {
@@ -1003,7 +1003,10 @@ impl FilesPage {
                 buf.set_string(
                     inner.x,
                     inner.y + i as u16,
-                    truncate(l, inner.width as usize),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(inner.x, inner.y + i as u16, inner.width, 1),
+                        l,
+                    ),
                     Style::new().fg(t.tone(*tone)).bg(bg),
                 );
             }
@@ -1574,7 +1577,10 @@ impl ShellPage<Holla> for FilesPage {
                 buf.set_string(
                     area.x + 1,
                     area.y,
-                    truncate(&title, area.width.saturating_sub(2) as usize),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(area.x + 1, area.y, area.width.saturating_sub(2), 1),
+                        &title,
+                    ),
                     t.title(),
                 );
                 let n = self.visible().len();
@@ -1592,7 +1598,10 @@ impl ShellPage<Holla> for FilesPage {
                 buf.set_string(
                     area.x + 1,
                     area.y + 1,
-                    truncate(&line, area.width.saturating_sub(2) as usize),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 1),
+                        &line,
+                    ),
                     t.muted(),
                 );
             }
@@ -1638,14 +1647,20 @@ impl ShellPage<Holla> for FilesPage {
                     buf.set_string(
                         query.x + 2,
                         query.y,
-                        truncate("Find files under home…", text_w),
+                        junie_tui::ui::reveal::cut(
+                            Rect::new(query.x + 2, query.y, (text_w) as u16, 1),
+                            "Find files under home…",
+                        ),
                         fs.fg(t.text_muted),
                     );
                 } else {
                     buf.set_string(
                         query.x + 2,
                         query.y,
-                        truncate(&self.query, text_w),
+                        junie_tui::ui::reveal::cut(
+                            Rect::new(query.x + 2, query.y, (text_w) as u16, 1),
+                            &self.query,
+                        ),
                         fs.add_modifier(Modifier::UNDERLINED)
                             .underline_color(t.accent),
                     );
