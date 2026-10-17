@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Text & code › [0m[1mTerminal[0m                                                                        no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
  [0m[1mComponents[0m           54  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step rail reports a job                                      [0m
-                                                                                                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
     Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
   ▸ Tables                ╭─ Viewport ───────────────────────────────────────────── 38 lines · following ─╮ │  Step rail                                7 of 7  [0m
-  ▸ Navigation            │  [0m[1mpayments-platform ❯ [0mjackin launch                                            │ │                                                   [0m
+  ▸ Navigation            │  [0m[1mpayments-platform ❯ [0mjackin launch                                            │ │  ───────────────────────────────────────────────  [0m
   ▸ Overlays              │    profile [0m[3mdev[0m · config [0m[4mjackin.toml[0m ·  LIVE                                   │ │   ✓ 01 Resolve workspace                  0.8 s   [0m
   ▸ Feedback              │  [0m[1m▶ Resolve workspace[0m                                                          │ │   ✓ 02 Pull base image                    2.1 s   [0m
   ▸ Layout                │  ✓ Resolve workspace                                                          │ │   ✓ 03 Build container                    3.2 s   [0m

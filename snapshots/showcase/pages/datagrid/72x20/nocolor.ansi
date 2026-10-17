@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mData grid[0m        i Inspector   ? Help  [0m
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
-                                                                        [0m
+ ──────────────────                                                     [0m
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
   ▾ Tables        ┃    customers                  rows 1–6/40 loaded   ┃[0m
-      Basic table ┃                                                    ┃[0m
+      Basic table ┃    ─────────────────────────────────────────────   ┃[0m
       Editable    ┃          ⚷ id       customer                8›     ┆[0m
  [0m[1m▎  › Data grid   [0m┃        1 1001       Northwind Traders          ┃   ┆[0m
       Selection   ┃        2 1002       Blue Yonder Airlines       ┆   ┆[0m

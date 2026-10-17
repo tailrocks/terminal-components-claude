@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mSelection[0m                                                                            no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
  Components           54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation                                                  [0m
-                                                                                                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
     Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
   ▾ Tables                  [0m[1mMembers[0m                                                                    3 selected     Edit 3 members                            [0m
-      Basic table                                                                                                                                               [0m
+      Basic table           ─────────────────────────────────────────────────────────────────────────────────────     ────────────────────────────────────────  [0m
       Editable                 [–] Name                Role    Status     Region  On call  Email                …       Applies to all 3 · names and emails s…  [0m
       Data grid                [0m[2m[ ][0m Dana Whitfield      Owner   Active     EU      Yes      dana@northwind.dev           Role                 Status             [0m
  [0m[1m   › Selection         [0m    [0m[1m   [✓] Ari Moreno          Admin   Active     US      Yes      ari@northwind.dev     [0m       — mixed —      ▾     — mixed —      ▾   [0m

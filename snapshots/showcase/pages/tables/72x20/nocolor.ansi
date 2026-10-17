@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mBasic table[0m      i Inspector   ? Help  [0m
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mTables[0m  Sort by header, hover rows, select with E… [0m
-                                                                        [0m
+ ──────────────────                                                     [0m
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
   ▾ Tables        ┃    Tasks                   unsorted · 1–20 of 24   ┃[0m
- [0m[1m▎  › Basic table [0m┃                                                    ┃[0m
+ [0m[1m▎  › Basic table [0m┃    ─────────────────────────────────────────────   ┃[0m
       Editable    ┃       ID     Task                             …    ┆[0m
       Data grid   ┃       #1040  Add rate limiting to auth endpo…  ┃   ┆[0m
       Selection   ┃       #1041  Migrate sessions table to UUID …  ┃   ┆[0m

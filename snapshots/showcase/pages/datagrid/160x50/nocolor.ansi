@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mData grid[0m                                                                            no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
  [0m[1mComponents[0m           54  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging and local sort                                                                 [0m
-                                                                                                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
     Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
   ▾ Tables                  customers                                                                  rows 1–21 of 40 loaded · ~4,812 total · cols 1–8 of 9   ┃[0m
-      Basic table                                                                                                                                              ┃[0m
+      Basic table           ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
       Editable                    ⚷ id       customer                   plan          seats      mrr  active    renewed_at      account_id  notes       1›     ┃[0m
  [0m[1m▎  › Data grid         [0m        1 1001       Northwind Traders          enterprise        3    57.00  [0m[3mtrue    [0m  2026-01-01           201 →  {"owner":"…    ┃   ┃[0m
       Selection                 2 1002       Blue Yonder Airlines       team             80  1920.00  [0m[3mtrue    [0m  2026-02-04           202 →  [0m[3mNULL       [0m    ┃   ┃[0m

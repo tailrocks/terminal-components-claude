@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m                                                                            no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
  [0m[1mComponents[0m           54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows           [0m
-                                                                                                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
     Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
   ▸ Tables                  Wrapped text                 1–17 of 78      Long list                   1–17 of 120      Log        1985–2000 of 2000 · following  [0m
-  ▸ Navigation                                                                                                                                                  [0m
+  ▸ Navigation              ───────────────────────────────────────      ───────────────────────────────────────      ────────────────────────────────────────  [0m
   ▸ Overlays                Junie works through a task the way a  ┃         Row 001                            ┃      [0m[2m 734.08s  warn   unused import: `std:… [0m┆  [0m
   ▸ Feedback                careful engineer would: it reads the  ┃         Row 002                            ┃       734.45s  info   Compiling tokio v1.4… ┆  [0m
   ▾ Layout                  relevant code, forms a plan, makes    ┃         Row 003                            ┆       734.82s  info   Running unittests sr… ┆  [0m
@@ -27,7 +27,7 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                             Hand-drawn                                         Divider or bar                    Cursor                                         [0m
-                                                                                                                                                                [0m
+                            ─────────────────────────────────────────────      ────────────────────────────      ─────────────────────────────────────────────  [0m
                             Host          Region        Latency       C…       fits           over               row 1 · vertical                               [0m
                             api-01        ap-south-1    8 ms          0…┃      item 1      │  item 1      ┃      wrap off · skip disabled on                    [0m
                             auth-01       ap-southeast-245 ms         5…┆      item 2      │  item 2      ┆      RowFn: 108 of 120 open                         [0m
@@ -38,7 +38,7 @@
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                             Type to jump · select, tree, table, grid                                                                                            [0m
-                                                                                                                                                                [0m
+                            ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
                               Region                           api               service ┃     Region                             Service                       [0m
                               eu-west-1                 ▾      auth              service ┃     ap-south-1                ┃      1 api                        ┃  [0m
                                                                billing           service ┆     ap-southeast-2            ┆      2 auth                       ┆  [0m

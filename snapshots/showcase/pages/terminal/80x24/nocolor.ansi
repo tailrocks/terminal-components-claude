@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Text & code › [0m[1mTerminal[0m            i Inspector   ? Help  [0m
                                                                                 [0m
  [0m[1mComponents[0m      54  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · … [0m
-                                                                                [0m
+ ──────────────────                                                             [0m
     Overview         [0m[1m Playground  [0m  Options    States                           [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                              [0m
   ▸ Tables           ╭─ Viewp… ─ 38 lines · following ─╮ │  Step rail   7 of 7  [0m
-  ▸ Navigation       │  [0m[2m  #13 RUN apt-get install -y [0m┆ │ │                      [0m
+  ▸ Navigation       │  [0m[2m  #13 RUN apt-get install -y [0m┆ │ │  ──────────────────  [0m
   ▸ Overlays         │    #14 COPY rust-toolchain.to ┆ │ │   ✓ 01 Resolve wo…   [0m
   ▸ Feedback         │  ✓ Build container            ┆ │ │   ✓ 02 Pull base …   [0m
   ▸ Layout           │  [0m[1m▶ Resolve credentials[0m        ┆ │ │   ✓ 03 Build cont…   [0m

@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  [0m[1mOverview[0m                                                                                      no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
  [0m[1mComponents[0m           54  [0m[1mOverview[0m  Tokens and principles behind every component                                                                                [0m
-                                                                                                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
  [0m[1m▎› Overview            [0m  [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
   ▸ Tables                  Tokens · planes and text                                          Tokens · accent and status                                       ┃[0m
-  ▸ Navigation                                                                                                                                                 ┃[0m
+  ▸ Navigation              ─────────────────────────────────────────────────────────────     ──────────────────────────────────────────────────────────────   ┃[0m
   ▸ Overlays                    ▏ canvas                                            Black         ▏ accent                                             White   ┃[0m
   ▸ Feedback                    ▏ surface                                           Black         ▏ accent.hover                                       White   ┃[0m
   ▸ Layout                      ▏ surface.elevated                                  Black         ▏ accent.pressed                                     White   ┃[0m
@@ -30,7 +30,7 @@
                                                                                                                                                                ┆[0m
                                                                                                                                                                ┆[0m
                             Glyphs and strings                                                Ladders · theme.ladders                                          ┆[0m
-                                                                                                                                                               ┆[0m
+                            ─────────────────────────────────────────────────────────────     ──────────────────────────────────────────────────────────────   ┆[0m
                             Glyphs         UNICODE           ASCII                            Ladder: rest hover pressed · Plane::up                           ┆[0m
                             checks         [✓] [ ] [–]       [x] [ ] [-]                      Canvas                          → Raised                         ┆[0m
                             radio, toggle  (●) ( ) ──● ○──   (*) ( ) --* o--                  Surface                         → Raised                         ┆[0m

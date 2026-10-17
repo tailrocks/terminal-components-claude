@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mSelection[0m        i Inspector   ? Help  [0m
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mSelectable table[0m  Select rows, edit one or many t… [0m
-                                                                        [0m
+ ──────────────────                                                     [0m
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
   ▾ Tables        ┃    Members                            1–10 of 12   ┃[0m
-      Basic table ┃                                                    ┃[0m
+      Basic table ┃    ─────────────────────────────────────────────   ┃[0m
       Editable    ┃       [ ] Name              Role    Status    …    ┃[0m
       Data grid   ┃       [0m[2m[ ][0m Dana Whitfield    Owner   Active     ┃   ┆[0m
  [0m[1m▎  › Selection   [0m┃       [ ] Ari Moreno        Admin   Active     ┃   ┆[0m
