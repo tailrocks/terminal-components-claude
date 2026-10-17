@@ -24,10 +24,6 @@ Scrolling | Playground | 80x24 | R34 squeezes instead of overflowing: no Page::m
 Scrolling | Playground | 100x25 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 106x29 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 120x40 | R34 squeezes instead of overflowing: no Page::measure yet
-MasterDetail | Playground | 80x24 | R36 squeezes instead of overflowing: no Page::measure yet
-MasterDetail | Playground | 100x25 | R36 squeezes instead of overflowing: no Page::measure yet
-MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Page::measure yet
-MasterDetail | Playground | 120x40 | R36 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 80x24 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 100x25 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 106x29 | R38 squeezes instead of overflowing: no Page::measure yet
@@ -79,3 +75,7 @@ Settings | Playground | 100x25 | R53 squeezes instead of overflowing: no Page::m
 Settings | Playground | 106x29 | R53 squeezes instead of overflowing: no Page::measure yet
 Settings | Playground | 120x40 | R53 squeezes instead of overflowing: no Page::measure yet
 TaskRunner | Playground | 80x24 | R54 squeezes instead of overflowing: no Page::measure yet
+MasterDetail | Playground | 80x24 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches
+MasterDetail | Playground | 100x25 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches
+MasterDetail | Playground | 106x29 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches
+MasterDetail | Playground | 120x40 | R36 the card's meta reads the demo's own width ("194 cols" at 220x70): a live readout that differs by size by design; everything else reaches
