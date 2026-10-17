@@ -231,6 +231,31 @@ impl crate::ui::measure::Measure for Notice {
         let width = text + 2;
         ratatui::layout::Size::new(width, self.height(width))
     }
+
+    /// A notice wraps its message and detail itself: it is whole at any
+    /// width where neither wraps past its line limit (nothing is cut with
+    /// `…`) and the one-line hint fits, so a container lays it out in the
+    /// room it has, taller, instead of scrolling sideways for it.
+    fn min_width(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> u16 {
+        let full = self.measure(avail, ctx).width;
+        let fits = |width: u16| {
+            let w = width.saturating_sub(2) as usize;
+            let whole = |text: &str, max: usize| {
+                let lines = wrap(text, w.max(1));
+                lines.len() <= max && lines.iter().all(|l| crate::ui::text::width(l) <= w)
+            };
+            whole(&self.message, self.message_lines)
+                && self
+                    .detail
+                    .as_ref()
+                    .is_none_or(|d| whole(d, self.max_lines))
+                && self
+                    .hint
+                    .as_ref()
+                    .is_none_or(|h| crate::ui::text::width(h) <= w)
+        };
+        (3..full).find(|&width| fits(width)).unwrap_or(full)
+    }
 }
 
 /// The id a notice answers to in a States grid (it is not interactive).
@@ -292,6 +317,51 @@ mod tests {
             .collect::<String>()
             .trim_end()
             .to_owned()
+    }
+
+    /// At its minimum width a notice wraps but cuts nothing: every word
+    /// of its message and detail is drawn and no line ends in `…`; one
+    /// column less would cut.
+    #[test]
+    fn a_notice_at_its_min_width_wraps_and_cuts_nothing() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let n = Notice::error("Connection refused by the replica")
+            .detail("prod-replica:5432 rejected the handshake after 3 attempts")
+            .hint("Check the VPN, then test again");
+        let zero = ratatui::layout::Size::ZERO;
+        let full = n.measure(zero, &ctx).width;
+        let min = n.min_width(zero, &ctx);
+        assert!(min < full, "{min} < {full}");
+        let shown = |width: u16| {
+            let h = n.height(width);
+            let mut buf = Buffer::empty(Rect::new(0, 0, width, h));
+            n.render_theme(buf.area, &mut buf, &t, t.canvas);
+            (0..h).map(|y| text(&buf, y) + " ").collect::<String>()
+        };
+        let whole = |s: &str| {
+            !s.contains('…')
+                && [
+                    "refused",
+                    "replica",
+                    "handshake",
+                    "attempts",
+                    "VPN,",
+                    "again",
+                ]
+                .iter()
+                .all(|w| s.contains(w))
+        };
+        assert!(whole(&shown(min)), "{}", shown(min));
+        assert!(!whole(&shown(min - 1)), "one column less cuts");
     }
 
     /// At its measure a notice shows its message, detail and hint whole,
