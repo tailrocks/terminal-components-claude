@@ -2044,6 +2044,30 @@ impl TextViewport {
     }
 }
 
+/// The viewport's natural size (plan §1.4 `Measure`): every retained line
+/// whole on one row beside the scrollbar's room (so no line wraps or
+/// scrolls sideways even when the rows overflow), one row per line.
+impl crate::ui::measure::Measure for TextViewport {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let widest = self.lines.iter().map(|l| width(&l.text)).max().unwrap_or(0) as u16;
+        let bar = 1 + self.scrollbar_gap;
+        ratatui::layout::Size::new(
+            widest.saturating_add(bar),
+            self.lines.len().min(u16::MAX as usize) as u16,
+        )
+    }
+
+    /// A log wraps its long lines or scrolls them sideways itself: it is
+    /// whole at any width that holds a few cells beside its scrollbar.
+    fn min_width(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> u16 {
+        self.measure(avail, ctx).width.min(MIN_W)
+    }
+}
+
+/// The narrowest a viewport asks to be laid out at: its lines wrap or
+/// scroll sideways in it.
+const MIN_W: u16 = 24;
+
 impl Scrollable for TextViewport {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.scroll
@@ -2198,6 +2222,32 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, w, h));
         v.render(Rect::new(0, 0, w, h), &mut buf, &mut ctx, t.canvas);
         buf
+    }
+
+    /// Laid out at its measure's width, a wrapping viewport shows every
+    /// line on one row even when its rows overflow and the bar shows.
+    #[test]
+    fn at_its_measured_width_no_line_wraps() {
+        use crate::ui::measure::Measure;
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(12)).wrap(true);
+        v.push(vec![Span::plain(
+            "a longer line: error SMTP 421 at the end",
+        )]);
+        let size = {
+            let t = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            v.measure(ratatui::layout::Size::ZERO, &ctx)
+        };
+        assert_eq!(size.height, 13);
+        // fewer rows than lines: the bar takes its columns
+        let buf = render(&mut v, size.width, 5);
+        assert!(v.scroll.overflows());
+        assert_eq!(row(&buf, 4), "a longer line: error SMTP 421 at the end");
+        // one column less wraps it
+        let buf = render(&mut v, size.width - 1, 5);
+        assert_ne!(row(&buf, 4), "a longer line: error SMTP 421 at the end");
     }
 
     fn row(buf: &Buffer, y: u16) -> String {
