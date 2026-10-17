@@ -28,6 +28,7 @@ pub mod keyhint;
 pub mod keyref;
 pub mod list;
 pub mod menu;
+pub mod meter_list;
 pub mod option_editor;
 pub mod option_list;
 pub mod panel;

@@ -751,26 +751,11 @@ impl UsageScreen {
                     match meter {
                         Some((pct, mt)) => {
                             let (label, rest) = text.split_once('\u{1}').unwrap_or((text, ""));
-                            buf.set_string(
-                                body.x,
-                                y,
-                                fit(label, label_w as usize),
-                                t.primary().bg(bg),
-                            );
-                            let mx = body.x + label_w + 2;
-                            mt.on(Meter::new(Some(*pct)))
-                                .value(format!("{pct:>3}%"))
-                                .visual(MeterVisual::Block)
-                                .render(Rect::new(mx, y, meter_w + 6, 1), buf, ctx, bg);
-                            let vx = mx + meter_w + 8;
-                            if vx < body.right() {
-                                buf.set_string(
-                                    vx,
-                                    y,
-                                    truncate(rest, body.right().saturating_sub(vx) as usize),
-                                    t.muted().bg(bg),
-                                );
-                            }
+                            super::accounts::quota_row(label, *pct, rest, *mt)
+                                .label_width(label_w)
+                                .label_gap(2)
+                                .meter_width(meter_w + 6)
+                                .render(Rect::new(body.x, y, body.width, 1), buf, ctx, bg);
                         }
                         None => {
                             let style = if text == "Limits" {
