@@ -9,7 +9,10 @@
 //!    or full-screen sequence holds the keyboard. A key it does not take
 //!    still quits by chord (Ctrl+Q; Ctrl+C with nothing selected), never
 //!    reaches the page.
-//! 3. **Open menu bar** ([`KeyHost::menu_key`]).
+//! 3. **Open menu bar** ([`KeyHost::menu_key`]), then the **priority**
+//!    bindings ([`ShellKeys::priority`]): app chords that act even over an
+//!    editing field (a menu's key equivalents), the plain printable ones
+//!    and [`ShellKeys::idle_only`] actions excepted.
 //! 4. **Capture** ([`KeyHost::capturing`]): a field that is editing, a
 //!    page menu, an attached program gets the key first, so printable
 //!    keys type (WCAG 2.1.4) and a chord the field binds is the field's.
@@ -76,14 +79,22 @@ pub enum ShellAction<C = ()> {
 pub struct ShellKeys<C = ()> {
     /// Which keys quit, and when ([`QuitKeys::DEFAULT`]).
     pub quit: QuitKeys,
+    /// Bindings tried before a capturing field (app chords such as Run,
+    /// which act while the query editor edits). Plain letters and
+    /// [`Self::idle_only`] actions here are skipped while a field captures.
+    /// Empty by default.
+    pub priority: KeyMap<ShellAction<C>>,
     /// Bindings tried before the page (chords and function keys the page
-    /// does not own). Plain letters here are skipped while a field
+    /// does not own), after a capturing field passed the key on. Plain letters here are skipped while a field
     /// captures the keyboard.
     pub keys: KeyMap<ShellAction<C>>,
     /// Bindings tried after the page passed on the key (Tab, Esc, `?`,
     /// letters a page may claim first). Plain letters here are skipped
     /// while a field captures the keyboard.
     pub fallback: KeyMap<ShellAction<C>>,
+    /// Actions that stay quiet while a field captures the keyboard, chords
+    /// included (Ctrl+W closes a tab, never over a field that is editing).
+    pub idle_only: Vec<ShellAction<C>>,
     /// The footer note when Esc reaches the top and does not quit.
     /// Default "Esc never quits · Ctrl+Q quits"; `None` stays quiet.
     pub esc_note: Option<String>,
@@ -105,6 +116,7 @@ impl<C> ShellKeys<C> {
     pub fn new() -> Self {
         Self {
             quit: QuitKeys::DEFAULT,
+            priority: vec![],
             keys: vec![
                 (KeyBinding::key(KeyCode::F(1)), ShellAction::Help),
                 (KeyBinding::key(KeyCode::F(10)), ShellAction::MenuBar),
@@ -131,6 +143,7 @@ impl<C> ShellKeys<C> {
                 (KeyBinding::key(KeyCode::BackTab), ShellAction::FocusPrev),
                 (KeyBinding::key(KeyCode::Esc), ShellAction::Back),
             ],
+            idle_only: vec![],
             esc_note: Some("Esc never quits · Ctrl+Q quits".into()),
             dirty_letter_note: Some("Unsaved changes · Ctrl+Q asks before quitting".into()),
         }
@@ -149,6 +162,13 @@ impl<C> ShellKeys<C> {
         self
     }
 
+    /// Bind `key` to `action` before a capturing field
+    /// ([`Self::priority`]).
+    pub fn bind_priority(mut self, key: impl Into<KeyBinding>, action: ShellAction<C>) -> Self {
+        self.priority.insert(0, (key.into(), action));
+        self
+    }
+
     /// Bind `key` to `action` after the page.
     pub fn bind_fallback(mut self, key: impl Into<KeyBinding>, action: ShellAction<C>) -> Self {
         self.fallback.insert(0, (key.into(), action));
@@ -158,8 +178,16 @@ impl<C> ShellKeys<C> {
     /// Remove every binding of `key` (before and after the page).
     pub fn unbind(mut self, key: impl Into<KeyBinding>) -> Self {
         let key = key.into();
+        self.priority.retain(|(b, _)| *b != key);
         self.keys.retain(|(b, _)| *b != key);
         self.fallback.retain(|(b, _)| *b != key);
+        self
+    }
+
+    /// `action` stays quiet while a field captures the keyboard
+    /// ([`Self::idle_only`]).
+    pub fn idle_only(mut self, action: ShellAction<C>) -> Self {
+        self.idle_only.push(action);
         self
     }
 
@@ -251,9 +279,16 @@ pub trait KeyHost: App {
 pub struct KeyRouter;
 
 impl KeyRouter {
-    /// Route `key` through `host`.
+    /// Route a typed `key` through `host`. Typing hides the hover
+    /// highlight until the pointer moves again.
     pub fn route<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Outcome {
         host.shell_mut().pointer.suppress_hover();
+        Self::replay(host, key)
+    }
+
+    /// Route `key` in the same order for a click that stands for it (a
+    /// footer hint, a menu item): the pointer keeps its hover.
+    pub fn replay<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Outcome {
         route_key(key, || Self::once(host, key))
     }
 
@@ -279,6 +314,14 @@ impl KeyRouter {
             return out;
         }
         let capture = host.capturing();
+        if let Some(action) =
+            Self::bound(host.shell_keys(), &host.shell_keys().priority, key, capture)
+        {
+            let out = Self::act(host, action, key);
+            if out.consumed() {
+                return out;
+            }
+        }
         if capture {
             let out = host.page_key(key);
             if out.consumed() {
@@ -301,7 +344,8 @@ impl KeyRouter {
                 return host.request_quit();
             }
         }
-        if let Some(action) = Self::bound(&host.shell_keys().keys, key, capture) {
+        if let Some(action) = Self::bound(host.shell_keys(), &host.shell_keys().keys, key, capture)
+        {
             let out = Self::act(host, action, key);
             if out.consumed() {
                 return out;
@@ -342,22 +386,27 @@ impl KeyRouter {
                 }
             }
         }
-        if let Some(action) = Self::bound(&host.shell_keys().fallback, key, capture) {
+        if let Some(action) =
+            Self::bound(host.shell_keys(), &host.shell_keys().fallback, key, capture)
+        {
             return Self::act(host, action, key);
         }
         Outcome::Ignored
     }
 
     /// The action `key` is bound to in `map`; a plain printable binding
-    /// stays quiet while a field captures the keyboard.
-    fn bound<C: Copy>(
+    /// and an [`ShellKeys::idle_only`] action stay quiet while a field
+    /// captures the keyboard.
+    fn bound<C: Copy + PartialEq>(
+        keys: &ShellKeys<C>,
         map: &[(KeyBinding, ShellAction<C>)],
         key: &Key,
         capture: bool,
     ) -> Option<ShellAction<C>> {
         let action = lookup(map, key)?;
         let printable = matches!(key.code, KeyCode::Char(_)) && !key.chord();
-        (!(capture && printable)).then_some(action)
+        let quiet = capture && (printable || keys.idle_only.contains(&action));
+        (!quiet).then_some(action)
     }
 
     fn act<H: KeyHost + ?Sized>(host: &mut H, action: ShellAction<H::Cmd>, key: &Key) -> Outcome {
