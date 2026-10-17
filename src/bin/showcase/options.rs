@@ -920,7 +920,13 @@ static QUIT_LEAVE: &[Opt] = &[
 static LISTS: &[Opt] = &[
     Opt::new("lists.nav", "Nav keys", &["default", "vim"]),
     Opt::new("lists.type_ahead", "Type-ahead", OFF_ON).default(1),
-    Opt::new("lists.click", "Click", &["activate", "select"]),
+    Opt::new("lists.click", "Click", &["double", "single"]),
+    Opt::new("lists.check", "Check click", &["box", "row"]),
+    Opt::new(
+        "lists.toggle_mods",
+        "Toggle click",
+        &["platform", "alt", "any"],
+    ),
     Opt::new("lists.wrap", "Arrows wrap", OFF_ON),
     Opt::new("lists.skip_disabled", "Skip disabled", OFF_ON).default(1),
     Opt::new("lists.scrollbar_gap", "Scrollbar gap", &["0", "1", "2"]).default(1),

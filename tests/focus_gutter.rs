@@ -85,7 +85,7 @@ fn list_focus_and_selection_have_distinct_symbols_without_colour() {
             vec![ListItem::new("First"), ListItem::new("Second")],
             SelectMode::Multi,
         );
-        list.checked[1] = true;
+        list.set_checked(1, true);
         let area = Rect::new(0, 0, 16, 2);
         let mut buf = Buffer::empty(area);
         for focus in [Some(id), None] {

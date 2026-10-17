@@ -67,16 +67,29 @@ fn list_hints_name_ends_keys_that_work_under_both_profiles() {
 #[test]
 fn list_options_rebuild_the_lists_through_their_builders() {
     let mut h = Harness::new(160, 50, PageId::Lists);
-    assert!(h.text().contains("click Activate"));
-    h.opt("lists.click=select");
-    assert!(h.text().contains("click Select"));
-    // a single click only moves the cursor now
+    // a data list by default (SI14): one click moves the cursor, a double
+    // click chooses
+    assert!(
+        h.text().contains("click Double, check BoxOnly"),
+        "{}",
+        h.text()
+    );
     let (x, y) = h.find("Python").unwrap();
     h.click(x, y);
-    assert!(
-        h.text().contains("Chosen: Rust"),
-        "a click no longer chooses"
-    );
+    assert!(h.text().contains("Chosen: Rust"), "a click does not choose");
+    h.click(x, y);
+    assert!(h.text().contains("Chosen: Python"), "a double click does");
+    // a navigation list chooses on one click
+    h.opt("lists.click=single");
+    assert!(h.text().contains("click Single"));
+    let (x, y) = h.find("Go").unwrap();
+    h.click(x, y);
+    assert!(h.text().contains("Chosen: Go"), "{}", h.text());
+    h.opt("lists.check=row");
+    assert!(h.text().contains("check Row"));
+    assert!(h.text().contains("toggle platform+click"));
+    h.opt("lists.toggle_mods=any");
+    assert!(h.text().contains("toggle Ctrl/Alt/Cmd+click"));
     // a custom key map: t toggles every file
     h.opt("lists.keymap=custom");
     assert!(h.text().contains("t ListCmd::ToggleAll"));

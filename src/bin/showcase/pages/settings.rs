@@ -558,7 +558,6 @@ impl SettingsPage {
                         && let Some(name) = value.clone()
                     {
                         self.env.items.push(ListItem::new(&name).meta("(empty)"));
-                        self.env.checked.push(false);
                         cx.status(format!("Added {name}"));
                     }
                     return Outcome::Changed;
@@ -599,18 +598,8 @@ impl SettingsPage {
     }
 
     fn remove_selected_vars(&mut self, cx: &mut Cx) {
-        let before = self.env.items.len();
-        let keep: Vec<bool> = self.env.checked.iter().map(|c| !*c).collect();
-        let mut items = Vec::new();
-        for (it, k) in self.env.items.drain(..).zip(keep) {
-            if k {
-                items.push(it);
-            }
-        }
-        let n = items.len();
-        self.env.items = items;
-        self.env.checked = vec![false; n];
-        self.env.cursor = self.env.cursor.min(n.saturating_sub(1));
-        cx.status(format!("Removed {} variables", before - n));
+        let rows = self.env.selection.to_vec();
+        let removed = self.env.remove_rows(&rows);
+        cx.status(format!("Removed {removed} variables"));
     }
 }

@@ -900,6 +900,8 @@ fn textareas_paste_and_disabled_state_are_routed() {
 fn lists_and_trees_accept_mouse_selection() {
     let mut lists = Harness::new(120, 40, PageId::Lists);
     let (x, y) = lists.find("TypeScript").expect("language row");
+    // a double click chooses (one click only moves the cursor)
+    lists.click(x, y);
     lists.click(x, y);
     assert_eq!(
         lists.app.shell.focus.current(),
