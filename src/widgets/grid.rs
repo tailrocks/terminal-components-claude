@@ -27,7 +27,7 @@ use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::theme::{SyntaxTone, Theme};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
-use crate::ui::row::{RowLook, RowUi};
+use crate::ui::row::{MarkKind, RowLook, RowUi};
 use crate::ui::text::{fit, fit_right, truncate, truncate_middle, wider_than, width, width_capped};
 use crate::widgets::button::{Button, row_layout_right};
 use crate::widgets::edit::{EditExit, EditField, FieldError, Validator};
@@ -2721,29 +2721,19 @@ impl DataGrid {
             s.focused = focused && d == self.cursor.0;
             s.selected = self.selection.contains(src);
             let state = self.row_state_with(src, |r| edited_rows.contains(&r));
-            let mut rp = RowUi::resolve(ctx, row_rect, s, RowLook::Bar, bg);
+            let rp = RowUi::resolve(ctx, row_rect, s, RowLook::Bar, bg);
+            let mut drawn = rp;
             if state == RowState::Deleted {
-                rp.look.style = rp
+                drawn.look.style = rp
                     .look
                     .style
                     .fg(t.text_faint)
                     .add_modifier(Modifier::CROSSED_OUT);
             }
-            rp.draw(buf);
-            let row_style = rp.style();
+            drawn.draw(buf);
+            let row_style = drawn.style();
             if s.selected {
-                buf.set_string(
-                    row_rect.x + 1,
-                    y,
-                    t.glyphs.tick,
-                    row_style
-                        .fg(if s.focused {
-                            t.accent
-                        } else {
-                            t.text_secondary
-                        })
-                        .remove_modifier(Modifier::CROSSED_OUT),
-                );
+                rp.mark(ctx, buf, row_rect.x + 1, y, MarkKind::Tick, focused);
             }
             let (glyph, gs) = match state {
                 RowState::Clean => (" ", row_style),
