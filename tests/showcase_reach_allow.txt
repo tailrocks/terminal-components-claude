@@ -8,18 +8,6 @@
 # and so does a listed entry that passes (delete its line when the page is
 # fixed).
 
-Inputs | Playground | 80x24 | R9 squeezes instead of overflowing: no Page::measure yet
-Inputs | Playground | 100x25 | R9 squeezes instead of overflowing: no Page::measure yet
-Inputs | Playground | 106x29 | R9 squeezes instead of overflowing: no Page::measure yet
-Inputs | Playground | 120x40 | R9 squeezes instead of overflowing: no Page::measure yet
-TextAreas | Playground | 80x24 | R10 squeezes instead of overflowing: no Page::measure yet
-TextAreas | Playground | 100x25 | R10 squeezes instead of overflowing: no Page::measure yet
-TextAreas | Playground | 106x29 | R10 squeezes instead of overflowing: no Page::measure yet
-TextAreas | Playground | 120x40 | R10 squeezes instead of overflowing: no Page::measure yet
-Chips | Playground | 80x24 | R11 squeezes instead of overflowing: no Page::measure yet
-Chips | Playground | 100x25 | R11 squeezes instead of overflowing: no Page::measure yet
-Chips | Playground | 106x29 | R11 squeezes instead of overflowing: no Page::measure yet
-Chips | Playground | 120x40 | R11 squeezes instead of overflowing: no Page::measure yet
 Toolbars | Playground | 80x24 | R13 squeezes instead of overflowing: no Page::measure yet
 Toolbars | Playground | 100x25 | R13 squeezes instead of overflowing: no Page::measure yet
 Toolbars | Playground | 106x29 | R13 squeezes instead of overflowing: no Page::measure yet

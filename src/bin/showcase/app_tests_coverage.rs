@@ -1142,7 +1142,11 @@ fn terminal_reaches_success_failure_and_splitter_states() {
 /// The marker opens a menu of them; clicking one edits it.
 #[test]
 fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
-    let mut h = Harness::new(80, 40, PageId::Chips);
+    let mut h = Harness::new(120, 40, PageId::Chips);
+    // the bar is as wide as its chips unless the option sets its width
+    h.app
+        .apply_opt(crate::options::parse_opt("chipsselects.bar_width=40").unwrap());
+    h.draw();
     let filters = WidgetId::of("chips").sub("filters");
     h.focus(filters);
     for _ in 0..4 {
