@@ -1525,7 +1525,7 @@ impl App {
                 Request::Go(g) => self.go(g),
                 Request::Help => self.open_help(),
                 Request::Back => self.go(Go::Manager),
-                Request::Copy(s) => self.copy(s),
+                Request::Copy(s, _) => self.copy(s),
                 Request::Top(f) => {
                     if let Some(top) = self.layers.top_mut() {
                         f(&mut *top.layer);

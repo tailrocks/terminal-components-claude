@@ -542,7 +542,7 @@ impl App {
                 Request::Close
                 | Request::Top(_)
                 | Request::Back
-                | Request::Copy(_)
+                | Request::Copy(..)
                 | Request::Help
                 | Request::RefusedOutsideClick(_) => {}
             }

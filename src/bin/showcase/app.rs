@@ -611,10 +611,30 @@ fn nav_tree() -> TreeView {
         .selected_marker(Some("›"))
 }
 
+/// One entry of the page stack: the page and, while another page is
+/// pushed over it, the control that had focus (it gets focus back when
+/// the page shows again).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Shown {
+    pub page: PageId,
+    focus: Option<WidgetId>,
+}
+
+impl Shown {
+    fn new(page: PageId) -> Self {
+        Self { page, focus: None }
+    }
+}
+
 pub struct App {
     pub theme: Theme,
     pub pages: Vec<Box<dyn Page>>,
-    pub page: PageId,
+    /// The page stack ([`shell::Router`]): a sidebar entry starts it over,
+    /// a page's link pushes onto it, Esc and the header trail go back.
+    /// Each entry keeps the control to focus when it shows again.
+    pub router: shell::Router<Shown>,
+    /// The header trail as last drawn (its links' hit ids).
+    crumb: Breadcrumb,
     /// The navigation sidebar: every page as a leaf under its group.
     pub nav: TreeView,
     /// Which sidebar groups are open ([`NavExpand::CurrentGroup`]).
@@ -805,7 +825,8 @@ impl App {
         let mut app = Self {
             theme,
             pages,
-            page: PageId::Overview,
+            router: shell::Router::new(Shown::new(PageId::Overview)),
+            crumb: Breadcrumb::new(HEADER_CRUMB, vec![]),
             nav: nav_tree(),
             nav_expand: NavExpand::default(),
             nav_auto: None,
@@ -854,7 +875,7 @@ impl App {
     /// `from` (`None` at start) and put the tree cursor and the current
     /// marker on it.
     fn sync_nav(&mut self, from: Option<PageId>) {
-        let path = self.page.nav_path();
+        let path = self.page().nav_path();
         // a top-level page has no group to open
         let group = (path.len() > 1).then_some(path[0]);
         let prev_auto = self.nav_auto.take();
@@ -897,23 +918,48 @@ impl App {
         self.sync_nav(None);
     }
 
-    pub fn goto(&mut self, page: PageId) {
-        if self.page != page {
-            let from = self.page;
-            self.page = page;
-            self.sync_nav(Some(from));
-            // focus stays on nav if it was there; otherwise first widget on page
-            if !self.shell.focus.is(NAV) {
-                self.shell.focus.set(None);
-            }
+    /// The shown page.
+    pub fn page(&self) -> PageId {
+        self.router.current().page
+    }
+
+    /// Show `page` from the sidebar (or `--page`, Ctrl+PgDn): the stack
+    /// starts over at it. The shown page alone on its stack stays as it
+    /// is.
+    pub fn open_page(&mut self, page: PageId) {
+        if self.page() != page || self.router.depth() > 1 {
+            self.navigate(shell::Nav::Reset(page));
         }
+    }
+
+    /// Apply a navigation ([`shell::Nav`]). Showcase pages keep their
+    /// state when they are not shown, so no move loses anything and none
+    /// asks first. Focus stays on the sidebar if it was there; otherwise
+    /// a page shown again gets back the control it had, and a new one
+    /// starts on its first.
+    pub fn navigate(&mut self, nav: shell::Nav<PageId>) -> Outcome {
+        let from = self.page();
+        let focus = self.shell.focus.current();
+        let pushing = matches!(nav, shell::Nav::Push(_));
+        if pushing {
+            self.router.current_mut().focus = focus;
+        }
+        if self.router.apply(nav, Shown::new).is_none() {
+            return Outcome::Ignored;
+        }
+        self.sync_nav(Some(from));
+        if !self.shell.focus.is(NAV) {
+            let back = (!pushing).then(|| self.router.current_mut().focus.take());
+            self.shell.focus.set(back.flatten());
+        }
+        Outcome::Changed
     }
 
     pub fn animating(&self) -> bool {
         if self.shell.motion == Motion::Paused {
             return false;
         }
-        let page = &self.pages[self.page.index()];
+        let page = &self.pages[self.page().index()];
         shell::Page::<Showcase>::animating(page.as_ref(), &())
             || self.shell.pointer.has_flash()
             || self
@@ -997,7 +1043,7 @@ impl App {
         // the page ticks unless a layer it does not own covers it (the
         // owner of the top layer keeps its live work going: a fetch, a
         // running tab), then the top layer ticks
-        let shown = self.page.index();
+        let shown = self.page().index();
         if self.layers.top().is_none_or(|e| e.owner == Some(shown)) {
             let page_out = self.with_shown(|p, cx| p.on_tick(&mut (), cx));
             out = out.or(page_out);
@@ -1014,7 +1060,7 @@ impl App {
         &mut self,
         f: impl FnOnce(&mut (dyn Page + 'static), &mut Cx) -> Outcome,
     ) -> Outcome {
-        self.with_page(self.page.index(), f)
+        self.with_page(self.page().index(), f)
     }
 
     /// Drive page `i` through the shell's page contract (`f` calls a
@@ -1029,7 +1075,7 @@ impl App {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let out = f(self.pages[i].as_mut(), &mut cx);
         let mut requests = cx.take();
-        if i != self.page.index() {
+        if i != self.page().index() {
             requests = shell::background(requests).collect();
         }
         self.apply_requests(requests, i);
@@ -1049,6 +1095,16 @@ impl App {
                 }
                 Request::Open(layer, tag) => self.open_layer(layer, tag, Some(owner)),
                 Request::Go(Go::SetOption(set)) => self.apply_opt(set),
+                Request::Go(Go::Nav(nav)) => {
+                    self.navigate(nav);
+                }
+                Request::Back => {
+                    self.navigate(shell::Nav::Back);
+                }
+                Request::Copy(text, what) => {
+                    let now = self.clock.now();
+                    self.shell.copy_at(&text, what.as_deref(), now);
+                }
                 Request::Help => self.open_help(),
                 Request::RefusedOutsideClick(dismiss) => {
                     let now = self.clock.now_ms();
@@ -1072,8 +1128,6 @@ impl App {
                         f(&mut *top.layer);
                     }
                 }
-                // showcase pages do not ask for these
-                Request::Back | Request::Copy(_) => {}
             }
         }
     }
@@ -1310,7 +1364,7 @@ impl App {
             && matches!(key.code, KeyCode::Right | KeyCode::Char('l'))
             && key.plain()
         {
-            self.goto(target);
+            self.open_page(target);
             self.shell.focus.set(None);
             self.shell.focus.next(&self.shell.ring);
             if self.shell.focus.is(NAV) {
@@ -1325,8 +1379,8 @@ impl App {
     /// lists the pages group by group), wrapping.
     fn step_page(&mut self, step: isize) -> Outcome {
         let n = NAV_ENTRIES.len() as isize;
-        let i = (self.page.index() as isize + step).rem_euclid(n) as usize;
-        self.goto(NAV_ENTRIES[i].id);
+        let i = (self.page().index() as isize + step).rem_euclid(n) as usize;
+        self.open_page(NAV_ENTRIES[i].id);
         Outcome::Changed
     }
 
@@ -1345,7 +1399,7 @@ impl App {
             self.close_inspector();
         } else {
             self.inspector = true;
-            self.insp.for_page(self.page);
+            self.insp.for_page(self.page());
             if self.inspector_overlay() {
                 self.inspector_focus = self.shell.focus.current();
                 self.shell.focus.set(Some(self.insp.tabs.id));
@@ -1630,7 +1684,7 @@ impl App {
     fn page_editing(&self) -> bool {
         match self.layers.top() {
             Some(e) if !is_window_layer(e) => e.layer.is_editing(),
-            _ => self.pages[self.page.index()].editing(),
+            _ => self.pages[self.page().index()].editing(),
         }
     }
 
@@ -1676,7 +1730,10 @@ impl App {
                     self.toggle_inspector();
                     true
                 }
-                _ => false,
+                _ => match self.router.crumb_click(&self.crumb, 0, ev.id) {
+                    Some(nav) => self.navigate(nav).consumed(),
+                    None => false,
+                },
             };
             if done {
                 return Some(Outcome::Changed);
@@ -1747,7 +1804,7 @@ impl App {
                 let target = leaf(self.nav.cursor).or_else(|| (0..rows.len()).find_map(leaf));
                 if let Some(page) = target {
                     self.end_filter();
-                    self.goto(page);
+                    self.open_page(page);
                 }
                 return Outcome::Changed;
             }
@@ -1775,7 +1832,7 @@ impl App {
     fn end_filter(&mut self) {
         self.nav_filter = None;
         self.nav.set_filter(None);
-        let path = self.page.nav_path();
+        let path = self.page().nav_path();
         self.nav.reveal(&path);
         self.nav_reveal = true;
     }
@@ -1798,7 +1855,7 @@ impl App {
         if let Some(TreeAction::Activate(path)) = ev
             && let Some(page) = PageId::from_nav_path(&path)
         {
-            self.goto(page);
+            self.open_page(page);
             return Outcome::Changed;
         }
         out
@@ -1917,15 +1974,11 @@ impl App {
             ctx.clickable(id, Rect::new(rx, area.y, w, 1));
             rx = rx.saturating_sub(1);
         }
-        // where the page sits: the library trail, plain text (the sidebar
-        // is how pages are reached); it collapses before the links go
-        let entry = &NAV_ENTRIES[self.page.index()];
-        let segments = [entry.group, entry.label]
-            .iter()
-            .filter(|s| !s.is_empty())
-            .map(|s| (*s).to_owned())
-            .collect();
-        let mut crumbs = Breadcrumb::new(HEADER_CRUMB, segments).clickable(false);
+        // where the page sits: the library trail. A root page shows its
+        // group as plain text (the sidebar is how pages are reached); a
+        // page opened from another shows the stack, every earlier page a
+        // link back to it (M5, SC34). It collapses before the links go.
+        let mut crumbs = self.header_crumb();
         let x = x + 1;
         crumbs.render(
             Rect::new(x, area.y, rx.saturating_sub(x + 1), 1),
@@ -1933,6 +1986,7 @@ impl App {
             ctx,
             t.canvas,
         );
+        self.crumb = crumbs.clone();
         let crumb_w = crumbs
             .areas
             .last()
@@ -1941,6 +1995,23 @@ impl App {
         if rx > x + crumb_w + cw + 2 {
             buf.set_string(rx.saturating_sub(cw + 1), area.y, &cap, t.faint());
         }
+    }
+
+    /// The header trail: the group and the page at the root of the
+    /// stack (plain text), else the stack with links back.
+    fn header_crumb(&self) -> Breadcrumb {
+        if self.router.depth() > 1 {
+            return self.router.breadcrumb(HEADER_CRUMB, |s| {
+                NAV_ENTRIES[s.page.index()].label.to_owned()
+            });
+        }
+        let entry = &NAV_ENTRIES[self.page().index()];
+        let segments = [entry.group, entry.label]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .map(|s| (*s).to_owned())
+            .collect();
+        Breadcrumb::new(HEADER_CRUMB, segments).clickable(false)
     }
 
     fn draw_sidebar(&mut self, card: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -1999,11 +2070,12 @@ impl App {
 
     fn draw_main(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        let i = self.page.index();
+        let shown = self.page();
+        let i = shown.index();
         let page = self.pages[i].as_mut();
         // the page's Options section shows its option table at the values
         // the page holds (set there, through the Inspector or `--opt`)
-        let opts = crate::options::page_options(self.page);
+        let opts = crate::options::page_options(shown);
         if !opts.is_empty() {
             let values: Vec<usize> = opts
                 .iter()
@@ -2121,7 +2193,7 @@ impl App {
         // a colour level set by `--color` or a test shows as the option
         self.options
             .set("shell.color", level_index(self.theme.level));
-        self.insp.for_page(self.page);
+        self.insp.for_page(self.page());
         let values: Vec<(&str, usize)> = crate::options::all()
             .map(|o| (o.key, self.option_value(o)))
             .collect();
@@ -2194,7 +2266,7 @@ impl App {
             // of its own leaves them to the page
             return footer.layer(Some(own));
         }
-        let page = &self.pages[self.page.index()];
+        let page = &self.pages[self.page().index()];
         let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
         if let Some(own) = self.inspector.then(|| self.insp.hints(focus)).flatten() {
             hints.extend(own);
@@ -2291,7 +2363,9 @@ impl shell::App for App {
         self.modal_open()
     }
     fn page_under_layer(&self) -> bool {
-        self.modal_open() || self.inspector_overlay() || self.pages[self.page.index()].layer_open()
+        self.modal_open()
+            || self.inspector_overlay()
+            || self.pages[self.page().index()].layer_open()
     }
     fn input_config(&self) -> junie_tui::core::event::InputConfig {
         App::input_config(self)
@@ -2401,7 +2475,7 @@ impl shell::KeyHost for App {
     }
 
     fn capturing(&self) -> bool {
-        self.pages[self.page.index()].is_editing()
+        self.pages[self.page().index()].is_editing()
     }
 
     /// The page had the first chance at Ctrl+C before quitting (a
@@ -2460,8 +2534,12 @@ impl shell::KeyHost for App {
         self.with_shown(|p, cx| p.on_key(key, &mut (), cx))
     }
 
-    /// Esc at the top of a page returns focus to the sidebar.
+    /// Esc at the top of a page goes back to the page it was opened
+    /// from; at the root of the stack it returns focus to the sidebar.
     fn esc_top(&mut self) -> Outcome {
+        if !self.shell.focus.is(NAV) && self.navigate(shell::Nav::Back).consumed() {
+            return Outcome::Changed;
+        }
         if self.shell.focus.is(NAV) {
             return Outcome::Consumed;
         }
@@ -2492,7 +2570,7 @@ mod click_regressions {
         let mut app = App::new(Theme::junie());
         // every group open: the tree overflows the minimum sidebar
         app.set_nav_expand(NavExpand::All);
-        app.goto(NAV_ENTRIES.last().unwrap().id);
+        app.open_page(NAV_ENTRIES.last().unwrap().id);
         let mut term = Terminal::new(TestBackend::new(72, 20)).unwrap();
         term.draw(|frame| app.render(frame)).unwrap();
         let last = app.nav.rows().len() - 1;
@@ -2544,7 +2622,7 @@ mod click_regressions {
             PageId::Editor,
         ] {
             let mut app = App::new(Theme::junie());
-            app.goto(page);
+            app.open_page(page);
             let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
             term.draw(|frame| app.render(frame)).unwrap();
             let mut id = app.shell.ring.next(Some(NAV)).unwrap();

@@ -21,7 +21,7 @@ struct Harness {
 impl Harness {
     fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -783,9 +783,9 @@ fn scrollbar_click_and_drag_move_the_view() {
 fn ctrl_page_keys_step_pages_and_f1_opens_help() {
     let mut h = Harness::new(120, 40, PageId::Overview);
     h.key_mod(KeyCode::PageDown, KeyModifiers::CONTROL);
-    assert_eq!(h.app.page, PageId::Chrome);
+    assert_eq!(h.app.page(), PageId::Chrome);
     h.key_mod(KeyCode::PageUp, KeyModifiers::CONTROL);
-    assert_eq!(h.app.page, PageId::Overview);
+    assert_eq!(h.app.page(), PageId::Overview);
     h.key(KeyCode::F(1));
     assert!(h.app.help().is_some(), "F1 opens the keyboard reference");
 }
@@ -796,9 +796,9 @@ fn keyboard_navigation_between_pages() {
     // Inputs & forms
     let mut h = Harness::new(120, 40, PageId::Overview);
     h.key(KeyCode::Char(']'));
-    assert_eq!(h.app.page, PageId::Chrome);
+    assert_eq!(h.app.page(), PageId::Chrome);
     h.key(KeyCode::Char('['));
-    assert_eq!(h.app.page, PageId::Overview);
+    assert_eq!(h.app.page(), PageId::Overview);
     // open the "Inputs & forms" group with →, step in, open its page
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -806,14 +806,14 @@ fn keyboard_navigation_between_pages() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.page, PageId::Inputs);
+    assert_eq!(h.app.page(), PageId::Inputs);
     // the Tables group opens on a click; a page on another
     let (x, y) = h.find("Tables").unwrap();
     h.click(x, y);
-    assert_eq!(h.app.page, PageId::Inputs, "a group row only folds");
+    assert_eq!(h.app.page(), PageId::Inputs, "a group row only folds");
     let (x, y) = h.find("Editable").unwrap();
     h.click(x, y);
-    assert_eq!(h.app.page, PageId::Editable);
+    assert_eq!(h.app.page(), PageId::Editable);
 }
 
 #[test]
@@ -863,7 +863,7 @@ fn reduced_motion_runs_the_work_but_keeps_the_decorative_phase_still() {
     use junie_tui::motion::Motion;
     for (motion, phase) in [(Motion::Full, 30), (Motion::Reduced, 0)] {
         let mut app = App::with_motion(Theme::junie(), motion, 0);
-        app.goto(PageId::TaskRunner);
+        app.open_page(PageId::TaskRunner);
         let term = Terminal::new(TestBackend::new(120, 40)).unwrap();
         let mut h = Harness { app, term };
         h.draw();
@@ -932,7 +932,7 @@ fn task_runner_animates_and_can_be_cancelled() {
 #[test]
 fn color_downgrade_still_renders() {
     let mut app = App::new(Theme::for_level(junie_tui::theme::ColorLevel::Ansi16));
-    app.goto(PageId::Buttons);
+    app.open_page(PageId::Buttons);
     let mut term = Terminal::new(TestBackend::new(100, 30)).unwrap();
     term.draw(|f| app.render(f)).unwrap();
     let buf = term.backend().buffer();
@@ -2084,10 +2084,10 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     h.app.shell.focus.focus(field(0));
     h.draw();
     assert!(h.term.backend().cursor_visible());
-    let page = h.app.page;
+    let page = h.app.page();
     h.type_str("q]i");
     assert!(!h.app.shell.quit, "q was typed, not quit");
-    assert_eq!(h.app.page, page, "] was typed, not next page");
+    assert_eq!(h.app.page(), page, "] was typed, not next page");
     assert!(!h.app.inspector, "i was typed, not the inspector");
     assert!(h.text().contains("q]i"), "{}", h.text());
     h.key(KeyCode::Esc);
