@@ -642,6 +642,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("masterdetail", "masterdetail.size=resizable"),
     ),
     (
+        "ui::master_detail::DetailSize::MasterShare",
+        Option("masterdetail", "masterdetail.size=master"),
+    ),
+    (
         "ui::master_detail::Mode",
         Option("masterdetail", "masterdetail.width"),
     ),
@@ -676,6 +680,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
     (
         "ui::master_detail::MasterDetail::resizable",
         Option("masterdetail", "masterdetail.size=resizable"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::master_share",
+        Option("masterdetail", "masterdetail.size=master"),
     ),
     (
         "ui::master_detail::MasterDetail::seam",
