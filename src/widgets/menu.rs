@@ -10,6 +10,7 @@ use ratatui::style::{Color, Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
 
+use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::hit::Axis;
 use crate::core::hit::ReleaseFrom;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
@@ -21,6 +22,7 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, backdrop_id, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::brand::Lockup;
+use crate::widgets::keyhint::Hint;
 use ratatui::crossterm::event::KeyCode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,6 +196,20 @@ pub struct ContextMenu {
     cursor_hidden: bool,
     /// The tick the last hover auto-scroll ran on.
     scrolled_tick: Option<u64>,
+}
+
+/// The footer while the menu is open: how the cursor moves (its own
+/// [`ContextMenu::nav`], `Type to jump` under type-ahead), `Enter Choose`,
+/// and `Esc Close` when its dismiss policy lets Esc close it.
+impl HasHints for ContextMenu {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        v.push(Hint::new("Enter", "Choose"));
+        if self.dismiss.escape {
+            v.push(Hint::new("Esc", "Close"));
+        }
+        v
+    }
 }
 
 impl ContextMenu {
@@ -865,6 +881,21 @@ pub struct MenuBar {
     /// The title whose press [`MenuBar::on_press`] already acted on: its
     /// click (the release) does nothing more.
     press_handled: Option<WidgetId>,
+}
+
+/// The footer while a menu of the bar is open: `←→ Menu` (titles), the
+/// open menu's moves, `Enter Choose`, `Esc Close`. Closed, none: a focused
+/// bar's keys are the page's to name.
+impl HasHints for MenuBar {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if !self.is_open() {
+            return vec![];
+        }
+        let mut v = vec![Hint::new("←→", "Menu")];
+        v.extend(nav_hints(&self.nav, self.type_ahead, false));
+        v.extend([Hint::new("Enter", "Choose"), Hint::new("Esc", "Close")]);
+        v
+    }
 }
 
 impl MenuBar {

@@ -4,6 +4,7 @@
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
+use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::hit::Axis;
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
@@ -14,6 +15,7 @@ use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::truncate;
 use crate::widgets::button::{Button, row_layout_right};
+use crate::widgets::keyhint::Hint;
 use crate::widgets::props::{Prop, PropsAction, PropsList};
 use crate::widgets::scrollbar;
 use ratatui::buffer::Buffer;
@@ -65,6 +67,27 @@ pub struct InfoDialog {
     /// The theme's strings as of the last render; a Close label still
     /// reading them follows a change ([`crate::theme::Strings::follow`]).
     strings: crate::theme::Strings,
+}
+
+/// The footer while the dialog is on top: how to move through the facts,
+/// the reveal key while the cursor row is cut, the copy key from the key
+/// map (only when a fact is copyable), and Esc.
+impl HasHints for InfoDialog {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        let mut v = nav_hints(&self.nav, false, false);
+        if let Some((k, a)) = self.props.reveal.hint() {
+            v.push(Hint::new(k, a));
+        }
+        if self.copy_values.iter().any(Option::is_some)
+            && let Some(k) = crate::core::keymap::hint_key(&self.keymap, InfoCmd::Copy)
+        {
+            v.push(Hint::new(k, "Copy"));
+        }
+        if self.dismiss.escape {
+            v.push(Hint::new("Esc", self.strings.hint_close));
+        }
+        v
+    }
 }
 
 /// An [`InfoDialog`] action a key can be bound to. Esc and Enter always

@@ -1,0 +1,140 @@
+//! [`HasHints`] for the focusable widgets whose hints come from their own
+//! configuration: the footer a page composes names what the focused
+//! widget's keys do now, never a key it does not take (K10, CO3).
+//!
+//! The modals' hints live with them (`Dialog`, `Picker`, `ContextMenu`,
+//! `MenuBar`, `ChoiceDialog`, `FormDialog`, `InfoDialog`, `HelpOverlay`).
+
+use crate::core::hints::{HasHints, HintCx, nav_hints};
+use crate::core::keymap::hint_key;
+use crate::widgets::button::Button;
+use crate::widgets::code::CodeEditor;
+use crate::widgets::grid::{DataGrid, GridCmd};
+use crate::widgets::input::TextInput;
+use crate::widgets::keyhint::{EDIT_CELL, Hint, hint};
+use crate::widgets::list::{ListBox, ListCmd, SelectMode};
+use crate::widgets::select::Select;
+use crate::widgets::table::{DataTable, TableCmd};
+use crate::widgets::tabs::Tabs;
+use crate::widgets::textarea::TextArea;
+use crate::widgets::tree::TreeView;
+
+/// `Enter Edit`: the hint of a control whose Enter starts an edit. Every
+/// app takes it from here (or from the widget's [`HasHints`]), never
+/// spells it (K10).
+pub const EDIT: Hint = hint("Enter", "Edit");
+
+/// A list: how the cursor moves; a multi-select list's toggle and
+/// select-all keys.
+impl HasHints for ListBox {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if self.items.is_empty() {
+            return vec![];
+        }
+        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        if self.mode == SelectMode::Multi {
+            v.push(hint("Space", "Toggle"));
+            if let Some(k) = hint_key(&self.keymap, ListCmd::SelectAll) {
+                v.push(Hint::new(k, "Select all"));
+            }
+        }
+        v
+    }
+}
+
+/// A tree: how the cursor moves and how a branch folds.
+impl HasHints for TreeView {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        v.push(hint("←→", "Fold"));
+        v
+    }
+}
+
+/// A select: `Enter Open` while closed; open, how the list moves, Enter
+/// chooses and Esc closes.
+impl HasHints for Select {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if self.disabled {
+            return vec![];
+        }
+        if !self.open {
+            return vec![hint("Enter", "Open")];
+        }
+        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        v.extend([hint("Enter", "Choose"), hint("Esc", "Close")]);
+        v
+    }
+}
+
+/// A tab strip with focus: ←→ switch tabs.
+impl HasHints for Tabs {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        vec![hint("←→", "Switch tab")]
+    }
+}
+
+/// A table: how the cursor moves, type-ahead, sort and select-all from its
+/// key map.
+impl HasHints for DataTable {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if self.is_editing() {
+            return crate::widgets::keyhint::EDIT_FIELD.to_vec();
+        }
+        let mut v = nav_hints(&self.nav, self.type_ahead, false);
+        if let Some(k) = hint_key(&self.keymap, TableCmd::SortByColumn) {
+            v.push(Hint::new(k, "Sort"));
+        }
+        v
+    }
+}
+
+/// A grid: the cell cursor, `Enter Edit` only on a cell Enter edits (K25),
+/// the edit keys while a cell edits.
+impl HasHints for DataGrid {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if self.is_editing() {
+            return EDIT_CELL.to_vec();
+        }
+        let mut v = vec![hint("↑↓←→", "Cell")];
+        if self.cell_editable() {
+            v.push(EDIT);
+        }
+        if let Some(k) = hint_key(&self.keymap, GridCmd::Copy) {
+            v.push(Hint::new(k, "Copy"));
+        }
+        v
+    }
+}
+
+impl HasHints for TextInput {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        TextInput::hints(self)
+    }
+}
+
+impl HasHints for TextArea {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        TextArea::hints(self)
+    }
+}
+
+impl HasHints for CodeEditor {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        CodeEditor::hints(self)
+    }
+}
+
+/// A focused button names what Enter does, or that it is working (K35).
+impl HasHints for Button {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if self.disabled {
+            return vec![];
+        }
+        vec![self.hint()]
+    }
+}
+
+#[cfg(test)]
+#[path = "widget_hints_tests.rs"]
+mod tests;
