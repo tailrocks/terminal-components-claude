@@ -370,6 +370,29 @@ pub mod layout {
         }
     }
 
+    /// A card of label/value facts as a measured tile: the narrowest
+    /// card that shows every fact whole (`props::width` in the panel's
+    /// chrome).
+    pub fn sheet_width(
+        panel: &junie_tui::widgets::panel::Panel,
+        facts: &[junie_tui::widgets::props::Prop],
+    ) -> u16 {
+        let w = junie_tui::widgets::props::width(facts);
+        panel.outer(ratatui::layout::Size::new(w, 0)).width
+    }
+
+    /// The height of a card of facts `w` cells wide (wrapping values
+    /// take more rows as it narrows).
+    pub fn sheet_height(
+        panel: &junie_tui::widgets::panel::Panel,
+        facts: &[junie_tui::widgets::props::Prop],
+        w: u16,
+    ) -> u16 {
+        let inner = panel.inner(ratatui::layout::Size::new(w, 0)).width;
+        let rows = junie_tui::widgets::props::measure(facts, inner);
+        panel.outer(ratatui::layout::Size::new(inner, rows)).height
+    }
+
     /// Two columns with a gap; if too narrow, stack vertically.
     pub fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
         if area.width < left_w + gap + 20 {

@@ -21,8 +21,9 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::{ClientPlatform, InputConfig, Key, Outcome};
@@ -33,11 +34,13 @@ use junie_tui::core::keyboard::{self, KeyboardProtocol, ProtocolState};
 use junie_tui::core::keymap::{KeyBinding, Nav, NavKeys, select_all_bindings};
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::{Tile, Tiled, tiles};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::tabs::Tabs;
 
 const ID: WidgetId = WidgetId::of("focusnav");
@@ -191,81 +194,39 @@ impl FocusNavPage {
         "outside the page".into()
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[10, 1, 11, 1, 7, 0]);
-        let half = rows[0].width / 2;
-        let (left, right) = crate::pages::layout::columns(rows[0], half, 2);
-
-        // the ring: fields, buttons, tags
-        let panel = Panel::card(Some("Focus ring")).meta("Tab · Shift+Tab · click");
-        let bg = panel.bg(t);
-        let inner = panel.render(left, buf, t);
-        let w = inner.width.min(30);
-        self.name
-            .render(Rect::new(inner.x, inner.y, w, 2), buf, ctx, bg);
-        self.email
-            .render(Rect::new(inner.x, inner.y + 2, w, 2), buf, ctx, bg);
-        let y = inner.y + 5;
-        let widths = [self.save.width(), self.cancel.width()];
-        let r = row_layout(Rect::new(inner.x, y, inner.width, 1), &widths, 2);
-        self.save.render(r[0], buf, ctx, bg);
-        self.cancel.render(r[1], buf, ctx, bg);
-        let y = inner.y + 7;
-        let widths: Vec<u16> = self.tags.iter().map(|b| b.width()).collect();
-        let r = row_layout(Rect::new(inner.x, y, inner.width, 1), &widths, 1);
-        for (b, r) in self.tags.iter_mut().zip(r) {
-            b.render(r, buf, ctx, bg);
-        }
-
-        // what the ring did
-        let panel = Panel::card(Some("Focus"));
-        let bg = panel.bg(t);
-        let inner = panel.render(right, buf, t);
-        let focus = self.name_of(ctx.interaction.focus);
+    /// What the ring did.
+    fn focus_facts(&self, ctx: &RenderCtx) -> Vec<Prop> {
         let ring = if self.ring_len > 0 {
             format!("{} stops · reading order", self.ring_len)
         } else {
             "reading order".into()
         };
-        let lines = [
-            ("Focus", focus),
-            ("Change", self.last_change.clone()),
-            ("Ring", ring),
-            ("Fallback", "Delete on a tag removes it".into()),
-            (
+        vec![
+            Prop::new("Focus", self.name_of(ctx.interaction.focus)),
+            Prop::new("Change", self.last_change.clone()).wrap(),
+            Prop::new("Ring", ring),
+            Prop::new("Fallback", "Delete on a tag removes it").wrap(),
+            Prop::new(
                 "Field Tab",
                 if self.tab_stays {
-                    "stays: cancel_focus_request".into()
+                    "stays: cancel_focus_request"
                 } else {
-                    "moves: request_focus_next".into()
+                    "moves: request_focus_next"
                 },
             ),
-        ];
-        draw_lines(inner, buf, t, bg, &lines);
+        ]
+    }
 
-        // navigation keys of one widget
-        let (left, right) = crate::pages::layout::columns(rows[2], half, 2);
-        let panel = Panel::card(Some("Mailboxes"))
-            .meta("nav()")
-            .focused(ctx.interaction.focused(self.list.id));
-        let bg = panel.bg(t);
-        let inner = panel.render(left, buf, t);
-        self.list.render(inner, buf, ctx, bg);
-        let panel = Panel::card(Some("Nav map")).meta(&self.last_nav);
-        let bg = panel.bg(t);
-        let inner = panel.render(right, buf, t);
-        let map = nav_map(self.list.nav);
-        let lines: Vec<(&str, String)> = map
-            .iter()
-            .map(|(n, k)| (nav_label(*n), k.clone()))
-            .collect();
-        draw_lines(inner, buf, t, bg, &lines);
+    /// The list's `Nav` map.
+    fn nav_facts(&self) -> Vec<Prop> {
+        nav_map(self.list.nav)
+            .into_iter()
+            .map(|(n, k)| Prop::new(nav_label(n), k))
+            .collect()
+    }
 
-        // keys and input
-        let panel = Panel::card(Some("Keys and input"));
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[4], buf, t);
+    /// Key bindings, input normalisation and the keyboard protocol.
+    fn keys_facts(&self) -> Vec<Prop> {
         let select_all: Vec<String> = select_all_bindings(())
             .filter(|(b, _)| b.deliverable())
             .map(|(b, _)| b.label())
@@ -287,8 +248,8 @@ impl FocusNavPage {
         // both platforms' defaults, so the page reads the same on every host
         let mac = InputConfig::for_platform(ClientPlatform::MacOs);
         let other = InputConfig::for_platform(ClientPlatform::Other);
-        let lines = [
-            (
+        vec![
+            Prop::new(
                 "Bindings",
                 format!(
                     "back {} · palette {} · select all {}",
@@ -296,8 +257,9 @@ impl FocusNavPage {
                     KeyBinding::ctrl('k').label(),
                     select_all.join(" / ")
                 ),
-            ),
-            (
+            )
+            .wrap(),
+            Prop::new(
                 "Input",
                 format!(
                     "Ctrl+click is right-click: macOS {}, elsewhere {} · Shift+wheel sideways {} · legacy Ctrl punctuation {}",
@@ -306,8 +268,9 @@ impl FocusNavPage {
                     on_off(mac.shift_wheel_horizontal && other.shift_wheel_horizontal),
                     on_off(mac.legacy_ctrl_punctuation && other.legacy_ctrl_punctuation)
                 ),
-            ),
-            (
+            )
+            .wrap(),
+            Prop::new(
                 "Protocol",
                 format!(
                     "{protocol:?} (env) · active {} · Cmd delivered {} · On pushes {}, pops {}",
@@ -316,8 +279,9 @@ impl FocusNavPage {
                     printable(&push),
                     printable(pop)
                 ),
-            ),
-            (
+            )
+            .wrap(),
+            Prop::new(
                 "Alt keys",
                 format!(
                     "{:?} · delivered {} · resize {} · stand-in {}",
@@ -331,11 +295,119 @@ impl FocusNavPage {
                     .label(),
                     stand_in.alt_stand_in().label()
                 ),
-            ),
-        ];
-        draw_lines(inner, buf, t, bg, &lines);
+            )
+            .wrap(),
+        ]
+    }
+
+    fn ring_panel() -> Panel<'static> {
+        Panel::card(Some("Focus ring")).meta("Tab · Shift+Tab · click")
+    }
+
+    fn list_panel(&self, ctx: &RenderCtx) -> Panel<'static> {
+        Panel::card(Some("Mailboxes"))
+            .meta("nav()")
+            .focused(ctx.interaction.focused(self.list.id))
+    }
+
+    /// The ring card's content width: the fields, the buttons and the
+    /// tags on their rows.
+    fn ring_width(&self) -> u16 {
+        let buttons = self.save.width() + 2 + self.cancel.width();
+        let tags: u16 = self.tags.iter().map(|b| b.width() + 1).sum();
+        FIELD_W.max(buttons).max(tags.saturating_sub(1))
+    }
+
+    /// The Playground's cards laid out in `width` columns: the ring and
+    /// its readout, the list and its `Nav` map, side by side when they
+    /// fit, then the keys card. `measure` and `render_playground` share
+    /// it.
+    fn tiled(&self, width: u16, ctx: &RenderCtx) -> Tiled {
+        let focus_panel = Panel::card(Some("Focus"));
+        let nav_panel = Panel::card(Some("Nav map")).meta(&self.last_nav);
+        let keys_panel = Panel::card(Some("Keys and input"));
+        let (focus, nav, keys) = (self.focus_facts(ctx), self.nav_facts(), self.keys_facts());
+        let ring_size = Self::ring_panel().outer(Size::new(self.ring_width(), RING_ROWS));
+        let list_panel = self.list_panel(ctx);
+        let list_size = list_panel.outer(Size::new(LIST_W, LIST_ROWS));
+        let ring_h = |_: u16| ring_size.height;
+        let focus_h = |w: u16| sheet_height(&focus_panel, &focus, w);
+        let list_h = |_: u16| list_size.height;
+        let nav_h = |w: u16| sheet_height(&nav_panel, &nav, w);
+        let keys_h = |w: u16| sheet_height(&keys_panel, &keys, w);
+        tiles(
+            width,
+            &[
+                &[
+                    Tile::new(ring_size.width, &ring_h),
+                    Tile::new(sheet_width(&focus_panel, &focus), &focus_h),
+                ],
+                &[
+                    Tile::new(list_size.width, &list_h),
+                    Tile::new(sheet_width(&nav_panel, &nav), &nav_h),
+                ],
+                &[Tile::new(sheet_width(&keys_panel, &keys), &keys_h)],
+            ],
+            (2, 1),
+        )
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let tiled = self.tiled(area.width, ctx);
+
+        // the ring: fields, buttons, tags
+        let panel = Self::ring_panel();
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(0, area), buf, t);
+        let w = inner.width.min(FIELD_W);
+        self.name
+            .render(Rect::new(inner.x, inner.y, w, 2), buf, ctx, bg);
+        self.email
+            .render(Rect::new(inner.x, inner.y + 2, w, 2), buf, ctx, bg);
+        let y = inner.y + 5;
+        let widths = [self.save.width(), self.cancel.width()];
+        let r = row_layout(Rect::new(inner.x, y, inner.width, 1), &widths, 2);
+        self.save.render(r[0], buf, ctx, bg);
+        self.cancel.render(r[1], buf, ctx, bg);
+        let y = inner.y + 7;
+        let widths: Vec<u16> = self.tags.iter().map(|b| b.width()).collect();
+        let r = row_layout(Rect::new(inner.x, y, inner.width, 1), &widths, 1);
+        for (b, r) in self.tags.iter_mut().zip(r) {
+            b.render(r, buf, ctx, bg);
+        }
+
+        // what the ring did
+        let panel = Panel::card(Some("Focus"));
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(1, area), buf, t);
+        props::render(inner, buf, t, &self.focus_facts(ctx), bg);
+
+        // navigation keys of one widget
+        let panel = self.list_panel(ctx);
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(2, area), buf, t);
+        self.list.render(inner, buf, ctx, bg);
+        let panel = Panel::card(Some("Nav map")).meta(&self.last_nav);
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(3, area), buf, t);
+        props::render(inner, buf, t, &self.nav_facts(), bg);
+
+        // keys and input
+        let panel = Panel::card(Some("Keys and input"));
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(4, area), buf, t);
+        props::render(inner, buf, t, &self.keys_facts(), bg);
     }
 }
+
+/// The ring's fields' width, and its rows: two fields, a blank row, the
+/// buttons, a blank row, the tags.
+const FIELD_W: u16 = 30;
+const RING_ROWS: u16 = 8;
+/// The mailbox list's viewport: it scrolls through the rest.
+const LIST_W: u16 = 20;
+const LIST_ROWS: u16 = 8;
 
 fn on_off(b: bool) -> &'static str {
     if b { "on" } else { "off" }
@@ -362,30 +434,6 @@ fn nav_label(n: Nav) -> &'static str {
     }
 }
 
-/// Label/value lines in a card.
-fn draw_lines(
-    inner: Rect,
-    buf: &mut Buffer,
-    t: &junie_tui::theme::Theme,
-    bg: ratatui::style::Color,
-    lines: &[(&str, String)],
-) {
-    for (i, (k, v)) in lines.iter().enumerate() {
-        let y = inner.y + i as u16;
-        if y >= inner.bottom() {
-            break;
-        }
-        buf.set_string(inner.x, y, k, t.muted().bg(bg));
-        let w = inner.width.saturating_sub(10) as usize;
-        buf.set_string(
-            inner.x + 10,
-            y,
-            junie_tui::ui::text::truncate(v, w),
-            t.primary().bg(bg),
-        );
-    }
-}
-
 /// The States grid: how each kind of control shows keyboard focus.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -405,6 +453,10 @@ impl Page for FocusNavPage {
 
     fn blurb(&self) -> &'static str {
         "The focus ring, fallback, nav keys, key bindings, input and keyboard protocol"
+    }
+
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width, ctx).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
