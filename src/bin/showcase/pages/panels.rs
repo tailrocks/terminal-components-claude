@@ -23,7 +23,7 @@ use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
-use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
+use junie_tui::core::keymap::{Actions, KeyBinding, NavKeys, hint_key};
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::{HScroll, ScrollbarVisibility, TrackClick};
 use junie_tui::theme::Theme;
@@ -92,8 +92,15 @@ impl PanelsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("panels.keymap") {
-            "t" => vec![(KeyBinding::char('t'), PanelCmd::Follow)],
-            _ => vec![(KeyBinding::char('f'), PanelCmd::Follow)],
+            // the defaults (Follow, Copy, Select All) with Follow on `t`
+            "t" => PanelCmd::default_keymap()
+                .into_iter()
+                .map(|(k, c)| match c {
+                    PanelCmd::Follow => (KeyBinding::char('t'), c),
+                    _ => (k, c),
+                })
+                .collect(),
+            _ => PanelCmd::default_keymap(),
         };
         let click = match o.value("panels.track_click") {
             "page" => Some(TrackClick::Page),
