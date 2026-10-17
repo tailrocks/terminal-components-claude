@@ -393,3 +393,21 @@ fn reveal_span_brings_a_span_in_with_context() {
     assert!(s.reveal_span(10, 12));
     assert_eq!(s.offset, 10);
 }
+
+/// Content as wide as the view and taller than it is measured again at
+/// the width the vertical bar leaves: no sideways scroll for the bar.
+#[test]
+fn fit_leaves_room_for_the_vertical_bar() {
+    let view = ScrollView::new(WidgetId::of("fit"));
+    let area = Size::new(40, 10);
+    // fills the width, 30 rows
+    let fill = |a: Size| Size::new(a.width, 30);
+    let size = view.fit(area, fill);
+    let l = view.layout(Rect::new(0, 0, 40, 10), size);
+    assert!(l.viewport.width < 40, "a vertical bar");
+    assert_eq!(l.content.width, l.viewport.width, "no horizontal scroll");
+    // content that fits keeps the whole width
+    assert_eq!(view.fit(area, |a| Size::new(a.width, 5)), Size::new(40, 5));
+    // content wider than the view is left as it is
+    assert_eq!(view.fit(area, |_| Size::new(60, 30)), Size::new(60, 30));
+}

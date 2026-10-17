@@ -294,6 +294,30 @@ impl ScrollView {
         self.followed = None;
     }
 
+    /// The size to lay content out at in `area`: `measure(area)`, unless
+    /// that is taller than the view and no wider, when the vertical bar
+    /// will take its columns: then `measure` again at the width the bar
+    /// leaves, so content that only overflows downwards never scrolls
+    /// sideways by the bar's width.
+    pub fn fit(&self, area: Size, measure: impl Fn(Size) -> Size) -> Size {
+        let size = measure(area);
+        let pad = self.padding;
+        let (pad_w, pad_h) = (pad.left + pad.right, pad.top + pad.bottom);
+        let room = 1 + self.scrollbar_gap;
+        let bar = self.axes.vertical
+            && self.bars != ScrollbarVisibility::Never
+            && area.width > room
+            && (self.bars == ScrollbarVisibility::Always
+                || size.height.saturating_add(pad_h) > area.height);
+        if bar && size.width.saturating_add(pad_w) <= area.width {
+            let narrower = measure(Size::new(area.width - room, area.height));
+            if narrower.width.saturating_add(pad_w) <= area.width - room {
+                return narrower;
+            }
+        }
+        size
+    }
+
     /// Lay the view out in `area` for content of `content` cells (its
     /// natural size, padding excluded). A bar takes its row or column only
     /// while its axis overflows (or always, per [`Self::bars`]); the two

@@ -90,7 +90,10 @@ impl shell::Page<Showcase> for dyn Page {
     /// own.
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
         let avail = super::template::Template::body_of(area).as_size();
-        let playground = Page::measure(self, avail, ctx);
+        let playground = match self.template() {
+            Some(t) => t.view.fit(avail, |a| Page::measure(self, a, ctx)),
+            None => Page::measure(self, avail, ctx),
+        };
         let Some(mut frame) = self
             .template_mut()
             .map(|t| t.begin(area, playground, buf, ctx))
