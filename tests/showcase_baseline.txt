@@ -129,7 +129,7 @@
 120x40 TrueColor Text utilities · States d2b0e9d2092e7df8
 120x40 TrueColor Settings aaa926c18db96f26
 120x40 TrueColor Settings · Options 527273f76d0c159d
-120x40 TrueColor Settings · States ed8de7d9a20d3dde
+120x40 TrueColor Settings · States ca62dcab20a8823e
 120x40 TrueColor Task runner 431c505c778247b0
 120x40 TrueColor Task runner · Options 41d7de291d9ead61
 120x40 TrueColor Task runner · States 0ffcc46bfad080d9
@@ -293,7 +293,7 @@
 120x40 Ansi256 Text utilities · States f70ded9d6b18b236
 120x40 Ansi256 Settings 0bc50bdad32768a3
 120x40 Ansi256 Settings · Options 58c260ccfbf892ef
-120x40 Ansi256 Settings · States 2432b94db37a9075
+120x40 Ansi256 Settings · States cb5bca5cbea4d31e
 120x40 Ansi256 Task runner 3c5444bfa5f3fdb4
 120x40 Ansi256 Task runner · Options 548ddecaa97a3307
 120x40 Ansi256 Task runner · States e9247b009752ccfb
@@ -457,7 +457,7 @@
 120x40 Ansi16 Text utilities · States e9378a1bf933f24a
 120x40 Ansi16 Settings 27d2afe190b5857f
 120x40 Ansi16 Settings · Options 0cd232958fb650d8
-120x40 Ansi16 Settings · States 17b18b956478d756
+120x40 Ansi16 Settings · States a36f988f8cf02493
 120x40 Ansi16 Task runner c2718e6832ada1b4
 120x40 Ansi16 Task runner · Options c44f433d2c9660da
 120x40 Ansi16 Task runner · States ad938cc408220b36
@@ -621,7 +621,7 @@
 120x40 Mono Text utilities · States dd37b0014d9de03b
 120x40 Mono Settings baa685f5ea4a9d32
 120x40 Mono Settings · Options 3c8601e85c8bb537
-120x40 Mono Settings · States b043444865077bbf
+120x40 Mono Settings · States 69e3950de7b1c02a
 120x40 Mono Task runner ba93e3803f2cf8c4
 120x40 Mono Task runner · Options e7ce2e8362aaa13b
 120x40 Mono Task runner · States 86136261eaf8b292
@@ -2753,7 +2753,7 @@
 160x50 TrueColor Text utilities · States 25b5d2e6af80c7c2
 160x50 TrueColor Settings b199ebf3119e45ae
 160x50 TrueColor Settings · Options ed1c186caecaf232
-160x50 TrueColor Settings · States 5baf39ea2d9698e9
+160x50 TrueColor Settings · States 10f5e7d63c963bad
 160x50 TrueColor Task runner 97a0ea01aaf20f2f
 160x50 TrueColor Task runner · Options 1c25d3fc546e1f66
 160x50 TrueColor Task runner · States e78c57fb3b8567ad
@@ -2917,7 +2917,7 @@
 160x50 Ansi256 Text utilities · States 972e7a2d3241ca58
 160x50 Ansi256 Settings 301ca3d01ab321ce
 160x50 Ansi256 Settings · Options 63ac3c568008781e
-160x50 Ansi256 Settings · States 3f1d3e8f0c08d2e0
+160x50 Ansi256 Settings · States e3ee5ca583a038bf
 160x50 Ansi256 Task runner 73a8e4091b2e3d57
 160x50 Ansi256 Task runner · Options 747645ac1f9ff44e
 160x50 Ansi256 Task runner · States 37e898d22862f59b
@@ -3081,7 +3081,7 @@
 160x50 Ansi16 Text utilities · States 5ca8b4428535ed32
 160x50 Ansi16 Settings 666070d3c2ffe351
 160x50 Ansi16 Settings · Options 227d89a8607300a7
-160x50 Ansi16 Settings · States 4853310b7cf2e043
+160x50 Ansi16 Settings · States 3bab695f4c8235c4
 160x50 Ansi16 Task runner c7f25b68203c35d7
 160x50 Ansi16 Task runner · Options 4fd049df92c37c05
 160x50 Ansi16 Task runner · States 905039a2670138d5
@@ -3245,7 +3245,7 @@
 160x50 Mono Text utilities · States db8896b50d96ba87
 160x50 Mono Settings fa46bbd0d1261dc8
 160x50 Mono Settings · Options 776002afd609f0a4
-160x50 Mono Settings · States 1c304619beb96db7
+160x50 Mono Settings · States 0e0125cbe240319a
 160x50 Mono Task runner f7d9fa2b76568a57
 160x50 Mono Task runner · Options fc415a8f282108fc
 160x50 Mono Task runner · States 1232a88fe29b62d7
