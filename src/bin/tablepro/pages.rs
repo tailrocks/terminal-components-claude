@@ -18,7 +18,11 @@ use ratatui::layout::Rect;
 use crate::app::{Act, Cx, ModalResult};
 use crate::connections::{ConnEvent, ConnectionsScreen};
 use crate::model::History;
-use crate::workbench::Workbench;
+use crate::workbench::WorkTab;
+use crate::workbench::{EXPLORER, TABSTRIP, Workbench};
+use junie_tui::theme::StatusKind;
+use junie_tui::ui::layout::Maximized;
+use junie_tui::widgets::input::TextInput;
 
 /// The types a tablepro page works with: the pages read and add to the
 /// query history.
@@ -84,6 +88,12 @@ impl Page<Tablepro> for ConnectionsScreen {
         ConnectionsScreen::animating(self)
     }
 
+    /// Esc at the top of the connection list stays here (there is
+    /// nowhere to go back to, and Esc never quits).
+    fn on_esc_top(&mut self, _h: &mut History, _cx: &mut Cx) -> Outcome {
+        Outcome::Consumed
+    }
+
     fn stakes(&mut self, _h: &History) -> Stakes {
         self.form_stakes()
     }
@@ -128,5 +138,46 @@ impl Page<Tablepro> for Workbench {
 
     fn animating(&self, _h: &History) -> bool {
         Workbench::animating(self)
+    }
+
+    /// The Esc ladder: restore a maximized pane, then the tab strip hands
+    /// focus to the explorer, the explorer clears its filter, and any
+    /// other control hands focus to the tab strip.
+    fn on_esc_top(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
+        if self.maximized {
+            self.maximized = false;
+            if let Some(WorkTab::Query(q)) = self.active_tab_mut() {
+                q.split.maximized = Maximized::None;
+            }
+            return Outcome::Changed;
+        }
+        let f = cx.focus.current();
+        if f == Some(TABSTRIP) {
+            cx.focus.focus(EXPLORER);
+            return Outcome::Changed;
+        }
+        if f == Some(EXPLORER) {
+            if self.explorer_filter.text().is_empty() {
+                return Outcome::Consumed;
+            }
+            self.explorer_filter = TextInput::new(self.explorer_filter.id, "")
+                .placeholder("Filter objects")
+                .plain_label();
+            self.explorer.set_filter(None);
+            return Outcome::Changed;
+        }
+        cx.focus.focus(TABSTRIP);
+        Outcome::Changed
+    }
+
+    /// Ctrl+C cancels the active tab's running query before it may quit.
+    fn on_interrupt(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
+        if let Some(WorkTab::Query(q)) = self.active_tab_mut()
+            && q.cancel()
+        {
+            cx.status_as(StatusKind::Info, "Query cancelled");
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
     }
 }

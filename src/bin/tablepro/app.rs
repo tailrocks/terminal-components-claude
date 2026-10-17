@@ -25,7 +25,7 @@ use junie_tui::ui::layer::{
     DismissReason, Dismissed, LayerCx, LayerEntry, LayerPointer, LayerTag, ShellLayers, Taken,
 };
 use junie_tui::ui::layers::LayerResult;
-use junie_tui::ui::leave::{KeyContext, LeaveKey, QuitKeys};
+
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::grid::CellValue;
@@ -153,10 +153,11 @@ pub struct App {
     /// Open overlays, bottom to top; each restores the focus it covered.
     pub layers: Layers,
     pub tick: u64,
-    /// Which keys ask to quit, through the leave guard. Default
-    /// [`QuitKeys::DEFAULT`]: Ctrl+C (cancels a running query first),
-    /// Ctrl+Q and `q`; Esc never quits.
-    pub quit_keys: QuitKeys,
+    /// The shell's keys ([`shell::KeyRouter`], [`shell_keys`]): the quit
+    /// keys ([`junie_tui::ui::leave::QuitKeys::DEFAULT`]: Ctrl+C cancels a
+    /// running query first, Ctrl+Q and `q`; Esc never quits) and the
+    /// workbench commands.
+    pub keys: shell::ShellKeys<TpCmd>,
     /// Simulated commit in flight: ticks left.
     committing: Option<u32>,
     scope: usize,
@@ -181,7 +182,7 @@ impl App {
             clock: WallClock::new(),
             layers: Layers::new(),
             tick: 0,
-            quit_keys: QuitKeys::DEFAULT,
+            keys: shell_keys(),
             committing: None,
             scope: 0,
             switcher_targets: vec![],
@@ -306,27 +307,7 @@ impl App {
                 }
                 self.with_page(|p, h, cx| p.on_paste(&text, h, cx))
             }
-            Input::Key(key) => {
-                // the chord quit keys (Ctrl+C, Ctrl+Q) work everywhere,
-                // through the leave guard
-                if key.ctrl()
-                    && self.quit_keys.classify(&key, self.key_context()) == Some(LeaveKey::Quit)
-                {
-                    // Ctrl+C cancels a running query first; otherwise quit
-                    if key.ctrl_char('c')
-                        && let Some(w) = self.workbench.as_mut()
-                        && let Some(WorkTab::Query(q)) = w.active_tab_mut()
-                        && q.cancel()
-                    {
-                        self.set_status_as(StatusKind::Info, "Query cancelled".into());
-                        return Outcome::Changed;
-                    }
-                    return self.request_quit();
-                }
-                self.shell.pointer.suppress_hover();
-                // shortcuts first, then type-ahead (one rule, in the library)
-                junie_tui::core::list::route_key(&key, || self.on_key(key))
-            }
+            Input::Key(key) => shell::KeyRouter::route(self, &key),
             Input::Mouse(m) => PointerRouter::route(self, m),
         }
     }
@@ -364,17 +345,6 @@ impl App {
                 .leave_form(crate::connections::FormLeave::New, cx)
         });
         o.or(self.apply_requests(reqs))
-    }
-
-    /// What the quit keys need to know about the keyboard's target
-    /// ([`QuitKeys::classify`]).
-    fn key_context(&self) -> KeyContext {
-        let editing = self.shown().is_some_and(|p| p.is_editing());
-        KeyContext {
-            text_focus: editing,
-            dirty: self.connections.form_dirty(),
-            selection: false,
-        }
     }
 
     fn request_quit(&mut self) -> Outcome {
@@ -683,143 +653,54 @@ impl App {
         }
     }
 
-    fn on_key(&mut self, key: Key) -> Outcome {
-        if self.shell.too_small {
-            if key.is_char('q') {
-                self.shell.quit = true;
+    /// Run a workbench command ([`TpCmd`]). `Ignored` passes the key on
+    /// (no workbench, or a command the active tab has no use for).
+    fn run_cmd(&mut self, cmd: TpCmd) -> Outcome {
+        if cmd == TpCmd::NewConnection {
+            if self.screen != Screen::Connections {
+                return Outcome::Ignored;
             }
-            return Outcome::Consumed;
-        }
-        if !self.layers.is_empty() {
-            return self.layer_key(key);
-        }
-        // global chords that work everywhere (not while editing text)
-        let editing = self.shown().is_some_and(|p| p.is_editing());
-        // an editing field has the first chance at a chord; one it does not
-        // bind passes on and reaches the same chord below
-        if key.ctrl_char('n') && self.screen == Screen::Connections && !editing {
             return self.new_connection();
         }
-        if self.screen == Screen::Workbench
-            && !editing
-            && let Some(w) = self.workbench.as_ref()
-            && let Some(menu) = context::on_key(w, &self.context, self.shell.focus.current(), &key)
-        {
-            return self.open_context(menu);
-        }
-        if self.screen == Screen::Connections
-            && !editing
-            && let Some(menu) = context::on_key_connections(
-                &self.connections,
-                &self.context,
-                self.shell.focus.current(),
-                &key,
-            )
-        {
-            return self.open_context(menu);
-        }
-        if self.screen == Screen::Workbench
-            && let Some(o) = self.workbench_chord(&key, editing)
-        {
-            return o;
-        }
-        // screen-level handling
-        if self.screen == Screen::Workbench && self.workbench.is_none() {
+        if self.screen != Screen::Workbench || self.workbench.is_none() {
             return Outcome::Ignored;
         }
-        let out = self.with_page(|p, h, cx| p.on_key(&key, h, cx));
-        if out.consumed() {
-            if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
-                && key.plain()
-                && !editing
-                && let Some(f) = self.shell.focus.current()
-            {
-                let now = self.now_ms();
-                self.shell.pointer.flash(f, now);
-            }
-            return out;
-        }
-        // a chord the editing field passed on (it binds no Ctrl+N)
-        if key.ctrl_char('n') && self.screen == Screen::Connections {
-            return self.new_connection();
-        }
-        // global keys
-        match key.code {
-            KeyCode::Tab => {
-                self.shell.focus.next(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::BackTab => {
-                self.shell.focus.prev(&self.shell.ring);
-                Outcome::Changed
-            }
-            KeyCode::Char('?') => {
-                self.open_help();
-                Outcome::Changed
-            }
-            // `q` never fires over a field or a dirty form (keyboard audit #6)
-            KeyCode::Char(_)
-                if key.plain()
-                    && self.quit_keys.classify(&key, self.key_context())
-                        == Some(LeaveKey::Quit) =>
-            {
-                self.request_quit()
-            }
-            KeyCode::Esc => self.esc_ladder(),
-            KeyCode::Char('0') if key.plain() && self.screen == Screen::Workbench => {
-                if let Some(w) = self.workbench.as_mut() {
-                    w.explorer_visible = true;
-                    w.maximized = false;
+        match cmd {
+            TpCmd::NewConnection => Outcome::Ignored,
+            TpCmd::CancelQuery => {
+                let Some(w) = self.workbench.as_mut() else {
+                    return Outcome::Ignored;
+                };
+                if w.running().is_none() {
+                    return Outcome::Ignored;
                 }
-                self.shell.focus.focus(crate::workbench::EXPLORER);
-                Outcome::Changed
-            }
-            _ => Outcome::Ignored,
-        }
-    }
-
-    fn workbench_chord(&mut self, key: &Key, editing: bool) -> Option<Outcome> {
-        let running = self.workbench.as_ref().and_then(|w| w.running()).is_some();
-        // Esc cancels a running query before anything else
-        if key.is(KeyCode::Esc)
-            && running
-            && let Some(w) = self.workbench.as_mut()
-        {
-            for t in w.tabs.iter_mut() {
-                if let WorkTab::Query(q) = t
-                    && q.cancel()
-                {
-                    self.set_status_as(StatusKind::Info, "Query cancelled".into());
-                    return Some(Outcome::Changed);
+                for t in w.tabs.iter_mut() {
+                    if let WorkTab::Query(q) = t
+                        && q.cancel()
+                    {
+                        self.set_status_as(StatusKind::Info, "Query cancelled".into());
+                        return Outcome::Changed;
+                    }
                 }
+                Outcome::Ignored
             }
-        }
-        let alt = key.alt();
-        let ctrl = key.ctrl();
-        match key.code {
-            KeyCode::Char('r') | KeyCode::Char('R') if ctrl => {
-                return Some(self.run_active(false, None));
-            }
-            KeyCode::F(5) if !editing => {
-                // F5 runs in a query tab, refreshes elsewhere
-                if self.active_is_query() {
-                    return Some(self.run_active(false, None));
-                }
-                return None;
-            }
-            KeyCode::Char('r') if alt => return Some(self.run_active(true, None)),
-            KeyCode::Char('x') if ctrl => return Some(self.run_active(false, Some(false))),
-            KeyCode::Char('x') if alt => return Some(self.run_active(false, Some(true))),
-            KeyCode::Char('t') if ctrl => {
+            TpCmd::Run => self.run_active(false, None),
+            // F5 runs in a query tab and passes on elsewhere
+            TpCmd::RunOrRefresh if self.active_is_query() => self.run_active(false, None),
+            TpCmd::RunOrRefresh => Outcome::Ignored,
+            TpCmd::RunAll => self.run_active(true, None),
+            TpCmd::Explain => self.run_active(false, Some(false)),
+            TpCmd::ExplainAnalyze => self.run_active(false, Some(true)),
+            TpCmd::NewQuery => {
                 if let Some(w) = self.workbench.as_mut() {
                     w.new_query("");
                     if let Some(pf) = w.primary_focus() {
                         self.shell.focus.focus(pf);
                     }
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('w') if ctrl && !editing => {
+            TpCmd::CloseTab => {
                 if let Some(w) = self.workbench.as_mut() {
                     let i = w.active;
                     if w.tabs.get(i).is_some_and(|t| t.dirty()) {
@@ -830,34 +711,34 @@ impl App {
                         self.shell.focus.focus(pf);
                     }
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('o') | KeyCode::Char('p') if ctrl => {
+            TpCmd::Switcher => {
                 self.open_switcher();
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('g') if ctrl => {
+            TpCmd::TabList => {
                 self.open_tab_list();
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('y') if ctrl => {
+            TpCmd::History => {
                 if let Some(w) = self.workbench.as_mut() {
                     w.open_history(&self.history);
                     if let Some(pf) = w.primary_focus() {
                         self.shell.focus.focus(pf);
                     }
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('b') if ctrl => {
+            TpCmd::ToggleExplorer => {
                 let shown = self.workbench.as_ref().is_some_and(|w| w.explorer_visible);
-                return Some(self.set_explorer(!shown));
+                self.set_explorer(!shown)
             }
-            KeyCode::Char('l') if ctrl && !editing => {
+            TpCmd::SafeMode => {
                 self.open_safe_mode_picker();
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('d') if ctrl && !editing => {
+            TpCmd::ToggleStructure => {
                 if let Some(w) = self.workbench.as_mut()
                     && let Some(WorkTab::Table(t)) = w.active_tab_mut()
                 {
@@ -874,13 +755,13 @@ impl App {
                         self.shell.focus.focus(pf);
                     }
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('s') if ctrl && !editing => {
+            TpCmd::Commit => {
                 self.begin_commit();
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('f') if ctrl && !editing => {
+            TpCmd::Find => {
                 if self.active_is_query() {
                     if let Some(w) = self.workbench.as_mut()
                         && let Some(WorkTab::Query(q)) = w.active_tab_mut()
@@ -891,9 +772,9 @@ impl App {
                 } else {
                     self.open_filter_editor(None, None);
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('z') if key.plain() && !editing => {
+            TpCmd::Maximize => {
                 if let Some(w) = self.workbench.as_mut() {
                     w.maximized = !w.maximized;
                     let maximized = w.maximized;
@@ -912,49 +793,47 @@ impl App {
                         };
                     }
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            KeyCode::Char('[') if key.plain() && !editing => {
-                if let Some(w) = self.workbench.as_mut()
-                    && !w.tabs.is_empty()
-                {
-                    let i = (w.active + w.tabs.len() - 1) % w.tabs.len();
-                    w.set_active(i);
-                    if let Some(pf) = w.primary_focus()
-                        && !self.shell.focus.is(crate::workbench::EXPLORER)
-                        && !self.shell.focus.is(crate::workbench::TABSTRIP)
-                    {
-                        self.shell.focus.focus(pf);
-                    }
-                }
-                return Some(Outcome::Changed);
-            }
-            KeyCode::Char(']') if key.plain() && !editing => {
-                if let Some(w) = self.workbench.as_mut()
-                    && !w.tabs.is_empty()
-                {
-                    let i = (w.active + 1) % w.tabs.len();
-                    w.set_active(i);
-                    if let Some(pf) = w.primary_focus()
-                        && !self.shell.focus.is(crate::workbench::EXPLORER)
-                        && !self.shell.focus.is(crate::workbench::TABSTRIP)
-                    {
-                        self.shell.focus.focus(pf);
-                    }
-                }
-                return Some(Outcome::Changed);
-            }
-            KeyCode::Up | KeyCode::Down if ctrl => {
+            TpCmd::GrowResults | TpCmd::GrowEditor => {
                 if let Some(w) = self.workbench.as_mut()
                     && let Some(WorkTab::Query(q)) = w.active_tab_mut()
                 {
-                    q.split.grow(if key.code == KeyCode::Up { -8 } else { 8 });
+                    q.split.grow(if cmd == TpCmd::GrowEditor { 8 } else { -8 });
                 }
-                return Some(Outcome::Changed);
+                Outcome::Changed
             }
-            _ => {}
+            TpCmd::Explorer => {
+                if let Some(w) = self.workbench.as_mut() {
+                    w.explorer_visible = true;
+                    w.maximized = false;
+                }
+                self.shell.focus.focus(crate::workbench::EXPLORER);
+                Outcome::Changed
+            }
         }
-        None
+    }
+
+    /// Show the workbench tab `step` places away (wrapping); focus
+    /// follows into it unless it sits on the explorer or the tab strip.
+    fn step_tab(&mut self, step: isize) -> Outcome {
+        if self.screen != Screen::Workbench {
+            return Outcome::Ignored;
+        }
+        if let Some(w) = self.workbench.as_mut()
+            && !w.tabs.is_empty()
+        {
+            let n = w.tabs.len() as isize;
+            let i = (w.active as isize + step).rem_euclid(n) as usize;
+            w.set_active(i);
+            if let Some(pf) = w.primary_focus()
+                && !self.shell.focus.is(crate::workbench::EXPLORER)
+                && !self.shell.focus.is(crate::workbench::TABSTRIP)
+            {
+                self.shell.focus.focus(pf);
+            }
+        }
+        Outcome::Changed
     }
 
     fn active_is_query(&self) -> bool {
@@ -962,41 +841,6 @@ impl App {
             self.workbench.as_ref().and_then(|w| w.active_tab()),
             Some(WorkTab::Query(_))
         )
-    }
-
-    fn esc_ladder(&mut self) -> Outcome {
-        match self.screen {
-            Screen::Connections => Outcome::Consumed,
-            Screen::Workbench => {
-                let Some(w) = self.workbench.as_mut() else {
-                    return Outcome::Ignored;
-                };
-                if w.maximized {
-                    w.maximized = false;
-                    if let Some(WorkTab::Query(q)) = w.active_tab_mut() {
-                        q.split.maximized = junie_tui::ui::layout::Maximized::None;
-                    }
-                    return Outcome::Changed;
-                }
-                let f = self.shell.focus.current();
-                if f == Some(crate::workbench::TABSTRIP) {
-                    self.shell.focus.focus(crate::workbench::EXPLORER);
-                    return Outcome::Changed;
-                }
-                if f == Some(crate::workbench::EXPLORER) {
-                    if w.explorer_filter.text().is_empty() {
-                        return Outcome::Consumed;
-                    }
-                    w.explorer_filter = TextInput::new(w.explorer_filter.id, "")
-                        .placeholder("Filter objects")
-                        .plain_label();
-                    w.explorer.set_filter(None);
-                    return Outcome::Changed;
-                }
-                self.shell.focus.focus(crate::workbench::TABSTRIP);
-                Outcome::Changed
-            }
-        }
     }
 
     // ---- execution + safety ------------------------------------------
@@ -2115,7 +1959,7 @@ impl App {
         let id = ev.id;
         // a footer hint runs its key (mouse #1)
         if let Some(key) = self.shell.footer_keys.clicked(ev) {
-            return Some(self.on_key(key).or(Outcome::Changed));
+            return Some(shell::KeyRouter::replay(self, &key).or(Outcome::Changed));
         }
         // the explorer's rail and collapse button (mouse #8)
         if let Some(r) = self.workbench.as_mut().and_then(|w| w.rail.route(ev)) {
@@ -2247,7 +2091,7 @@ impl App {
             }
         }
         self.shell.focus.focus(owner);
-        self.on_key(key).or(Outcome::Changed)
+        shell::KeyRouter::replay(self, &key).or(Outcome::Changed)
     }
 
     // --------------------------------------------------------------- render
@@ -2561,4 +2405,167 @@ fn pretty_json(j: &str) -> String {
         }
     }
     out
+}
+
+/// tablepro's own shell commands ([`shell::ShellAction::App`]), bound in
+/// [`shell_keys`]. Each passes the key on where it does not apply.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TpCmd {
+    /// Ctrl+N on the connection list.
+    NewConnection,
+    /// Esc while a query runs.
+    CancelQuery,
+    Run,
+    RunOrRefresh,
+    RunAll,
+    Explain,
+    ExplainAnalyze,
+    NewQuery,
+    CloseTab,
+    Switcher,
+    TabList,
+    History,
+    ToggleExplorer,
+    SafeMode,
+    ToggleStructure,
+    Commit,
+    Find,
+    Maximize,
+    GrowEditor,
+    GrowResults,
+    /// `0`: show and focus the explorer.
+    Explorer,
+}
+
+/// tablepro's shell keys: the standard set, the workbench chords before
+/// a capturing field (they act while the query editor edits, like menu
+/// key equivalents), `[`/`]` tab order, and `0` the explorer after the
+/// page. Commands
+/// that edit the workbench (close, commit, find, safe mode, structure)
+/// never act over a field that is editing.
+pub fn shell_keys() -> shell::ShellKeys<TpCmd> {
+    use junie_tui::core::keymap::KeyBinding;
+    use ratatui::crossterm::event::KeyModifiers;
+    use shell::ShellAction::{self, App as Cmd};
+    let mut keys = shell::ShellKeys::new();
+    let before = [
+        (KeyBinding::key(KeyCode::Esc), TpCmd::CancelQuery),
+        (KeyBinding::ctrl('r'), TpCmd::Run),
+        (KeyBinding::ctrl('R'), TpCmd::Run),
+        (KeyBinding::key(KeyCode::F(5)), TpCmd::RunOrRefresh),
+        (KeyBinding::alt('r'), TpCmd::RunAll),
+        (KeyBinding::ctrl('x'), TpCmd::Explain),
+        (KeyBinding::alt('x'), TpCmd::ExplainAnalyze),
+        (KeyBinding::ctrl('t'), TpCmd::NewQuery),
+        (KeyBinding::ctrl('w'), TpCmd::CloseTab),
+        (KeyBinding::ctrl('o'), TpCmd::Switcher),
+        (KeyBinding::ctrl('p'), TpCmd::Switcher),
+        (KeyBinding::ctrl('g'), TpCmd::TabList),
+        (KeyBinding::ctrl('y'), TpCmd::History),
+        (KeyBinding::ctrl('b'), TpCmd::ToggleExplorer),
+        (KeyBinding::ctrl('l'), TpCmd::SafeMode),
+        (KeyBinding::ctrl('d'), TpCmd::ToggleStructure),
+        (KeyBinding::ctrl('s'), TpCmd::Commit),
+        (KeyBinding::ctrl('f'), TpCmd::Find),
+        (KeyBinding::char('z'), TpCmd::Maximize),
+        (
+            KeyBinding::new(KeyCode::Up, KeyModifiers::CONTROL),
+            TpCmd::GrowResults,
+        ),
+        (
+            KeyBinding::new(KeyCode::Down, KeyModifiers::CONTROL),
+            TpCmd::GrowEditor,
+        ),
+    ];
+    keys.priority = before.into_iter().map(|(b, c)| (b, Cmd(c))).collect();
+    keys = keys
+        .bind(KeyBinding::ctrl('n'), Cmd(TpCmd::NewConnection))
+        .bind_priority(KeyBinding::char('['), ShellAction::PrevPage)
+        .bind_priority(KeyBinding::char(']'), ShellAction::NextPage)
+        .bind_fallback(KeyBinding::char('0'), Cmd(TpCmd::Explorer))
+        // tablepro's form guard keeps a refused `q` quiet
+        .dirty_letter_note(None);
+    for c in [
+        TpCmd::CloseTab,
+        TpCmd::SafeMode,
+        TpCmd::ToggleStructure,
+        TpCmd::Commit,
+        TpCmd::Find,
+        TpCmd::RunOrRefresh,
+    ] {
+        keys = keys.idle_only(Cmd(c));
+    }
+    keys
+}
+
+impl shell::KeyHost for App {
+    type Cmd = TpCmd;
+
+    fn shell_keys(&self) -> &shell::ShellKeys<TpCmd> {
+        &self.keys
+    }
+
+    fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
+        if self.layers.is_empty() {
+            return None;
+        }
+        Some(App::layer_key(self, *key))
+    }
+
+    fn capturing(&self) -> bool {
+        self.shown().is_some_and(|p| p.is_editing())
+    }
+
+    fn interrupt(&mut self) -> Outcome {
+        self.with_page(|p, h, cx| p.on_interrupt(h, cx))
+    }
+
+    fn dirty(&mut self) -> bool {
+        self.connections.form_dirty()
+    }
+
+    fn shell_action(&mut self, action: shell::ShellAction<TpCmd>, _key: &Key) -> Outcome {
+        use shell::ShellAction;
+        match action {
+            ShellAction::Help => {
+                self.open_help();
+                Outcome::Changed
+            }
+            ShellAction::NextPage => self.step_tab(1),
+            ShellAction::PrevPage => self.step_tab(-1),
+            ShellAction::App(cmd) => self.run_cmd(cmd),
+            _ => Outcome::Ignored,
+        }
+    }
+
+    /// The context key opens the focused row's menu (it is not a page
+    /// key: the menu opens on the shell's layer stack).
+    fn chrome_key(&mut self, key: &Key) -> Outcome {
+        let focus = self.shell.focus.current();
+        let menu = match self.screen {
+            Screen::Workbench => self
+                .workbench
+                .as_ref()
+                .and_then(|w| context::on_key(w, &self.context, focus, key)),
+            Screen::Connections => {
+                context::on_key_connections(&self.connections, &self.context, focus, key)
+            }
+        };
+        match menu {
+            Some(menu) => self.open_context(menu),
+            None => Outcome::Ignored,
+        }
+    }
+
+    fn page_key(&mut self, key: &Key) -> Outcome {
+        self.with_page(|p, h, cx| p.on_key(key, h, cx))
+    }
+
+    fn esc_top(&mut self) -> Outcome {
+        self.with_page(|p, h, cx| p.on_esc_top(h, cx))
+    }
+
+    fn request_quit(&mut self) -> Outcome {
+        App::request_quit(self)
+    }
 }
