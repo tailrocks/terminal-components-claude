@@ -14,6 +14,7 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::scroll_view::{Axes, ScrollView};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -37,6 +38,8 @@ use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
 pub const BODY: WidgetId = WidgetId::of("snapshot.body");
+/// The facts' scroll view.
+pub const FACTS: WidgetId = WidgetId::of("snapshot.facts");
 /// The body's context menu.
 pub const MENU: WidgetId = WidgetId::of("snapshot.menu");
 
@@ -62,7 +65,14 @@ pub struct SnapshotPage {
     /// The report shown here was still being written on the last tick.
     report_running: bool,
     body_area: Rect,
+    /// The facts: their natural height, scrolled when the page is too
+    /// short for them above the body (R-apps-6).
+    facts_view: ScrollView,
 }
+
+/// Rows the body panel keeps under the facts (its frame and three lines):
+/// the facts scroll before the body shrinks below it.
+const BODY_MIN: u16 = 5;
 
 fn t(s: &str) -> (String, Tone) {
     (s.to_owned(), Tone::Normal)
@@ -93,6 +103,7 @@ impl SnapshotPage {
             detail_title: "Detail".into(),
             report_running: false,
             body_area: Rect::ZERO,
+            facts_view: ScrollView::new(FACTS).axes(Axes::VERTICAL),
         };
         page.build(w);
         page.detail_title = match kind {
@@ -1385,6 +1396,9 @@ impl ShellPage<Holla> for SnapshotPage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if let Some(r) = self.facts_view.pointer(ev) {
+            return r.outcome();
+        }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             // a sideways notch never scrolls the vertical body
@@ -1466,15 +1480,25 @@ impl ShellPage<Holla> for SnapshotPage {
         if !self.meters.is_empty() {
             y += 1;
         }
+        let follow_h: u16 = if self.buttons.is_empty() { 0 } else { 2 };
+        // the facts at their natural height, scrolled when the body would
+        // keep fewer than its minimum rows under them
+        let room = area.bottom().saturating_sub(y + follow_h);
         let facts_area = Rect::new(
             area.x + 1,
             y,
             area.width.saturating_sub(2),
-            (self.facts.len() as u16 + 2).min(area.height / 2),
+            room.saturating_sub(1 + BODY_MIN).max(1),
         );
-        let used = props::render(facts_area, buf, t, &self.facts, t.canvas);
+        let used = props::render_in(
+            &mut self.facts_view,
+            facts_area,
+            buf,
+            ctx,
+            &self.facts,
+            t.canvas,
+        );
         y += used + 1;
-        let follow_h: u16 = if self.buttons.is_empty() { 0 } else { 2 };
         let body = Rect::new(
             area.x,
             y,

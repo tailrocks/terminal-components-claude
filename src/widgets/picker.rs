@@ -1441,7 +1441,8 @@ mod tests {
     fn keyboard_navigation_pulls_the_cursor_back_into_view() {
         let mut p = picker(30);
         render(&mut p);
-        p.list.wheel(Axis::Vertical, 10).outcome();
+        p.list.wheel(Axis::Vertical, 5).outcome();
+        p.list.wheel(Axis::Vertical, 5).outcome();
         render(&mut p);
         assert_eq!(p.list.scroll.offset, 10);
         let key = Key {

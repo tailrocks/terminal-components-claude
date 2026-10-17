@@ -1261,7 +1261,10 @@ mod tests {
         let area = Rect::new(0, 0, 20, 5);
         let mut buf = Buffer::empty(area);
         render(&mut input, area, &mut buf, ColorLevel::TrueColor);
-        input.wheel(Axis::Vertical, 8).outcome();
+        // a notch moves at most one view (3 rows)
+        for d in [3, 3, 2] {
+            input.wheel(Axis::Vertical, d).outcome();
+        }
         assert!(render(&mut input, area, &mut buf, ColorLevel::TrueColor).is_none());
         assert_eq!(input.scroll.offset, 8);
         input.on_key(&key(KeyCode::Right));

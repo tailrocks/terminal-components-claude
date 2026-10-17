@@ -1029,6 +1029,15 @@ impl Workbench {
     /// A pointer event the router resolved on the workbench: the seams,
     /// the text fields, the explorer, the tab strip and the active tab.
     pub fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx, history: &mut History) -> Outcome {
+        // the fact sheets that scroll on their own (R-apps-6)
+        let facts = match self.tabs.get_mut(self.active) {
+            Some(WorkTab::History(h)) => Some(&mut h.detail_view),
+            Some(WorkTab::Query(q)) => Some(&mut q.result_facts),
+            _ => None,
+        };
+        if let Some(r) = facts.and_then(|v| v.pointer(ev)) {
+            return r.outcome();
+        }
         if ev.wheel().is_some() {
             return self.wheel(ev);
         }
