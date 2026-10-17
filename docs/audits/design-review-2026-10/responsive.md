@@ -67,10 +67,11 @@ drive (hover, `→`, an overflow menu); **c** audit limitation.
 | R-apps-7 | a | Button rows drop the buttons that do not fit. | `widgets/button.rs:262` (`row_layout`): tablepro history "Copy"; holla `activity.rs:924` | `ButtonRow` wraps or moves the rest into a `…` menu. |
 | R-apps-8 | b | Cut cells reveal on hover (or `→`) only; the audit drives neither. Picker has no keyboard reveal (WCAG gap). | `widgets/picker.rs:859`; Tree, Props and List rows (holla finder, jackin manager, launch picker) | Picker registers `RevealState::cell` for `→`; the audit could drive the reveal key. |
 | R-apps-9 | a | **Fixed.** A dialog showed a scrollbar but a wheel over its fields was ignored, and FormDialog scrolled its focused field back into view every frame, undoing the wheel. | `widgets/form_dialog.rs`, `widgets/info_dialog.rs` (jackin account, env and mount forms, cockpit failure); the help overlay's padding beside its bar | `ScrollPane::draw_with_fade` registers the body under its children (`register_scroll_under`); FormDialog follows focus only when it moves. |
-| R-apps-10 | a | Dialog clipped: the anchored code preview leaves the facts 0 rows. | `widgets/dialog.rs:1325-1329` (holla start-plan 72×20) | Shrink the code preview first; keep a minimum facts viewport. |
+| R-apps-10 | a | **Fixed.** Dialog clipped: the anchored code preview (6 lines) left the facts 0 rows. | `widgets/dialog.rs` (holla start-plan 72×20) | The preview shrinks first (`CODE_LINES`, `MIN_FACTS`): the facts keep 2 rows to scroll. |
 | R-apps-11 | b | Tabs past the strip sit behind the `+N` overflow menu. | `widgets/tabs.rs:119` (holla activity) | — (reachable; the audit does not open the menu). |
 | R-apps-12 | c | Audit limits: a 3-row grid at 72×20 the probe cannot sweep in budget; a path wrapped mid-word; a page under a modal that the open step changes. | tablepro result-rows, holla finder-children, jackin cockpit-failure | — |
 | R-apps-13 | a | The too-small screen shows below 72×20 for every app, also where a scroll container could hold the layout. | `widgets/too_small.rs` (72×20) | Lower each app's minimum to its true one once its bodies scroll. |
+| R-apps-14 | a | A Dialog's code preview shows at most 6 lines and summarises the rest as "… N more", reachable at no size; at 72×20 the shrunk preview hides more. | `widgets/dialog.rs` (holla start-plan) | The preview scrolls vertically, or joins the body scroll. |
 
 Also seen, not missing words (the help overlay's dead padding column
 beside its bar is fixed with R-apps-9): tablepro conn-failed at 120×40 draws the
@@ -103,7 +104,7 @@ holds the exact words.
 | holla plan-review | 1 2 4 |  | 2 4 | 2 4 |  |  |
 | holla plan-running | 3 | 3 | 3 | 3 |  |  |
 | holla snapshot | 1 |  |  |  |  |  |
-| holla start-plan | 1 10 |  |  |  |  |  |
+| holla start-plan | 14 |  |  |  |  |  |
 | holla top-files | 1 4 | 1 4 | 4 | 4 |  |  |
 | holla trust | 1 6 | 1 6 |  |  |  |  |
 | holla upgrade-plan | 2 4 |  |  | 2 4 |  |  |
