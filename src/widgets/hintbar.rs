@@ -59,6 +59,24 @@ impl HintLayer {
     }
 }
 
+/// The layer's bar with every hint in full, its badge and its whole
+/// status (its `!` or `▲` mark included): [`keyhint::width`].
+impl crate::ui::measure::Measure for HintLayer {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let status = self.status.as_ref().map(|(text, tone)| match tone {
+            Tone::Error => format!("! {text}"),
+            Tone::Warning => format!("{} {text}", ctx.theme.glyphs.warning),
+            _ => text.clone(),
+        });
+        let w = keyhint::width(&self.hints, self.badge.map(|(b, _)| b), status.as_deref());
+        ratatui::layout::Size::new(w, 1)
+    }
+}
+
 pub struct HintBar;
 
 /// The keys of the hints a footer drew this frame
@@ -227,6 +245,36 @@ impl crate::ui::specimen::Specimen for HintLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A layer drawn at its measured width shows every hint and its whole
+    /// status.
+    #[test]
+    fn measure_shows_the_whole_layer() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let ctx = crate::ui::ctx::RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let layer = HintLayer::new(vec![
+            keyhint::hint("Enter", "Open"),
+            keyhint::hint("Esc", "Back"),
+        ])
+        .status("2 unsaved changes", Tone::Warning)
+        .badge("EDIT", BadgeKind::Edit);
+        let w = layer.measure(ratatui::layout::Size::new(1, 1), &ctx).width;
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 1));
+        HintBar::render(Rect::new(0, 0, w, 1), &mut buf, &t, &layer);
+        let row: String = (0..w).map(|x| buf[(x, 0)].symbol()).collect();
+        for part in ["EDIT", "Enter Open", "Esc Back", "2 unsaved changes"] {
+            assert!(row.contains(part), "{row:?} lacks {part}");
+        }
+    }
     use crate::widgets::keyhint::hint;
 
     /// M1: every hint that names one key is a click target whose click
