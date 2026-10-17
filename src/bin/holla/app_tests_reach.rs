@@ -392,3 +392,15 @@ junie_tui::reach_tests! {
     files_jump = "files-jump",
     activity_menu = "activity-menu",
 }
+
+/// R-apps-6: a short screen keeps the disk page's filesystems (the tree
+/// under them scrolls) instead of dropping them below 22 rows.
+#[test]
+fn a_short_screen_keeps_the_disk_filesystems() {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 72, 20);
+    open_disk(&mut h);
+    h.resize(72, 20);
+    let text = h.text();
+    assert!(text.contains("Filesystems"), "{text}");
+    assert!(text.contains("926"), "{text}");
+}
