@@ -29,7 +29,7 @@ impl Harness {
     fn on(w: u16, h: u16, platform: ClientPlatform) -> Self {
         let mut app = App::new(Theme::junie());
         app.pages[PageId::Selectable.index()] = Box::new(SelectablePage::for_platform(platform));
-        app.goto(PageId::Selectable);
+        app.open_page(PageId::Selectable);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();

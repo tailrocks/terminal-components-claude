@@ -129,11 +129,14 @@ impl Clipboard {
         });
     }
 
-    /// The footer status of `result` for `text`: "Copied 12 characters ·
-    /// text…" (secondary) or why it is not on the system clipboard
-    /// (error).
-    pub fn report(result: &Copied, text: &str) -> (String, Tone) {
+    /// The footer status of `result` for `text`: "Copied `what`" or
+    /// "Copied 12 characters · text…" (secondary), or why it is not on the
+    /// system clipboard (error).
+    pub fn report(result: &Copied, text: &str, what: Option<&str>) -> (String, Tone) {
         match result {
+            Copied::Copied { .. } if let Some(what) = what => {
+                (format!("Copied {what}"), Tone::Secondary)
+            }
             Copied::Copied { chars } => {
                 let shown = truncate(&text.replace('\n', " · "), 40);
                 (
@@ -215,7 +218,7 @@ mod tests {
         assert_eq!(c.copy("héllo"), Copied::Copied { chars: 5 });
         assert_eq!(take_output(), [osc52("héllo")]);
         assert_eq!(clipboard::text().as_deref(), Some("héllo"));
-        let (msg, tone) = Clipboard::report(&Copied::Copied { chars: 5 }, "héllo");
+        let (msg, tone) = Clipboard::report(&Copied::Copied { chars: 5 }, "héllo", None);
         assert_eq!(
             (msg.as_str(), tone),
             ("Copied 5 characters · héllo", Tone::Secondary)
@@ -233,7 +236,11 @@ mod tests {
         );
         assert!(take_output().is_empty());
         assert_eq!(clipboard::text().as_deref(), Some("0123456789"));
-        assert_eq!(Clipboard::report(&r, "").1, Tone::Error);
+        assert_eq!(Clipboard::report(&r, "", Some("Host")).1, Tone::Error);
+        assert_eq!(
+            Clipboard::report(&Copied::Copied { chars: 1 }, "x", Some("Host")).0,
+            "Copied Host"
+        );
         assert_eq!(Clipboard::new().osc52(false).copy("x"), Copied::Unsupported);
         assert!(take_output().is_empty());
 

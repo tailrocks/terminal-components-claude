@@ -22,7 +22,7 @@ struct Harness {
 impl Harness {
     fn new(w: u16, h: u16) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(PageId::CellEditors);
+        app.open_page(PageId::CellEditors);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();

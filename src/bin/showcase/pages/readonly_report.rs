@@ -14,7 +14,7 @@ use ratatui::layout::Rect;
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
 use crate::pages::template::{Section, Template};
-use crate::pages::{Cx, Hint, Page, PageEvent};
+use crate::pages::{Cx, CxExt, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::MouseTarget;
@@ -295,11 +295,10 @@ impl ReadOnlyReportPage {
             COPY => {
                 let text = self.report_text();
                 let lines = text.lines().count();
-                cx.copy(text);
-                cx.status(format!("Copied the report ({lines} lines)"));
+                cx.copy_as(text, format!("the report ({lines} lines)"));
             }
-            NEXT_DISK => cx.status("Next: Disk cleanup for /Volumes/Backup"),
-            NEXT_ACTIVITY => cx.status("Next: Activity on build-07"),
+            NEXT_DISK => cx.open_page(PageId::DiskCleanup),
+            NEXT_ACTIVITY => cx.open_page(PageId::Activity),
             _ => {}
         }
     }
@@ -309,8 +308,7 @@ impl ReadOnlyReportPage {
             && let Some(p) = self.facts.props.get(i)
         {
             if self.opts.on("readonlyreport.copyable") {
-                cx.copy(p.value.clone());
-                cx.status(format!("Copied {}", p.label));
+                cx.copy_as(p.value.clone(), p.label.clone());
             } else {
                 cx.status(format!("{}: {}", p.label, p.value));
             }

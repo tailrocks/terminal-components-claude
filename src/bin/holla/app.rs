@@ -1488,7 +1488,7 @@ impl App {
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(g) => self.go(g),
                 Request::Back => self.go(Go::Pop),
-                Request::Copy(s) => self.copy(s),
+                Request::Copy(s, _) => self.copy(s),
                 // holla pages do not ask for these
                 Request::Close
                 | Request::Top(_)
