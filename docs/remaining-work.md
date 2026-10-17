@@ -137,7 +137,7 @@ never in view at the smallest failing size.
 | R43 | Connections | Playground | 80x24, 100x25 | `5432 Last SSH SSL ago bastion connections hour` |
 | R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 | `Alternatives Data Gate Host Risk Runs State Why` |
 | R45 | DiskCleanup | Playground | done: Page::measure (sections at their natural heights, each master-detail pair at `MasterDetail::panes_width`, so neither collapses and the reclaim card keeps its notice; heights at the pane widths through `MasterDetail::split_rects`; a collapse threshold set above the panes' need still shows the drawer) | — |
-| R46 | Activity | Playground | 80x24, 100x25, 106x29, 120x40 | `184 201 404 412 4821 4822 Command Exit` |
+| R46 | Activity | Playground | done: Page::measure (the log at `TextViewport: Measure`, every line on one row so its char wrap never splits a word; beside the side column when both fit, else over the Steps and Run cards, side by side when both fit; `StepRail: Measure` keeps every label and meta whole) | — |
 | R47 | Workspaces | Playground | 80x24, 100x25, 106x29, 120x40 | `04d7 9b02 Accounts Claude Codex Delete Edit Environments` |
 | R48 | AccountsUsage | Playground | 80x24, 100x25, 106x29, 120x40 | `100 1Password 212 Account Cost Credential Engineering Mon` |
 | R49 | LaunchCockpit | Playground | done: Page::measure (rail at 30 beside the log, the log asking at most 48 columns: it wraps or scrolls itself) | — |
