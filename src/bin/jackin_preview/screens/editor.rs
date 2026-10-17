@@ -2148,7 +2148,7 @@ impl Page<Jackin> for EditorScreen {
                         v.push(if self.name.editing {
                             hint("Enter", "Apply")
                         } else {
-                            hint("Enter", "Edit")
+                            junie_tui::widgets::widget_hints::EDIT
                         });
                     } else if focus == Some(WORKDIR) {
                         v.push(hint("Enter", "Choose…"));

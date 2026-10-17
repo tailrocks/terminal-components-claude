@@ -1260,7 +1260,7 @@ impl Page for SelectablePage {
                     {
                         h.insert(2, (click, "Toggle row"));
                     }
-                    h.push(("Enter", "Edit"));
+                    h.push(junie_tui::widgets::widget_hints::EDIT_PAIR);
                     h.push(("d", "Delete…"));
                     // only when Esc clears it (`selection.esc_clears`)
                     if self.table.esc_clears {
@@ -1277,7 +1277,11 @@ impl Page for SelectablePage {
                 h
             }
             Some(f) if f == self.name.id || f == self.email.id || f == self.notes.id => {
-                vec![("Enter", "Edit"), ("Tab", "Next field"), save]
+                vec![
+                    junie_tui::widgets::widget_hints::EDIT_PAIR,
+                    ("Tab", "Next field"),
+                    save,
+                ]
             }
             Some(f) if f == self.role.id || f == self.status.id || f == self.region.id => {
                 vec![("Enter", "Open"), ("↑↓", "Choose"), save]
