@@ -205,6 +205,12 @@ core::hints::HintCx | widget hints by state (HasHints): the State tab shows each
 core::hints::Binding | a widget's key rows (Bindings): the generated KeyReference lists them | SC33
 core::hints::keymap_bindings | key map rows as Bindings: the generated KeyReference lists them | SC33
 core::hints::nav_hints | navigation hints from a widget's NavKeys (CO3): the State tab shows them under Desktop and Vim | SC33
+core::hints::actions_bindings | a key map's rows named by their actions: the generated KeyReference lists them | SC33
+core::hints::nav_bindings | a widget's navigation rows from its NavKeys: the generated KeyReference lists them | SC33
+widgets::help::HelpSection | a help overlay section from live key maps: the Help & keys page builds one | SC33
+widgets::help::HelpSection::row | a hand row of a help section (mouse gestures): the Help & keys page shows it | SC33
+widgets::help::HelpSection::bindings | key rows of a help section from Bindings: the Help & keys page shows them | SC33
+widgets::help::HelpSection::is_empty | an empty help section is left out: the Help & keys page shows it | SC33
 widgets::picker::Picker::choose_hint | the footer's Enter action of a picker: the Pickers page names it | SC33
 
 # core::pointer

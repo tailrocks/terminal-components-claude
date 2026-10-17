@@ -131,6 +131,16 @@ pub enum ChipCmd {
 }
 
 impl Actions for ChipCmd {
+    fn label(self) -> &'static str {
+        match self {
+            ChipCmd::Remove => "Remove",
+            ChipCmd::Add => "Add",
+            ChipCmd::ClearAll => "Clear all",
+            ChipCmd::ShowHidden => "Show hidden",
+            ChipCmd::Lead => "Switch the match mode",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Delete), ChipCmd::Remove),

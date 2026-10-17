@@ -210,6 +210,15 @@ impl TabCmd {
 }
 
 impl Actions for TabCmd {
+    fn label(self) -> &'static str {
+        match self {
+            TabCmd::Close => "Close tab",
+            TabCmd::New => "New tab",
+            TabCmd::Jump(_) => "Jump to tab",
+            TabCmd::ShowHidden => "Show hidden",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         let mut map: KeyMap<Self> = DEFAULT_CLOSE_KEYS
             .iter()

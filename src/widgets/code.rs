@@ -156,6 +156,18 @@ pub enum CodeCmd {
 }
 
 impl Actions for CodeCmd {
+    fn label(self) -> &'static str {
+        match self {
+            CodeCmd::Edit => "Edit",
+            CodeCmd::Append => "Edit at end",
+            CodeCmd::PrevBlock => "Previous block",
+            CodeCmd::NextBlock => "Next block",
+            CodeCmd::Find => "Find",
+            CodeCmd::NextMatch => "Next match",
+            CodeCmd::PrevMatch => "Previous match",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),

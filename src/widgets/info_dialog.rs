@@ -101,6 +101,13 @@ pub enum InfoCmd {
 }
 
 impl Actions for InfoCmd {
+    fn label(self) -> &'static str {
+        match self {
+            InfoCmd::Close => "Close",
+            InfoCmd::Copy => "Copy",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::char('q'), InfoCmd::Close),

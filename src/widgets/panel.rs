@@ -446,6 +446,14 @@ pub enum PanelCmd {
 }
 
 impl Actions for PanelCmd {
+    fn label(self) -> &'static str {
+        match self {
+            PanelCmd::Follow => "Follow",
+            PanelCmd::Copy => "Copy",
+            PanelCmd::SelectAll => "Select all",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         let mut map = vec![
             (KeyBinding::char('f'), PanelCmd::Follow),

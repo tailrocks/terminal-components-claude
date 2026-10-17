@@ -202,6 +202,58 @@ impl<C> ShellKeys<C> {
         self
     }
 
+    /// The shell's keys as a help section (K23, S8b): every binding of
+    /// [`Self::priority`], [`Self::keys`] and [`Self::fallback`] whose
+    /// action has a label, grouped by action, plus the quit keys of
+    /// [`Self::quit`]. `app` names an app command (`None` leaves it out).
+    /// Undeliverable chords are left out (SI7).
+    pub fn help_section(
+        &self,
+        title: &str,
+        app: impl Fn(C) -> Option<&'static str>,
+    ) -> crate::widgets::help::HelpSection
+    where
+        C: Copy,
+    {
+        use crate::core::hints::Binding;
+        let label = |a: ShellAction<C>| -> Option<&'static str> {
+            Some(match a {
+                ShellAction::Quit => "Quit",
+                ShellAction::Help => "This reference",
+                ShellAction::MenuBar => "Menu bar",
+                ShellAction::NextPage => "Next page",
+                ShellAction::PrevPage => "Previous page",
+                ShellAction::FocusNext => "Next control",
+                ShellAction::FocusPrev => "Previous control",
+                ShellAction::Back => "Back",
+                ShellAction::App(c) => return app(c),
+            })
+        };
+        let mut rows: Vec<Binding> = self
+            .priority
+            .iter()
+            .chain(&self.keys)
+            .chain(&self.fallback)
+            .filter(|(k, _)| k.deliverable())
+            .filter_map(|&(k, a)| label(a).map(|l| Binding::key(k, l)))
+            .collect();
+        let mut quit = vec![];
+        if self.quit.ctrl_q {
+            quit.push(Binding::key(KeyBinding::ctrl('q'), "Quit"));
+        }
+        if let Some(c) = self.quit.letter {
+            quit.push(Binding::key(KeyBinding::char(c), "Quit"));
+        }
+        if self.quit.esc_quits {
+            quit.push(Binding::key(KeyBinding::key(KeyCode::Esc), "Quit"));
+        }
+        if self.quit.ctrl_c {
+            quit.push(Binding::key(KeyBinding::ctrl('c'), "Copy, else quit"));
+        }
+        rows.extend(quit);
+        crate::widgets::help::HelpSection::new(title).bindings(&rows)
+    }
+
     /// See [`Self::dirty_letter_note`].
     pub fn dirty_letter_note(mut self, note: Option<&str>) -> Self {
         self.dirty_letter_note = note.map(Into::into);
