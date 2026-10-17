@@ -774,7 +774,7 @@ impl Page for CellEditorsPage {
         } else {
             vec![
                 ("↑↓←→", "Cell"),
-                ("Enter", "Edit"),
+                junie_tui::widgets::widget_hints::EDIT_PAIR,
                 ("Alt+↓", "Open"),
                 ("click twice", "Edit"),
             ]

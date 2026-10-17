@@ -426,7 +426,10 @@ impl Page for EditablePage {
         if self.table.is_editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next cell")];
         }
-        let mut h = vec![("↑↓←→", "Cell"), ("Enter", "Edit")];
+        let mut h = vec![
+            ("↑↓←→", "Cell"),
+            junie_tui::widgets::widget_hints::EDIT_PAIR,
+        ];
         // the key the table's key map binds now (`editable.keymap`)
         if let Some(k) = hint_key(&self.table.keymap, TableCmd::SortByColumn) {
             h.push((k, "Sort"));

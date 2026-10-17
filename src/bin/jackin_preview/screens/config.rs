@@ -1156,7 +1156,7 @@ impl ConfigTabs {
             }
             (Tab::Mounts, _) => v.push(hint("Enter", "Add mount…")),
             (Tab::Environments, Some(RowKey::Env(..))) => {
-                v.push(hint("Enter", "Edit"));
+                v.push(junie_tui::widgets::widget_hints::EDIT);
                 v.push(hint("m", "Show"));
                 v.push(hint("p", "1Password…"));
                 v.push(hint("s", "Scope…"));

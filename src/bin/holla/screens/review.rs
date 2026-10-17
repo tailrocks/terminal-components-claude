@@ -1288,7 +1288,7 @@ impl ShellPage<Holla> for ArgsPage {
             return junie_tui::widgets::keyhint::EDIT_FIELD.to_vec();
         }
         vec![
-            hint("Enter", "Edit"),
+            junie_tui::widgets::widget_hints::EDIT,
             hint("Tab", "Next"),
             hint("Ctrl+S", "Run task"),
             hint("Esc", "Cancel"),

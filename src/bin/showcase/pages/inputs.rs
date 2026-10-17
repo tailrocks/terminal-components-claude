@@ -491,7 +491,7 @@ impl Page for InputsPage {
                 ("Ctrl+U", "Clear"),
             ]
         } else {
-            vec![("Enter", "Edit")]
+            vec![junie_tui::widgets::widget_hints::EDIT_PAIR]
         }
     }
 

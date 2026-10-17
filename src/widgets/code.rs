@@ -274,7 +274,7 @@ impl CodeEditor {
         } else if self.read_only {
             vec![hint("Tab", "Next")]
         } else {
-            vec![hint("Enter", "Edit"), hint("Tab", "Next")]
+            vec![crate::widgets::widget_hints::EDIT, hint("Tab", "Next")]
         }
     }
 

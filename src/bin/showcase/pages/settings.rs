@@ -307,7 +307,11 @@ impl Page for SettingsPage {
         match focus {
             Some(f) if f == self.tabs.id => vec![("←→", "Switch tab"), ("1–3", "Jump")],
             Some(f) if f == self.members.id => {
-                vec![("↑↓←→", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
+                vec![
+                    ("↑↓←→", "Cell"),
+                    junie_tui::widgets::widget_hints::EDIT_PAIR,
+                    ("s", "Sort"),
+                ]
             }
             Some(f) if f == self.env.id => vec![("Space", "Toggle"), ("a", "All")],
             _ => vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")],

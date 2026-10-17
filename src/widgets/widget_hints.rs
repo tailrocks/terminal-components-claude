@@ -22,7 +22,10 @@ use crate::widgets::tree::TreeView;
 /// `Enter Edit`: the hint of a control whose Enter starts an edit. Every
 /// app takes it from here (or from the widget's [`HasHints`]), never
 /// spells it (K10).
-pub const EDIT: Hint = hint("Enter", "Edit");
+pub const EDIT: Hint = hint(EDIT_PAIR.0, EDIT_PAIR.1);
+
+/// [`EDIT`] as a `(key, action)` pair, for footers that list pairs.
+pub const EDIT_PAIR: (&str, &str) = ("Enter", "Edit");
 
 /// A list: how the cursor moves; a multi-select list's toggle and
 /// select-all keys.

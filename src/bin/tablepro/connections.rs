@@ -1193,7 +1193,7 @@ impl ConnectionsScreen {
                 return junie_tui::widgets::keyhint::EDIT_FIELD.to_vec();
             }
             return vec![
-                hint("Enter", "Edit"),
+                junie_tui::widgets::widget_hints::EDIT,
                 hint("←→", "Basic / Advanced"),
                 hint("Ctrl+S", "Save"),
             ];
