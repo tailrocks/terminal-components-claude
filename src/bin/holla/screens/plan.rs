@@ -16,7 +16,9 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::text::{fit, truncate, width, wrap};
+use junie_tui::widgets::action_row::ActionRow;
 use junie_tui::widgets::button::Button;
+use junie_tui::widgets::button::RowAlign;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
@@ -1015,14 +1017,13 @@ impl ShellPage<Holla> for PlanReviewPage {
         } else {
             Button::primary(CONFIRM, label)
         };
-        let widths = [self.cancel.width(), self.confirm.width()];
-        let rects = junie_tui::widgets::button::row_layout_right(
+        ActionRow::new().align(RowAlign::End).render(
             Rect::new(area.x, buttons_y, area.width.saturating_sub(1), 1),
-            &widths,
-            2,
+            buf,
+            ctx,
+            t.canvas,
+            &mut [&mut self.cancel, &mut self.confirm],
         );
-        self.cancel.render(rects[0], buf, ctx, t.canvas);
-        self.confirm.render(rects[1], buf, ctx, t.canvas);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {

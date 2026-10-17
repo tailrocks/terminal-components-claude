@@ -2,6 +2,7 @@
 //! `render` (draws + registers hit/focus regions) and small `on_*` handlers
 //! returning [`Outcome`](crate::core::event::Outcome).
 
+pub mod action_row;
 pub mod brand;
 pub mod breadcrumb;
 pub mod button;
@@ -11,6 +12,7 @@ pub mod choice_dialog;
 pub mod code;
 mod code_specimen;
 pub mod completion;
+pub mod detail_card;
 pub mod dialog;
 pub mod diff;
 pub mod edit;
