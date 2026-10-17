@@ -2254,3 +2254,15 @@ fn inputs_cmd_cut_and_paste_round_trip_through_the_clipboard_hook() {
         clipboard::clear_hook();
     }
 }
+
+/// A18: the last key reads in the library's key vocabulary
+/// (`KeyBinding::label`), as every hint and help row does: `↑`, `Ctrl+S`,
+/// never a debug name (`Up`) or a lowercase chord (`Ctrl+s`).
+#[test]
+fn the_last_key_is_spelled_by_the_library() {
+    let mut h = Harness::new(120, 40, PageId::Overview);
+    h.key(KeyCode::Up);
+    assert_eq!(h.app.last_key.as_deref(), Some("↑"));
+    h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    assert_eq!(h.app.last_key.as_deref(), Some("Ctrl+S"));
+}
