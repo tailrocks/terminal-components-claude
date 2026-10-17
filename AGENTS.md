@@ -29,6 +29,9 @@ components work; they are not where behaviour lives.
   exact `rev =` of its latest `main`. When `main` moves, bump the pin to the
   newest `main` revision (port, re-run the gate, re-approve on purpose). No
   other snapshot or PTY-capture tool, and never its predecessor `tuisnap`.
+- Developer tools are pinned in `mise.toml` (Rust equal to
+  `rust-toolchain.toml`); install with `mise install` and keep the pins on
+  the latest releases.
 - `CLAUDE.md` must always be a symlink to the corresponding `AGENTS.md` in
   the same directory. Do not write a separate `CLAUDE.md` body; edit
   `AGENTS.md` and both stay identical. This includes `.github/CLAUDE.md`,
@@ -165,6 +168,11 @@ components work; they are not where behaviour lives.
   for long; local-only state is a risk, not a convenience.
 - Before each push: `git fetch` and rebase onto the remote branch, re-run
   the gate, then push. Never force-push shared branches.
+- Concurrent agents serialize pushes with one lock: `mkdir
+  "$(git rev-parse --git-common-dir)/push.lock"` (owner file inside), then
+  fetch, rebase, gate on the exact HEAD, push, and remove the lock directory
+  even on failure. If the lock is held, keep working and retry at the next
+  checkpoint.
 - Upstream PRs (velnor-new, tuiscotti): when the owner sends a link or
   says "check velnor-new" / "check tuiscotti" / "check upstream", follow
   the Upstream PR loop in `docs/upstream/README.md` and answer with one
