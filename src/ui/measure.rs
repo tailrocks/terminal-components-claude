@@ -17,6 +17,18 @@ pub trait Measure {
     /// content when offered `avail`. It may be larger than `avail` on
     /// either axis: the container then scrolls instead of squeezing it.
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size;
+
+    /// The narrowest width the child stays whole at. Default: its natural
+    /// width ([`Measure::measure`]), for content of a set width. A child
+    /// that handles a narrower row itself (a table or a text area that
+    /// scrolls sideways, a strip that collapses what does not fit into a
+    /// revealing `…`, a tab strip with its window and `+N` menu) answers
+    /// less: a container lays it out in the room it has, down to this,
+    /// and lets the child's own overflow do the rest instead of scrolling
+    /// the whole page sideways for it.
+    fn min_width(&self, avail: Size, ctx: &RenderCtx) -> u16 {
+        self.measure(avail, ctx).width
+    }
 }
 
 /// The larger of two sizes on each axis: content laid out at its natural
