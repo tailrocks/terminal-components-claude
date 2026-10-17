@@ -209,7 +209,7 @@ fn the_dialog_close_button_cancels_and_restores_focus() {
     assert_eq!(h.app.shell.hits.hit(x.as_position()), Some(CLOSE));
     // the page under the dialog had focus when gate 2 opened
     let owner = h.app.modals.top().map(|e| e.owner);
-    assert_eq!(owner, Some(h.app.active));
+    assert_eq!(owner, Some(h.app.active()));
     h.click(x.x + 1, x.y);
     assert!(h.app.modals.is_empty(), "× closed it\n{}", h.text());
     assert!(
@@ -350,7 +350,7 @@ fn every_open_layer_hears_focus_changes_not_only_dialogs() {
         app.modals.open(
             Box::new(probe),
             LayerTag::new("probe"),
-            app.active,
+            app.active(),
             &mut app.shell.focus,
         );
     }

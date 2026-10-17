@@ -588,10 +588,10 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
 // ------------------------------------------------------------ F23e performance
 
 fn activity_view(h: &mut H) -> &junie_tui::widgets::viewport::TextViewport {
-    let i = h.app.active;
-    h.app.tabs[i]
-        .stack
-        .last_mut()
+    let i = h.app.active();
+    h.app
+        .router
+        .top_of_mut(i)
         .and_then(|s| s.as_activity())
         .map(|a| a.view())
         .expect("an activity tab")
@@ -684,9 +684,10 @@ fn idle_ticks_rebuild_nothing_on_the_finder_and_the_disk_tree() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Paused, 60, 160, 50);
     h.ticks(3);
     let finder_rebuilds = |h: &mut H| {
-        h.app.tabs[0]
-            .stack
-            .first_mut()
+        h.app
+            .router
+            .pages_mut()
+            .next()
             .and_then(|s| s.as_finder())
             .map(|f| f.rebuilds)
             .unwrap()
@@ -707,10 +708,10 @@ fn idle_ticks_rebuild_nothing_on_the_finder_and_the_disk_tree() {
     h.key(KeyCode::Enter);
     h.ticks(2);
     let disk_rebuilds = |h: &mut H| {
-        let i = h.app.active;
-        h.app.tabs[i]
-            .stack
-            .last_mut()
+        let i = h.app.active();
+        h.app
+            .router
+            .top_of_mut(i)
             .and_then(|s| s.as_disk())
             .map(|d| d.rebuilds)
             .unwrap()
