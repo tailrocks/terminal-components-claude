@@ -7,9 +7,12 @@ Consumer-side status, kept by the Upstream PR loop
 were in one PR, [#11](https://github.com/tailrocks/tuiscotti/pull/11),
 **merged** on 2026-10-16 as `be860d1` (last reviewed head `a0078a2`; the
 reviews are §6 to §9). tuiscotti `main` then moved one CI-only commit
-(#12, velnor-actions 0.1.9) to `3382e57`, which is our pin. Adopted on
+(#12, velnor-actions 0.1.9) to `3382e57`, adopted on
 `design/interaction-polish` on 2026-10-17; every follow-up below is done
-except the legacy-store migration, a separate step.
+except the legacy-store migration, a separate step. `main` then moved two
+more CI-only commits (#13, #14: velnor-actions 0.1.10 and 0.1.12) to
+`a1ea27f`, our pin since 2026-10-17 (no library, API or MIGRATION.md
+change in `3382e57..a1ea27f`).
 
 | Item (§) | PR/issue | State | Last reviewed head | Last review link | Verdict | Our follow-up after merge |
 |---|---|---|---|---|---|---|
@@ -652,7 +655,7 @@ with only the `rev =` pin changed.
 6. Migrate the 5,975 legacy four-file scenarios to single `.ansi`.
 
 Status 2026-10-17: items 1 to 5 are done on `design/interaction-polish`
-(pin `3382e57`, the head of `main` after PR 11 and the CI-only #12; see
-the Tracker). Item 6 is a separate step with its plan in
+(adopted at `3382e57`, the head of `main` after PR 11 and the CI-only #12;
+pin now `a1ea27f`, see the Tracker). Item 6 is a separate step with its plan in
 `docs/visual-testing/tuiscotti-migration.md` ("Legacy four-file
 scenarios").

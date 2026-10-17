@@ -7,7 +7,7 @@
 version = 0
 pending = true
 source_commit = ""
-tuiscotti_rev = "3382e57dd03283001d9d1bc4f1186b424c52797c"
+tuiscotti_rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad"
 harness_sha256 = ""
 approved_by = ""
 date = ""
