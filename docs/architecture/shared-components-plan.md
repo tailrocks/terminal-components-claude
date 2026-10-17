@@ -310,7 +310,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 | S8a | Done, 2026-10-17 | "KeyRouter, ShellKeys and ShellAction with Page::on_interrupt", "priority and idle-only shell keys, KeyRouter::replay", "KeyHost::text_focus apart from capture", "route pastes through KeyRouter (A16)" (library); "showcase: route keys through shell::KeyRouter", "tablepro: …", "holla: … background ticks wait (CO9)", "jackin: … focused menu bar keys (K11)", "sticky Capsule prefix, Esc cancels (K26)" | See "S8a outcome" below. CO1 moved to S8b. |
 | S9 | Done, 2026-10-17 | "SelectGesture, RowSelection::apply and ClickPolicy" (expand), "a double click activates or edits; a right click selects" (table), "RowSelection, ClickPolicy and desktop click modifiers" (list), "ClickPolicy replaces row_click_toggles; a double click connects in tablepro" (tree), "RowSelection marks, click modifiers, double-click edit, right-click rule" (grid), "the tags checklist keeps a RowSelection", "a click selects a fact, a double click activates or copies" (props), "a node's glyph is a hit part; TreeView::row_at; double click selects a word", "a disk row click only moves the cursor; its mark selects" (holla, CO10), "Alt+click on a row chooses its alternative" (A24); two re-approvals (Lists, Trees readouts) | See "S9 outcome" below. |
 | S10 | Not started | — | Unblocked (S4 done). |
-| S8b | Not started | — | Unblocked (S8a done). Carries CO1 (S8a deviation 1). |
+| S8b | Done, 2026-10-17 | "HasHints, HintCx and Bindings; library modals name their own keys", "Footer composes hints, badge and status", "one Enter Edit hint", "the completion list names its own keys", "HelpOverlay::from_keymaps, HelpSection", "generate docs/components" (library); per app "the footer is shell::Footer" and the help commit; re-approvals per app | See "S8b outcome" below. CO1 moved to S16. |
 | S11 | Done, 2026-10-17 | "EditField, Validate and ValidateWhen; table and grid cell editors on it" (expand, cells), "every text control edits through EditField; PointerField once" (TextInput, TextArea, CodeEditor, Picker, Combo, find; contract), "the finder query is the shared text field" (holla, K36), "a double click on an option confirms it" (M39), "ScrollPanel selects like TextViewport; Shift-click and triple click" (M31) | See "S11 outcome" below. |
 | S12 | Not started | — | Unblocked (S3, S4, S5 done). |
 | S13–S22 | Not started | — | Dependencies in the §4 table. |
@@ -680,6 +680,36 @@ Each step's agent updates its row when the step lands: state, commits, and every
 - S13: the standard Edit `ContextSource` runs `EditAction`s through `EditField::apply` (Cut, Copy, Paste, Select All); every text control exposes its `field`.
 - S18: `FormPanel` reads `field.error` / `error()` and `ValidateWhen` per field; D3 decides the form-level timing.
 - S22: `FindState { query: EditField }` for holla's activity/files find and the Files query.
+
+**S8b outcome.** Hints, footer and help come from the library:
+- `core::hints`: `HasHints` (footer hints from a widget's state), `HintCx`, `Bindings`/`Binding` (every key a widget takes, from its live `NavKeys` and key maps), `nav_hints`/`nav_bindings` (only keys the configuration takes: `j k`/`g G` only under vim keys, "Type to jump" where type-ahead is on; CO3), `keymap_bindings`/`actions_bindings` (undeliverable chords left out, SI7/SIg4). `Actions::label` names every widget command.
+- `HasHints` on Picker (`choose_hint`; Esc says Clear while a query is typed), ContextMenu, MenuBar (open), ChoiceDialog, FormDialog (names the focused button), InfoDialog (its copy key from the key map, only when a fact is copyable), HelpOverlay, Dialog, Button (busy: "Working…", K35), Completion (`Completion::NAV`), ListBox, TreeView, Select, Tabs, DataTable, DataGrid (`Enter Edit` only on an editable cell, K25), TextInput, TextArea, CodeEditor (F6 Leave while Tab indents, S11 deviation); the library modals' `Layer::hints` report them (CO4). `widget_hints::EDIT` is the one `Enter Edit` hint (the 19 literals are gone, K10).
+- `shell::Footer`: the one footer composition (topmost context with hints, else fallback; reveal key; `Tab Next`; hints filtered to deliverable keys, never Shift+click/drag; the status at the right edge, an error wins over every hint, SV11). `render` registers the click targets through `Shell::footer_drawn` (CO5). `Footer::pin_dirty` is D2's option, off by default.
+- `HelpOverlay::from_keymaps` with `HelpSection` (rows from `Bindings`, keys of one action merged) and `ShellKeys::help_section` (every bound shell key, the quit keys, app commands by label; K23). HelpOverlay wraps long descriptions under their column, sizes its key column to the widest key, and no longer repeats its keys beside Done (the footer names them).
+- `docs::` and `cargo xtask docs components`: `docs/components/<widget>.md` and the index from each widget's `WidgetDoc`, live `Bindings` and hints by state under Desktop and Vim; `docs_components_fresh` (default run) fails on a stale page (§5).
+- Deleted: the four `draw_footer` functions, jackin `layer_hints`, holla's Picker/ContextMenu footer downcasts, the showcase's HelpOverlay footer special case, tablepro's `KeyReference` help dialog, holla's `TextModal` key reference, the showcase's hand-listed reference, `describe_key` (A18: `KeyBinding::label`).
+
+**S8b behaviour changes** (tests named; each fails on the code before its change):
+1. CO4: the footer names an open library modal's own keys in every app (`the_footer_names_the_open_pickers_keys`, tablepro; `the_form_footer_names_the_focused_button`, jackin); widget snapshots `widget_hints_tests.rs` (`modal_hints_name_their_own_buttons`, `picker_hints_follow_search_and_query`, Desktop and Vim rows per widget).
+2. CO5/SV11: an error status is never cut for the hints (`an_error_status_is_never_cut_for_the_hints`, holla; `an_error_wins_over_every_hint_and_info_leaves_the_way_out_room`, library).
+3. SVg10: holla's and jackin's hint bars are left-aligned like tablepro's and the showcase's (`the_hint_bar_is_left_aligned`, holla); `Theme::centred_hints` stays an option.
+4. K35: a busy button hints "Working…" (`a_busy_button_says_it_is_working_instead_of_naming_enter`).
+5. K23: `?`/F1 open the library HelpOverlay in all four apps, its shell section from the live `ShellKeys` (`the_keyboard_reference_lists_the_live_shell_keys`, tablepro; `question_mark_opens_the_shell_reference`, showcase; `the_help_section_lists_the_live_shell_keys` and `long_descriptions_wrap_under_their_column_and_keys_share_a_row`, library).
+6. A18: the showcase's last key and event log spell keys with `KeyBinding::label` (`the_last_key_is_spelled_by_the_library`).
+7. The "no keyboard-only state" coverage test: `no_footer_hint_is_keyboard_only_on_any_page` (showcase, every page and its first focus stops) and `every_documented_widget_has_a_keyboard_and_a_mouse_path` (generated pages).
+
+**S8b deviations:**
+1. CO1 is not done: the router can learn the focused widget's chords (`Bindings::chords`), but deleting the per-widget `unassigned_chord` guards also needs the page's own chords, because the router would then skip the page for a chord the focused widget does not bind. Pages still handle chords in code (jackin editor and settings Ctrl+S, holla review Ctrl+S, holla finder and files Ctrl/Alt chords, tablepro connections Alt+D, tablepro query Ctrl+Space), so the guards stay until pages declare their keys on key maps (S16, "69 screen list-key arms"). `rg 'unassigned_chord' src/widgets` is still 17.
+2. Page keys in help are still listed by hand (`HelpSection::row`) in tablepro, holla and jackin: the screens handle their keys in code, not key maps. The shell sections are generated. They move with S16.
+3. K10 is partial: widgets and modals derive their hints and the footer composes them, but pages still pick which widget hints to show and `Tab <label>` from the ring is not done (`Tab Next` stays).
+4. The component docs cover the widgets with `Bindings` (ListBox, TreeView, Select, Tabs, DataTable, DataGrid); the mouse rows are written in each `WidgetDoc`, not yet built from `ClickPolicy`/`ScrollPane` defaults (S15 makes `WidgetDoc` a `Component` requirement).
+5. D2 unanswered: `Footer::pin_dirty` exists, off by default; no app turns it on.
+6. Pushed as one series (library, then per-app commits and re-approvals) with one visual run per stage, as S8a did.
+
+**Notes for later steps:**
+- S16: move page keys onto key maps (`Page::bindings`), then CO1: `KeyRouter` asks `unassigned_chord(key, focused ∪ page chords)` once and the 17 per-widget guards go; help's page sections come from the same bindings.
+- S15: `WidgetDoc` as a `Component` requirement; mouse rows from `ClickPolicy`, `ScrollPane` and `ContextSource` defaults.
+- SC33: the State tab shows `HasHints` per widget; the Help & keys page demonstrates `HelpSection` and `from_keymaps` (allowlisted).
 
 ## 5. Per-widget documentation (`docs/components/<widget>.md`)
 
