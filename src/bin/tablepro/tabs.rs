@@ -745,7 +745,7 @@ impl TableTab {
                 let mut h = vec![hint("↑↓←→", "Cell")];
                 // Edit only where Enter edits (keyboard audit #25)
                 if self.grid.cell_editable() {
-                    h.push(hint("Enter", "Edit"));
+                    h.push(junie_tui::widgets::widget_hints::EDIT);
                 }
                 if self.grid.editable
                     && let Some(k) = hint_key(km, GridCmd::DuplicateRow)
@@ -1329,7 +1329,7 @@ impl QueryTab {
             let km = &g.keymap;
             let mut hints = vec![hint("↑↓←→", "Cell")];
             if g.cell_editable() {
-                hints.push(hint("Enter", "Edit"));
+                hints.push(junie_tui::widgets::widget_hints::EDIT);
             }
             if g.editable
                 && let Some(k) = hint_key(km, GridCmd::DuplicateRow)
@@ -1343,7 +1343,7 @@ impl QueryTab {
         }
         match focus {
             Some(f) if f == self.editor.id => vec![
-                hint("Enter", "Edit"),
+                junie_tui::widgets::widget_hints::EDIT,
                 hint("Ctrl+R", "Run"),
                 hint("Alt+R", "Run all"),
                 hint("Ctrl+X", "Explain"),

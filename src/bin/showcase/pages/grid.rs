@@ -953,7 +953,7 @@ impl Page for GridPage {
         let mut h = vec![("↑↓←→", "Cell")];
         // Edit only where Enter edits (keyboard audit #25)
         if self.grid.cell_editable() {
-            h.push(("Enter", "Edit"));
+            h.push(junie_tui::widgets::widget_hints::EDIT_PAIR);
         }
         // the keys the grid's key map binds now (`datagrid.keymap`)
         let key = |cmd| hint_key(&self.grid.keymap, cmd);

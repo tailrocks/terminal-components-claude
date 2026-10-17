@@ -412,7 +412,10 @@ impl Page for FormsPage {
             Some(f) if f == self.submit.id || f == self.reset.id => {
                 vec![("Enter", "Activate"), ("Ctrl+S", "Submit")]
             }
-            _ => vec![("Enter", "Edit"), ("Ctrl+S", "Submit")],
+            _ => vec![
+                junie_tui::widgets::widget_hints::EDIT_PAIR,
+                ("Ctrl+S", "Submit"),
+            ],
         }
     }
 }

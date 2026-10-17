@@ -296,13 +296,13 @@ impl TextInput {
     /// ([`crate::widgets::keyhint::EDIT_FIELD`]) once focus edits, `Enter
     /// Edit` while an [`EditEntry::Explicit`] field waits.
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
-        use crate::widgets::keyhint::{EDIT_FIELD, hint};
+        use crate::widgets::keyhint::EDIT_FIELD;
         if self.disabled {
             Vec::new()
         } else if self.wants_text_input() {
             EDIT_FIELD.to_vec()
         } else {
-            vec![hint("Enter", "Edit")]
+            vec![crate::widgets::widget_hints::EDIT]
         }
     }
     /// See [`Self::pointer_select`].
