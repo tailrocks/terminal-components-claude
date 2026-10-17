@@ -76,7 +76,7 @@ fn master_detail_seam_drags_and_the_chords_resize_it() {
 fn master_detail_narrow_shows_the_list_with_a_summary_and_tab_opens_the_drawer() {
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
     h.opt("masterdetail.width=72");
-    let text = h.text();
+    let text = h.page_text();
     assert!(text.contains("→ orders · 12,408 rows"), "{text}");
     assert!(h.find("╭─ orders").is_none(), "no detail pane: {text}");
     h.focus(LIST);
@@ -103,6 +103,9 @@ fn master_detail_show_details_toggles_the_drawer() {
 #[test]
 fn master_detail_options_drive_the_layout() {
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
+    // a set demo width: filling, the demo takes the width both panes
+    // need, which leaves a share or a master size nothing to move
+    h.opt("masterdetail.width=100");
     // a fixed share: the chords do not move it and are not hinted
     h.opt("masterdetail.size=share");
     let w = tables_width(&h);
@@ -127,7 +130,8 @@ fn master_detail_options_drive_the_layout() {
     h.opt("masterdetail.esc_returns=off");
     h.focus(DETAIL);
     h.key(KeyCode::Esc);
-    assert!(h.find("╭─ orders").is_some(), "{}", h.text());
+    let text = h.page_text();
+    assert!(text.contains("╭─ orders"), "{text}");
 }
 
 #[test]
@@ -143,8 +147,18 @@ fn master_detail_states_grid_lists_its_rows() {
 
 #[test]
 fn master_detail_reads_at_80x24() {
+    // filling, the demo keeps both panes side by side and the page
+    // scrolls sideways to the detail
     let h = Harness::new(80, 24, PageId::MasterDetail);
     let text = h.text();
+    assert!(
+        text.contains("╭─ Tables") && text.contains("╭─ orders"),
+        "{text}"
+    );
+    // at the 72-column demo width it collapses to the list and its summary
+    let mut h = Harness::new(80, 24, PageId::MasterDetail);
+    h.opt("masterdetail.width=72");
+    let text = h.page_text();
     assert!(
         text.contains("Tables") && text.contains("→ orders"),
         "{text}"

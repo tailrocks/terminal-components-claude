@@ -51,6 +51,39 @@ impl Harness {
         self.term.draw(|f| self.app.render(f)).unwrap();
     }
 
+    /// The screen at every scroll position of the page's section body (a
+    /// window per view on each axis, overlapping by half, and the end of
+    /// each), joined: what scrolling the page brings into view. The page
+    /// is left scrolled back where it was.
+    pub fn page_text(&mut self) -> String {
+        fn view(h: &mut Harness) -> &mut junie_tui::ui::scroll_view::ScrollView {
+            let p = h.app.page();
+            &mut h.app.pages[p.index()]
+                .template_mut()
+                .expect("templated page")
+                .view
+        }
+        let start = view(self).offset();
+        let l = view(self).last_layout();
+        let steps = |content: u16, port: u16| -> Vec<usize> {
+            let max = content.saturating_sub(port) as usize;
+            let mut v: Vec<usize> = (0..=max).step_by((port / 2).max(1) as usize).collect();
+            v.push(max);
+            v
+        };
+        let mut out = vec![];
+        for y in steps(l.content.height, l.viewport.height) {
+            for x in steps(l.content.width, l.viewport.width) {
+                view(self).scroll_to(x, y);
+                self.draw();
+                out.push(self.text());
+            }
+        }
+        view(self).scroll_to(start.0, start.1);
+        self.draw();
+        out.join("\n")
+    }
+
     pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) {
         self.app.handle(Input::Key(Key { code, mods }));
         self.draw();
