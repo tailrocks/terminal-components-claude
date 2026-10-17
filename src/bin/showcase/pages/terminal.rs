@@ -5,7 +5,7 @@
 //! grid shows both. Options: `crate::options::TERMINAL`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -20,6 +20,8 @@ use junie_tui::core::scroll::{HScroll, TrackClick};
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
+use junie_tui::ui::measure::Measure;
+use junie_tui::ui::reveal;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::panel::Panel;
@@ -41,6 +43,12 @@ const STAGES: [&str; 7] = [
 ];
 
 const DURATIONS: [u32; 7] = [10, 26, 40, 8, 18, 14, 1];
+
+/// The step rail card's inner rows: the stages, the work line two rows
+/// under them, the copied line and the buttons.
+const RAIL_INNER_H: u16 = STAGES.len() as u16 + 6;
+/// The viewport's narrowest text column: it wraps or scrolls the rest.
+const VIEW_MIN_W: u16 = 24;
 
 pub struct TerminalPage {
     template: Template,
@@ -332,11 +340,10 @@ fn states_grid() -> StateGrid {
 }
 
 impl TerminalPage {
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        self.container = area;
-        let (left, right) = self.split.horizontal(area, 2);
-        let handle = self.split.handle(SplitDir::Horizontal, area, 2);
+    /// The viewport card's meta: the selection, the line count while it
+    /// follows, or how far back it is; and the retention once it drops
+    /// lines.
+    fn viewport_meta(&self) -> String {
         let depth = self.term.scrollback_depth();
         let meta = if self.term.has_selection() {
             "selection · y copies".to_owned()
@@ -346,10 +353,33 @@ impl TerminalPage {
             format!("scrollback ↑{depth}")
         };
         // retention: the oldest lines leave past the limit
-        let meta = match self.term.retention() {
+        match self.term.retention() {
             Some(n) if self.term.len() >= n => format!("{meta} · last {n} kept"),
             _ => meta,
-        };
+        }
+    }
+
+    /// The step rail card's meta: steps finished of all, and whether the
+    /// job runs or failed.
+    fn rail_meta(&self) -> String {
+        let (done, skipped, failed) = self.rail.counts();
+        let total = STAGES.len();
+        let done = done + skipped;
+        if failed > 0 {
+            format!("{done} of {total} · failed")
+        } else if self.running {
+            format!("{done} of {total} · running")
+        } else {
+            format!("{done} of {total}")
+        }
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        self.container = area;
+        let (left, right) = self.split.horizontal(area, 2);
+        let handle = self.split.handle(SplitDir::Horizontal, area, 2);
+        let meta = self.viewport_meta();
         let panel = Panel::framed(Some("Viewport"))
             .meta(&meta)
             .focused(ctx.interaction.focused(self.term.id));
@@ -363,16 +393,7 @@ impl TerminalPage {
             t.canvas,
         );
 
-        let (done, skipped, failed) = self.rail.counts();
-        let total = STAGES.len();
-        let done = done + skipped;
-        let meta = if failed > 0 {
-            format!("{done} of {total} · failed")
-        } else if self.running {
-            format!("{done} of {total} · running")
-        } else {
-            format!("{done} of {total}")
-        };
+        let meta = self.rail_meta();
         let panel = Panel::card(Some("Step rail"))
             .meta(&meta)
             .focused(ctx.interaction.focused(self.rail.id));
@@ -396,27 +417,19 @@ impl TerminalPage {
         let work = self.term.work_counters();
         let y = inner.bottom().saturating_sub(5);
         if y > rail_area.y + STAGES.len() as u16 {
-            buf.set_string(
-                inner.x,
-                y,
-                junie_tui::ui::text::truncate(
-                    &format!(
-                        "viewport work: {} lines segmented · {} reflowed",
-                        work.segmented_lines, work.reflowed_lines
-                    ),
-                    inner.width as usize,
-                ),
-                t.faint().bg(bg),
+            // a line cut on a narrow pane reveals itself on hover
+            let full = format!(
+                "viewport work: {} lines segmented · {} reflowed",
+                work.segmented_lines, work.reflowed_lines
             );
+            let row = Rect::new(inner.x, y, inner.width, 1);
+            buf.set_string(inner.x, y, reveal::cut(row, &full), t.faint().bg(bg));
         }
         if let Some(c) = &self.copied {
             let y = inner.bottom().saturating_sub(3);
-            buf.set_string(
-                inner.x,
-                y,
-                junie_tui::ui::text::truncate(&format!("copied: {c}"), inner.width as usize),
-                t.muted().bg(bg),
-            );
+            let row = Rect::new(inner.x, y, inner.width, 1);
+            let full = format!("copied: {c}");
+            buf.set_string(inner.x, y, reveal::cut(row, &full), t.muted().bg(bg));
         }
     }
 }
@@ -467,6 +480,25 @@ impl Page for TerminalPage {
     }
     fn blurb(&self) -> &'static str {
         "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job"
+    }
+
+    /// The step rail card at its min width ([`StepRail`]'s
+    /// `Measure::min_width`: every stage's state or duration whole, a
+    /// label cut with `…` reveals itself), its meta whole, the two
+    /// buttons on one row and the work line under the stages, beside the
+    /// viewport at [`VIEW_MIN_W`] under its title; split at the starting
+    /// ratio (`Split::natural_extent`: a seam drag never resizes the
+    /// page). The viewport wraps or scrolls its own lines; its meta and
+    /// the work line shorten and reveal on hover.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let rail = self.rail.min_width(avail, ctx);
+        let buttons = self.run.width() + 2 + self.fail.width();
+        let right = Panel::card(Some("Step rail"))
+            .meta(&self.rail_meta())
+            .outer(Size::new(rail.max(buttons), RAIL_INNER_H));
+        let left = Panel::framed(Some("Viewport")).outer(Size::new(VIEW_MIN_W, 0));
+        let width = self.split.natural_extent(left.width, right.width, 2);
+        Size::new(avail.width.max(width), avail.height.max(right.height))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

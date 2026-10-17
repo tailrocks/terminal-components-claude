@@ -777,7 +777,7 @@
 80x24 TrueColor Diff 1b2e45f44dbd3cdf
 80x24 TrueColor Diff · Options 5f19925fc2035308
 80x24 TrueColor Diff · States aba20c308eb17e8d
-80x24 TrueColor Terminal 967b837b0bc0e03d
+80x24 TrueColor Terminal 2df892507495bd3a
 80x24 TrueColor Terminal · Options f920497f4e96f607
 80x24 TrueColor Terminal · States c9373cd99f1ac340
 80x24 TrueColor Text utilities 3d4199e7b1452693
@@ -941,7 +941,7 @@
 80x24 Ansi256 Diff 0c32696330218e3d
 80x24 Ansi256 Diff · Options c792d7e1f506f6f0
 80x24 Ansi256 Diff · States 46f299d6689c99c9
-80x24 Ansi256 Terminal 5bd24a211a2304b1
+80x24 Ansi256 Terminal dbe8722cac20f0d5
 80x24 Ansi256 Terminal · Options 0690f9e8a8599f4b
 80x24 Ansi256 Terminal · States a8b8e8eb80548e96
 80x24 Ansi256 Text utilities b972742b9e2cdec3
@@ -1105,7 +1105,7 @@
 80x24 Ansi16 Diff 9f20739165ada7b0
 80x24 Ansi16 Diff · Options 9342f2a12f8e7130
 80x24 Ansi16 Diff · States 2dd5b0ba38fc7069
-80x24 Ansi16 Terminal d483093f1062bb7e
+80x24 Ansi16 Terminal d5feaa37d4845946
 80x24 Ansi16 Terminal · Options e7b32f103bb97345
 80x24 Ansi16 Terminal · States a07ae80ee60b56ae
 80x24 Ansi16 Text utilities c3e1fce9eec4d999
@@ -1269,7 +1269,7 @@
 80x24 Mono Diff 6a73e01309dc515d
 80x24 Mono Diff · Options ccababcdc6268efa
 80x24 Mono Diff · States bb3747f5ac8afbdf
-80x24 Mono Terminal 67cf238d2fecb850
+80x24 Mono Terminal 1052c120002b2c88
 80x24 Mono Terminal · Options f8734edfd051dedf
 80x24 Mono Terminal · States 85cf944b132864a2
 80x24 Mono Text utilities b8096db02a772970
@@ -1433,7 +1433,7 @@
 72x20 TrueColor Diff 02582c1fc49d604d
 72x20 TrueColor Diff · Options 0dc4b088bf707844
 72x20 TrueColor Diff · States e16d3f400716a521
-72x20 TrueColor Terminal 1dc0f26e503387c0
+72x20 TrueColor Terminal 52c254e03449cbca
 72x20 TrueColor Terminal · Options 676cb255f23e0e78
 72x20 TrueColor Terminal · States 5cb75f527004da2a
 72x20 TrueColor Text utilities 423ab7c73503b8e6
@@ -1597,7 +1597,7 @@
 72x20 Ansi256 Diff 5f57bfc93086dca4
 72x20 Ansi256 Diff · Options 2e11838aa31cdb7c
 72x20 Ansi256 Diff · States 21833a15d13dc277
-72x20 Ansi256 Terminal 304651f3edf139c7
+72x20 Ansi256 Terminal 8562a14f269922ed
 72x20 Ansi256 Terminal · Options 117bf3ad6ecbe351
 72x20 Ansi256 Terminal · States 8a5810a6a318f931
 72x20 Ansi256 Text utilities 8155bc84b812c3b3
@@ -1761,7 +1761,7 @@
 72x20 Ansi16 Diff cf081a453a6bf2ad
 72x20 Ansi16 Diff · Options 1a9d05e1a487d614
 72x20 Ansi16 Diff · States 83531f61d557e029
-72x20 Ansi16 Terminal ffd37820d2dac59b
+72x20 Ansi16 Terminal 9fb22851b172102c
 72x20 Ansi16 Terminal · Options 6feda4878a8bb6a3
 72x20 Ansi16 Terminal · States 6c41deafb65cd442
 72x20 Ansi16 Text utilities 54cdcc899971abd1
@@ -1925,7 +1925,7 @@
 72x20 Mono Diff 79267a8c104674f0
 72x20 Mono Diff · Options 2583e42a84b68a7e
 72x20 Mono Diff · States 35a6905af48b5319
-72x20 Mono Terminal 891b25247500c399
+72x20 Mono Terminal 8afb1675f259a922
 72x20 Mono Terminal · Options b8c2edf0df84c2a9
 72x20 Mono Terminal · States c33a09f9ceba81fa
 72x20 Mono Text utilities 18d949bfaddb690c
@@ -2089,7 +2089,7 @@
 100x30 TrueColor Diff 9a12da0db18ed8dc
 100x30 TrueColor Diff · Options 8178c31972858f68
 100x30 TrueColor Diff · States ec350076aa5377f6
-100x30 TrueColor Terminal 18dbd9f810801713
+100x30 TrueColor Terminal 5807ab48c297cccd
 100x30 TrueColor Terminal · Options 7e3f53b8c2395921
 100x30 TrueColor Terminal · States 1691f2216aca9df2
 100x30 TrueColor Text utilities 420cb7c79a6f6d07
@@ -2253,7 +2253,7 @@
 100x30 Ansi256 Diff 346fbc9693fc401a
 100x30 Ansi256 Diff · Options c8dc3cce673568b4
 100x30 Ansi256 Diff · States c26864a18f4b3bb9
-100x30 Ansi256 Terminal e817724ac504acbe
+100x30 Ansi256 Terminal ad17b73f690314e0
 100x30 Ansi256 Terminal · Options 30ad20f639516912
 100x30 Ansi256 Terminal · States fd7b136bd831e56c
 100x30 Ansi256 Text utilities 7024c4f82a52a56d
@@ -2417,7 +2417,7 @@
 100x30 Ansi16 Diff d39249796be6744a
 100x30 Ansi16 Diff · Options a44e4735ecf086f8
 100x30 Ansi16 Diff · States e6d73839f334e88c
-100x30 Ansi16 Terminal dd2db9bccb5de0b3
+100x30 Ansi16 Terminal 011e0350ea9633d7
 100x30 Ansi16 Terminal · Options d815981058a433a1
 100x30 Ansi16 Terminal · States 2fbade6c3176b7f9
 100x30 Ansi16 Text utilities 4f736a849d6cb50b
@@ -2581,7 +2581,7 @@
 100x30 Mono Diff bfadf0ca3c2eb71c
 100x30 Mono Diff · Options 27625f53363c7ff9
 100x30 Mono Diff · States 97227b772dbc8395
-100x30 Mono Terminal 65ee86448fe6680a
+100x30 Mono Terminal 0cf8e011a018bd7e
 100x30 Mono Terminal · Options 131f25d9965438d6
 100x30 Mono Terminal · States 2a6d798d7930ba2a
 100x30 Mono Text utilities dc189bdd8106ec13

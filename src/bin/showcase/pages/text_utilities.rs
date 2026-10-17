@@ -12,7 +12,7 @@
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::page_options;
@@ -34,6 +34,12 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop, PropsAction, PropsCmd, PropsList, Sheet};
 
 const ID: WidgetId = WidgetId::of("textutilities");
+/// The PropsList card's rows (the list scrolls the rest) and the text
+/// buffer card's.
+const LIST_H: u16 = 13;
+const BUFFER_H: u16 = 8;
+/// The narrowest Playground that keeps its two columns side by side.
+const MIN_W: u16 = 56;
 const LIST: WidgetId = WidgetId::of("textutilities.props");
 
 /// The sample every cutting helper works on.
@@ -265,9 +271,37 @@ impl TextUtilitiesPage {
         self.opt("textutilities.width").parse().unwrap_or(20)
     }
 
+    /// The helpers column and the list column of `area`.
+    fn columns(area: Rect) -> (Rect, Rect) {
+        crate::pages::layout::columns(area, 64.min(area.width * 11 / 20), 2)
+    }
+
+    /// The helpers card's and the wrapping card's heights in a column
+    /// `width` wide: every helper row and every wrapped line.
+    fn left_heights(&self, width: u16) -> (u16, u16) {
+        let w = self.width();
+        let inner_w = width.saturating_sub(4);
+        let helpers = props::measure_with(&self.helpers(w), inner_w, self.sheet()) + 3;
+        let ww = (w + 16).min(inner_w as usize);
+        let lines = text::wrap_with(PROSE, ww, self.wrap_opts()).len() as u16;
+        (helpers, lines + 3)
+    }
+
+    /// The list's readout and its last action, wrapped to `width`.
+    fn readout(&self, width: u16) -> Vec<String> {
+        let last = format!(
+            "last PropsAction: {}   (Activate(row) on Enter or a click · Copy(row) on the copy key)",
+            self.last
+        );
+        [self.list_readout(), last]
+            .iter()
+            .flat_map(|l| text::wrap(l, width as usize))
+            .collect()
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let (left, right) = crate::pages::layout::columns(area, 64.min(area.width * 11 / 20), 2);
+        let (left, right) = Self::columns(area);
         let w = self.width();
 
         // the helpers, as a property sheet
@@ -277,7 +311,7 @@ impl TextUtilitiesPage {
         let bg = panel.bg(t);
         let sheet = self.sheet();
         let inner_w = left.width.saturating_sub(4);
-        let h = props::measure_with(&helpers, inner_w, sheet) + 3;
+        let (h, _) = self.left_heights(left.width);
         let card = Rect::new(left.x, left.y, left.width, h.min(left.height));
         let inner = panel.render(card, buf, t);
         props::render_with(inner, buf, t, &helpers, bg, sheet);
@@ -316,22 +350,14 @@ impl TextUtilitiesPage {
             .meta("Enter activates · y copies")
             .focused(ctx.interaction.focused(LIST));
         let bg = panel.bg(t);
-        let h = 13.min(right.height);
+        let h = LIST_H.min(right.height);
         let inner = panel.render(Rect::new(right.x, y, right.width, h), buf, t);
         self.list.render(inner, buf, ctx, bg);
         y += h;
-        let last = format!(
-            "last PropsAction: {}   (Activate(row) on Enter or a click · Copy(row) on the copy key)",
-            self.last
-        );
-        for line in [self.list_readout(), last] {
+        // the readout wraps to the column
+        for line in self.readout(right.width) {
             if y < right.bottom() {
-                buf.set_string(
-                    right.x,
-                    y,
-                    text::truncate(&line, right.width as usize),
-                    t.faint().bg(t.canvas),
-                );
+                buf.set_string(right.x, y, &line, t.faint().bg(t.canvas));
             }
             y += 1;
         }
@@ -344,7 +370,7 @@ impl TextUtilitiesPage {
             let pos = b.cursor_pos();
             let panel = Panel::card(Some("TextBuffer · the model under every text control"));
             let bg = panel.bg(t);
-            let inner = panel.render(Rect::new(right.x, y, right.width, 8), buf, t);
+            let inner = panel.render(Rect::new(right.x, y, right.width, BUFFER_H), buf, t);
             let list = [
                 Prop::new("text", b.text().replace('\n', " ⏎ ")),
                 Prop::new(
@@ -388,6 +414,18 @@ impl Page for TextUtilitiesPage {
 
     fn blurb(&self) -> &'static str {
         "Text helpers (truncation, wrapping, widths), property sheets and PropsList"
+    }
+
+    /// The room it gets, never narrower than [`MIN_W`] (the two columns
+    /// side by side) and as tall as the taller column: the helpers card
+    /// with every row and the wrapping card with every line; the list
+    /// card, its readout wrapped to the column and the text buffer card.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let width = avail.width.max(MIN_W);
+        let (left, right) = Self::columns(Rect::new(0, 0, width, 1));
+        let (helpers, wrap) = self.left_heights(left.width);
+        let list = LIST_H + self.readout(right.width).len() as u16 + 1 + BUFFER_H;
+        Size::new(width, avail.height.max((helpers + 1 + wrap).max(list)))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

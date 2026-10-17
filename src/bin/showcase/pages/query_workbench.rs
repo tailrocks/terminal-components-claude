@@ -14,7 +14,7 @@
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -28,6 +28,7 @@ use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::{EnvKind, Glyphs, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Maximized, Split, SplitDir, StackChild};
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -52,6 +53,9 @@ const WORK_MIN: u16 = 15;
 /// Below this many rows the work area drops its toolbar (Ctrl+R still
 /// runs), so the editor and the results both stay in view.
 const TOOLBAR_MIN: u16 = 20;
+/// The main pane's narrowest: the editor and the results scroll sideways
+/// past it.
+const MAIN_MIN: u16 = 40;
 
 /// The `public` schema's tables, with their row counts.
 const TABLES: &[(&str, &str)] = &[
@@ -1089,6 +1093,26 @@ impl Page for QueryWorkbenchPage {
     }
     fn blurb(&self) -> &'static str {
         "Explorer, query tabs, editor over results, status line"
+    }
+
+    /// The room it gets, never shorter than the work area with its
+    /// toolbar ([`TOOLBAR_MIN`] rows) and the status line, and never
+    /// narrower than the explorer with every table and its size whole
+    /// (`TreeView: Measure`) beside the main pane with the toolbar on one
+    /// row, split at the starting ratio (`Split::natural_extent`: a seam
+    /// drag never resizes the page). The editor and the results scroll
+    /// their own rows and columns.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let tree = self.explorer.measure(avail, ctx).width;
+        let explorer = Panel::card(Some("Explorer"))
+            .meta("public")
+            .outer(Size::new(tree, 0))
+            .width;
+        let main = self.toolbar.width().max(MAIN_MIN);
+        let width = self.outer.natural_extent(explorer, main, 1);
+        // the work area, a gap and the status line
+        let height = TOOLBAR_MIN + 2;
+        Size::new(avail.width.max(width), avail.height.max(height))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
