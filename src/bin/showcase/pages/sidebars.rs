@@ -1,382 +1,86 @@
+//! Sidebars: the library `NavList` (sections, the current item, the
+//! focus cursor, hover, a collapsed icon mode) in a sidebar whose frame
+//! carries the `SidebarRail` collapse button; hidden, the sidebar leaves
+//! the rail, and a click on it (or Ctrl+B) brings it back.
+
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
 
 use crate::pages::{Cx, Hint, Page, PageEvent};
-use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::hit::Axis;
-use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
+use junie_tui::core::event::Outcome;
+use junie_tui::core::id::{Part, WidgetId};
 use junie_tui::core::intent::Phase;
-use junie_tui::core::pointer::{MouseTarget, PointerEvent};
-use junie_tui::core::scroll::ScrollState;
-use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::core::keymap::NavKeys;
+use junie_tui::core::pointer::MouseTarget;
+use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::button::Button;
+use junie_tui::widgets::nav_list::{NavAction, NavItem, NavList};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::scrollbar;
+use junie_tui::widgets::rail::{RailAction, SidebarRail};
 
 const ID: WidgetId = WidgetId::of("sidebars");
 
-#[derive(Debug, Clone)]
-pub struct NavItem {
-    pub label: &'static str,
-    pub icon: &'static str,
-    pub section: &'static str,
-    pub badge: Option<&'static str>,
-    pub disabled: bool,
-}
-
-/// Standalone navigation list with sections, a current item, a keyboard
-/// cursor and a collapsed (icon-only) mode.
-#[derive(Debug, Clone)]
-pub struct NavList {
-    pub id: WidgetId,
-    pub items: Vec<NavItem>,
-    pub current: usize,
-    pub cursor: usize,
-    pub collapsed: bool,
-    /// Scroll over the flattened rows (section headings and items).
-    pub scroll: ScrollState,
-    area: Rect,
-    track: Rect,
-}
-
-/// One drawn row of the list.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum NavRow {
-    Section(usize),
-    Blank,
-    Item(usize),
-}
-
-impl NavList {
-    pub fn item_id(&self, i: usize) -> WidgetId {
-        self.id.part(Self::item_part(i))
-    }
-
-    fn item_part(i: usize) -> PartRef {
-        PartRef::item(Part::ROW, ItemKey::index(i))
-    }
-
-    pub fn width(&self) -> u16 {
-        if self.collapsed { 6 } else { 24 }
-    }
-
-    /// The rows in drawing order: a heading before every section, a blank
-    /// row between sections.
-    fn rows(&self) -> Vec<NavRow> {
-        let mut rows = vec![];
-        let mut section = "";
-        for (i, it) in self.items.iter().enumerate() {
-            if it.section != section {
-                if !rows.is_empty() {
-                    rows.push(NavRow::Blank);
-                }
-                rows.push(NavRow::Section(i));
-                section = it.section;
-            }
-            rows.push(NavRow::Item(i));
-        }
-        rows
-    }
-
-    fn row_of(&self, item: usize) -> usize {
-        self.rows()
-            .iter()
-            .position(|r| *r == NavRow::Item(item))
-            .unwrap_or(0)
-    }
-
-    /// Keep the cursor's row in view with the smallest scroll.
-    fn reveal_cursor(&mut self) {
-        let row = self.row_of(self.cursor);
-        self.scroll.set_content(self.rows().len());
-        self.scroll.ensure_visible(row);
-    }
-
-    fn scrolled(moved: bool) -> Outcome {
-        if moved {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    /// A pointer event on the list, its rows or its scrollbar; `None` when
-    /// the event is not the list's.
-    pub fn pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
-        let bar = scrollbar::id_for(self.id);
-        if !ev.on(self.id) && ev.id != bar {
-            return None;
-        }
-        if let Some((axis, delta)) = ev.wheel() {
-            return Some(match axis {
-                Axis::Vertical => Self::scrolled(self.scroll.scroll_by(delta as isize)),
-                Axis::Horizontal => Outcome::Ignored,
-            });
-        }
-        if ev.id == bar {
-            return Some(match ev.phase() {
-                Some(Phase::Click) => {
-                    Self::scrolled(scrollbar::press(self.track, ev.pos(), &mut self.scroll))
-                }
-                Some(Phase::Drag) => {
-                    Self::scrolled(scrollbar::drag(self.track, ev.pos(), &mut self.scroll))
-                }
-                _ => Outcome::Ignored,
-            });
-        }
-        match ev.index_of(Part::ROW) {
-            Some(i) if ev.is(Phase::Click) && i < self.items.len() => Some(self.on_click(i)),
-            _ => Some(Outcome::Ignored),
-        }
-    }
-
-    pub fn on_key(&mut self, key: &Key) -> Outcome {
-        match key.code {
-            KeyCode::Up | KeyCode::Char('k') => {
-                let mut c = self.cursor;
-                while c > 0 {
-                    c -= 1;
-                    if !self.items[c].disabled {
-                        self.cursor = c;
-                        break;
-                    }
-                }
-                self.reveal_cursor();
-                Outcome::Changed
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                let mut c = self.cursor;
-                while c + 1 < self.items.len() {
-                    c += 1;
-                    if !self.items[c].disabled {
-                        self.cursor = c;
-                        break;
-                    }
-                }
-                self.reveal_cursor();
-                Outcome::Changed
-            }
-            KeyCode::Home | KeyCode::Char('g') => {
-                if let Some(c) = self.items.iter().position(|i| !i.disabled) {
-                    self.cursor = c;
-                }
-                self.reveal_cursor();
-                Outcome::Changed
-            }
-            KeyCode::End | KeyCode::Char('G') => {
-                if let Some(c) = self.items.iter().rposition(|i| !i.disabled) {
-                    self.cursor = c;
-                }
-                self.reveal_cursor();
-                Outcome::Changed
-            }
-            KeyCode::Enter | KeyCode::Char(' ') => {
-                if !self.items[self.cursor].disabled {
-                    self.current = self.cursor;
-                }
-                Outcome::Changed
-            }
-            _ => Outcome::Ignored,
-        }
-    }
-
-    pub fn on_click(&mut self, i: usize) -> Outcome {
-        if i < self.items.len() && !self.items[i].disabled {
-            self.cursor = i;
-            self.current = i;
-            self.reveal_cursor();
-        }
-        Outcome::Changed
-    }
-
-    pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
-        let t = ctx.theme;
-        let focused = ctx.interaction.focused(self.id);
-        self.area = area;
-        let rows = self.rows();
-        self.scroll.set_content(rows.len());
-        self.scroll.set_viewport(area.height as usize);
-        let has_sb = self.scroll.overflows();
-        // the last column is the divider, and the scrollbar on overflow
-        let row_w = area.width.saturating_sub(1);
-        let mut cursor_y = None;
-        for (k, ri) in self.scroll.visible_range().enumerate() {
-            let y = area.y + k as u16;
-            match rows[ri] {
-                NavRow::Blank => {}
-                NavRow::Section(i) => {
-                    if self.collapsed {
-                        buf.set_string(area.x + 1, y, "····", t.faint().bg(bg));
-                    } else {
-                        buf.set_string(area.x + 3, y, self.items[i].section, t.faint().bg(bg));
-                    }
-                }
-                NavRow::Item(i) => {
-                    let it = &self.items[i];
-                    let row = Rect::new(area.x, y, row_w, 1);
-                    let rid = self.item_id(i);
-                    let mut s = ctx.state(rid);
-                    s.focused = focused && i == self.cursor;
-                    s.disabled = it.disabled;
-                    if it.disabled {
-                        s.hovered = false;
-                    }
-                    if i == self.cursor {
-                        cursor_y = Some(y);
-                    }
-                    let current = i == self.current;
-                    let st = t.row(s, bg);
-                    fill(buf, row, st);
-                    buf.set_string(
-                        row.x,
-                        y,
-                        t.gutter_symbol(s),
-                        t.gutter(s, st.bg.unwrap_or(bg), false),
-                    );
-                    if current {
-                        buf.set_string(row.x + 1, y, "›", st.fg(t.chosen(focused)));
-                    }
-                    let label_style = if it.disabled {
-                        st
-                    } else if current || s.focused || s.hovered {
-                        st.fg(t.text_primary)
-                    } else {
-                        st.fg(t.text_secondary)
-                    };
-                    if self.collapsed {
-                        buf.set_string(row.x + 3, y, it.icon, label_style);
-                    } else {
-                        buf.set_string(
-                            row.x + 3,
-                            y,
-                            it.icon,
-                            label_style.fg(if it.disabled {
-                                t.disabled
-                            } else {
-                                t.text_muted
-                            }),
-                        );
-                        buf.set_string(row.x + 5, y, it.label, label_style);
-                        if let Some(b) = it.badge {
-                            let bx = row.right().saturating_sub(b.len() as u16 + 1);
-                            let bs = if it.disabled { st } else { st.fg(t.accent) };
-                            buf.set_string(bx, y, b, bs);
-                        }
-                    }
-                    if !it.disabled {
-                        ctx.register_part(self.id, Self::item_part(i), row);
-                    }
-                }
-            }
-        }
-        ctx.scrollable(self.id, area);
-        self.track = if has_sb {
-            Rect::new(area.right() - 1, area.y, 1, area.height)
-        } else {
-            Rect::ZERO
-        };
-        if has_sb {
-            junie_tui::ui::fade::scroll_edges_except(
-                buf,
-                ctx,
-                Rect::new(area.x, area.y, row_w, area.height),
-                &self.scroll,
-                &cursor_y.into_iter().collect::<Vec<_>>(),
-            );
-        }
-        scrollbar::render_divider(
-            Rect::new(area.right().saturating_sub(1), area.y, 1, area.height),
-            buf,
-            ctx,
-            self.id,
-            &self.scroll,
-            focused,
-        );
-        if !ctx.inert {
-            ctx.ring.register(self.id);
-        }
-    }
-}
-
 pub struct SidebarsPage {
-    nav: NavList,
+    pub nav: NavList,
     collapse: Button,
+    /// The sidebar's collapse button and the rail it leaves.
+    rail: SidebarRail,
+    /// The sidebar is hidden behind its rail.
+    pub hidden: bool,
+    /// What the list and the rail reported last.
+    last: String,
 }
 
 impl SidebarsPage {
     pub fn new() -> Self {
         let items = vec![
-            NavItem {
-                label: "Tasks",
-                icon: "T",
-                section: "Workspace",
-                badge: Some("3"),
-                disabled: false,
-            },
-            NavItem {
-                label: "Runs",
-                icon: "R",
-                section: "Workspace",
-                badge: None,
-                disabled: false,
-            },
-            NavItem {
-                label: "Branches",
-                icon: "B",
-                section: "Workspace",
-                badge: None,
-                disabled: false,
-            },
-            NavItem {
-                label: "Members",
-                icon: "M",
-                section: "Project",
-                badge: None,
-                disabled: false,
-            },
-            NavItem {
-                label: "Environment",
-                icon: "E",
-                section: "Project",
-                badge: None,
-                disabled: false,
-            },
-            NavItem {
-                label: "Billing",
-                icon: "$",
-                section: "Project",
-                badge: None,
-                disabled: true,
-            },
-            NavItem {
-                label: "Keyboard",
-                icon: "K",
-                section: "Preferences",
-                badge: None,
-                disabled: false,
-            },
-            NavItem {
-                label: "Appearance",
-                icon: "A",
-                section: "Preferences",
-                badge: None,
-                disabled: false,
-            },
+            NavItem::new("Tasks")
+                .icon("T")
+                .section("Workspace")
+                .badge("3"),
+            NavItem::new("Runs").icon("R").section("Workspace"),
+            NavItem::new("Branches").icon("B").section("Workspace"),
+            NavItem::new("Members").icon("M").section("Project"),
+            NavItem::new("Environment").icon("E").section("Project"),
+            NavItem::new("Billing")
+                .icon("$")
+                .section("Project")
+                .disabled(true),
+            NavItem::new("Keyboard").icon("K").section("Preferences"),
+            NavItem::new("Appearance").icon("A").section("Preferences"),
         ];
         Self {
-            nav: NavList {
-                id: ID.sub("nav"),
-                items,
-                current: 0,
-                cursor: 0,
-                collapsed: false,
-                scroll: ScrollState::default(),
-                area: Rect::ZERO,
-                track: Rect::ZERO,
-            },
+            // the page's list also takes the vim letters (NavKeys::VIM)
+            nav: NavList::new(ID.sub("nav"), items)
+                .current(0)
+                .collapsed(false)
+                .widths(24, 6)
+                .nav(NavKeys::VIM),
             collapse: Button::secondary(ID.sub("collapse"), "Collapse"),
+            rail: SidebarRail::new(ID.sub("rail"), "Navigation"),
+            hidden: false,
+            last: "none yet".into(),
+        }
+    }
+
+    fn act(&mut self, a: Option<NavAction>) {
+        if let Some(NavAction::Activated(i)) = a {
+            self.last = format!("NavAction::Activated({i}) · {}", self.nav.items[i].label);
+        }
+    }
+
+    /// Hide the sidebar behind its rail, or bring it back (the rail's
+    /// buttons or Ctrl+B).
+    fn set_hidden(&mut self, on: bool, cx: &mut Cx) {
+        self.hidden = on;
+        self.last = if on {
+            "RailAction::Collapse"
+        } else {
+            "RailAction::Expand"
+        }
+        .into();
+        if !on {
+            cx.focus.focus(self.nav.id);
         }
     }
 }
@@ -391,61 +95,71 @@ impl Page for SidebarsPage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let w = self.nav.width() + 4;
-        let side = Rect::new(area.x, area.y, w, area.height.min(20));
-        let panel = Panel::card(None);
-        let bg = panel.bg(t);
-        let inner = Rect::new(side.x, side.y + 1, side.width, side.height - 2);
-        panel.render(side, buf, t);
-        self.nav.render(
-            Rect::new(
-                inner.x,
-                inner.y,
-                inner.width,
-                inner.height.saturating_sub(2),
-            ),
-            buf,
-            ctx,
-            bg,
-        );
-        self.collapse.label = if self.nav.collapsed {
-            "Expand".into()
+        let content_x = if self.hidden {
+            // the hidden sidebar leaves its rail
+            let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
+            self.rail.render_rail(col, buf, ctx, t.canvas);
+            area.x + self.rail.width() + 1
         } else {
-            "Collapse".into()
+            let w = self.nav.width() + 4;
+            let side = Rect::new(area.x, area.y, w, area.height.min(20));
+            let panel = Panel::card(None);
+            let bg = panel.bg(t);
+            let inner = Rect::new(side.x, side.y + 1, side.width, side.height - 2);
+            panel.render(side, buf, t);
+            self.rail.render_collapse(side, buf, ctx, bg);
+            self.nav.render(
+                Rect::new(
+                    inner.x,
+                    inner.y,
+                    inner.width,
+                    inner.height.saturating_sub(2),
+                ),
+                buf,
+                ctx,
+                bg,
+            );
+            self.collapse.label = if self.nav.collapsed {
+                "›".into()
+            } else {
+                "Collapse".into()
+            };
+            self.collapse.render(
+                Rect::new(inner.x + 1, inner.bottom() - 1, inner.width, 1),
+                buf,
+                ctx,
+                bg,
+            );
+            side.right() + 2
         };
-        if self.nav.collapsed {
-            self.collapse.label = "›".into();
-        }
-        self.collapse.render(
-            Rect::new(inner.x + 1, inner.bottom() - 1, inner.width, 1),
-            buf,
-            ctx,
-            bg,
-        );
 
         let content = Rect::new(
-            side.right() + 2,
+            content_x,
             area.y,
-            area.width.saturating_sub(w + 2),
+            area.right().saturating_sub(content_x),
             area.height,
         );
-        let current = self.nav.items[self.nav.current].label;
-        let panel = Panel::card(Some(current));
+        let current = self.nav.items[self.nav.current].label.clone();
+        let panel = Panel::card(Some(&current));
         let bg = panel.bg(t);
         let inner = panel.render(
             Rect::new(content.x, content.y, content.width, content.height.min(20)),
             buf,
             t,
         );
+        let last = format!("Last: {}", self.last);
         let lines = [
-            "One focus stop. ↑↓ move the cursor, Enter opens.",
+            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens.",
             "",
             "›  current item · persists when focus leaves",
             "▎  keyboard cursor · only while focused",
             "░  hover · follows the pointer",
             "",
             "Disabled items are skipped and ignore the pointer.",
-            "Collapsed mode keeps rows and markers, initials only.",
+            "Collapse keeps rows and markers, initials only.",
+            "‹ on the frame or Ctrl+B hides the sidebar behind its rail.",
+            "",
+            last.as_str(),
         ];
         let mut y = inner.y;
         let mut clipped = false;
@@ -477,9 +191,16 @@ impl Page for SidebarsPage {
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         match ev {
+            // Ctrl+B is the sidebar's shortcut wherever focus is on the page
+            PageEvent::Key(key) if key.ctrl_char('b') => {
+                self.set_hidden(!self.hidden, cx);
+                Outcome::Changed
+            }
             PageEvent::Key(key) => {
                 if cx.focus.is(self.nav.id) {
-                    return self.nav.on_key(key);
+                    let (o, a) = self.nav.on_key(key);
+                    self.act(a);
+                    return o;
                 }
                 if cx.focus.is(self.collapse.id) {
                     let (o, act) = self.collapse.on_key(key);
@@ -491,10 +212,20 @@ impl Page for SidebarsPage {
                 Outcome::Ignored
             }
             PageEvent::Pointer(ev) => {
+                if let Some(r) = self.rail.route(ev) {
+                    let (o, a) = r.into_parts();
+                    if let Some(a) = a {
+                        self.set_hidden(a == RailAction::Collapse, cx);
+                        return Outcome::Changed;
+                    }
+                    return o;
+                }
                 if ev.on(self.nav.id) && ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                     cx.focus.focus(self.nav.id);
                 }
-                if let Some(o) = self.nav.pointer(ev) {
+                if let Some(r) = self.nav.route(ev) {
+                    let (o, a) = r.into_parts();
+                    self.act(a);
                     return o;
                 }
                 if let Some(r) = self.collapse.route(ev) {
@@ -513,6 +244,10 @@ impl Page for SidebarsPage {
     }
 
     fn hints(&self, _focus: Option<WidgetId>) -> Vec<Hint> {
-        vec![("↑↓", "Move"), ("Enter", "Open")]
+        vec![("↑↓", "Move"), ("Enter", "Open"), ("Ctrl+B", "Sidebar")]
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
     }
 }
