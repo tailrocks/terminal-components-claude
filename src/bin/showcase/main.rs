@@ -92,6 +92,8 @@ mod data;
 mod inspector;
 mod options;
 mod pages;
+#[cfg(test)]
+mod zz_dump;
 
 use crate::app::{App, NavExpand, PageId};
 use clap::{Parser, ValueEnum};

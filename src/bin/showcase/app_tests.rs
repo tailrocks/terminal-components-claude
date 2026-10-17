@@ -1460,7 +1460,10 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
     };
     let prose = label("Wrapp", "Long").expect(&rows);
     assert!(!prose.contains("following"), "{rows}");
-    assert!(label("Long", "Log").is_some(), "the list label stays: {rows}");
+    assert!(
+        label("Long", "Log").is_some(),
+        "the list label stays: {rows}"
+    );
     assert!(label("Log", "\n").is_some(), "the log label stays: {rows}");
 }
 
@@ -2009,8 +2012,20 @@ fn header_links_show_rest_hover_and_press() {
 #[test]
 fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
     use junie_tui::widgets::scrollbar::{H_THUMB, h_id_for};
-    let mut h = Harness::new(80, 24, PageId::Terminal);
+    // 30 rows: the viewport card and its bar whole (at 24 the page scrolls down to them)
+    let mut h = Harness::new(80, 30, PageId::Terminal);
     let term = WidgetId::of("terminal").sub("term");
+    // the page keeps the viewport at its starting share: drag the seam
+    // left until the prompt line overflows it
+    let seam = h
+        .app
+        .shell
+        .hits
+        .area_of(WidgetId::of("terminal.seam"))
+        .expect("the seam");
+    h.mouse(MouseKind::Down, seam.x, seam.y);
+    h.mouse(MouseKind::Drag, seam.x.saturating_sub(13), seam.y);
+    h.mouse(MouseKind::Up, seam.x.saturating_sub(13), seam.y);
     let bar = h
         .app
         .shell
