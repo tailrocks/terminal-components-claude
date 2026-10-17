@@ -81,7 +81,7 @@ pub const SITES: &[Site] = &[
     gap("holla/screens/disk.rs::row_menu", NO_ROW),
     gap("holla/screens/files.rs::open_actions_at", NO_ROW),
     gap("holla/screens/files.rs::open_jump", NO_ROW),
-    gap("holla/screens/plan.rs::on_key", NO_ROW),
+    gap("holla/screens/plan.rs::on_interrupt", NO_ROW),
     gap("holla/screens/plan.rs::step_menu", NO_ROW),
     gap("holla/screens/review.rs::sequence_menu", NO_ROW),
     gap("holla/screens/snapshot.rs::body_menu", NO_ROW),
