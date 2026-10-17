@@ -2266,3 +2266,52 @@ fn the_last_key_is_spelled_by_the_library() {
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert_eq!(h.app.last_key.as_deref(), Some("Ctrl+S"));
 }
+
+/// The "no keyboard-only state" coverage rule (plan §5, S8b): walking
+/// every page and its first focus stops, every key the footer advertises
+/// is reachable by the mouse too: a hint naming one key is a click target
+/// that replays it (`HintKeys`), and the only hints that are not are
+/// groups whose mouse path is the content itself (arrows and paging move
+/// a cursor the pointer also moves, `Type` and ranges type or jump where a
+/// click selects, a hint that names a click or the wheel).
+#[test]
+fn no_footer_hint_is_keyboard_only_on_any_page() {
+    use junie_tui::widgets::keyhint::key_of;
+    let pointer_path = |key: &str| {
+        key.contains(['↑', '↓', '←', '→', '–'])
+            || [
+                "PgUp", "PgDn", "Home", "End", "g G", "j k", "Type", "type", "Hover",
+            ]
+            .iter()
+            .any(|k| key.contains(k))
+            || key.to_lowercase().contains("click")
+            || key.to_lowercase().contains("drag")
+            || key.to_lowercase().contains("wheel")
+    };
+    // `Enter / Space`: one of the keys a click on the control stands for
+    let clickable = |key: &str| {
+        key_of(key).is_some()
+            || key
+                .split([' ', '/'])
+                .filter(|k| !k.is_empty())
+                .any(|k| key_of(k).is_some())
+    };
+    let mut missing = vec![];
+    for entry in crate::app::NAV_ENTRIES {
+        let mut h = Harness::new(160, 50, entry.id);
+        for _ in 0..4 {
+            for hint in h.app.footer().compose(None) {
+                if !clickable(hint.key) && !pointer_path(hint.key) {
+                    missing.push(format!("{}: `{} {}`", entry.label, hint.key, hint.action));
+                }
+            }
+            h.key(tab());
+        }
+    }
+    missing.dedup();
+    assert!(
+        missing.is_empty(),
+        "hints with no mouse path:\n{}",
+        missing.join("\n")
+    );
+}
