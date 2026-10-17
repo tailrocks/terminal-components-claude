@@ -115,7 +115,8 @@ fn playground_scrolls_by_card_band_on_a_short_terminal() {
     let mut h = Harness::new(120, 40);
     assert!(h.text().contains("Tokens · planes and text"));
     assert!(!h.text().contains("Spacing · buttons · badges"));
-    for _ in 0..20 {
+    // the page scrolls in the template's view, a few rows a notch
+    for _ in 0..100 {
         h.app
             .handle(Input::Mouse(junie_tui::core::event::Mouse::new(
                 junie_tui::core::event::MouseKind::WheelDown,
