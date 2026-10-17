@@ -1971,10 +1971,13 @@ impl Page<Jackin> for ManagerScreen {
         self.build_rows(w);
         if self.menu.is_open() {
             let (o, chosen) = self.menu.on_key(key);
-            return match chosen {
-                Some((target, cmd)) => self.run_menu(target, cmd, w, cx),
-                None => o,
-            };
+            match chosen {
+                Some((target, cmd)) => return self.run_menu(target, cmd, w, cx),
+                // K14: a key the menu has no use for closed it; the page
+                // gets it
+                None if o == Outcome::Ignored => {}
+                None => return o,
+            }
         }
         let focus = cx.focus.current();
         let in_tree = focus == Some(TREE);

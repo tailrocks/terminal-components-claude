@@ -838,7 +838,10 @@ impl Page<Jackin> for SettingsScreen {
         if self.cfg.menu_open() {
             let o = self.cfg.menu_key(key, w, cx);
             self.sync_pending();
-            return o;
+            // K14: a key the menu had no use for closed it; the page gets it
+            if o != Outcome::Ignored {
+                return o;
+            }
         }
         let focus = cx.focus.current();
         if key.ctrl() && key.code == KeyCode::Char('s') {
