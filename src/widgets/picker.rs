@@ -17,6 +17,7 @@ use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
 use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
+use crate::widgets::edit::EditField;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PickerItem {
@@ -91,7 +92,12 @@ pub struct Picker {
     pub status: PickerStatus,
     pub title: String,
     pub placeholder: String,
-    pub query: String,
+    /// The query field: its text, caret, selection, undo and keys are the
+    /// shared [`EditField`]'s, so it edits, selects (Select All, a double
+    /// click on a word, a drag) and undoes like every text field. Owners
+    /// read [`EditField::text`] and replace it with [`EditField::set_text`]
+    /// (the caret goes to the end).
+    pub query: EditField,
     pub items: Vec<PickerItem>,
     pub cursor: usize,
     /// The rows and the bar ([`Scrollable`]).
@@ -145,9 +151,6 @@ pub struct Picker {
     /// The last action, kept for the stack while the picker is a
     /// [`crate::ui::layer::Layer`].
     pub(crate) pending: Option<PickerAction>,
-    /// The query caret as a byte offset, or `None` at the end (where an
-    /// owner that rewrites [`Self::query`] leaves it).
-    caret: Option<usize>,
     /// Delete on the query emits [`PickerAction::Secondary`] for the
     /// cursor row (close a tab, forget an entry) instead of deleting
     /// forward. Default `true` (today's binding); off, Delete deletes the
@@ -188,7 +191,7 @@ impl Picker {
             status: PickerStatus::Ready,
             title: title.to_owned(),
             placeholder: crate::theme::Strings::DEFAULT.search_placeholder.into(),
-            query: String::new(),
+            query: EditField::single(""),
             items: vec![],
             cursor: 0,
             scroll: ScrollPane::default(),
@@ -210,7 +213,6 @@ impl Picker {
             reveal: None,
             dismiss: crate::ui::popup::Dismiss::LIGHT,
             pending: None,
-            caret: None,
             delete_is_secondary: true,
             nav: NavKeys::default(),
         }
@@ -227,35 +229,9 @@ impl Picker {
         self
     }
 
-    /// The query caret as a byte offset (clamped to a boundary: an owner
-    /// may have rewritten the query).
+    /// The query caret as a byte offset.
     pub fn caret(&self) -> usize {
-        match self.caret {
-            Some(c) if c <= self.query.len() && self.query.is_char_boundary(c) => c,
-            _ => self.query.len(),
-        }
-    }
-
-    fn set_caret(&mut self, at: usize) {
-        self.caret = (at < self.query.len()).then_some(at);
-    }
-
-    /// Byte offset of the grapheme boundary before / after the caret.
-    fn grapheme_step(&self, forward: bool) -> Option<usize> {
-        use unicode_segmentation::UnicodeSegmentation;
-        let c = self.caret();
-        if forward {
-            self.query[c..]
-                .grapheme_indices(true)
-                .nth(1)
-                .map(|(i, _)| c + i)
-                .or((c < self.query.len()).then_some(self.query.len()))
-        } else {
-            self.query[..c]
-                .grapheme_indices(true)
-                .next_back()
-                .map(|(i, _)| i)
-        }
+        self.query.buffer.cursor_offset()
     }
 
     /// Width in cells before clamping to the screen. Default 64.
@@ -395,63 +371,18 @@ impl Picker {
             .filter(|k| !k.is_empty())
     }
 
-    /// Delete the grapheme before the caret.
-    fn pop_grapheme(&mut self) -> bool {
-        let Some(i) = self.grapheme_step(false) else {
-            return false;
-        };
-        let c = self.caret();
-        self.query.replace_range(i..c, "");
-        self.set_caret(i);
-        true
-    }
-
-    /// Delete the grapheme after the caret.
-    fn delete_forward(&mut self) -> bool {
-        let Some(e) = self.grapheme_step(true) else {
-            return false;
-        };
-        let c = self.caret();
-        self.query.replace_range(c..e, "");
-        self.set_caret(c);
-        true
-    }
-
-    fn delete_word(&mut self) -> bool {
-        let trimmed = self.query.trim_end();
-        let cut = trimmed
-            .rfind(|c: char| c.is_whitespace())
-            .map(|i| i + 1)
-            .unwrap_or(0);
-        if cut == self.query.len() {
-            return false;
-        }
-        self.query.truncate(cut);
-        true
-    }
-
     /// Pasted text enters the query as one edit: line breaks become spaces
     /// and exactly one `QueryChanged` is emitted.
     pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerAction>) {
         if !self.searchable || self.status == PickerStatus::Loading(String::new()) {
             return (Outcome::Consumed, None);
         }
-        let flat: String = text
-            .chars()
-            .map(|c| {
-                if c == '\n' || c == '\r' || c == '\t' {
-                    ' '
-                } else {
-                    c
-                }
-            })
-            .collect();
-        if flat.is_empty() {
+        // a tab is a space in a one-line query; line breaks flatten in
+        // the field ([`EditField::paste`])
+        let flat = text.replace('\t', " ");
+        if flat.is_empty() || !self.query.paste(&flat) {
             return (Outcome::Consumed, None);
         }
-        let c = self.caret();
-        self.query.insert_str(c, &flat);
-        self.set_caret(c + flat.len());
         (Outcome::Changed, Some(PickerAction::QueryChanged))
     }
 
@@ -506,8 +437,9 @@ impl Picker {
     fn on_other_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
         match key.code {
             KeyCode::Esc => {
-                if self.searchable && !self.query.is_empty() {
-                    self.query.clear();
+                if self.searchable && !self.query.text().is_empty() {
+                    self.query.record(crate::core::edit::EditKind::Other);
+                    self.query.buffer.set_text("");
                     return (Outcome::Changed, Some(PickerAction::QueryChanged));
                 }
                 if !self.dismiss.escape {
@@ -524,7 +456,7 @@ impl Picker {
                     };
                     (Outcome::Changed, Some(ev))
                 }
-                None if self.searchable && !self.query.trim().is_empty() => {
+                None if self.searchable && !self.query.text().trim().is_empty() => {
                     (Outcome::Changed, Some(PickerAction::Submit))
                 }
                 None => (Outcome::Consumed, None),
@@ -543,83 +475,27 @@ impl Picker {
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerAction::NextScope)),
             KeyCode::BackTab => (Outcome::Changed, Some(PickerAction::PrevScope)),
-            KeyCode::Delete if self.searchable && !self.delete_is_secondary => {
-                if self.delete_forward() {
-                    (Outcome::Changed, Some(PickerAction::QueryChanged))
-                } else {
-                    (Outcome::Consumed, None)
+            KeyCode::Delete if self.delete_is_secondary || !self.searchable => {
+                match self.eligible(self.cursor) {
+                    Some(i) => (Outcome::Changed, Some(PickerAction::Secondary(i))),
+                    None => (Outcome::Consumed, None),
                 }
             }
-            KeyCode::Left if self.searchable && key.plain() => {
-                if let Some(i) = self.grapheme_step(false) {
-                    self.set_caret(i);
-                }
-                (Outcome::Changed, None)
-            }
-            KeyCode::Right if self.searchable && key.plain() => {
-                if let Some(i) = self.grapheme_step(true) {
-                    self.set_caret(i);
-                }
-                (Outcome::Changed, None)
-            }
-            KeyCode::Home if self.searchable && key.ctrl() => {
-                self.set_caret(0);
-                (Outcome::Changed, None)
-            }
-            KeyCode::End if self.searchable && key.ctrl() => {
-                self.caret = None;
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('a') if self.searchable && key.ctrl() => {
-                self.set_caret(0);
-                (Outcome::Changed, None)
-            }
-            KeyCode::Char('e') if self.searchable && key.ctrl() => {
-                self.caret = None;
-                (Outcome::Changed, None)
-            }
-            KeyCode::Delete => match self.eligible(self.cursor) {
-                Some(i) => (Outcome::Changed, Some(PickerAction::Secondary(i))),
-                None => (Outcome::Consumed, None),
-            },
-            KeyCode::Backspace
-                if self.query.is_empty() || self.caret() == 0 && !self.searchable =>
-            {
+            KeyCode::Backspace if self.query.text().is_empty() || !self.searchable => {
                 (Outcome::Changed, Some(PickerAction::Back))
             }
-            KeyCode::Backspace if self.searchable && (key.ctrl() || key.alt()) => {
-                if self.delete_word() {
+            // everything else edits the query: typing, the caret keys,
+            // Select All, the clipboard keys, undo
+            _ if self.searchable => {
+                let r = self.query.on_key(key);
+                if r.edited {
                     (Outcome::Changed, Some(PickerAction::QueryChanged))
+                } else if r.outcome == Outcome::Changed && r.exit.is_none() {
+                    (Outcome::Changed, None)
                 } else {
+                    // the picker is modal: an unused key or chord stops here
                     (Outcome::Consumed, None)
                 }
-            }
-            KeyCode::Backspace if self.searchable => {
-                if self.pop_grapheme() {
-                    (Outcome::Changed, Some(PickerAction::QueryChanged))
-                } else {
-                    (Outcome::Consumed, None)
-                }
-            }
-            KeyCode::Char('u') if key.ctrl() && self.searchable => {
-                if self.query.is_empty() {
-                    return (Outcome::Consumed, None);
-                }
-                self.query.clear();
-                (Outcome::Changed, Some(PickerAction::QueryChanged))
-            }
-            KeyCode::Char('w') if key.ctrl() && self.searchable => {
-                if self.delete_word() {
-                    (Outcome::Changed, Some(PickerAction::QueryChanged))
-                } else {
-                    (Outcome::Consumed, None)
-                }
-            }
-            KeyCode::Char(c) if self.searchable && !key.chord() => {
-                let at = self.caret();
-                self.query.insert(at, c);
-                self.set_caret(at + c.len_utf8());
-                (Outcome::Changed, Some(PickerAction::QueryChanged))
             }
             _ => (Outcome::Consumed, None),
         }
@@ -733,28 +609,37 @@ impl Picker {
                 t.gutter_symbol(fstate),
                 t.gutter(fstate, fs.bg.unwrap_or(bg), false),
             );
-            if self.query.is_empty() {
+            self.query.keys = ctx.theme.field_keys.unwrap_or_default();
+            let w = field.width.saturating_sub(3) as usize;
+            // the text and the cell after it, where the caret can sit
+            let line = Rect::new(field.x + 2, y, field.width.saturating_sub(2), 1);
+            let caret = if self.query.text().is_empty() {
                 buf.set_string(
-                    field.x + 2,
+                    line.x,
                     y,
-                    truncate(&self.placeholder, field.width.saturating_sub(3) as usize),
+                    truncate(&self.placeholder, w),
                     fs.fg(t.text_muted),
                 );
+                line.as_position()
             } else {
-                buf.set_string(
-                    field.x + 2,
-                    y,
-                    truncate(&self.query, field.width.saturating_sub(3) as usize),
-                    // a neutral underline: the field's bar is the one green cue
-                    fs.add_modifier(Modifier::UNDERLINED)
-                        .underline_color(t.text_secondary),
-                );
+                // a neutral underline: the field's bar is the one green cue;
+                // a long query scrolls so its caret stays in view (M21)
+                let look = crate::widgets::edit::LineLook {
+                    text: fs,
+                    selection: t.selection(),
+                    ellipsis: fs.fg(t.text_muted),
+                    ellipsis_glyph: t.glyphs.ellipsis,
+                    underline: Some(t.text_secondary),
+                    follow_caret: true,
+                };
+                self.query.draw_line(buf, line, &look)
+            };
+            if line.width > 0 {
+                // the whole field row past the gutter is the text target
+                let id = ctx.register_part(self.id, PartRef::of(Part::QUERY), line);
+                ctx.pointer_shape(id, crate::core::shape::PointerShape::Text);
             }
-            let before = width(&self.query[..self.caret()]);
-            ctx.set_cursor(ratatui::layout::Position::new(
-                field.x + 2 + before.min(field.width.saturating_sub(3) as usize) as u16,
-                y,
-            ));
+            ctx.set_cursor(caret);
             y += 2;
         }
         // the hint row yields before the list does: a short screen still
@@ -1024,6 +909,23 @@ impl crate::core::pointer::MouseTarget for Picker {
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r.lift();
         }
+        // the query field takes the text gestures (M21): a click places
+        // the caret, a double click selects a word, a triple click the
+        // query, a drag selects what it crosses
+        if self.searchable && ev.part().part == Part::QUERY {
+            let at = self.query.line_offset_at(ev.pos());
+            match ev.phase() {
+                Some(Phase::Press) => {
+                    self.query.press(at, ev.count(), false);
+                }
+                Some(Phase::Drag) => {
+                    self.query.drag(at);
+                }
+                Some(Phase::Click) => self.query.click(at, ev.count().max(1), false),
+                _ => return Response::ignored(),
+            }
+            return Response::changed();
+        }
         if !ev.is(Phase::Click) {
             return Response::ignored();
         }
@@ -1070,23 +972,23 @@ mod tests {
         p.on_key(&k(KeyCode::Left, M::NONE));
         p.on_key(&k(KeyCode::Left, M::NONE));
         p.on_key(&k(KeyCode::Char('e'), M::NONE));
-        assert_eq!(p.query, "orders");
+        assert_eq!(p.query.text(), "orders");
         assert_eq!(p.caret(), 4);
         p.on_key(&k(KeyCode::Backspace, M::NONE));
-        assert_eq!(p.query, "ordrs");
-        p.on_key(&k(KeyCode::Char('a'), M::CONTROL));
+        assert_eq!(p.query.text(), "ordrs");
+        p.on_key(&k(KeyCode::Home, M::NONE));
         assert_eq!(p.caret(), 0);
         // Delete stays the secondary action by default
         assert!(matches!(
             p.on_key(&k(KeyCode::Delete, M::NONE)).1,
             Some(PickerAction::Secondary(_)) | None
         ));
-        assert_eq!(p.query, "ordrs");
+        assert_eq!(p.query.text(), "ordrs");
         let mut f = picker(3).delete_is_secondary(false);
-        f.query = "xyz".into();
-        f.on_key(&k(KeyCode::Char('a'), M::CONTROL));
+        f.query.set_text("xyz");
+        f.on_key(&k(KeyCode::Home, M::NONE));
         f.on_key(&k(KeyCode::Delete, M::NONE));
-        assert_eq!(f.query, "yz");
+        assert_eq!(f.query.text(), "yz");
     }
 
     #[test]
@@ -1128,6 +1030,65 @@ mod tests {
 
     fn k(code: KeyCode, mods: ratatui::crossterm::event::KeyModifiers) -> Key {
         Key { code, mods }
+    }
+
+    /// M21 (S11): the query is the shared text field. A click places the
+    /// caret, a double click selects the word, a drag selects, through the
+    /// router (a click did nothing); Cmd+A selects the query (it was
+    /// typed or dropped); a long query scrolls so the caret never sits on
+    /// the ellipsis (it was cut with `…` and the caret clamped onto it).
+    #[test]
+    fn the_query_takes_clicks_word_selection_select_all_and_scrolls() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        use ratatui::crossterm::event::KeyModifiers as M;
+        use ratatui::layout::Position;
+        let mut p = picker(3);
+        p.query.set_text("orders by date");
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let screen = Rect::new(0, 0, 80, 24);
+        let mut buf = Buffer::empty(screen);
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            p.draw(screen, &mut buf, &mut ctx);
+        }
+        let q = p.query.line_area();
+        let ev = |phase, x: u16, count| {
+            let pos = Position::new(x, q.y);
+            let id = hits.hit(pos).expect("the query is a hit target");
+            PointerEvent::new(&hits, phase, id, pos, count, M::NONE)
+        };
+        let _ = p.pointer(&ev(Phase::Press, q.x + 2, 1));
+        let _ = p.pointer(&ev(Phase::Click, q.x + 2, 1));
+        assert_eq!(p.caret(), 2, "a click places the caret");
+        let _ = p.pointer(&ev(Phase::Press, q.x + 8, 2));
+        let _ = p.pointer(&ev(Phase::Click, q.x + 8, 2));
+        assert_eq!(p.query.buffer.selected_text(), Some("by"), "double click");
+        let _ = p.pointer(&ev(Phase::Press, q.x, 1));
+        let _ = p.pointer(&ev(Phase::Drag, q.x + 6, 1));
+        assert_eq!(p.query.buffer.selected_text(), Some("orders"), "a drag");
+        p.query.buffer.clear_selection();
+        p.on_key(&k(KeyCode::Char('a'), M::SUPER));
+        assert_eq!(p.query.buffer.selected_text(), Some("orders by date"));
+        assert_eq!(
+            p.on_key(&k(KeyCode::Char('x'), M::NONE)).1,
+            Some(PickerAction::QueryChanged),
+            "typing replaces the selection"
+        );
+        assert_eq!(p.query.text(), "x");
+        // a query longer than the field keeps its caret on a character
+        p.query.set_text("long ".repeat(30));
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(screen);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        p.draw(screen, &mut buf, &mut ctx);
+        let caret = ctx.cursor.expect("the query caret");
+        assert!(p.query.line_area().contains(caret));
+        assert_ne!(buf[(caret.x, caret.y)].symbol(), "…");
+        assert_ne!(buf[(caret.x.saturating_sub(1), caret.y)].symbol(), "…");
     }
 
     #[test]
@@ -1231,13 +1192,13 @@ mod tests {
         for c in "a👩\u{200d}💻".chars() {
             p.on_key(&k(KeyCode::Char(c), M::NONE));
         }
-        assert_eq!(p.query, "a👩\u{200d}💻");
+        assert_eq!(p.query.text(), "a👩\u{200d}💻");
         let (o, ev) = p.on_key(&k(KeyCode::Backspace, M::NONE));
         assert_eq!(
             (o, ev),
             (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
-        assert_eq!(p.query, "a", "backspace removes the whole cluster");
+        assert_eq!(p.query.text(), "a", "backspace removes the whole cluster");
         p.on_key(&k(KeyCode::Backspace, M::NONE));
         assert_eq!(
             p.on_key(&k(KeyCode::Backspace, M::NONE)),
@@ -1248,19 +1209,16 @@ mod tests {
             (o, ev),
             (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
-        assert_eq!(p.query, "gp du ");
+        assert_eq!(p.query.text(), "gp du ");
         assert_eq!(p.on_paste(""), (Outcome::Consumed, None));
         assert_eq!(
             p.on_key(&k(KeyCode::Char('w'), M::CONTROL)),
             (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
-        assert_eq!(p.query, "gp ");
+        assert_eq!(p.query.text(), "gp ");
         p.on_key(&k(KeyCode::Char('u'), M::CONTROL));
-        assert_eq!(p.query, "");
-        assert_eq!(
-            p.on_key(&k(KeyCode::Char('u'), M::CONTROL)),
-            (Outcome::Consumed, None)
-        );
+        assert_eq!(p.query.text(), "");
+        assert_eq!(p.on_key(&k(KeyCode::Char('u'), M::CONTROL)).1, None);
         // a search-disabled picker ignores paste and typing
         p.searchable = false;
         assert_eq!(p.on_paste("x"), (Outcome::Consumed, None));
@@ -1270,7 +1228,7 @@ mod tests {
         p.searchable = true;
         let (_, ev) = p.on_key(&k(KeyCode::Char('s'), M::CONTROL));
         assert_eq!(ev, None);
-        assert_eq!(p.query, "");
+        assert_eq!(p.query.text(), "");
     }
 
     #[test]
@@ -1340,7 +1298,7 @@ mod tests {
     fn only_the_query_field_carries_a_focus_bar_and_the_cursor_row_is_a_fill() {
         let t = Theme::junie();
         let mut p = picker(4);
-        p.query = "it".into();
+        p.query.set_text("it");
         let out = render(&mut p);
         assert_eq!(
             out.matches('▎').count(),

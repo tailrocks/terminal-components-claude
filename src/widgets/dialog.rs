@@ -970,7 +970,7 @@ impl Dialog {
                         if let Some(inp) = self.input_mut() {
                             // keep typing; the message clears on the next edit
                             inp.begin_edit();
-                            inp.error = Some(mismatch.to_owned());
+                            inp.field.error = Some(mismatch.into());
                         }
                         return Outcome::Changed;
                     }
@@ -1970,7 +1970,7 @@ mod tests {
         let DialogBody::Facts { ack: Some(a), .. } = &d.body else {
             unreachable!()
         };
-        assert_eq!(a.input.error.as_deref(), Some("Does not match"));
+        assert_eq!(a.input.field.error.as_deref(), Some("Does not match"));
         // typing the missing letter clears the message and arms the action
         type_into(&mut d, &mut focus, &ring, "s");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);

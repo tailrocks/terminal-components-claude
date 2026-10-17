@@ -54,6 +54,21 @@ impl FieldError {
     }
 }
 
+impl std::ops::Deref for FieldError {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.message
+    }
+}
+
+impl FieldError {
+    /// The message, to rewrite in place (a theme string the error still
+    /// reads follows a theme change: [`crate::theme::Strings::follow`]).
+    pub fn message_mut(&mut self) -> &mut String {
+        &mut self.message
+    }
+}
+
 impl std::fmt::Display for FieldError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.message)
@@ -237,6 +252,14 @@ pub struct EditField {
     pub multiline: bool,
     /// Keys and the pointer only move, select and copy.
     pub read_only: bool,
+    /// The error an empty value shows when the field is required, checked
+    /// when there is no [`Self::validator`] (a validator owns validation
+    /// when supplied). `None`: an empty value is fine.
+    pub required: Option<String>,
+    /// The first column a one-line draw shows ([`Self::draw_line`]).
+    line_off: usize,
+    /// Where the last one-line draw put the text.
+    line_area: ratatui::layout::Rect,
 }
 
 impl EditField {
@@ -263,6 +286,9 @@ impl EditField {
             validate_when: ValidateWhen::default(),
             multiline,
             read_only: false,
+            required: None,
+            line_off: 0,
+            line_area: ratatui::layout::Rect::ZERO,
         }
     }
 
@@ -321,6 +347,12 @@ impl EditField {
 
     /// Apply an already resolved `action` (the control looked at it first).
     pub fn apply(&mut self, action: EditAction, key: &Key) -> EditResult {
+        self.apply_as(action, key, self.read_only)
+    }
+
+    /// [`Self::apply`] with `read_only` deciding for this key alone (a
+    /// document that only moves and selects while it is not being edited).
+    pub fn apply_as(&mut self, action: EditAction, key: &Key, read_only: bool) -> EditResult {
         let exit = match action {
             EditAction::Commit => Some(EditExit::Commit),
             EditAction::Cancel => Some(EditExit::Cancel),
@@ -348,7 +380,7 @@ impl EditField {
             &mut self.undo,
             action,
             key.code,
-            self.read_only,
+            read_only,
         ) == Some(Applied::Edited);
         if edited {
             self.after_edit();
@@ -415,13 +447,19 @@ impl EditField {
         }
     }
 
-    /// Run the validator on the current text; `true` when it is valid. No
-    /// validator accepts everything (and clears an error set from outside
-    /// only when asked: [`Self::set_error`]).
+    /// Check the current text and show what is wrong with it; `true` when
+    /// it is valid. The validator owns validation when there is one;
+    /// otherwise a [`Self::required`] field rejects an empty value, and
+    /// anything else is valid (an error shown before clears).
     pub fn validate(&mut self) -> bool {
-        if let Some(v) = &self.validator {
-            self.error = v.validate(self.buffer.text()).err();
-        }
+        self.error = match &self.validator {
+            Some(v) => v.validate(self.buffer.text()).err(),
+            None => self
+                .required
+                .as_ref()
+                .filter(|_| self.buffer.is_empty())
+                .map(|m| FieldError::new(m.clone())),
+        };
         self.error.is_none()
     }
 
@@ -509,6 +547,157 @@ impl EditField {
     pub fn pressed(&self) -> bool {
         self.press.at.is_some()
     }
+
+    // ---- one-line drawing ------------------------------------------------
+
+    /// Draw a one-line field's text into `area` and return the caret cell:
+    /// the text scrolls sideways so the caret stays in view, a cut start
+    /// or end shows `…` in [`LineLook::ellipsis`] (never under the caret),
+    /// the selection takes [`LineLook::selection`]. Every one-line text
+    /// field draws through here (the Picker and Combo queries, `TextInput`).
+    pub fn draw_line(
+        &mut self,
+        buf: &mut ratatui::buffer::Buffer,
+        area: ratatui::layout::Rect,
+        look: &LineLook,
+    ) -> Position {
+        let glyphs = Self::graphemes(self.buffer.text());
+        self.draw_glyphs(buf, area, look, &glyphs)
+    }
+
+    /// The graphemes of `text` as `(byte offset, grapheme, cells)`.
+    pub fn graphemes(text: &str) -> Vec<(usize, String, usize)> {
+        unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true)
+            .map(|(bi, g)| (bi, g.to_owned(), crate::ui::text::width(g)))
+            .collect()
+    }
+
+    /// [`Self::draw_line`] over graphemes the owner chose to show (a masked
+    /// field draws `•` per grapheme): `(byte offset, shown text, cells)`.
+    pub fn draw_glyphs(
+        &mut self,
+        buf: &mut ratatui::buffer::Buffer,
+        area: ratatui::layout::Rect,
+        look: &LineLook,
+        glyphs: &[(usize, String, usize)],
+    ) -> Position {
+        let cursor_off = self.buffer.cursor_offset();
+        let cursor_col: usize = glyphs
+            .iter()
+            .filter(|(bi, _, _)| *bi < cursor_off)
+            .map(|(_, _, w)| *w)
+            .sum();
+        let total: usize = glyphs.iter().map(|(_, _, w)| *w).sum();
+        let w = area.width as usize;
+        if w > 0 {
+            if cursor_col < self.line_off {
+                self.line_off = cursor_col;
+            } else if cursor_col >= self.line_off + w {
+                self.line_off = cursor_col + 1 - w;
+            }
+            if !look.follow_caret {
+                self.line_off = 0;
+            }
+            // the insertion caret needs a cell after the final glyph
+            self.line_off = self.line_off.min(total.saturating_add(1).saturating_sub(w));
+            let mut boundary = 0;
+            for (_, _, gw) in glyphs {
+                if boundary >= self.line_off {
+                    break;
+                }
+                boundary += gw;
+            }
+            self.line_off = boundary.min(cursor_col);
+        }
+        self.line_area = area;
+        let sel = self.buffer.selection();
+        let mut col = 0usize;
+        let clipped_right = total > self.line_off.saturating_add(w);
+        let visible_width = w.saturating_sub(usize::from(clipped_right));
+        for (bi, g, gw) in glyphs {
+            let gw = *gw;
+            if col + gw <= self.line_off {
+                col += gw;
+                continue;
+            }
+            let shown_col = col.saturating_sub(self.line_off);
+            if shown_col + gw > visible_width {
+                break;
+            }
+            let x = area.x + shown_col as u16;
+            if shown_col == 0 && self.line_off > 0 && gw > 0 {
+                buf.set_string(x, area.y, look.ellipsis_glyph, look.ellipsis);
+                col += gw;
+                continue;
+            }
+            let mut st = look.text;
+            if let Some(r) = &sel
+                && r.contains(bi)
+            {
+                st = look.selection;
+            }
+            if let Some(c) = look.underline {
+                st = st
+                    .add_modifier(ratatui::style::Modifier::UNDERLINED)
+                    .underline_color(c);
+            }
+            buf.set_string(x, area.y, g, st);
+            col += gw;
+        }
+        if clipped_right && area.width > 0 {
+            buf.set_string(area.right() - 1, area.y, look.ellipsis_glyph, look.ellipsis);
+        }
+        let cx = area.x + cursor_col.saturating_sub(self.line_off) as u16;
+        Position::new(cx.min(area.right().saturating_sub(1)), area.y)
+    }
+
+    /// The byte offset a pointer at `pos` names in the line drawn last
+    /// ([`Self::draw_line`]): left of the text names the column before the
+    /// first visible one, so a drag past the edge scrolls the line.
+    pub fn line_offset_at(&self, pos: Position) -> usize {
+        let col =
+            (self.line_off as isize + (pos.x as isize - self.line_area.x as isize)).max(0) as usize;
+        self.buffer.offset_at(0, col)
+    }
+
+    /// [`Self::line_offset_at`] over the graphemes the line was drawn with
+    /// (a masked field's `•` take one cell each).
+    pub fn glyph_offset_at(&self, pos: Position, glyphs: &[(usize, String, usize)]) -> usize {
+        let col =
+            (self.line_off as isize + (pos.x as isize - self.line_area.x as isize)).max(0) as usize;
+        let mut w = 0;
+        for (bi, _, gw) in glyphs {
+            if w + gw > col {
+                return *bi;
+            }
+            w += gw;
+        }
+        self.buffer.text().len()
+    }
+
+    /// The text cells of the line drawn last.
+    pub fn line_area(&self) -> ratatui::layout::Rect {
+        self.line_area
+    }
+
+    /// The first column the line drawn last shows (how far it scrolled).
+    pub fn line_scroll(&self) -> usize {
+        self.line_off
+    }
+}
+
+/// How [`EditField::draw_line`] draws a line.
+#[derive(Debug, Clone, Copy)]
+pub struct LineLook {
+    pub text: ratatui::style::Style,
+    pub selection: ratatui::style::Style,
+    pub ellipsis: ratatui::style::Style,
+    pub ellipsis_glyph: &'static str,
+    /// Underline every glyph in this colour (an editing field).
+    pub underline: Option<ratatui::style::Color>,
+    /// Scroll to keep the caret in view; `false` shows the start (a field
+    /// not being edited).
+    pub follow_caret: bool,
 }
 
 impl Default for EditField {

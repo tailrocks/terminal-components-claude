@@ -1289,12 +1289,12 @@ impl QueryTab {
         };
         let replace = self.completion.replace_len;
         let cur = self.editor.cursor_offset();
-        self.editor.buffer.remove_range(cur - replace..cur);
-        self.editor.buffer.insert_str(&item.insert);
+        self.editor.field.buffer.remove_range(cur - replace..cur);
+        self.editor.field.buffer.insert_str(&item.insert);
         if item.insert.ends_with('(') {
             // functions: cursor inside the parens
-            self.editor.buffer.insert_char(')');
-            self.editor.buffer.move_left(false);
+            self.editor.field.buffer.insert_char(')');
+            self.editor.field.buffer.move_left(false);
         }
         self.completion.close();
     }

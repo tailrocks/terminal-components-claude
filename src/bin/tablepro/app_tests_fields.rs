@@ -32,10 +32,13 @@ fn a_double_click_in_the_history_search_selects_the_word() {
     let (mut h, x, y) = searched("plan count");
     h.click(x + 1, y);
     h.click(x + 1, y);
-    assert_eq!(history_search(&h).buffer.selected_text(), Some("plan"));
+    assert_eq!(
+        history_search(&h).field.buffer.selected_text(),
+        Some("plan")
+    );
     h.click(x + 1, y);
     assert_eq!(
-        history_search(&h).buffer.selected_text(),
+        history_search(&h).field.buffer.selected_text(),
         Some("plan count"),
         "triple click: the line"
     );
@@ -53,7 +56,10 @@ fn dragging_in_the_explorer_filter_selects_what_it_crosses() {
     h.mouse(MouseKind::Down, x, y);
     h.mouse(MouseKind::Drag, x + 3, y);
     h.mouse(MouseKind::Up, x + 3, y);
-    assert_eq!(h.wb().explorer_filter.buffer.selected_text(), Some("ord"));
+    assert_eq!(
+        h.wb().explorer_filter.field.buffer.selected_text(),
+        Some("ord")
+    );
 }
 
 #[test]
@@ -64,7 +70,7 @@ fn a_drag_from_a_double_click_extends_the_history_search_by_words() {
     h.mouse(MouseKind::Drag, x + 6, y);
     h.mouse(MouseKind::Up, x + 6, y);
     assert_eq!(
-        history_search(&h).buffer.selected_text(),
+        history_search(&h).field.buffer.selected_text(),
         Some("plan count")
     );
 }
@@ -91,7 +97,7 @@ fn a_double_click_in_the_filter_editor_value_selects_the_word() {
     h.click(x + 5, y);
     h.click(x + 5, y);
     let sel = match h.app.top_as::<FilterEditor>() {
-        Some(f) => f.value.buffer.selected_text().map(str::to_owned),
+        Some(f) => f.value.field.buffer.selected_text().map(str::to_owned),
         _ => panic!("the filter editor is open"),
     };
     assert_eq!(sel.as_deref(), Some("def"));

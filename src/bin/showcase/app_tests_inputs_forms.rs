@@ -325,7 +325,7 @@ fn input_field(h: &Harness, i: usize) -> &junie_tui::widgets::input::TextInput {
 }
 
 fn input_text(h: &Harness, i: usize) -> String {
-    input_field(h, i).buffer.text().to_owned()
+    input_field(h, i).field.buffer.text().to_owned()
 }
 
 /// Focus Project name from the keyboard (strip, then Tab).
@@ -461,7 +461,7 @@ fn inputs_pointer_select_off_keeps_a_double_click_from_selecting() {
         let (x, y) = h.at("payments-gateway");
         h.click(x + 2, y);
         h.click(x + 2, y);
-        let sel = input_field(&h, 0).buffer.selected_text();
+        let sel = input_field(&h, 0).field.buffer.selected_text();
         assert_eq!(sel.is_some(), selects, "{value}: {sel:?}");
     }
 }
@@ -484,7 +484,7 @@ fn textareas_esc_reverts_and_focus_select_through_the_options() {
         h.type_str("hello");
         h.key(KeyCode::Esc);
         assert_eq!(
-            area_of(&h, 1).buffer.text().is_empty(),
+            area_of(&h, 1).field.buffer.text().is_empty(),
             reverted,
             "esc_reverts={value}"
         );
@@ -496,7 +496,7 @@ fn textareas_esc_reverts_and_focus_select_through_the_options() {
     h.click(x + 1, y);
     h.key(KeyCode::Tab);
     h.type_str("z");
-    assert_eq!(area_of(&h, 0).buffer.text(), "z");
+    assert_eq!(area_of(&h, 0).field.buffer.text(), "z");
 }
 
 #[test]

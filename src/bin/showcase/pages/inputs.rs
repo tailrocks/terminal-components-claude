@@ -217,8 +217,8 @@ impl InputsPage {
             if let Some(old) = self.fields.get(i)
                 && !old.disabled
             {
-                g = g.value(old.buffer.text());
-                g.error = old.error.clone();
+                g = g.value(old.field.buffer.text());
+                g.field.error = old.field.error.clone();
             }
             *f = g;
         }
