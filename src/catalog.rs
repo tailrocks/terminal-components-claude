@@ -2729,6 +2729,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::segments::Segment::lead"),
     Capability::function("widgets::segments::render"),
     Capability::function("widgets::segments::width"),
+    Capability::function("widgets::segments::min_width"),
     // widgets::select
     Capability::ty("widgets::select::Select"),
     Capability::ty("widgets::select::SelectAction"),
@@ -3513,6 +3514,11 @@ pub static CAPABILITIES: &[Capability] = &[
     // navigation, chrome, clipboard, footer and status
     Capability::function("shell::run"),
     Capability::ty("shell::reach::Reach"),
+    Capability::ty("shell::reach::Words"),
+    Capability::function("shell::reach::Words::add_area"),
+    Capability::function("shell::reach::Words::add_overflowed"),
+    Capability::function("shell::reach::Words::extend"),
+    Capability::function("shell::reach::Words::against"),
     Capability::ty("shell::reach::Reveal"),
     Capability::ty("shell::reach::Case"),
     Capability::builder("shell::reach::Case::reveals"),

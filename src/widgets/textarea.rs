@@ -37,7 +37,16 @@ impl crate::ui::measure::Measure for TextArea {
         let label = width(&self.label) as u16 + 2;
         ratatui::layout::Size::new((longest + 5).max(label), self.height())
     }
+
+    /// The area scrolls its long lines sideways itself: it is whole at
+    /// any width that holds its label.
+    fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
+        (width(&self.label) as u16 + 2).max(MIN_W)
+    }
 }
+
+/// The narrowest a text area is laid out at: its lines scroll sideways.
+const MIN_W: u16 = 24;
 
 /// Multi-line editor. Focus starts editing per its [`EditEntry`] like
 /// [`TextInput`](super::input::TextInput) (default
@@ -999,6 +1008,16 @@ mod tests {
             a.measure(ratatui::layout::Size::new(5, 5), &ctx)
         };
         assert_eq!(size.height, a.height());
+        let min = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            a.min_width(ratatui::layout::Size::new(5, 5), &ctx)
+        };
+        assert!(min < size.width, "its long lines scroll sideways");
         let mut a = a;
         let area = Rect::new(0, 0, size.width, size.height);
         let mut buf = Buffer::empty(area);
