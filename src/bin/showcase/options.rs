@@ -270,6 +270,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Sidebars => SIDEBARS,
         PageId::Forms => FORMS,
         PageId::TaskRunner => TASKRUNNER,
+        PageId::Settings => SETTINGS,
         PageId::Notices => NOTICES,
         PageId::DiskCleanup => DISK_CLEANUP,
         PageId::Activity => ACTIVITY,
@@ -294,7 +295,6 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::ReadOnlyReport => READONLY_REPORT,
         PageId::LaunchCockpit => LAUNCH_COCKPIT,
         PageId::AccountsUsage => ACCOUNTS_USAGE,
-        _ => &[],
     }
 }
 
@@ -1391,6 +1391,30 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.reserve_value", "Reserve the value column", OFF_ON).default(1),
     Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Settings: the section it opens on, the members table's cell
+/// navigation, the environment list's selection, the description's rows,
+/// the dirty mark on the tab and the save confirmation
+/// (`pages/settings.rs`, `apply`).
+pub static SETTINGS: &[Opt] = &[
+    Opt::new(
+        "settings.tab",
+        "Section",
+        &["general", "members", "environment"],
+    ),
+    Opt::new("settings.cell_nav", "Members cell navigation", OFF_ON)
+        .default(1)
+        .needs(&[("settings.tab", "members")]),
+    Opt::new(
+        "settings.env_select",
+        "Environment select",
+        &["multi", "single"],
+    )
+    .needs(&[("settings.tab", "environment")]),
+    Opt::new("settings.desc_rows", "Description rows", &["3", "2", "5"]),
+    Opt::new("settings.tab_dirty", "Dirty mark on the tab", OFF_ON).default(1),
+    Opt::new("settings.save_confirm", "Confirm on save", OFF_ON).default(1),
 ];
 
 /// Task runner: the targets `TreeView`'s folds, indent, environment glyphs
