@@ -16,7 +16,7 @@
 //! `TooSmall` screen and the `CommonArgs` command line, read from clap.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::page_options;
@@ -48,10 +48,88 @@ const NARROW: u16 = 44;
 /// Column where a row's bar starts, after its label.
 const LABEL_W: u16 = 22;
 
-/// Rows of the hint-bar section of the Playground.
-const HINTS_H: u16 = 26;
-/// Rows of the shell section of the Playground.
-const SHELL_H: u16 = 22;
+/// The width the alignment, status and toggle rows draw their bar at.
+const BAR_W: u16 = 64;
+/// The too-small screen's box.
+const TOO_SMALL_W: u16 = 44;
+
+/// The Playground's section captions: the page is never narrower.
+const CAPTIONS: [&str; 9] = [
+    "Layers · HintBar::resolve: the topmost layer that exists wins",
+    "Alignment · HintAlign",
+    "Priorities · HintPriority: normal hints drop from the right, pinned ones last",
+    "Statuses · the right edge",
+    "Toggle hints and the reveal key",
+    "Status line · StatusLine: the shell's footer message",
+    "Motion · --motion full | reduced | paused (Inspector: shell.motion)",
+    "Terminal too small · TooSmall: what an app draws below its minimum size",
+    "Command line · CommonArgs: every app flattens it into its own clap parser",
+];
+
+const AUTO_NOTE: &str = "Auto: pinned when the key is in theme.hintbar.pinned_keys (Esc) · Hint::pinned keeps F5 · Normal drops first";
+
+const MOTION_NOTE: &str = "full: the spinner turns and the bar fills · reduced: the bar fills, the spinner keeps its first frame · paused: nothing moves; --frame N picks the tick";
+
+/// How long the footer keeps a message.
+fn ttl_note() -> String {
+    format!(
+        "information and warnings go after {} s (StatusLine::DEFAULT_TTL_MS) · an error stays until the next key, paste or click · --motion paused freezes the footer",
+        StatusLine::<()>::DEFAULT_TTL_MS / 1000
+    )
+}
+
+/// Rows a faint note takes at `w` columns, indented by 2.
+fn note_rows(text: &str, w: u16) -> u16 {
+    junie_tui::ui::text::wrap(text, w.saturating_sub(2).max(1) as usize).len() as u16
+}
+
+/// Draw a faint note at row `y`, wrapped to `area`; the rows it took.
+fn note(area: Rect, buf: &mut Buffer, t: &Theme, y: u16, text: &str) -> u16 {
+    let lines = junie_tui::ui::text::wrap(text, area.width.saturating_sub(2).max(1) as usize);
+    for (i, l) in lines.iter().enumerate() {
+        let y = y + i as u16;
+        if y < area.bottom() {
+            buf.set_string(area.x + 2, y, l, t.faint().bg(t.canvas));
+        }
+    }
+    lines.len() as u16
+}
+
+/// A command-line option's line wrapped to `w`: its help under the help
+/// column on the following rows.
+fn hanging(line: &str, w: u16) -> Vec<String> {
+    let w = w as usize;
+    if junie_tui::ui::text::width(line) <= w {
+        return vec![line.to_owned()];
+    }
+    let (flag, help) = line.split_at(ARG_COL.min(line.len()));
+    let room = w.saturating_sub(ARG_COL).max(10);
+    junie_tui::ui::text::wrap(help, room)
+        .into_iter()
+        .enumerate()
+        .map(|(i, l)| {
+            if i == 0 {
+                format!("{flag}{l}")
+            } else {
+                format!("{:ARG_COL$}{l}", "")
+            }
+        })
+        .collect()
+}
+
+/// Where an option's help starts in its line.
+const ARG_COL: usize = 24;
+
+/// Rows of the shell section at `w` columns (its notes and the options'
+/// help wrap).
+fn shell_height(w: u16) -> u16 {
+    let args: u16 = common_args()
+        .iter()
+        .map(|l| hanging(l, w.saturating_sub(2)).len() as u16)
+        .sum();
+    // captions, the buttons, the bar, blank rows and the boxed screen
+    16 + note_rows(&ttl_note(), w) + note_rows(MOTION_NOTE, w) + args
+}
 
 /// What the status buttons post to the footer: label, message, tone.
 const POSTS: [(&str, &str, Tone); 3] = [
@@ -201,9 +279,11 @@ impl StatusHintsPage {
             .chain(self.posts.iter().map(|b| b.id))
             .any(|id| ctx.interaction.has_focus(id))
             .then_some(1);
+        let t = ctx.theme;
+        let (hints_h, shell_h) = (self.hints_height(area.width, t), shell_height(area.width));
         let l = self.sections.layout(
             area,
-            &[StackChild::fixed(HINTS_H), StackChild::fixed(SHELL_H)],
+            &[StackChild::fixed(hints_h), StackChild::fixed(shell_h)],
             focus,
             buf,
             ctx,
@@ -310,23 +390,7 @@ impl StatusHintsPage {
             );
         }
         y += 1;
-        if y < area.bottom() {
-            let s = &style;
-            let text = format!(
-                "HintBarStyle · align {:?} · status_min_share {}% · compact {} · pinned_keys {}",
-                resolved.align.unwrap_or(s.align),
-                s.status_min_share,
-                if s.compact { "on" } else { "off" },
-                s.pinned_keys.join(" "),
-            );
-            buf.set_string(
-                area.x + 2,
-                y,
-                junie_tui::ui::text::truncate(&text, area.width.saturating_sub(2) as usize),
-                t.faint().bg(t.canvas),
-            );
-        }
-        y += 2;
+        y += note(area, buf, t, y, &self.style_text(t)) + 1;
 
         // alignment
         caption(buf, y, "Alignment · HintAlign");
@@ -344,7 +408,7 @@ impl StatusHintsPage {
                 break;
             }
             label(buf, y, name);
-            keyhint::render_aligned(row(y, full.min(64)), buf, t, &hints, None, None, align);
+            keyhint::render_aligned(row(y, full.min(BAR_W)), buf, t, &hints, None, None, align);
             y += 1;
         }
         // the app-wide preset: every footer centred, set once on the theme
@@ -352,7 +416,7 @@ impl StatusHintsPage {
             label(buf, y, "Theme::centred_hints");
             let centred = t.centred_hints();
             keyhint::render_parts(
-                row(y, full.min(64)),
+                row(y, full.min(BAR_W)),
                 buf,
                 t,
                 &hints,
@@ -378,7 +442,8 @@ impl StatusHintsPage {
             hint("Esc", "Back"),
             hint("F5", "Refresh").pinned(),
         ];
-        for (name, w) in [("all fit", 72u16), ("36 columns", 36), ("24 columns", 24)] {
+        let all = keyhint::width(&ranked, None, None);
+        for (name, w) in [("all fit", all), ("36 columns", 36), ("24 columns", 24)] {
             if y >= area.bottom() {
                 break;
             }
@@ -386,18 +451,7 @@ impl StatusHintsPage {
             keyhint::render(row(y, w), buf, t, &ranked, None, None);
             y += 1;
         }
-        if y < area.bottom() {
-            buf.set_string(
-                area.x + 2,
-                y,
-                junie_tui::ui::text::truncate(
-                    "Auto: pinned when the key is in theme.hintbar.pinned_keys (Esc) · Hint::pinned keeps F5 · Normal drops first",
-                    area.width.saturating_sub(2) as usize,
-                ),
-                t.faint().bg(t.canvas),
-            );
-        }
-        y += 2;
+        y += note(area, buf, t, y, AUTO_NOTE) + 1;
 
         // statuses
         caption(buf, y, "Statuses · the right edge");
@@ -406,7 +460,7 @@ impl StatusHintsPage {
         if y < area.bottom() {
             label(buf, y, "render_status");
             keyhint::render_status(
-                row(y, full.min(64)),
+                row(y, full.min(BAR_W)),
                 buf,
                 t,
                 &short,
@@ -418,7 +472,7 @@ impl StatusHintsPage {
         if y < area.bottom() {
             label(buf, y, "render_toned");
             keyhint::render_toned(
-                row(y, full.min(64)),
+                row(y, full.min(BAR_W)),
                 buf,
                 t,
                 &short,
@@ -430,7 +484,7 @@ impl StatusHintsPage {
         if y < area.bottom() {
             label(buf, y, "EDIT badge");
             keyhint::render(
-                row(y, full.min(64)),
+                row(y, full.min(BAR_W)),
                 buf,
                 t,
                 &keyhint::EDIT_FIELD,
@@ -447,7 +501,7 @@ impl StatusHintsPage {
             label(buf, y, "toggle_hint");
             let on = self.opt("statushints.hidden") == "on";
             keyhint::render(
-                row(y, full.min(64)),
+                row(y, full.min(BAR_W)),
                 buf,
                 t,
                 &[toggle_hint("Ctrl+H", on, "Hide hidden", "Show hidden")],
@@ -465,7 +519,7 @@ impl StatusHintsPage {
         {
             label(buf, y, "reveal key");
             keyhint::render(
-                row(y, full.min(64)),
+                row(y, full.min(BAR_W)),
                 buf,
                 t,
                 &[hint("↑↓", "Move"), KeyHint::new(key, t.strings.reveal_open)],
@@ -487,12 +541,6 @@ impl StatusHintsPage {
                 buf.set_string(area.x, y, text, t.title().bg(bg));
             }
         };
-        let note = |buf: &mut Buffer, y: u16, text: &str| {
-            if y < area.bottom() {
-                let text = truncate(text, area.width.saturating_sub(2) as usize);
-                buf.set_string(area.x + 2, y, text, t.faint().bg(bg));
-            }
-        };
 
         // the footer status line
         caption(
@@ -510,15 +558,7 @@ impl StatusHintsPage {
             }
         }
         y += 1;
-        note(
-            buf,
-            y,
-            &format!(
-                "information and warnings go after {} s (StatusLine::DEFAULT_TTL_MS) · an error stays until the next key, paste or click · --motion paused freezes the footer",
-                StatusLine::<()>::DEFAULT_TTL_MS / 1000
-            ),
-        );
-        y += 2;
+        y += note(area, buf, t, y, &ttl_note()) + 1;
 
         // motion
         caption(
@@ -546,12 +586,7 @@ impl StatusHintsPage {
             );
         }
         y += 1;
-        note(
-            buf,
-            y,
-            "full: the spinner turns and the bar fills · reduced: the bar fills, the spinner keeps its first frame · paused: nothing moves; --frame N picks the tick",
-        );
-        y += 2;
+        y += note(area, buf, t, y, MOTION_NOTE) + 1;
 
         // the too-small screen
         caption(
@@ -561,8 +596,13 @@ impl StatusHintsPage {
         );
         y += 1;
         let screen = self.too_small(t);
-        let boxed =
-            Rect::new(area.x + 2, y, 44.min(area.width.saturating_sub(2)), 7).intersection(area);
+        let boxed = Rect::new(
+            area.x + 2,
+            y,
+            TOO_SMALL_W.min(area.width.saturating_sub(2)),
+            7,
+        )
+        .intersection(area);
         if !boxed.is_empty() {
             let block = ratatui::widgets::Block::bordered()
                 .border_style(t.faint().bg(bg))
@@ -581,17 +621,62 @@ impl StatusHintsPage {
         );
         y += 1;
         for line in common_args() {
-            if y >= area.bottom() {
-                break;
+            for l in hanging(&line, area.width.saturating_sub(2)) {
+                if y < area.bottom() {
+                    buf.set_string(area.x + 2, y, l, t.secondary().bg(bg));
+                }
+                y += 1;
             }
-            buf.set_string(
-                area.x + 2,
-                y,
-                truncate(&line, area.width.saturating_sub(2) as usize),
-                t.secondary().bg(bg),
-            );
-            y += 1;
         }
+    }
+
+    /// The style readout under the resolved bar.
+    fn style_text(&self, t: &Theme) -> String {
+        let s = self.style(t);
+        let resolved = HintBar::resolve(&self.layers());
+        format!(
+            "HintBarStyle · align {:?} · status_min_share {}% · compact {} · pinned_keys {}",
+            resolved.align.unwrap_or(s.align),
+            s.status_min_share,
+            if s.compact { "on" } else { "off" },
+            s.pinned_keys.join(" "),
+        )
+    }
+
+    /// Rows of the hint-bar section at `w` columns (its notes wrap).
+    fn hints_height(&self, w: u16, t: &Theme) -> u16 {
+        24 + note_rows(&self.style_text(t), w) + note_rows(AUTO_NOTE, w)
+    }
+
+    /// The narrowest width that shows every bar, caption and box whole:
+    /// a row's label column and its bar at its natural width.
+    fn natural_width(&self) -> u16 {
+        let bar = |l: &HintLayer| {
+            let status = l
+                .status
+                .as_ref()
+                .map(|(s, _)| format!("! {s}"))
+                .or_else(|| {
+                    (!l.status_parts.is_empty())
+                        .then(|| l.status_parts.iter().map(|(p, _)| p.as_str()).collect())
+                });
+            keyhint::width(&l.hints, l.badge.map(|(b, _)| b), status.as_deref())
+        };
+        let layers = self.layers();
+        let bars = layers
+            .iter()
+            .flatten()
+            .map(bar)
+            .chain(std::iter::once(bar(&HintBar::resolve(&layers))))
+            .chain([BAR_W, NARROW])
+            .max()
+            .unwrap_or(BAR_W);
+        let captions = CAPTIONS
+            .iter()
+            .map(|c| junie_tui::ui::text::width(c) as u16)
+            .max()
+            .unwrap_or(0);
+        (LABEL_W + bars).max(captions).max(2 + TOO_SMALL_W)
     }
 
     /// Post a status to the shell's footer.
@@ -673,6 +758,12 @@ impl Page for StatusHintsPage {
 
     fn blurb(&self) -> &'static str {
         "The footer hint bar: layers, alignment, priorities, statuses, badges"
+    }
+
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let w = avail.width.max(self.natural_width());
+        let h = self.hints_height(w, ctx.theme) + 1 + shell_height(w);
+        Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
