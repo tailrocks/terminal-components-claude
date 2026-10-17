@@ -11,6 +11,7 @@ use crate::core::hints::{
 use crate::core::keymap::hint_key;
 use crate::widgets::button::Button;
 use crate::widgets::code::CodeEditor;
+use crate::widgets::completion::Completion;
 use crate::widgets::grid::{DataGrid, GridCmd};
 use crate::widgets::input::TextInput;
 use crate::widgets::keyhint::{EDIT_CELL, Hint, hint};
@@ -68,6 +69,21 @@ impl HasHints for Select {
         }
         let mut v = nav_hints(&self.nav, self.type_ahead, false);
         v.extend([hint("Enter", "Choose"), hint("Esc", "Close")]);
+        v
+    }
+}
+
+/// An open completion list: its own keys ([`Completion::NAV`]: ↑↓ and
+/// paging only, letters keep typing into the editor), Enter accepts, Esc
+/// closes (CO3). Closed, none.
+impl HasHints for Completion {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        if !self.is_open() {
+            return vec![];
+        }
+        // the editor under it types the letters: never "Type to jump"
+        let mut v = nav_hints(&self.nav, false, false);
+        v.extend([hint("Enter", "Accept"), hint("Esc", "Close")]);
         v
     }
 }
