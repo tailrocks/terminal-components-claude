@@ -1,0 +1,57 @@
+Dev-only patch for src/bin/showcase/app_tests_reach.rs: REACH_PAGE=<PageId> limits the reach sweep to one page; DUMP_PAGE=<PageId> [DUMP_SIZES=80x24,120x40] [DUMP_SCROLL=1] prints its Playground. git apply it, never commit it.
+
+--- a/src/bin/showcase/app_tests_reach.rs	2026-10-18 02:23:29
++++ b/src/bin/showcase/app_tests_reach.rs	2026-10-18 02:23:31
+@@ -276,7 +276,14 @@
+     let mut problems = Vec::new();
+     let mut failing = BTreeSet::new();
+     let mut pages = BTreeSet::new();
++    let only = std::env::var("REACH_PAGE").ok();
+     for entry in NAV_ENTRIES.iter().skip(part).step_by(PARTS) {
++        if only
++            .as_ref()
++            .is_some_and(|o| *o != format!("{:?}", entry.id))
++        {
++            continue;
++        }
+         pages.insert(format!("{:?}", entry.id));
+         for section in Section::ALL {
+             let Some(mut big) = Shot::new(REFERENCE.0, REFERENCE.1, entry.id, section) else {
+@@ -519,3 +526,37 @@
+     assert!(app.insp.view.offset().1 > 0);
+     assert!(shown(&term).contains(&word), "{last}");
+ }
++
++#[test]
++fn zz_dump_page() {
++    let Ok(page) = std::env::var("DUMP_PAGE") else {
++        return;
++    };
++    let entry = NAV_ENTRIES
++        .iter()
++        .find(|e| format!("{:?}", e.id) == page)
++        .unwrap();
++    let sizes: Vec<(u16, u16)> = std::env::var("DUMP_SIZES")
++        .unwrap_or("80x24,120x40,220x70".into())
++        .split(',')
++        .map(|s| {
++            let (w, h) = s.split_once('x').unwrap();
++            (w.parse().unwrap(), h.parse().unwrap())
++        })
++        .collect();
++    for (w, h) in sizes {
++        let mut s = Shot::new(w, h, entry.id, Section::Playground).unwrap();
++        let l = s.view().last_layout();
++        println!(
++            "=== {w}x{h} content {:?} viewport {:?}",
++            l.content, l.viewport
++        );
++        println!("{}", text(s.term.backend().buffer()));
++        if std::env::var("DUMP_SCROLL").is_ok() {
++            s.view().scroll_to(usize::MAX, usize::MAX);
++            s.draw();
++            println!("--- scrolled end");
++            println!("{}", text(s.term.backend().buffer()));
++        }
++    }
++}
