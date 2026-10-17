@@ -269,6 +269,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Meters => METERS,
         PageId::Notices => NOTICES,
         PageId::DiskCleanup => DISK_CLEANUP,
+        PageId::Activity => ACTIVITY,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
         PageId::Editor => CODE_EDITOR,
@@ -1370,6 +1371,22 @@ pub static DISK_CLEANUP: &[Opt] = &[
         &["line", "block"],
     ),
     Opt::new("diskcleanup.scan", "Scan", &["complete", "scanning"]),
+];
+
+/// Activity (SC51): the run's state, the log's wrap, retention and find
+/// query, and the stream chips' digit keys.
+pub static ACTIVITY: &[Opt] = &[
+    Opt::new(
+        "activity.state",
+        "Run state",
+        &["running", "stopped", "failed"],
+    ),
+    Opt::new("activity.wrap", "Wrap long lines", OFF_ON).default(1),
+    Opt::new("activity.retention", "Retained lines", &["2000", "20"]),
+    Opt::new("activity.find", "Find", &["off", "error", "job"]),
+    Opt::new("activity.digit_toggles", "Digits toggle streams", OFF_ON)
+        .default(1)
+        .behaviour(),
 ];
 
 /// Empty & error (SC21): the empty state's kind, hint and actions, and

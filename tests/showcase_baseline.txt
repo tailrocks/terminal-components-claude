@@ -125,7 +125,9 @@
 120x40 TrueColor Disk cleanup 99f96236772849fe
 120x40 TrueColor Disk cleanup · Options 8fbabbe4f11f06fd
 120x40 TrueColor Disk cleanup · States dabc004b229dff45
-120x40 TrueColor Activity bd55e807d7cc1b58
+120x40 TrueColor Activity dcebdc66244c43d5
+120x40 TrueColor Activity · Options f38057a3eb6d163a
+120x40 TrueColor Activity · States d7eea7993e73525f
 120x40 TrueColor Workspaces f47356618edaae44
 120x40 TrueColor Accounts & usage 33a49843b6841cb1
 120x40 TrueColor Launch cockpit 61f8248b3953124e
@@ -259,7 +261,9 @@
 120x40 Ansi256 Disk cleanup bf9550c0c0b1f8a4
 120x40 Ansi256 Disk cleanup · Options 4ee354854fffc2af
 120x40 Ansi256 Disk cleanup · States 0df2bb534dcadb5e
-120x40 Ansi256 Activity 052634993f63e2b6
+120x40 Ansi256 Activity 5d26859eb8dbd937
+120x40 Ansi256 Activity · Options 0abec638750037da
+120x40 Ansi256 Activity · States a1e17d2385c0c169
 120x40 Ansi256 Workspaces fc86e27808a6c88c
 120x40 Ansi256 Accounts & usage c3c7f2f7300fcf43
 120x40 Ansi256 Launch cockpit cb4bc87c86b30ff0
@@ -393,7 +397,9 @@
 120x40 Ansi16 Disk cleanup 11c15b661572f0e5
 120x40 Ansi16 Disk cleanup · Options 109b31c31cc033b1
 120x40 Ansi16 Disk cleanup · States 33c17acaee8ed879
-120x40 Ansi16 Activity 6fa0e215bc1bd1f6
+120x40 Ansi16 Activity 1a97a4132cbcbf47
+120x40 Ansi16 Activity · Options 846d8c9215f59cd5
+120x40 Ansi16 Activity · States 7f25df54a5dd0e34
 120x40 Ansi16 Workspaces 8da08bd04e854376
 120x40 Ansi16 Accounts & usage 41d8caa67ddc436f
 120x40 Ansi16 Launch cockpit 1a61f707c2ba421a
@@ -527,7 +533,9 @@
 120x40 Mono Disk cleanup b07f1cde7cdfad96
 120x40 Mono Disk cleanup · Options 7f12a3598494d080
 120x40 Mono Disk cleanup · States 71f9378a46177e58
-120x40 Mono Activity 7c40d47ee81627ed
+120x40 Mono Activity f373fb076b77e3a0
+120x40 Mono Activity · Options 8e589a2be27ede54
+120x40 Mono Activity · States 8f7cde422616a467
 120x40 Mono Workspaces 2056e40268880f77
 120x40 Mono Accounts & usage dc56f89e62cbaf68
 120x40 Mono Launch cockpit 3c3026771207e7c3
@@ -661,7 +669,9 @@
 80x24 TrueColor Disk cleanup 290e1781df16c191
 80x24 TrueColor Disk cleanup · Options 5145ea6fb89f9dab
 80x24 TrueColor Disk cleanup · States 8f47ab9d31e7dda4
-80x24 TrueColor Activity 1aaa2c4312c48703
+80x24 TrueColor Activity 1b921aed6edfaf56
+80x24 TrueColor Activity · Options 298800d55c8fac1c
+80x24 TrueColor Activity · States e95cf6146a5ef5aa
 80x24 TrueColor Workspaces 47c2655d70b8bd41
 80x24 TrueColor Accounts & usage 578f5efe48df0180
 80x24 TrueColor Launch cockpit 9a17f91cd619c732
@@ -795,7 +805,9 @@
 80x24 Ansi256 Disk cleanup d9119b905aefa602
 80x24 Ansi256 Disk cleanup · Options e5421a8806e4b369
 80x24 Ansi256 Disk cleanup · States 14d71532be26e06c
-80x24 Ansi256 Activity 24ddc78c6496e26c
+80x24 Ansi256 Activity cd4533a708c0d623
+80x24 Ansi256 Activity · Options b6e1003326bc5da9
+80x24 Ansi256 Activity · States 5edfaae203171136
 80x24 Ansi256 Workspaces 226336cd8dc8f204
 80x24 Ansi256 Accounts & usage 8bfca4874e6ea653
 80x24 Ansi256 Launch cockpit a9fc11bde8e51955
@@ -929,7 +941,9 @@
 80x24 Ansi16 Disk cleanup c946de9f47bca31e
 80x24 Ansi16 Disk cleanup · Options 9a8012e60219886c
 80x24 Ansi16 Disk cleanup · States 99016a9982b1d5b6
-80x24 Ansi16 Activity 6a14407e7b8dabe9
+80x24 Ansi16 Activity 8b32bb31b7ad352c
+80x24 Ansi16 Activity · Options 8cac31890b1a6515
+80x24 Ansi16 Activity · States f5ede7d15773e433
 80x24 Ansi16 Workspaces 422ab527cceadea3
 80x24 Ansi16 Accounts & usage 7059ba80131fc1b4
 80x24 Ansi16 Launch cockpit ef282bdd19611286
@@ -1063,7 +1077,9 @@
 80x24 Mono Disk cleanup 454efcfb7e734ee0
 80x24 Mono Disk cleanup · Options c8aa166818aa24fa
 80x24 Mono Disk cleanup · States 33125d8e4c6c3d16
-80x24 Mono Activity de372762b8cab8a7
+80x24 Mono Activity b3206f5a32b9486c
+80x24 Mono Activity · Options 6508905cf3d19733
+80x24 Mono Activity · States f2ca730ae7b24a15
 80x24 Mono Workspaces f740dd31cb553c69
 80x24 Mono Accounts & usage adf3fcc8fb6b7cf2
 80x24 Mono Launch cockpit af96e40a5b0b9068
@@ -1197,7 +1213,9 @@
 72x20 TrueColor Disk cleanup 51c676bde05e39f0
 72x20 TrueColor Disk cleanup · Options cac2bf41cfdeb1db
 72x20 TrueColor Disk cleanup · States 49468807e919c564
-72x20 TrueColor Activity bfe729ca286e0f92
+72x20 TrueColor Activity 326b6b5152bb1d40
+72x20 TrueColor Activity · Options d857e1e536efc526
+72x20 TrueColor Activity · States 28b2e38619e12561
 72x20 TrueColor Workspaces 98568ab40d36436a
 72x20 TrueColor Accounts & usage 84ade69307c1fa2c
 72x20 TrueColor Launch cockpit 0816ac4f627d1932
@@ -1331,7 +1349,9 @@
 72x20 Ansi256 Disk cleanup 892e6b6153707973
 72x20 Ansi256 Disk cleanup · Options 3e8b4105e64b9f75
 72x20 Ansi256 Disk cleanup · States a7a1345d942488b7
-72x20 Ansi256 Activity 3bc209c205abd911
+72x20 Ansi256 Activity 860a989d548fc805
+72x20 Ansi256 Activity · Options 73ce72e6e0886b55
+72x20 Ansi256 Activity · States 1b9e89b1578fb860
 72x20 Ansi256 Workspaces 739a0098ab2e6dd9
 72x20 Ansi256 Accounts & usage aae14e064f68a35a
 72x20 Ansi256 Launch cockpit 80ac39ea8d275866
@@ -1465,7 +1485,9 @@
 72x20 Ansi16 Disk cleanup e2b6d7c135239629
 72x20 Ansi16 Disk cleanup · Options a03bada673546178
 72x20 Ansi16 Disk cleanup · States fa2ad59d815435fc
-72x20 Ansi16 Activity 5a7a986dac246f9a
+72x20 Ansi16 Activity f4e5ffa6f3e08963
+72x20 Ansi16 Activity · Options 0fd0d89ac5d7d331
+72x20 Ansi16 Activity · States 0d8e90913e5e82f2
 72x20 Ansi16 Workspaces d94430efb129a8c8
 72x20 Ansi16 Accounts & usage 242c9bb73187f9fe
 72x20 Ansi16 Launch cockpit befa4adf0d32478a
@@ -1599,7 +1621,9 @@
 72x20 Mono Disk cleanup 82d459d771bb71e7
 72x20 Mono Disk cleanup · Options e866680b00ecd4ee
 72x20 Mono Disk cleanup · States a78453b8e7a1babc
-72x20 Mono Activity 98b2b364986b6ea4
+72x20 Mono Activity 43d5025bf57d31e5
+72x20 Mono Activity · Options 03f47f1f23ccbcff
+72x20 Mono Activity · States 72c15909710507c2
 72x20 Mono Workspaces 765191300cf96f42
 72x20 Mono Accounts & usage cfcc221edb91778c
 72x20 Mono Launch cockpit 638398971d715fb8
@@ -1733,7 +1757,9 @@
 100x30 TrueColor Disk cleanup 847eee23ab0b8597
 100x30 TrueColor Disk cleanup · Options 9020f8770a0c71d4
 100x30 TrueColor Disk cleanup · States 21a6b1f67ef1f8e0
-100x30 TrueColor Activity ad4101e2f1b25a7e
+100x30 TrueColor Activity 8d3fb8fbb6db7518
+100x30 TrueColor Activity · Options e9b8957ef53898dd
+100x30 TrueColor Activity · States cb078a99cfa2069b
 100x30 TrueColor Workspaces 9223779887629457
 100x30 TrueColor Accounts & usage 520ff75a4adf9d26
 100x30 TrueColor Launch cockpit aeeca08656b94e47
@@ -1867,7 +1893,9 @@
 100x30 Ansi256 Disk cleanup c28b55fd7ea76023
 100x30 Ansi256 Disk cleanup · Options 99db571cc823fce4
 100x30 Ansi256 Disk cleanup · States b437b332bdca7c71
-100x30 Ansi256 Activity dae478a7f58226bf
+100x30 Ansi256 Activity a36e89e1a70e415f
+100x30 Ansi256 Activity · Options dac2d090281dcfee
+100x30 Ansi256 Activity · States 17ce6f8778afef4e
 100x30 Ansi256 Workspaces f8302853ba560fcb
 100x30 Ansi256 Accounts & usage df705d2fee012c60
 100x30 Ansi256 Launch cockpit 7cb27c8d028a7b8b
@@ -2001,7 +2029,9 @@
 100x30 Ansi16 Disk cleanup ccb31ee475f6863c
 100x30 Ansi16 Disk cleanup · Options ee426f40ef1df5b9
 100x30 Ansi16 Disk cleanup · States 136b10402fb31265
-100x30 Ansi16 Activity 9711d782b24fbffc
+100x30 Ansi16 Activity e353f8680635534b
+100x30 Ansi16 Activity · Options 69261a3ecdb5e5c0
+100x30 Ansi16 Activity · States adf7dfea998a6b8f
 100x30 Ansi16 Workspaces 530440e580e2928d
 100x30 Ansi16 Accounts & usage 1b2fa20658fbdca8
 100x30 Ansi16 Launch cockpit b1a308d19d6bfbbf
@@ -2135,7 +2165,9 @@
 100x30 Mono Disk cleanup 5fe75ab44d15f30f
 100x30 Mono Disk cleanup · Options 05e6e5f77fdccd76
 100x30 Mono Disk cleanup · States 154aca34b01b0d52
-100x30 Mono Activity 412e985f6b546de1
+100x30 Mono Activity b9976b23550d38ee
+100x30 Mono Activity · Options bf1504bbab7dea3b
+100x30 Mono Activity · States e487490e6a4058e8
 100x30 Mono Workspaces 201794c2b3352a38
 100x30 Mono Accounts & usage ce1eb8fba0a5c39b
 100x30 Mono Launch cockpit 14a96195f48778e6
@@ -2269,7 +2301,9 @@
 160x50 TrueColor Disk cleanup 144604e1b767d44f
 160x50 TrueColor Disk cleanup · Options 78df5897895d0bb8
 160x50 TrueColor Disk cleanup · States 57c0b4c8b57386bc
-160x50 TrueColor Activity 1c11af27abecadd7
+160x50 TrueColor Activity b69de6a43276f5cf
+160x50 TrueColor Activity · Options 54764e69c555b8c1
+160x50 TrueColor Activity · States fb34b8809da6217c
 160x50 TrueColor Workspaces 5e1e8ee14c3b77ab
 160x50 TrueColor Accounts & usage 0491fe31f8be79ba
 160x50 TrueColor Launch cockpit d19c60c06e712763
@@ -2403,7 +2437,9 @@
 160x50 Ansi256 Disk cleanup ee9d2d13a79ddb75
 160x50 Ansi256 Disk cleanup · Options 537b854d0851e1c0
 160x50 Ansi256 Disk cleanup · States c831645f952dca8b
-160x50 Ansi256 Activity 77d82167caf79255
+160x50 Ansi256 Activity da09edb81c9c01f2
+160x50 Ansi256 Activity · Options a977b4a27ed44d59
+160x50 Ansi256 Activity · States 6ebaca0f63ed441c
 160x50 Ansi256 Workspaces 9b99ca6fdda14b9b
 160x50 Ansi256 Accounts & usage 0532c36cbb541e18
 160x50 Ansi256 Launch cockpit b28fb99840ae269b
@@ -2537,7 +2573,9 @@
 160x50 Ansi16 Disk cleanup 5bb56ce5047815a0
 160x50 Ansi16 Disk cleanup · Options c1d8a3f423903450
 160x50 Ansi16 Disk cleanup · States 615d8f238cc92548
-160x50 Ansi16 Activity 27d255630b24f315
+160x50 Ansi16 Activity da2081dc8ce9f3fb
+160x50 Ansi16 Activity · Options 3dc0a57eb3e36ca8
+160x50 Ansi16 Activity · States 9ff824a554d2f7f3
 160x50 Ansi16 Workspaces 613aa42383b88a11
 160x50 Ansi16 Accounts & usage 6d958c363a589690
 160x50 Ansi16 Launch cockpit 0e583c8eee2c7f8f
@@ -2671,7 +2709,9 @@
 160x50 Mono Disk cleanup e5c5259d2ce122c9
 160x50 Mono Disk cleanup · Options a275bd80703eef35
 160x50 Mono Disk cleanup · States 02cda6afa69fe01b
-160x50 Mono Activity 011a068015789a1e
+160x50 Mono Activity 7ecde74532dc4514
+160x50 Mono Activity · Options 66c6e1e7f8ad4dd5
+160x50 Mono Activity · States dc4aeb41137589aa
 160x50 Mono Workspaces 91b78b4a83b5156c
 160x50 Mono Accounts & usage 15a0c9a62667f3d3
 160x50 Mono Launch cockpit 813b1250e80beed6
