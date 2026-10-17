@@ -812,12 +812,18 @@ impl Tabs {
                 buf.set_string(x, y, look.gutter, look.gutter_style);
             }
             let mut cx = x + 1;
+            // the tab's own plane: its prefix, suffix and state marks are
+            // measured against it, so they read on the active tab's lifted
+            // fill at every colour level, not only on the strip
+            let plane = st.bg.unwrap_or(bg);
             if let Some(p) = &it.prefix {
+                let label = st.fg.unwrap_or(t.text_primary);
                 buf.set_string(
                     cx,
                     y,
                     p,
-                    st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
+                    st.fg(t.beside_label(t.text_muted, plane, label))
+                        .remove_modifier(Modifier::BOLD),
                 );
                 cx += crate::ui::text::width(p) as u16 + 1;
             }
@@ -828,11 +834,14 @@ impl Tabs {
                     cx + 1,
                     y,
                     x,
-                    st.fg(if active {
-                        t.text_secondary
-                    } else {
-                        t.text_muted
-                    })
+                    st.fg(t.legible_mark(
+                        if active {
+                            t.text_secondary
+                        } else {
+                            t.text_muted
+                        },
+                        plane,
+                    ))
                     .remove_modifier(Modifier::BOLD),
                 );
                 cx += crate::ui::text::width(x) as u16 + 1;
@@ -842,18 +851,23 @@ impl Tabs {
                     cx + 1,
                     y,
                     t.glyphs.spinner_frame(ctx.interaction.tick),
-                    st.fg(t.accent),
+                    st.fg(t.legible_mark(t.accent, plane)),
                 );
                 cx += 2;
             } else if it.error {
-                let ink = t.tone_on(crate::theme::Tone::Error, st.bg.unwrap_or(bg));
+                let ink = t.tone_on(crate::theme::Tone::Error, plane);
                 buf.set_string(cx + 1, y, "!", st.fg(ink));
                 cx += 2;
             } else if it.dirty {
-                buf.set_string(cx + 1, y, t.glyphs.dirty, st.fg(t.warning));
+                buf.set_string(
+                    cx + 1,
+                    y,
+                    t.glyphs.dirty,
+                    st.fg(t.legible_mark(t.warning, plane)),
+                );
                 cx += 2;
             } else if it.done {
-                let ink = t.tone_on(crate::theme::Tone::Success, st.bg.unwrap_or(bg));
+                let ink = t.tone_on(crate::theme::Tone::Success, plane);
                 buf.set_string(
                     cx + 1,
                     y,
@@ -1360,6 +1374,44 @@ mod tests {
         let b = tabs.areas[1];
         assert_eq!(buf[(b.x + 1 + 4 + 1, 0)].symbol(), t.glyphs.dirty);
         assert!(!row(&buf, 0).contains("Docs ✓"));
+    }
+
+    /// A1: on the active tab's lifted fill the prefix reads as text
+    /// (4.5:1) and the state marks as graphics (3:1) at every colour level;
+    /// at 16 colours the fill is xterm's DarkGray, where the muted number
+    /// was 3.2:1, the busy spinner 2.9:1 and the unsaved dot 2.4:1.
+    #[test]
+    fn the_active_tabs_prefix_and_marks_read_on_its_fill_at_every_level() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            for state in ["busy", "dirty", "suffix"] {
+                let mut item = TabItem::new("Shell").prefix("1");
+                match state {
+                    "busy" => item.busy = true,
+                    "dirty" => item.dirty = true,
+                    _ => item = item.suffix("○"),
+                }
+                let mut tabs =
+                    Tabs::with_items(WidgetId::of("t"), vec![TabItem::new("Docs"), item]);
+                tabs.set_active(1);
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                let mut buf = Buffer::empty(Rect::new(0, 0, 60, 2));
+                tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+                let a = tabs.areas[1];
+                let cell = |x: u16| &buf[(x, 0)];
+                let ratio = |x: u16| contrast_ratio(cell(x).fg, cell(x).bg).unwrap();
+                let ctx = format!("{level:?} {state}");
+                let num = a.x + 1;
+                assert_eq!(cell(num).symbol(), "1", "{ctx}");
+                assert!(ratio(num) >= 4.5, "{ctx}: prefix {:.2}", ratio(num));
+                let mark = a.x + 1 + 2 + 5 + 1;
+                assert_ne!(cell(mark).symbol(), " ", "{ctx}");
+                assert!(ratio(mark) >= 3.0, "{ctx}: mark {:.2}", ratio(mark));
+            }
+        }
     }
 
     #[test]
