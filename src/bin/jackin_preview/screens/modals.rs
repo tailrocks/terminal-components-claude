@@ -4,29 +4,23 @@
 //! the read-only info dialog with copyable rows, and the help overlay.
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
+
 use junie_tui::core::hit::Axis;
-use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
-use junie_tui::core::pointer::{MouseTarget, PointerEvent, scroll_input};
+use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
-use junie_tui::ui::text::truncate;
-use junie_tui::widgets::button::{Button, row_layout_right};
-use junie_tui::widgets::choice::Checkbox;
-use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
-use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::picker::{Picker, PickerAction, PickerStatus};
-use junie_tui::widgets::progress::render_spinner;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 
 use crate::domain::onepassword::OpReference;
 use crate::sim::onepassword::{FieldKind, OpError, SimOnePassword};
-use crate::sim::world::{FsEntry, World};
+use crate::sim::world::World;
 
 use super::ModalResult;
 use junie_tui::core::scroll::Scrollable;
@@ -58,521 +52,65 @@ pub fn modal_frame(
 
 // ------------------------------------------------------------ file browser
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BrowserResult {
-    Chosen { path: String, readonly: bool },
-    GitUrl(String),
-    Cancelled,
-}
+// The file browser is the library's (S22); this app opens it on its
+// simulated filesystem with vim keys, hidden profiles shown and the Git URL
+// entry.
+use junie_tui::widgets::file_browser::{Choose, FileCmd, FileEntry, MemorySource, UrlEntry};
+pub use junie_tui::widgets::file_browser::{FileBrowser, FileBrowserResult as BrowserResult};
 
-pub struct FileBrowser {
-    /// Which dismissals close it. Default `Dismiss::ESCAPE`.
-    pub dismiss: junie_tui::ui::popup::Dismiss,
-    pub title: String,
-    pub cwd: String,
-    pub path: TextInput,
-    pub list: ListBox,
-    pub entries: Vec<FsEntry>,
-    pub readonly: Option<Checkbox>,
-    pub git_url: Button,
-    pub cancel: Button,
-    pub choose: Button,
-    /// Git URL mode: the field holds a URL and `Choose` resolves it.
-    pub url_mode: bool,
-    pub resolving: Option<(String, i64)>,
-    pub error: Option<String>,
-    pub dirs_only: bool,
-    pub result: Option<BrowserResult>,
-    pub area: Rect,
-    /// The flow's progress line above the path (`✓ Source · ...`), set by
-    /// the flow that opens the browser.
-    pub stepper: Option<String>,
-}
-
-impl FileBrowser {
-    pub fn new(
-        id: WidgetId,
-        title: &str,
-        cwd: &str,
-        with_readonly: bool,
-        dirs_only: bool,
-        w: &World,
-    ) -> Self {
-        let mut b = Self {
-            dismiss: junie_tui::ui::popup::Dismiss::ESCAPE,
-            title: title.to_owned(),
-            cwd: cwd.to_owned(),
-            path: TextInput::new(id.sub("path"), "Path").plain_label(),
-            list: ListBox::new(id.sub("list"), vec![], SelectMode::Single)
-                .empty_text("Empty folder"),
-            entries: vec![],
-            readonly: with_readonly.then(|| Checkbox::new(id.sub("ro"), "Mount read-only", false)),
-            git_url: Button::secondary(id.sub("git"), "Git URL…"),
-            cancel: Button::subtle(id.sub("cancel"), "Cancel"),
-            choose: Button::primary(id.sub("choose"), "Choose"),
-            url_mode: false,
-            resolving: None,
-            error: None,
-            dirs_only,
-            result: None,
-            area: Rect::ZERO,
-            stepper: None,
-        };
-        b.load(w);
-        b
-    }
-
-    pub fn load(&mut self, w: &World) {
-        let cwd = self.cwd.trim_end_matches('/').to_owned();
-        let mut items: Vec<FsEntry> =
-            w.fs.iter()
-                .filter(|e| {
-                    e.path
-                        .rsplit_once('/')
-                        .map(|(parent, _)| parent == cwd)
-                        .unwrap_or(false)
-                })
-                .cloned()
-                .collect();
-        items.sort_by(|a, b| b.dir.cmp(&a.dir).then(a.path.cmp(&b.path)));
-        let mut rows = vec![ListItem::new("..").meta("parent")];
-        for e in &items {
-            let name = e.path.rsplit('/').next().unwrap_or(&e.path).to_owned();
-            let label = if e.dir { format!("{name}/") } else { name };
-            let meta = match (&e.git, e.meta.as_str()) {
-                (Some(b), _) => format!("git · {b}"),
-                (None, "") => String::new(),
-                (None, m) => m.to_owned(),
-            };
-            let mut li = ListItem::new(&label);
-            if !meta.is_empty() {
-                li = li.meta(&meta);
+/// A file browser on `w`'s filesystem starting at `cwd`; `with_readonly`
+/// adds the "Mount read-only" option, `dirs_only` accepts only folders.
+pub fn file_browser(
+    id: WidgetId,
+    title: &str,
+    cwd: &str,
+    with_readonly: bool,
+    dirs_only: bool,
+    w: &World,
+) -> FileBrowser {
+    let source = MemorySource::new(
+        w.fs.iter()
+            .map(|e| {
+                let meta = match (&e.git, e.meta.as_str()) {
+                    (Some(b), _) => format!("git · {b}"),
+                    (None, m) => m.to_owned(),
+                };
+                let entry = if e.dir {
+                    FileEntry::dir(&e.path)
+                } else {
+                    FileEntry::file(&e.path)
+                };
+                entry.meta(&meta)
+            })
+            .collect(),
+    )
+    .home(&w.home);
+    let repos: Vec<String> = w.github.iter().map(|r| r.full_name.clone()).collect();
+    let url = UrlEntry::new("Git URL…", "Git URL")
+        .back("Browse folders")
+        .placeholder("github.com/org/repo")
+        .help(&[
+            "Enter a GitHub repository URL. The repository is cloned into the",
+            "Construct at launch; the branch is chosen in the mount row.",
+        ])
+        .empty_error("Enter a repository URL")
+        .validate(move |url| {
+            if repos.iter().any(|r| url.contains(r.as_str())) {
+                Ok(())
+            } else {
+                Err(format!("Could not resolve {url}: repository not found"))
             }
-            li.disabled = self.dirs_only && !e.dir;
-            rows.push(li);
-        }
-        self.entries = items;
-        let cur = self.list.cursor.min(rows.len().saturating_sub(1));
-        self.list = ListBox::new(self.list.id, rows, SelectMode::Single).empty_text("Empty folder");
-        self.list.cursor = cur;
-        self.path = TextInput::new(self.path.id, "Path")
-            .plain_label()
-            .value(&w.tilde(&self.cwd));
-        self.error = None;
-    }
-
-    fn open_cursor(&mut self, w: &World) -> Outcome {
-        let i = self.list.cursor;
-        if i == 0 {
-            if let Some((parent, _)) = self.cwd.rsplit_once('/')
-                && !parent.is_empty()
-            {
-                self.cwd = parent.to_owned();
-                self.list.cursor = 0;
-                self.load(w);
-            }
-            return Outcome::Changed;
-        }
-        let Some(e) = self.entries.get(i - 1) else {
-            return Outcome::Consumed;
-        };
-        if e.dir {
-            self.cwd = e.path.clone();
-            self.list.cursor = 0;
-            self.load(w);
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
-    }
-
-    fn choose(&mut self, w: &World) -> Outcome {
-        if self.url_mode {
-            let url = self.path.text().trim().to_owned();
-            if url.is_empty() {
-                self.error = Some("Enter a repository URL".into());
-                return Outcome::Changed;
-            }
-            if !w.github.iter().any(|r| url.contains(&r.full_name)) {
-                self.error = Some(format!("Could not resolve {url}: repository not found"));
-                return Outcome::Changed;
-            }
-            self.result = Some(BrowserResult::GitUrl(url));
-            return Outcome::Changed;
-        }
-        let i = self.list.cursor;
-        let path = if i == 0 {
-            self.cwd.clone()
-        } else {
-            match self.entries.get(i - 1) {
-                Some(e) if e.dir => e.path.clone(),
-                Some(_) if self.dirs_only => {
-                    self.error = Some("Choose a folder, not a file".into());
-                    return Outcome::Changed;
-                }
-                Some(e) => e.path.clone(),
-                None => self.cwd.clone(),
-            }
-        };
-        self.result = Some(BrowserResult::Chosen {
-            path,
-            readonly: self.readonly.as_ref().is_some_and(|c| c.checked),
         });
-        Outcome::Changed
-    }
-
-    fn toggle_url_mode(&mut self, w: &World) {
-        self.url_mode = !self.url_mode;
-        if self.url_mode {
-            self.path = TextInput::new(self.path.id, "Git URL")
-                .plain_label()
-                .placeholder("github.com/org/repo");
-            self.git_url.label = "Browse folders".into();
-        } else {
-            self.git_url.label = "Git URL…".into();
-            self.load(w);
-        }
-        self.error = None;
-    }
-
-    pub fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing, w: &World) -> Outcome {
-        let cur = focus.current();
-        if cur == Some(self.path.id) {
-            let editing = self.path.editing;
-            let (o, ev) = self.path.on_key(key);
-            match ev {
-                Some(InputAction::Committed) => {
-                    if self.url_mode {
-                        return self.choose(w);
-                    }
-                    let typed = crate::sim::world::expand(&w.home, self.path.text().trim());
-                    if w.fs.iter().any(|e| e.path == typed && e.dir) {
-                        self.cwd = typed;
-                        self.list.cursor = 0;
-                        self.load(w);
-                        focus.focus(self.list.id);
-                    } else {
-                        self.error = Some(format!("Folder not found: {}", self.path.text()));
-                    }
-                    return Outcome::Changed;
-                }
-                Some(InputAction::CommittedTab { backward }) => {
-                    if backward {
-                        focus.prev(ring)
-                    } else {
-                        focus.next(ring)
-                    }
-                    return Outcome::Changed;
-                }
-                _ => {}
-            }
-            if o.consumed() || editing {
-                return o.or(Outcome::Consumed);
-            }
-        }
-        if cur == Some(self.list.id) {
-            match key.code {
-                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') if key.plain() => {
-                    return self.open_cursor(w);
-                }
-                KeyCode::Left | KeyCode::Char('h') | KeyCode::Backspace if key.plain() => {
-                    self.list.cursor = 0;
-                    return self.open_cursor(w);
-                }
-                KeyCode::Char(' ') | KeyCode::Char('s') if key.plain() => return self.choose(w),
-                KeyCode::Char('g') if key.plain() => {
-                    self.toggle_url_mode(w);
-                    focus.focus(self.path.id);
-                    self.path.begin_edit();
-                    return Outcome::Changed;
-                }
-                _ => {}
-            }
-            let o = self.list.on_key(key);
-            if o.consumed() {
-                return o;
-            }
-        }
-        if let Some(c) = self.readonly.as_mut()
-            && cur == Some(c.id)
-        {
-            let o = c.on_key(key);
-            if o.consumed() {
-                return o;
-            }
-        }
-        if cur == Some(self.git_url.id) {
-            let (o, fired) = self.git_url.on_key(key);
-            if fired {
-                self.toggle_url_mode(w);
-                focus.focus(self.path.id);
-                self.path.begin_edit();
-                return Outcome::Changed;
-            }
-            if o.consumed() {
-                return o;
-            }
-        }
-        if cur == Some(self.cancel.id) {
-            let (o, fired) = self.cancel.on_key(key);
-            if fired {
-                self.result = Some(BrowserResult::Cancelled);
-                return Outcome::Changed;
-            }
-            if o.consumed() {
-                return o;
-            }
-        }
-        if cur == Some(self.choose.id) {
-            let (o, fired) = self.choose.on_key(key);
-            if fired {
-                return self.choose(w);
-            }
-            if o.consumed() {
-                return o;
-            }
-        }
-        match key.code {
-            KeyCode::Esc => {
-                self.result = Some(BrowserResult::Cancelled);
-                Outcome::Changed
-            }
-            KeyCode::Tab => {
-                focus.next(ring);
-                Outcome::Changed
-            }
-            KeyCode::BackTab => {
-                focus.prev(ring);
-                Outcome::Changed
-            }
-            KeyCode::Enter if cur == Some(self.list.id) => self.open_cursor(w),
-            _ => Outcome::Consumed,
-        }
-    }
-
-    /// The path field takes its gestures (a press anchors a drag, a drag
-    /// selects, a click places the caret or selects a word); the wheel
-    /// anywhere scrolls the list and its bar pages and drags it; a click
-    /// picks an entry (a double click opens it) or presses a control.
-    pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus, w: &World) -> Outcome {
-        if let Some((axis, delta)) = ev.wheel() {
-            return match axis {
-                Axis::Vertical => self.list.wheel(axis, delta).outcome(),
-                Axis::Horizontal => Outcome::Consumed,
-            };
-        }
-        if let Some(r) = self.path.route(ev) {
-            if ev.is(Phase::Click) {
-                focus.focus(self.path.id);
-            }
-            return r.outcome();
-        }
-        if ev.on(self.list.id)
-            && let Some(r) = scroll_input(&mut self.list, ev)
-        {
-            return r.outcome();
-        }
-        if !ev.is(Phase::Click) {
-            return Outcome::Ignored;
-        }
-        let id = ev.id;
-        if let Some(i) = ev
-            .on(self.list.id)
-            .then(|| ev.index_of(Part::ROW))
-            .flatten()
-        {
-            focus.focus(self.list.id);
-            // the list's click policy opens an entry (a double click by
-            // default, as in Finder); one click picks it
-            let open = self.list.click.activates(ev.count(), self.list.cursor == i);
-            self.list.cursor = i;
-            self.list.chosen = Some(i);
-            if open {
-                return self.open_cursor(w);
-            }
-            return Outcome::Changed;
-        }
-        if let Some(c) = self.readonly.as_mut()
-            && c.id == id
-        {
-            focus.focus(id);
-            return c.on_click();
-        }
-        if id == self.git_url.id {
-            focus.focus(id);
-            if self.git_url.on_click() {
-                self.toggle_url_mode(w);
-                focus.focus(self.path.id);
-                self.path.begin_edit();
-            }
-            return Outcome::Changed;
-        }
-        if id == self.cancel.id && self.cancel.on_click() {
-            self.result = Some(BrowserResult::Cancelled);
-            return Outcome::Changed;
-        }
-        if id == self.choose.id && self.choose.on_click() {
-            return self.choose(w);
-        }
-        Outcome::Consumed
-    }
-
-    pub fn on_paste(&mut self, text: &str) -> Outcome {
-        self.path.on_paste(text)
-    }
-
-    pub fn is_editing(&self) -> bool {
-        self.path.editing
-    }
-
-    pub fn tick(&mut self, now_ms: i64) -> Outcome {
-        if let Some((url, at)) = &self.resolving
-            && now_ms >= *at
-        {
-            let u = url.clone();
-            self.resolving = None;
-            self.result = Some(BrowserResult::GitUrl(u));
-            return Outcome::Changed;
-        }
-        Outcome::Ignored
-    }
-
-    pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let (w, h) = if screen.width < 100 {
-            (
-                screen.width.saturating_sub(4).min(76),
-                screen.height.saturating_sub(4).min(20),
-            )
-        } else {
-            (84, 22)
-        };
-        let (area, inner) = modal_frame(screen, buf, ctx, w, h, &self.title, None, self.dismiss);
-        self.area = area;
-        let t = ctx.theme;
-        let bg = t.surface_elevated;
-        let mut y = inner.y;
-        if let Some(s) = &self.stepper {
-            buf.set_string(
-                inner.x,
-                y,
-                truncate(s, inner.width as usize),
-                t.muted().bg(bg),
-            );
-            y += 2;
-        }
-        self.path
-            .render(Rect::new(inner.x - 1, y, inner.width + 1, 2), buf, ctx, bg);
-        y += 3;
-        let extra: u16 = 2 + u16::from(self.readonly.is_some()) + 1;
-        let list_h = inner.bottom().saturating_sub(y + extra + 1);
-        if self.url_mode {
-            let lines = [
-                "Enter a GitHub repository URL. The repository is cloned into the",
-                "Construct at launch; the branch is chosen in the mount row.",
-            ];
-            for (i, l) in lines.iter().enumerate() {
-                buf.set_string(inner.x + 1, y + i as u16, l, t.muted().bg(bg));
-            }
-            if let Some((url, _)) = &self.resolving {
-                render_spinner(
-                    Rect::new(inner.x + 1, y + 3, inner.width, 1),
-                    buf,
-                    ctx,
-                    &format!("Resolving {url}…"),
-                    bg,
-                );
-            }
-        } else {
-            self.list.render(
-                Rect::new(inner.x - 1, y, inner.width + 1, list_h),
-                buf,
-                ctx,
-                bg,
-            );
-        }
-        y += list_h + 1;
-        if let Some(c) = self.readonly.as_mut() {
-            c.render(Rect::new(inner.x - 1, y, inner.width + 1, 1), buf, ctx, bg);
-            y += 1;
-        }
-        if let Some(e) = &self.error {
-            buf.set_string(
-                inner.x,
-                y,
-                truncate(&format!("! {e}"), inner.width as usize),
-                t.error_fg().bg(bg),
-            );
-        }
-        let ay = inner.bottom().saturating_sub(1);
-        let widths = [
-            self.git_url.width(),
-            self.cancel.width(),
-            self.choose.width(),
-        ];
-        let rects = row_layout_right(Rect::new(inner.x, ay, inner.width, 1), &widths, 1);
-        self.git_url.render(rects[0], buf, ctx, bg);
-        self.cancel.render(rects[1], buf, ctx, bg);
-        self.choose.render(rects[2], buf, ctx, bg);
-        ctx.hits.register(self.path.id, self.path.area);
-        for b in [&self.git_url, &self.cancel, &self.choose] {
-            ctx.hits.register(b.id, b.area);
-        }
-        if let Some(c) = &self.readonly {
-            ctx.hits.register(c.id, c.area);
-        }
-    }
-
-    pub fn initial_focus(&self) -> WidgetId {
-        self.list.id
-    }
-}
-
-/// The browser on the app's layer stack: Esc, Cancel or a dismissal its
-/// policy allows report `Cancelled`; Choose reports the path (or URL).
-impl Layer<ModalResult, World> for FileBrowser {
-    fn animating(&self) -> bool {
-        true
-    }
-    fn is_editing(&self) -> bool {
-        FileBrowser::is_editing(self)
-    }
-    fn spec(&self) -> LayerSpec {
-        LayerSpec::modal(self.dismiss).initial_focus(self.initial_focus())
-    }
-    fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &World) {
-        FileBrowser::render(self, screen, buf, ctx);
-    }
-    fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, World>) -> Outcome {
-        FileBrowser::on_key(self, key, cx.focus, cx.ring, cx.app).or(Outcome::Consumed)
-    }
-    fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, World>) -> Outcome {
-        FileBrowser::pointer(self, ev, cx.focus, cx.app)
-    }
-    fn on_paste(&mut self, text: &str) -> Outcome {
-        FileBrowser::on_paste(self, text)
-    }
-    fn on_blur(&mut self, change: FocusChange) -> Outcome {
-        junie_tui::core::focus::forward_blur(change, &mut [&mut self.path])
-    }
-    fn on_tick(&mut self, w: &World) -> Outcome {
-        self.tick(w.now_ms())
-    }
-    fn hints(&self, _: Option<WidgetId>) -> Vec<Hint> {
-        vec![
-            hint("Enter", "Open"),
-            hint("Space", "Choose"),
-            hint("g", "Git URL"),
-            hint("Tab", "Next"),
-            hint("Esc", "Cancel"),
-        ]
-    }
-    fn on_dismiss(&mut self, _: DismissReason) {
-        self.result = Some(BrowserResult::Cancelled);
-    }
-    fn take_result(&mut self) -> Option<LayerOut<ModalResult>> {
-        self.result
-            .take()
-            .map(|r| LayerOut::Close(ModalResult::Browser(r)))
+    let b = FileBrowser::new(id, title, source, cwd)
+        .choose(if dirs_only { Choose::Dirs } else { Choose::Any })
+        .keys(FileCmd::vim_keymap())
+        .show_hidden(true)
+        .hidden_toggle(false)
+        .url_entry(url);
+    if with_readonly {
+        b.checkbox("Mount read-only", false)
+    } else {
+        b
     }
 }
 

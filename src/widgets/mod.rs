@@ -16,6 +16,7 @@ pub mod diff;
 pub mod edit;
 pub mod empty;
 pub mod field_common;
+pub mod file_browser;
 pub mod form_dialog;
 pub mod grid;
 mod grid_specimen;

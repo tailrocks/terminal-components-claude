@@ -134,7 +134,10 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/checksradios-options", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "2", "wait:Checkbox click target"]).pending(),
     Root::new("showcase/sections/checksradios-states", Bin::Showcase, &["--page", "checksradios"], BOOT).sends(&["tab", "3", "wait:Compare levels"]).pending(),
     Root::new("showcase/elements/checks/row-hover", Bin::Showcase, &["--page", "checksradios", "--opt", "checksradios.hit=row"], BOOT).hover("Include archived projects").pending(),
-    Root::new("showcase/planned/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:arrives with SC41"]).pending(),
+    // SC41 filled File browser (FileBrowser): the page and its sections
+    Root::new("showcase/pages/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["wait:New mount"]).pending(),
+    Root::new("showcase/sections/filebrowser-options", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["tab", "2", "wait:Option check box"]).pending(),
+    Root::new("showcase/sections/filebrowser-states", Bin::Showcase, &["--page", "filebrowser"], BOOT).sends(&["tab", "3", "wait:Hidden toggle"]).pending(),
     // SC21 filled Empty & error: the page, its sections and an error state
     Root::new("showcase/pages/emptyerror", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["wait:No connections yet"]).pending(),
     Root::new("showcase/sections/emptyerror-options", Bin::Showcase, &["--page", "emptyerror"], BOOT).sends(&["tab", "2", "wait:Read-only reason"]).pending(),
@@ -456,6 +459,10 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/dialogs_notes", Bin::Showcase, &["--page", "dialogs"], BOOT).click("Release notes").pending().dismiss_pending(),
     // SC18 Dialog kinds: the form, the info dialog, the choice and the
     // keyboard reference, each opened from its button.
+    // SC41: the file browser over its fixture (path bar, filter, hidden
+    // toggle, option check box), and with the Git URL entry and a step line
+    Root::new("showcase/overlays/filebrowser", Bin::Showcase, &["--page", "filebrowser"], BOOT).click("Browse…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/filebrowser_url", Bin::Showcase, &["--page", "filebrowser", "--opt", "filebrowser.url_entry=on", "--opt", "filebrowser.stepper=on"], BOOT).click("Browse…").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogkinds_form", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Add connection…").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogkinds_info", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Server info").pending().dismiss_pending(),
     Root::new("showcase/overlays/dialogkinds_choice", Bin::Showcase, &["--page", "dialogkinds"], BOOT).click("Release channel…").pending().dismiss_pending(),
