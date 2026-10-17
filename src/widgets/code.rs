@@ -495,6 +495,12 @@ impl CodeEditor {
     // ---- keys -------------------------------------------------------
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
+        // Ctrl+C copies only a selection; with nothing selected it is not
+        // the editor's, so it reaches the app's quit guard (as in
+        // TextInput and TextArea), editing or not
+        if key.ctrl_char('c') && self.buffer.selected_text().is_none() {
+            return (Outcome::Ignored, None);
+        }
         // find bar
         if let Some(f) = self.find.as_mut()
             && f.editing
@@ -1450,6 +1456,23 @@ mod tests {
     /// "Done" and keeps the text, then Tab leaves through the ring; with
     /// `tab_leaves` Tab leaves at once; Ctrl+Tab always leaves; the find
     /// bar counts as text input; `esc_reverts` restores the document.
+    /// Ctrl+C with nothing selected is not the editor's while it edits,
+    /// under every field-key preset, so the app's quit guard sees it (the
+    /// key router hands an editing field the key first).
+    #[test]
+    fn ctrl_c_without_a_selection_passes_on_while_editing() {
+        let mut e = CodeEditor::new(WidgetId::of("c"), "");
+        render(&mut e, 40, 6);
+        assert!(e.editing);
+        e.on_key(&key(KeyCode::Char('q')));
+        let ctrl_c = Key {
+            code: KeyCode::Char('c'),
+            mods: KeyModifiers::CONTROL,
+        };
+        assert_eq!(e.on_key(&ctrl_c).0, Outcome::Ignored);
+        assert_eq!(e.text(), "q");
+    }
+
     #[test]
     fn immediate_entry_tab_indents_esc_is_done_and_then_tab_leaves() {
         let mut e = CodeEditor::new(WidgetId::of("c"), "");
