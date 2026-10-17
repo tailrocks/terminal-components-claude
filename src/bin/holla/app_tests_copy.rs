@@ -46,3 +46,29 @@ fn the_files_browser_names_alt_enter_alternatives() {
     assert!(f.contains("Alt+Enter Alternatives…"), "browse: {f}");
     assert!(!f.contains("Actions"), "browse: {f}");
 }
+
+/// SVg10: holla's hint bar is left-aligned like every other app's (it was
+/// centred), so the first hint starts one cell in from the left edge.
+#[test]
+fn the_hint_bar_is_left_aligned() {
+    let h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 200, 40);
+    let f = footer(&h);
+    assert!(f.starts_with(' ') && !f.starts_with("  "), "{f:?}");
+}
+
+/// CO5 (SV11): an error in the status line wins over every hint, the
+/// pinned ones included: it is shown whole instead of being cut to leave
+/// `F1 Help` and `Esc Back` their room.
+#[test]
+fn an_error_status_is_never_cut_for_the_hints() {
+    let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 120, 40);
+    // an error as wide as the row allows (holla cut it 8 cells short)
+    let msg = "Could not read the archive volume mounted at the backup path: permission denied by the file system driver, try again";
+    h.app
+        .shell
+        .status
+        .set_with(msg, junie_tui::theme::Tone::Error, vec![]);
+    h.draw();
+    let f = footer(&h);
+    assert!(f.contains(msg), "{f}");
+}
