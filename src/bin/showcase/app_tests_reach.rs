@@ -9,14 +9,21 @@
 //! `docs/remaining-work.md` row until its page is fixed. An inner
 //! scroller that shows a scrollbar (a list, a table, a log) holds more
 //! than its window by design: what wheeling it to its end shows counts
-//! as reachable. A listed entry
+//! as reachable, and so does one whose bar is out of view (the wheel
+//! over its body still scrolls it). Words are read by the library's one
+//! reach rule (`shell::reach::Words`, the apps' audits use it too): a
+//! word cut with `…` is reached through its reveal, and so is the full
+//! text a cut reveals on hover or a strip collapsed into its `…`. A
+//! listed entry
 //! that passes fails as stale, so the list only shrinks.
 
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Input, Mouse, MouseKind};
 use junie_tui::core::hit::{Axis, Bar};
+use junie_tui::core::id::WidgetId;
 use junie_tui::runtime::Application;
+use junie_tui::shell::reach::Words;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
@@ -35,26 +42,18 @@ const REFERENCE: (u16, u16) = (220, 70);
 /// Wheel notches an inner scroller gets to reach its end.
 const INNER_NOTCHES: usize = 400;
 
-/// Words of three or more letters or digits in `area`: what a reader
+/// Words of three or more letters or digits in `area`, and the
+/// prefixes of words cut with `…` (the shared reach rule): what a reader
 /// would miss when the section cuts it off.
-fn words(buf: &Buffer, area: Rect, out: &mut BTreeSet<String>) {
-    for y in area.top()..area.bottom() {
-        let row: String = (area.left()..area.right())
-            .map(|x| buf[(x, y)].symbol())
-            .collect();
-        for w in row.split(|c: char| !c.is_alphanumeric()) {
-            if w.chars().count() >= 3 {
-                out.insert(w.to_owned());
-            }
-        }
-    }
+fn words(buf: &Buffer, area: Rect, out: &mut Words) {
+    out.add_area(buf, area);
 }
 
 struct Shot {
     app: App,
     term: Terminal<TestBackend>,
     /// Words to look for: scrolling stops once all are seen.
-    want: Option<BTreeSet<String>>,
+    want: Option<Words>,
 }
 
 impl Shot {
@@ -82,21 +81,25 @@ impl Shot {
         &mut self.app.pages[i].template_mut().unwrap().view
     }
 
-    /// Words in the section body in view.
-    fn words(&mut self, out: &mut BTreeSet<String>) {
+    /// Words in the section body in view, and the text the frame's cuts
+    /// and strips reveal.
+    fn words(&mut self, out: &mut Words) {
         let area = self.view().last_layout().viewport;
         words(self.term.backend().buffer(), area, out);
+        out.add_overflowed();
     }
 
     /// Words in the section body at every scroll position: a window per
     /// view on each axis, and the end of each.
     /// Whether every wanted word was seen.
-    fn done(&self, out: &BTreeSet<String>) -> bool {
-        self.want.as_ref().is_some_and(|w| w.is_subset(out))
+    fn done(&self, out: &Words) -> bool {
+        self.want
+            .as_ref()
+            .is_some_and(|w| w.against(out).0.is_empty())
     }
 
-    fn reachable(&mut self, inner: bool) -> BTreeSet<String> {
-        let mut out = BTreeSet::new();
+    fn reachable(&mut self, inner: bool) -> Words {
+        let mut out = Words::default();
         self.words(&mut out);
         let l = self.view().last_layout();
         let steps = |content: u16, view: u16| -> Vec<usize> {
@@ -132,7 +135,7 @@ impl Shot {
     /// the notch chains on to the section's view); one with both bars is
     /// swept sideways at each window of rows. Then put the section back
     /// where it was.
-    fn inner(&mut self, out: &mut BTreeSet<String>) {
+    fn inner(&mut self, out: &mut Words) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
         let bars: Vec<Bar> = self
@@ -150,10 +153,31 @@ impl Shot {
                 owners.push(b.owner);
             }
         }
+        // a scroller whose bars are out of view (a table whose sideways
+        // bar is below the screen): the wheel over its body scrolls it
+        let scrollers: Vec<(WidgetId, Rect)> = self
+            .app
+            .shell
+            .hits
+            .scrollers()
+            .into_iter()
+            .filter(|(id, a)| *id != view && a.intersects(viewport))
+            .collect();
+        for (id, _) in &scrollers {
+            if !owners.contains(id) {
+                owners.push(*id);
+            }
+        }
         for owner in owners {
             if self.done(out) {
                 return;
             }
+            // over its bar, else over the middle of its body in view
+            let body = scrollers
+                .iter()
+                .find(|(id, _)| *id == owner)
+                .map(|(_, a)| a.intersection(viewport))
+                .filter(|a| !a.is_empty());
             let at = |axis: Axis| {
                 bars.iter()
                     .find(|b| b.owner == owner && b.axis == axis)
@@ -161,6 +185,7 @@ impl Shot {
                         let r = b.track.intersection(viewport);
                         Position::new(r.x, r.y)
                     })
+                    .or_else(|| body.map(|a| Position::new(a.x + a.width / 2, a.y + a.height / 2)))
             };
             let (v, h) = (at(Axis::Vertical), at(Axis::Horizontal));
             // sideways once a window of rows went by (a notch moves about
@@ -168,10 +193,12 @@ impl Shot {
             let rows = bars
                 .iter()
                 .find(|b| b.owner == owner && b.axis == Axis::Vertical)
-                .map_or(1, |b| (b.track.height / 3).max(1) as usize);
+                .map(|b| b.track.height)
+                .or(body.map(|a| a.height))
+                .map_or(1, |h| (h / 3).max(1) as usize);
             let start = self.view().offset();
             let mut notch = 0usize;
-            let mut across = |s: &mut Self, out: &mut BTreeSet<String>| {
+            let mut across = |s: &mut Self, out: &mut Words| {
                 notch += 1;
                 if !notch.is_multiple_of(rows) {
                     return;
@@ -204,8 +231,8 @@ impl Shot {
         kind: MouseKind,
         pos: Position,
         start: (usize, usize),
-        out: &mut BTreeSet<String>,
-        each: &mut dyn FnMut(&mut Self, &mut BTreeSet<String>),
+        out: &mut Words,
+        each: &mut dyn FnMut(&mut Self, &mut Words),
     ) {
         let mut last = text(self.term.backend().buffer());
         for _ in 0..INNER_NOTCHES {
@@ -256,11 +283,15 @@ fn reach_part(part: usize) {
                 break;
             };
             let want = big.reachable(false);
+            let want = Words {
+                whole: want.whole,
+                ..Words::default()
+            };
             for (w, h) in SIZES {
                 let mut small = Shot::new(w, h, entry.id, section).unwrap();
                 small.want = Some(want.clone());
                 let seen = small.reachable(true);
-                let missing: Vec<&String> = want.difference(&seen).collect();
+                let (missing, _cut) = want.against(&seen);
                 let key = format!("{:?} | {} | {w}x{h}", entry.id, section.label());
                 if missing.is_empty() {
                     if allowed.contains(&key) {
@@ -474,9 +505,9 @@ fn the_inspector_options_pane_scrolls_to_its_last_option() {
     assert!(l.overflows() && l.v_track.is_some(), "{l:?}");
     let shown = |term: &Terminal<TestBackend>| {
         let b = term.backend().buffer();
-        let mut s = BTreeSet::new();
+        let mut s = Words::default();
         words(b, b.area, &mut s);
-        s
+        s.whole
     };
     let word = last.split(' ').next_back().unwrap().to_owned();
     assert!(!shown(&term).contains(&word));
