@@ -141,7 +141,7 @@ never in view at the smallest failing size.
 | R47 | Workspaces | Playground | 80x24, 100x25, 106x29, 120x40 | `04d7 9b02 Accounts Claude Codex Delete Edit Environments` |
 | R48 | AccountsUsage | Playground | 80x24, 100x25, 106x29, 120x40 | `100 1Password 212 Account Cost Credential Engineering Mon` |
 | R49 | LaunchCockpit | Playground | 80x24, 100x25, 106x29 | `Binari Build Cancel Capsule Construct Derived Hardline Identity` |
-| R50 | ReadOnlyReport | Playground | 80x24, 100x25, 106x29 | `08Z 120 17T09 2026 24B83 412 500 Activity` |
+| R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, Notice Measure, ButtonRow::width) | — |
 | R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
 | R52 | Sidebars | Playground | 80x24, 100x25 | `Appearance Ctrl Disabled Keyboard Last and are behind` |
 | R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
