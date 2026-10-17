@@ -158,14 +158,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/connections", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:arrives with SC47"]).pending(),
     Root::new("showcase/planned/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:arrives with SC48"]).pending(),
     // SC49 filled Disk cleanup: the page, its sections, a held scan,
-    // permanent mode and the two gates of the review
+    // permanent mode and the narrow drawer (the gates are OVERLAYS rows)
     Root::new("showcase/pages/diskcleanup", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories"]).pending(),
     Root::new("showcase/sections/diskcleanup-options", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["tab", "2", "wait:Typed phrase"]).pending(),
     Root::new("showcase/sections/diskcleanup-states", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["tab", "3", "wait:Usage tree"]).pending(),
     Root::new("showcase/flows/diskcleanup/scanning", Bin::Showcase, &["--page", "diskcleanup", "--motion", "paused", "--opt", "diskcleanup.scan=scanning"], BOOT).sends(&["wait:scanning ~/work"]).pending(),
     Root::new("showcase/flows/diskcleanup/permanent", Bin::Showcase, &["--page", "diskcleanup", "--opt", "diskcleanup.mode=permanent"], BOOT).sends(&["wait:permanent delete"]).pending(),
     Root::new("showcase/flows/diskcleanup/drawer", Bin::Showcase, &["--page", "diskcleanup", "--opt", "diskcleanup.collapse_below=108"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "wait:Freshness"]).pending(),
-    Root::new("showcase/flows/diskcleanup/gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending(),
     // SC51 filled Activity: the page, its sections, a failed run with
     // find marks, and a stopped run with a hidden stream
     Root::new("showcase/pages/activity", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["wait:following"]).pending(),
@@ -173,13 +172,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/activity-states", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Streams"]).pending(),
     Root::new("showcase/flows/activity/failed-find", Bin::Showcase, &["--page", "activity", "--opt", "activity.state=failed", "--opt", "activity.find=error"], BOOT).sends(&["wait:Free the port"]).pending(),
     Root::new("showcase/flows/activity/stopped-hidden-stream", Bin::Showcase, &["--page", "activity", "--opt", "activity.state=stopped"], BOOT).sends(&["wait:stopped · exit 143", "tab", "tab", "3", "wait:3 of 4 streams"]).pending(),
-    // SC52 filled Workspaces: the page, its sections, the narrow drawer
-    // and the purge's typed confirmation
+    // SC52 filled Workspaces: the page, its sections and the narrow drawer
+    // (the purge's typed confirmation is an OVERLAYS row)
     Root::new("showcase/pages/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago"]).pending(),
     Root::new("showcase/sections/workspaces-options", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["tab", "2", "wait:Instance roster"]).pending(),
     Root::new("showcase/sections/workspaces-states", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["tab", "3", "wait:Workspace tree"]).pending(),
     Root::new("showcase/flows/workspaces/drawer", Bin::Showcase, &["--page", "workspaces", "--opt", "workspaces.collapse_below=108"], BOOT).sends(&["wait:Tab shows details", "tab", "tab", "tab", "wait:Esc back"]).pending(),
-    Root::new("showcase/flows/workspaces/purge", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:Delete payments-platform?"]).pending(),
     Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
     Root::new("showcase/planned/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:arrives with SC55"]).pending(),
     Root::new("showcase/planned/readonlyreport", Bin::Showcase, &["--page", "readonlyreport"], BOOT).sends(&["wait:arrives with SC56"]).pending(),
@@ -456,6 +454,12 @@ pub const OVERLAYS: &[Root] = &[
     // V4: every overlay site in src/bin/showcase has a row (overlay_sites).
     // Dialogs: the first drop gate's Continue opens the second (typed token).
     Root::new("showcase/overlays/dialogs_gate2", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:1 of 2", "right", "enter", "wait:2 of 2"]).pending().dismiss_pending(),
+    // SC49 Disk cleanup's review: Gate 1 (the facts, d on the checklist),
+    // then Gate 2 (the typed phrase); SC52 Workspaces' purge (Delete… is
+    // the eighth stop: strip, tree, detail, roster, four actions)
+    Root::new("showcase/overlays/diskcleanup_gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/diskcleanup_gate2", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/workspaces_purge", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:daemon · 3 s ago", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:Delete payments-platform?"]).pending().dismiss_pending(),
     // Dialog kinds: the form's SSH key chooser stacks the key picker over it
     // (the chooser shows once the tunnel is on).
     Root::new("showcase/overlays/dialogkinds_key_picker", Bin::Showcase, &["--page", "dialogkinds"], BOOT).sends(&["tab", "tab", "enter", "wait:Add connection", "tab", "tab", "tab", "tab", "tab", "space", "tab", "enter", "wait:SSH key"]).pending().dismiss_pending(),
