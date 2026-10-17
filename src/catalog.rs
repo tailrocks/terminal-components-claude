@@ -3106,6 +3106,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::tree::TreeView::toggle"),
     Capability::function("widgets::tree::TreeView::expand_all"),
     Capability::function("widgets::tree::TreeView::collapse_all"),
+    Capability::function("widgets::tree::TreeView::context_items"),
+    Capability::function("widgets::tree::TreeView::run"),
     Capability::function("widgets::tree::TreeView::on_key"),
     Capability::function("widgets::tree::TreeView::on_click_row"),
     Capability::function("widgets::tree::TreeView::on_click_toggle"),
