@@ -16,7 +16,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::list::{Cursor, KeyStep, Navigable, RowSource};
+use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
@@ -61,8 +61,7 @@ pub struct Picker {
     /// The query ([`OptionList::query`]) is the shared [`EditField`], so
     /// it edits, selects (Select All, a double click on a word, a drag)
     /// and undoes like every text field; `None` makes a fixed-choice
-    /// picker whose letters type-select ([`OptionList::type_ahead`],
-    /// A23). Owners read [`Self::query`] and replace it with
+    /// picker. Owners read [`Self::query`] and replace it with
     /// [`Self::set_query`].
     pub list: OptionList,
     /// The rectangle an anchored [`OptionList::placement`] opens next to.
@@ -207,7 +206,7 @@ impl Picker {
     }
 
     /// Show the query field (on by default); off makes a fixed-choice
-    /// picker whose letters type-select.
+    /// picker.
     pub fn searchable(mut self, on: bool) -> Self {
         self.set_searchable(on);
         self
@@ -443,26 +442,6 @@ impl Picker {
         // a searchable picker types its letters, and its Home/End and ←/→
         // edit the query; the list keeps ↑/↓ and paging
         let typing = self.is_searchable();
-        // A23: a plain picker type-selects (WAI-ARIA listbox, macOS
-        // lists): a printable key moves to the next row starting with
-        // what was typed, through the list
-        if !typing
-            && self.list.type_ahead
-            && matches!(
-                KeyStep::of(key, &self.list.nav, true),
-                Some(KeyStep::Type(_))
-            )
-        {
-            let moved = self.list.key(key, &self.items[..]);
-            if moved.index().is_some() {
-                let o = if moved.moved() {
-                    Outcome::Changed
-                } else {
-                    Outcome::Consumed
-                };
-                return (o, None);
-            }
-        }
         let nav = self.list.nav.action(key).filter(|n| {
             !(typing
                 && (matches!(key.code, KeyCode::Char(_))
