@@ -4,6 +4,7 @@
 //! path (`Input::Paste` of a `ClockStep` request, as the visual harness's
 //! `advance:<ms>` step sends it).
 
+use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 
 use junie_tui::clock::ClockStep;
@@ -16,7 +17,7 @@ fn paused(scenario: Scenario) -> H {
     let mut h = H::new(scenario, Motion::Paused, 40, 120, 40);
     // the harness's opt-in (`JUNIE_TUI_TEST_CLOCK=1`)
     h.app.shell.clock_steps = true;
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     h
 }
 
@@ -37,7 +38,7 @@ fn assert_still(h: &mut H) {
 fn a_clock_step_completes_the_editors_failing_save() {
     let mut h = paused(Scenario::HardCases);
     h.key(KeyCode::Char('e'));
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('r'));
@@ -47,11 +48,11 @@ fn a_clock_step_completes_the_editors_failing_save() {
     // paused: the 900 ms save job never fires on its own
     h.ticks(20);
     assert!(!h.text().contains("Save failed"), "{}", h.text());
-    let pasted = h.app.screens.editor.as_ref().unwrap().change_count();
+    let pasted = h.app.router.editor().unwrap().change_count();
     step(&mut h, 1_000);
     assert!(h.text().contains("Save failed"), "{}", h.text());
     assert_eq!(
-        h.app.screens.editor.as_ref().unwrap().change_count(),
+        h.app.router.editor().unwrap().change_count(),
         pasted,
         "the step request is not pasted into a field"
     );
@@ -62,7 +63,7 @@ fn a_clock_step_completes_the_editors_failing_save() {
 fn a_clock_step_completes_the_global_settings_failing_save() {
     let mut h = paused(Scenario::HardCases);
     h.key(KeyCode::Char('s'));
-    assert_eq!(h.app.route, Route::Settings, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Settings, "{}", h.text());
     h.key(KeyCode::Char('5'));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
@@ -110,7 +111,7 @@ fn a_clock_step_runs_the_launch_pipeline_to_the_credential_error() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Cockpit, "{}", h.text());
     h.ticks(20);
     assert!(
         !h.text().contains("Credential source unavailable"),
@@ -118,7 +119,7 @@ fn a_clock_step_runs_the_launch_pipeline_to_the_credential_error() {
         h.text()
     );
     step(&mut h, 2_000);
-    assert!(h.app.screens.cockpit.as_ref().unwrap().credential_hold);
+    assert!(h.app.router.cockpit().unwrap().credential_hold);
     assert!(
         h.text().contains("Credential source unavailable"),
         "{}",

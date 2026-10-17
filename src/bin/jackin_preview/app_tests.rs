@@ -1,5 +1,6 @@
 //! End-to-end interaction tests through the real App on a TestBackend.
 
+use crate::pages::Pages;
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -130,21 +131,21 @@ impl H {
 #[test]
 fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
     let mut h = H::new(Scenario::FirstUse, Motion::Full, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Intro);
+    assert_eq!(h.app.route(), Route::Intro);
     h.ticks(45);
     assert!(h.text().contains("Stand up, operator…"), "{}", h.text());
     assert!(h.text().contains("jackin❯"));
     // skip during phrases jumps to the warp, then finishes into the manager
     h.ticks(3);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Intro);
+    assert_eq!(h.app.route(), Route::Intro);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert!(h.text().contains("Current directory"));
     assert!(h.text().contains("+ New workspace"));
     let r = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
     assert_eq!(
-        r.app.route,
+        r.app.route(),
         Route::Manager,
         "an active Construct joins without replay"
     );
@@ -154,11 +155,11 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
 #[test]
 fn reduced_motion_and_paused_frames_are_deterministic() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 80, 24);
-    assert_eq!(h.app.route, Route::Intro);
+    assert_eq!(h.app.route(), Route::Intro);
     assert!(h.text().contains("Enter Continue"));
     h.ticks(3);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     let a = H::new(Scenario::FirstUse, Motion::Paused, 282, 100, 30);
     let b = H::new(Scenario::FirstUse, Motion::Paused, 282, 100, 30);
     assert_eq!(a.text(), b.text());
@@ -214,20 +215,20 @@ fn manager_navigation_expand_and_detail_focus() {
 #[test]
 fn launch_runs_all_stages_and_hands_off_to_the_capsule() {
     let mut h = H::new(Scenario::LaunchRunning, Motion::Full, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Cockpit);
+    assert_eq!(h.app.route(), Route::Cockpit);
     for _ in 0..40 {
         h.ticks(10);
-        if h.app.route != Route::Cockpit {
+        if h.app.route() != Route::Cockpit {
             break;
         }
     }
     assert!(
-        matches!(h.app.route, Route::Handoff | Route::Capsule),
+        matches!(h.app.route(), Route::Handoff | Route::Capsule),
         "route {:?}",
-        h.app.route
+        h.app.route()
     );
     h.ticks(15);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     assert!(h.text().contains("jackin❯"));
     // type into the pane and see the echo
     h.ticks(60);
@@ -247,21 +248,21 @@ fn launch_failure_returns_to_the_construct_when_another_instance_runs() {
     assert!(h.text().contains("Launch failed"), "{}", h.text());
     assert!(h.text().contains("Network"));
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert!(h.text().contains("still running"));
 }
 
 #[test]
 fn detach_reconnect_and_final_exit_plays_one_outro() {
     let mut h = H::new(Scenario::OutroLast, Motion::Full, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     h.ctrl('b');
     h.key(KeyCode::Char('d'));
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert!(h.text().contains("Detached"));
     h.key(KeyCode::Enter);
     assert_eq!(
-        h.app.route,
+        h.app.route(),
         Route::Capsule,
         "reconnect restores the Capsule"
     );
@@ -270,7 +271,7 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter); // exit & keep
-    assert_eq!(h.app.route, Route::Outro);
+    assert_eq!(h.app.route(), Route::Outro);
     h.key(KeyCode::Enter);
     h.ticks(25);
     assert!(
@@ -286,12 +287,12 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
 #[test]
 fn still_inside_feedback_when_other_instances_remain() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Full, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     h.ctrl('q');
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert!(h.text().contains("Still inside the Construct"));
     assert_eq!(h.app.world.running_count(), 1);
 }
@@ -308,7 +309,7 @@ fn too_small_state_and_resize_recover() {
 #[test]
 fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     assert!(h.text().contains("Overview"));
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("New account"));
@@ -439,16 +440,16 @@ fn accounts_plain_key_is_masked_everywhere_and_remove_asks_first() {
 fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
     h.key(KeyCode::Char('u'));
-    assert_eq!(h.app.route, Route::Usage);
+    assert_eq!(h.app.route(), Route::Usage);
     assert!(h.text().contains("Usage · read-only"));
     assert!(h.text().contains("Overview"));
     h.key(KeyCode::Down);
     assert!(h.text().contains("Limits"), "{}", h.text());
     h.key(KeyCode::Char('m'));
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     assert!(h.text().contains("Accounts › "));
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
 }
 
 #[test]
@@ -484,7 +485,7 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Prelude);
+    assert_eq!(h.app.route(), Route::Prelude);
     assert!(h.text().contains("step 1 of 5"), "{}", h.text());
     assert!(h.text().contains("~/src/payments-platform"));
     // up to ~/src, choose data-pipeline (second folder)
@@ -515,8 +516,8 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     assert!(h.text().contains("step 5 of 5"), "{}", h.text());
     assert!(h.text().contains("data-pipeline"), "{}", h.text());
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
-    let ed = h.app.screens.editor.as_ref().unwrap();
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
+    let ed = h.app.router.editor().unwrap();
     assert_eq!(ed.pending.name, "data-pipeline");
     assert_eq!(ed.pending.workdir, "/Users/alexey/src/data-pipeline");
     assert_eq!(ed.pending.mounts.len(), 1);
@@ -544,15 +545,15 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
         "{}",
         h.text()
     );
-    assert_eq!(h.app.route, Route::Prelude);
+    assert_eq!(h.app.route(), Route::Prelude);
     // rewind all the way out
     for _ in 0..8 {
         h.key(KeyCode::Esc);
-        if h.app.route != Route::Prelude {
+        if h.app.route() != Route::Prelude {
             break;
         }
     }
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert!(
         h.text().contains("Cancelled · nothing created"),
         "{}",
@@ -568,7 +569,7 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
 fn a_short_editor_general_tab_scrolls_instead_of_reaching_the_actions() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 72, 20);
     h.key(KeyCode::Char('e'));
-    assert_eq!(h.app.route, Route::Editor);
+    assert_eq!(h.app.route(), Route::Editor);
     let save_y = h
         .text()
         .lines()
@@ -610,7 +611,7 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Down);
     h.key(KeyCode::Char('e'));
-    assert_eq!(h.app.route, Route::Editor);
+    assert_eq!(h.app.route(), Route::Editor);
     assert!(h.text().contains("payments-platform › edit"));
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
@@ -627,7 +628,7 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
         h.text()
     );
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.route, Route::Editor);
+    assert_eq!(h.app.route(), Route::Editor);
     // preview lists the modified mount, then the save job completes
     h.ctrl('s');
     assert!(h.text().contains("Save workspace"));
@@ -636,7 +637,7 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Saving"), "{}", h.text());
     h.ticks(20);
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     assert!(h.text().contains("Workspace payments-platform saved"));
     let ws = h.app.world.workspace(1).unwrap();
     assert!(ws.mounts[0].readonly);
@@ -651,7 +652,7 @@ fn leaving_the_editor_name_field_by_click_runs_its_commit_hook() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Down);
     h.key(KeyCode::Char('e'));
-    assert_eq!(h.app.route, Route::Editor);
+    assert_eq!(h.app.route(), Route::Editor);
     let name = crate::screens::editor::NAME;
     let a = h.app.shell.hits.area_of(name).expect("the name field");
     h.click(a.x + 3, a.y);
@@ -717,14 +718,14 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
     for _ in 0..8 {
         h.ticks(3);
-        if h.app.route == Route::Manager {
+        if h.app.route() == Route::Manager {
             break;
         }
         h.key(KeyCode::Enter);
     }
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     h.key(KeyCode::Char('s'));
-    assert_eq!(h.app.route, Route::Settings);
+    assert_eq!(h.app.route(), Route::Settings);
     h.key(KeyCode::Char('5'));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
@@ -736,14 +737,14 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.ticks(20);
     assert!(h.text().contains("Settings error"), "{}", h.text());
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.route, Route::Settings);
+    assert_eq!(h.app.route(), Route::Settings);
     assert!(h.text().contains("• 1 change"));
     // second attempt succeeds
     h.ctrl('s');
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.ticks(20);
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     // the manager's own refresh may overwrite the status in the hard cases;
     // the persisted config is the proof
     assert!(!h.app.world.global.trust[0].trusted);
@@ -754,13 +755,13 @@ fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
     let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
     for _ in 0..8 {
         h.ticks(3);
-        if h.app.route == Route::Manager {
+        if h.app.route() == Route::Manager {
             break;
         }
         h.key(KeyCode::Enter);
     }
     h.key(KeyCode::Char('c'));
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Credential sources"), "{}", h.text());
     h.key(KeyCode::Esc);
@@ -770,7 +771,7 @@ fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
     h.ticks(60);
     assert!(h.text().contains("broker unreachable"), "{}", h.text());
     h.key(KeyCode::Char('u'));
-    assert_eq!(h.app.route, Route::Usage);
+    assert_eq!(h.app.route(), Route::Usage);
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Reading meters"));
 }
@@ -784,14 +785,14 @@ fn complete_jackin_flow_keyboard_first() {
     let cfg_save = WidgetId::of("editor.cfg").sub("form").sub("save");
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     // 1–3 intro → manager with zero instances
-    assert_eq!(h.app.route, Route::Intro);
+    assert_eq!(h.app.route(), Route::Intro);
     h.ticks(3);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert_eq!(h.app.world.running_count(), 0);
     // 4 Account & Usage Center
     h.key(KeyCode::Char('c'));
-    assert_eq!(h.app.route, Route::Accounts);
+    assert_eq!(h.app.route(), Route::Accounts);
     // 5–6 two Claude Code local-folder accounts
     for (name, folder) in [("Personal", "~/.claude"), ("Work", "~/.claude-work")] {
         h.key(KeyCode::Char('a'));
@@ -908,7 +909,7 @@ fn complete_jackin_flow_keyboard_first() {
     assert!(h.text().contains("Quota"), "{}", h.text());
     // 13 back to the manager, focus on the tree
     h.key(KeyCode::Esc);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert_eq!(
         h.app.shell.focus.current(),
         Some(crate::screens::manager::TREE)
@@ -916,14 +917,14 @@ fn complete_jackin_flow_keyboard_first() {
     // 14 create a workspace through the prelude (current directory as source)
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Prelude);
+    assert_eq!(h.app.route(), Route::Prelude);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
     h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("step 5 of 5"), "{}", h.text());
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
     assert!(h.text().contains("new workspace › edit"));
     // a new workspace opens on its Name field, editing with the caret: a
     // typed `]` would land in the name, so Tab leaves the field first
@@ -987,7 +988,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.ticks(20);
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     assert_eq!(h.app.world.workspaces.len(), 1);
     // 18–20 launch: already inside the Construct, straight to the cockpit
     h.key(KeyCode::Home);
@@ -995,7 +996,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Cockpit, "{}", h.text());
     h.ticks(40);
     // 21 build log
     h.key(KeyCode::Char('b'));
@@ -1005,17 +1006,17 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Esc);
     for _ in 0..60 {
         h.ticks(10);
-        if h.app.route != Route::Cockpit {
+        if h.app.route() != Route::Cockpit {
             break;
         }
     }
     h.ticks(15);
     // 22–23 capsule, typing
-    assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Capsule, "{}", h.text());
     h.ticks(40);
     h.type_str("hello");
     assert!(h.text().contains("hello"));
-    let inst = h.app.screens.capsule.as_ref().unwrap().instance.clone();
+    let inst = h.app.router.capsule().unwrap().instance.clone();
     // 24 second session with a different account
     h.ctrl('b');
     h.key(KeyCode::Char('c'));
@@ -1098,9 +1099,9 @@ fn complete_jackin_flow_keyboard_first() {
     // 32–33 detach, reconnect with retained tabs
     h.ctrl('b');
     h.key(KeyCode::Char('d'));
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     assert_eq!(h.app.world.daemons[&inst].tabs.len(), 2);
     // 34 a second instance of the same Workspace
     h.ctrl('b');
@@ -1109,15 +1110,15 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Cockpit, "{}", h.text());
     for _ in 0..80 {
         h.ticks(10);
-        if h.app.route == Route::Capsule {
+        if h.app.route() == Route::Capsule {
             break;
         }
     }
     h.ticks(15);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     assert_eq!(h.app.world.running_count(), 2);
     // 35–36 exit this one, stay inside
     h.ctrl('q');
@@ -1129,7 +1130,7 @@ fn complete_jackin_flow_keyboard_first() {
         h.key(KeyCode::Right);
         h.key(KeyCode::Enter);
     }
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
     assert!(
         h.text().contains("Still inside the Construct"),
         "{}",
@@ -1148,7 +1149,7 @@ fn complete_jackin_flow_keyboard_first() {
     }
     assert!(h.text().contains("instance · running"), "{}", h.text());
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Capsule, "{}", h.text());
     h.ctrl('q');
     if h.text().contains("Unsaved work") {
         h.key(KeyCode::Down);
@@ -1159,7 +1160,7 @@ fn complete_jackin_flow_keyboard_first() {
         h.key(KeyCode::Enter);
     }
     // 38–40 outro with the elapsed caption, then the terminal is restored
-    assert_eq!(h.app.route, Route::Outro, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Outro, "{}", h.text());
     h.ticks(5);
     if !h.text().contains("You were in the Construct for") {
         // full motion: skip the warp to reach the caption
@@ -1191,7 +1192,7 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
     assert!(h.text().contains("off for this Workspace"), "{}", h.text());
     assert!(h.text().contains("disabled here"), "{}", h.text());
     {
-        let ed = h.app.screens.editor.as_ref().unwrap();
+        let ed = h.app.router.editor().unwrap();
         assert!(
             ed.pending
                 .accounts
@@ -1223,7 +1224,7 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
         h.text()
     );
     {
-        let ed = h.app.screens.editor.as_ref().unwrap();
+        let ed = h.app.router.editor().unwrap();
         let codex: Vec<_> = ed
             .pending
             .effective_accounts(&h.app.world.accounts)
@@ -1240,7 +1241,7 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.ticks(20);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     let ws = h.app.world.workspace(1).unwrap();
     assert!(ws.accounts.enabled.contains("acct-codex-experiments"));
     assert_eq!(
@@ -1262,7 +1263,7 @@ fn manager_launch_picker_hides_agents_without_an_account() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     h.ticks(3);
     h.key(KeyCode::Enter);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     let mut a = crate::domain::account::Account::registered(
         "acct-only",
         "Only",
@@ -1289,7 +1290,7 @@ fn environments_stay_readable_with_a_hundred_roles() {
     let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
     for _ in 0..8 {
         h.ticks(3);
-        if h.app.route == Route::Manager {
+        if h.app.route() == Route::Manager {
             break;
         }
         h.key(KeyCode::Enter);
@@ -1351,8 +1352,8 @@ fn environments_stay_readable_with_a_hundred_roles() {
 #[test]
 fn cockpit_resolves_every_effective_account_for_the_container() {
     let mut h = H::new(Scenario::LaunchRunning, Motion::Reduced, 0, 120, 40);
-    assert_eq!(h.app.route, Route::Cockpit);
-    let c = h.app.screens.cockpit.as_ref().unwrap();
+    assert_eq!(h.app.route(), Route::Cockpit);
+    let c = h.app.router.cockpit().unwrap();
     assert!(c.accounts.contains(&"acct-claude-personal".to_owned()));
     assert!(c.accounts.contains(&"acct-claude-work".to_owned()));
     let mut seen = false;
@@ -1366,7 +1367,7 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
             seen = true;
             break;
         }
-        if h.app.route != Route::Cockpit {
+        if h.app.route() != Route::Cockpit {
             break;
         }
     }
@@ -1377,13 +1378,13 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
     );
     for _ in 0..60 {
         h.ticks(10);
-        if h.app.route != Route::Cockpit {
+        if h.app.route() != Route::Cockpit {
             break;
         }
     }
     h.ticks(15);
-    assert_eq!(h.app.route, Route::Capsule);
-    let inst = h.app.screens.capsule.as_ref().unwrap().instance.clone();
+    assert_eq!(h.app.route(), Route::Capsule);
+    let inst = h.app.router.capsule().unwrap().instance.clone();
     let i = h.app.world.instance(&inst).unwrap();
     assert!(i.accounts.len() >= 2, "{:?}", i.accounts);
 }
@@ -1493,13 +1494,13 @@ fn settings_footer_names_the_focused_button_and_the_tab_strip_action() {
     let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 220, 40);
     for _ in 0..8 {
         h.ticks(3);
-        if h.app.route == Route::Manager {
+        if h.app.route() == Route::Manager {
             break;
         }
         h.key(KeyCode::Enter);
     }
     h.key(KeyCode::Char('s'));
-    assert_eq!(h.app.route, Route::Settings);
+    assert_eq!(h.app.route(), Route::Settings);
     let footer = |h: &H| h.text().lines().last().unwrap_or_default().to_owned();
     h.tab_to(crate::screens::settings::TABS);
     let f = footer(&h);
@@ -1567,7 +1568,7 @@ fn the_account_drawer_draws_nothing_of_the_tree_under_it() {
 fn q_leaves_the_editor_from_a_focused_select() {
     let mut h = H::new(Scenario::Returning, Motion::Paused, 0, 120, 40);
     h.key(KeyCode::Char('e'));
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
     let policy = crate::screens::editor::DIRTY_POLICY;
     for _ in 0..12 {
         if h.app.shell.focus.current() == Some(policy) {
@@ -1577,7 +1578,7 @@ fn q_leaves_the_editor_from_a_focused_select() {
     }
     assert_eq!(h.app.shell.focus.current(), Some(policy), "{}", h.text());
     h.key(KeyCode::Char('q'));
-    assert_eq!(h.app.route, Route::Manager, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Manager, "{}", h.text());
 }
 
 #[test]
@@ -1684,7 +1685,7 @@ fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
     use crate::screens::manager::{DETAIL, ROSTER, TREE};
     use junie_tui::shell::App as _;
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 160, 50);
-    assert_eq!(h.app.route, Route::Manager);
+    assert_eq!(h.app.route(), Route::Manager);
     assert!(h.text().contains("Running"), "{}", h.text());
     h.tab_to(ROSTER);
     let ring = h.app.shell.ring.reachable().to_vec();
