@@ -222,25 +222,47 @@ impl Footer {
         shell: &mut Shell<P>,
     ) {
         let t = ctx.theme;
-        // the peek line: the focused cut value in full, while nothing else
-        // is said in the status slot (SI8)
-        if !self.hide_peek
-            && self.status.is_none()
-            && let Some(text) = &ctx.peek
-        {
-            self.status = Some(FooterStatus::Toned {
-                text: text.clone(),
-                tone: Tone::Secondary,
-                parts: vec![],
-            });
-        }
         fill(buf, area, t.base());
-        let hints = self.compose(ctx.reveal_hint);
+        let mut hints = self.compose(ctx.reveal_hint);
         let badge = self.editing.then_some(("EDIT", BadgeKind::Edit));
         let style = crate::theme::HintBarStyle {
             align: self.align.unwrap_or(t.hintbar.align),
             ..t.hintbar
         };
+        // the peek line: the focused cut value in full, while nothing else
+        // is said in the status slot (SI8). It is the least important part
+        // of the row: the primary hints (the pinned ones and the focused
+        // control's main action, its `Enter` hint, else its first) keep
+        // their room first, the peek takes what is left, cut with `…`, and
+        // is left out before a primary hint would be
+        if !self.hide_peek
+            && self.status.is_none()
+            && let Some(text) = &ctx.peek
+        {
+            let main = (hints.iter().position(|h| h.key == "Enter"))
+                .or_else(|| hints.iter().position(|h| !h.is_pinned(&style)));
+            let primary: Vec<Hint> = (hints.iter().enumerate())
+                .filter(|(i, h)| Some(*i) == main || h.is_pinned(&style))
+                .map(|(_, h)| h.clone())
+                .collect();
+            let mut need = keyhint::width(&primary, badge.map(|(b, _)| b), None);
+            if primary.len() < hints.len() {
+                need += 2; // the cut marker after the kept hints
+            }
+            // the status gap and right margin
+            let room = area.width.saturating_sub(need + 3) as usize;
+            if room >= PEEK_MIN {
+                // the main action keeps its room beside the peek
+                if let Some(i) = main {
+                    hints[i].priority = HintPriority::Pinned;
+                }
+                self.status = Some(FooterStatus::Toned {
+                    text: crate::ui::text::truncate(text, room),
+                    tone: Tone::Secondary,
+                    parts: vec![],
+                });
+            }
+        }
         let spots = match &self.status {
             Some(FooterStatus::Kind { text, kind }) => {
                 keyhint::render_status_styled_at(
@@ -275,6 +297,9 @@ impl Footer {
         }
     }
 }
+
+/// The narrowest peek line worth drawing; below it the line is left out.
+const PEEK_MIN: usize = 8;
 
 /// Whether a hint's key is one the terminal delivers
 /// ([`crate::core::keyboard::label_deliverable`]): the footer, the help

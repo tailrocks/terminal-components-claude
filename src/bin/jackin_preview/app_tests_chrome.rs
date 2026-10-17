@@ -366,3 +366,22 @@ fn container_info_opens_on_a_short_run_id_without_panicking() {
     assert!(t.contains("3f9crun7f3ae21a"), "short container id: {t}");
     assert!(t.contains("run-7f3a-4f11"), "invocation id: {t}");
 }
+
+/// The footer's peek line (the cut cursor row in full) takes only the room
+/// the key hints leave: at 72x20 the launch picker keeps its primary hint
+/// (`Enter Choose`) beside the peek instead of dropping to `Esc Cancel`.
+#[test]
+fn the_peek_line_never_drops_the_primary_hint() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 72, 20);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    let footer = last_row(&h);
+    assert!(
+        footer.contains("Enter Choose"),
+        "primary hint dropped: {footer}"
+    );
+    assert!(
+        footer.contains("Claude Code — account"),
+        "peek line gone: {footer}"
+    );
+}
