@@ -7,7 +7,7 @@
   ▸ Inputs & forms                                                                                                      [0m
   ▸ Tables                                        ‹       Tasks                                                         [0m
   ▾ Navigation               Workspace               │    ────────────────────────────────────────────────────────────  [0m
-      Lists                › T Tasks               3 │    One focus stop. ↑↓ (or j k) move the cursor, Enter opens.     [0m
+      Lists               [0m[1m › T Tasks               3 [0m│    One focus stop. ↑↓ (or j k) move the cursor, Enter opens.     [0m
       Trees                  R Runs                  │                                                                  [0m
  [0m[1m▎  › Sidebars          [0m     B Branches              │    ›  current item · persists when focus leaves                  [0m
       Tabs                                           │    ▎  keyboard cursor · only while focused                       [0m
