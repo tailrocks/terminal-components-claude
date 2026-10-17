@@ -83,7 +83,9 @@ fn pane_tree_resize_chords_and_seam_drag_move_the_seam() {
 
 #[test]
 fn pane_tree_split_and_close_change_the_panes() {
-    let mut h = Harness::new(120, 40, PageId::PaneTree);
+    // wide enough for four panes at their natural size: the card's meta
+    // sits at its right edge
+    let mut h = Harness::new(300, 40, PageId::PaneTree);
     h.click_id(button("split-right"));
     assert!(h.text().contains("4 panes · focus editor"), "{}", h.text());
     h.click_id(button("close"));

@@ -8,7 +8,7 @@
 //! `crate::options::PANE_TREE`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -181,9 +181,7 @@ impl PaneTreePage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let l = self
-            .sections
-            .layout(area, &[StackChild::flex(12, 26)], None, buf, ctx);
+        let l = self.sections.layout(area, &[self.child()], None, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_demo(r, buf, ctx),
             None => {
@@ -195,10 +193,10 @@ impl PaneTreePage {
         }
     }
 
-    fn render_demo(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
+    /// The card's meta: the panes, the focused one, zoomed.
+    fn meta(&self) -> String {
         let n = self.tree.leaves().len();
-        let meta = format!(
+        format!(
             "{} · focus {}{}",
             junie_tui::ui::text::plural(n, "pane", "panes"),
             name(self.tree.focused),
@@ -207,7 +205,37 @@ impl PaneTreePage {
             } else {
                 ""
             }
+        )
+    }
+
+    /// The card's natural size: the buttons, the legend and a blank row
+    /// over the tree with every pane's lines whole (each drawn a cell in).
+    fn card_size(&self) -> Size {
+        let w = |s: &str| junie_tui::ui::text::width(s) as u16;
+        let tree = self.tree.natural_size(&|p| {
+            let lines = PANES[(p as usize).saturating_sub(1) % PANES.len()].1;
+            let widest = lines.iter().map(|l| w(l)).max().unwrap_or(0);
+            Size::new(widest + 1, lines.len() as u16)
+        });
+        let buttons: u16 = self.buttons.iter().map(Button::width).sum::<u16>() + 2 * 3;
+        let content = Size::new(
+            tree.width.max(buttons).max(w(&self.legend())),
+            3 + tree.height,
         );
+        let meta = self.meta();
+        Panel::card(Some("Workspace panes"))
+            .meta(&meta)
+            .outer(content)
+    }
+
+    /// The card as the page's one section: at least the rows it had.
+    fn child(&self) -> StackChild {
+        StackChild::flex(12, self.card_size().height.max(26))
+    }
+
+    fn render_demo(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let meta = self.meta();
         let panel = Panel::card(Some("Workspace panes")).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
@@ -306,6 +334,14 @@ impl Page for PaneTreePage {
     }
     fn blurb(&self) -> &'static str {
         "PaneTree: nested splits, frames, focus moves, resize chords and zoom"
+    }
+
+    /// The card at its natural size: every pane's lines whole.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        Size::new(
+            self.card_size().width,
+            self.sections.stack.measure(&[self.child()]),
+        )
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
