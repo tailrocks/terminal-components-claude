@@ -89,24 +89,31 @@ pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, (), Act>;
 
 /// Opening one of tablepro's dialogs from a page.
 pub trait OpenDialog {
-    /// Open `d` on top, placed on the whole screen a row clear of the
-    /// status strip and the footer on top of its own margin (where
-    /// `body_bounds(screen, 1, 1)` placed it).
+    /// Open `d` on top, placed clear of the status strip and the footer
+    /// ([`shell::Chrome::fit`] with [`CHROME`]).
     fn open_dialog(&mut self, d: Dialog);
 }
 
 impl OpenDialog for Cx<'_> {
     fn open_dialog(&mut self, mut d: Dialog) {
-        d.outer_margin.vertical += 1;
+        CHROME.fit(&mut d);
         self.open(d, LayerTag::new("dialog"));
     }
 }
 
+/// tablepro's frame ([`shell::Chrome`]): the status strip on the first
+/// row, the footer on the last, a blank row between each and the page,
+/// and a column clear on each side of the page.
+pub const CHROME: shell::Chrome = shell::Chrome::new().inset(1);
+
 /// Tick delivery (`--motion`): the library's [`Motion`].
 pub use junie_tui::motion::Motion;
 
+/// A tablepro page, as the [`shell::Router`] stacks them: the connection
+/// list is the root; an open connection's workbench is pushed on it, and
+/// Disconnect goes back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Screen {
+pub enum Route {
     Connections,
     Workbench,
 }
@@ -138,7 +145,9 @@ pub type Layers = ShellLayers<ModalResult>;
 
 pub struct App {
     pub theme: Theme,
-    pub screen: Screen,
+    /// The page stack ([`shell::Router`]): Connections at the root, the
+    /// Workbench pushed over it while a connection is open.
+    pub router: shell::Router<Route>,
     pub connections: ConnectionsScreen,
     pub workbench: Option<Workbench>,
     pub history: History,
@@ -174,7 +183,7 @@ impl App {
         shell.focus.focus(WidgetId::of("connections").sub("tree"));
         Self {
             theme,
-            screen: Screen::Connections,
+            router: shell::Router::new(Route::Connections),
             connections,
             workbench: None,
             history: History::seeded(),
@@ -201,7 +210,13 @@ impl App {
         // start on the explorer so the first Enter opens a table
         self.shell.focus.focus(crate::workbench::EXPLORER);
         self.workbench = Some(wb);
-        self.screen = Screen::Workbench;
+        // the workbench goes over the connection list (in place of an
+        // open one)
+        let nav = match self.route() {
+            Route::Connections => shell::Nav::Push(Route::Workbench),
+            Route::Workbench => shell::Nav::Replace(Route::Workbench),
+        };
+        self.router.apply(nav, |r| r);
         self.set_status_as(
             StatusKind::Ok,
             format!(
@@ -209,6 +224,11 @@ impl App {
                 self.workbench.as_ref().unwrap().connection.name
             ),
         );
+    }
+
+    /// The shown page.
+    pub fn route(&self) -> Route {
+        *self.router.current()
     }
 
     /// Apply `--motion` / `--frame`. `Paused` fast-forwards `frame` ticks
@@ -323,8 +343,8 @@ impl App {
             return Outcome::Changed;
         }
         let name = w.connection.name.clone();
+        self.router.apply(shell::Nav::<Route>::Back, |r| r);
         self.workbench = None;
-        self.screen = Screen::Connections;
         self.shell.focus.focus(crate::connections::TREE);
         self.set_status(format!("Disconnected from {name}"));
         Outcome::Changed
@@ -479,20 +499,20 @@ impl App {
         out
     }
 
-    /// The page shown ([`Screen`]): Connections, or the Workbench once a
+    /// The page shown ([`Route`]): Connections, or the Workbench once a
     /// connection is open.
     fn shown(&self) -> Option<&dyn Page<Tablepro>> {
-        match self.screen {
-            Screen::Connections => Some(&self.connections),
-            Screen::Workbench => self.workbench.as_ref().map(|w| w as &dyn Page<Tablepro>),
+        match self.route() {
+            Route::Connections => Some(&self.connections),
+            Route::Workbench => self.workbench.as_ref().map(|w| w as &dyn Page<Tablepro>),
         }
     }
 
     /// The page shown and the history it reads, borrowed apart.
     fn shown_mut(&mut self) -> (Option<&mut dyn Page<Tablepro>>, &mut History) {
-        let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
-            Screen::Connections => Some(&mut self.connections),
-            Screen::Workbench => self
+        let page: Option<&mut dyn Page<Tablepro>> = match self.route() {
+            Route::Connections => Some(&mut self.connections),
+            Route::Workbench => self
                 .workbench
                 .as_mut()
                 .map(|w| w as &mut dyn Page<Tablepro>),
@@ -506,10 +526,11 @@ impl App {
         &mut self,
         f: impl FnOnce(&mut dyn Page<Tablepro>, &mut History, &mut Cx) -> Outcome,
     ) -> Outcome {
+        let route = self.route();
         let (o, reqs) = self.shell.deliver(true, |cx| {
-            let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
-                Screen::Connections => Some(&mut self.connections),
-                Screen::Workbench => self
+            let page: Option<&mut dyn Page<Tablepro>> = match route {
+                Route::Connections => Some(&mut self.connections),
+                Route::Workbench => self
                     .workbench
                     .as_mut()
                     .map(|w| w as &mut dyn Page<Tablepro>),
@@ -654,12 +675,12 @@ impl App {
     /// (no workbench, or a command the active tab has no use for).
     fn run_cmd(&mut self, cmd: TpCmd) -> Outcome {
         if cmd == TpCmd::NewConnection {
-            if self.screen != Screen::Connections {
+            if self.route() != Route::Connections {
                 return Outcome::Ignored;
             }
             return self.new_connection();
         }
-        if self.screen != Screen::Workbench || self.workbench.is_none() {
+        if self.route() != Route::Workbench || self.workbench.is_none() {
             return Outcome::Ignored;
         }
         match cmd {
@@ -814,7 +835,7 @@ impl App {
     /// Show the workbench tab `step` places away (wrapping); focus
     /// follows into it unless it sits on the explorer or the tab strip.
     fn step_tab(&mut self, step: isize) -> Outcome {
-        if self.screen != Screen::Workbench {
+        if self.route() != Route::Workbench {
             return Outcome::Ignored;
         }
         if let Some(w) = self.workbench.as_mut()
@@ -1269,7 +1290,7 @@ impl App {
 
     /// Open one of the app's own dialogs (placed like a page's).
     fn open_dialog(&mut self, mut d: Dialog) {
-        d.outer_margin.vertical += 1;
+        CHROME.fit(&mut d);
         self.open_layer(Box::new(d), LayerTag::new("dialog"));
     }
 
@@ -1906,8 +1927,8 @@ impl App {
         }
         // the app menu: quit, open tabs, disconnect (mouse #40)
         if id == STRIP_APP || id == STRIP_CONN {
-            let name = match (self.screen, self.workbench.as_ref()) {
-                (Screen::Workbench, Some(w)) => Some(w.connection.name.clone()),
+            let name = match (self.route(), self.workbench.as_ref()) {
+                (Route::Workbench, Some(w)) => Some(w.connection.name.clone()),
                 _ => None,
             };
             let at = self
@@ -1929,8 +1950,8 @@ impl App {
             return Outcome::Consumed;
         }
         let cfg = self.context;
-        let menu = match (self.screen, self.workbench.as_mut()) {
-            (Screen::Workbench, Some(w)) => {
+        let menu = match (self.route(), self.workbench.as_mut()) {
+            (Route::Workbench, Some(w)) => {
                 let menu = context::on_secondary(w, &cfg, ev);
                 // the detail pane follows the row the menu is about
                 if let Some(WorkTab::History(h)) = w.active_tab_mut() {
@@ -1938,7 +1959,7 @@ impl App {
                 }
                 menu
             }
-            (Screen::Connections, _) => {
+            (Route::Connections, _) => {
                 context::on_secondary_connections(&mut self.connections, &cfg, ev)
             }
             _ => None,
@@ -2009,14 +2030,11 @@ impl App {
     // --------------------------------------------------------------- render
 
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let header = Rect::new(area.x, area.y, area.width, 1);
-        let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
-        let body = Rect::new(
-            area.x + 1,
-            area.y + 2,
-            area.width.saturating_sub(2),
-            area.height.saturating_sub(4),
-        );
+        let shell::Regions {
+            header,
+            body,
+            footer,
+        } = CHROME.regions(area);
         self.draw_strip(header, buf, ctx);
         let (page, history) = self.shown_mut();
         if let Some(p) = page {
@@ -2041,13 +2059,13 @@ impl App {
                 .priority(9),
         ];
         let mut right = vec![];
-        match self.screen {
-            Screen::Connections => {
+        match self.route() {
+            Route::Connections => {
                 left.push(Segment::new("Connections", Tone::Secondary).priority(8));
                 let n = self.connections.connections.len();
                 left.push(Segment::new(format!("{n} saved"), Tone::Muted).priority(3));
             }
-            Screen::Workbench => {
+            Route::Workbench => {
                 if let Some(w) = &self.workbench {
                     let c = &w.connection;
                     let env = c.environment;
@@ -2218,7 +2236,7 @@ impl shell::App for App {
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
         // the hidden page keeps only its statuses (`Shell::deliver`)
-        let connections = self.screen == Screen::Connections;
+        let connections = self.route() == Route::Connections;
         let (o, front) = self.shell.deliver(connections, |cx| {
             Page::on_blur(&mut self.connections, ch, &mut self.history, cx)
         });
@@ -2239,7 +2257,7 @@ impl shell::App for App {
         self.layers.hides_page_focus()
     }
     fn page_key(&self) -> PageKey {
-        PageKey(self.screen as u64)
+        self.router.key()
     }
 }
 
@@ -2555,12 +2573,12 @@ impl shell::KeyHost for App {
     /// key: the menu opens on the shell's layer stack).
     fn chrome_key(&mut self, key: &Key) -> Outcome {
         let focus = self.shell.focus.current();
-        let menu = match self.screen {
-            Screen::Workbench => self
+        let menu = match self.route() {
+            Route::Workbench => self
                 .workbench
                 .as_ref()
                 .and_then(|w| context::on_key(w, &self.context, focus, key)),
-            Screen::Connections => {
+            Route::Connections => {
                 context::on_key_connections(&self.connections, &self.context, focus, key)
             }
         };
