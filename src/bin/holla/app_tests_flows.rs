@@ -949,3 +949,22 @@ fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
         "the old upkeep put focus back on the page's primary control"
     );
 }
+
+/// The footer's peek line never costs a key hint: with a cut cursor row
+/// the finder at 120 columns keeps every hint it draws without the peek
+/// (keys before a preview), the peek takes only what they leave.
+#[test]
+fn the_finder_peek_never_drops_a_hint() {
+    let h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
+    let footer = h.last_row();
+    assert!(footer.contains("Clean Docker completely —"), "no peek: {footer}");
+    for hint in [
+        "Type Search",
+        "Enter Review…",
+        "Tab Preview",
+        "Ctrl+↑↓ Scope",
+        "Esc Clear",
+    ] {
+        assert!(footer.contains(hint), "{hint} dropped: {footer}");
+    }
+}

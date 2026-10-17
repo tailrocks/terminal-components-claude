@@ -223,7 +223,7 @@ impl Footer {
     ) {
         let t = ctx.theme;
         fill(buf, area, t.base());
-        let mut hints = self.compose(ctx.reveal_hint);
+        let hints = self.compose(ctx.reveal_hint);
         let badge = self.editing.then_some(("EDIT", BadgeKind::Edit));
         let style = crate::theme::HintBarStyle {
             align: self.align.unwrap_or(t.hintbar.align),
@@ -231,31 +231,17 @@ impl Footer {
         };
         // the peek line: the focused cut value in full, while nothing else
         // is said in the status slot (SI8). It is the least important part
-        // of the row: the primary hints (the pinned ones and the focused
-        // control's main action, its `Enter` hint, else its first) keep
-        // their room first, the peek takes what is left, cut with `…`, and
-        // is left out before a primary hint would be
+        // of the row: every hint keeps its room (keys before a preview),
+        // the peek takes only the width the hints leave, cut with `…`, and
+        // is left out when less than `PEEK_MIN` cells are left
         if !self.hide_peek
             && self.status.is_none()
             && let Some(text) = &ctx.peek
         {
-            let main = (hints.iter().position(|h| h.key == "Enter"))
-                .or_else(|| hints.iter().position(|h| !h.is_pinned(&style)));
-            let primary: Vec<Hint> = (hints.iter().enumerate())
-                .filter(|(i, h)| Some(*i) == main || h.is_pinned(&style))
-                .map(|(_, h)| h.clone())
-                .collect();
-            let mut need = keyhint::width(&primary, badge.map(|(b, _)| b), None);
-            if primary.len() < hints.len() {
-                need += 2; // the cut marker after the kept hints
-            }
+            let need = keyhint::width(&hints, badge.map(|(b, _)| b), None);
             // the status gap and right margin
             let room = area.width.saturating_sub(need + 3) as usize;
             if room >= PEEK_MIN {
-                // the main action keeps its room beside the peek
-                if let Some(i) = main {
-                    hints[i].priority = HintPriority::Pinned;
-                }
                 self.status = Some(FooterStatus::Toned {
                     text: crate::ui::text::truncate(text, room),
                     tone: Tone::Secondary,
