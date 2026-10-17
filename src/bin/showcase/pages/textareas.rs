@@ -192,7 +192,10 @@ impl Page for TextAreasPage {
                 ("Tab", "Next"),
             ]
         } else {
-            vec![("Enter", "Edit"), ("↑↓", "Scroll")]
+            vec![
+                junie_tui::widgets::widget_hints::EDIT_PAIR,
+                ("↑↓", "Scroll"),
+            ]
         }
     }
 }
