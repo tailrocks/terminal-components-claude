@@ -454,6 +454,11 @@ pub struct RoleEntry {
     pub in_registry: bool,
     pub description: String,
     pub load_error: Option<String>,
+    /// What the registry answers when this Role is loaded: `None` loads,
+    /// `Some(reason)` fails (a fetch, I/O or manifest parse error) even
+    /// for a trusted Role. A fixture knob; the real product gets it from the
+    /// load itself.
+    pub fetch_error: Option<String>,
 }
 
 impl RoleEntry {

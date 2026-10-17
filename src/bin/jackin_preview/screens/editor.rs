@@ -1299,11 +1299,21 @@ impl EditorScreen {
             KeyCode::Enter | KeyCode::Char('*') => match &row {
                 RoleRow::Load => self.open_role_picker(w, cx),
                 RoleRow::Role(name) => {
-                    if let Some(e) = w.roles.iter().find(|r| &r.name == name)
-                        && e.load_error.is_some()
-                    {
-                        self.pending_load = Some(name.clone());
-                        self.open_trust_dialog(e, cx);
+                    let failed = w
+                        .roles
+                        .iter()
+                        .find(|r| &r.name == name)
+                        .filter(|e| e.load_error.is_some())
+                        .cloned();
+                    if let Some(e) = failed {
+                        if e.trusted {
+                            // a failed load of a trusted Role: Enter retries
+                            // ("retry from the Roles tab"), no second trust ask
+                            self.start_role_load(name, w, cx);
+                        } else {
+                            self.pending_load = Some(name.clone());
+                            self.open_trust_dialog(&e, cx);
+                        }
                     } else if !self.pending.roles.allows(name) {
                         cx.error(format!(
                             "{name} must be allowed before it can be the default"
@@ -1394,20 +1404,19 @@ impl EditorScreen {
 
     fn start_role_load(&mut self, name: &str, w: &mut World, cx: &mut Cx) {
         self.pending_load = Some(name.to_owned());
-        let ok = name != "data-eng" || w.roles.iter().any(|r| r.name == name && r.trusted);
+        // a load starts only for a trusted Role; it can still fail (fetch,
+        // I/O, manifest parse), which the registry fixture reports
+        let error = w
+            .roles
+            .iter()
+            .find(|r| r.name == name)
+            .and_then(|r| r.fetch_error.clone());
         w.schedule(
             1100,
             Msg::RoleLoaded {
                 role: name.to_owned(),
-                ok,
-                error: if ok {
-                    None
-                } else {
-                    Some(
-                        "manifest fetch failed: 403 from github.com/acme-labs/roles-experimental"
-                            .into(),
-                    )
-                },
+                ok: error.is_none(),
+                error,
             },
         );
         cx.status(format!("Loading role {name}…"));

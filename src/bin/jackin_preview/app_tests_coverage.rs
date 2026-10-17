@@ -1252,3 +1252,52 @@ fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
     h.ctrl('q');
     assert!(h.app.shell.quit, "a clean quit never asks: {}", h.text());
 }
+
+/// A26: a load starts only for a trusted Role, and the old fixture failed
+/// only an untrusted one, so the role-load error dialog could never open.
+/// Hard cases now carry a trusted Role whose manifest does not parse: the
+/// load fails, the dialog names the error, the row keeps it, and Enter on
+/// the row retries without asking for trust again.
+#[test]
+fn a_trusted_role_that_fails_to_load_reports_the_error_and_retries() {
+    let mut h = hard_manager();
+    editor(&mut h, 1);
+    h.key(KeyCode::Char('3'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('a'));
+    assert!(h.text().contains("Load role"), "{}", h.text());
+    h.type_str("writer");
+    h.key(KeyCode::Enter);
+    assert!(!h.text().contains("Trust role source"), "{}", h.text());
+    assert!(status(&h).contains("Loading role writer"), "{}", status(&h));
+    for _ in 0..40 {
+        if h.text().contains("failed to load") {
+            break;
+        }
+        h.ticks(5);
+    }
+    let t = h.text();
+    assert!(t.contains("Role writer failed to load"), "{t}");
+    assert!(t.contains("unknown key `toolz`"), "{t}");
+    assert!(t.contains("trust stays granted"), "{t}");
+    let r = h
+        .app
+        .world
+        .roles
+        .iter()
+        .find(|r| r.name == "writer")
+        .unwrap();
+    assert!(r.trusted && r.load_error.is_some(), "{r:?}");
+    h.key(KeyCode::Esc);
+    assert!(!h.text().contains("failed to load"), "{}", h.text());
+    assert!(h.text().contains("! load error"), "{}", h.text());
+    // retry from the Roles tab: `writer` is the sixth row; Enter loads
+    // again, never asking for trust a second time
+    h.key(KeyCode::Home);
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    assert!(!h.text().contains("Trust role source"), "{}", h.text());
+    assert!(status(&h).contains("Loading role writer"), "{}", status(&h));
+}
