@@ -65,8 +65,6 @@ pub const TAKEOVER_RECONNECT: WidgetId = WidgetId::of("capsule.takeover.reconnec
 /// The takeover notice's Workspace manager button.
 pub const TAKEOVER_LEAVE: WidgetId = WidgetId::of("capsule.takeover.leave");
 
-const PREFIX_TIMEOUT_MS: i64 = 2_000;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Normal,
@@ -84,7 +82,13 @@ enum Intent {
 
 pub struct CapsuleScreen {
     pub instance: String,
+    /// While the Ctrl+B prefix waits for its command: until this world
+    /// time, or `i64::MAX` when it waits until a key or Esc.
     pub prefix_until: Option<i64>,
+    /// How long the Ctrl+B prefix waits for its command. Default `None`:
+    /// sticky until the next key, and Esc cancels it (K26: a timeout
+    /// fails slower typists); `Some(ms)` restores a timeout.
+    pub prefix_timeout_ms: Option<i64>,
     drag: Option<(Vec<u8>, Rect)>,
     selecting: Option<PaneId>,
     /// The pane whose horizontal bar the pointer holds.
@@ -154,6 +158,7 @@ impl CapsuleScreen {
         Self {
             instance: instance.to_owned(),
             prefix_until: None,
+            prefix_timeout_ms: None,
             drag: None,
             selecting: None,
             hbar_held: None,
@@ -569,7 +574,10 @@ impl CapsuleScreen {
     }
 
     fn enter_prefix(&mut self, w: &World) {
-        self.prefix_until = Some(w.now_ms() + PREFIX_TIMEOUT_MS);
+        self.prefix_until = Some(
+            self.prefix_timeout_ms
+                .map_or(i64::MAX, |t| w.now_ms().saturating_add(t)),
+        );
     }
 
     fn spawn_flow(&mut self, intent: Intent, w: &World, cx: &mut Cx) {
