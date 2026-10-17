@@ -405,6 +405,19 @@ fn a_short_screen_keeps_the_disk_filesystems() {
     assert!(text.contains("926"), "{text}");
 }
 
+/// R-apps-2: narrow, the plan's details drawer covers the outline; the
+/// outline's consequence line is not drawn over the drawer.
+#[test]
+fn the_plan_summary_stays_off_the_details_drawer() {
+    let mut h = H::fresh();
+    docker_plan(&mut h);
+    h.resize(72, 20);
+    assert!(h.text().contains("7 required"), "{}", h.text());
+    h.key(KeyCode::Char('p'));
+    let text = h.text();
+    assert!(!text.contains("7 required"), "{text}");
+}
+
 /// R-apps-6: on a short screen the gate's and the trust review's facts
 /// keep their natural height in a scroll view: the panel under them
 /// keeps its rows, and the wheel over the facts reaches the last one.

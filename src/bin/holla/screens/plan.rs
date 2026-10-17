@@ -991,9 +991,11 @@ impl ShellPage<Holla> for PlanReviewPage {
             ctx.control(DETAIL, Rect::ZERO, false);
         }
         // consequence lines: one blank row under the outline, never lower
-        // than the space above the buttons
+        // than the space above the buttons. They summarise the outline:
+        // while the detail drawer covers the body they are not drawn over it
+        let drawer_open = self.drawer && !(detail_area.is_some() && split);
         let cy = (rows.y + p.steps.len() as u16 + 1).min(body.bottom() + 1);
-        for (i, c) in cons.iter().take(2).enumerate() {
+        for (i, c) in cons.iter().take(2).enumerate().filter(|_| !drawer_open) {
             let tone = if c.contains("blocked") {
                 t.warning
             } else {
