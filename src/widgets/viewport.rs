@@ -1987,6 +1987,8 @@ impl crate::core::pointer::MouseTarget for TextViewport {
         match ev.phase() {
             Some(Phase::Press) => self.on_click(ev.pos()).into(),
             Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
+            // a double click selects the word under it (macOS text)
+            Some(Phase::Click) if ev.count() >= 2 => self.select_word_at(ev.pos()).into(),
             Some(Phase::Click) => Response::consumed(),
             _ => Response::ignored(),
         }

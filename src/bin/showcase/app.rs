@@ -1781,7 +1781,7 @@ impl App {
         // a press on a row puts the cursor on it; a click on a row or its
         // disclosure focuses the tree and acts (the press already focused
         // the tree's own body under `FocusOn::Press`)
-        let row = ev.index_of(Part::ROW).or(ev.index_of(Part::ICON));
+        let row = self.nav.row_at(ev);
         if ev.is(Phase::Press)
             && let Some(row) = ev.index_of(Part::ROW)
         {

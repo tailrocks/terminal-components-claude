@@ -761,7 +761,7 @@ impl ScrollingPage {
             }
         }
         if let Some(r) = self.tree.route(ev) {
-            if click && (ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some()) {
+            if click && self.tree.row_at(ev).is_some() {
                 cx.focus.focus(self.tree.id);
             }
             return r.outcome();

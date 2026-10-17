@@ -685,11 +685,8 @@ impl ShellPage<Holla> for ActivityTab {
                     }
                 }
                 if id == VIEW {
+                    // the viewport selects the word under a double click
                     cx.focus.focus(VIEW);
-                    // a double click selects the word under it
-                    if ev.count() >= 2 {
-                        return self.view.select_word_at(pos);
-                    }
                 }
                 self.view
                     .route(ev)
