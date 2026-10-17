@@ -101,8 +101,7 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
             let mut spare = width - gaps - mins;
             let fixed: u16 = row.iter().filter(|t| !t.grow).map(|t| t.min_width).sum();
             let growing = row.iter().filter(|t| t.grow).count() as u16;
-            if growing > 0 {
-                let share = (width - gaps - fixed) / growing;
+            if let Some(share) = (width - gaps - fixed).checked_div(growing) {
                 for (w, t) in widths.iter_mut().zip(row.iter()) {
                     if t.grow {
                         let add = share.saturating_sub(*w).min(spare);
