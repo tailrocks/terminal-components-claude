@@ -482,3 +482,51 @@ outside_route_key_and_in_popups_a_letter_types_at_once}`.
   (plan S16/S17).
 - S8a's `KeyRouter` should call `route_key` once, in place of the
   per-app call in each `handle_input`.
+
+## Status (T19 sync, 2026-10-17)
+
+Method: each finding without a row above was checked against the code at
+HEAD, `git log --grep`/`-S`, and the plan's "Step status" and S5/S7
+outcome sections. Rows for #1–7, #15–17, #20–22, #24, #25, #29, #33,
+#34 and the review items are in the earlier sections and still hold
+(`Theme::DEFAULT_EDIT_ENTRY` is `Immediate` at HEAD, so the plan's S11
+"flip K1" note is stale, not this file). #36 is restated here with its
+owner.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 8 | Fixed | 14d6cdbc1, 777adce9a, 3825da948 | `Shell` focus upkeep defaults to `FocusFallback::Nearest` on the same page (`src/shell/app.rs`). Tests `a_vanished_control_hands_focus_to_its_nearest_neighbour` in tablepro, holla and jackin. |
+| 9 | Fixed | 57e109d55, 0afc08a4b | Pickers sit on `ShellLayers`; every layer close restores the owner's focus. Tests per layer in each app's `app_tests_layers.rs` and the showcase Pickers page. |
+| 10 | Open → S8b | — | `HasHints`, composed footer, `Tab <label>` from the ring. |
+| 11 | Open → S8a | — | Focused-but-closed MenuBar keys (Enter or ↓ opens, ←→ moves). |
+| 12 | Open → S10 | — | Keyboard reveal in Grid, Table, Menu, Picker, Select and StatusBar. |
+| 13 | Fixed | 09012333e | `Select::tab_in_open(TabInOpen)`: Tab chooses and moves on; `?` and F-keys close and pass on. |
+| 14 | Fixed | cf21436e4, 86491237c | `ContextMenu::unknown_key`; a row's one-character shortcut chooses it, other keys close and pass on (type-ahead takes letters since S4). jackin row menus: CO15. |
+| 18 | Open → S19 | — | `SplitKeys` (Alt+Shift+arrows, hinted) on `MasterDetail`. |
+| 19 | Open → S15 | — | Column cursor for table sort. |
+| 23 | Open → S8b | — | `HelpOverlay::from_keymaps`, F1 everywhere. |
+| 26 | Open → S8a | — | jackin `PREFIX_TIMEOUT_MS` is still a 2 s constant in `capsule.rs`. |
+| 27 | Fixed | ca36871d7 | `RenderCtx::cover`: content under a full-cover panel is inert. Test `a_form_covering_the_narrow_connection_list_keeps_tab_inside_it` (tablepro). |
+| 28 | Open → S8a | — | jackin launch cockpit 1×1 StepRail stop. |
+| 30 | Fixed | f83b4cbb2 | `RenderCtx::visual_order` with `FocusRing::sort_from`. Test `the_manager_detail_card_tabs_in_visual_order` (jackin). |
+| 31 | Fixed | a70f2eec6 | `PickerAction::PrevScope` on Shift+Tab. |
+| 32 | Fixed | 30201761d, 0cb707165 | `ButtonRow::step`, no wrap, skips disabled, for Dialog, FormDialog and ChoiceDialog. |
+| 35 | Open → S8a | — | Busy Button hint "Working…" from `Button::hints`. |
+| 36 | Open → S11 | — | Deferred above (HP02); also listed in A6. |
+| 37 | Open → S8a | — | `skip_when_empty` not in the code yet. |
+| 38 | Open → S8a | — | Status-bar `focusable`, ChipBar lead-toggle key. |
+| 39 | Open → S8b | — | Follows from derived hints (#10, #23). |
+
+Hash fills for rows above that read "see branch log" or a commit title:
+macOS editing chords 17caa78ab; S4 #33/#34 222641136; type-ahead
+decision log 2c9e41862.
+
+Caret-pass list ("Scenarios still pending re-approval" in the first
+status section) is now stale. Corrected state: tablepro (4be166d38),
+holla (054e5eefa) and jackin (c12eccdfa) were re-approved against
+`visual-baseline` with the caret (1da20cc01) attributed, see
+`visual-reapproval.md`. The showcase `pages/codeeditor` (d267c9736) and
+`pages/dialogs` (998dbfc5d) captures were re-approved after 1da20cc01.
+The legacy showcase `flows/inputs`, `flows/forms`, `flows/dialogs` and
+`flows/editor` captures are still four-file tuisnap approvals: Open → V1.
+`textareas` has no stored capture.
