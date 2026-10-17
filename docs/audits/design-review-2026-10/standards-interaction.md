@@ -240,8 +240,15 @@ Decision (library, `core::keyboard`):
 - Menus keep their width when a shortcut is hidden, so they lay out alike
   on every terminal. Generated component docs pin Alt as delivered (they
   document every chord, the same on every host).
-- Captures run as a macOS client with no `TERM_PROGRAM` and no protocol
-  reply, so the approved footers show the deliverable alternatives below.
+- Captures run as a macOS client with no `TERM_PROGRAM` (`WithProtocol`),
+  and the capture terminal answers the kitty protocol query, so Alt
+  chords count as delivered there: the approved footers keep them, and
+  only tablepro's keyboard reference changed (it lists Shift+F5 and
+  Shift+F7 beside Alt+R and Alt+X). The macOS Terminal state is proven by
+  a footer test per app (`alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol`,
+  `alt_enter_is_hinted_only_where_the_terminal_delivers_alt`,
+  `capsule_resize_is_hinted_only_where_the_terminal_delivers_alt`,
+  `pane_tree_footer_names_no_alt_chord_on_macos_terminal_and_alt_with_the_kitty_protocol`).
 
 Every Alt-only action gets a deliverable path (standard first):
 
