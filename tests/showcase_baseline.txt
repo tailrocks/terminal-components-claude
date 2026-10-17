@@ -13,7 +13,7 @@
 120x40 TrueColor Help & keys 375d2517fac90548
 120x40 TrueColor Help & keys · Options 1577bdd988c85ea1
 120x40 TrueColor Help & keys · States e8616227a9291619
-120x40 TrueColor Quit & leave c9680f2afa80db76
+120x40 TrueColor Quit & leave a20061743ef9a280
 120x40 TrueColor Quit & leave · Options a25a0e816064fb5e
 120x40 TrueColor Quit & leave · States f44a2f8d87bbe96d
 120x40 TrueColor Focus & navigation 4842751f7dfb588d
@@ -177,7 +177,7 @@
 120x40 Ansi256 Help & keys c0d7c7c43a8f97eb
 120x40 Ansi256 Help & keys · Options a31a5ee1c0be97cf
 120x40 Ansi256 Help & keys · States 7dbad73fa49b851c
-120x40 Ansi256 Quit & leave 6fc583bbef511c1f
+120x40 Ansi256 Quit & leave d1fb77a546564b33
 120x40 Ansi256 Quit & leave · Options 38fa9e819068ee7f
 120x40 Ansi256 Quit & leave · States fea379736eea181a
 120x40 Ansi256 Focus & navigation 784a54b9e1d284d0
@@ -341,7 +341,7 @@
 120x40 Ansi16 Help & keys a03931783c672bab
 120x40 Ansi16 Help & keys · Options fb8073b6564b25f1
 120x40 Ansi16 Help & keys · States 2a45ef7065363ef9
-120x40 Ansi16 Quit & leave 181b978653d2605d
+120x40 Ansi16 Quit & leave 557a9769ce96ca9a
 120x40 Ansi16 Quit & leave · Options 6057be3c6e3664bc
 120x40 Ansi16 Quit & leave · States cf9d835d793dc43d
 120x40 Ansi16 Focus & navigation e785e6fc3a127260
@@ -505,7 +505,7 @@
 120x40 Mono Help & keys 68c84943369406b2
 120x40 Mono Help & keys · Options c4b8f1bd6b0ae5e6
 120x40 Mono Help & keys · States 58265c0924905426
-120x40 Mono Quit & leave 66bc52cbd4d8dca0
+120x40 Mono Quit & leave 64b1fafb61079863
 120x40 Mono Quit & leave · Options 0009063f4d7ca379
 120x40 Mono Quit & leave · States a471965f3956cf10
 120x40 Mono Focus & navigation 5e2822b00fa0edab
@@ -669,7 +669,7 @@
 80x24 TrueColor Help & keys 34ebca842dab651a
 80x24 TrueColor Help & keys · Options be9cbfe0e01436e7
 80x24 TrueColor Help & keys · States 9ca8eed9e0c8fc6b
-80x24 TrueColor Quit & leave 40b051b2ad8f62a2
+80x24 TrueColor Quit & leave ee2227976d174686
 80x24 TrueColor Quit & leave · Options 5ce1f95a7ef8d5c4
 80x24 TrueColor Quit & leave · States 09fb5ce9a27ac31d
 80x24 TrueColor Focus & navigation 0984968ab9987f82
@@ -833,7 +833,7 @@
 80x24 Ansi256 Help & keys 565ed16b2e1fc0af
 80x24 Ansi256 Help & keys · Options 81b6bc0e5849c6fc
 80x24 Ansi256 Help & keys · States e3e85016762e11db
-80x24 Ansi256 Quit & leave 4bd03799b80df704
+80x24 Ansi256 Quit & leave f135b74fb30fd634
 80x24 Ansi256 Quit & leave · Options 907d05cd26783214
 80x24 Ansi256 Quit & leave · States c907cf936216d133
 80x24 Ansi256 Focus & navigation 97d0c57f3e171b55
@@ -997,7 +997,7 @@
 80x24 Ansi16 Help & keys baedfd9828f7f170
 80x24 Ansi16 Help & keys · Options 53f41cada6794c2c
 80x24 Ansi16 Help & keys · States d59f9b9ba15161e7
-80x24 Ansi16 Quit & leave b49f94f53a0c9e54
+80x24 Ansi16 Quit & leave a3b4f33c9dbc9a49
 80x24 Ansi16 Quit & leave · Options 4a7b46c5426f0cb7
 80x24 Ansi16 Quit & leave · States 6850107c85329799
 80x24 Ansi16 Focus & navigation e0dfa1f0367f31c6
@@ -1161,7 +1161,7 @@
 80x24 Mono Help & keys 43737b669679d7f4
 80x24 Mono Help & keys · Options 300229cfd483166e
 80x24 Mono Help & keys · States 3dbf7b45cdaccd45
-80x24 Mono Quit & leave e43d8ee268aac9fe
+80x24 Mono Quit & leave 1287b615b609353f
 80x24 Mono Quit & leave · Options 3e7734c002a99ec1
 80x24 Mono Quit & leave · States 1be3970fe9b2e8eb
 80x24 Mono Focus & navigation c3c973d62ce3e5b8
@@ -1325,7 +1325,7 @@
 72x20 TrueColor Help & keys b4f0c844469dee13
 72x20 TrueColor Help & keys · Options e504438d302b5a34
 72x20 TrueColor Help & keys · States 2a37247352723afc
-72x20 TrueColor Quit & leave 70416baf03ac4111
+72x20 TrueColor Quit & leave 67951ef9f4ce014d
 72x20 TrueColor Quit & leave · Options d4e16cbcc3128da0
 72x20 TrueColor Quit & leave · States ae50556a2c3a74af
 72x20 TrueColor Focus & navigation cb537c8e34fe3aeb
@@ -1489,7 +1489,7 @@
 72x20 Ansi256 Help & keys 89019f2d8ecb4393
 72x20 Ansi256 Help & keys · Options 743cc84049458d11
 72x20 Ansi256 Help & keys · States 39c7962bf5dcd36b
-72x20 Ansi256 Quit & leave 8d6a5ceaa00f9524
+72x20 Ansi256 Quit & leave 620807f30bdbfd73
 72x20 Ansi256 Quit & leave · Options 86830e4c76b68763
 72x20 Ansi256 Quit & leave · States 2d33d78937605b29
 72x20 Ansi256 Focus & navigation eb84b65eed751ccb
@@ -1653,7 +1653,7 @@
 72x20 Ansi16 Help & keys a7f94665aa6883c6
 72x20 Ansi16 Help & keys · Options 692211eb84e8ea7e
 72x20 Ansi16 Help & keys · States 0755a253a3bed922
-72x20 Ansi16 Quit & leave a70cfe7430a13b60
+72x20 Ansi16 Quit & leave 2c2c50cb8903f6e3
 72x20 Ansi16 Quit & leave · Options 497182d55fb9f489
 72x20 Ansi16 Quit & leave · States 39587d3039bbe478
 72x20 Ansi16 Focus & navigation 03cc98669f451ed5
@@ -1817,7 +1817,7 @@
 72x20 Mono Help & keys d03125fb1583d672
 72x20 Mono Help & keys · Options 72877cf865518498
 72x20 Mono Help & keys · States e2f97f5d847d7ad0
-72x20 Mono Quit & leave 8b12f2ddad38ddb2
+72x20 Mono Quit & leave 2d00983b33ecd97d
 72x20 Mono Quit & leave · Options c835deed22b463ff
 72x20 Mono Quit & leave · States 2e2c83d72ee7ad26
 72x20 Mono Focus & navigation dc9d61b1040be1f3
@@ -1981,7 +1981,7 @@
 100x30 TrueColor Help & keys 1012d243c7801d9c
 100x30 TrueColor Help & keys · Options 20f31c8f69d83919
 100x30 TrueColor Help & keys · States fce532251955600b
-100x30 TrueColor Quit & leave ff5ef06498420a59
+100x30 TrueColor Quit & leave d8b1d24d58de8ff2
 100x30 TrueColor Quit & leave · Options 3687cefd33208154
 100x30 TrueColor Quit & leave · States 9c6eca1fbf7bbf25
 100x30 TrueColor Focus & navigation d88a00ae3b1dacdc
@@ -2145,7 +2145,7 @@
 100x30 Ansi256 Help & keys 8cf7e2309e2d2018
 100x30 Ansi256 Help & keys · Options 88f08d40f81afb78
 100x30 Ansi256 Help & keys · States 8c09189adfcc0790
-100x30 Ansi256 Quit & leave 7b5a086da2c26299
+100x30 Ansi256 Quit & leave 92b2b14b897dd011
 100x30 Ansi256 Quit & leave · Options bf6b0dda2036d9b4
 100x30 Ansi256 Quit & leave · States 4cd752d32ea02c5f
 100x30 Ansi256 Focus & navigation 930817c3cda27e24
@@ -2309,7 +2309,7 @@
 100x30 Ansi16 Help & keys 5d1dafcf6e5ec49b
 100x30 Ansi16 Help & keys · Options 58e03d691def8a98
 100x30 Ansi16 Help & keys · States 96d52b7ae604ebc8
-100x30 Ansi16 Quit & leave ae30f11afaab85b3
+100x30 Ansi16 Quit & leave 3d3dcd17c6d3f368
 100x30 Ansi16 Quit & leave · Options 2db7638b5ebbadc7
 100x30 Ansi16 Quit & leave · States dd4b78e5fa6f38be
 100x30 Ansi16 Focus & navigation d779bc2259dda952
@@ -2473,7 +2473,7 @@
 100x30 Mono Help & keys 19528c6dd66b37b8
 100x30 Mono Help & keys · Options cb5f31542566ae7b
 100x30 Mono Help & keys · States 814973c5a7b6696f
-100x30 Mono Quit & leave 421cee8af8bf4ea8
+100x30 Mono Quit & leave 20455ec383543ab3
 100x30 Mono Quit & leave · Options 85aa7f1baf905f4e
 100x30 Mono Quit & leave · States 71a75366925dab5f
 100x30 Mono Focus & navigation 03cacd8bdb3dd35b
@@ -2637,7 +2637,7 @@
 160x50 TrueColor Help & keys a541946a10bfb971
 160x50 TrueColor Help & keys · Options 9f203c0b181cff40
 160x50 TrueColor Help & keys · States 8b0055c35e2b5dc0
-160x50 TrueColor Quit & leave 3e3a61070867111f
+160x50 TrueColor Quit & leave 6562ac2308619366
 160x50 TrueColor Quit & leave · Options 377e7cc257afb9c0
 160x50 TrueColor Quit & leave · States b6b0610b32adcd87
 160x50 TrueColor Focus & navigation b482f237c6dd38ac
@@ -2801,7 +2801,7 @@
 160x50 Ansi256 Help & keys cf77717d11399176
 160x50 Ansi256 Help & keys · Options 64760d5af4e6b99c
 160x50 Ansi256 Help & keys · States 333416045ee7ad6f
-160x50 Ansi256 Quit & leave c467131f1ebe9b79
+160x50 Ansi256 Quit & leave 47ebabb7dcb5be47
 160x50 Ansi256 Quit & leave · Options 80974dbcef72dc05
 160x50 Ansi256 Quit & leave · States 675ac1163f1475bc
 160x50 Ansi256 Focus & navigation a72803b76cf6fc1f
@@ -2965,7 +2965,7 @@
 160x50 Ansi16 Help & keys 18a8d6f5a0f32342
 160x50 Ansi16 Help & keys · Options 032a02b02ba8659c
 160x50 Ansi16 Help & keys · States c097b8b2ad809b45
-160x50 Ansi16 Quit & leave d41083d6b3c16bdc
+160x50 Ansi16 Quit & leave 90766caa47461ae4
 160x50 Ansi16 Quit & leave · Options 364c32b631f3a040
 160x50 Ansi16 Quit & leave · States a8c9de9cd9a940c1
 160x50 Ansi16 Focus & navigation 164097ce8d009436
@@ -3129,7 +3129,7 @@
 160x50 Mono Help & keys 7cb1a0fcdbe546e5
 160x50 Mono Help & keys · Options 10369ea0d2f102a7
 160x50 Mono Help & keys · States 30ffdac074945ae0
-160x50 Mono Quit & leave 45bdbc29dec3b8ef
+160x50 Mono Quit & leave 9ed6048499fe06b9
 160x50 Mono Quit & leave · Options 169fbb00fd97366d
 160x50 Mono Quit & leave · States 971ef8bc206a56a4
 160x50 Mono Focus & navigation 6b571245bb5b4ff9
