@@ -720,7 +720,7 @@
 80x24 TrueColor Trees 0ed3644fea10f94f
 80x24 TrueColor Trees · Options 4e75e1b9a3cc6584
 80x24 TrueColor Trees · States 256ce4870767a2fe
-80x24 TrueColor Sidebars 37d28209db42848a
+80x24 TrueColor Sidebars ae1922fcfa1b6973
 80x24 TrueColor Sidebars · Options 33eedcebf1bbd5e9
 80x24 TrueColor Sidebars · States f4e14a7bbd737797
 80x24 TrueColor Tabs ef9204191675abbf
@@ -884,7 +884,7 @@
 80x24 Ansi256 Trees 8f16d6eda92d05ee
 80x24 Ansi256 Trees · Options 5dcc9cd0537e031b
 80x24 Ansi256 Trees · States 2a0ae9318c40b689
-80x24 Ansi256 Sidebars aa94b6900782e39b
+80x24 Ansi256 Sidebars f63facbb0e42a30a
 80x24 Ansi256 Sidebars · Options 296c77ccb95109d3
 80x24 Ansi256 Sidebars · States 5766245e24542a92
 80x24 Ansi256 Tabs 53395c6261fd2c95
@@ -1048,7 +1048,7 @@
 80x24 Ansi16 Trees faf71d20ef973459
 80x24 Ansi16 Trees · Options 8121ec47913b3199
 80x24 Ansi16 Trees · States d339d7d0ee703c16
-80x24 Ansi16 Sidebars 21df9a0bb7d7157e
+80x24 Ansi16 Sidebars bfda6daaf36e77dc
 80x24 Ansi16 Sidebars · Options 84d5e74c26720666
 80x24 Ansi16 Sidebars · States 2467b091f1b6bd29
 80x24 Ansi16 Tabs d6d20c5a06efb46d
@@ -1212,7 +1212,7 @@
 80x24 Mono Trees 2a6c60a34113c0bf
 80x24 Mono Trees · Options 85e7d7f8f6f02f2b
 80x24 Mono Trees · States 19eb6fe4ebc5403e
-80x24 Mono Sidebars 67121f8012d686da
+80x24 Mono Sidebars 91d519465baa50ec
 80x24 Mono Sidebars · Options 5c6d637311023944
 80x24 Mono Sidebars · States e65cfbcb5fca860b
 80x24 Mono Tabs 2d65bd886a8e4e7e
@@ -1376,7 +1376,7 @@
 72x20 TrueColor Trees ffa390ad4d9ebadd
 72x20 TrueColor Trees · Options 1b9c8e4ca6a4ac3b
 72x20 TrueColor Trees · States 6de97bea8d86f4be
-72x20 TrueColor Sidebars 498ca23253b6426c
+72x20 TrueColor Sidebars 9843cd1a90fb27be
 72x20 TrueColor Sidebars · Options 9ebc90d416117c14
 72x20 TrueColor Sidebars · States 779d7e6e22bfcd6b
 72x20 TrueColor Tabs 227e18e8b2a43303
@@ -1540,7 +1540,7 @@
 72x20 Ansi256 Trees 524c7b14e0adfd61
 72x20 Ansi256 Trees · Options e4c2704683d4bf64
 72x20 Ansi256 Trees · States 107700e159cd47db
-72x20 Ansi256 Sidebars 1bb1dabec05491ec
+72x20 Ansi256 Sidebars ad4a84e0cb553dc6
 72x20 Ansi256 Sidebars · Options 748c42c1097d01cf
 72x20 Ansi256 Sidebars · States 92b35b6ca1b4afd7
 72x20 Ansi256 Tabs 6ccafb4e8b65f839
@@ -1704,7 +1704,7 @@
 72x20 Ansi16 Trees d3f6b33f5bf979d9
 72x20 Ansi16 Trees · Options 877625713d83f8d1
 72x20 Ansi16 Trees · States 9ceb1f5cedef50e4
-72x20 Ansi16 Sidebars 153f1b344cd2712b
+72x20 Ansi16 Sidebars 543445cde43d5970
 72x20 Ansi16 Sidebars · Options e0b01502772e05dd
 72x20 Ansi16 Sidebars · States 4c8838e7f5287b1e
 72x20 Ansi16 Tabs f7f078c02c7cfb60
@@ -1868,7 +1868,7 @@
 72x20 Mono Trees 9d30070a5381c351
 72x20 Mono Trees · Options 72e7745aae8bb1d3
 72x20 Mono Trees · States 5ca7ca946c8f0f5a
-72x20 Mono Sidebars 98446e9290701677
+72x20 Mono Sidebars 73115a3ca37eeb2a
 72x20 Mono Sidebars · Options 5fe4c0ae375a8367
 72x20 Mono Sidebars · States 5c7015d7c2c88358
 72x20 Mono Tabs bfacfd1ca3222d6d
@@ -2032,7 +2032,7 @@
 100x30 TrueColor Trees 108c3046f6e52ba7
 100x30 TrueColor Trees · Options fe93d8bd2829c4f1
 100x30 TrueColor Trees · States ede31800b6866085
-100x30 TrueColor Sidebars 417c3943d6fbfedc
+100x30 TrueColor Sidebars c9ec0505475a7014
 100x30 TrueColor Sidebars · Options 2ca36e3ce078d8be
 100x30 TrueColor Sidebars · States 16233ea118885a05
 100x30 TrueColor Tabs 2eeef7f36503ec0c
@@ -2196,7 +2196,7 @@
 100x30 Ansi256 Trees b93943e4e76d557e
 100x30 Ansi256 Trees · Options fd6f78fac1e973ae
 100x30 Ansi256 Trees · States 279a78ae3243eb70
-100x30 Ansi256 Sidebars 134aef06e1a8bbc4
+100x30 Ansi256 Sidebars af9a1f207f6b0452
 100x30 Ansi256 Sidebars · Options ff9d2d93c65db324
 100x30 Ansi256 Sidebars · States b60ddc4dec99ad72
 100x30 Ansi256 Tabs a75522abd7ce17d6
@@ -2360,7 +2360,7 @@
 100x30 Ansi16 Trees 44e1a0a6048d018c
 100x30 Ansi16 Trees · Options 68afe379ca19c252
 100x30 Ansi16 Trees · States 78c80f5babb051e6
-100x30 Ansi16 Sidebars 21d6aa81cda246bc
+100x30 Ansi16 Sidebars b9aef464cccc32b8
 100x30 Ansi16 Sidebars · Options c142fa358c6c0403
 100x30 Ansi16 Sidebars · States 8f70ad96d36c915f
 100x30 Ansi16 Tabs d66b9756bee518d1
@@ -2524,7 +2524,7 @@
 100x30 Mono Trees 2caaf3947281bce0
 100x30 Mono Trees · Options e02de9db3a3eba5b
 100x30 Mono Trees · States df941074ccdc6443
-100x30 Mono Sidebars 1f02f62569d3024b
+100x30 Mono Sidebars 9261e5f8c887265d
 100x30 Mono Sidebars · Options f10e316cf3e6d41c
 100x30 Mono Sidebars · States 37b1a7e3d91e9726
 100x30 Mono Tabs 75ff40fa5e5befeb
