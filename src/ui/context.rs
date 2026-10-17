@@ -274,12 +274,16 @@ impl ContextSource for DataTable {
         let r = ev.index_of(Part::CELL)?;
         Some((r, self.column_at(ev.pos().x).unwrap_or(self.cursor_col)))
     }
+    /// The cursor moves onto the row; in multi mode the selection follows
+    /// [`RowSelection::context_select`](crate::core::selection::RowSelection::context_select)
+    /// (kept when the row is in it, only that row otherwise: M10).
     fn context_select(&mut self, (row, col): (usize, usize)) {
         if let Some(r) = Navigable::cursor(self).select(row, self).index() {
             self.cursor_row = r;
             if self.cell_nav && col < self.columns.len() {
                 self.cursor_col = col;
             }
+            self.context_selection(r);
         }
     }
     fn context_cursor(&self) -> Option<ContextRequest<(usize, usize)>> {
@@ -450,6 +454,29 @@ mod tests {
         assert_eq!(l.cursor, 1, "a pointer may target a disabled row");
         l.context_select(2);
         assert_eq!(l.cursor, 1);
+    }
+
+    /// M10: a right click inside a multi selection keeps it (the menu acts
+    /// on every selected row); outside it, only the clicked row is
+    /// selected, so Copy and Delete never hit rows the user did not mean.
+    #[test]
+    fn a_right_click_outside_the_selection_selects_only_that_row() {
+        use crate::core::selection::SelectionMode;
+        use crate::widgets::table::{Cell, Column, DataTable};
+        let rows = (0..5).map(|i| vec![Cell::new(format!("r{i}"))]).collect();
+        let cols = vec![Column::new("Name", ratatui::layout::Constraint::Min(4))];
+        let mut t =
+            DataTable::new(WidgetId::of("t"), cols, rows).selection_mode(SelectionMode::Multi);
+        let p = Position::new(0, 0);
+        t.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
+        t.on_click_cell_with(3, 0, p, KeyModifiers::SHIFT);
+        assert_eq!(t.selected_rows(), vec![1, 2, 3]);
+        t.context_select((2, 0));
+        assert_eq!(t.selected_rows(), vec![1, 2, 3], "inside: kept");
+        assert_eq!(t.cursor_row, 2);
+        t.context_select((4, 0));
+        assert_eq!(t.selected_rows(), vec![4], "outside: only that row");
+        assert_eq!(t.cursor_row, 4);
     }
     #[test]
     fn a_secondary_click_on_a_row_selects_it_and_opens_at_the_pointer() {

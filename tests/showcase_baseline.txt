@@ -48,7 +48,7 @@
 120x40 TrueColor Data grid · Options da5e6b3e85ca490e
 120x40 TrueColor Data grid · States ded095bb3d74d856
 120x40 TrueColor Selection 80f48c8a16f93799
-120x40 TrueColor Selection · Options d21ddcef8b2a2d2a
+120x40 TrueColor Selection · Options 634785e4520e2479
 120x40 TrueColor Selection · States ef69d2483f13c6f9
 120x40 TrueColor Cell editors 5eae0acca4fdc004
 120x40 TrueColor Cell editors · Options 761173a038ef0ed5
@@ -176,7 +176,7 @@
 120x40 Ansi256 Data grid · Options d99f97907df73f49
 120x40 Ansi256 Data grid · States 4706fd56514bdec3
 120x40 Ansi256 Selection ef92a6d7b057d5e6
-120x40 Ansi256 Selection · Options abedea7a8b9a041e
+120x40 Ansi256 Selection · Options 6ff3b664e75beb69
 120x40 Ansi256 Selection · States 0d69fc6c16d4dfb9
 120x40 Ansi256 Cell editors a8d74aa6fbe47767
 120x40 Ansi256 Cell editors · Options ff5308dc06f3b9ad
@@ -304,7 +304,7 @@
 120x40 Ansi16 Data grid · Options b2c53b21063e06a1
 120x40 Ansi16 Data grid · States 8821fda31bf27e51
 120x40 Ansi16 Selection 4ad591f7dcc8cdca
-120x40 Ansi16 Selection · Options 40843e8e5474681c
+120x40 Ansi16 Selection · Options 36dfecb32b0aa7a0
 120x40 Ansi16 Selection · States 5abe8fd3c06ab222
 120x40 Ansi16 Cell editors 490504acf95f8df6
 120x40 Ansi16 Cell editors · Options 2be0a9aff99f74af
@@ -432,7 +432,7 @@
 120x40 Mono Data grid · Options d60c71b0c95fe0ca
 120x40 Mono Data grid · States 9f344ab96da2ddc1
 120x40 Mono Selection 4aa7d08cb63f9c38
-120x40 Mono Selection · Options 756e825306d4173b
+120x40 Mono Selection · Options d402e72ddc5e2a8f
 120x40 Mono Selection · States 1c3f4f117651c661
 120x40 Mono Cell editors a223640c525aee4f
 120x40 Mono Cell editors · Options 658f3f9e2ec1a9b8
@@ -560,7 +560,7 @@
 80x24 TrueColor Data grid · Options c65d159042102afb
 80x24 TrueColor Data grid · States a0f6497d969592d3
 80x24 TrueColor Selection 3977bed534c99dc0
-80x24 TrueColor Selection · Options 14a7584fec49da26
+80x24 TrueColor Selection · Options 361b232c0ceb9b8a
 80x24 TrueColor Selection · States a318977380542ce5
 80x24 TrueColor Cell editors ece1e83b2fb7efb0
 80x24 TrueColor Cell editors · Options 04c444964972db36
@@ -688,7 +688,7 @@
 80x24 Ansi256 Data grid · Options 6e18b963d3e6a098
 80x24 Ansi256 Data grid · States 7a72ce050c767e4e
 80x24 Ansi256 Selection 1fd3070b101359aa
-80x24 Ansi256 Selection · Options 8cb89a48c95638c8
+80x24 Ansi256 Selection · Options 9924e30bdc68fd25
 80x24 Ansi256 Selection · States 4b99d07536929fb7
 80x24 Ansi256 Cell editors 088b3ccf811d8a51
 80x24 Ansi256 Cell editors · Options 4da4b60c47667e0e
@@ -816,7 +816,7 @@
 80x24 Ansi16 Data grid · Options fdd1a620d994090b
 80x24 Ansi16 Data grid · States 0257f45f1ede3714
 80x24 Ansi16 Selection 699bb15dde675785
-80x24 Ansi16 Selection · Options a484cc7fd59dd5b1
+80x24 Ansi16 Selection · Options 4b5431087ff337c3
 80x24 Ansi16 Selection · States 80ae932983a66cb2
 80x24 Ansi16 Cell editors d65eca0e5f73be40
 80x24 Ansi16 Cell editors · Options 2fddee0872eb143d
@@ -944,7 +944,7 @@
 80x24 Mono Data grid · Options d66154196fcba441
 80x24 Mono Data grid · States 88152777fb1e0a42
 80x24 Mono Selection ad43bc37457fb159
-80x24 Mono Selection · Options 7812667088da71cb
+80x24 Mono Selection · Options e00c9b1ea8afca31
 80x24 Mono Selection · States 32bd98347550104a
 80x24 Mono Cell editors 25f23908637135ac
 80x24 Mono Cell editors · Options 9c3315bb9911ad33
@@ -1072,7 +1072,7 @@
 72x20 TrueColor Data grid · Options a998fdfdcc8d639f
 72x20 TrueColor Data grid · States f7676716e224a226
 72x20 TrueColor Selection 2f3a8dd76bd403e6
-72x20 TrueColor Selection · Options 2fa2f15a46c40470
+72x20 TrueColor Selection · Options 0f0ff3221d0d9934
 72x20 TrueColor Selection · States 60e9b24d3202e621
 72x20 TrueColor Cell editors e9a67db5160ec92c
 72x20 TrueColor Cell editors · Options f50b8cee1608e580
@@ -1200,7 +1200,7 @@
 72x20 Ansi256 Data grid · Options 7ffddc5cdad4a064
 72x20 Ansi256 Data grid · States c2da19cacf383ba3
 72x20 Ansi256 Selection 431d61c44c0ae058
-72x20 Ansi256 Selection · Options 4cfa0356d7e3eeb2
+72x20 Ansi256 Selection · Options 06092135777263ab
 72x20 Ansi256 Selection · States 3399e5563dba0f85
 72x20 Ansi256 Cell editors a38f6a3bea6fee47
 72x20 Ansi256 Cell editors · Options ca7712e6c6ab3efd
@@ -1328,7 +1328,7 @@
 72x20 Ansi16 Data grid · Options c1e036be4b2a43f2
 72x20 Ansi16 Data grid · States 0852b9e5dc35e34a
 72x20 Ansi16 Selection 313042826c10a049
-72x20 Ansi16 Selection · Options 4ca106c3eb98d833
+72x20 Ansi16 Selection · Options f4a19d7870c7e1b9
 72x20 Ansi16 Selection · States 11f2599e7de1db29
 72x20 Ansi16 Cell editors 9f57f6aa172650bb
 72x20 Ansi16 Cell editors · Options 718ce5d5e0ef016e
@@ -1456,7 +1456,7 @@
 72x20 Mono Data grid · Options b79c32f3eeb836ca
 72x20 Mono Data grid · States fc25ac87903423cc
 72x20 Mono Selection 1c935ce458f20b79
-72x20 Mono Selection · Options 5412396d2b36a7d1
+72x20 Mono Selection · Options 568e41929fea2843
 72x20 Mono Selection · States 43d140683e1c2977
 72x20 Mono Cell editors 73515b353a2db065
 72x20 Mono Cell editors · Options 862b06cc6451d026
@@ -1584,7 +1584,7 @@
 100x30 TrueColor Data grid · Options b3ce1c01edcdec16
 100x30 TrueColor Data grid · States 211b7f8f5de08dfd
 100x30 TrueColor Selection debc31150bdca1ef
-100x30 TrueColor Selection · Options 5ee9b73c36af9944
+100x30 TrueColor Selection · Options ed3403479f2aa64c
 100x30 TrueColor Selection · States b6172c1cd973355d
 100x30 TrueColor Cell editors d5be1285e150ea21
 100x30 TrueColor Cell editors · Options 28b54538eb514511
@@ -1712,7 +1712,7 @@
 100x30 Ansi256 Data grid · Options 9d8e382ebbe89fcf
 100x30 Ansi256 Data grid · States 6c293a312d3e32a6
 100x30 Ansi256 Selection a107c5cdad1debf9
-100x30 Ansi256 Selection · Options cb4cfedb72696d3e
+100x30 Ansi256 Selection · Options 8dd966f98517acef
 100x30 Ansi256 Selection · States 9de0389feca07de4
 100x30 Ansi256 Cell editors e04c5e692fc9e4f0
 100x30 Ansi256 Cell editors · Options af412fbfed81e257
@@ -1840,7 +1840,7 @@
 100x30 Ansi16 Data grid · Options e993d75f831e4889
 100x30 Ansi16 Data grid · States 7c68c53f1081fb38
 100x30 Ansi16 Selection 78b2ad9b063305d6
-100x30 Ansi16 Selection · Options f3485a4a8dd32f11
+100x30 Ansi16 Selection · Options 1f729a8eef4460fb
 100x30 Ansi16 Selection · States 00841204df6f9c5e
 100x30 Ansi16 Cell editors 0d6047c21e16e7f7
 100x30 Ansi16 Cell editors · Options 9fb18469956f1f88
@@ -1968,7 +1968,7 @@
 100x30 Mono Data grid · Options b653984321f8e02c
 100x30 Mono Data grid · States 172003eb5b0a0997
 100x30 Mono Selection 7d4806214ca56833
-100x30 Mono Selection · Options 6d38bdd563894326
+100x30 Mono Selection · Options e5ca8343cc82aaf4
 100x30 Mono Selection · States bd0710e88917f3e9
 100x30 Mono Cell editors f397d8a85a91b4b0
 100x30 Mono Cell editors · Options aaf7c1e13c49b353
@@ -2096,7 +2096,7 @@
 160x50 TrueColor Data grid · Options bb5b491096cc1a3b
 160x50 TrueColor Data grid · States 0c44d1a817c4ad9e
 160x50 TrueColor Selection 8d072a49d3de46d4
-160x50 TrueColor Selection · Options dc6f69767daeff0b
+160x50 TrueColor Selection · Options cee088f7b0eb0646
 160x50 TrueColor Selection · States b59010ca58465c58
 160x50 TrueColor Cell editors f74ecc9ce1504981
 160x50 TrueColor Cell editors · Options 84aeb880bc09f2c0
@@ -2224,7 +2224,7 @@
 160x50 Ansi256 Data grid · Options 4183017dcc73551a
 160x50 Ansi256 Data grid · States 14ccff6867e5f12a
 160x50 Ansi256 Selection 2e7d215d9cbd9b6f
-160x50 Ansi256 Selection · Options a4bbb1425ff11ba5
+160x50 Ansi256 Selection · Options 92a56120db7464de
 160x50 Ansi256 Selection · States c04d9968dc18567a
 160x50 Ansi256 Cell editors 04ad8c0fd39145e1
 160x50 Ansi256 Cell editors · Options b5452b3dec97c506
@@ -2352,7 +2352,7 @@
 160x50 Ansi16 Data grid · Options d1e7251bffdf1686
 160x50 Ansi16 Data grid · States 5173f41de9f5c972
 160x50 Ansi16 Selection e52814e465adebd7
-160x50 Ansi16 Selection · Options e57a1c1c33e474fd
+160x50 Ansi16 Selection · Options 36504c293ddfc599
 160x50 Ansi16 Selection · States d49144a1aadd46bd
 160x50 Ansi16 Cell editors fece4a201923e485
 160x50 Ansi16 Cell editors · Options 29e73d2019e1753a
@@ -2480,7 +2480,7 @@
 160x50 Mono Data grid · Options e6fb38f035e18c81
 160x50 Mono Data grid · States 2f18de0dfb383721
 160x50 Mono Selection 18ad103b067924e7
-160x50 Mono Selection · Options 18f270abfdaab308
+160x50 Mono Selection · Options 8ffff7b85fcae880
 160x50 Mono Selection · States adde21e56651d1dc
 160x50 Mono Cell editors 3106e5e7a047d673
 160x50 Mono Cell editors · Options 4d257fae5f473957

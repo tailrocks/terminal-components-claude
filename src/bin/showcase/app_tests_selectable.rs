@@ -44,6 +44,11 @@ impl Harness {
         self.term.draw(|f| self.app.render(f)).unwrap();
     }
 
+    fn opt(&mut self, arg: &str) {
+        self.app.apply_opt(crate::options::parse_opt(arg).unwrap());
+        self.draw();
+    }
+
     fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) {
         self.app.handle(Input::Key(Key { code, mods }));
         self.draw();
@@ -53,7 +58,23 @@ impl Harness {
         self.key_mod(code, KeyModifiers::NONE);
     }
 
+    /// One deliberate click: the clicks before it are forgotten, so two
+    /// test clicks on one row are two single clicks, never a double click
+    /// (the wall clock barely moves between them). [`Self::double_click`]
+    /// is the double click.
     fn click_mod(&mut self, x: u16, y: u16, mods: KeyModifiers) {
+        self.app.shell.pointer.reset_clicks();
+        self.press_release(x, y, mods);
+    }
+
+    /// Two clicks on one cell inside the double-click time.
+    #[allow(dead_code)]
+    fn double_click(&mut self, x: u16, y: u16) {
+        self.click_mod(x, y, KeyModifiers::NONE);
+        self.press_release(x, y, KeyModifiers::NONE);
+    }
+
+    fn press_release(&mut self, x: u16, y: u16, mods: KeyModifiers) {
         for kind in [MouseKind::Down, MouseKind::Up] {
             self.app.handle(Input::Mouse(
                 Mouse::new(kind, Position::new(x, y)).with_mods(mods),
@@ -74,6 +95,7 @@ impl Harness {
     /// [`Self::raw_click`] at a cell.
     fn raw_click_at(&mut self, column: u16, row: u16, mods: KeyModifiers, config: InputConfig) {
         use ratatui::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
+        self.app.shell.pointer.reset_clicks();
         for kind in [
             MouseEventKind::Down(MouseButton::Left),
             MouseEventKind::Up(MouseButton::Left),
@@ -252,15 +274,15 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     assert!(!h.table_row("Fay Okafor").contains("[✓]"));
     h.raw_click("Bo Lindqvist", KeyModifiers::ALT, mac);
     assert!(h.has("2 selected"));
-    // Ctrl+click is the secondary click: the row menu opens and the
-    // selection stays as it was
-    h.raw_click("Hana Sato", KeyModifiers::CONTROL, mac);
+    // Ctrl+click is the secondary click: the row menu opens; on a selected
+    // row the selection stays as it was (M10)
+    h.raw_click("Bo Lindqvist", KeyModifiers::CONTROL, mac);
     assert!(h.has("Delete…") && h.has("Edit"), "{}", h.text());
     assert!(h.footer().contains("Esc Close"), "{}", h.footer());
     assert!(h.has("2 selected"), "{}", h.text());
-    assert!(!h.table_row("Hana Sato").contains("[✓]"));
     h.key(KeyCode::Esc);
     assert!(h.has("2 selected"));
+    assert!(!h.table_row("Hana Sato").contains("[✓]"));
     // Option+click is a fallback: a click on the checkbox, with no
     // modifier, toggles too (iTerm2 and Terminal.app may keep Option)
     let (x, y) = h.find("Hana Sato").unwrap();
@@ -271,6 +293,38 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     h.key(KeyCode::Char(' '));
     assert!(h.has("2 selected"), "{}", h.text());
     assert!(!h.table_row("Hana Sato").contains("[✓]"));
+}
+
+/// M15, SI14: one click selects a row, however often; a double click
+/// opens it in the editor (`ClickPolicy::DATA`). The earlier rule, a second
+/// click on the selected row, is the `selection.activate=again` option.
+#[test]
+fn a_double_click_opens_a_row_and_a_slow_second_click_only_selects() {
+    let mut h = Harness::new(120, 43);
+    let table = h.app.shell.focus.current();
+    let (x, y) = h.find("Cleo Barnes").unwrap();
+    h.click(x, y);
+    h.click(x, y);
+    assert!(h.has("1 selected"), "{}", h.text());
+    assert_eq!(
+        h.app.shell.focus.current(),
+        table,
+        "a slow second click only selects"
+    );
+    h.double_click(x, y);
+    assert_ne!(
+        h.app.shell.focus.current(),
+        table,
+        "the double click moved into the editor"
+    );
+    // the earlier rule is an option
+    let mut h = Harness::new(120, 43);
+    h.opt("selection.activate=again");
+    let (x, y) = h.find("Cleo Barnes").unwrap();
+    h.click(x, y);
+    assert_eq!(h.app.shell.focus.current(), table);
+    h.click(x, y);
+    assert_ne!(h.app.shell.focus.current(), table);
 }
 
 #[test]
@@ -300,8 +354,11 @@ fn row_menu_edits_or_deletes_the_row_it_opened_on() {
         Position::new(x, y),
     )));
     h.draw();
-    assert!(h.has("No member selected"), "the menu does not select");
-    // Delete… selects the row it opened on, then asks
+    // a right click outside the selection selects only that row, so the
+    // menu acts on what the user sees selected (M10, macOS)
+    assert!(h.has("1 selected"), "{}", h.text());
+    assert!(h.table_row("June Park").contains("[✓]"), "{}", h.text());
+    // Delete… acts on the row it opened on, then asks
     h.click_text("Delete…", KeyModifiers::NONE);
     assert!(h.has("Delete 1 member?"), "{}", h.text());
     assert!(h.has("1 selected"), "{}", h.text());

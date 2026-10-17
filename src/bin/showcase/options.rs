@@ -656,6 +656,11 @@ static SELECTION: &[Opt] = &[
         &["owner", "none"],
     ),
     Opt::new("selection.check_column", "Checkbox column", OFF_ON).default(1),
+    Opt::new(
+        "selection.activate",
+        "Click opens",
+        &["double", "again", "single", "never"],
+    ),
 ];
 
 /// Editable (SC13): the cell-navigating `DataTable`'s knobs

@@ -1953,6 +1953,38 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("selection", "selection.toggle_mods"),
     ),
     (
+        "widgets::table::DataTable::click",
+        Option("selection", "selection.activate"),
+    ),
+    (
+        "core::selection::ClickPolicy",
+        Option("selection", "selection.activate"),
+    ),
+    (
+        "core::selection::ClickPolicy::activate",
+        Option("selection", "selection.activate"),
+    ),
+    (
+        "core::selection::Activate",
+        Option("selection", "selection.activate"),
+    ),
+    (
+        "core::selection::Activate::Double",
+        Option("selection", "selection.activate=double"),
+    ),
+    (
+        "core::selection::Activate::ClickAgain",
+        Option("selection", "selection.activate=again"),
+    ),
+    (
+        "core::selection::Activate::Single",
+        Option("selection", "selection.activate=single"),
+    ),
+    (
+        "core::selection::Activate::Never",
+        Option("selection", "selection.activate=never"),
+    ),
+    (
         "widgets::table::DataTable::disabled_rows",
         Option("selection", "selection.disabled_rows"),
     ),
