@@ -549,9 +549,9 @@ impl ScrollView {
         let target = match (caret, control) {
             (Some(c), _) => Some(c),
             (None, Some(r)) if fits(r) => Some(r),
-            (None, Some(r)) => {
-                Some(gutter(off, l.content, ctx).unwrap_or(Rect::new(r.x, r.y, 1, 1)))
-            }
+            // the focused control's own gutter: a `▎` drawn elsewhere (a
+            // legend explaining the mark) is not where focus is
+            (None, Some(r)) => Some(gutter(off, r, ctx).unwrap_or(Rect::new(r.x, r.y, 1, 1))),
             (None, None) => None,
         };
         let Some(target) = target else {
@@ -615,8 +615,9 @@ fn mark_regions(ctx: &RenderCtx, mark: HitMark) -> usize {
 }
 
 /// The rows of the focus gutter (`▎`, [`Theme::gutter_symbol`]) drawn in
-/// `content`: exactly one control shows it, so it marks where focus is
-/// inside a control taller than the view (a list's cursor row).
+/// `content` (the focused control's rect): exactly one control shows it,
+/// so it marks where focus is inside a control taller than the view (a
+/// list's cursor row).
 ///
 /// [`Theme::gutter_symbol`]: crate::theme::Theme::gutter_symbol
 fn gutter(off: &Buffer, content: Rect, ctx: &RenderCtx) -> Option<Rect> {
