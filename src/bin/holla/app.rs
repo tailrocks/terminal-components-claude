@@ -1473,6 +1473,10 @@ impl App {
             match r {
                 Request::Status(s, tone) => self.set_status(&s, tone),
                 Request::StatusAs(s, kind) => self.set_status(&s, kind.tone()),
+                Request::Progress(s, job) => {
+                    let now = self.world.clock.now();
+                    self.shell.status.progress_at(job, s, now);
+                }
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(g) => self.go(g),
                 Request::Back => self.go(Go::Pop),

@@ -447,6 +447,10 @@ impl App {
     }
 
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
+        // the job's result is here: its progress status ends before the
+        // owner reports the result (a failure that only opens a dialog
+        // leaves no "Saving…" under it)
+        let ended = m.job().is_some_and(|job| self.shell.status.end_job(job));
         let route = self.route;
         let (o, reqs) = self
             .shell
@@ -467,7 +471,8 @@ impl App {
             o
         });
         let o = o.or(self.apply_requests(reqs, route));
-        o.or(self.apply_requests(behind, route))
+        let o = o.or(self.apply_requests(behind, route));
+        if ended { o.or(Outcome::Changed) } else { o }
     }
 
     fn finish_intro(&mut self) {
@@ -1566,6 +1571,10 @@ impl App {
             match r {
                 Request::Status(s, tone) => self.set_status(&s, tone),
                 Request::StatusAs(s, kind) => self.set_status(&s, kind.tone()),
+                Request::Progress(s, job) => {
+                    let now = self.world.clock.now();
+                    self.shell.status.progress_at(job, s, now);
+                }
                 Request::Open(layer, tag) => self.open_layer(layer, tag, owner),
                 // the owner closes its layer without a result
                 Request::Close => {

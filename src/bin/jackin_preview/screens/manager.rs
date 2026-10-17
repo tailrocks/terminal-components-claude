@@ -41,7 +41,7 @@ use crate::domain::agent::Agent;
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::workspace::WorkspaceId;
 use crate::sim::launch::LaunchPlan;
-use crate::sim::world::{DaemonHealth, Msg, World};
+use crate::sim::world::{DaemonHealth, Msg, World, job};
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::text::plural;
 use junie_tui::widgets::menu::MenuItem;
@@ -725,7 +725,7 @@ impl ManagerScreen {
         }
         self.busy_rows.push((RowKey::Workspace(ws), "prewarming…"));
         w.schedule(2_400, Msg::Prewarmed { workspace: ws });
-        cx.status("Prewarming the derived image…");
+        cx.progress(job::PREWARM, "Prewarming the derived image…");
     }
 
     fn open_github(&mut self, w: &World, cx: &mut Cx) {
@@ -2433,7 +2433,7 @@ impl Page<Jackin> for ManagerScreen {
                 self.busy_rows
                     .push((RowKey::Instance(id.clone()), "stopping…"));
                 w.schedule(1_800, Msg::Stopped { instance: id });
-                cx.status("Stopping…");
+                cx.progress(job::STOP, "Stopping…");
                 Outcome::Changed
             }
             (
@@ -2446,7 +2446,7 @@ impl Page<Jackin> for ManagerScreen {
                 self.busy_rows
                     .push((RowKey::Instance(id.clone()), "purging…"));
                 w.schedule(2_200, Msg::Purged { instance: id });
-                cx.status("Purging…");
+                cx.progress(job::PURGE, "Purging…");
                 Outcome::Changed
             }
             (

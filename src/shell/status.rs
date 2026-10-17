@@ -9,6 +9,11 @@
 //!   ([`StatusLine::on_input`]) or until a newer message replaces it
 //!   (standards-visual review, item 11).
 //!
+//! - A progress status ("Saving settings…", [`StatusLine::progress`])
+//!   belongs to a background job ([`JobKey`]) and ends when that job's
+//!   result arrives ([`StatusLine::end_job`]): a failure that only opens a
+//!   dialog never leaves "Saving…" under it.
+//!
 //! The application draws [`StatusLine::get`] in its footer; the line holds
 //! state only. A message can carry a presentation payload `P` (toned parts,
 //! a status kind) that comes and goes with it.
@@ -23,6 +28,27 @@ struct Message<P> {
     tone: Tone,
     at: Moment,
     payload: P,
+    /// The job this message reports progress on.
+    job: Option<JobKey>,
+}
+
+/// The background job a progress status reports on
+/// ([`StatusLine::progress`]): a name the app gives each kind of job
+/// ("workspace.save"). When the job's result arrives the app ends it
+/// ([`StatusLine::end_job`]), which removes its progress status if that is
+/// still the one showing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct JobKey(&'static str);
+
+impl JobKey {
+    pub const fn new(name: &'static str) -> Self {
+        Self(name)
+    }
+
+    /// The job's name.
+    pub const fn name(self) -> &'static str {
+        self.0
+    }
 }
 
 /// One transient status message with its expiry rule, and an optional
@@ -76,7 +102,26 @@ impl<P> StatusLine<P> {
             tone,
             at: self.now,
             payload,
+            job: None,
         });
+    }
+
+    /// The job whose result has arrived is over: its progress status goes
+    /// if it is still the one showing (a newer message stays). Call it
+    /// when the result is delivered, before the owner handles it, so a
+    /// status the owner sets for the result stays. Returns whether the
+    /// line changed.
+    pub fn end_job(&mut self, job: JobKey) -> bool {
+        let showing = self.message.as_ref().is_some_and(|m| m.job == Some(job));
+        if showing {
+            self.message = None;
+        }
+        showing
+    }
+
+    /// The job the message showing reports progress on.
+    pub fn job(&self) -> Option<JobKey> {
+        self.message.as_ref().and_then(|m| m.job)
     }
 
     /// [`set_with`](Self::set_with) after [`observe`](Self::observe)`(now)`.
@@ -176,6 +221,22 @@ impl<P: Default> StatusLine<P> {
     pub fn error(&mut self, text: impl Into<String>) {
         self.set(text, Tone::Error)
     }
+
+    /// Show `text` as the progress of `job` ("Saving settings…"): an
+    /// information message that also ends with the job
+    /// ([`end_job`](Self::end_job)).
+    pub fn progress(&mut self, job: JobKey, text: impl Into<String>) {
+        self.set(text, Tone::Secondary);
+        if let Some(m) = self.message.as_mut() {
+            m.job = Some(job);
+        }
+    }
+
+    /// [`progress`](Self::progress) after [`observe`](Self::observe)`(now)`.
+    pub fn progress_at(&mut self, job: JobKey, text: impl Into<String>, now: Moment) {
+        self.observe(now);
+        self.progress(job, text)
+    }
 }
 
 #[cfg(test)]
@@ -232,6 +293,24 @@ mod tests {
         assert!(s.on_input(&Input::Key(key)));
         assert!(s.is_none());
         assert!(!s.on_input(&Input::Key(key)), "nothing left to clear");
+    }
+
+    /// A27: a job's progress status ends with the job, and only its own.
+    #[test]
+    fn a_progress_status_ends_with_its_job() {
+        const SAVE: JobKey = JobKey::new("save");
+        const LOAD: JobKey = JobKey::new("load");
+        let mut s = StatusLine::<()>::new();
+        s.progress_at(SAVE, "Saving settings…", ms(10));
+        assert_eq!(s.job(), Some(SAVE));
+        assert!(!s.end_job(LOAD), "another job's result leaves it");
+        assert!(s.end_job(SAVE));
+        assert!(s.is_none());
+        // a newer message is not the job's: it stays
+        s.progress(SAVE, "Saving settings…");
+        s.set("Copied", Tone::Secondary);
+        assert!(!s.end_job(SAVE));
+        assert_eq!(s.text(), Some("Copied"));
     }
 
     #[test]

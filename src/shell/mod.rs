@@ -12,7 +12,8 @@
 //!   trait only adds its own extras.
 //! - [`KeyRouter`], [`ShellKeys`] and [`ShellAction`]: the one key order
 //!   every app routes keys in ([`KeyHost`] names its stages).
-//! - [`StatusLine`]: the transient status message and its expiry rule.
+//! - [`StatusLine`]: the transient status message and its expiry rule;
+//!   [`JobKey`] ties a progress status to the job it reports on.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
 
@@ -29,7 +30,7 @@ pub use page::{
     Page, PageCx, PageTypes, open_context, rebuild_on_tick, replay_key, row_anchor, row_choice,
 };
 pub use router::{KeyHost, KeyRouter, ShellAction, ShellKeys};
-pub use status::StatusLine;
+pub use status::{JobKey, StatusLine};
 
 use crate::runtime::Application;
 

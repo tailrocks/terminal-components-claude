@@ -46,7 +46,7 @@ use crate::domain::agent::{Provider, UsageSurface};
 use crate::domain::onepassword::OpReference;
 use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus, QuotaWindow, WindowUnit};
 use crate::sim::provider::{self, CheckRow, ValidationOutcome};
-use crate::sim::world::{Msg, World};
+use crate::sim::world::{Msg, World, job};
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::text::plural;
 use junie_tui::ui::text::thousands;
@@ -1075,7 +1075,7 @@ impl AccountsScreen {
                 account: id.to_owned(),
             },
         );
-        cx.status(format!("Validating {title}…"));
+        cx.progress(job::ACCOUNT_VALIDATE, format!("Validating {title}…"));
     }
 
     fn apply_validation_result(&mut self, id: &str, w: &mut World, cx: &mut Cx) {
