@@ -126,7 +126,9 @@
 120x40 TrueColor Query workbench 2b98ad79cd3b19f1
 120x40 TrueColor Connections f28a9d1ad3d14a08
 120x40 TrueColor Finder f8827e3d4df057c0
-120x40 TrueColor Disk cleanup 6bfed458263b29ff
+120x40 TrueColor Disk cleanup 99f96236772849fe
+120x40 TrueColor Disk cleanup · Options 8fbabbe4f11f06fd
+120x40 TrueColor Disk cleanup · States dabc004b229dff45
 120x40 TrueColor Activity bd55e807d7cc1b58
 120x40 TrueColor Workspaces f47356618edaae44
 120x40 TrueColor Accounts & usage 33a49843b6841cb1
@@ -262,7 +264,9 @@
 120x40 Ansi256 Query workbench a415db402f01bd8e
 120x40 Ansi256 Connections 44cab3767288e2a2
 120x40 Ansi256 Finder f436b904e24cdadf
-120x40 Ansi256 Disk cleanup 8fc0c2cc4fb0bfeb
+120x40 Ansi256 Disk cleanup bf9550c0c0b1f8a4
+120x40 Ansi256 Disk cleanup · Options 4ee354854fffc2af
+120x40 Ansi256 Disk cleanup · States 0df2bb534dcadb5e
 120x40 Ansi256 Activity 052634993f63e2b6
 120x40 Ansi256 Workspaces fc86e27808a6c88c
 120x40 Ansi256 Accounts & usage c3c7f2f7300fcf43
@@ -398,7 +402,9 @@
 120x40 Ansi16 Query workbench b97b5ff14f0c9cb7
 120x40 Ansi16 Connections 94e68e0c99bbfaea
 120x40 Ansi16 Finder eea90ec3eb9bdf02
-120x40 Ansi16 Disk cleanup e9cda4e4578635c5
+120x40 Ansi16 Disk cleanup 11c15b661572f0e5
+120x40 Ansi16 Disk cleanup · Options 109b31c31cc033b1
+120x40 Ansi16 Disk cleanup · States 33c17acaee8ed879
 120x40 Ansi16 Activity 6fa0e215bc1bd1f6
 120x40 Ansi16 Workspaces 8da08bd04e854376
 120x40 Ansi16 Accounts & usage 41d8caa67ddc436f
@@ -534,7 +540,9 @@
 120x40 Mono Query workbench 9ebdb58b1cf0e7e8
 120x40 Mono Connections a86e7b4e39323af3
 120x40 Mono Finder 7ff40bc12a289f31
-120x40 Mono Disk cleanup d7d281eba9fd4512
+120x40 Mono Disk cleanup b07f1cde7cdfad96
+120x40 Mono Disk cleanup · Options 7f12a3598494d080
+120x40 Mono Disk cleanup · States 71f9378a46177e58
 120x40 Mono Activity 7c40d47ee81627ed
 120x40 Mono Workspaces 2056e40268880f77
 120x40 Mono Accounts & usage dc56f89e62cbaf68
@@ -670,7 +678,9 @@
 80x24 TrueColor Query workbench 7c2b59e93d28b480
 80x24 TrueColor Connections 1ab6b6b80033fb66
 80x24 TrueColor Finder 206ca50821da05bd
-80x24 TrueColor Disk cleanup 3105da758793d3ed
+80x24 TrueColor Disk cleanup 290e1781df16c191
+80x24 TrueColor Disk cleanup · Options 5145ea6fb89f9dab
+80x24 TrueColor Disk cleanup · States 8f47ab9d31e7dda4
 80x24 TrueColor Activity 1aaa2c4312c48703
 80x24 TrueColor Workspaces 47c2655d70b8bd41
 80x24 TrueColor Accounts & usage 578f5efe48df0180
@@ -806,7 +816,9 @@
 80x24 Ansi256 Query workbench e7e174dd3717be05
 80x24 Ansi256 Connections 650f549c89e0cc7f
 80x24 Ansi256 Finder 079f06dfb53d80f4
-80x24 Ansi256 Disk cleanup bded21c71f433eb8
+80x24 Ansi256 Disk cleanup d9119b905aefa602
+80x24 Ansi256 Disk cleanup · Options e5421a8806e4b369
+80x24 Ansi256 Disk cleanup · States 14d71532be26e06c
 80x24 Ansi256 Activity 24ddc78c6496e26c
 80x24 Ansi256 Workspaces 226336cd8dc8f204
 80x24 Ansi256 Accounts & usage 8bfca4874e6ea653
@@ -942,7 +954,9 @@
 80x24 Ansi16 Query workbench 3abbf1918aafdc52
 80x24 Ansi16 Connections 03b60d2656ecd6fe
 80x24 Ansi16 Finder e060106cbaeb2c19
-80x24 Ansi16 Disk cleanup 35ad40fd78eb2b19
+80x24 Ansi16 Disk cleanup c946de9f47bca31e
+80x24 Ansi16 Disk cleanup · Options 9a8012e60219886c
+80x24 Ansi16 Disk cleanup · States 99016a9982b1d5b6
 80x24 Ansi16 Activity 6a14407e7b8dabe9
 80x24 Ansi16 Workspaces 422ab527cceadea3
 80x24 Ansi16 Accounts & usage 7059ba80131fc1b4
@@ -1078,7 +1092,9 @@
 80x24 Mono Query workbench eaddb5ad6bfa5ed4
 80x24 Mono Connections 4b8aa6063e6ea43c
 80x24 Mono Finder de19b5555d1e36df
-80x24 Mono Disk cleanup 4a2357051d584d7f
+80x24 Mono Disk cleanup 454efcfb7e734ee0
+80x24 Mono Disk cleanup · Options c8aa166818aa24fa
+80x24 Mono Disk cleanup · States 33125d8e4c6c3d16
 80x24 Mono Activity de372762b8cab8a7
 80x24 Mono Workspaces f740dd31cb553c69
 80x24 Mono Accounts & usage adf3fcc8fb6b7cf2
@@ -1214,7 +1230,9 @@
 72x20 TrueColor Query workbench cd691febad989a66
 72x20 TrueColor Connections b04847b946779250
 72x20 TrueColor Finder b2c25ebfa121ca13
-72x20 TrueColor Disk cleanup 06847dbe35e2d370
+72x20 TrueColor Disk cleanup 51c676bde05e39f0
+72x20 TrueColor Disk cleanup · Options cac2bf41cfdeb1db
+72x20 TrueColor Disk cleanup · States 49468807e919c564
 72x20 TrueColor Activity bfe729ca286e0f92
 72x20 TrueColor Workspaces 98568ab40d36436a
 72x20 TrueColor Accounts & usage 84ade69307c1fa2c
@@ -1350,7 +1368,9 @@
 72x20 Ansi256 Query workbench 02acae62a1456198
 72x20 Ansi256 Connections 4f9857609a57a703
 72x20 Ansi256 Finder 5642671a94e2ab36
-72x20 Ansi256 Disk cleanup 8575c5ad08e0a1fd
+72x20 Ansi256 Disk cleanup 892e6b6153707973
+72x20 Ansi256 Disk cleanup · Options 3e8b4105e64b9f75
+72x20 Ansi256 Disk cleanup · States a7a1345d942488b7
 72x20 Ansi256 Activity 3bc209c205abd911
 72x20 Ansi256 Workspaces 739a0098ab2e6dd9
 72x20 Ansi256 Accounts & usage aae14e064f68a35a
@@ -1486,7 +1506,9 @@
 72x20 Ansi16 Query workbench ac13b2a7836529ae
 72x20 Ansi16 Connections 1f25ffb2b706aa66
 72x20 Ansi16 Finder 64616c0eec3064cb
-72x20 Ansi16 Disk cleanup de2cd612577ab98a
+72x20 Ansi16 Disk cleanup e2b6d7c135239629
+72x20 Ansi16 Disk cleanup · Options a03bada673546178
+72x20 Ansi16 Disk cleanup · States fa2ad59d815435fc
 72x20 Ansi16 Activity 5a7a986dac246f9a
 72x20 Ansi16 Workspaces d94430efb129a8c8
 72x20 Ansi16 Accounts & usage 242c9bb73187f9fe
@@ -1622,7 +1644,9 @@
 72x20 Mono Query workbench 515ea81976b32480
 72x20 Mono Connections 73f6893c594e834c
 72x20 Mono Finder 01e22b91e24e51c5
-72x20 Mono Disk cleanup dc69fab49d38fcec
+72x20 Mono Disk cleanup 82d459d771bb71e7
+72x20 Mono Disk cleanup · Options e866680b00ecd4ee
+72x20 Mono Disk cleanup · States a78453b8e7a1babc
 72x20 Mono Activity 98b2b364986b6ea4
 72x20 Mono Workspaces 765191300cf96f42
 72x20 Mono Accounts & usage cfcc221edb91778c
@@ -1758,7 +1782,9 @@
 100x30 TrueColor Query workbench c8a12345ebfe6b50
 100x30 TrueColor Connections c3c8b8b3e85cc611
 100x30 TrueColor Finder facf264f7eb648ea
-100x30 TrueColor Disk cleanup 1ef520002c892f4d
+100x30 TrueColor Disk cleanup 847eee23ab0b8597
+100x30 TrueColor Disk cleanup · Options 9020f8770a0c71d4
+100x30 TrueColor Disk cleanup · States 21a6b1f67ef1f8e0
 100x30 TrueColor Activity ad4101e2f1b25a7e
 100x30 TrueColor Workspaces 9223779887629457
 100x30 TrueColor Accounts & usage 520ff75a4adf9d26
@@ -1894,7 +1920,9 @@
 100x30 Ansi256 Query workbench 9393c6bb63228a9d
 100x30 Ansi256 Connections 5e7f82d6b7466959
 100x30 Ansi256 Finder 95da6fbace87dd19
-100x30 Ansi256 Disk cleanup 27ee1f6590e368fc
+100x30 Ansi256 Disk cleanup c28b55fd7ea76023
+100x30 Ansi256 Disk cleanup · Options 99db571cc823fce4
+100x30 Ansi256 Disk cleanup · States b437b332bdca7c71
 100x30 Ansi256 Activity dae478a7f58226bf
 100x30 Ansi256 Workspaces f8302853ba560fcb
 100x30 Ansi256 Accounts & usage df705d2fee012c60
@@ -2030,7 +2058,9 @@
 100x30 Ansi16 Query workbench a14e22ab3780c8fc
 100x30 Ansi16 Connections 5d03bed71057715b
 100x30 Ansi16 Finder 0a5e9bd782ae042e
-100x30 Ansi16 Disk cleanup 948dc76fb01c46f1
+100x30 Ansi16 Disk cleanup ccb31ee475f6863c
+100x30 Ansi16 Disk cleanup · Options ee426f40ef1df5b9
+100x30 Ansi16 Disk cleanup · States 136b10402fb31265
 100x30 Ansi16 Activity 9711d782b24fbffc
 100x30 Ansi16 Workspaces 530440e580e2928d
 100x30 Ansi16 Accounts & usage 1b2fa20658fbdca8
@@ -2166,7 +2196,9 @@
 100x30 Mono Query workbench 7e9f8d6fc4090dcf
 100x30 Mono Connections 3c8333dc46d29df6
 100x30 Mono Finder 5dec7d0e2adf0f09
-100x30 Mono Disk cleanup 3b20fad3a1808d0c
+100x30 Mono Disk cleanup 5fe75ab44d15f30f
+100x30 Mono Disk cleanup · Options 05e6e5f77fdccd76
+100x30 Mono Disk cleanup · States 154aca34b01b0d52
 100x30 Mono Activity 412e985f6b546de1
 100x30 Mono Workspaces 201794c2b3352a38
 100x30 Mono Accounts & usage ce1eb8fba0a5c39b
@@ -2302,7 +2334,9 @@
 160x50 TrueColor Query workbench 9a53767e4c21518a
 160x50 TrueColor Connections 76b7153d9f0e3f71
 160x50 TrueColor Finder e39de55b861fb611
-160x50 TrueColor Disk cleanup 9ff75c9f2216ed2a
+160x50 TrueColor Disk cleanup 144604e1b767d44f
+160x50 TrueColor Disk cleanup · Options 78df5897895d0bb8
+160x50 TrueColor Disk cleanup · States 57c0b4c8b57386bc
 160x50 TrueColor Activity 1c11af27abecadd7
 160x50 TrueColor Workspaces 5e1e8ee14c3b77ab
 160x50 TrueColor Accounts & usage 0491fe31f8be79ba
@@ -2438,7 +2472,9 @@
 160x50 Ansi256 Query workbench 3724b341338c8001
 160x50 Ansi256 Connections 3bf5f4662d13c3d1
 160x50 Ansi256 Finder a9174e4378343c40
-160x50 Ansi256 Disk cleanup 9ca8b2ca3ea7cdbc
+160x50 Ansi256 Disk cleanup ee9d2d13a79ddb75
+160x50 Ansi256 Disk cleanup · Options 537b854d0851e1c0
+160x50 Ansi256 Disk cleanup · States c831645f952dca8b
 160x50 Ansi256 Activity 77d82167caf79255
 160x50 Ansi256 Workspaces 9b99ca6fdda14b9b
 160x50 Ansi256 Accounts & usage 0532c36cbb541e18
@@ -2574,7 +2610,9 @@
 160x50 Ansi16 Query workbench 788b6b65a5499508
 160x50 Ansi16 Connections 5c87a8913a9e5315
 160x50 Ansi16 Finder ffc0ae5e960f1dad
-160x50 Ansi16 Disk cleanup d30ca01d6f4f35c4
+160x50 Ansi16 Disk cleanup 5bb56ce5047815a0
+160x50 Ansi16 Disk cleanup · Options c1d8a3f423903450
+160x50 Ansi16 Disk cleanup · States 615d8f238cc92548
 160x50 Ansi16 Activity 27d255630b24f315
 160x50 Ansi16 Workspaces 613aa42383b88a11
 160x50 Ansi16 Accounts & usage 6d958c363a589690
@@ -2710,7 +2748,9 @@
 160x50 Mono Query workbench 22c67ca41cbf8e1f
 160x50 Mono Connections d27c1fc005c572d8
 160x50 Mono Finder 8557229e44814b4a
-160x50 Mono Disk cleanup e24def8df359da6b
+160x50 Mono Disk cleanup e5c5259d2ce122c9
+160x50 Mono Disk cleanup · Options a275bd80703eef35
+160x50 Mono Disk cleanup · States 02cda6afa69fe01b
 160x50 Mono Activity 011a068015789a1e
 160x50 Mono Workspaces 91b78b4a83b5156c
 160x50 Mono Accounts & usage 15a0c9a62667f3d3

@@ -268,6 +268,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::EmptyError => EMPTY_ERROR,
         PageId::Meters => METERS,
         PageId::Notices => NOTICES,
+        PageId::DiskCleanup => DISK_CLEANUP,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::MasterDetail => MASTER_DETAIL,
         PageId::PaneTree => PANE_TREE,
@@ -1351,6 +1352,26 @@ pub static NOTICES: &[Opt] = &[
     ),
     Opt::new("notices.mark_cut", "Mark the cut …", OFF_ON).default(1),
     Opt::new("notices.width", "Width", &["wide", "narrow"]),
+];
+
+/// Disk cleanup (SC49): the cleanup mode, the typed gate, the checklist's
+/// click policy, the tree's size column, the meters' visual and a held
+/// scan.
+pub static DISK_CLEANUP: &[Opt] = &[
+    Opt::new(
+        "diskcleanup.mode",
+        "Mode",
+        &["trash", "permanent", "dry-run"],
+    ),
+    Opt::new("diskcleanup.typed", "Typed phrase (gate 2)", OFF_ON).default(1),
+    Opt::new("diskcleanup.check_click", "Check on click", &["box", "row"]).behaviour(),
+    Opt::new("diskcleanup.sizes", "Tree sizes", OFF_ON).default(1),
+    Opt::new(
+        "diskcleanup.meter_visual",
+        "Meter visual",
+        &["line", "block"],
+    ),
+    Opt::new("diskcleanup.scan", "Scan", &["complete", "scanning"]),
 ];
 
 /// Empty & error (SC21): the empty state's kind, hint and actions, and
