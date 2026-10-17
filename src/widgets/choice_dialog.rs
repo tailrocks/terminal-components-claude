@@ -63,6 +63,10 @@ pub struct ChoiceDialog {
     /// double click is its default button). A single click only selects.
     /// Default `true`; `false` makes every click only select.
     pub double_click_confirms: bool,
+    /// The default action was asked for (Enter on the options, a double
+    /// click) while its button is disabled: the frame shows the refusal
+    /// in the warning tone until the next input.
+    refused: bool,
 }
 
 impl ChoiceDialog {
@@ -106,6 +110,7 @@ impl ChoiceDialog {
             nav: NavKeys::default(),
             button_row: crate::widgets::button::ButtonRow::new(),
             double_click_confirms: true,
+            refused: false,
         }
     }
 
@@ -162,6 +167,19 @@ impl ChoiceDialog {
             .unwrap_or(self.buttons.len().saturating_sub(1))
     }
 
+    /// Fire the default button (Enter on the options, a double click):
+    /// refused, with the frame flashing, while that button is disabled or
+    /// busy, as a click on it would be.
+    fn fire_default(&mut self) -> Outcome {
+        let i = self.primary();
+        if self.buttons.get(i).is_some_and(Button::can_activate) {
+            self.fire(i)
+        } else {
+            self.refused = true;
+            Outcome::Changed
+        }
+    }
+
     fn fire(&mut self, i: usize) -> Outcome {
         self.fired = Some(i);
         self.result = Some(if i == self.cancel_index {
@@ -173,10 +191,11 @@ impl ChoiceDialog {
     }
 
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Outcome {
+        self.refused = false;
         let cur = focus.current();
         if cur == Some(self.radio.id) {
             if key.is(KeyCode::Enter) {
-                return self.fire(self.primary());
+                return self.fire_default();
             }
             let o = self.radio.on_key(key);
             if o.consumed() {
@@ -250,11 +269,18 @@ impl ChoiceDialog {
             }
         }
         let h = self.height();
+        // a refused default action flashes the frame, as a refused outside
+        // click does ([`crate::ui::modal::border_style`])
+        let flash = ctx.interaction.flash;
+        if self.refused {
+            ctx.interaction.flash = Some(crate::ui::modal::SURFACE);
+        }
         let (area, inner) = crate::ui::modal::Frame::new(self.width, h)
             .title(&self.title)
             .meta(None)
             .overlay(&*self)
             .render(screen, buf, ctx);
+        ctx.interaction.flash = flash;
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;
@@ -337,6 +363,9 @@ impl ChoiceDialog {
         if ev.wheel().is_some() {
             return Response::ignored();
         }
+        if ev.is(Phase::Press) {
+            self.refused = false;
+        }
         if let Some(r) = self.radio.route(ev) {
             if ev.is(Phase::Click) {
                 focus.focus(self.radio.id);
@@ -350,7 +379,7 @@ impl ChoiceDialog {
                         .index_of(crate::core::id::Part::ROW)
                         .is_some_and(|i| i == self.radio.selected)
                 {
-                    return self.fire(self.primary()).into();
+                    return self.fire_default().into();
                 }
             }
             return r;
@@ -405,6 +434,51 @@ mod tests {
         d.on_key(&key(KeyCode::Down), &mut focus, &ring);
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         assert_eq!(d.result, Some(Some(1)));
+    }
+
+    /// A4 (#39 follow-up): Enter on the options and a double click fire
+    /// the default button only while it can act; a disabled one refuses,
+    /// and the frame shows the refusal until the next input.
+    #[test]
+    fn a_disabled_default_button_is_not_fired_by_enter_or_a_double_click() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::PointerEvent;
+        let t = Theme::junie();
+        let draw = |d: &mut ChoiceDialog| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+            d.render(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
+            drop(ctx);
+            (hits, buf)
+        };
+        let mut d = ChoiceDialog::new(WidgetId::of("split"), "Split", "Dir", &["Right", "Down"], 0);
+        d.buttons[1].disabled = true;
+        let (hits, _) = draw(&mut d);
+        let mut focus = Focus::default();
+        let ring = FocusRing::default();
+        focus.focus(d.radio.id);
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        assert_eq!((d.result, d.fired), (None, None), "Enter is refused");
+        let (_, buf) = draw(&mut d);
+        let corner = &buf[(d.area.x, d.area.y)];
+        assert_eq!(corner.fg, t.warning, "the frame shows the refusal");
+        // a double click on the selected option is refused the same way
+        let id = d.radio.option_id(0);
+        let at = d.radio.areas[0];
+        let pos = ratatui::layout::Position::new(at.x + 6, at.y);
+        for phase in [Phase::Press, Phase::Click] {
+            let ev = PointerEvent::new(&hits, phase, id, pos, 2, KeyModifiers::NONE);
+            let _ = d.pointer_in(&ev, &mut focus);
+        }
+        assert_eq!((d.result, d.fired), (None, None), "double click is refused");
+        // the next input clears the refusal; an enabled default fires
+        d.buttons[1].disabled = false;
+        d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
+        let (_, buf) = draw(&mut d);
+        assert_ne!(buf[(d.area.x, d.area.y)].fg, t.warning);
+        assert_eq!(d.result, Some(Some(0)));
     }
 
     /// M39: a double click on an option chooses it and fires the primary
