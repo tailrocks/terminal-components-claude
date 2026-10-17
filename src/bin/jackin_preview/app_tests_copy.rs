@@ -1,6 +1,7 @@
 //! Copy-audit regressions: what the app says to the operator is in their
 //! words, never the preview's internal vocabulary.
 
+use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::Route;
@@ -48,9 +49,9 @@ fn a_blocked_launch_stage_says_what_to_do() {
         plan: LaunchPlan::BlockedSidecar,
     });
     h.draw();
-    assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Cockpit, "{}", h.text());
     h.ticks(110);
-    let c = h.app.screens.cockpit.as_ref().unwrap();
+    let c = h.app.router.cockpit().unwrap();
     assert!(c.run.blocked_at.is_some());
     assert_plain("activity", &c.activity);
     h.key(KeyCode::Esc);
@@ -79,7 +80,7 @@ fn footer(h: &H) -> String {
 fn jackin_letters_keep_one_meaning_across_screens() {
     // Accounts: d removes (as on the manager), t switches enabled
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 220, 40);
-    h.app.screens.accounts.selected =
+    h.app.router.accounts_mut().selected =
         crate::screens::accounts::Sel::Account("acct-claude-work".into());
     h.draw();
     let f = footer(&h);
@@ -119,7 +120,10 @@ fn jackin_letters_keep_one_meaning_across_screens() {
         .find(|i| i.status.is_live())
         .map(|i| i.id.clone())
         .expect("a live instance");
-    h.app.screens.manager.select_instance(&live, &h.app.world);
+    h.app
+        .router
+        .manager_mut()
+        .select_instance(&live, &h.app.world);
     h.draw();
     let f = footer(&h);
     assert!(
@@ -162,7 +166,7 @@ fn capsule_resize_is_hinted_only_where_the_terminal_delivers_alt() {
     }));
     let footer = |h: &H| h.text().lines().last().unwrap_or_default().to_owned();
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 200, 40);
-    assert_eq!(h.app.route, Route::Capsule);
+    assert_eq!(h.app.route(), Route::Capsule);
     let f = footer(&h);
     assert!(f.contains("Ctrl+B"), "{f}");
     assert!(!f.contains("Alt+"), "{f}");
@@ -186,4 +190,37 @@ fn capsule_resize_is_hinted_only_where_the_terminal_delivers_alt() {
         footer(&h)
     );
     keyboard::session::leave();
+}
+
+/// S14: every copy goes through the shell's clipboard, and the status says
+/// what was copied (`Shell::copy_at`), never a fixed "copied" line; a key
+/// copy (`y` on a selection) reports as a mouse copy does, and a `y` that
+/// copies nothing reports nothing.
+#[test]
+fn a_capsule_copy_reports_what_was_copied() {
+    use junie_tui::core::event::MouseKind;
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    h.ticks(60);
+    h.type_str("hello");
+    let (x, y) = h.find("hello").expect("typed text visible");
+    h.mouse(MouseKind::Down, x, y);
+    h.mouse(MouseKind::Drag, x + 5, y);
+    h.mouse(MouseKind::Up, x + 5, y);
+    assert_eq!(h.app.world.clipboard.as_deref(), Some("hello"));
+    assert_eq!(status(&h), "Copied selection");
+    // `y` copies the selection again and says so
+    h.app.shell.status.clear();
+    let before = h.app.clipboard_gen;
+    h.key(KeyCode::Char('y'));
+    assert!(h.app.clipboard_gen > before, "{}", h.text());
+    assert_eq!(status(&h), "Copied selection");
+    // with no selection `y` types into the program and copies nothing
+    // (it used to report "Selection copied" whenever the clipboard held
+    // anything)
+    h.key(KeyCode::Esc);
+    h.app.shell.status.clear();
+    let before = h.app.clipboard_gen;
+    h.key(KeyCode::Char('y'));
+    assert_eq!(h.app.clipboard_gen, before);
+    assert_eq!(status(&h), "", "{}", h.text());
 }
