@@ -1192,6 +1192,11 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::popup::surface_for"),
     // ui::row
     Capability::function("ui::measure::at_least"),
+    Capability::ty("ui::measure::Tile"),
+    Capability::function("ui::measure::Tile::new"),
+    Capability::ty("ui::measure::Tiled"),
+    Capability::function("ui::measure::Tiled::at"),
+    Capability::function("ui::measure::tiles"),
     Capability::ty("ui::scroll_view::Axes"),
     Capability::ty("ui::scroll_view::ScrollCmd"),
     Capability::variant("ui::scroll_view::ScrollCmd::PageUp"),
