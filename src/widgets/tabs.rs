@@ -83,6 +83,20 @@ impl TabItem {
     }
 }
 
+/// The strip with every tab shown (no `‹N`/`N›` overflow) and its new-tab
+/// button: each tab and the cell after it, then `+`; two rows.
+impl crate::ui::measure::Measure for Tabs {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        _ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let tabs: u16 = self.items.iter().map(|it| self.tab_width(it) + 1).sum();
+        let new = if self.allow_new { 4 } else { 0 };
+        ratatui::layout::Size::new(tabs + new, 2)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Tabs {
     pub id: WidgetId,
@@ -1108,6 +1122,39 @@ impl crate::core::pointer::MouseTarget for Tabs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drawn at its measured width the strip hides no tab; one cell less
+    /// hides one.
+    #[test]
+    fn measure_shows_every_tab() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = crate::theme::Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("tabs"), &["orders", "invoices", "audit log"]);
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let w = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            tabs.measure(ratatui::layout::Size::new(1, 1), &ctx).width
+        };
+        for (width, hidden) in [(w, false), (w - 1, true)] {
+            let mut ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            let mut buf = Buffer::empty(Rect::new(0, 0, width, 2));
+            tabs.render(Rect::new(0, 0, width, 2), &mut buf, &mut ctx, t.canvas);
+            let (before, after) = tabs.hidden();
+            assert_eq!(before + after > 0, hidden, "width {width}");
+        }
+    }
 
     #[test]
     fn home_end_and_configurable_keys() {
