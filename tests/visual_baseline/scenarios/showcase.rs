@@ -114,6 +114,16 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/connections/failed", Bin::Showcase, &["--page", "connections", "--opt", "connections.state=failed"], BOOT).sends(&["wait:Reconnect"]).pending(),
     Root::new("showcase/flows/connections/empty", Bin::Showcase, &["--page", "connections", "--opt", "connections.list=empty"], BOOT).sends(&["wait:No connections"]).pending(),
     Root::new("showcase/flows/connections/form", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:New connection…"]).click("New connection…").pending().dismiss_pending(),
+    // Finder (pages/finder.rs, SC48): the ranked results and the preview;
+    // the sections, no match, the one-line preview, the alternatives menu
+    // and Why?; pending first approval.
+    Root::new("showcase/pages/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:git pull --ff-only"]).pending(),
+    Root::new("showcase/sections/finder-options", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["tab", "2", "wait:Risk column"]).pending(),
+    Root::new("showcase/sections/finder-states", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["tab", "3", "wait:No matches"]).pending(),
+    Root::new("showcase/flows/finder/nomatch", Bin::Showcase, &["--page", "finder", "--opt", "finder.query=nomatch"], BOOT).sends(&["wait:No matches"]).pending(),
+    Root::new("showcase/flows/finder/line", Bin::Showcase, &["--page", "finder", "--opt", "finder.preview=line"], BOOT).sends(&["wait:→ git pull"]).pending(),
+    Root::new("showcase/overlays/finder_alternatives", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:Alternatives…"]).click("Alternatives…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/finder_why", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:Why?"]).click("Why?").pending().dismiss_pending(),
     // ------------------------------------------------ planned pages (SC2) --
     // Every page of plan §7.2 is registered up front with its `--page` slug
     // and shows an EmptyState naming the step that fills it. Each step
@@ -171,7 +181,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/panetree/grid", Bin::Showcase, &["--page", "panetree", "--opt", "panetree.layout=grid"], BOOT).sends(&["wait:4 panes"]).pending(),
     Root::new("showcase/flows/panetree/unframed", Bin::Showcase, &["--page", "panetree", "--opt", "panetree.frames=never"], BOOT).sends(&["wait:Workspace panes"]).pending(),
     Root::new("showcase/pages/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:TextBuffer"]).pending(),
-    Root::new("showcase/planned/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:arrives with SC48"]).pending(),
     Root::new("showcase/planned/diskcleanup", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:arrives with SC49"]).pending(),
     Root::new("showcase/planned/activity", Bin::Showcase, &["--page", "activity"], BOOT).sends(&["wait:arrives with SC51"]).pending(),
     Root::new("showcase/planned/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:arrives with SC52"]).pending(),
