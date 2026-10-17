@@ -1989,7 +1989,8 @@ impl App {
         let resized = self.nav.scroll.viewport_len != area.height as usize;
         self.nav.scroll.set_viewport(area.height as usize);
         if self.nav_reveal || resized {
-            self.nav.scroll.ensure_visible(self.nav.cursor);
+            let cursor = self.nav.cursor;
+            self.nav.scroll.ensure_visible(cursor);
             self.nav_reveal = false;
         }
         // one focus stop; the scrollbar takes the last content column when
