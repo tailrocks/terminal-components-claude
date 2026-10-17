@@ -131,7 +131,7 @@ never in view at the smallest failing size.
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size at the starting ratios) | — |
 | R38 | Editor | Playground | done: Page::measure (right column at its need with EmptyState::min_width, the editor gives way down to 40 and scrolls itself; stacked under the editor when narrower) | — |
 | R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
-| R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
+| R40 | Terminal | Playground | done: Page::measure (the step rail card at `StepRail` `Measure::min_width`: every state and duration whole, a cut label reveals; the buttons on one row and the work line under the stages; the viewport at 24 columns beside it, split at `Split::natural_extent`; the viewport meta and the work line shorten and reveal on hover). Library: `StepRail: Measure`, `ScrollView::fit` leaves the horizontal bar its row | — |
 | R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
 | R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 | `10312 10319 10326 10333 10340 10347 10354 10361` |
 | R43 | Connections | Playground | 80x24, 100x25 | `5432 Last SSH SSL ago bastion connections hour` |
