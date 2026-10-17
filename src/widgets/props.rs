@@ -11,12 +11,12 @@ use crate::core::hit::Axis;
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::list::{Cursor, Navigable, RowSource};
-use crate::ui::list_core::ListCore;
 use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::{Theme, Tone};
 use crate::ui::ctx::RenderCtx;
+use crate::ui::list_core::ListCore;
 use crate::ui::reveal::{Reveal, RevealLine};
 use crate::ui::row::{RowLook, RowUi};
 use crate::widgets::scrollbar;
@@ -423,7 +423,9 @@ impl PropsList {
             .action(key)
             .filter(|n| key.plain() || matches!(n, Nav::PageUp | Nav::PageDown | Nav::End));
         if let Some(nav) = nav {
-            let moved = self.cursor().apply(nav, self, self.core.scroll.viewport_len);
+            let moved = self
+                .cursor()
+                .apply(nav, self, self.core.scroll.viewport_len);
             return match moved.index() {
                 Some(i) => {
                     self.set_cursor(i);
@@ -433,7 +435,10 @@ impl PropsList {
             };
         }
         match key.code {
-            KeyCode::Enter => (Outcome::Changed, Some(PropsAction::Activate(self.core.cursor))),
+            KeyCode::Enter => (
+                Outcome::Changed,
+                Some(PropsAction::Activate(self.core.cursor)),
+            ),
             _ => (Outcome::Ignored, None),
         }
     }
@@ -542,7 +547,8 @@ impl PropsList {
             expanded = self.inline_rows(ctx, geo, area.height);
             if let Some(rows) = &expanded {
                 let extra = rows.len().saturating_sub(1);
-                self.core.scroll
+                self.core
+                    .scroll
                     .set_viewport((area.height as usize).saturating_sub(extra).max(1));
                 self.core.scroll.ensure_visible(self.core.cursor);
                 if self.core.scroll.overflows() != has_sb {
@@ -612,7 +618,13 @@ impl PropsList {
             y += h;
         }
         if let Some(sb) = sp.track {
-            crate::ui::fade::scroll_edges_except(buf, ctx, sp.body, &self.core.scroll, &cursor_rows);
+            crate::ui::fade::scroll_edges_except(
+                buf,
+                ctx,
+                sp.body,
+                &self.core.scroll,
+                &cursor_rows,
+            );
             self.core.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
     }
@@ -733,8 +745,7 @@ mod reveal_scroll_tests {
             let mut ring = FocusRing::default();
             let mut buf = Buffer::empty(Rect::new(0, 0, 40, 4));
             {
-                let mut ctx =
-                    RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
                 p.render(Rect::new(0, 0, 40, 4), &mut buf, &mut ctx, theme.canvas);
             }
             let s: String = (0..4)
@@ -747,10 +758,14 @@ mod reveal_scroll_tests {
         assert!(draw(&mut p).0);
         p.content = ContentState::loading("Reading facts");
         let (stop, s) = draw(&mut p);
-        assert!(!stop && s.contains("Reading facts") && !s.contains("db1"), "{s}");
+        assert!(
+            !stop && s.contains("Reading facts") && !s.contains("db1"),
+            "{s}"
+        );
         p.content = ContentState::error(EmptyState::new("No access"));
         assert!(draw(&mut p).1.contains("! No access"));
-        let mut empty = PropsList::new(WidgetId::of("e"), vec![]).empty(EmptyState::new("No facts"));
+        let mut empty =
+            PropsList::new(WidgetId::of("e"), vec![]).empty(EmptyState::new("No facts"));
         let (stop, s) = draw(&mut empty);
         assert!(!stop && s.contains("No facts"), "{s}");
     }

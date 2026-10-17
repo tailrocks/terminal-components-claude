@@ -7,11 +7,11 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, unassigned_chord};
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
-use crate::ui::list_core::ListCore;
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
+use crate::ui::list_core::ListCore;
 use crate::ui::row::{MarkKind, RowLook, RowUi};
 
 /// A node in a tree: label, optional trailing metadata, children.
@@ -1148,7 +1148,9 @@ impl TreeView {
         ctx.scrollable(self.id, area);
         if self.divider && !has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
-            self.core.scroll.draw_divider(sb, buf, ctx, self.id, focused);
+            self.core
+                .scroll
+                .draw_divider(sb, buf, ctx, self.id, focused);
         }
         if has_sb {
             crate::ui::fade::scroll_edges_except(

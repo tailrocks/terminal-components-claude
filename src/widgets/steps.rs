@@ -11,9 +11,9 @@ use crate::core::event::{Key, Outcome};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::NavKeys;
 use crate::core::list::{Cursor, Navigable, RowSource};
-use crate::ui::list_core::ListCore;
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::ui::ctx::{RenderCtx, VisualState};
+use crate::ui::list_core::ListCore;
 use crate::ui::row::{RowLook, RowUi};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
