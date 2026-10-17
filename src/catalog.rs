@@ -1513,6 +1513,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::choice::Toggle::on_key"),
     Capability::function("widgets::choice::Toggle::on_click"),
     Capability::function("widgets::choice::Toggle::render"),
+    Capability::function("widgets::choice::Toggle::width"),
     // widgets::choice_dialog
     Capability::ty("widgets::choice_dialog::ChoiceDialog"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::nav"),
@@ -3073,6 +3074,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::textarea::TextArea::hints"),
     Capability::function("widgets::textarea::TextArea::on_blur"),
     Capability::function("widgets::textarea::TextArea::height"),
+    Capability::function("widgets::textarea::TextArea::width"),
     Capability::function("widgets::textarea::TextArea::begin_edit"),
     Capability::function("widgets::textarea::TextArea::commit"),
     Capability::function("widgets::textarea::TextArea::on_key"),

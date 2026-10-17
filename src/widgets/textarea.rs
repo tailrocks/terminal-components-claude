@@ -279,6 +279,18 @@ impl TextArea {
         self.rows.saturating_add(2)
     }
 
+    /// The field's natural width (plan §1.4 `Measure`): its widest line
+    /// beside the gutter and padding, uncut, or its label when wider.
+    pub fn width(&self) -> u16 {
+        let text = self.field.buffer.text();
+        let line = text
+            .split('\n')
+            .map(|l| crate::ui::text::width(l) as u16)
+            .max()
+            .unwrap_or(0);
+        (line + 4).max(crate::ui::text::width(&self.label) as u16 + 2)
+    }
+
     pub fn begin_edit(&mut self) {
         if !self.disabled {
             if !self.editing {
@@ -960,6 +972,34 @@ impl EditMenuHost for TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// At its width a text area shows its widest line whole.
+    #[test]
+    fn a_text_area_at_its_width_shows_its_widest_line() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        let theme = crate::theme::Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let line = "Handles checkout, invoicing and refunds for the storefront.";
+        let mut a = TextArea::new(WidgetId::of("d"), "Description", 3).value(line);
+        let area = Rect::new(0, 0, a.width(), a.height() + 1);
+        let mut buf = Buffer::empty(area);
+        a.render(area, &mut buf, &mut ctx, theme.canvas);
+        let all: String = (0..area.height)
+            .map(|y| {
+                (0..area.width)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+            })
+            .collect();
+        assert!(all.contains(line), "{all:?}");
+    }
 
     /// An editing text area consumes only the keys it uses: unbound
     /// chords (Ctrl+Q, Ctrl+N, Ctrl+PageDown) pass on to the container;
