@@ -15,6 +15,7 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
+use junie_tui::ui::master_detail::MasterDetail;
 use junie_tui::ui::text::{fit, truncate, truncate_middle, width, wrap};
 use junie_tui::widgets::edit::EditField;
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -42,9 +43,6 @@ pub const PREVIEW: WidgetId = WidgetId::of("here.preview");
 pub const SCOPE: WidgetId = WidgetId::of("here.scope");
 const EXPLORE_CELL: WidgetId = WidgetId::of("here.explore");
 
-/// Preview beside the list from this body width (a 100-column terminal
-/// minus the shell's side margins); a drawer below it.
-pub const SPLIT_MIN: u16 = 108;
 /// Commands shown in the preview before `… N more`.
 const PREVIEW_COMMANDS: usize = 6;
 /// A preview line: label, value, tone, wraps (prose) or truncates in the middle.
@@ -74,13 +72,13 @@ pub struct FinderPage {
     explore_cursor: usize,
     /// Explore chips that do not fit show a `+N` count. Default true.
     pub explore_overflow_marker: bool,
-    /// Preview drawer open (narrow layouts only).
-    pub drawer: bool,
+    /// The results beside their preview: a one-line summary and a
+    /// preview drawer when narrow.
+    md: MasterDetail,
     list_area: Rect,
     preview_area: Rect,
     scope_area: Rect,
     explore_areas: Vec<(WidgetId, Rect, usize)>,
-    split: bool,
     /// Rows are rebuilt when this changes.
     dirty: bool,
     /// Rebuilds so far (a proof counter: rebuilds follow query, scope and
@@ -132,12 +130,13 @@ impl FinderPage {
             preview_scroll: ScrollState::default(),
             explore_cursor: 0,
             explore_overflow_marker: true,
-            drawer: false,
+            md: MasterDetail::new(FINDER, PREVIEW)
+                .detail_share(34, 34, 48)
+                .summary_rows(1),
             list_area: Rect::ZERO,
             preview_area: Rect::ZERO,
             scope_area: Rect::ZERO,
             explore_areas: vec![],
-            split: true,
             dirty: true,
             rebuilds: 0,
             query_changed: false,
@@ -1103,8 +1102,7 @@ impl FinderPage {
                 Outcome::Changed
             }
             KeyCode::Esc => {
-                self.drawer = false;
-                cx.focus.focus(FINDER);
+                self.md.close_drawer(cx.focus);
                 Outcome::Changed
             }
             KeyCode::Enter => self.activate_current(cx),
@@ -1176,8 +1174,7 @@ impl ShellPage<Holla> for FinderPage {
                 KeyCode::Char(c) if !key.chord() && !matches!(c, 'j' | 'k' | 'y')
             );
             if typed {
-                self.drawer = false;
-                cx.focus.focus(FINDER);
+                self.md.close_drawer(cx.focus);
             } else {
                 return self.preview_key(key, cx);
             }
@@ -1436,62 +1433,35 @@ impl ShellPage<Holla> for FinderPage {
             area.width,
             area.height.saturating_sub(2),
         );
-        self.split = area.width >= SPLIT_MIN;
-        if self.split {
-            let pw = (area.width * 34 / 100).clamp(34, 48);
-            let list = Rect::new(
-                body.x,
-                body.y,
-                body.width.saturating_sub(pw + 2),
-                body.height,
-            );
-            let preview = Rect::new(list.right() + 2, body.y, pw, body.height);
-            self.render_rows(list, buf, ctx, w);
-            self.render_preview(preview, buf, ctx, w);
-        } else {
-            let preview_focused = ctx.interaction.focused(PREVIEW);
-            if ctx.interaction.focused(FINDER) {
-                // focus returned to the list: the drawer gives the body back
-                self.drawer = false;
-            }
-            if preview_focused || self.drawer {
-                self.drawer = true;
-                // the list keeps its focus stop so Tab still reaches it
-                ctx.control(FINDER, Rect::ZERO, false);
-                self.render_preview(body, buf, ctx, w);
-            } else {
-                let summary_h = 1u16;
-                let list = Rect::new(
-                    body.x,
-                    body.y,
-                    body.width,
-                    body.height.saturating_sub(summary_h + 1),
-                );
-                self.render_rows(list, buf, ctx, w);
-                // a one-line summary stands in for the preview
-                if let Some(it) = self.current() {
-                    let cmd = it
-                        .commands
-                        .first()
-                        .cloned()
-                        .unwrap_or_else(|| "opens inside holla".into());
-                    // the command gives way in the middle; scope and risk
-                    // stay readable at every width
-                    let tail = format!(" · {} · {}", it.scope.word, it.risk.label());
-                    let room =
-                        (body.width.saturating_sub(3) as usize).saturating_sub(2 + width(&tail));
-                    let line = format!("→ {}{tail}", truncate_middle(&cmd, room.max(8)));
-                    let y = body.bottom().saturating_sub(1);
-                    buf.set_string(
-                        body.x + 3,
-                        y,
-                        truncate(&line, body.width.saturating_sub(3) as usize),
-                        t.muted(),
-                    );
-                }
-                ctx.control(PREVIEW, Rect::ZERO, false);
-            }
+        let l = self.md.layout(body, buf, ctx, t.canvas);
+        if !l.master.is_empty() {
+            self.render_rows(l.master, buf, ctx, w);
         }
+        if !l.detail.is_empty() {
+            self.render_preview(l.detail, buf, ctx, w);
+        }
+        // a one-line summary stands in for the preview
+        if !l.summary.is_empty()
+            && let Some(it) = self.current()
+        {
+            let cmd = it
+                .commands
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "opens inside holla".into());
+            // the command gives way in the middle; scope and risk
+            // stay readable at every width
+            let tail = format!(" · {} · {}", it.scope.word, it.risk.label());
+            let room = (body.width.saturating_sub(3) as usize).saturating_sub(2 + width(&tail));
+            let line = format!("→ {}{tail}", truncate_middle(&cmd, room.max(8)));
+            buf.set_string(
+                body.x + 3,
+                l.summary.y,
+                truncate(&line, body.width.saturating_sub(3) as usize),
+                t.muted(),
+            );
+        }
+        self.md.finish(ctx);
     }
 
     fn hints(&self, focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
