@@ -160,7 +160,12 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/diskcleanup", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:arrives with SC49"]).pending(),
     Root::new("showcase/planned/activity", Bin::Showcase, &["--page", "activity"], BOOT).sends(&["wait:arrives with SC51"]).pending(),
     Root::new("showcase/planned/workspaces", Bin::Showcase, &["--page", "workspaces"], BOOT).sends(&["wait:arrives with SC52"]).pending(),
-    Root::new("showcase/planned/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:arrives with SC53"]).pending(),
+    // SC53 filled Accounts & usage: the page, its sections and the
+    // collapsed master-detail (summary line, drawer on Tab)
+    Root::new("showcase/pages/accountsusage", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["wait:last 7 days"]).pending(),
+    Root::new("showcase/sections/accountsusage-options", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["tab", "2", "wait:Account warnings"]).pending(),
+    Root::new("showcase/sections/accountsusage-states", Bin::Showcase, &["--page", "accountsusage"], BOOT).sends(&["tab", "3", "wait:Account warning"]).pending(),
+    Root::new("showcase/flows/accountsusage/narrow", Bin::Showcase, &["--page", "accountsusage", "--opt", "accountsusage.width=72"], BOOT).sends(&["wait:Tab shows details"]).pending(),
     // SC55 filled Launch cockpit: the page (idle, before Launch) and its
     // sections; the launch itself is tick-driven, proven by the harness
     Root::new("showcase/pages/launchcockpit", Bin::Showcase, &["--page", "launchcockpit"], BOOT).sends(&["wait:not started"]).pending(),

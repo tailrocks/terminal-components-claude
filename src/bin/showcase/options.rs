@@ -283,6 +283,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Terminal => TERMINAL,
         PageId::ReadOnlyReport => READONLY_REPORT,
         PageId::LaunchCockpit => LAUNCH_COCKPIT,
+        PageId::AccountsUsage => ACCOUNTS_USAGE,
         _ => &[],
     }
 }
@@ -1353,6 +1354,20 @@ pub static NOTICES: &[Opt] = &[
     ),
     Opt::new("notices.mark_cut", "Mark the cut …", OFF_ON).default(1),
     Opt::new("notices.width", "Width", &["wide", "narrow"]),
+];
+
+/// Accounts & usage (SC53): the demo frame's width (narrow shows the
+/// collapsed master-detail), the quota meters' visual, offline usage and
+/// the account warnings.
+pub static ACCOUNTS_USAGE: &[Opt] = &[
+    Opt::new("accountsusage.width", "Width", &["fill", "72"]),
+    Opt::new(
+        "accountsusage.visual",
+        "Quota meter visual",
+        &["block", "line"],
+    ),
+    Opt::new("accountsusage.offline", "Usage offline (last-good)", OFF_ON),
+    Opt::new("accountsusage.warnings", "Account warnings", OFF_ON).default(1),
 ];
 
 /// Launch cockpit (SC55): the path the launch takes, and the rail's and
