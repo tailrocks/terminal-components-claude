@@ -184,6 +184,11 @@ impl InputsPage {
                 .help("Managed by the organization"),
             TextInput::new(ID.child(4), "Search files")
                 .placeholder("Type a path or symbol…")
+                .readout(if o.on("inputs.readout") {
+                    "214 files"
+                } else {
+                    ""
+                })
                 .edit_entry(EditEntry::TypeToEdit)
                 .help("Selection: Shift+←→  ·  words: Ctrl+←→  ·  clear: Ctrl+U"),
             TextInput::new(ID.child(5), "API key")
