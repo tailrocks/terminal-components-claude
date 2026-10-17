@@ -77,6 +77,27 @@ pub struct HitRegistry {
     /// Regions a release may complete a click on although the press
     /// started elsewhere ([`HitRegistry::accept_release`]).
     releases: Vec<(WidgetId, ReleaseFrom)>,
+    /// Ids drawn inside a scrolled view ([`HitRegistry::scroll_since`]):
+    /// how far the view's content is scrolled under them, so a pointer
+    /// event on them reports its position in the content's coordinates.
+    shifts: Vec<(WidgetId, (u16, u16))>,
+}
+
+/// How much a [`HitRegistry`] held at one point of a frame
+/// ([`HitRegistry::mark`]): what [`HitRegistry::scroll_since`] moves is
+/// what was registered after it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct HitMark {
+    regions: usize,
+    bars: usize,
+    autoscroll: usize,
+}
+
+impl HitMark {
+    /// Regions registered before the mark.
+    pub(crate) fn regions_len(&self) -> usize {
+        self.regions
+    }
 }
 
 /// Where a press that may complete on another region started
@@ -480,6 +501,112 @@ impl HitRegistry {
             }
         }
         out
+    }
+
+    /// What the registry holds now: [`Self::scroll_since`] moves what is
+    /// registered after it.
+    pub fn mark(&self) -> HitMark {
+        HitMark {
+            regions: self.regions.len(),
+            bars: self.bars.len(),
+            autoscroll: self.autoscroll.len(),
+        }
+    }
+
+    /// Put what was registered since `mark` inside `content` on screen,
+    /// for a view that draws its content at full size off screen and shows
+    /// the `window` of it ([`crate::ui::scroll_view::ScrollView`]): every
+    /// region, scrollbar track and autoscroll area in `content` is cut to
+    /// `window` and moved so `window`'s top-left lands on `to`; what lies
+    /// wholly outside `window` is dropped. Regions outside `content`
+    /// (drawn beside the view in the same pass) stay where they are.
+    ///
+    /// Every id moved records the shift, so a pointer event on it reports
+    /// its position in the content's coordinates ([`Self::local`]): the
+    /// widgets in a scrolled view read positions as they drew them.
+    /// Shifts of nested views add up. `window` never starts above or left
+    /// of `to`.
+    pub fn scroll_since(&mut self, mark: HitMark, content: Rect, window: Rect, to: Position) {
+        let dx = window.x.saturating_sub(to.x);
+        let dy = window.y.saturating_sub(to.y);
+        let place = |r: Rect| -> Rect {
+            let r = r.intersection(window);
+            if r.is_empty() {
+                return Rect::ZERO;
+            }
+            Rect::new(r.x - dx, r.y - dy, r.width, r.height)
+        };
+        let from = mark.regions.min(self.regions.len());
+        let mut moved: Vec<WidgetId> = Vec::new();
+        let mut kept = Vec::with_capacity(self.regions.len() - from);
+        for mut r in self.regions.drain(from..) {
+            if r.area.intersects(content) {
+                if !moved.contains(&r.id) {
+                    moved.push(r.id);
+                }
+                r.area = place(r.area);
+                if r.area.is_empty() {
+                    continue;
+                }
+            }
+            kept.push(r);
+        }
+        self.regions.extend(kept);
+        let from = mark.bars.min(self.bars.len());
+        let bars: Vec<Bar> = self.bars.drain(from..).collect();
+        for mut b in bars {
+            if b.track.intersects(content) {
+                if !moved.contains(&b.id) {
+                    moved.push(b.id);
+                }
+                b.track = place(b.track);
+                if b.track.is_empty() {
+                    continue;
+                }
+            }
+            self.bars.push(b);
+        }
+        let from = mark.autoscroll.min(self.autoscroll.len());
+        let areas: Vec<(usize, Rect)> = self.autoscroll.drain(from..).collect();
+        for (layer, area) in areas {
+            let area = if area.intersects(content) {
+                place(area)
+            } else {
+                area
+            };
+            if !area.is_empty() {
+                self.autoscroll.push((layer, area));
+            }
+        }
+        if dx == 0 && dy == 0 {
+            return;
+        }
+        for id in moved {
+            match self.shifts.iter_mut().find(|(i, _)| *i == id) {
+                Some((_, (x, y))) => {
+                    *x = x.saturating_add(dx);
+                    *y = y.saturating_add(dy);
+                }
+                None => self.shifts.push((id, (dx, dy))),
+            }
+        }
+    }
+
+    /// How far the content under `id` is scrolled (columns, rows): zero
+    /// for anything not drawn inside a scrolled view
+    /// ([`Self::scroll_since`]).
+    pub fn shift_of(&self, id: WidgetId) -> (u16, u16) {
+        self.shifts
+            .iter()
+            .find(|(i, _)| *i == id)
+            .map_or((0, 0), |&(_, s)| s)
+    }
+
+    /// The screen position `pos` over `id` in the coordinates `id` was
+    /// drawn in: itself, unless `id` sits in a scrolled view.
+    pub fn local(&self, id: WidgetId, pos: Position) -> Position {
+        let (dx, dy) = self.shift_of(id);
+        Position::new(pos.x.saturating_add(dx), pos.y.saturating_add(dy))
     }
 
     pub fn len(&self) -> usize {

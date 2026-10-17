@@ -706,6 +706,8 @@ impl PointerEvent {
         mods: KeyModifiers,
     ) -> Self {
         let hit = hit_of(hits, id);
+        // inside a scrolled view, the position the widget drew in
+        let pos = hits.local(id, pos);
         Self {
             id,
             hit,
@@ -730,6 +732,7 @@ impl PointerEvent {
         mods: KeyModifiers,
     ) -> Self {
         let hit = hit_of(hits, id);
+        let pos = hits.local(id, pos);
         Self {
             id,
             hit,
