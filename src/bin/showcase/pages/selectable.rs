@@ -52,6 +52,8 @@ const EDITOR_W: u16 = 44;
 /// Rows the editor card takes: heading, four field rows, the action row
 /// and the frame.
 const EDITOR_H: u16 = 17;
+/// The member table's rows in view: it scrolls the rest.
+const TABLE_ROWS: u16 = 10;
 
 const ROLES: [&str; 3] = ["Admin", "Editor", "Viewer"];
 const STATUSES: [&str; 3] = ["Active", "Invited", "Suspended"];
@@ -1048,6 +1050,21 @@ impl SelectablePage {
 }
 
 impl Page for SelectablePage {
+    /// The table at every row beside the editor card when the page is
+    /// wide enough (as `render_playground` decides), under it otherwise;
+    /// the table takes the room it has (it scrolls sideways itself).
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        use junie_tui::ui::measure::Measure;
+        let any = ratatui::layout::Size::new(0, 0);
+        // the table shows TABLE_ROWS rows and scrolls the rest
+        let table_h = self.table.measure(any, ctx).height.min(1 + TABLE_ROWS) + 4;
+        let min = self.table.min_width(any, ctx) + 4;
+        if avail.width > 50 + EDITOR_W {
+            ratatui::layout::Size::new(avail.width, table_h.max(EDITOR_H))
+        } else {
+            ratatui::layout::Size::new(avail.width.max(min).max(EDITOR_W), table_h + 1 + EDITOR_H)
+        }
+    }
     fn title(&self) -> &'static str {
         "Selectable table"
     }
