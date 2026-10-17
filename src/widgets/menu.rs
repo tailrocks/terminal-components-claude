@@ -2350,4 +2350,101 @@ mod tests {
         let row = bar_row(&mut bar, &t, 24);
         assert!(row.contains(" > ") && row.is_ascii(), "{row}");
     }
+
+    /// Thirty rows with a separator after every fifth: taller than the
+    /// 12-line screen the wheel tests draw on.
+    fn long_items() -> Vec<MenuItem> {
+        (0..30)
+            .map(|i| MenuItem::new(format!("item {i:02}")).separator_if(i % 5 == 4))
+            .collect()
+    }
+
+    /// A wheel notch on the first row in view of an open menu, routed the
+    /// way an app routes it: through the menu's
+    /// [`MouseTarget`](crate::core::pointer::MouseTarget) and its list's
+    /// shared wheel.
+    fn wheel_menu(m: &mut ContextMenu, axis: Axis, delta: i32) -> Outcome {
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 12));
+        m.render(Rect::new(0, 0, 40, 12), &mut buf, &mut ctx);
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        let first = m.list.visible_lines().find_map(|(_, r)| r).unwrap();
+        let row = m.row_id(first);
+        let pos = hits.area_of(row).expect("a visible row").as_position();
+        let ev = PointerEvent::wheel_on(&hits, row, axis, delta, pos, KeyModifiers::NONE);
+        m.pointer(&ev).outcome()
+    }
+
+    #[test]
+    fn the_wheel_over_a_menu_follows_its_wheel_mode_through_the_shared_path() {
+        // Viewport (the default): the view scrolls by lines, the cursor
+        // stays, and the next frame keeps the scroll
+        let mut m = ContextMenu::new(WidgetId::of("m"), long_items()).at(Position::new(2, 0));
+        assert_eq!(m.list.wheel, WheelMode::Viewport);
+        assert_eq!(wheel_menu(&mut m, Axis::Vertical, 3), Outcome::Changed);
+        assert_eq!((m.list.scroll.offset, m.list.cursor.index), (3, 0));
+        assert_eq!(wheel_menu(&mut m, Axis::Vertical, -1), Outcome::Changed);
+        assert_eq!(m.list.scroll.offset, 2, "the next frame kept the scroll");
+        // a sideways notch is consumed: nothing beneath the menu moves
+        assert_eq!(wheel_menu(&mut m, Axis::Horizontal, 1), Outcome::Consumed);
+        assert_eq!(m.list.scroll.offset, 2);
+        // Cursor: the wheel moves the cursor a row per line and the view
+        // follows it, separators included
+        let mut c = ContextMenu::new(WidgetId::of("m"), long_items())
+            .at(Position::new(2, 0))
+            .wheel_mode(WheelMode::Cursor);
+        assert_eq!(wheel_menu(&mut c, Axis::Vertical, 12), Outcome::Changed);
+        assert_eq!(c.list.cursor.index, 12);
+        let line = c.list.line_of(12);
+        assert_eq!(line, 14, "two separators above row 12");
+        assert!(c.list.scroll.visible_range().contains(&line));
+        assert_eq!(wheel_menu(&mut c, Axis::Vertical, -2), Outcome::Changed);
+        assert_eq!(c.list.cursor.index, 10);
+    }
+
+    #[test]
+    fn the_wheel_over_a_menu_bar_menu_scrolls_it_through_the_shared_path() {
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        let mut bar = MenuBar::new(
+            WidgetId::of("bar"),
+            vec![
+                ("File", long_items()),
+                ("View", vec![MenuItem::new("Zoom")]),
+            ],
+        );
+        bar.open_menu(0);
+        let t = Theme::junie();
+        let draw = |bar: &mut MenuBar| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 12));
+            bar.render(Rect::new(0, 0, 40, 1), &mut buf, &mut ctx, t.canvas);
+            ctx.flush_overlays(&mut buf);
+            drop(ctx);
+            hits
+        };
+        let hits = draw(&mut bar);
+        let m = bar.open.as_ref().unwrap();
+        let row = m.row_id(0);
+        let pos = hits.area_of(row).expect("a visible row").as_position();
+        let ev = PointerEvent::wheel_on(&hits, row, Axis::Vertical, 2, pos, KeyModifiers::NONE);
+        let r = bar.route(&ev).expect("the open menu's event is the bar's");
+        assert_eq!(r.outcome(), Outcome::Changed);
+        let m = bar.open.as_ref().unwrap();
+        assert_eq!((m.list.scroll.offset, m.list.cursor.index), (2, 0));
+        // under WheelMode::Cursor the same notch moves the cursor
+        bar.open.as_mut().unwrap().list.wheel = WheelMode::Cursor;
+        let hits = draw(&mut bar);
+        let row = bar.open.as_ref().unwrap().row_id(2);
+        let pos = hits.area_of(row).expect("a visible row").as_position();
+        let ev = PointerEvent::wheel_on(&hits, row, Axis::Vertical, 2, pos, KeyModifiers::NONE);
+        assert_eq!(bar.route(&ev).unwrap().outcome(), Outcome::Changed);
+        assert_eq!(bar.open.as_ref().unwrap().list.cursor.index, 2);
+    }
 }
