@@ -16,10 +16,9 @@ use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture, SelectionMode, TriState};
-use crate::core::text::TextBuffer;
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::widgets::field_common::{EditAction, edit_key};
+use crate::widgets::edit::{EditExit, EditField, Validator};
 use crate::widgets::option_editor::{
     Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
 };
@@ -120,8 +119,8 @@ pub struct EditState {
     /// Source row index, independent of the current display sort order.
     pub row: usize,
     pub col: usize,
-    pub buffer: TextBuffer,
-    pub error: Option<String>,
+    /// The cell's text, keys, undo, pointer selection and validation.
+    pub field: EditField,
 }
 
 /// Data table with header sorting, row/cell keyboard navigation, hover,
@@ -147,20 +146,6 @@ pub struct EditState {
 ///
 /// Selection is keyed by source row, so it survives sorting and scrolling.
 /// Rows in [`DataTable::disabled`] can be read but never selected.
-/// A [`DataTable`] cell validator: `(col, text)` to `Some(message)` to
-/// reject the value.
-#[derive(Clone)]
-pub struct CellValidator(pub std::rc::Rc<CellValidateFn>);
-
-/// The function a [`CellValidator`] wraps.
-pub type CellValidateFn = dyn Fn(usize, &str) -> Option<String>;
-
-impl std::fmt::Debug for CellValidator {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("CellValidator")
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct DataTable {
     /// The rows, cells, checkboxes and `▾`s registered in the last render.
@@ -183,7 +168,9 @@ pub struct DataTable {
     pub edit: Option<EditState>,
     /// Checks a cell edit: `Some(message)` rejects the value. A closure,
     /// so it can capture state (an enum list, a schema).
-    pub validator: Option<CellValidator>,
+    /// The context is the column index; a cell edit runs it bound to
+    /// its column ([`Validator::bind`]).
+    pub validator: Option<Validator<(), usize>>,
     /// What a cell edit in progress does when the table loses focus
     /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
     pub blur_action: BlurAction,
@@ -885,7 +872,9 @@ impl DataTable {
     }
     /// See [`Self::validator`]: `v(col, text)`.
     pub fn validator(mut self, v: impl Fn(usize, &str) -> Option<String> + 'static) -> Self {
-        self.validator = Some(CellValidator(std::rc::Rc::new(v)));
+        self.validator = Some(Validator::with_context(move |col: &usize, text: &str| {
+            v(*col, text).map_or(Ok(()), |m| Err(m.into()))
+        }));
         self
     }
     /// See [`Self::empty`].
@@ -1047,11 +1036,12 @@ impl DataTable {
             });
             return (Outcome::Changed, None);
         }
+        let mut field = EditField::single(text);
+        field.validator = self.validator.as_ref().map(|v| v.bind(col));
         self.edit = Some(EditState {
             row: src,
             col,
-            buffer: TextBuffer::single(text),
-            error: None,
+            field,
         });
         (Outcome::Changed, None)
     }
@@ -1059,8 +1049,8 @@ impl DataTable {
     /// Store a chosen value through the edit pipeline: the validator may
     /// reject it (the message comes back), a sorted column re-sorts.
     fn apply_value(&mut self, src: usize, col: usize, text: String) -> Result<TableAction, String> {
-        if let Some(err) = self.validator.as_ref().and_then(|v| (v.0)(col, &text)) {
-            return Err(err);
+        if let Some(Err(err)) = self.validator.as_ref().map(|v| v.validate_in(&col, &text)) {
+            return Err(err.into_message());
         }
         self.rows[src][col].text = text;
         self.rows[src][col].error = None;
@@ -1151,18 +1141,14 @@ impl DataTable {
     }
 
     pub fn commit_edit(&mut self) -> Option<TableAction> {
-        let e = self.edit.take()?;
+        let mut e = self.edit.take()?;
         let src = e.row;
-        let text = e.buffer.text().to_owned();
-        let err = self.validator.as_ref().and_then(|v| (v.0)(e.col, &text));
-        if let Some(err) = err {
+        if !e.field.validate() {
             // keep editing, show error
-            self.edit = Some(EditState {
-                error: Some(err),
-                ..e
-            });
+            self.edit = Some(e);
             return None;
         }
+        let text = e.field.text().to_owned();
         self.rows[src][e.col].text = text;
         self.rows[src][e.col].error = None;
         if let Some((c, d)) = self.sort
@@ -1216,13 +1202,14 @@ impl DataTable {
             return (out, self.on_choice(r));
         }
         if let Some(e) = self.edit.as_mut() {
-            return match edit_key(key, false) {
-                EditAction::Commit => match self.commit_edit() {
+            let r = e.field.on_key(key);
+            return match r.exit {
+                Some(EditExit::Commit) => match self.commit_edit() {
                     Some(ev) => (Outcome::Changed, Some(ev)),
                     None => (Outcome::Changed, None),
                 },
-                EditAction::Cancel => (Outcome::Changed, self.cancel_edit()),
-                EditAction::Tab { backward } => {
+                Some(EditExit::Cancel) => (Outcome::Changed, self.cancel_edit()),
+                Some(EditExit::Tab { backward }) => {
                     let ev = self.commit_edit();
                     if ev.is_none() {
                         return (Outcome::Changed, None);
@@ -1234,38 +1221,7 @@ impl DataTable {
                     self.start_edit();
                     (Outcome::Changed, ev)
                 }
-                EditAction::Apply(f) => {
-                    f(&mut e.buffer);
-                    (Outcome::Changed, None)
-                }
-                action @ (EditAction::Undo
-                | EditAction::Redo
-                | EditAction::Copy
-                | EditAction::Cut
-                | EditAction::Paste
-                | EditAction::SelectAll) => {
-                    // a cell edit is short-lived: clipboard keys work, its
-                    // undo is Esc
-                    crate::widgets::field_common::apply_edit(
-                        &mut e.buffer,
-                        &mut crate::core::edit::UndoStack::new(),
-                        action,
-                        key.code,
-                        false,
-                    );
-                    (Outcome::Changed, None)
-                }
-                EditAction::Insert(c) => {
-                    e.buffer.insert_char(c);
-                    if e.error.is_some() {
-                        e.error = self
-                            .validator
-                            .as_ref()
-                            .and_then(|v| (v.0)(e.col, e.buffer.text()));
-                    }
-                    (Outcome::Changed, None)
-                }
-                EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
+                None => (r.outcome, None),
             };
         }
         if self.rows.is_empty() {
@@ -1386,7 +1342,7 @@ impl DataTable {
         }
         match self.edit.as_mut() {
             Some(e) => {
-                e.buffer.insert_str(text);
+                e.field.paste(text);
                 Outcome::Changed
             }
             None => Outcome::Ignored,
@@ -1447,16 +1403,12 @@ impl DataTable {
         let col = col.min(self.columns.len().saturating_sub(1));
         if let Some(e) = &self.edit {
             if e.row == self.order[display] && e.col == col {
-                // click inside the editor places the cursor
-                if let Some(rect) = self.col_rects.get(col) {
-                    let cw = rect.width.saturating_sub(1) as usize;
-                    let off = e
-                        .buffer
-                        .cursor_pos()
-                        .col
-                        .saturating_sub(cw.saturating_sub(1));
-                    let c = pos.x.saturating_sub(rect.x) as usize + off;
-                    self.edit.as_mut().unwrap().buffer.set_cursor_line_col(0, c);
+                // a click inside the editor places the caret, a double
+                // click selects a word, a triple click the value
+                if let Some(at) = self.edit_offset(pos)
+                    && let Some(e) = self.edit.as_mut()
+                {
+                    e.field.click(at, count, false);
                 }
                 return (Outcome::Changed, None);
             }
@@ -1842,22 +1794,22 @@ impl DataTable {
                         ..Default::default()
                     });
                     fill(buf, cell_rect, es);
-                    let text = e.buffer.text();
+                    let text = e.field.text();
                     let cw = r.width.saturating_sub(1) as usize;
-                    let cur = e.buffer.cursor_pos().col;
+                    let cur = e.field.buffer.cursor_pos().col;
                     let off = cur.saturating_sub(cw.saturating_sub(1));
                     let shown = crate::ui::text::slice_cells(text, off, cw);
                     let mut ts = es
                         .add_modifier(Modifier::UNDERLINED)
                         .underline_color(t.accent);
-                    if e.error.is_some() {
+                    if e.field.error.is_some() {
                         ts = ts.underline_color(t.error);
                     }
                     buf.set_string(r.x, y, &shown, ts);
                     if cw > 0 {
                         ctx.set_cursor(Position::new(r.x + (cur - off) as u16, y));
                     }
-                    if e.error.is_some() {
+                    if e.field.error.is_some() {
                         buf.set_string(
                             r.right().saturating_sub(1),
                             y,
@@ -2005,11 +1957,41 @@ impl DataTable {
             .position(|r| !r.is_empty() && x >= r.x && x < r.right())
     }
 
+    /// The byte offset of the open cell editor's text under `pos`, by the
+    /// geometry it was drawn with (the caret keeps itself in view, so the
+    /// text scrolls by the caret column). Left of the cell names the first
+    /// character, right of it the last, so a drag past an edge selects on.
+    fn edit_offset(&self, pos: Position) -> Option<usize> {
+        let e = self.edit.as_ref()?;
+        let rect = self.col_rects.get(e.col)?;
+        let cw = rect.width.saturating_sub(1) as usize;
+        let off = e
+            .field
+            .buffer
+            .cursor_pos()
+            .col
+            .saturating_sub(cw.saturating_sub(1));
+        let c = (off as isize + (pos.x as isize - rect.x as isize)).max(0) as usize;
+        Some(e.field.buffer.offset_at(0, c))
+    }
+
+    /// `ev` lands on the open cell editor.
+    fn on_edit_cell(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
+        let Some(e) = &self.edit else {
+            return false;
+        };
+        ev.on(self.id)
+            && ev
+                .index_of(Part::CELL)
+                .is_some_and(|d| self.order.get(d) == Some(&e.row))
+            && self.column_at(ev.pos().x) == Some(e.col)
+    }
+
     pub fn edit_error(&self) -> Option<&str> {
         if let Some(c) = &self.choice {
             return c.editor.error.as_deref();
         }
-        self.edit.as_ref().and_then(|e| e.error.as_deref())
+        self.edit.as_ref().and_then(|e| e.field.error_message())
     }
 }
 
@@ -2132,6 +2114,28 @@ impl crate::core::pointer::MouseTarget for DataTable {
             return r.lift();
         }
         let (id, pos) = (ev.id, ev.pos());
+        // the open cell editor takes the text gestures: a press anchors a
+        // drag selection (a double-click press selects the word), a drag
+        // selects, its click lands below
+        match ev.phase() {
+            Some(Phase::Press) if self.on_edit_cell(ev) => {
+                if let Some(at) = self.edit_offset(pos)
+                    && let Some(e) = self.edit.as_mut()
+                {
+                    e.field.press(at, ev.count(), false);
+                }
+                return Response::changed();
+            }
+            Some(Phase::Drag) if self.edit.as_ref().is_some_and(|e| e.field.pressed()) => {
+                if let Some(at) = self.edit_offset(pos)
+                    && let Some(e) = self.edit.as_mut()
+                {
+                    e.field.drag(at);
+                }
+                return Response::changed();
+            }
+            _ => {}
+        }
         match ev.phase() {
             Some(Phase::Press) => self.on_press(id, pos, ev.count()).into(),
             Some(Phase::Drag) => self.on_drag(id, pos).into(),
@@ -2195,6 +2199,81 @@ mod tests {
         table.render(area, &mut buf, &mut ctx, theme.surface);
         let cursor = ctx.cursor.unwrap();
         (buf, cursor)
+    }
+
+    /// M21 for cells (S11): the open cell editor takes the text gestures
+    /// through the router: a double click selects the word, a drag selects
+    /// what it crosses (both only placed the caret); Ctrl+Z undoes typing
+    /// (it did nothing); a pasted line break never lands in the cell.
+    #[test]
+    fn the_cell_editor_selects_by_pointer_undoes_and_flattens_pastes() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let mut t = DataTable::new(
+            WidgetId::of("t"),
+            vec![Column::new("Name", Constraint::Length(20)).editable()],
+            vec![vec![Cell::new("big red fox")]],
+        )
+        .cell_nav(true);
+        t.begin_edit();
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 40, 5);
+        let mut buf = Buffer::empty(area);
+        let y = {
+            let mut ctx = RenderCtx::new(
+                &theme,
+                Interaction {
+                    focus: Some(t.id),
+                    ..Default::default()
+                },
+                &mut hits,
+                &mut ring,
+            );
+            t.render(area, &mut buf, &mut ctx, theme.surface);
+            ctx.cursor.unwrap().y
+        };
+        let x0 = t.col_rects[0].x;
+        let ev = |phase, x: u16, count| {
+            let pos = Position::new(x, y);
+            let id = hits.hit(pos).unwrap();
+            PointerEvent::new(&hits, phase, id, pos, count, M::NONE)
+        };
+        let sel = |t: &DataTable| {
+            t.edit
+                .as_ref()
+                .unwrap()
+                .field
+                .buffer
+                .selected_text()
+                .map(str::to_owned)
+        };
+        let _ = t.pointer(&ev(Phase::Press, x0 + 5, 1));
+        let _ = t.pointer(&ev(Phase::Click, x0 + 5, 1));
+        let _ = t.pointer(&ev(Phase::Press, x0 + 5, 2));
+        let _ = t.pointer(&ev(Phase::Click, x0 + 5, 2));
+        assert_eq!(sel(&t).as_deref(), Some("red"), "double click: the word");
+        let _ = t.pointer(&ev(Phase::Press, x0, 1));
+        let _ = t.pointer(&ev(Phase::Drag, x0 + 3, 1));
+        assert_eq!(sel(&t).as_deref(), Some("big"), "a drag selects");
+        t.on_key(&Key {
+            code: KeyCode::Char('x'),
+            mods: M::NONE,
+        });
+        assert_eq!(t.edit.as_ref().unwrap().field.text(), "x red fox");
+        t.on_key(&Key {
+            code: KeyCode::Char('z'),
+            mods: M::CONTROL,
+        });
+        assert_eq!(
+            t.edit.as_ref().unwrap().field.text(),
+            "big red fox",
+            "Ctrl+Z"
+        );
+        t.on_paste("one\ntwo\n");
+        assert!(!t.edit.as_ref().unwrap().field.text().contains('\n'));
     }
 
     fn table() -> DataTable {
@@ -2375,7 +2454,7 @@ mod tests {
             let mut t = table();
             t.cursor_row = 2;
             t.begin_edit();
-            t.edit.as_mut().unwrap().buffer.set_text("stale edit");
+            t.edit.as_mut().unwrap().field.buffer.set_text("stale edit");
             let rows = (0..row_count)
                 .map(|i| vec![Cell::new(format!("new {i}")), Cell::new("0")])
                 .collect();
@@ -2424,7 +2503,7 @@ mod tests {
     fn rendering_without_focus_never_ends_the_cell_edit() {
         let mut t = table();
         t.begin_edit();
-        t.edit.as_mut().unwrap().buffer.set_text("renamed");
+        t.edit.as_mut().unwrap().field.buffer.set_text("renamed");
         draw(&mut t, Rect::new(0, 0, 60, 10));
         assert!(t.edit.is_some(), "render is not a blur");
         assert_eq!(t.on_blur(), Some(TableAction::Committed { row: 0, col: 0 }));
@@ -2437,7 +2516,7 @@ mod tests {
             t.blur_action = action;
             assert_eq!(t.on_blur(), None);
             t.begin_edit();
-            t.edit.as_mut().unwrap().buffer.set_text("renamed");
+            t.edit.as_mut().unwrap().field.buffer.set_text("renamed");
             t
         };
         let mut commit = edited(BlurAction::Commit);
@@ -2465,11 +2544,11 @@ mod tests {
                 .then(|| "Invalid".to_owned())
         });
         t.begin_edit();
-        t.edit.as_mut().unwrap().buffer.set_text("!");
+        t.edit.as_mut().unwrap().field.buffer.set_text("!");
         t.on_click_header(0);
-        assert!(t.edit.as_ref().unwrap().error.is_some());
+        assert!(t.edit.as_ref().unwrap().field.error.is_some());
         assert_eq!(t.source_row(t.cursor_row), 0);
-        t.edit.as_mut().unwrap().buffer.set_text("fixed");
+        t.edit.as_mut().unwrap().field.buffer.set_text("fixed");
         assert_eq!(
             t.commit_edit(),
             Some(TableAction::Committed { row: 0, col: 0 })
@@ -2484,7 +2563,7 @@ mod tests {
             let mut t = table();
             t.cursor_row = 1;
             t.begin_edit();
-            t.edit.as_mut().unwrap().buffer.set_text("fixed");
+            t.edit.as_mut().unwrap().field.buffer.set_text("fixed");
             for _ in 0..sort_count {
                 t.sort_by(0);
             }
@@ -2501,11 +2580,11 @@ mod tests {
     fn clicking_another_cell_preserves_invalid_edit_and_cursor() {
         let mut t = table().validator(|_, value| (value == "!").then(|| "Invalid".to_owned()));
         t.begin_edit();
-        t.edit.as_mut().unwrap().buffer.set_text("!");
+        t.edit.as_mut().unwrap().field.buffer.set_text("!");
         t.on_click_cell(1, 0, Position::ORIGIN);
         assert_eq!(t.cursor_row, 0);
-        assert_eq!(t.edit.as_ref().unwrap().buffer.text(), "!");
-        assert!(t.edit.as_ref().unwrap().error.is_some());
+        assert_eq!(t.edit.as_ref().unwrap().field.buffer.text(), "!");
+        assert!(t.edit.as_ref().unwrap().field.error.is_some());
         t.cancel_edit();
         assert_eq!(t.rows[0][0].text, "beta");
         assert_eq!(t.rows[1][0].text, "alpha");
@@ -2535,10 +2614,14 @@ mod tests {
                 .edit
                 .as_ref()
                 .unwrap()
+                .field
                 .buffer
                 .offset_at(0, crate::ui::text::width(&text) - 2);
             t.on_click_cell(0, 0, Position::new(cursor.x - 2, cursor.y));
-            assert_eq!(t.edit.as_ref().unwrap().buffer.cursor_offset(), expected);
+            assert_eq!(
+                t.edit.as_ref().unwrap().field.buffer.cursor_offset(),
+                expected
+            );
             t.on_key(&Key {
                 code: KeyCode::Home,
                 mods: ratatui::crossterm::event::KeyModifiers::NONE,
@@ -2562,13 +2645,13 @@ mod tests {
         t.begin_edit();
         assert!(t.is_editing());
         let e = t.edit.as_mut().unwrap();
-        e.buffer.select_all();
-        e.buffer.insert_str("zeta");
+        e.field.buffer.select_all();
+        e.field.buffer.insert_str("zeta");
         let ev = t.commit_edit();
         assert_eq!(ev, Some(TableAction::Committed { row: 0, col: 0 }));
         assert_eq!(t.rows[0][0].text, "zeta");
         t.begin_edit();
-        t.edit.as_mut().unwrap().buffer.insert_str("!!!");
+        t.edit.as_mut().unwrap().field.buffer.insert_str("!!!");
         t.cancel_edit();
         assert_eq!(t.rows[0][0].text, "zeta");
     }
@@ -2584,7 +2667,7 @@ mod tests {
         });
         t.cursor_col = 1;
         t.begin_edit();
-        t.edit.as_mut().unwrap().buffer.insert_str("x");
+        t.edit.as_mut().unwrap().field.buffer.insert_str("x");
         assert!(t.commit_edit().is_none());
         assert!(t.is_editing());
         assert_eq!(t.edit_error(), Some("Must be a number"));
