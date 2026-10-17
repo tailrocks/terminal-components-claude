@@ -874,7 +874,7 @@ impl Workbench {
             GridAction::CommitRequested => cx.go(crate::app::Act::CommitPending),
             GridAction::DiscardRequested => cx.go(crate::app::Act::ConfirmDiscard),
             GridAction::PreviewSql => cx.go(crate::app::Act::PreviewSql),
-            GridAction::Copy(s) => cx.status(format!("Copied {} chars", s.len())),
+            GridAction::Copy(s) => cx.copy(s),
             GridAction::FilterOnCell { col, value } => {
                 cx.go(crate::app::Act::FilterOnCell(col, value));
             }
@@ -969,7 +969,9 @@ impl Workbench {
                     return Outcome::Changed;
                 }
                 KeyCode::Char('y') => {
-                    cx.status("Query copied");
+                    if let Some(e) = h.current_entry(history) {
+                        cx.copy_as(e.sql.clone(), "query");
+                    }
                     return Outcome::Changed;
                 }
                 _ => {}
@@ -997,8 +999,8 @@ impl Workbench {
         }
         if f == h.copy_btn.id {
             let (o, act) = h.copy_btn.on_key(key);
-            if act {
-                cx.status("Query copied");
+            if act && let Some(e) = h.current_entry(history) {
+                cx.copy_as(e.sql.clone(), "query");
             }
             return o;
         }
@@ -1286,7 +1288,9 @@ impl Workbench {
                     return Outcome::Changed;
                 }
                 if h.copy_btn.id == id && h.copy_btn.on_click() {
-                    cx.status("Query copied");
+                    if let Some(e) = h.current_entry(history) {
+                        cx.copy_as(e.sql.clone(), "query");
+                    }
                     return Outcome::Changed;
                 }
                 Outcome::Ignored
