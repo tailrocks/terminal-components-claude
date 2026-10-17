@@ -15,7 +15,7 @@ pub mod settings;
 pub mod usage;
 
 use junie_tui::core::event::Outcome;
-use junie_tui::widgets::picker::PickerItem;
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::segments::Segment;
 
 use crate::domain::account::AccountId;
@@ -165,12 +165,7 @@ impl junie_tui::shell::PageTypes for Jackin {
 /// only what it needs.
 pub trait Screen: junie_tui::shell::Page<Jackin> {
     /// Rows for a picker this screen opened; `None` keeps the current rows.
-    fn picker_items(
-        &mut self,
-        _tag: &LayerTag,
-        _query: &str,
-        _w: &World,
-    ) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, _tag: &LayerTag, _query: &str, _w: &World) -> Option<Vec<Item>> {
         None
     }
     /// A form field changed: reveal/hide dependent fields.

@@ -212,6 +212,7 @@ widgets::help::HelpSection::row | a hand row of a help section (mouse gestures):
 widgets::help::HelpSection::bindings | key rows of a help section from Bindings: the Help & keys page shows them | SC33
 widgets::help::HelpSection::is_empty | an empty help section is left out: the Help & keys page shows it | SC33
 widgets::picker::Picker::choose_hint | the footer's Enter action of a picker: the Pickers page names it | SC33
+widgets::picker::Picker::searchable | a fixed-choice picker without a query (the Level picker on the Pickers page is built with it off) | SC33
 
 # core::pointer
 core::pointer::SecondaryRoute | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
@@ -1007,14 +1008,9 @@ widgets::input::TextInput::set_error | EditField, Validate, ValidateWhen, FieldE
 widgets::edit::LineLook | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 
 # widgets::option_list
-widgets::option_list::Item::key | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
-widgets::option_list::Item::glyph | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
-widgets::option_list::Item::detail | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::tag | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
-widgets::option_list::Item::group | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::matched | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::insert | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
-widgets::option_list::Item::disabled | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::reason | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::value | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::Item::insertion | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
@@ -1031,6 +1027,7 @@ widgets::option_list::OptionList::placement | OptionList, the one popup-list bod
 widgets::option_list::OptionList::fit | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::max_rows | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::width | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::query | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::reset | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::highlighted | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::row_part | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
