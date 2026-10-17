@@ -2025,6 +2025,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::menu::ContextMenu::type_ahead"),
     Capability::builder("widgets::menu::ContextMenu::type_ahead_timeout"),
     Capability::builder("widgets::menu::ContextMenu::wheel_mode"),
+    Capability::builder("widgets::menu::ContextMenu::skip_disabled"),
     Capability::builder("widgets::menu::ContextMenu::fit"),
     Capability::builder("widgets::menu::ContextMenu::dismiss"),
     Capability::builder("widgets::menu::ContextMenu::hide_owner_focus"),

@@ -79,6 +79,9 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     shift_f10(&mut h);
     let t = h.text();
     assert!(t.contains("Copy selection"), "{t}");
+    let (cx, cy) = h.find("Copy selection").unwrap();
+    h.mouse(MouseKind::Move, cx + 1, cy);
+    let t = h.text();
     assert!(t.contains("Select text first"), "nothing is selected\n{t}");
     assert!(!t.contains("Change title…"), "{t}");
     assert!(!t.contains("Key reference"), "not the menu bar\n{t}");

@@ -3347,14 +3347,8 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::menu::MenuItem::shortcut",
         Demo("menus", "Rename     F2"),
     ),
-    (
-        "widgets::menu::MenuItem::disabled",
-        Demo("menus", "Share…    Off"),
-    ),
-    (
-        "widgets::menu::MenuItem::reason",
-        Demo("menus", "Share…    Off"),
-    ),
+    ("widgets::menu::MenuItem::disabled", Demo("menus", "Share…")),
+    ("widgets::menu::MenuItem::reason", Demo("menus", "╰─ Off ─")),
     ("widgets::menu::MenuItem::danger", Demo("menus", "Delete")),
     ("widgets::menu::MenuItem::danger_if", Demo("menus", "Trash")),
     (
@@ -3363,7 +3357,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::menu::MenuItem::separator_if",
-        Demo("menus", "Share…    Off"),
+        Demo("menus", "Share…"),
     ),
     (
         "widgets::menu::MenuAction",

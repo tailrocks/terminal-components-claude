@@ -172,7 +172,10 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
                         .enumerate()
                         .map(|(i, l)| MenuItem::new(*l).disabled(d(i)))
                         .collect(),
-                ),
+                )
+                // a menu's cursor reaches disabled rows by default (SI21);
+                // the table walks the skipping knob every list shares
+                .skip_disabled(true),
                 |w, k| {
                     w.on_key(k);
                 },
