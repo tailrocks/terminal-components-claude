@@ -852,6 +852,27 @@ pub fn queue_cut(area: Rect, full: &str) {
     });
 }
 
+/// `full` cut with `…` to the width of `area` (one row), keeping its
+/// reveal (R-apps-4): when it is cut, its cells reveal the full text on
+/// hover ([`queue_cut`]: a hover-only region, clicks still reach what is
+/// beneath). For text with no [`RenderCtx`] at hand (a theme-only
+/// render); [`fit`] adds the keyboard path. Every cut of display text
+/// goes through one of the two, so nothing is cut without a reveal.
+pub fn cut(area: Rect, full: &str) -> String {
+    queue_cut(area, full);
+    truncate(full, area.width as usize)
+}
+
+/// [`cut`] with the keyboard path: when the text is cut and `focused`
+/// (it belongs to the focused widget or its cursor row), it also shows in
+/// full on the footer's peek line ([`peek`]).
+pub fn fit(ctx: &mut RenderCtx, area: Rect, full: &str, focused: bool) -> String {
+    if focused && is_cut(area, full) {
+        peek(ctx, full);
+    }
+    cut(area, full)
+}
+
 /// Cut text queued so far this frame (a
 /// [`ScrollView`](crate::ui::scroll_view::ScrollView) marks where its
 /// content's start).

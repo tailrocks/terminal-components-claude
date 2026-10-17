@@ -609,7 +609,12 @@ impl EditorScreen {
                 } else {
                     "Inside the Construct".into()
                 };
-                buf.set_string(x, y + 2, truncate(&hint, fw as usize), t.faint().bg(bg));
+                buf.set_string(
+                    x,
+                    y + 2,
+                    junie_tui::ui::reveal::cut(Rect::new(x, y + 2, fw, 1), &hint),
+                    t.faint().bg(bg),
+                );
             }
             None => ctx.focus_stop(self.workdir_button.id),
         }
@@ -819,7 +824,10 @@ impl EditorScreen {
                     buf.set_string(
                         mx,
                         y,
-                        truncate(&meta, rect.right().saturating_sub(mx + 1) as usize),
+                        junie_tui::ui::reveal::cut(
+                            Rect::new(mx, y, rect.right().saturating_sub(mx + 1), 1),
+                            &meta,
+                        ),
                         st.fg(tone),
                     );
                 }
@@ -932,7 +940,10 @@ impl EditorScreen {
         buf.set_string(
             area.x + 2,
             area.y,
-            truncate(&head, area.width.saturating_sub(4) as usize),
+            junie_tui::ui::reveal::cut(
+                Rect::new(area.x + 2, area.y, area.width.saturating_sub(4), 1),
+                &head,
+            ),
             t.secondary().bg(bg).add_modifier(Modifier::BOLD),
         );
         let hint_txt = "registry in Accounts (c)";
@@ -1100,7 +1111,10 @@ impl EditorScreen {
                         buf.set_string(
                             stx,
                             y,
-                            truncate(&status, rect.right().saturating_sub(stx + 1) as usize),
+                            junie_tui::ui::reveal::cut(
+                                Rect::new(stx, y, rect.right().saturating_sub(stx + 1), 1),
+                                &status,
+                            ),
                             st.fg(status_tone),
                         );
                     }

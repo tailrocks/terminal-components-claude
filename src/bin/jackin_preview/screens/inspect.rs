@@ -12,7 +12,7 @@ use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
-use junie_tui::ui::text::{fit, truncate, truncate_middle, width};
+use junie_tui::ui::text::{fit, truncate_middle, width};
 #[cfg(test)]
 use junie_tui::widgets::diff::DiffMode;
 use junie_tui::widgets::diff::DiffView;
@@ -373,7 +373,7 @@ impl InspectChanges {
             buf.set_string(
                 inner.x,
                 inner.y,
-                truncate(&head, inner.width as usize),
+                junie_tui::ui::reveal::cut(Rect::new(inner.x, inner.y, inner.width, 1), &head),
                 t.secondary().bg(bg),
             );
             let mode = format!("{} · d switches", self.diff.mode.label());

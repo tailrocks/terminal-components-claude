@@ -1296,6 +1296,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::reveal::advertise"),
     Capability::function("ui::reveal::peek"),
     Capability::function("ui::reveal::queue_cut"),
+    Capability::function("ui::reveal::fit"),
+    Capability::function("ui::reveal::cut"),
     Capability::function("ui::reveal::cut_id"),
     // ui::specimen
     Capability::ty("ui::specimen::SpecimenState"),

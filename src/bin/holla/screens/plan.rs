@@ -15,7 +15,7 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
-use junie_tui::ui::text::{fit, truncate, width, wrap};
+use junie_tui::ui::text::{fit, width, wrap};
 use junie_tui::widgets::action_row::ActionRow;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::button::RowAlign;
@@ -555,7 +555,7 @@ impl PlanReviewPage {
             buf.set_string(
                 inner.x + label_w,
                 y,
-                truncate(v, vw),
+                junie_tui::ui::reveal::cut(Rect::new(inner.x + label_w, y, (vw) as u16, 1), v),
                 Style::new().fg(t.tone(*tone)).bg(bg),
             );
         }
@@ -1004,7 +1004,10 @@ impl ShellPage<Holla> for PlanReviewPage {
             buf.set_string(
                 area.x + 3,
                 cy + i as u16,
-                truncate(c, area.width.saturating_sub(4) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(area.x + 3, cy + i as u16, area.width.saturating_sub(4), 1),
+                    c,
+                ),
                 Style::new().fg(tone),
             );
         }

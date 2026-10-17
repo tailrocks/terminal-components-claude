@@ -1631,9 +1631,9 @@ impl ConnectionsScreen {
                 buf.set_string(
                     r.x + 2,
                     r.y,
-                    junie_tui::ui::text::truncate(
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(r.x + 2, r.y, r.width.saturating_sub(2), 1),
                         "External clients: read only",
-                        r.width.saturating_sub(2) as usize,
                     ),
                     t.muted().bg(bg),
                 );
