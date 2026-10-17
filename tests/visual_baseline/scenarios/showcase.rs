@@ -105,6 +105,15 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/queryworkbench-states", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["tab", "3", "wait:Query tabs"]).pending(),
     Root::new("showcase/flows/queryworkbench/error", Bin::Showcase, &["--page", "queryworkbench", "--opt", "queryworkbench.result=error"], BOOT).sends(&["wait:does not exist"]).pending(),
     Root::new("showcase/flows/queryworkbench/plan", Bin::Showcase, &["--page", "queryworkbench", "--opt", "queryworkbench.result=plan"], BOOT).sends(&["wait:Index Scan"]).pending(),
+    // Connections (pages/connections.rs, SC47): the grouped list and the
+    // detail card; the sections, the failure block, the empty list and the
+    // form; pending first approval.
+    Root::new("showcase/pages/connections", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:prod-db-1.acme.io"]).pending(),
+    Root::new("showcase/sections/connections-options", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["tab", "2", "wait:Connect state"]).pending(),
+    Root::new("showcase/sections/connections-states", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["tab", "3", "wait:Delete…"]).pending(),
+    Root::new("showcase/flows/connections/failed", Bin::Showcase, &["--page", "connections", "--opt", "connections.state=failed"], BOOT).sends(&["wait:Reconnect"]).pending(),
+    Root::new("showcase/flows/connections/empty", Bin::Showcase, &["--page", "connections", "--opt", "connections.list=empty"], BOOT).sends(&["wait:No connections"]).pending(),
+    Root::new("showcase/flows/connections/form", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:New connection…"]).click("New connection…").pending().dismiss_pending(),
     // ------------------------------------------------ planned pages (SC2) --
     // Every page of plan §7.2 is registered up front with its `--page` slug
     // and shows an EmptyState naming the step that fills it. Each step
@@ -162,7 +171,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/flows/panetree/grid", Bin::Showcase, &["--page", "panetree", "--opt", "panetree.layout=grid"], BOOT).sends(&["wait:4 panes"]).pending(),
     Root::new("showcase/flows/panetree/unframed", Bin::Showcase, &["--page", "panetree", "--opt", "panetree.frames=never"], BOOT).sends(&["wait:Workspace panes"]).pending(),
     Root::new("showcase/pages/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:TextBuffer"]).pending(),
-    Root::new("showcase/planned/connections", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:arrives with SC47"]).pending(),
     Root::new("showcase/planned/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:arrives with SC48"]).pending(),
     Root::new("showcase/planned/diskcleanup", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:arrives with SC49"]).pending(),
     Root::new("showcase/planned/activity", Bin::Showcase, &["--page", "activity"], BOOT).sends(&["wait:arrives with SC51"]).pending(),
