@@ -113,7 +113,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/connections-states", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["tab", "3", "wait:Delete…"]).pending(),
     Root::new("showcase/flows/connections/failed", Bin::Showcase, &["--page", "connections", "--opt", "connections.state=failed"], BOOT).sends(&["wait:Reconnect"]).pending(),
     Root::new("showcase/flows/connections/empty", Bin::Showcase, &["--page", "connections", "--opt", "connections.list=empty"], BOOT).sends(&["wait:No connections"]).pending(),
-    Root::new("showcase/flows/connections/form", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:New connection…"]).click("New connection…").pending().dismiss_pending(),
     // Finder (pages/finder.rs, SC48): the ranked results and the preview;
     // the sections, no match, the one-line preview, the alternatives menu
     // and Why?; pending first approval.
@@ -122,8 +121,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/finder-states", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["tab", "3", "wait:No matches"]).pending(),
     Root::new("showcase/flows/finder/nomatch", Bin::Showcase, &["--page", "finder", "--opt", "finder.query=nomatch"], BOOT).sends(&["wait:No matches"]).pending(),
     Root::new("showcase/flows/finder/line", Bin::Showcase, &["--page", "finder", "--opt", "finder.preview=line"], BOOT).sends(&["wait:→ git pull"]).pending(),
-    Root::new("showcase/overlays/finder_alternatives", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:Alternatives…"]).click("Alternatives…").pending().dismiss_pending(),
-    Root::new("showcase/overlays/finder_why", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:Why?"]).click("Why?").pending().dismiss_pending(),
     // ------------------------------------------------ planned pages (SC2) --
     // Every page of plan §7.2 is registered up front with its `--page` slug
     // and shows an EmptyState naming the step that fills it. Each step
@@ -477,6 +474,12 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/settings_add_variable", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "right", "wait:Add variable…"]).click("Add variable…").pending().dismiss_pending(),
     // Task runner: Cancel on a running pipeline asks first.
     Root::new("showcase/overlays/taskrunner_cancel", Bin::Showcase, &["--page", "taskrunner", "--motion", "paused"], BOOT).sends(&["r", "wait:Cancel"]).click("Cancel").pending().dismiss_pending(),
+    // SC47/SC48 screens: the connection form and delete, the finder's
+    // alternatives menu and Why? (pending first approval)
+    Root::new("showcase/overlays/connections_form", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:New connection…"]).click("New connection…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/finder_alternatives", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:Alternatives…"]).click("Alternatives…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/finder_why", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:Why?"]).click("Why?").pending().dismiss_pending(),
+    Root::new("showcase/overlays/connections_delete", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:Delete…"]).click("Delete…").pending().dismiss_pending(),
 ];
 
 #[rustfmt::skip]
