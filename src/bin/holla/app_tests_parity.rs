@@ -1990,6 +1990,35 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
 
 // ------------------------------------------------------------ HP19
 
+/// M15 (the audit's Disk harness): a click on a tree row moves the cursor
+/// and marks nothing for deletion; a click on the row's mark (the glyph
+/// before its name, CheckClick::BoxOnly) selects it, as Space does.
+#[test]
+fn m15_a_click_on_a_disk_row_selects_nothing_and_its_mark_selects_it() {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    open(&mut h, "Analyze disk usage");
+    h.ticks(40);
+    assert!(h.text().contains("scan complete"), "{}", h.text());
+    let (x, y) = h.find("target").expect("the target folder row");
+    h.click(x, y);
+    assert!(
+        !h.text().contains("1 item selected"),
+        "a row click marks nothing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("~/work/big/target"),
+        "the click moved the cursor there: {}",
+        h.text()
+    );
+    // the mark sits two cells before the name
+    h.click(x - 2, y);
+    assert!(h.text().contains("1 item selected"), "{}", h.text());
+    h.click(x - 2, y);
+    assert!(!h.text().contains("1 item selected"), "{}", h.text());
+}
+
 #[test]
 fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
