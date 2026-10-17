@@ -560,7 +560,7 @@ impl ManagerScreen {
                 format!(
                     "jackin/derived:{}-{}",
                     i.workdir.trim_start_matches("/workspace/"),
-                    &i.run_id[4..8]
+                    junie_tui::ui::text::clip(i.run_id.trim_start_matches("run-"), 4)
                 ),
             ),
             Prop::new(

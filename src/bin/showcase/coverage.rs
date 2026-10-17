@@ -4945,6 +4945,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Demo("textutilities", "truncate_sep"),
     ),
     ("ui::text::crumb_fit", Demo("textutilities", "crumb_fit")),
+    ("ui::text::clip", Demo("textutilities", "clip")),
     (
         "ui::text::duration",
         Demo("textutilities", "duration Spoken"),

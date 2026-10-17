@@ -14,7 +14,7 @@ use junie_tui::theme::{Theme, Tone};
 use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::layout::SplitDir;
-use junie_tui::ui::text::{truncate, truncate_middle, width};
+use junie_tui::ui::text::{clip, truncate, truncate_middle, width};
 use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
@@ -1253,7 +1253,7 @@ impl CapsuleScreen {
             Prop::new("Container", i.container_id()).copyable(),
             Prop::new(
                 "Container ID",
-                format!("3f9c{}e21a", &i.run_id.replace('-', "")[..8]),
+                format!("3f9c{}e21a", clip(&i.run_id.replace('-', ""), 8)),
             )
             .copyable(),
             Prop::new("Role", i.role.clone()),
