@@ -876,6 +876,9 @@ theme::Theme::backdrop | public function registered by SC-G1 (a query, label, th
 theme::Theme::disabled_style | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::ladder | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::plane_of | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::legible_mark | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::beside_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::frame_on | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::row | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::cursor_row | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::row_ink | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
