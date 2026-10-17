@@ -17,5 +17,5 @@
     → git -C /Users/alex/work/repos/…in=v2 --branch · child · read-only [0m
                                                                         [0m
  [0m[1m~/work/repos[0m                                          no color · 72×20 [0m
- [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m Alternatives…  …           [0m
+ [0m[1mEnter[0m Open  …      Status across 5 child projects — 0 dirty · 1 behind [0m
 [?25h[5;4H[6 q

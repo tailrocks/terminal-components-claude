@@ -17,5 +17,5 @@
     → tools/deploy-preview.sh --env '…ck' '$(whoami)' · here · mutating [0m
                                                                         [0m
  [0m[1m~/work/team[0m   main              ▲ 2 config warnings   no color · 72×20 [0m
- [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m Alternatives…  …         [0m
+ [0m[1mEnter[0m Trust…  …   Deploy preview — Current folder · ⚠ unreviewed · sa… [0m
 [?25h[5;4H[6 q
