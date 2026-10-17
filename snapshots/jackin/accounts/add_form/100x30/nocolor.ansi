@@ -21,7 +21,7 @@
 [0m[2m ╰─────────────│  ( ) Plain-text API key                                           ┃│─────────────╯ [0m
 [0m[2m               │                                                                   ┆│               [0m
 [0m[2m   Overview    │   1Password reference                                             ┆│ Tab details   [0m
-[0m[2m               │   not chosen                                            Choose…   ┆│               [0m
+[0m[2m   ────────────│   not chosen                                            Choose…   ┆│────────────   [0m
 [0m[2m   Health  degr│                                                                    │1 quota not…   [0m
 [0m[2m   Registry  12│                                                                    │               [0m
 [0m[2m   Sources  7 r│              Enter plain text instead   Validate   Cancel   [0m[1;2;7mSave [0m[2m  │               [0m

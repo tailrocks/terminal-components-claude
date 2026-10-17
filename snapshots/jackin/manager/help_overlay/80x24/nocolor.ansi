@@ -15,7 +15,7 @@
 [0m[2m ╰──────│  [0m[1;2mTab[0m[2m         details                                        ┆│──────╯ [0m
 [0m[2m        │                                                             ┆│        [0m
 [0m[2m   Curre│  [0m[1;2mInstances[0m[2m                                                  ┆│tails   [0m
-[0m[2m        │  [0m[1;2mEnter r[0m[2m     reconnect / restore                            ┆│        [0m
+[0m[2m   ─────│  [0m[1;2mEnter r[0m[2m     reconnect / restore                            ┆│─────   [0m
 [0m[2m   /work│  [0m[1;2ma[0m[2m           new session                                    ┆│        [0m
 [0m[2m   Roles│                                                      ▎[0m[1;2mDone [0m[2m  │        [0m
 [0m[2m   ◉ 7f3╰──────────────────────────────────────────────────────────────╯        [0m

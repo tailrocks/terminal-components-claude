@@ -12,7 +12,7 @@
 [0m[2m ╰─────│  [0m[1;2mw[0m[2m           prewarm                                 ┆│──────╯ [0m
 [0m[2m       │  [0m[1;2mo[0m[2m           open in GitHub                          ┆│        [0m
 [0m[2m   Curr│  [0m[1;2m* -[0m[2m         expand / collapse all                   ┆│tails   [0m
-[0m[2m       │  [0m[1;2mTab[0m[2m         details                                 ┆│        [0m
+[0m[2m   ────│  [0m[1;2mTab[0m[2m         details                                 ┆│─────   [0m
 [0m[2m   /wor│                                                      ┆│        [0m
 [0m[2m   Role│                                               ▎[0m[1;2mDone [0m[2m  │        [0m
 [0m[2m       ╰───────────────────────────────────────────────────────╯        [0m

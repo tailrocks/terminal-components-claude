@@ -1,7 +1,7 @@
  [0m[1;7m jackin❯ [0m   File   Go   Help                                                                                    Workspaces  inside the Construct  ● 2 running  [0m
                                                                                                                                                                 [0m
  ╭─ Workspaces ────────────────────── 2 running ─╮ │ ▎[0m[1mCurrent directory · payments-platform[0m saved workspace      Running                          2 instances   [0m
- │ [0m[1m  [0m [0m[1m Current …ory  [0msaved as payments-platform[0m[1m [0m │ │                                                                                                            [0m
+ │ [0m[1m  [0m [0m[1m Current …ory  [0msaved as payments-platform[0m[1m [0m │ │  ─────────────────────────────────────────────────────      ────────────────────────────────────────────   [0m
  │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
  │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
  │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m

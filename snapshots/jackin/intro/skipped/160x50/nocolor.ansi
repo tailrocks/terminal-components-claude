@@ -1,7 +1,7 @@
  [0m[1;7m jackin❯ [0m   File   Go   Help                                                                                   Workspaces  inside the Construct  no instances  [0m
                                                                                                                                                                 [0m
  ╭─[0m[1m Workspaces [0m─────────────────── no instances ─╮ │  Current directory                           not saved      Running                          0 instances   [0m
- │ [0m[1m▎   Current di…tory  [0m~/src/payments-platform[0m[1m [0m │ │                                                                                                            [0m
+ │ [0m[1m▎   Current di…tory  [0m~/src/payments-platform[0m[1m [0m │ │  ─────────────────────────────────────────────────────      ────────────────────────────────────────────   [0m
  │     + New workspace                           │ │                                                                                                            [0m
  │                                               │ │                                                             [0m[1mDaemon[0m                     healthy · 3 s ago   [0m
  │                                               │ │                                                             Refresh      throttled · every 5 s             [0m
