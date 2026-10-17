@@ -266,6 +266,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Toolbars => TOOLBARS,
         PageId::Progress => PROGRESS,
         PageId::EmptyError => EMPTY_ERROR,
+        PageId::Meters => METERS,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
         PageId::Editor => CODE_EDITOR,
@@ -1309,6 +1310,23 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.reserve_value", "Reserve the value column", OFF_ON).default(1),
     Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Meters (SC36): the columns every `MeterList` on the page shares, the
+/// quota list's visual, and the offline look.
+pub static METERS: &[Opt] = &[
+    Opt::new(
+        "meters.label_width",
+        "Label column",
+        &["measured", "12", "8"],
+    ),
+    Opt::new("meters.label_gap", "Label gap", &["1", "3"]),
+    Opt::new("meters.meter_width", "Meter width", &["24", "fill", "14"]),
+    Opt::new("meters.detail", "Details", OFF_ON).default(1),
+    Opt::new("meters.detail_tone", "Detail tone", &["muted", "secondary"]),
+    Opt::new("meters.visual", "Quota meter visual", &["block", "line"]),
+    Opt::new("meters.offline", "Offline (last-good)", OFF_ON),
+    Opt::new("meters.stale_style", "Stale style", &["dashed", "faint"]),
 ];
 
 /// Empty & error (SC21): the empty state's kind, hint and actions, and

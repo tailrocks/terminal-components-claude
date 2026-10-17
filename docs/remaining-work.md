@@ -1,5 +1,30 @@
 # Remaining work on `design/interaction-polish`
 
+## Priority 0 (owner, 2026-10-17): fill every empty showcase page
+
+The owner's first priority: no showcase page may still render the planned
+stub ("<Page> arrives with SCnn"). Each page gets real, interactive content
+on the Playground | Options | States template; a library component the page
+needs and the library lacks is extracted now (its S-step part only) and the
+apps' hand-rolled copies move onto it. Agents edit their own rows here.
+
+| Page | Slug | Step | Owning agent (branch) | Status |
+|---|---|---|---|---|
+| Feedback › Meters | `meters` | SC36 (`MeterList`, S17 part) | p0-meters-notices | **Done** |
+| Feedback › Notices | `notices` | SC36 (`Notice`, S17 part) | p0-meters-notices | In progress |
+| Overlays › File browser | `filebrowser` | SC41 (`FileBrowser`, S22 part) | p0 agent (coordinator assigns) | Open |
+| Layout › Master-detail | `masterdetail` | SC38 (`MasterDetail`, S19 part) | p0-layout | Open |
+| Layout › Pane tree | `panetree` | SC45 (`PaneTree`, S26 part) | p0-layout | Open |
+| Screens › Query workbench | `queryworkbench` | SC46 | p0-screens-a | Open |
+| Screens › Connections | `connections` | SC47 | p0-screens-a | Open |
+| Screens › Finder | `finder` | SC48 | p0 screens agent | Open |
+| Screens › Disk cleanup | `diskcleanup` | SC49 | p0 screens agent | Open |
+| Screens › Activity | `activity` | SC51 | p0 screens agent | Open |
+| Screens › Workspaces | `workspaces` | SC52 | p0 screens agent | Open |
+| Screens › Accounts & usage | `accountsusage` | SC53 | p0 screens agent | Open |
+| Screens › Launch cockpit | `launchcockpit` | SC55 | p0 screens agent | Open |
+| Screens › Read-only report | `readonlyreport` | SC56 | p0 screens agent | Open |
+
 Status: 2026-10-17, derived from the repository at `42f0b372e`
 (`origin/design/interaction-polish`). This is the one list of everything
 started on this branch and not finished. Every item names the document and
@@ -99,7 +124,7 @@ below is the dependency each step must wait for.
 | S14 | `shell::{Router, Nav, Chrome, Breadcrumb, Clipboard}`, `App::stakes`, typed menu `Cmd`; delete S `goto`, T `Screen`, H `go`, J `go`/`Screens`/`ROUTES`, label-string re-dispatch (H:1569, J:1667), `copy_osc52`, `request_quit`/`open_quit_confirm` ×3 | M5, M7, M8, M23, M40, K4, K6, SI17, SIg3 | S7, S8a | quit and leave journeys per app | SC34 |
 | S15 | `Component`, `Draw`, `Measure`, `Container::visit`, `AnyComponent`; builder renames; delete `MouseTarget` adapters, the `Outcome` adapter, free render fns (`empty::render`, `props::render`, `keyhint::render*`), per-widget `on_*` | M28, K19; CO8 | S6–S13 | `rg 'fn on_click\b\|fn on_wheel\b' src/widgets` = 0; `WidgetDoc` required by `Component` (§5) | — |
 | S16 | `Column::marker`, `RowMark`, `ListItem::{header, status}`, `TreeNode::{meta_tone, trailing, label_tone}`, `TreeView::columns`; S16a library, S16b holla rows, S16c jackin rows and trees, S16d tablepro EXPLAIN tree-table | 69 screen list-key arms; CO11; CO1 (page key maps, then one router guard); page help sections from `Page::bindings` (plan "S8b deviations" 2) | S10, S13 | per-app captures pixel-equal; the jackin tree hit test | SC35 |
-| S17 | `PageHeader`, `Heading`, `ActionRow`, `DetailCard`, `NavList` (moved), `Notice`, `MeterList`, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | M34; CO12 | S8b, S10 | captures unchanged | SC36 |
+| S17 | **Partial 2026-10-17** (P0): `MeterList` done (`widgets::meter_list`; jackin accounts inspector and summary, usage detail, capsule usage; holla disk filesystems and snapshot meters moved onto it). Open: `PageHeader`, `Heading`, `ActionRow`, `DetailCard`, `NavList` (moved), `Notice`, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | M34; CO12 | S8b, S10 | captures unchanged | SC36 |
 | S18 | `FormPanel`, `FormField::pair`; tablepro connections form and filter editor, showcase forms | K6 | S11, S17 | form journeys | SC37 |
 | S19 | `MasterDetail` (14 sites, `SPLIT_MIN`) | M20, K18 | S17 | narrow-tier captures | SC38 |
 | S20 | `EditorShell` (jackin settings and editor) | K4 (leave guard) | S14, S18 | editor journeys | SC39 |
@@ -161,7 +186,7 @@ SC33 38, SC38 7, SC32 4. Besides, 684 functions are covered via their owner
 | SC33 | `HelpOverlay::from_keymaps` replaces the hand-listed `?` (SC6 note 1), `Footer` precedence, `HasHints` in State tab, generated `KeyReference` incl. `GridCmd`, `ClickPolicy`/`Activate`/`CheckClick`/`SelectGesture`, `RowUi`/`RowLook`/`CursorStyle::Bar`, peek line | S8b, S9, S10 | — | §7.5; `showcase-pages-navigation.md` SC6 1 |
 | SC34 | `ContentState` in every list-like States grid, Edit context menu on text widgets, the showcase shell on `Shell`/`Router`/`Chrome` with a clickable crumb and page stack, truthful clipboard results, Chrome toolbar, the State-tab dispatcher readout and widget action logs, `MenuBar::type_ahead_timeout` | S7, S13, S14 | 347 (incl. 171 functions of owners SC34 shows: `core::{event, hit, id, intent, pointer, response, shape}`, `RenderCtx`, `EditAction`, runtime readouts; they move to `VIA` with their owner) | §7.5; allowlist reasons |
 | SC35 | Row and tree extensions demo | S16 | — | §7.5 |
-| SC36 | `PageHeader`, `ActionRow`, `DetailCard`, library `NavList` (and `SidebarRail` on the Sidebars page, SC5 1), `Notice`, `MeterList` page, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | S17 | — | §7.5; `showcase-pages-navigation.md` SC5 1 |
+| SC36 | **Partial 2026-10-17** (P0): the Meters page (`MeterList`) is done. Open: `PageHeader`, `ActionRow`, `DetailCard`, library `NavList` (and `SidebarRail` on the Sidebars page, SC5 1), `Notice`, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | S17 | — | §7.5; `showcase-pages-navigation.md` SC5 1 |
 | SC37 | `FormPanel`, filter editor through `FormDialog` | S18 | — | §7.5 |
 | SC38 | Master-detail page (and the narrow drawer, SC5 2), `SplitKeys` | S19 | — | §7.5; `showcase-pages-navigation.md` SC5 2 |
 | SC39 | `EditorShell` on Settings | S20 | — | §7.5 |

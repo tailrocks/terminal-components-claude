@@ -22,6 +22,7 @@ use junie_tui::ui::text::{fit, truncate, width, wrap};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
+use junie_tui::widgets::meter_list::{MeterList, MeterRow};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{
     Meter, MeterTone, MeterVisual, ProgressStatus, render_bar, render_spinner,
@@ -1648,23 +1649,40 @@ impl ShellPage<Holla> for DiskPage {
                 t.canvas,
             );
             body_y += 1;
-            for f in &w.disk.filesystems {
-                buf.set_string(area.x + 3, body_y, fit(&f.mount, 22), t.secondary());
-                let mw = 24u16.min(area.width.saturating_sub(31));
-                if mw >= 8 {
-                    Meter::new(Some(f.pct()))
-                        .value(format!("{}%", f.pct()))
-                        .tone(FS_METER)
-                        .visual(MeterVisual::Line)
-                        .render(Rect::new(area.x + 27, body_y, mw, 1), buf, ctx, t.canvas);
-                    let text = format!("{} of {} GB", f.used_gb, f.total_gb);
-                    if area.x + 27 + mw + 2 + width(&text) as u16 <= area.right() {
-                        buf.set_string(area.x + 27 + mw + 2, body_y, &text, t.muted());
-                    }
-                }
-                body_y += 1;
-            }
-            body_y += 1;
+            let meters = MeterList::new(
+                w.disk
+                    .filesystems
+                    .iter()
+                    .map(|f| {
+                        MeterRow::new(
+                            f.mount.clone(),
+                            Meter::new(Some(f.pct()))
+                                .value(format!("{}%", f.pct()))
+                                .tone(FS_METER)
+                                .visual(MeterVisual::Line),
+                        )
+                        .detail(format!("{} of {} GB", f.used_gb, f.total_gb))
+                    })
+                    .collect(),
+            )
+            .label_width(22)
+            .label_tone(Tone::Secondary)
+            .label_gap(2)
+            .meter_width(24)
+            .reserve(4)
+            .min_meter(8);
+            meters.render(
+                Rect::new(
+                    area.x + 3,
+                    body_y,
+                    area.width.saturating_sub(3),
+                    meters.height(),
+                ),
+                buf,
+                ctx,
+                t.canvas,
+            );
+            body_y += meters.height() + 1;
         }
         let body = Rect::new(
             area.x,

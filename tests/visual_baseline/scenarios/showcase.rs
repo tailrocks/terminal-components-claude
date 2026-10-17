@@ -121,7 +121,13 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/progress-options", Bin::Showcase, &["--page", "progress", "--motion", "paused"], BOOT).sends(&["tab", "2", "wait:Label column"]).pending(),
     Root::new("showcase/sections/progress-states", Bin::Showcase, &["--page", "progress", "--motion", "paused"], BOOT).sends(&["tab", "3", "wait:Meter stale"]).pending(),
     Root::new("showcase/flows/progress/measured-labels", Bin::Showcase, &["--page", "progress", "--motion", "paused", "--opt", "progress.label_width=measured", "--opt", "progress.reserve_value=off"], BOOT).sends(&["wait:Warm caches"]).pending(),
-    Root::new("showcase/planned/meters", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
+    // SC36 filled Meters (MeterList): the page, its sections, offline
+    // (last-good, dashed) and narrow labels with the line visual
+    Root::new("showcase/pages/meters", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["wait:Session (5 h)"]).pending(),
+    Root::new("showcase/sections/meters-options", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["tab", "2", "wait:Quota meter visual"]).pending(),
+    Root::new("showcase/sections/meters-states", Bin::Showcase, &["--page", "meters"], BOOT).sends(&["tab", "3", "wait:Disk list"]).pending(),
+    Root::new("showcase/flows/meters/offline", Bin::Showcase, &["--page", "meters", "--opt", "meters.offline=on"], BOOT).sends(&["wait:last-good values"]).pending(),
+    Root::new("showcase/flows/meters/narrow-line", Bin::Showcase, &["--page", "meters", "--opt", "meters.label_width=8", "--opt", "meters.visual=line"], BOOT).sends(&["wait:Session…"]).pending(),
     Root::new("showcase/planned/notices", Bin::Showcase, &["--page", "notices"], BOOT).sends(&["wait:arrives with SC36"]).pending(),
     // SC23 filled Splits & stacks: the page, its sections, zoom, stacked
     // panes, a scrolling stack and the seam under the pointer
