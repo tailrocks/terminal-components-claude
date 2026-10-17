@@ -46,14 +46,6 @@ impl TextLine {
             heading: false,
         }
     }
-    pub fn heading(value: &str) -> Self {
-        Self {
-            key: String::new(),
-            value: value.into(),
-            tone: Tone::Faint,
-            heading: true,
-        }
-    }
     pub fn blank() -> Self {
         Self::text("", Tone::Normal)
     }
@@ -92,10 +84,6 @@ impl TextModal {
             wrapped: vec![],
             wrapped_for: 0,
         }
-    }
-    pub fn subtitle(mut self, s: &str) -> Self {
-        self.subtitle = s.into();
-        self
     }
     pub fn width(mut self, w: u16) -> Self {
         self.width = w;

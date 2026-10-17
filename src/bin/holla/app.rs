@@ -25,6 +25,7 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::breadcrumb::Breadcrumb;
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
+use junie_tui::widgets::help::{HelpOverlay, HelpSection};
 use junie_tui::widgets::hintbar::HintBar;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::hint;
@@ -734,13 +735,14 @@ impl App {
             .get(self.active)
             .map(|t| t.kind.clone())
             .unwrap_or(TabKind::Here);
-        let mut lines = vec![];
+        // the page keys the screens handle in their own code, by hand
+        // until they move onto key maps (S16); the shell's from ShellKeys
+        let mut sections: Vec<HelpSection> = vec![];
         let mut section = |title: &str, rows: &[(&str, &str)]| {
-            lines.push(TextLine::heading(title));
-            for (k, v) in rows {
-                lines.push(TextLine::kv(k, v));
-            }
-            lines.push(TextLine::blank());
+            sections.push(
+                rows.iter()
+                    .fold(HelpSection::new(title), |s, (k, v)| s.row(*k, *v)),
+            );
         };
         match kind {
             TabKind::Here => {
@@ -818,27 +820,29 @@ impl App {
             }
         }
         section(
-            "Everywhere",
+            "Mouse",
             &[
-                ("F10", "menu bar · F1 this reference"),
-                (
-                    "Ctrl+G",
-                    "activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close tab",
-                ),
-                (
-                    "Ctrl+Q",
-                    "quit · asks only while work runs · Ctrl+C the same",
-                ),
-                (
-                    "Mouse",
-                    "click selects · double-click runs · right-click alternatives · wheel scrolls under the pointer",
-                ),
+                ("Click", "select"),
+                ("Double-click", "run"),
+                ("Right-click", "alternatives"),
+                ("Wheel", "scroll under the pointer"),
             ],
         );
-        let m = TextModal::new(WidgetId::of("help"), "Key reference", lines)
-            .subtitle(&self.crumb())
-            .width(78);
-        self.open_layer(Box::new(m), LayerTag::new("help"));
+        sections.push(self.keys.help_section("Everywhere", |c| {
+            Some(match c {
+                HollaCmd::Activities => "Activities",
+                HollaCmd::CloseTab => "Close tab",
+                HollaCmd::Tab(0) => "Here",
+                // the nine others read as one range row below
+                HollaCmd::Tab(_) => return None,
+            })
+        }));
+        if let Some(s) = sections.last_mut() {
+            s.rows.push(("Alt+1–9".into(), "Show that tab".into()));
+        }
+        let h = HelpOverlay::from_keymaps(WidgetId::of("help"), &self.crumb(), sections)
+            .title("Key reference");
+        self.open_layer(Box::new(h), LayerTag::new("help"));
     }
 
     fn open_why(&mut self) {
