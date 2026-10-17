@@ -148,7 +148,7 @@
 120x40 TrueColor Activity e37f909d4c6f1043
 120x40 TrueColor Activity · Options 804c53c4e09b3398
 120x40 TrueColor Activity · States d7eea7993e73525f
-120x40 TrueColor Workspaces dcc3b6c76169dcfd
+120x40 TrueColor Workspaces f921e4415bc88bc1
 120x40 TrueColor Workspaces · Options 4e365cb15d235064
 120x40 TrueColor Workspaces · States 2bb2d4a07e49a07c
 120x40 TrueColor Accounts & usage f37e0f17e29afcbc
@@ -312,7 +312,7 @@
 120x40 Ansi256 Activity b0fac9b44b9c0b00
 120x40 Ansi256 Activity · Options ea10c6e4235cc63e
 120x40 Ansi256 Activity · States a1e17d2385c0c169
-120x40 Ansi256 Workspaces 2d11584be26354cf
+120x40 Ansi256 Workspaces 6ace4dd2a68eccdb
 120x40 Ansi256 Workspaces · Options f84e0aa9a641fec9
 120x40 Ansi256 Workspaces · States 09b7a7c2f3841796
 120x40 Ansi256 Accounts & usage aab0134ea756291c
@@ -476,7 +476,7 @@
 120x40 Ansi16 Activity 5756474ac1384742
 120x40 Ansi16 Activity · Options 384c540c7d3ce7fd
 120x40 Ansi16 Activity · States 7f25df54a5dd0e34
-120x40 Ansi16 Workspaces 68ec835716d5dfc7
+120x40 Ansi16 Workspaces 8069cdfc165316f3
 120x40 Ansi16 Workspaces · Options 078b496f8648c028
 120x40 Ansi16 Workspaces · States a26dc6526c762ed7
 120x40 Ansi16 Accounts & usage 67f02f1b9abff7eb
@@ -640,7 +640,7 @@
 120x40 Mono Activity e8ac6753edcf9b2b
 120x40 Mono Activity · Options 8e589a2be27ede54
 120x40 Mono Activity · States 8f7cde422616a467
-120x40 Mono Workspaces 00898ad765813d44
+120x40 Mono Workspaces 301b78b7226b8322
 120x40 Mono Workspaces · Options a6e9475268d32b9b
 120x40 Mono Workspaces · States e0e66e00aa213344
 120x40 Mono Accounts & usage 767dff639b8ff9e1
@@ -804,7 +804,7 @@
 80x24 TrueColor Activity 1808f91221060c24
 80x24 TrueColor Activity · Options e035b4d3dbd63a8c
 80x24 TrueColor Activity · States 256806f97beb5af3
-80x24 TrueColor Workspaces d414795d5abbfb41
+80x24 TrueColor Workspaces 488877f634c9ad8b
 80x24 TrueColor Workspaces · Options 8e3254df4621fec5
 80x24 TrueColor Workspaces · States 48373a09004fff79
 80x24 TrueColor Accounts & usage 75ca3a0eb3a33c0d
@@ -968,7 +968,7 @@
 80x24 Ansi256 Activity 7c8a6894281e708c
 80x24 Ansi256 Activity · Options 938d7a720c3beb45
 80x24 Ansi256 Activity · States c1f98d4cb83ed931
-80x24 Ansi256 Workspaces d0ab414c23d14cb3
+80x24 Ansi256 Workspaces bb670f7bde1befca
 80x24 Ansi256 Workspaces · Options 51f196180e6f0956
 80x24 Ansi256 Workspaces · States 41148ca1f9f54cbe
 80x24 Ansi256 Accounts & usage 0ebf8958168a2ca4
@@ -1132,7 +1132,7 @@
 80x24 Ansi16 Activity e11108437f36ebfe
 80x24 Ansi16 Activity · Options 1b450d8f3dd7c77f
 80x24 Ansi16 Activity · States cac56fb1ccba3b36
-80x24 Ansi16 Workspaces 2e8b219a216a73e5
+80x24 Ansi16 Workspaces e4c1be4411eec145
 80x24 Ansi16 Workspaces · Options 5dbc6d7308b77d0b
 80x24 Ansi16 Workspaces · States cda5b4671c976200
 80x24 Ansi16 Accounts & usage c80599b51e699406
@@ -1296,7 +1296,7 @@
 80x24 Mono Activity 7e63bd270c4141c0
 80x24 Mono Activity · Options 6508905cf3d19733
 80x24 Mono Activity · States b09e3546c1cb4dce
-80x24 Mono Workspaces b6903a1da36231fd
+80x24 Mono Workspaces 970c6ee67c157e75
 80x24 Mono Workspaces · Options 9a006a334233397b
 80x24 Mono Workspaces · States 885f5d1c925a098c
 80x24 Mono Accounts & usage 7a8c2f6093fd06ca
@@ -1460,7 +1460,7 @@
 72x20 TrueColor Activity 5167a91027c97c35
 72x20 TrueColor Activity · Options 1c45573daae38fde
 72x20 TrueColor Activity · States 4f632f6f50057b7c
-72x20 TrueColor Workspaces 305507c76e659e49
+72x20 TrueColor Workspaces 95d79dd058009480
 72x20 TrueColor Workspaces · Options 1685600045b2b9f5
 72x20 TrueColor Workspaces · States 659812f1c2d6b854
 72x20 TrueColor Accounts & usage 1e9bbe35ad6b0242
@@ -1624,7 +1624,7 @@
 72x20 Ansi256 Activity 67b1764c07343e5a
 72x20 Ansi256 Activity · Options e03e590eab5de391
 72x20 Ansi256 Activity · States 24092c90e7669df0
-72x20 Ansi256 Workspaces 7393f208a8053ae9
+72x20 Ansi256 Workspaces 5850fbddf98636b1
 72x20 Ansi256 Workspaces · Options 13631f74c0ea8c32
 72x20 Ansi256 Workspaces · States 6312f0f6ac0e9b3f
 72x20 Ansi256 Accounts & usage d8f474482d042015
@@ -1788,7 +1788,7 @@
 72x20 Ansi16 Activity 41d4af77b859d4b2
 72x20 Ansi16 Activity · Options 546f0b993337372b
 72x20 Ansi16 Activity · States 8e3f7c0a482b595c
-72x20 Ansi16 Workspaces 26f6764db760b2af
+72x20 Ansi16 Workspaces b02e14d2f20c5319
 72x20 Ansi16 Workspaces · Options d20b2a57a6413b77
 72x20 Ansi16 Workspaces · States bf29b5e22e46bc33
 72x20 Ansi16 Accounts & usage 6983fb7d029777cb
@@ -1952,7 +1952,7 @@
 72x20 Mono Activity d183af5bf498f83e
 72x20 Mono Activity · Options 03f47f1f23ccbcff
 72x20 Mono Activity · States b71071d795b2428e
-72x20 Mono Workspaces cf28335c016d7fc9
+72x20 Mono Workspaces 56f5500dbb2608b3
 72x20 Mono Workspaces · Options 628493855564bd47
 72x20 Mono Workspaces · States 724a33c26fe9ced9
 72x20 Mono Accounts & usage 00985bfc8de1e3df
@@ -2116,7 +2116,7 @@
 100x30 TrueColor Activity fa7d0e057c78e3d1
 100x30 TrueColor Activity · Options 4347d54e16dd24fd
 100x30 TrueColor Activity · States 6d53ebf8fe0fe701
-100x30 TrueColor Workspaces 06589362b00821c0
+100x30 TrueColor Workspaces 0ab4e4aecf57a6a1
 100x30 TrueColor Workspaces · Options b79c6edf9b7ce86b
 100x30 TrueColor Workspaces · States 775f164927df7db3
 100x30 TrueColor Accounts & usage 07f916cb1d88de4b
@@ -2280,7 +2280,7 @@
 100x30 Ansi256 Activity f2c06cf4fd39d846
 100x30 Ansi256 Activity · Options 8d3ff13d0a60b98e
 100x30 Ansi256 Activity · States 36d65fe1d57b9c1c
-100x30 Ansi256 Workspaces 21f1f5278c11f3e3
+100x30 Ansi256 Workspaces cbf850fce4b1f0e2
 100x30 Ansi256 Workspaces · Options 4d8bc7d3c9714882
 100x30 Ansi256 Workspaces · States b4f469502165e29a
 100x30 Ansi256 Accounts & usage e432c86816d2a5f1
@@ -2444,7 +2444,7 @@
 100x30 Ansi16 Activity a76cc47e4680b9f3
 100x30 Ansi16 Activity · Options a9193df0ade69bc2
 100x30 Ansi16 Activity · States 076eeb10d03818b9
-100x30 Ansi16 Workspaces c903f2b641a4be3d
+100x30 Ansi16 Workspaces 00ffcf2c80942e64
 100x30 Ansi16 Workspaces · Options b892a1c1df526443
 100x30 Ansi16 Workspaces · States ef63c2fc747e6f8a
 100x30 Ansi16 Accounts & usage c141b01b4bca850c
@@ -2608,7 +2608,7 @@
 100x30 Mono Activity 243dbd8a8cf59f0c
 100x30 Mono Activity · Options bf1504bbab7dea3b
 100x30 Mono Activity · States ce7317f62adf4a60
-100x30 Mono Workspaces fc2142bb7db2706a
+100x30 Mono Workspaces c9d6f62afd7f2c71
 100x30 Mono Workspaces · Options 0210d43fdea28cb6
 100x30 Mono Workspaces · States 19040d06f76e4cd9
 100x30 Mono Accounts & usage de890a1a98bd81e7
@@ -2772,7 +2772,7 @@
 160x50 TrueColor Activity 4f9c11d6008d1708
 160x50 TrueColor Activity · Options 32f90d2d39778d77
 160x50 TrueColor Activity · States fb34b8809da6217c
-160x50 TrueColor Workspaces 666f556a7da7e230
+160x50 TrueColor Workspaces 8780a8d93048fde0
 160x50 TrueColor Workspaces · Options 23ed3997dfb93a5f
 160x50 TrueColor Workspaces · States 9c3e970c43d60aad
 160x50 TrueColor Accounts & usage e78c6babbcc72e20
@@ -2936,7 +2936,7 @@
 160x50 Ansi256 Activity 2454719d9fb494a1
 160x50 Ansi256 Activity · Options a8d9e638642d9295
 160x50 Ansi256 Activity · States 6ebaca0f63ed441c
-160x50 Ansi256 Workspaces 9995113d38165750
+160x50 Ansi256 Workspaces 3c6078ae8197c758
 160x50 Ansi256 Workspaces · Options 326ce3fa74834442
 160x50 Ansi256 Workspaces · States 84dddcf7dc340185
 160x50 Ansi256 Accounts & usage aae650f04ccdc7df
@@ -3100,7 +3100,7 @@
 160x50 Ansi16 Activity 87a7b7655ec66aa4
 160x50 Ansi16 Activity · Options e891db91ff290678
 160x50 Ansi16 Activity · States 9ff824a554d2f7f3
-160x50 Ansi16 Workspaces 9a5a74316e491c2a
+160x50 Ansi16 Workspaces 83358aae8218eb8c
 160x50 Ansi16 Workspaces · Options a0955960a4cdf9b9
 160x50 Ansi16 Workspaces · States 0c2c66314eb8a0f8
 160x50 Ansi16 Accounts & usage 9644e59f0917c111
@@ -3264,7 +3264,7 @@
 160x50 Mono Activity ffea47e89a9c629b
 160x50 Mono Activity · Options 66c6e1e7f8ad4dd5
 160x50 Mono Activity · States dc4aeb41137589aa
-160x50 Mono Workspaces 91f6171d59835a5f
+160x50 Mono Workspaces 210511b77dd6f489
 160x50 Mono Workspaces · Options 29a00be4e7c0edb2
 160x50 Mono Workspaces · States 37da6ba3a0244299
 160x50 Mono Accounts & usage 84fc7f426d66d1e1
