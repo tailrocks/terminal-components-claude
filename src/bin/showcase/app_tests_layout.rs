@@ -19,7 +19,10 @@ fn explorer_width(h: &Harness) -> u16 {
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
         .map(|cx| h.cell(cx, y).symbol().to_owned())
         .collect();
-    row.iter().position(|s| s == "╮").expect("pane frame") as u16 + 1
+    row.iter()
+        .position(|s| s == "╮")
+        .unwrap_or_else(|| panic!("pane frame:\n{}", h.text())) as u16
+        + 1
 }
 
 fn drag(h: &mut Harness, from: (u16, u16), to: (u16, u16)) {
@@ -64,7 +67,9 @@ fn splits_hit_pad_widens_the_press_target() {
 
 #[test]
 fn splits_minimum_clamps_the_default_ratio() {
-    let mut h = Harness::new(120, 40, PageId::SplitsStacks);
+    // wide enough that the page needs no sideways scroll at min 40 (the
+    // panes then want more than 120 columns give)
+    let mut h = Harness::new(150, 40, PageId::SplitsStacks);
     assert!(explorer_width(&h) < 40);
     h.opt("splitsstacks.min=40");
     assert_eq!(explorer_width(&h), 40, "{}", h.text());

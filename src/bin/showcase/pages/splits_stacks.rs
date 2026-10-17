@@ -5,7 +5,7 @@
 //! `crate::options::SPLITS_STACKS`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -31,6 +31,8 @@ const INNER: WidgetId = WidgetId::of("splitsstacks").sub("inner");
 const STACK: WidgetId = WidgetId::of("splitsstacks").sub("stack");
 /// Rows the stack demo gets: less than its children want.
 const STACK_ROWS: u16 = 8;
+/// The widest the stack demo is drawn.
+const STACK_W: u16 = 60;
 
 const EXPLORER: &[&str] = &[
     "▾ src",
@@ -171,16 +173,9 @@ impl SplitsStacksPage {
             .iter()
             .any(|b| ctx.interaction.has_focus(b.id))
             .then_some(0);
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::flex(12, 18),
-                StackChild::fixed(3 + 1 + STACK_ROWS),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &self.children(), focus, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_panes(r, buf, ctx),
             None => self.zoom.iter().for_each(|b| ctx.focus_stop(b.id)),
@@ -190,10 +185,9 @@ impl SplitsStacksPage {
         }
     }
 
-    fn render_panes(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let dir = self.dir();
-        let meta = format!(
+    /// The panes card's meta: the ratio, the minimum, the zoom.
+    fn panes_meta(&self) -> String {
+        format!(
             "{}% · min {} · {}",
             self.outer.percent,
             self.outer.min_first,
@@ -202,7 +196,76 @@ impl SplitsStacksPage {
                 Maximized::First => "editor zoomed",
                 Maximized::Second => "output zoomed",
             }
+        )
+    }
+
+    /// The panes card's natural size: the zoom buttons and a blank row
+    /// over the three panes, room for each framed pane to show its lines
+    /// whole side by side (never under a split's minimum). The ratio only
+    /// shares that room out: a drag or a ratio option never resizes the
+    /// page, and a pane the ratio squeezes clips like any split pane.
+    fn panes_size(&self) -> Size {
+        let pane = |title: &str, lines: &[&str]| {
+            let w = lines
+                .iter()
+                .map(|l| junie_tui::ui::text::width(l) as u16)
+                .max()
+                .unwrap_or(0);
+            Panel::framed(Some(title)).outer(Size::new(w, lines.len() as u16))
+        };
+        let along = |split: &Split, a: u16, b: u16| match split.maximized {
+            Maximized::None => a.max(split.min_first) + 1 + b.max(split.min_second),
+            _ => split.extent_for(a, b, 1),
+        };
+        let across = |split: &Split, dir: SplitDir, a: Size, b: Size| match dir {
+            SplitDir::Horizontal => {
+                Size::new(along(split, a.width, b.width), a.height.max(b.height))
+            }
+            SplitDir::Vertical => Size::new(a.width.max(b.width), along(split, a.height, b.height)),
+        };
+        let inner = across(
+            &self.inner,
+            self.inner_seam.dir,
+            pane("Editor", EDITOR),
+            pane("Output", OUTPUT),
         );
+        let body = across(&self.outer, self.dir(), pane("Explorer", EXPLORER), inner);
+        let buttons: u16 = self.zoom.iter().map(Button::width).sum::<u16>()
+            + 2 * self.zoom.len().saturating_sub(1) as u16;
+        let meta = self.panes_meta();
+        Panel::card(Some("Three panes"))
+            .meta(&meta)
+            .outer(Size::new(body.width.max(buttons), 2 + body.height))
+    }
+
+    /// The stack card's natural width: the stack's region and its "not in
+    /// view" note beside it, or the title row.
+    fn stack_width(&self) -> u16 {
+        let meta = self.stack_meta();
+        let note = junie_tui::ui::text::width(&format!("{} not in view", CARDS.len())) as u16;
+        Panel::card(Some("Stack"))
+            .meta(&meta)
+            .outer(Size::new(STACK_W + 2 + note, 0))
+            .width
+    }
+
+    fn stack_meta(&self) -> String {
+        let want: u16 = CARDS.iter().map(|c| c.1).sum();
+        format!("{want} rows wanted, {STACK_ROWS} given")
+    }
+
+    /// The two cards: the panes at least the rows they had, the stack.
+    fn children(&self) -> [StackChild; 2] {
+        [
+            StackChild::flex(12, self.panes_size().height.max(18)),
+            StackChild::fixed(3 + 1 + STACK_ROWS),
+        ]
+    }
+
+    fn render_panes(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let dir = self.dir();
+        let meta = self.panes_meta();
         let panel = Panel::card(Some("Three panes")).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
@@ -238,15 +301,14 @@ impl SplitsStacksPage {
 
     fn render_stack(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let want: u16 = CARDS.iter().map(|c| c.1).sum();
-        let meta = format!("{} rows wanted, {STACK_ROWS} given", want);
+        let meta = self.stack_meta();
         let panel = Panel::card(Some("Stack")).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let region = Rect::new(
             inner.x,
             inner.y,
-            inner.width.min(60),
+            inner.width.min(STACK_W),
             inner.height.min(STACK_ROWS),
         );
         let children: Vec<StackChild> = CARDS.iter().map(|c| StackChild::flex(1, c.1)).collect();
@@ -388,6 +450,15 @@ impl Page for SplitsStacksPage {
     }
     fn blurb(&self) -> &'static str {
         "Split panes with draggable seams and zoom, stacks that shrink, scroll or clip"
+    }
+
+    /// Both cards whole: the panes at the splits' natural extent, the
+    /// stack with its note.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        Size::new(
+            self.panes_size().width.max(self.stack_width()),
+            self.sections.stack.measure(&self.children()),
+        )
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
