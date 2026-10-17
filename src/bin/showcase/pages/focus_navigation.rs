@@ -329,7 +329,7 @@ impl FocusNavPage {
         let (focus, nav, keys) = (self.focus_facts(ctx), self.nav_facts(), self.keys_facts());
         let ring_size = Self::ring_panel().outer(Size::new(self.ring_width(), RING_ROWS));
         let list_panel = self.list_panel(ctx);
-        let list_size = list_panel.outer(Size::new(LIST_W, LIST_ROWS));
+        let list_size = list_panel.outer(Size::new(LIST_W, self.list.items.len() as u16));
         let ring_h = |_: u16| ring_size.height;
         let focus_h = |w: u16| sheet_height(&focus_panel, &focus, w);
         let list_h = |_: u16| list_size.height;
@@ -405,9 +405,8 @@ impl FocusNavPage {
 /// buttons, a blank row, the tags.
 const FIELD_W: u16 = 30;
 const RING_ROWS: u16 = 8;
-/// The mailbox list's viewport: it scrolls through the rest.
+/// The mailbox list's width; it shows every mailbox.
 const LIST_W: u16 = 20;
-const LIST_ROWS: u16 = 8;
 
 fn on_off(b: bool) -> &'static str {
     if b { "on" } else { "off" }
