@@ -38,6 +38,7 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id, place_with, surface_for};
 use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
+use crate::widgets::option_list::{OptionList, WheelMode};
 
 /// One allowed value of a constrained column.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -287,6 +288,9 @@ pub struct EditorConfig {
     /// Where the popup goes relative to the cell. Default
     /// [`Placement::Below`] (flips above when there is no room).
     pub placement: Placement,
+    /// What the wheel does over an open popup list. Default
+    /// [`WheelMode::Cursor`]: it moves the cursor.
+    pub wheel: WheelMode,
 }
 
 impl Default for EditorConfig {
@@ -304,6 +308,7 @@ impl Default for EditorConfig {
             flag_out_of_set: true,
             tag_separator: ", ",
             placement: Placement::Below,
+            wheel: WheelMode::Cursor,
         }
     }
 }
@@ -363,8 +368,12 @@ pub struct ChoiceEditor {
     pub query: EditField,
     /// A validator rejected the last commit; the popup stays open.
     pub error: Option<String>,
-    scroll: usize,
-    visible_rows: usize,
+    /// The popup list's body: its scroll pane (the view over the shown
+    /// options), [`WheelMode`] and popup policy (dismiss, placement,
+    /// width, rows), taken from the table's [`EditorConfig`] when it
+    /// opens. The cursor stays [`Self::cursor`], an option index: a Combo
+    /// filters the rows it shows.
+    pub list: OptionList,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
@@ -414,10 +423,26 @@ impl ChoiceEditor {
             selection: checked,
             query: EditField::single(""),
             error: None,
-            scroll: 0,
-            visible_rows: cfg.max_rows as usize,
+            list: Self::list(id, cfg),
             typeahead: crate::core::typeahead::TypeAhead::with_timeout(cfg.type_ahead_timeout),
         })
+    }
+
+    /// The popup list body for `cfg`.
+    fn list(id: WidgetId, cfg: &EditorConfig) -> OptionList {
+        let mut list = OptionList::new(id)
+            .dismiss(cfg.dismiss)
+            .placement(cfg.placement)
+            .max_rows(cfg.max_rows)
+            .width(cfg.popup_width.0, cfg.popup_width.1)
+            .look(cfg.cursor_style)
+            .nav(cfg.nav)
+            .type_ahead(cfg.type_ahead)
+            .wheel_mode(cfg.wheel);
+        // a moved cursor comes in exactly, as the popup always did
+        list.scroll.v.context = 0;
+        list.scroll.v.viewport_len = cfg.max_rows as usize;
+        list
     }
 
     pub fn option_id(&self, i: usize) -> WidgetId {
@@ -575,7 +600,7 @@ impl ChoiceEditor {
                 match (at, nav) {
                     // the cursor is filtered out: any step starts at the top
                     (None, Nav::Up | Nav::Down | Nav::Left | Nav::Right) => cursor.first(&shown),
-                    _ => cursor.apply(nav, &shown, self.visible_rows),
+                    _ => cursor.apply(nav, &shown, self.list.scroll.viewport_len),
                 }
             }
             None => Moved::Ignored,
@@ -598,7 +623,7 @@ impl ChoiceEditor {
         if let Some(&i) = self.shown().iter().find(|&&i| self.enabled(i)) {
             self.cursor = i;
         }
-        self.scroll = 0;
+        self.list.scroll.offset = 0;
     }
 
     /// Text pasted while open: the Combo search takes it.
@@ -613,13 +638,9 @@ impl ChoiceEditor {
     }
 
     /// A click on the popup, an option, or outside it (the backdrop).
-    pub fn on_click(
-        &mut self,
-        id: WidgetId,
-        cfg: &EditorConfig,
-    ) -> (Outcome, Option<ChoiceResult>) {
+    pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChoiceResult>) {
         if id == backdrop_id(self.id) {
-            return if cfg.dismiss.outside_click {
+            return if self.list.dismiss.outside_click {
                 (Outcome::Changed, Some(ChoiceResult::Cancel))
             } else {
                 (Outcome::Consumed, None)
@@ -661,14 +682,26 @@ impl ChoiceEditor {
         }
     }
 
-    /// The wheel over the open popup moves its cursor.
-    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+    /// The wheel over the open popup: under [`WheelMode::Cursor`] a
+    /// vertical notch steps the cursor through the shown options; under
+    /// [`WheelMode::Viewport`] it scrolls the list ([`OptionList`] as
+    /// [`Scrollable`](crate::core::scroll::Scrollable)). A sideways notch
+    /// is consumed: the table under the popup does not move.
+    pub fn wheel(&mut self, axis: Axis, delta: i32) -> crate::core::response::Response<()> {
+        use crate::core::response::Response;
+        use crate::core::scroll::Scrollable;
+        if self.kind == Kind::Segmented || axis == Axis::Horizontal {
+            return Response::consumed();
+        }
+        if self.list.wheel == WheelMode::Viewport {
+            return self.list.wheel(axis, delta);
+        }
         let before = self.cursor;
         self.step(delta as isize);
         if before == self.cursor {
-            Outcome::Consumed
+            Response::consumed()
         } else {
-            Outcome::Changed
+            Response::changed()
         }
     }
 
@@ -723,14 +756,23 @@ impl ChoiceEditor {
             Place::DEFAULT,
         );
         let visible = pa.height.saturating_sub(2 + search).max(1) as usize;
-        self.visible_rows = visible;
         let at = shown.iter().position(|&i| i == self.cursor).unwrap_or(0);
-        if at < self.scroll {
-            self.scroll = at;
-        } else if at >= self.scroll + visible {
-            self.scroll = at + 1 - visible;
+        // a cursor that moved comes into view; a list the wheel scrolled
+        // stays where it was left
+        self.list.scroll.set_content(shown.len());
+        self.list.scroll.set_viewport(visible);
+        self.list.scroll.follow(at);
+        if search > 0 {
+            // the query line as the overlay will draw it, so a press can
+            // place the caret (the MouseTarget)
+            let inner = pa
+                .intersection(screen)
+                .inner(ratatui::layout::Margin::new(1, 1));
+            let line = Rect::new(inner.x + 3, inner.y, inner.width.saturating_sub(3), 1);
+            let mut scratch = Buffer::empty(line);
+            self.query
+                .draw_line(&mut scratch, line, &Self::query_look(ctx.theme));
         }
-        self.scroll = self.scroll.min(shown.len().saturating_sub(visible));
         let me = self.clone();
         let cfg = cfg.clone();
         ctx.overlay(move |buf, ctx| me.draw_list(pa, &shown, search, &cfg, buf, ctx));
@@ -768,19 +810,15 @@ impl ChoiceEditor {
                 );
                 line.as_position()
             } else {
-                let look = crate::widgets::edit::LineLook {
-                    text: fs,
-                    selection: t.selection(),
-                    ellipsis: fs.fg(t.text_muted),
-                    ellipsis_glyph: t.glyphs.ellipsis,
-                    underline: None,
-                    follow_caret: true,
-                };
                 // the popup draws from an overlay snapshot: the line scrolls by
                 // the caret each frame
-                self.query.clone().draw_line(buf, line, &look)
+                self.query
+                    .clone()
+                    .draw_line(buf, line, &Self::query_look(t))
             };
             ctx.set_cursor(caret);
+            // the line takes the text gestures (the MouseTarget)
+            ctx.register_part(self.id, PartRef::of(Part::QUERY), line);
         }
         let list = Rect::new(
             inner.x,
@@ -799,7 +837,7 @@ impl ChoiceEditor {
         }
         for (row_i, &i) in shown
             .iter()
-            .skip(self.scroll)
+            .skip(self.list.scroll.offset)
             .take(list.height as usize)
             .enumerate()
         {
@@ -883,8 +921,8 @@ impl ChoiceEditor {
                 ctx.register_part(self.id, Self::option_part(i), row);
             }
         }
-        let more_above = self.scroll > 0;
-        let more_below = self.scroll + (list.height as usize) < shown.len();
+        let more_above = self.list.scroll.offset > 0;
+        let more_below = self.list.scroll.offset + (list.height as usize) < shown.len();
         let edge = Style::new().fg(t.text_secondary).bg(bg);
         let x = pa.right().saturating_sub(3);
         if more_above {
@@ -892,6 +930,22 @@ impl ChoiceEditor {
         }
         if more_below {
             buf.set_string(x, pa.bottom().saturating_sub(1), t.glyphs.more_below, edge);
+        }
+    }
+
+    /// How the Combo's query line draws.
+    fn query_look(t: &crate::theme::Theme) -> crate::widgets::edit::LineLook {
+        let fs = t.field_style(crate::ui::ctx::VisualState {
+            editing: true,
+            ..Default::default()
+        });
+        crate::widgets::edit::LineLook {
+            text: fs,
+            selection: t.selection(),
+            ellipsis: fs.fg(t.text_muted),
+            ellipsis_glyph: t.glyphs.ellipsis,
+            underline: None,
+            follow_caret: true,
         }
     }
 
@@ -964,6 +1018,49 @@ impl ChoiceEditor {
                 }
             }
         });
+    }
+}
+
+/// The popup's pointer gestures (CO7): the wheel per [`WheelMode`]
+/// ([`ChoiceEditor::wheel`]); the Combo's query line takes the text
+/// gestures (press, drag, double and triple click, S11); a completed
+/// click on an option chooses it (Tags: toggles it), on the backdrop
+/// cancels under the popup's dismiss policy ([`ChoiceEditor::on_click`]);
+/// any other press, drag or secondary press on the popup is consumed (it
+/// is modal over its table).
+impl crate::core::pointer::MouseTarget for ChoiceEditor {
+    type Action = ChoiceResult;
+
+    fn mouse_id(&self) -> WidgetId {
+        self.id
+    }
+
+    fn pointer(
+        &mut self,
+        ev: &crate::core::pointer::PointerEvent,
+    ) -> crate::core::response::Response<ChoiceResult> {
+        use crate::core::intent::Phase;
+        use crate::core::response::Response;
+        if let Some((axis, delta)) = ev.wheel() {
+            // the wheel outside the popup (its backdrop) moves nothing
+            if ev.part().part == Part::BACKDROP {
+                return Response::ignored();
+            }
+            return self.wheel(axis, delta).lift();
+        }
+        if self.kind == Kind::Combo
+            && let Some(r) = crate::widgets::option_list::query_pointer(&mut self.query, ev)
+        {
+            return r.lift();
+        }
+        match ev.phase() {
+            Some(Phase::Click) => match self.on_click(ev.id) {
+                (_, Some(r)) => Response::emit(r),
+                (o, None) => o.into(),
+            },
+            Some(Phase::Press | Phase::Drag | Phase::Secondary) => Response::consumed(),
+            _ => Response::ignored(),
+        }
     }
 }
 
@@ -1200,7 +1297,7 @@ mod tests {
         assert_eq!(c.selection.to_vec(), vec![3]);
         c.on_key(&key(KeyCode::Home), &cfg);
         c.on_key(&key(KeyCode::Char(' ')), &cfg);
-        c.on_click(c.option_id(2), &cfg);
+        c.on_click(c.option_id(2));
         assert!(!c.selection.contains(2), "a disabled tag never checks");
         assert_eq!(
             c.on_key(&key(KeyCode::Enter), &cfg).1,
@@ -1214,23 +1311,68 @@ mod tests {
         let mut c =
             ChoiceEditor::open(WidgetId::of("c"), &ColumnEditor::Radio(envs()), "dev", &cfg)
                 .unwrap();
-        assert_eq!(c.on_click(c.option_id(3), &cfg), (Outcome::Consumed, None));
+        assert_eq!(c.on_click(c.option_id(3)), (Outcome::Consumed, None));
         assert_eq!(
-            c.on_click(c.option_id(1), &cfg).1,
+            c.on_click(c.option_id(1)).1,
             Some(ChoiceResult::Commit("stage".into()))
         );
-        assert_eq!(
-            c.on_click(backdrop_id(c.id), &cfg).1,
-            Some(ChoiceResult::Cancel)
-        );
+        assert_eq!(c.on_click(backdrop_id(c.id)).1, Some(ChoiceResult::Cancel));
         cfg.dismiss = Dismiss::ESCAPE;
-        assert_eq!(
-            c.on_click(backdrop_id(c.id), &cfg),
-            (Outcome::Consumed, None)
-        );
+        c.list.dismiss = Dismiss::ESCAPE;
+        assert_eq!(c.on_click(backdrop_id(c.id)), (Outcome::Consumed, None));
         assert_eq!(
             c.on_key(&key(KeyCode::Esc), &cfg).1,
             Some(ChoiceResult::Cancel)
+        );
+    }
+
+    /// The wheel over the open popup goes through its `MouseTarget` and
+    /// the shared popup-list body: [`WheelMode::Cursor`] (the default)
+    /// steps the cursor over enabled options, [`WheelMode::Viewport`]
+    /// scrolls the view and leaves the cursor; a sideways notch is
+    /// consumed.
+    #[test]
+    fn the_wheel_over_the_popup_follows_its_wheel_mode() {
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        let theme = Theme::junie();
+        let many = Options::values(&["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]);
+        let wheel = |mode: WheelMode, delta: i32, axis: Axis| {
+            let cfg = EditorConfig {
+                max_rows: 4,
+                wheel: mode,
+                ..Default::default()
+            };
+            let mut c = ChoiceEditor::open(
+                WidgetId::of("c"),
+                &ColumnEditor::Select(many.clone()),
+                "a",
+                &cfg,
+            )
+            .unwrap();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
+            c.render(Rect::new(2, 1, 10, 1), &buf, &mut ctx, &cfg);
+            ctx.flush_overlays(&mut buf);
+            drop(ctx);
+            let row = c.option_id(1);
+            let pos = hits.area_of(row).expect("a shown row").as_position();
+            let ev = PointerEvent::wheel_on(&hits, row, axis, delta, pos, KeyModifiers::NONE);
+            let r = c.pointer(&ev).outcome();
+            (r, c.cursor, c.list.scroll.offset)
+        };
+        assert_eq!(
+            wheel(WheelMode::Cursor, 2, Axis::Vertical),
+            (Outcome::Changed, 2, 0)
+        );
+        assert_eq!(
+            wheel(WheelMode::Viewport, 3, Axis::Vertical),
+            (Outcome::Changed, 0, 3)
+        );
+        assert_eq!(
+            wheel(WheelMode::Viewport, 3, Axis::Horizontal).0,
+            Outcome::Consumed
         );
     }
 

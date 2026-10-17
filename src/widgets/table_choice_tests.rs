@@ -368,3 +368,45 @@ fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
         text(&buf)
     );
 }
+
+/// CO7 (S11 deviation 4): the Combo popup takes the text gestures on its
+/// query line through its `MouseTarget`, routed by the table: a press
+/// and click at the line's start puts the caret there, a double click
+/// selects the word.
+#[test]
+fn a_click_on_the_combo_query_places_the_caret_and_a_double_click_selects() {
+    use crate::core::intent::Phase;
+    use crate::core::pointer::{MouseTarget, PointerEvent};
+    let columns = vec![
+        Column::new("Name", Constraint::Length(8)).editable(),
+        Column::new("Env", Constraint::Length(14)).editor(ColumnEditor::Combo(envs())),
+    ];
+    let rows = vec![vec![Cell::new("alpha"), Cell::new("stage")]];
+    let mut t = DataTable::new(WidgetId::of("tbl"), columns, rows).cell_nav(true);
+    t.cursor_col = 1;
+    t.on_key(&key(KeyCode::Enter));
+    assert!(t.choice.is_some(), "Enter opens the combo");
+    for c in "prod".chars() {
+        t.on_key(&key(KeyCode::Char(c)));
+    }
+    let (_, hits) = draw(&mut t, None);
+    let q = t.choice_id().part(PartRef::of(Part::QUERY));
+    let line = hits.area_of(q).expect("the query line is a hit part");
+    let start = Position::new(line.x, line.y);
+    for phase in [Phase::Press, Phase::Click] {
+        let ev = PointerEvent::new(&hits, phase, q, start, 1, KeyModifiers::NONE);
+        let _ = t.pointer(&ev);
+    }
+    let query = &t.choice.as_ref().unwrap().editor.query;
+    assert_eq!(
+        query.buffer.cursor_offset(),
+        0,
+        "the caret moved to the click"
+    );
+    for phase in [Phase::Press, Phase::Click] {
+        let ev = PointerEvent::new(&hits, phase, q, start, 2, KeyModifiers::NONE);
+        let _ = t.pointer(&ev);
+    }
+    let query = &mut t.choice.as_mut().unwrap().editor.query;
+    assert_eq!(query.buffer.selected_text(), Some("prod"));
+}

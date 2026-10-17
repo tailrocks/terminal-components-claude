@@ -1140,7 +1140,7 @@ impl DataTable {
         if let Some(c) = self.choice.as_mut()
             && c.editor.contains_id(id)
         {
-            let (out, r) = c.editor.on_click(id, &self.editor_config);
+            let (out, r) = c.editor.on_click(id);
             return Some((out, self.on_choice(r)));
         }
         let (di, ci) = self.parts.cell(id, Part::ACTIONS)?;
@@ -2058,7 +2058,7 @@ impl Scrollable for DataTable {
     /// An open choice popup takes the vertical wheel.
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
-        Some(c.editor.on_wheel(delta).into())
+        Some(c.editor.wheel(axis, delta))
     }
 }
 
@@ -2115,6 +2115,15 @@ impl crate::core::pointer::MouseTarget for DataTable {
     ) -> crate::core::response::Response<TableAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
+        // the open choice popup takes its own gestures (CO7): the Combo's
+        // query line, an option, its backdrop
+        if let Some(c) = self.choice.as_mut()
+            && ev.on(c.editor.id)
+            && ev.wheel().is_none()
+        {
+            let (out, r) = c.editor.pointer(ev).into_parts();
+            return (out, self.on_choice(r)).into();
+        }
         // a wheel over the open choice popup (the widget's too) reaches it
         // first ([`Scrollable::wheel_first`])
         if (ev.on(self.id) || ev.wheel().is_some())
