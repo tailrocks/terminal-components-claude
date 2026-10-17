@@ -190,9 +190,8 @@ Counted from `snapshots/` at `42f0b372e`: 7,675 `.ansi` files; 1,650
 scenarios still hold tuisnap's four files (`.ansi`, `.txt`, `.html`,
 `.png`), all in `showcase/`: `flows` 1,150, `fade` 250, `audit` 125,
 `hover` 75, `resize` 50. tablepro (1,100), holla (3,125 accepted) and
-jackin (1,200) are re-approved (`visual-reapproval.md`). The migration
-doc's "5,975" and "every other stored group 6,000" predate the holla and
-jackin approvals (V9).
+jackin (1,200) are re-approved (`visual-reapproval.md`); the migration
+doc's status table carries these counts since V9.
 
 | Id | What | Depends on | Acceptance | Source |
 |---|---|---|---|---|
@@ -204,7 +203,7 @@ jackin approvals (V9).
 | V6 | T17: port `holla_pty.rs` and `terminal_suspend.rs` to tuiscotti; no hand-rolled `openpty` remains. | — | `rg openpty tests` = 0 | plan §H T17 |
 | V7 | T9: measure per-capture time on a real CI run and update §C3 (still estimates). T10: holla-fable-audit workflows, `grep -r "cargo test" .github` empty. | C-items run | numbers from a real run | plan §H T9, T10, §C3 |
 | V8 | T18 oracle v0: after the UI work lands, capture everything with `VISUAL_FULL=1` on ubuntu-24.04 (now through the `visual-capture` suite, T8 done), `cargo xtask visual import <actual dir> --oracle --source <commit>`, review the change list per group, commit per app, then `git rm -r snapshots/` in the same series. | V1, V2 (or their rows deleted), the S/SC steps that change captures | smoke and full green on HEAD; `snapshots/` gone; `ORACLE.toml` `pending = false` | plan Progress T18; §B4; §H T18 |
-| V9 | Doc staleness to fix with V8: plan Progress T18 row says "T8 is still blocked" (T8 done); §H T0 still "in flight"; §B5 and §D name `cargo xtask visual accept` (now `tuiscotti accept`); T30 (upstream U1–U8) is done through tuiscotti PR 11 but unmarked; T31 is not in the Progress table; migration status table counts (6,000 / 5,975) predate the holla and jackin approvals. | — | the docs match the repository | plan.md lines 11, 20, 31, 174, 256, 430, 460–461; `tuiscotti-migration.md` status table |
+| V9 | **Done** (audit-sync branch, 2026-10-17): plan Progress rows T0/T4/T18/T30/T31, D1, §B5, §D and §H T0 updated; migration status table and legacy paragraph at 1,650; `tuiscotti-feedback.md` P3 row. Was: plan Progress T18 row says "T8 is still blocked" (T8 done); §H T0 still "in flight"; §B5 and §D name `cargo xtask visual accept` (now `tuiscotti accept`); T30 (upstream U1–U8) is done through tuiscotti PR 11 but unmarked; T31 is not in the Progress table; migration status table counts (6,000 / 5,975) predate the holla and jackin approvals. | — | the docs match the repository | plan.md lines 11, 20, 31, 174, 256, 430, 460–461; `tuiscotti-migration.md` status table |
 | V10 | Framed panel title cut below `title_min`: `Panel::title_row` counts the frame padding once; fix to `title_min + pad + 1` so the meta takes its short form. Moves framed title rows in all four apps, so it needs its own re-approval commit. | after V8 or with a planned re-approval of all four apps | regression test on the Panels States grid (24-column framed `Preview` with `1–9 of 24` keeps `Preview`); four apps re-approved | `layout.md` "SC22 finding (2026-10-17)" |
 | V11 | T19–T21: close the design backlog (§3.5), cut oracle v1 and the `sync-oracle` PR to `main`, then `main`'s `visual.yml` and `visual-ratchet`. T22–T29 are work on `main` (out of this branch). | V8, §3.5 | plan §H T19–T21 | plan §H, order line |
 

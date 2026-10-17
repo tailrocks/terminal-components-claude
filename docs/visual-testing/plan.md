@@ -1,6 +1,6 @@
 # Visual regression testing and refactor completion plan
 
-Status: in progress, 2026-10-16. Owner: main session (coordinates); all work
+Status: in progress, 2026-10-17. Owner: main session (coordinates); all work
 is done by subagents (AGENTS.md, Way of working).
 
 **Progress** (task numbers from §H; details in
@@ -8,16 +8,18 @@ is done by subagents (AGENTS.md, Way of working).
 
 | Task | State |
 |---|---|
-| T0, T1 | done: tuiscotti `a47c9aa`, `.ansi` + cursor trailer gate, review PNG/HTML on mismatch |
+| T0, T1 | done: tuiscotti `a47c9aa` (since bumped to `3382e57`, T30), `.ansi` + cursor trailer gate, review PNG/HTML on mismatch |
 | T2 | done: `harness = false` (libtest-mimic), one test per scenario, 12,131 named tests; gated run 277 s → 135 s |
 | T3 | done: `VISUAL_BIN_DIR` binary resolution, `env_clear` pinning (`support::PINNED_ENV`; `SHELL` too, which the PTY layer filled in from the account), per-scenario `HOME` = cwd, and the `isolation::env_isolation` check in the default run |
-| T4 | done: `cargo xtask visual {list, accept, render, import [--oracle], seal, determinism, ratchet [--check], sync-oracle, check-touched}`; every command that writes the store or the progress list refuses under `CI` (`ratchet --check` is the CI form) |
+| T4 | done: `cargo xtask visual {list, import [--oracle], seal, determinism, ratchet [--check], sync-oracle, check-touched}`; every command that writes the store or the progress list refuses under `CI` (`ratchet --check` is the CI form). `accept` and `render` moved to tuiscotti's own CLI with T30 (`tuiscotti accept`, `tuiscotti render`; the xtask forms exit with a pointer to them) |
 | T5 | done (skeleton): `baselines/oracle/ORACLE.toml` with `pending = true` and no captures; the default-run `oracle_integrity` checks it (in full once `pending = false`: one parseable `.ansi` per required scenario, no orphans or other files, counts, tuiscotti pin, `harness_sha256` of `tests/visual_baseline/` minus `progress/`). The gate switches from `snapshots/` to the oracle when v0 is imported (`support::approved_root`) |
 | T6 | done: tablepro `--motion`/`--frame`; audit below (§B3 "Determinism audit"): no rendered wall-clock value or random id anywhere, so no `JUNIE_NOW` seam; the default-run check `determinism::sources_are_deterministic` keeps it so; the smoke tier captured twice was byte-identical (869 of 869 captured; of the 21 that never reached their state, 6 were a harness `ctrl-f` bug, now fixed, and 15 are stale steps listed in `tuiscotti-migration.md`) |
 | T7, T8 | T7 done by velnor (`Required`); T8 done with velnor v0.1.9 (2026-10-17): `suites.yml` runs smoke (2 shards), full (12), narrow (2) and capture (12) from one archive build, with `target/tuiscotti` artifacts; all `workflow_dispatch` only until T18 (`docs/ci.md` "Visual suites") |
 | T11 | done: all 302 hand-written roots are table rows, names unchanged, every combo's case identical |
 | T12–T16 | rows added as pending (no approval, not gating): hover, held press, disabled, selected+hover in all four apps; open overlays moved to `OVERLAYS` with both dismissals; 4 resizes per app; narrow tier. Element inventories are first passes, not complete. T15 check done: the default-run `overlay_sites` scans `src/bin` for overlay openers (`ModalTag::new`, `Dialog::*`, `Picker::new`, `.push(Modal::`, `begin_modal`, context `req.menu`, `.menu.open`, and the leave guard's `.request_quit(&` / `.request(Leave::`), keyed `<file>::<fn>`, and requires each site in `overlay_sites::SITES` with its rows or a listed gap; 41 of 108 sites have rows, 67 gaps remain (rows to add per app) |
-| T18 | open: oracle v0 (blocks enabling the smoke tier in CI). Tooling ready: capture everything with `VISUAL_FULL=1` on ubuntu-24.04 (T8 is still blocked, so a manual run), `cargo xtask visual import <actual dir> --oracle --source <commit>` (writes `baselines/oracle/`, seals `ORACLE.toml`, switches the gate), review the change list per group, commit per app, then `git rm -r snapshots/`. The 15 stale-step roots are fixed (`tuiscotti-migration.md`); before the import, wait for the current UI work to land |
+| T18 | open: oracle v0 (blocks enabling the smoke tier in CI). Tooling ready: capture everything with `VISUAL_FULL=1` on ubuntu-24.04 through the `visual-capture` suite (T8 done; `docs/ci.md` "Visual suites"), `cargo xtask visual import <actual dir> --oracle --source <commit>` (writes `baselines/oracle/`, seals `ORACLE.toml`, switches the gate), review the change list per group, commit per app, then `git rm -r snapshots/`. The 15 stale-step roots are fixed (`tuiscotti-migration.md`); before the import, wait for the current UI work to land |
+| T30 | done: upstream U1–U8 merged as tuiscotti PR [#11](https://github.com/tailrocks/tuiscotti/pull/11) (`be860d1`) and adopted 2026-10-17: the gate is `GroupedStore::check_with` in `ArtifactSet::AnsiCursor`, our wrapper and `cargo xtask visual accept`/`render` are deleted, pin `3382e57` (`docs/upstream/tuiscotti-feedback.md`) |
+| T31 | done: §P, `performance.md` P1–P6 fixed (`39a19b4a9`, `3dcff98fa`, `655ed223f`, `50fdf0238`), guards in `tests/table_perf.rs` |
 
 Evidence for every claim below is in [`research/`](research/):
 `research-tuiscotti.md` (tool), `research-infra.md` (this branch's suite),
@@ -28,7 +30,7 @@ formats). Design backlog: `docs/audits/design-review-2026-10/`.
 
 | # | Decision | Consequence |
 |---|---|---|
-| D1 | tuiscotti latest `main`, exact `rev =`, bumped as `main` moves | Harness migration from `tuisnap` is **T0, in flight** (another agent: `Cargo.toml`, `tests/visual_baseline/`, `.config/nextest.toml`). This plan builds on it and does not redo it. |
+| D1 | tuiscotti latest `main`, exact `rev =`, bumped as `main` moves | Harness migration from `tuisnap` is **T0, done** (`Cargo.toml`, `tests/visual_baseline/`, `.config/nextest.toml`); the pin is bumped as `main` moves (T30: `3382e57`). This plan builds on it and does not redo it. |
 | D2 | Workflow 2: the real binaries in a PTY, scripted keys/mouse/resize, compared with a committed store, in CI | Spawn `CARGO_BIN_EXE_<bin>` (the binary `cargo run --bin X` builds), never in-process rendering. |
 | D3 | Minimal committed format: **one `.ansi` + cursor trailer per scenario** | Lossless for all 7,550 current frames; 71 MB instead of 13.2 GB. PNG/HTML are generated only as review artifacts. Terminal modes are covered by one boot test per app. |
 | D4 | `design/interaction-polish` is the visual and behavioural reference; `main` is the target structure | `main` must render every scenario 1:1 identically, keeping AGENTS.md's configurable API. The `visual-baseline` tag is never touched; the PO decides separately when this branch's oracle replaces it. |
@@ -170,10 +172,10 @@ has diffed against it. History keeps it.
 | Step | Command | Rule |
 |---|---|---|
 | 1. Run | `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` (filters in README) | Failures write review artifacts. |
-| 2. Review | open `target/tuiscotti/report.html` | Look at every changed scenario. |
-| 3. Accept | `cargo xtask visual accept <filterset>` | Copies actual `.ansi` files into the store and updates `ORACLE.toml` counts. **Refuses when `CI` is set.** There is no env-var bless (tuiscotti principle). |
+| 2. Review | open `target/tuiscotti/{actual,expected,diff}` (README "Read a failure") | Look at every changed scenario. |
+| 3. Accept | `tuiscotti accept --store <store> --actual target/tuiscotti/actual '<pattern>'`, then `cargo xtask visual seal` once the store is `baselines/oracle` | Copies the sealed actual `.ansi` files into the store; `seal` rewrites the `ORACLE.toml` counts. **Both refuse when `CI` is set.** There is no env-var bless (tuiscotti principle). |
 | 4. Commit | one commit per intended change | The message names the visual change and the scenarios touched (AGENTS.md: a deliberate visual change is called out). |
-| Render | `cargo xtask visual render <name>` | Approved `.ansi` to PNG/HTML for local viewing. |
+| Render | `tuiscotti render --input <store>/<name>.ansi --format png --format html --out target/tuiscotti/render/<name>` | Approved `.ansi` to PNG/HTML for local viewing. |
 
 ## C. Capture matrix and runtime
 
@@ -253,7 +255,7 @@ figure and this table is updated.
 - **Toolchain:** `dtolnay/rust-toolchain` at the version T0 sets (tuiscotti
   needs 1.98; ours is 1.88). Install nextest with
   `taiki-e/install-action@nextest`.
-- **Never in CI:** `xtask visual accept`, or writes to `baselines/`.
+- **Never in CI:** `tuiscotti accept`, `cargo xtask visual seal`/`import`, or any write to `baselines/`.
 - **Branch protection:** require `fmt`, `clippy`, `test` and `visual-smoke`
   on `design/interaction-polish`. On `main`, see §F (ratchet).
 
@@ -427,7 +429,7 @@ commits, `cargo nextest run --all-targets` + clippy + fmt green before push.
 
 | # | Task | Owner | Files | Acceptance |
 |---|---|---|---|---|
-| T0 | *(in flight, other agent)* Migrate the harness from tuisnap to tuiscotti latest `main` | harness | `Cargo.toml`, `tests/visual_baseline/*`, `.config/nextest.toml` | builds; `store_integrity` green; one root passes |
+| T0 | *(done)* Migrate the harness from tuisnap to tuiscotti latest `main` | harness | `Cargo.toml`, `tests/visual_baseline/*`, `.config/nextest.toml` | builds; `store_integrity` green; one root passes |
 | T1 | Cursor-trailer `.ansi` gate wrapper + review artifacts on mismatch | harness | `tests/visual_baseline/support.rs`, `tests/visual_baseline/ansi_cursor.rs` | the caret-move demo fails the gate; round-trip unit tests; review files written |
 | T2 | One test per scenario via `libtest-mimic`, `harness = false` | harness | `Cargo.toml` `[[test]]`, `tests/visual_baseline/main.rs` | `cargo nextest list` shows 7,550 named trials |
 | T3 | Environment pinning (B3) + `VISUAL_BIN_DIR` resolution | harness | `support.rs` | an env-leak test (`FORCE_COLOR=1` set in the parent) has no effect |
