@@ -1291,27 +1291,27 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("chipsselects", "chipsselects.digit_toggles"),
     ),
     (
-        "widgets::select::SelectArrows",
+        "widgets::option_list::SelectArrows",
         Option("chipsselects", "chipsselects.arrows"),
     ),
     (
-        "widgets::select::SelectArrows::Step",
+        "widgets::option_list::SelectArrows::Step",
         Option("chipsselects", "chipsselects.arrows=step"),
     ),
     (
-        "widgets::select::SelectArrows::Open",
+        "widgets::option_list::SelectArrows::Open",
         Option("chipsselects", "chipsselects.arrows=open"),
     ),
     (
-        "widgets::select::WheelMode",
+        "widgets::option_list::WheelMode",
         Option("chipsselects", "chipsselects.wheel"),
     ),
     (
-        "widgets::select::WheelMode::Viewport",
+        "widgets::option_list::WheelMode::Viewport",
         Option("chipsselects", "chipsselects.wheel=viewport"),
     ),
     (
-        "widgets::select::WheelMode::Cursor",
+        "widgets::option_list::WheelMode::Cursor",
         Option("chipsselects", "chipsselects.wheel=cursor"),
     ),
     (
