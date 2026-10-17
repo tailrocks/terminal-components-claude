@@ -655,7 +655,6 @@ widgets::picker::Picker::eligible | public function registered by SC-G1 (a query
 widgets::picker::Picker::current_key | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # widgets::progress
-widgets::progress::spinner_frame | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::progress::MeterTone::level | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::progress::Meter::is_stale | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::progress::Tally::text | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
@@ -682,7 +681,6 @@ widgets::splitter::Splitter::hit_area | public function registered by SC-G1 (a q
 widgets::steps::StepState::label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::steps::StepState::terminal | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::steps::StepRail::frontier | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::steps::StepRail::counts | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::steps::StepRail::failed | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 
@@ -701,7 +699,6 @@ widgets::viewport::TextViewport::reveal_cols | TextViewport::find and the viewpo
 widgets::viewport::TextViewport::reveal_mark | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::revision | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::work_counters | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
-widgets::viewport::TextViewport::retention | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::len | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::is_empty | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::lines | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
@@ -715,7 +712,6 @@ widgets::viewport::TextViewport::replace_last | TextViewport::find and the viewp
 widgets::viewport::TextViewport::pop | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::clear | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::set_max_lines | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
-widgets::viewport::TextViewport::set_marks | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::clear_marks | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::marks | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
 widgets::viewport::TextViewport::reveal_line | TextViewport::find and the viewport readouts on Terminal and Code editor | SC41
@@ -866,7 +862,6 @@ widgets::toolbar::Toolbar::hidden | public function registered by SC-G1 (a query
 widgets::tree::TreeView::rows | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::tree::TreeView::trailing | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::tree::TreeView::flatten | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
-widgets::tree::TreeView::cursor_path | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 widgets::tree::TreeView::node | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
 # theme
