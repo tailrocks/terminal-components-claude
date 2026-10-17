@@ -329,6 +329,7 @@ widgets::menu::MenuBar::type_ahead_timeout | the menu bar's type-ahead pause bel
 # widgets::progress
 
 # widgets::props
+widgets::props::PropsList::click | S9 click policy on the property list (double click activates, M32): the Text utilities page gains a click option with the SC33 click options | SC33
 
 # widgets::scrollbar
 
