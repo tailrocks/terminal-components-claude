@@ -3709,15 +3709,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::list::ListItem::disabled",
         StateRow("lists", "disabled"),
     ),
-    ("widgets::list::ClickAction", Option("lists", "lists.click")),
-    (
-        "widgets::list::ClickAction::Activate",
-        Option("lists", "lists.click=activate"),
-    ),
-    (
-        "widgets::list::ClickAction::Select",
-        Option("lists", "lists.click=select"),
-    ),
     (
         "widgets::list::ListCmd",
         Demo("lists", "ListCmd::ToggleAll"),
@@ -3750,6 +3741,26 @@ pub static SHOWN: &[(&str, Shown)] = &[
     (
         "widgets::list::ListBox::click",
         Option("lists", "lists.click"),
+    ),
+    (
+        "widgets::list::ListBox::toggle_mods",
+        Option("lists", "lists.toggle_mods"),
+    ),
+    (
+        "core::selection::ClickPolicy::check",
+        Option("lists", "lists.check"),
+    ),
+    (
+        "core::selection::CheckClick",
+        Option("lists", "lists.check"),
+    ),
+    (
+        "core::selection::CheckClick::BoxOnly",
+        Option("lists", "lists.check=box"),
+    ),
+    (
+        "core::selection::CheckClick::Row",
+        Option("lists", "lists.check=row"),
     ),
     (
         "widgets::list::ListBox::scrollbar_gap",

@@ -1,5 +1,5 @@
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 use ratatui::style::Color;
 
@@ -12,6 +12,7 @@ use crate::core::keymap::{
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource, TypeAheadPrecedence};
 use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable};
+use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
@@ -51,18 +52,6 @@ impl ListItem {
     }
 }
 
-/// What a single click on a row does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ClickAction {
-    /// A click activates the row (chooses it, or toggles it in a multi
-    /// list). The long-standing behaviour of this list.
-    #[default]
-    Activate,
-    /// A click only moves the cursor; a double click (or Return) activates,
-    /// as in macOS table and outline views.
-    Select,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectMode {
     Single,
@@ -70,9 +59,19 @@ pub enum SelectMode {
 }
 
 /// Scrollable list. The list is one focus stop; `cursor` is the keyboard row.
-/// Single mode: `›` marks the chosen item. Multi mode: `✓` marks each.
+/// Single mode: `›` marks the chosen item. Multi mode: `✓` marks each
+/// selected row ([`ListBox::selection`]).
 /// A cut label reveals its full text on hover and with `→` on the cursor
 /// row (see [`crate::ui::reveal`]).
+///
+/// Clicks follow [`ListBox::click`] (default [`ClickPolicy::DATA`]): one
+/// click moves the cursor, a double click chooses (single mode). In multi
+/// mode a click is a [`SelectGesture`]: Shift-click extends from the
+/// anchor, the platform toggle click ([`ListBox::toggle_mods`]) toggles a
+/// row, a plain click selects only that row, and a click on a row's `✓`
+/// column toggles it with no modifier ([`CheckClick::BoxOnly`](crate::core::selection::CheckClick::BoxOnly);
+/// [`CheckClick::Row`](crate::core::selection::CheckClick::Row) makes the whole row the check box). Space toggles,
+/// Shift+arrows extend (and shrink) the range.
 #[derive(Debug, Clone)]
 pub struct ListBox {
     pub id: WidgetId,
@@ -80,7 +79,8 @@ pub struct ListBox {
     pub cursor: usize,
     pub mode: SelectMode,
     pub chosen: Option<usize>,
-    pub checked: Vec<bool>,
+    /// The rows selected in multi mode (row indices; the `✓` marks).
+    pub selection: RowSelection,
     /// The scrolled rows and the bar ([`Scrollable`]).
     pub scroll: ScrollPane,
     pub area: Rect,
@@ -91,8 +91,6 @@ pub struct ListBox {
     /// A full empty state (title, hint, error tone) shown instead of
     /// [`Self::empty_text`] when set. Default `None`.
     pub empty: Option<crate::widgets::empty::EmptyState>,
-    /// Range-select anchor for Shift+arrows in multi mode.
-    anchor: Option<usize>,
     /// Revealing cut labels; `reveal.config` overrides the global default.
     pub reveal: RevealState,
     /// Blank columns between the labels and the scrollbar (default
@@ -101,8 +99,16 @@ pub struct ListBox {
     /// Arrow, page and Home/End movement steps over disabled rows (they
     /// cannot be used, so the cursor never parks on them). Default `true`.
     pub skip_disabled: bool,
-    /// What a single click on a row does. Default [`ClickAction::Activate`].
-    pub click: ClickAction,
+    /// What a click does beyond moving the cursor: when it chooses a row
+    /// (single mode) and what toggles a check (multi mode). Default
+    /// [`ClickPolicy::DATA`]: a double click chooses, only the `✓` column
+    /// toggles (SI14, M15); [`ClickPolicy::NAVIGATION`] for a list that
+    /// navigates on one click.
+    pub click: ClickPolicy,
+    /// Modifiers that make a click toggle one row in multi mode; Shift
+    /// always extends. Default [`SelectGesture::toggle_mods`] (Option or
+    /// Cmd on macOS, Ctrl or Cmd elsewhere).
+    pub toggle_mods: KeyModifiers,
     /// Typing a prefix jumps to the matching row (macOS lists, APG
     /// listbox). Default from the [`crate::core::list::NavProfile`]: on
     /// under `Desktop`, off under `Vim`. A bound key (Multi `a`) wins.
@@ -152,17 +158,17 @@ impl ListBox {
             cursor: 0,
             mode,
             chosen: None,
-            checked: vec![false; n],
+            selection: RowSelection::new(),
             scroll: ScrollPane::new(n),
             area: Rect::ZERO,
             empty_text: crate::theme::Strings::DEFAULT.empty_list.to_owned(),
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
-            anchor: None,
             reveal: RevealState::default(),
             scrollbar_gap: scrollbar::GAP,
             skip_disabled: true,
-            click: ClickAction::Activate,
+            click: ClickPolicy::DATA,
+            toggle_mods: SelectGesture::toggle_mods(),
             type_ahead: crate::core::list::NavProfile::current().type_ahead(),
             type_ahead_precedence: None,
             wrap: false,
@@ -214,9 +220,72 @@ impl ListBox {
         self
     }
 
-    pub fn click(mut self, click: ClickAction) -> Self {
+    /// See [`Self::click`].
+    pub fn click(mut self, click: ClickPolicy) -> Self {
         self.click = click;
         self
+    }
+
+    /// See [`Self::toggle_mods`].
+    pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
+        self.toggle_mods = mods;
+        self
+    }
+
+    /// Display order = row order (a list does not sort): the order the
+    /// selection's ranges resolve against.
+    fn order(&self) -> Vec<usize> {
+        (0..self.items.len()).collect()
+    }
+
+    /// Apply `g` aimed at row `to` to the multi selection
+    /// ([`RowSelection::apply`]); disabled rows are never selected.
+    /// Returns whether it changed.
+    pub fn select(&mut self, g: SelectGesture, to: usize) -> bool {
+        let order = self.order();
+        let items = &self.items;
+        self.selection.apply(g, to, &order, |i| {
+            items.get(i).is_some_and(|it| !it.disabled)
+        })
+    }
+
+    /// Remove `rows` (indices); the selection, the chosen row and the
+    /// cursor follow the rows that stay. Returns how many were removed.
+    pub fn remove_rows(&mut self, rows: &[usize]) -> usize {
+        let gone: std::collections::BTreeSet<usize> = rows
+            .iter()
+            .copied()
+            .filter(|&r| r < self.items.len())
+            .collect();
+        if gone.is_empty() {
+            return 0;
+        }
+        let map = |r: usize| (!gone.contains(&r)).then(|| r - gone.range(..r).count());
+        let mut i = 0;
+        self.items.retain(|_| {
+            let keep = !gone.contains(&i);
+            i += 1;
+            keep
+        });
+        self.selection.remap(map);
+        self.chosen = self.chosen.and_then(map);
+        let n = self.items.len();
+        self.cursor = map(self.cursor)
+            .unwrap_or_else(|| self.cursor - gone.range(..self.cursor).count())
+            .min(n.saturating_sub(1));
+        gone.len()
+    }
+
+    /// Whether row `i` is selected (multi mode: its `✓`).
+    pub fn is_checked(&self, i: usize) -> bool {
+        self.selection.contains(i)
+    }
+
+    /// Check or uncheck row `i` (an owner seeding or restoring marks).
+    pub fn set_checked(&mut self, i: usize, on: bool) {
+        if i < self.items.len() {
+            self.selection.set(i, on);
+        }
     }
 
     pub fn mode(mut self, mode: SelectMode) -> Self {
@@ -303,24 +372,29 @@ impl ListBox {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    pub fn checked_count(&self) -> usize {
-        self.checked.iter().filter(|c| **c).count()
+    /// The `✓` column of row `i` in multi mode (its check box).
+    pub fn mark_id(&self, i: usize) -> WidgetId {
+        self.id.part(Self::mark_part(i))
     }
 
+    fn mark_part(i: usize) -> PartRef {
+        PartRef::item(Part::MARKER, ItemKey::index(i))
+    }
+
+    pub fn checked_count(&self) -> usize {
+        self.selection.len()
+    }
+
+    /// Move the cursor to `to`; `extend` (Shift in multi mode) extends the
+    /// selection from its anchor to it ([`SelectGesture::Extend`]), so the
+    /// range grows and shrinks with the cursor.
     fn move_cursor(&mut self, to: usize, extend: bool) {
         let to = to.min(self.items.len().saturating_sub(1));
-        if self.mode == SelectMode::Multi && extend {
-            let anchor = *self.anchor.get_or_insert(self.cursor);
-            let (a, b) = (anchor.min(to), anchor.max(to));
-            for i in a..=b {
-                if !self.items[i].disabled {
-                    self.checked[i] = true;
-                }
-            }
-        } else {
-            self.anchor = None;
-        }
+        let from = self.cursor;
         self.cursor = to;
+        if self.mode == SelectMode::Multi && extend {
+            self.select(SelectGesture::Extend { from }, to);
+        }
         self.scroll.ensure_visible(self.cursor);
     }
 
@@ -330,7 +404,9 @@ impl ListBox {
         }
         match self.mode {
             SelectMode::Single => self.chosen = Some(i),
-            SelectMode::Multi => self.checked[i] = !self.checked[i],
+            SelectMode::Multi => {
+                self.select(SelectGesture::Toggle, i);
+            }
         }
         Outcome::Changed
     }
@@ -358,28 +434,13 @@ impl ListBox {
         {
             return match action {
                 ListCmd::ToggleAll => {
-                    let all = self
-                        .items
-                        .iter()
-                        .zip(&self.checked)
-                        .filter(|(it, _)| !it.disabled)
-                        .all(|(_, c)| *c);
-                    for (it, c) in self.items.iter().zip(self.checked.iter_mut()) {
-                        if !it.disabled {
-                            *c = !all;
-                        }
-                    }
+                    let items = &self.items;
+                    self.selection
+                        .toggle_all(0..items.len(), |i| !items[i].disabled);
                     Outcome::Changed
                 }
                 ListCmd::SelectAll => {
-                    let mut changed = false;
-                    for (it, c) in self.items.iter().zip(self.checked.iter_mut()) {
-                        if !it.disabled && !*c {
-                            *c = true;
-                            changed = true;
-                        }
-                    }
-                    if changed {
+                    if self.select(SelectGesture::All, 0) {
                         Outcome::Changed
                     } else {
                         Outcome::Consumed
@@ -423,22 +484,55 @@ impl ListBox {
         self.on_click_count(row, 1)
     }
 
-    /// A click on `row` that is the `count`th of a multi-click (from
-    /// [`crate::core::pointer::PointerState::count_click`]). Under
-    /// [`ClickAction::Select`] only a double click activates.
+    /// A plain click on `row` that is the `count`th of a multi-click (from
+    /// [`crate::core::pointer::PointerState::count_click`])
+    /// ([`Self::on_click_at`]).
     pub fn on_click_count(&mut self, row: usize, count: u8) -> Outcome {
+        self.on_click_at(row, count, KeyModifiers::NONE, false)
+    }
+
+    /// The `count`th click on `row` with `mods` held; `on_box` when it
+    /// landed on the row's `✓` column. The cursor moves to the row. Single
+    /// mode: the row is chosen when [`Self::click`] activates on this click
+    /// (a double click by default). Multi mode: a click on the `✓` column
+    /// (or anywhere under [`CheckClick::Row`](crate::core::selection::CheckClick::Row)) toggles the row; any other is
+    /// the [`SelectGesture`] its modifiers make.
+    pub fn on_click_at(
+        &mut self,
+        row: usize,
+        count: u8,
+        mods: KeyModifiers,
+        on_box: bool,
+    ) -> Outcome {
         if row >= self.items.len() {
             return Outcome::Consumed;
         }
+        let from = self.cursor;
+        let again = from == row;
         self.cursor = row;
-        self.anchor = None;
         self.scroll.pointer_move();
         self.scroll.ensure_visible(row);
-        match self.click {
-            ClickAction::Activate => self.activate(row),
-            ClickAction::Select if count >= 2 => self.activate(row),
-            ClickAction::Select => Outcome::Changed,
+        match self.mode {
+            SelectMode::Single => {
+                if self.click.activates(count.max(1), again) {
+                    return self.activate(row);
+                }
+            }
+            SelectMode::Multi => {
+                let plain = !mods.intersects(self.toggle_mods | KeyModifiers::SHIFT);
+                let g = if plain && self.click.toggles(on_box) {
+                    SelectGesture::Toggle
+                } else {
+                    SelectGesture::from_mods(mods, self.toggle_mods, from)
+                };
+                // a disabled row takes the cursor; the selection stays
+                if g == SelectGesture::Only && self.items[row].disabled {
+                    return Outcome::Changed;
+                }
+                self.select(g, row);
+            }
         }
+        Outcome::Changed
     }
 
     /// Override the app-wide vertical track-click policy
@@ -516,11 +610,17 @@ impl ListBox {
             let row = Rect::new(area.x, y, sp.body.width, h);
             let rid = self.row_id(li);
             let mut s = ctx.child_state(self.id, rid, li == self.cursor);
+            if self.mode == SelectMode::Multi {
+                // the row counts its `✓` column's hover and press as its own
+                let mark = self.mark_id(li);
+                s.hovered |= ctx.interaction.hovered(mark);
+                s.pressed |= ctx.interaction.pressed(mark);
+            }
             s.focused = focused && li == self.cursor;
             s.disabled = item.disabled;
             s.selected = match self.mode {
                 SelectMode::Single => self.chosen == Some(li),
-                SelectMode::Multi => self.checked[li],
+                SelectMode::Multi => self.selection.contains(li),
             };
             let st = t.row(s, bg);
             fill(buf, row, st);
@@ -583,6 +683,12 @@ impl ListBox {
                 buf.set_string(mx, y, m, ms);
             }
             ctx.register_part(self.id, Self::row_part(li), row);
+            if self.mode == SelectMode::Multi {
+                // the `✓` column (the gutter, the mark and its space) is
+                // the row's check box: a click there toggles the row
+                let mark = Rect::new(row.x, row.y, row.width.min(3), row.height);
+                ctx.register_part(self.id, Self::mark_part(li), mark);
+            }
             y += h;
         }
         // the scroll region also sits above the rows: a wheel burst handled
@@ -699,7 +805,7 @@ impl crate::ui::specimen::Specimen for ListBox {
         use crate::ui::specimen::SpecimenState::*;
         let mut l = self.clone();
         l.items.truncate(3);
-        l.checked = vec![false; l.items.len()];
+        l.selection = RowSelection::new();
         l.chosen = None;
         l.cursor = 1.min(l.items.len().saturating_sub(1));
         l.scroll = ScrollPane::new(l.items.len());
@@ -707,7 +813,7 @@ impl crate::ui::specimen::Specimen for ListBox {
         match state {
             Selected => match l.mode {
                 SelectMode::Single => l.chosen = Some(c),
-                SelectMode::Multi => l.checked[c] = true,
+                SelectMode::Multi => l.set_checked(c, true),
             },
             Disabled => {
                 if let Some(it) = l.items.get_mut(c) {
@@ -716,7 +822,7 @@ impl crate::ui::specimen::Specimen for ListBox {
             }
             Empty => {
                 l.items.clear();
-                l.checked.clear();
+                l.selection = RowSelection::new();
             }
             Overflow => {
                 if let Some(it) = l.items.get_mut(c) {
@@ -753,9 +859,19 @@ impl crate::core::pointer::MouseTarget for ListBox {
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r;
         }
-        match ev.index_of(Part::ROW) {
-            Some(row) if ev.is(Phase::Click) => self.on_click_count(row, ev.count().max(1)).into(),
-            _ => Response::ignored(),
+        if !ev.is(Phase::Click) {
+            return Response::ignored();
+        }
+        let hit = match (ev.index_of(Part::MARKER), ev.index_of(Part::ROW)) {
+            (Some(row), _) => Some((row, true)),
+            (None, Some(row)) => Some((row, false)),
+            _ => None,
+        };
+        match hit {
+            Some((row, on_box)) => self
+                .on_click_at(row, ev.count().max(1), ev.mods(), on_box)
+                .into(),
+            None => Response::ignored(),
         }
     }
 }
@@ -1054,7 +1170,7 @@ mod scroll_tests {
         .type_ahead(true);
         m.cursor = 1;
         press(&mut m, KeyCode::Char('a'));
-        assert_eq!(m.checked, vec![true, true], "a toggles all");
+        assert_eq!(m.selection.to_vec(), vec![0, 1], "a toggles all");
         assert_eq!(m.cursor, 1);
     }
 
@@ -1099,14 +1215,115 @@ mod scroll_tests {
 
     #[test]
     fn select_clicks_move_the_cursor_and_double_clicks_activate() {
-        let mut l = disabled_list().click(ClickAction::Select);
+        // the default (SI14, M15): one click moves the cursor, however
+        // often; a double click chooses
+        let mut l = disabled_list();
         l.on_click_count(3, 1);
         assert_eq!((l.cursor, l.chosen), (3, None));
+        l.on_click_count(3, 1);
+        assert_eq!(l.chosen, None, "a slow second click only selects");
         l.on_click_count(3, 2);
         assert_eq!(l.chosen, Some(3));
-        let mut act = disabled_list();
+        // a navigation list chooses on one click
+        let mut act = disabled_list().click(ClickPolicy::NAVIGATION);
         act.on_click(1);
         assert_eq!(act.chosen, Some(1));
+    }
+
+    fn multi() -> ListBox {
+        let items = ["a", "b", "c", "d", "e"]
+            .iter()
+            .map(|l| ListItem::new(l).disabled(*l == "d"))
+            .collect();
+        ListBox::new(WidgetId::of("m"), items, SelectMode::Multi)
+            .toggle_mods(SelectGesture::TOGGLE_CTRL_CMD)
+    }
+
+    /// M16: a multi list takes the desktop click modifiers; M15/SI5: only
+    /// the `✓` column toggles with no modifier.
+    #[test]
+    fn multi_clicks_follow_the_selection_gestures() {
+        let none = KeyModifiers::NONE;
+        let mut l = multi();
+        l.on_click_at(1, 1, none, false);
+        assert_eq!(l.selection.to_vec(), vec![1], "a plain click selects only");
+        l.on_click_at(4, 1, KeyModifiers::SHIFT, false);
+        assert_eq!(
+            l.selection.to_vec(),
+            vec![1, 2, 4],
+            "Shift extends, skips d"
+        );
+        l.on_click_at(2, 1, KeyModifiers::CONTROL, false);
+        assert_eq!(l.selection.to_vec(), vec![1, 4], "Ctrl toggles");
+        l.on_click_at(0, 1, none, true);
+        assert_eq!(l.selection.to_vec(), vec![0, 1, 4], "the ✓ column toggles");
+        l.on_click_at(3, 1, none, false);
+        assert_eq!(l.cursor, 3, "a disabled row takes the cursor");
+        assert_eq!(
+            l.selection.to_vec(),
+            vec![0, 1, 4],
+            "...and the selection stays"
+        );
+        // a checklist makes the whole row its box
+        let mut c = multi().click(ClickPolicy::DATA.check(crate::core::selection::CheckClick::Row));
+        c.on_click_at(0, 1, none, false);
+        c.on_click_at(2, 1, none, false);
+        assert_eq!(c.selection.to_vec(), vec![0, 2]);
+        c.on_click_at(0, 1, none, false);
+        assert_eq!(c.selection.to_vec(), vec![2]);
+    }
+
+    /// Through the hit regions: a click on a row's `✓` column reaches the
+    /// list as the row's check box, a click on its label as the row.
+    #[test]
+    fn a_click_on_the_mark_column_toggles_through_the_hit_regions() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        use crate::theme::Theme;
+        use crate::ui::ctx::Interaction;
+        let mut l = multi();
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 20, 5);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        l.render(area, &mut buf, &mut ctx, theme.canvas);
+        drop(ctx);
+        let click = |l: &mut ListBox, pos: Position| {
+            let id = hits.hit(pos).expect("a part");
+            let ev = PointerEvent::new(&hits, Phase::Click, id, pos, 1, KeyModifiers::NONE);
+            let _ = l.pointer(&ev);
+        };
+        click(&mut l, Position::new(1, 0));
+        click(&mut l, Position::new(1, 2));
+        assert_eq!(l.selection.to_vec(), vec![0, 2], "the ✓ column toggles");
+        click(&mut l, Position::new(8, 4));
+        assert_eq!(l.selection.to_vec(), vec![4], "the label selects only");
+        assert_eq!(l.cursor, 4);
+    }
+
+    /// Shift+arrows extend from the anchor and shrink back (the list used
+    /// to only add); a click sets the anchor Shift+arrows extend from
+    /// (SIg2: the fallback where the terminal keeps Shift-click).
+    #[test]
+    fn shift_arrows_extend_and_shrink_from_the_clicked_anchor() {
+        let shift = |code| Key {
+            code,
+            mods: KeyModifiers::SHIFT,
+        };
+        let mut l = multi();
+        l.on_click_at(1, 1, KeyModifiers::NONE, false);
+        l.on_key(&shift(KeyCode::Down));
+        l.on_key(&shift(KeyCode::Down));
+        assert_eq!(l.selection.to_vec(), vec![1, 2, 4], "d is skipped");
+        l.on_key(&shift(KeyCode::Up));
+        assert_eq!(l.selection.to_vec(), vec![1, 2], "the range shrinks");
+        l.on_key(&shift(KeyCode::Up));
+        l.on_key(&shift(KeyCode::Up));
+        assert_eq!(l.selection.to_vec(), vec![0, 1], "and crosses the anchor");
     }
     use crate::core::focus::FocusRing;
     use crate::core::hit::HitRegistry;
@@ -1316,7 +1533,7 @@ mod select_all_tests {
             };
             let mut multi = ListBox::new(WidgetId::of("m"), items(), SelectMode::Multi);
             assert_eq!(multi.on_key(&key), Outcome::Changed);
-            assert_eq!(multi.checked, vec![true, false, true]);
+            assert_eq!(multi.selection.to_vec(), vec![0, 2]);
             assert_eq!(multi.on_key(&key), Outcome::Consumed, "already all");
             let mut single =
                 ListBox::new(WidgetId::of("s"), items(), SelectMode::Single).type_ahead(true);

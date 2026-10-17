@@ -22,6 +22,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, label_for};
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::TrackClick;
+use junie_tui::core::selection::{CheckClick, ClickPolicy, SelectGesture};
 use junie_tui::core::typeahead::TypeAhead;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
@@ -30,7 +31,7 @@ use junie_tui::ui::reveal::{Reveal, RevealMode};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text;
 use junie_tui::widgets::empty::EmptyState;
-use junie_tui::widgets::list::{ClickAction, ListBox, ListCmd, ListItem, SelectMode};
+use junie_tui::widgets::list::{ListBox, ListCmd, ListItem, SelectMode};
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
@@ -106,8 +107,8 @@ impl ListsPage {
                 .collect(),
         };
         page.single.chosen = Some(0);
-        page.multi.checked[0] = true;
-        page.multi.checked[1] = true;
+        page.multi.set_checked(0, true);
+        page.multi.set_checked(1, true);
         page.rebuild();
         page
     }
@@ -136,9 +137,20 @@ impl ListsPage {
                 _ => NavKeys::default(),
             })
             .type_ahead(self.opt("lists.type_ahead") == "on")
-            .click(match self.opt("lists.click") {
-                "select" => ClickAction::Select,
-                _ => ClickAction::Activate,
+            .click(
+                match self.opt("lists.click") {
+                    "single" => ClickPolicy::NAVIGATION,
+                    _ => ClickPolicy::DATA,
+                }
+                .check(match self.opt("lists.check") {
+                    "row" => CheckClick::Row,
+                    _ => CheckClick::BoxOnly,
+                }),
+            )
+            .toggle_mods(match self.opt("lists.toggle_mods") {
+                "alt" => ratatui::crossterm::event::KeyModifiers::ALT,
+                "any" => SelectGesture::TOGGLE_WITH_ALT,
+                _ => SelectGesture::toggle_mods(),
             })
             .wrap(self.opt("lists.wrap") == "on")
             .skip_disabled(self.opt("lists.skip_disabled") == "on")
@@ -167,7 +179,7 @@ impl ListsPage {
         let keep = |old: &ListBox, mut new: ListBox| {
             new.cursor = old.cursor;
             new.chosen = old.chosen;
-            new.checked = old.checked.clone();
+            new.selection = old.selection.clone();
             new
         };
         let single = self.build(ListBox::new(SINGLE, languages(), SelectMode::Single));
@@ -202,17 +214,30 @@ impl ListsPage {
             "default"
         };
         let key = |c| label_for(&l.keymap, c).unwrap_or_else(|| "none".into());
+        use ratatui::crossterm::event::KeyModifiers as M;
+        // the platform default reads the same on every host (the digest)
+        let toggle = if l.toggle_mods == SelectGesture::toggle_mods() {
+            "platform".to_owned()
+        } else {
+            [(M::CONTROL, "Ctrl"), (M::ALT, "Alt"), (M::SUPER, "Cmd")]
+                .iter()
+                .filter(|(m, _)| l.toggle_mods.contains(*m))
+                .map(|(_, n)| *n)
+                .collect::<Vec<_>>()
+                .join("/")
+        };
         vec![
             format!(
-                "nav {nav} · type-ahead {} (TypeAhead, {} ms pause) · click {:?} · wrap {} · skip_disabled {}",
+                "nav {nav} · type-ahead {} (TypeAhead, {} ms pause) · click {:?}, check {:?} · wrap {} · skip_disabled {}",
                 if l.type_ahead { "on" } else { "off" },
                 TypeAhead::DEFAULT_TIMEOUT.as_millis(),
-                l.click,
+                l.click.activate,
+                l.click.check,
                 l.wrap,
                 l.skip_disabled,
             ),
             format!(
-                "scrollbar_gap {} · track_click {:?} · reveal {} · {} ListCmd::ToggleAll · {} ListCmd::SelectAll",
+                "toggle {toggle}+click · scrollbar_gap {} · track_click {:?} · reveal {} · {} ListCmd::ToggleAll · {} ListCmd::SelectAll",
                 l.scrollbar_gap,
                 l.scroll.track_click.unwrap_or_default(),
                 self.opt("lists.reveal"),
@@ -237,19 +262,20 @@ impl ListsPage {
                 }]
             }
             SelectMode::Multi => {
-                let toggle = MenuItem::new(if l.checked[row] { "Exclude" } else { "Include" })
-                    .shortcut("Space");
+                let toggle = MenuItem::new(if l.is_checked(row) {
+                    "Exclude"
+                } else {
+                    "Include"
+                })
+                .shortcut("Space");
                 let toggle = if item.disabled {
                     toggle.reason(format!("{} file", item.meta.as_deref().unwrap_or("Locked")))
                 } else {
                     toggle
                 };
-                let all = l
-                    .items
-                    .iter()
-                    .zip(&l.checked)
-                    .filter(|(it, _)| !it.disabled)
-                    .all(|(_, c)| *c);
+                let all = (0..l.items.len())
+                    .filter(|&i| !l.items[i].disabled)
+                    .all(|i| l.is_checked(i));
                 let key = junie_tui::core::keymap::hint_key(&l.keymap, ListCmd::ToggleAll);
                 let all = MenuItem::new(if all { "Select none" } else { "Select all" });
                 vec![
@@ -396,10 +422,10 @@ fn states_grid() -> StateGrid {
     let id = ID.sub("states");
     let mut single = ListBox::new(id.child(0), languages(), SelectMode::Single);
     single.items.truncate(3);
-    single.checked.truncate(3);
+
     let mut multi = ListBox::new(id.child(1), files(), SelectMode::Multi);
     multi.items.truncate(3);
-    multi.checked.truncate(3);
+
     StateGrid::new(id)
         .rows(&[
             Rest,
