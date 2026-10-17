@@ -8,6 +8,8 @@ mod app;
 #[cfg(test)]
 mod app_tests;
 #[cfg(test)]
+mod app_tests_background;
+#[cfg(test)]
 mod app_tests_colour;
 #[cfg(test)]
 mod app_tests_context;
