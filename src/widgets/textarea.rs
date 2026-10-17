@@ -184,7 +184,7 @@ impl TextArea {
         } else if self.editing {
             EDIT_TEXT.to_vec()
         } else {
-            vec![hint("Enter", "Edit"), hint("↑↓", "Scroll")]
+            vec![crate::widgets::widget_hints::EDIT, hint("↑↓", "Scroll")]
         }
     }
 
