@@ -163,6 +163,19 @@ impl crate::ui::measure::Measure for DataTable {
         let cols: u16 = (0..n).map(col).sum::<u16>() + 2 * n.saturating_sub(1) as u16;
         ratatui::layout::Size::new(cols + 5 + check_w + 1, 1 + self.rows.len().max(1) as u16)
     }
+
+    /// The table scrolls sideways by columns and cuts a cell with a
+    /// revealing `…`: it is whole at any width that holds its first
+    /// column.
+    fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> u16 {
+        let check_w: u16 = if self.multi() && self.selection_column {
+            4
+        } else {
+            0
+        };
+        let first = self.columns.first().map_or(6, Column::min_width);
+        first + 5 + check_w + 1
+    }
 }
 
 /// Data table with header sorting, row/cell keyboard navigation, hover,
@@ -2263,6 +2276,17 @@ mod tests {
             table.measure(ratatui::layout::Size::new(1, 1), &ctx)
         };
         assert_eq!(size.height, 31);
+        // its min width holds the first column; the rest scroll sideways
+        let min = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            table.min_width(ratatui::layout::Size::new(1, 1), &ctx)
+        };
+        assert_eq!(min, 10 + 6);
         // fewer rows than the table has: the vertical bar is in
         for (w, all) in [(size.width, true), (size.width - 3, false)] {
             let mut ctx = RenderCtx::new(
