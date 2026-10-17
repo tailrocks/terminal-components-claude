@@ -25,7 +25,8 @@ use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{
     ContextMenu, MenuAction, MenuBar, MenuBarAction, MenuItem, Placement,
 };
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::option_list::Item;
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::progress::{Meter, MeterVisual, spinner_frame};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
@@ -591,7 +592,7 @@ impl CapsuleScreen {
             Intent::Split(SplitDir::Vertical, true) => "Split ↑ Above".into(),
         };
         let mut p = Picker::new(WidgetId::of("capsule.agent"), &title);
-        p.width = 72;
+        p.list.width = (72, 72);
         let ws = w
             .instance(&self.instance)
             .and_then(|i| i.workspace)
@@ -612,28 +613,22 @@ impl CapsuleScreen {
                     .unwrap_or_default(),
                 (None, n) => format!("{n} accounts · choose at start"),
             };
-            items.push(PickerItem {
-                label: a.label().into(),
-                detail,
-                glyph: "▪",
-                group: "agents",
-                tag: offer.blocked.as_ref().map(|_| "blocked"),
-                matched: vec![],
-                disabled: offer.blocked.is_some(),
-                key: String::new(),
+            items.push(Item {
+                tag: (offer.blocked.as_ref().map(|_| "blocked")).map(Into::into),
+                ..Item::new(a.label())
+                    .detail(detail)
+                    .glyph("▪")
+                    .group("agents")
+                    .disabled(offer.blocked.is_some())
             });
             self.picker_agents.push(Some(a));
         }
-        items.push(PickerItem {
-            label: "Shell".into(),
-            detail: "zsh".into(),
-            glyph: "$",
-            group: "shells",
-            tag: None,
-            matched: vec![],
-            disabled: false,
-            key: String::new(),
-        });
+        items.push(
+            Item::new("Shell")
+                .detail("zsh")
+                .glyph("$")
+                .group("shells"),
+        );
         self.picker_agents.push(None);
         p.set_items(items);
         cx.open(p, LayerTag::new("agent"));
@@ -676,8 +671,8 @@ impl CapsuleScreen {
                     WidgetId::of("capsule.provider"),
                     &format!("Account for {}", a.label()),
                 );
-                p.searchable = false;
-                p.width = 72;
+                p.set_searchable(false);
+                p.list.width = (72, 72);
                 p.scope = Some("active for this Workspace".into());
                 let mut items = vec![];
                 self.picker_accounts.clear();
@@ -695,25 +690,20 @@ impl CapsuleScreen {
                     if i == 0 {
                         tags.push("preselected");
                     }
-                    items.push(PickerItem {
-                        label: acc.display_name.clone(),
-                        detail: format!(
-                            "{} · {}{}",
-                            acc.source.origin_label(),
-                            acc.status_word(),
-                            if tags.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" · {}", tags.join(" · "))
-                            }
-                        ),
-                        glyph: if acc.default_for_provider { "★" } else { " " },
-                        group: "",
-                        tag: None,
-                        matched: vec![],
-                        disabled: false,
-                        key: String::new(),
-                    });
+                    items.push(
+                        Item::new(acc.display_name.clone())
+                            .detail(format!(
+                                "{} · {}{}",
+                                acc.source.origin_label(),
+                                acc.status_word(),
+                                if tags.is_empty() {
+                                    String::new()
+                                } else {
+                                    format!(" · {}", tags.join(" · "))
+                                }
+                            ))
+                            .glyph(if acc.default_for_provider { "★" } else { " " }),
+                    );
                     self.picker_accounts.push(acc.id.clone());
                 }
                 p.set_items(items);
@@ -917,7 +907,7 @@ impl CapsuleScreen {
 
     fn open_palette(&mut self, w: &World, cx: &mut Cx) {
         let mut p = Picker::new(WidgetId::of("capsule.palette"), "Command palette");
-        p.width = 60;
+        p.list.width = (60, 60);
         p.placeholder = "Type to filter commands…".into();
         p.empty_text = "No matching commands".into();
         self.palette_cmds = PALETTE.to_vec();
@@ -926,7 +916,7 @@ impl CapsuleScreen {
         cx.open(p, LayerTag::new("palette"));
     }
 
-    fn palette_items(&mut self, query: &str, w: &World) -> Vec<PickerItem> {
+    fn palette_items(&mut self, query: &str, w: &World) -> Vec<Item> {
         let single = self
             .daemon(w)
             .and_then(|d| d.active_tab())
@@ -983,16 +973,13 @@ impl CapsuleScreen {
                     .map(|p| (p..p + q.len()).collect())
                     .unwrap_or_default()
             };
-            out.push(PickerItem {
-                label: label.into(),
-                detail: detail.into(),
-                glyph: " ",
-                group: "",
-                tag: None,
-                matched,
-                disabled,
-                key: String::new(),
-            });
+            out.push(
+                Item::new(label)
+                    .detail(detail)
+                    .glyph(" ")
+                    .matched(matched)
+                    .disabled(disabled),
+            );
             self.palette_cmds.push(c);
         }
         out
@@ -1003,21 +990,12 @@ impl CapsuleScreen {
             "New tab" => self.spawn_flow(Intent::NewTab, w, cx),
             "Split pane" => {
                 let mut p = Picker::new(WidgetId::of("capsule.split"), "Split pane");
-                p.searchable = false;
-                p.width = 40;
+                p.set_searchable(false);
+                p.list.width = (40, 40);
                 p.set_items(
                     ["→ Right", "← Left", "↓ Below", "↑ Above"]
                         .iter()
-                        .map(|l| PickerItem {
-                            label: (*l).into(),
-                            detail: String::new(),
-                            glyph: " ",
-                            group: "",
-                            tag: None,
-                            matched: vec![],
-                            disabled: false,
-                            key: String::new(),
-                        })
+                        .map(|l| Item::new(*l).glyph(" "))
                         .collect(),
                 );
                 cx.open(p, LayerTag::new("split"));
@@ -1070,21 +1048,12 @@ impl CapsuleScreen {
                     self.confirm_close(true, w, cx);
                 } else {
                     let mut p = Picker::new(WidgetId::of("capsule.closetarget"), "Close");
-                    p.searchable = false;
-                    p.width = 40;
+                    p.set_searchable(false);
+                    p.list.width = (40, 40);
                     p.set_items(
                         ["Close pane", "Close tab"]
                             .iter()
-                            .map(|l| PickerItem {
-                                label: (*l).into(),
-                                detail: String::new(),
-                                glyph: " ",
-                                group: "",
-                                tag: None,
-                                matched: vec![],
-                                disabled: false,
-                                key: String::new(),
-                            })
+                            .map(|l| Item::new(*l).glyph(" "))
                             .collect(),
                     );
                     cx.open(p, LayerTag::new("closetarget"));
@@ -2481,7 +2450,7 @@ impl Screen for CapsuleScreen {
                 .is_some_and(|(_, m)| m.hides_page_focus())
     }
 
-    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<PickerItem>> {
+    fn picker_items(&mut self, tag: &LayerTag, query: &str, w: &World) -> Option<Vec<Item>> {
         if tag.kind == "palette" {
             return Some(self.palette_items(query, w));
         }

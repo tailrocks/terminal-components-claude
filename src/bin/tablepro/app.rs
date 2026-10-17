@@ -33,7 +33,8 @@ use junie_tui::widgets::grid::CellValue;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{self, Hint, hint};
 use junie_tui::widgets::menu::MenuAction;
-use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
+use junie_tui::widgets::option_list::Item;
+use junie_tui::widgets::picker::{Picker, PickerAction};
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::too_small::TooSmall;
@@ -1322,7 +1323,7 @@ impl App {
         let index = SwitcherIndex::build(&w.catalog, &w.connection.name, &open, &self.history);
         let mut p = Picker::new(WidgetId::of("switcher"), "Open Quickly");
         p.placeholder = "Search tables, views, schemas, tabs, queries…".into();
-        p.width = 88;
+        p.list.width = (88, 88);
         p.hints =
             "↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close".to_owned();
         self.scope = 0;
@@ -1349,39 +1350,38 @@ impl App {
         };
         let scopes = ["All", "Tables", "Schemas", "Queries"];
         p.scope = Some(format!("{} · Tab scope", scopes[self.scope]));
-        let mut results = index.query(p.query.text());
+        let mut results = index.query(p.query());
         results.retain(|r| match self.scope {
             1 => r.group == "Tables" || r.group == "Views",
             2 => r.group == "Schemas" || r.group == "Databases",
             3 => r.group == "Recent queries",
             _ => true,
         });
-        if p.query.text().is_empty() && self.scope == 0 {
+        if p.query().is_empty() && self.scope == 0 {
             // empty query: recent objects first, keep it short
             results.truncate(24);
         }
-        let items: Vec<PickerItem> = results
+        let items: Vec<Item> = results
             .iter()
-            .map(|r| PickerItem {
-                label: r.label.clone(),
-                detail: r.path.clone(),
-                glyph: match r.group {
-                    "Tables" => "T",
-                    "Views" => "V",
-                    "Schemas" => "S",
-                    "Databases" => "D",
-                    "Open tabs" => "≡",
-                    _ => "Q",
-                },
-                group: r.group,
-                tag: if r.open && r.group != "Open tabs" {
+            .map(|r| Item {
+                tag: (if r.open && r.group != "Open tabs" {
                     Some("open")
                 } else {
                     None
-                },
-                matched: r.matched.clone(),
-                disabled: false,
-                key: String::new(),
+                })
+                .map(Into::into),
+                ..Item::new(r.label.clone())
+                    .detail(r.path.clone())
+                    .glyph(match r.group {
+                        "Tables" => "T",
+                        "Views" => "V",
+                        "Schemas" => "S",
+                        "Databases" => "D",
+                        "Open tabs" => "≡",
+                        _ => "Q",
+                    })
+                    .group(r.group)
+                    .matched(r.matched.clone())
             })
             .collect();
         p.set_items(items);
@@ -1396,54 +1396,51 @@ impl App {
         let mut p = Picker::new(WidgetId::of("tablist"), "Open tabs");
         p.placeholder = "Filter tabs…".into();
         p.hints = "↑↓ Move · Enter Switch · Delete Close tab · Esc Close".to_owned();
-        let items: Vec<PickerItem> = w
+        let items: Vec<Item> = w
             .tabs
             .iter()
             .enumerate()
-            .map(|(i, t)| PickerItem {
-                label: t.label(),
-                detail: match t {
-                    WorkTab::Table(tt) => format!(
-                        "{} · {}",
-                        tt.qualified(),
-                        if tt.mode_tabs.active == 0 {
-                            "data"
-                        } else {
-                            "structure"
-                        }
-                    ),
-                    WorkTab::Query(q) => {
-                        if q.is_running() {
-                            "running".into()
-                        } else {
-                            q.last_status
-                                .as_ref()
-                                .map(|s| s.0.clone())
-                                .unwrap_or("query".into())
-                        }
-                    }
-                    WorkTab::History(_) => "history".into(),
-                },
-                glyph: match t {
-                    WorkTab::Table(_) => "T",
-                    WorkTab::Query(_) => "≡",
-                    WorkTab::History(_) => "H",
-                },
-                group: "",
-                tag: if i == w.active {
+            .map(|(i, t)| Item {
+                tag: (if i == w.active {
                     Some("active")
                 } else if t.dirty() {
                     Some("unsaved")
                 } else {
                     None
-                },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+                })
+                .map(Into::into),
+                ..Item::new(t.label())
+                    .detail(match t {
+                        WorkTab::Table(tt) => format!(
+                            "{} · {}",
+                            tt.qualified(),
+                            if tt.mode_tabs.active == 0 {
+                                "data"
+                            } else {
+                                "structure"
+                            }
+                        ),
+                        WorkTab::Query(q) => {
+                            if q.is_running() {
+                                "running".into()
+                            } else {
+                                q.last_status
+                                    .as_ref()
+                                    .map(|s| s.0.clone())
+                                    .unwrap_or("query".into())
+                            }
+                        }
+                        WorkTab::History(_) => "history".into(),
+                    })
+                    .glyph(match t {
+                        WorkTab::Table(_) => "T",
+                        WorkTab::Query(_) => "≡",
+                        WorkTab::History(_) => "H",
+                    })
             })
             .collect();
         p.set_items(items);
-        p.cursor = w.active;
+        p.set_cursor(w.active);
         self.layers.open(
             Box::new(p),
             LayerTag::new(TAB_LIST),
@@ -1458,25 +1455,21 @@ impl App {
         };
         let current = w.connection.safe_mode;
         let mut p = Picker::new(WidgetId::of("safemode"), "Safe Mode · this connection");
-        p.searchable = false;
-        p.width = 112;
+        p.set_searchable(false);
+        p.list.width = (112, 112);
         p.hints =
             "↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection".to_owned();
-        let items: Vec<PickerItem> = SafeMode::ALL
+        let items: Vec<Item> = SafeMode::ALL
             .iter()
-            .map(|s| PickerItem {
-                label: s.label().to_owned(),
-                detail: s.description().to_owned(),
-                glyph: if *s == current { "›" } else { " " },
-                group: "",
-                tag: if *s == current { Some("current") } else { None },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+            .map(|s| Item {
+                tag: (if *s == current { Some("current") } else { None }).map(Into::into),
+                ..Item::new(s.label().to_owned())
+                    .detail(s.description().to_owned())
+                    .glyph(if *s == current { "›" } else { " " })
             })
             .collect();
         p.set_items(items);
-        p.cursor = SafeMode::ALL
+        p.list.cursor.index = SafeMode::ALL
             .iter()
             .position(|s| *s == current)
             .unwrap_or(0);
@@ -1656,21 +1649,15 @@ impl App {
         let Some(p) = self.layers.top_as_mut::<Picker>() else {
             return;
         };
-        let q = p.query.text().to_lowercase();
-        let items: Vec<PickerItem> = w
+        let q = p.query().to_lowercase();
+        let items: Vec<Item> = w
             .tabs
             .iter()
             .enumerate()
             .filter(|(_, t)| q.is_empty() || t.label().to_lowercase().contains(&q))
-            .map(|(i, t)| PickerItem {
-                label: t.label(),
-                detail: i.to_string(),
-                glyph: "≡",
-                group: "",
-                tag: if i == w.active { Some("active") } else { None },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+            .map(|(i, t)| Item {
+                tag: (if i == w.active { Some("active") } else { None }).map(Into::into),
+                ..Item::new(t.label()).detail(i.to_string()).glyph("≡")
             })
             .collect();
         p.set_items(items);

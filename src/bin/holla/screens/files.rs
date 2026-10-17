@@ -7,7 +7,7 @@
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
-use junie_tui::core::id::WidgetId;
+use junie_tui::core::id::{ItemKey, WidgetId};
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
@@ -19,8 +19,9 @@ use junie_tui::ui::text::{fit, fit_right, truncate, truncate_middle, width};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem, Placement};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::picker::{Picker, PickerItem, PickerStatus};
+use junie_tui::widgets::picker::{Picker, PickerStatus};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
 use junie_tui::widgets::viewport::{Mark, Span, TextViewport, ViewportAction};
@@ -559,18 +560,21 @@ impl FilesPage {
 
     // ---------------------------------------------------------- jump
 
-    fn jump_suggestions(&self, query: &str, w: &World) -> Vec<PickerItem> {
+    /// The jump picker's rows: each is keyed by its full path and inserts
+    /// it ([`Item::insertion`]), the target a chosen row jumps to.
+    fn jump_suggestions(&self, query: &str, w: &World) -> Vec<Item> {
         let q = query.trim();
         let expanded = expand(q, &self.dir, &w.location.home);
-        let mut items: Vec<PickerItem> = vec![];
+        let mut items: Vec<Item> = vec![];
         let mut seen = std::collections::BTreeSet::new();
         if !q.is_empty() && w.fs.exists(&expanded) {
             seen.insert(expanded.clone());
             items.push(
-                PickerItem::new(w.location.short(&expanded))
+                Item::new(w.location.short(&expanded))
                     .detail("exact path")
                     .group("exact")
-                    .key(expanded.clone()),
+                    .key(ItemKey::text(&expanded))
+.insert(expanded.clone()),
             );
         }
         // local prefix completion in the current subtree, directories first
@@ -590,10 +594,11 @@ impl FilesPage {
                 for c in children.iter().filter(|c| c.name().starts_with(&prefix)) {
                     if seen.insert(c.path.clone()) {
                         items.push(
-                            PickerItem::new(w.location.short(&c.path))
+                            Item::new(w.location.short(&c.path))
                                 .detail(if c.is_dir() { "directory" } else { "file" })
                                 .group("here")
-                                .key(c.path.clone()),
+                                .key(ItemKey::text(&c.path))
+.insert(c.path.clone()),
                         );
                     }
                 }
@@ -606,10 +611,11 @@ impl FilesPage {
                 }
                 if seen.insert(h.path.clone()) {
                     items.push(
-                        PickerItem::new(w.location.short(&h.path))
+                        Item::new(w.location.short(&h.path))
                             .detail(if h.is_dir { "directory" } else { "file" })
                             .group("indexed")
-                            .key(h.path.clone()),
+                            .key(ItemKey::text(&h.path))
+.insert(h.path.clone()),
                     );
                 }
             }
@@ -621,7 +627,7 @@ impl FilesPage {
     fn open_jump(&mut self, w: &World, cx: &mut Cx) {
         let mut p = Picker::new(WidgetId::of("files.jump"), "Go to path");
         p.placeholder = "path · ~/… · relative to this folder".into();
-        p.width = 74;
+        p.list.width = (74, 74);
         p.scope = Some(w.location.short(&self.dir));
         p.empty_text = "type a path or a name".into();
         p.set_items(vec![]);
@@ -1832,7 +1838,7 @@ impl Screen for FilesPage {
 impl FilesPage {
     /// Rows for the jump picker at `query`, and whether an exact path
     /// exists; used by the shell while the modal is open.
-    pub fn jump_rows(&self, query: &str, w: &World) -> (Vec<PickerItem>, PickerStatus) {
+    pub fn jump_rows(&self, query: &str, w: &World) -> (Vec<Item>, PickerStatus) {
         let items = self.jump_suggestions(query, w);
         let status = match &self.jump_error {
             Some(e) => PickerStatus::Error {

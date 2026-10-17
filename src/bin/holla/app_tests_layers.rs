@@ -262,12 +262,12 @@ fn picker_events_keep_the_jump_picker_open() {
     let before = h.app.modals.top_as::<Picker>().unwrap().items.len();
     h.type_str("~/w");
     let p = h.app.modals.top_as::<Picker>().expect("still open");
-    assert_eq!(p.query.text(), "~/w");
+    assert_eq!(p.query(), "~/w");
     assert_ne!(p.items.len(), before, "rows follow the query");
     assert!(
-        p.items.iter().any(|i| i.key.contains("work")),
+        p.items.iter().any(|i| i.insertion().contains("work")),
         "{:?}",
-        p.items.iter().map(|i| &i.key).collect::<Vec<_>>()
+        p.items.iter().map(|i| i.insertion()).collect::<Vec<_>>()
     );
     h.ctrl(KeyCode::Char('u'));
     h.type_str("~/nowhere");

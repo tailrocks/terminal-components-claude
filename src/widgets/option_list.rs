@@ -9,7 +9,8 @@
 //! and type-ahead ([`KeyStep`]), the cursor-row look, the disabled reason
 //! ([`OptionList::status`]) and the popup policy the `Overlay` impls read
 //! (dismiss, placement, fit, width, max rows). The owning widget keeps
-//! what is its own: the closed field, the query, the frame and title, and
+//! what is its own: the closed field, the query's keys and gestures (the
+//! field itself is [`OptionList::query`]), the frame and title, and
 //! the row *content* ([`OptionList::paint_rows`] hands it each row).
 //!
 //! Rows are [`Item`]s (main's `termrock_navigation::Item` shape, owned,
@@ -39,6 +40,7 @@ use crate::core::typeahead::TypeAhead;
 use crate::theme::{CursorRow, CursorStyle};
 use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id};
+use crate::widgets::edit::EditField;
 use crate::widgets::scrollbar;
 
 /// What ↑/↓ (and ←/→) do on a closed select.
@@ -274,6 +276,11 @@ pub struct OptionList {
     /// Popup width bounds `(min, max)` in cells, frame included. Default
     /// `(12, 40)`.
     pub width: (u16, u16),
+    /// The query field that filters the rows (a Picker's search, a
+    /// combo box's text), owned by the list's owner for its keys and
+    /// gestures. `None`: the list has no query and its letters
+    /// type-select ([`Self::type_ahead`]). Default `None`.
+    pub query: Option<EditField>,
     typeahead: TypeAhead,
     /// The hover last applied to the cursor.
     hover: Option<WidgetId>,
@@ -308,6 +315,7 @@ impl OptionList {
             fit: Place::DEFAULT,
             max_rows: Self::MAX_ROWS,
             width: Self::WIDTH,
+            query: None,
             typeahead: TypeAhead::default(),
             hover: None,
             hovering: false,
@@ -379,6 +387,12 @@ impl OptionList {
     /// See [`Self::width`]; `max` never under `min`.
     pub fn width(mut self, min: u16, max: u16) -> Self {
         self.width = (min, max.max(min));
+        self
+    }
+
+    /// See [`Self::query`].
+    pub fn query(mut self, field: EditField) -> Self {
+        self.query = Some(field);
         self
     }
 

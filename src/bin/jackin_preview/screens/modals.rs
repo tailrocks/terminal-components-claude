@@ -17,7 +17,8 @@ use junie_tui::widgets::choice::Checkbox;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
-use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem, PickerStatus};
+use junie_tui::widgets::option_list::Item;
+use junie_tui::widgets::picker::{Picker, PickerAction, PickerStatus};
 use junie_tui::widgets::progress::render_spinner;
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -630,7 +631,7 @@ impl OpFlow {
             last_error: None,
             concealed_only: true,
         };
-        f.picker.width = 64;
+        f.picker.list.width = (64, 64);
         // a single available account is chosen automatically
         let avail: Vec<&crate::sim::onepassword::OpAccount> = op
             .accounts
@@ -660,7 +661,7 @@ impl OpFlow {
     }
 
     fn begin_load(&mut self, now_ms: i64, op: &SimOnePassword) {
-        self.picker.query.set_text("");
+        self.picker.set_query("");
         self.picker.title = match self.step {
             OpStep::Account => "Choose 1Password account".into(),
             OpStep::Vault => "Choose vault".into(),
@@ -674,7 +675,7 @@ impl OpFlow {
             OpStep::Item => "Search items…".into(),
             OpStep::Field => "Search fields…".into(),
         };
-        self.picker.searchable = true;
+        self.picker.set_searchable(true);
         self.picker.status = PickerStatus::Loading(match self.step {
             OpStep::Account => "loading accounts…".into(),
             OpStep::Vault => "loading vaults…".into(),
@@ -732,28 +733,24 @@ impl OpFlow {
     pub fn refresh(&mut self, op: &SimOnePassword) {
         self.picker.status = PickerStatus::Ready;
         self.last_error = None;
-        let q = self.picker.query.text().to_lowercase();
+        let q = self.picker.query().to_lowercase();
         let matches = |s: &str| q.is_empty() || s.to_lowercase().contains(&q);
-        let items: Vec<PickerItem> = match self.step {
+        let items: Vec<Item> = match self.step {
             OpStep::Account => match op.list_accounts() {
                 Ok(accts) => accts
                     .iter()
                     .filter(|a| matches(&a.id) || matches(&a.email))
-                    .map(|a| PickerItem {
-                        label: a.id.clone(),
-                        detail: a.email.clone(),
-                        glyph: "▪",
-                        group: "",
-                        tag: Some(match a.state {
-                            crate::sim::onepassword::OpAccountState::Available => "signed in",
-                            crate::sim::onepassword::OpAccountState::Locked => "locked",
-                            crate::sim::onepassword::OpAccountState::AuthorizationRequired => {
-                                "authorize"
-                            }
-                        }),
-                        matched: vec![],
-                        disabled: false,
-                        key: String::new(),
+                    .map(|a| {
+                        Item::new(a.id.clone())
+                            .detail(a.email.clone())
+                            .glyph("▪")
+                            .tag(match a.state {
+                                crate::sim::onepassword::OpAccountState::Available => "signed in",
+                                crate::sim::onepassword::OpAccountState::Locked => "locked",
+                                crate::sim::onepassword::OpAccountState::AuthorizationRequired => {
+                                    "authorize"
+                                }
+                            })
                     })
                     .collect(),
                 Err(e) => {
@@ -765,19 +762,15 @@ impl OpFlow {
                 Ok(vaults) => vaults
                     .iter()
                     .filter(|v| matches(&v.name))
-                    .map(|v| PickerItem {
-                        label: v.name.clone(),
-                        detail: format!("{} items", v.items.len()),
-                        glyph: "▪",
-                        group: "",
-                        tag: Some(match v.access {
-                            crate::sim::onepassword::VaultAccess::ReadWrite => "",
-                            crate::sim::onepassword::VaultAccess::ReadOnly => "read-only",
-                            crate::sim::onepassword::VaultAccess::Denied => "no access",
-                        }),
-                        matched: vec![],
-                        disabled: false,
-                        key: String::new(),
+                    .map(|v| {
+                        Item::new(v.name.clone())
+                            .detail(format!("{} items", v.items.len()))
+                            .glyph("▪")
+                            .tag(match v.access {
+                                crate::sim::onepassword::VaultAccess::ReadWrite => "",
+                                crate::sim::onepassword::VaultAccess::ReadOnly => "read-only",
+                                crate::sim::onepassword::VaultAccess::Denied => "no access",
+                            })
                     })
                     .collect(),
                 Err(e) => {
@@ -791,15 +784,10 @@ impl OpFlow {
                     Ok(items) => items
                         .iter()
                         .filter(|i| matches(&i.title))
-                        .map(|i| PickerItem {
-                            label: i.title.clone(),
-                            detail: format!("{} · {} fields", i.category, i.fields.len()),
-                            glyph: " ",
-                            group: "",
-                            tag: None,
-                            matched: vec![],
-                            disabled: false,
-                            key: String::new(),
+                        .map(|i| {
+                            Item::new(i.title.clone())
+                                .detail(format!("{} · {} fields", i.category, i.fields.len()))
+                                .glyph(" ")
                         })
                         .collect(),
                     Err(e) => {
@@ -815,19 +803,15 @@ impl OpFlow {
                     Ok(fields) => fields
                         .iter()
                         .filter(|f| matches(&f.label))
-                        .map(|f| PickerItem {
-                            label: f.label.clone(),
-                            detail: f.kind.label().to_owned(),
-                            glyph: if f.kind == FieldKind::Concealed {
-                                "•"
-                            } else {
-                                " "
-                            },
-                            group: "",
-                            tag: None,
-                            matched: vec![],
-                            disabled: self.concealed_only && f.kind != FieldKind::Concealed,
-                            key: String::new(),
+                        .map(|f| {
+                            Item::new(f.label.clone())
+                                .detail(f.kind.label().to_owned())
+                                .glyph(if f.kind == FieldKind::Concealed {
+                                    "•"
+                                } else {
+                                    " "
+                                })
+                                .disabled(self.concealed_only && f.kind != FieldKind::Concealed)
                         })
                         .collect(),
                     Err(e) => {
@@ -932,7 +916,7 @@ impl OpFlow {
     pub fn on_key(&mut self, key: &Key, now_ms: i64, op: &SimOnePassword) -> Outcome {
         if key.is_char('r')
             && self.picker.status != PickerStatus::Ready
-            && self.picker.query.text().is_empty()
+            && self.picker.query().is_empty()
         {
             self.begin_load(now_ms, op);
             return Outcome::Changed;
@@ -965,7 +949,7 @@ impl OpFlow {
     pub fn pointer(&mut self, ev: &PointerEvent, now_ms: i64, op: &SimOnePassword) -> Outcome {
         let Some(r) = self.picker.route(ev) else {
             return match ev.wheel() {
-                Some((Axis::Vertical, delta)) => self.picker.wheel(Axis::Vertical, delta).outcome(),
+                Some((Axis::Vertical, delta)) => self.picker.list.wheel(Axis::Vertical, delta).outcome(),
                 _ if ev.is(Phase::Click) => Outcome::Consumed,
                 _ => Outcome::Ignored,
             };
