@@ -414,7 +414,7 @@ impl Charset {
 
     /// Parse an override value (`unicode`, `utf8`, `utf-8`, `ascii`; any
     /// case); `None` for anything else.
-    pub fn parse(value: &str) -> Option<Self> {
+    fn parse(value: &str) -> Option<Self> {
         match value.trim().to_ascii_lowercase().as_str() {
             "unicode" | "utf8" | "utf-8" => Some(Self::Unicode),
             "ascii" => Some(Self::Ascii),
