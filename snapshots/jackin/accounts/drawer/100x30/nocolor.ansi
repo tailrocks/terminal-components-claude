@@ -17,7 +17,7 @@
  │  Used by             Workspace choice in payments-platform                                   ┃ │ [0m
  │                                                                                              ┃ │ [0m
  │  [0m[1mQuota[0m                                                          stale · last good 47 min ago ┃ │ [0m
- │  [0m[2mSession · 5-hour    [0m[1;2;3m  76%                     [0m[2;3m        [0m[2m ▲  resets in 1 h 5 min               [0m┃ │ [0m
+ │  Session · 5-hour    [0m[1;3m  76%                     [0m[3m        [0m ▲  resets in 1 h 5 min               ┃ │ [0m
  │  Weekly · all models [0m[1;3m  88%                         [0m[3m    [0m ▲  resets Sun 19:14                  ┃ │ [0m
  │  Weekly · Opus       [0m[1;3m 100%                             [0m[1m ![0m  resets Sun 19:14 · exhausted      ┃ │ [0m
  │  Extra usage credits [0m[1;3m  28%     [0m[3m                        [0m    1,420 / 5,000 USD · $14.20 of $5… ┃ │ [0m
