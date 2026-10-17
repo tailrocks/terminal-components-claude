@@ -70,7 +70,9 @@ requires every non-pending scenario, and rejects files outside the tables.
 | `showcase/pages` (18 legacy pages + `selectable`) | 475 | re-approved (pilot): `chrome` for the Shift+F10 hint (abdf895c2), then every page for the tree sidebar, breadcrumb and footer hints (e48c7f75c, ea99e01ec, e0bf4a14b, 3ec122eb2, 85cec55af); gate green on 961abe9b4 |
 | `showcase/flows/selectable` (new) | 50 | re-approved with the pilot; gate green on 961abe9b4 |
 | `tablepro` (every stored root) | 1,100 | re-approved against `visual-baseline`, every difference attributed ([`visual-reapproval.md`](../audits/design-review-2026-10/visual-reapproval.md)) |
-| every other stored group | 6,000 | pending re-approval (tuisnap files) |
+| `holla` (every stored root) | 3,200 stored | re-approved: 3,125 captures accepted in the holla pass, every difference attributed ([`visual-reapproval.md`](../audits/design-review-2026-10/visual-reapproval.md) "holla"); all single `.ansi` |
+| `jackin` (every stored root) | 1,200 | re-approved, every difference attributed ([`visual-reapproval.md`](../audits/design-review-2026-10/visual-reapproval.md) "jackin") |
+| every other stored group (`showcase/flows` 1,150, `fade` 250, `audit` 125, `hover` 75, `resize` 50) | 1,650 | pending re-approval (tuisnap files; `docs/remaining-work.md` V1) |
 | new coverage rows (`.pending()`: 29 element, 7 overlay and 10 resize roots; 92 overlay dismissals) | 3,450 | no approval yet |
 | narrow tier (`40x12`, `60x18`) | 1,056 | no approval yet |
 
@@ -167,10 +169,12 @@ Commit the `snapshots/` change on its own, apart from code.
 
 ### Legacy four-file scenarios (separate step)
 
-On 2026-10-17, 5,975 scenarios still carry tuisnap's four files
-(`.ansi`, `.txt`, `.png`, `.html`; the `.ansi` has no cursor trailer and
-the `.html` embeds absolute tuisnap-era `argv[0]` paths), against 1,625
-single-`.ansi` scenarios. Every legacy `.ansi` decodes with
+On 2026-10-17, after the tablepro, holla and jackin re-approvals, 1,650
+scenarios still carry tuisnap's four files (`.ansi`, `.txt`, `.png`,
+`.html`; the `.ansi` has no cursor trailer and the `.html` embeds absolute
+tuisnap-era `argv[0]` paths), all in `showcase/`, against 6,025
+single-`.ansi` scenarios (7,675 `.ansi` files in `snapshots/`). Earlier
+the same day the split was 5,975 legacy against 1,625. Every legacy `.ansi` decodes with
 `formats::ansi::frame_from_ansi` and re-encodes to the original plus
 `ESC[?25l`. Plan: migrate them group by group with the re-approval loop
 above (`VISUAL_FULL=1` run, review, `tuiscotti accept` of the group,
