@@ -136,6 +136,12 @@ fn the_shell_input_and_protocol_options_reach_the_runtime_hooks() {
     assert_eq!(h.app.keyboard_protocol(), KeyboardProtocol::Off);
     h.opt("shell.keyboard_protocol=on");
     assert_eq!(h.app.keyboard_protocol(), KeyboardProtocol::On);
+    // A29: the Alt detection an app or the user overrides
+    h.opt("shell.alt_keys=refused");
+    assert!(!junie_tui::core::keyboard::alt_delivered());
+    h.opt("shell.alt_keys=delivered");
+    assert!(junie_tui::core::keyboard::alt_delivered());
+    assert!(h.text().contains("Alt keys"), "{}", h.text());
 }
 
 #[test]

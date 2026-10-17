@@ -652,6 +652,9 @@ pub struct App {
     /// The keyboard-protocol policy the session starts with
     /// (`Application::keyboard_protocol`); read once, at launch.
     pub keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol,
+    /// The `shell.alt_keys` choice last applied: 0 keeps the detection
+    /// ([`junie_tui::core::keyboard::AltKeys::current`]).
+    alt_keys: usize,
     /// Focus to restore when the Inspector overlay closes.
     inspector_focus: Option<WidgetId>,
     pub tick: u64,
@@ -820,6 +823,7 @@ impl App {
             reveal: junie_tui::ui::reveal::Reveal::default(),
             input: junie_tui::core::event::InputConfig::default(),
             keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol::current(),
+            alt_keys: 0,
             inspector_focus: None,
             tick: frame,
             last_key: None,
@@ -1538,6 +1542,22 @@ impl App {
             self.keyboard_protocol =
                 [P::current(), P::On, P::Off][o.get("shell.keyboard_protocol")];
         }
+        // the Alt detection is the process's: set only when the choice
+        // changes, and `auto` detects from the environment again
+        let alt = o.get("shell.alt_keys");
+        if alt != self.alt_keys {
+            use junie_tui::core::keyboard::{AltKeys as A, set_alt_keys};
+            self.alt_keys = alt;
+            set_alt_keys(match alt {
+                1 => A::Delivered,
+                2 => A::Refused,
+                3 => A::UntilSeen,
+                4 => A::WithProtocol,
+                _ => A::from_env(platform.unwrap_or_else(ClientPlatform::current), |k| {
+                    std::env::var(k).ok()
+                }),
+            });
+        }
         self.shell.focus_fallback = [
             junie_tui::core::focus::FocusFallback::First,
             junie_tui::core::focus::FocusFallback::Nearest,
@@ -1560,7 +1580,7 @@ impl App {
     #[allow(dead_code)]
     pub fn live_config(&self) -> String {
         format!(
-            "{:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?}",
+            "{:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | {:?} | alt keys {} {:?}",
             self.shell.pointer.config,
             self.theme.edit_entry,
             self.theme.field_keys,
@@ -1571,7 +1591,9 @@ impl App {
             self.reveal,
             self.input,
             self.keyboard_protocol,
-            self.shell.focus_fallback
+            self.shell.focus_fallback,
+            self.alt_keys,
+            junie_tui::core::keyboard::AltKeys::current()
         )
     }
 
