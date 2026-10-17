@@ -386,7 +386,7 @@ fn every_page_opens_by_its_slug() {
 /// Pages not yet on the Playground | Options | States template (Priority 0,
 /// "all pages on the template"). This list only shrinks: a page converted
 /// to the template leaves it in the same commit, and it ends empty.
-const NOT_ON_THE_TEMPLATE: &[PageId] = &[PageId::Forms, PageId::Settings, PageId::TaskRunner];
+const NOT_ON_THE_TEMPLATE: &[PageId] = &[PageId::Settings, PageId::TaskRunner];
 
 /// Every registered page builds through `Template`, opens on its
 /// Playground and draws its section strip (Playground | Options | States),
