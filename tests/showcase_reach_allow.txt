@@ -20,10 +20,6 @@ Selectable | Playground | 80x24 | R17 squeezes instead of overflowing: no Page::
 Selectable | Playground | 100x25 | R17 squeezes instead of overflowing: no Page::measure yet
 Selectable | Playground | 106x29 | R17 squeezes instead of overflowing: no Page::measure yet
 Selectable | Playground | 120x40 | R17 squeezes instead of overflowing: no Page::measure yet
-CellEditors | Playground | 80x24 | R18 squeezes instead of overflowing: no Page::measure yet
-CellEditors | Playground | 100x25 | R18 squeezes instead of overflowing: no Page::measure yet
-CellEditors | Playground | 106x29 | R18 squeezes instead of overflowing: no Page::measure yet
-CellEditors | Playground | 120x40 | R18 squeezes instead of overflowing: no Page::measure yet
 Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
