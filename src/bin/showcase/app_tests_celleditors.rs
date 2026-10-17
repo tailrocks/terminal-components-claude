@@ -142,27 +142,37 @@ fn a_select_cell_is_edited_by_keyboard() {
     assert_eq!(h.status().as_deref(), Some("Edit cancelled"));
 }
 
-/// S6: the wheel over an open choice popup moves its cursor (the popup is
-/// the table's: `DataTable`'s MouseTarget hands it the notch first).
+/// S6, S12 (plan §3 "Wheel in popup lists"): the wheel over an open
+/// choice popup scrolls its list and leaves the cursor (the popup is the
+/// table's: `DataTable`'s MouseTarget hands it the notch first);
+/// `EditorConfig::wheel` = `WheelMode::Cursor` moves the cursor instead.
 #[test]
-fn the_wheel_over_an_open_choice_popup_moves_its_cursor() {
+fn the_wheel_over_an_open_choice_popup_scrolls_its_list() {
     let mut h = Harness::new(140, 40);
+    h.app
+        .apply_opt(crate::options::parse_opt("celleditors.max_rows=4").unwrap());
+    h.draw();
     h.key(KeyCode::Enter);
     let editor = &h.table().choice.as_ref().expect("the popup is open").editor;
-    let before = editor.cursor;
+    let before = (editor.cursor, editor.list.scroll.offset);
     let row = h
         .app
         .shell
         .hits
-        .area_of(editor.option_id(2))
+        .area_of(editor.option_id(before.0))
         .expect("an option row");
     h.app.handle(Input::Mouse(Mouse::new(
         MouseKind::WheelDown,
         Position::new(row.x + 2, row.y),
     )));
     h.draw();
-    let after = h.table().choice.as_ref().expect("still open").editor.cursor;
-    assert_ne!(after, before, "the notch moved the popup's cursor");
+    let editor = &h.table().choice.as_ref().expect("still open").editor;
+    assert_eq!(editor.cursor, before.0, "the notch left the cursor");
+    assert!(
+        editor.list.scroll.offset > before.1,
+        "the notch scrolled the list\n{}",
+        h.text()
+    );
 }
 
 #[test]
