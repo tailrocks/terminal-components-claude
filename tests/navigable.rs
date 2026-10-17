@@ -16,7 +16,7 @@ use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRo
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuItem};
 use junie_tui::widgets::option_list::Item;
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::props::{Prop, PropsList};
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::steps::{Step, StepRail};
@@ -90,12 +90,12 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
     );
     let mut picker = Picker::new(id("p"), "Pick");
     // a searchable picker's Home/End and letters edit its query
-    picker.searchable = false;
+    picker.set_searchable(false);
     picker.set_items(
         LABELS
             .iter()
             .enumerate()
-            .map(|(i, l)| PickerItem::new(*l).disabled(d(i)))
+            .map(|(i, l)| Item::new(*l).disabled(d(i)))
             .collect(),
     );
     let mut select = Select::new(id("s"), "S", &LABELS, 0);

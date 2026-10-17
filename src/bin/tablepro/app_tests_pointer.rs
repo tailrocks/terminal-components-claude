@@ -127,5 +127,5 @@ fn scroll_of(h: &H) -> usize {
         .app
         .top_as::<junie_tui::widgets::picker::Picker>()
         .expect("the switcher is open");
-    p.scroll.offset
+    p.list.scroll.offset
 }

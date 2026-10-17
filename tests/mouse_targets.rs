@@ -24,7 +24,7 @@ use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::menu::{ContextMenu, MenuBar, MenuItem};
 use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::ScrollPanel;
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::props::{Prop, PropsList};
 use junie_tui::widgets::rail::SidebarRail;
 use junie_tui::widgets::select::Select;
@@ -275,13 +275,8 @@ fn popups_route_their_rows_and_backdrops() {
     );
 
     let mut picker = Picker::new(WidgetId::of("mt.picker"), "Go to");
-    picker.max_rows = 5;
-    picker.set_items(
-        many(30)
-            .iter()
-            .map(|s| PickerItem::new(s.as_str()))
-            .collect(),
-    );
+    picker.list.max_rows = 5;
+    picker.set_items(many(30).iter().map(|s| Item::new(s.as_str())).collect());
     let hits = hits_of(|buf, ctx| picker.draw(SCREEN, buf, ctx));
     let row = hits.area_of(picker.row_id(1)).expect("the picker's rows");
     check(

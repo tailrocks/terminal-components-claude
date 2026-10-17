@@ -41,8 +41,9 @@ use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::icon_button::IconButton;
 use junie_tui::widgets::info_dialog::{InfoCmd, InfoDialog, InfoResult};
 use junie_tui::widgets::input::TextInput;
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::picker::{Picker, PickerAction, PickerItem};
+use junie_tui::widgets::picker::{Picker, PickerAction};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::select::Select;
 
@@ -290,14 +291,9 @@ impl DialogKindsPage {
     /// Stack the key picker over the open form (its chooser fired).
     fn open_key_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(KEYS, "SSH key");
-        p.searchable = false;
-        p.width = 48;
-        p.set_items(
-            KEY_FILES
-                .iter()
-                .map(|k| PickerItem::new(*k).glyph("⚿"))
-                .collect(),
-        );
+        p.set_searchable(false);
+        p.list.width = (48, 48);
+        p.set_items(KEY_FILES.iter().map(|k| Item::new(*k).glyph("⚿")).collect());
         cx.open(p, LayerTag::new("keys"));
         self.open.push("keys");
     }

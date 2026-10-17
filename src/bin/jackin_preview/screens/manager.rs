@@ -21,8 +21,9 @@ use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::{Panel, PanelFocus};
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::progress::spinner_frame;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
@@ -430,8 +431,8 @@ impl ManagerScreen {
         };
         self.pending_launch = Some((ws, role.clone()));
         let mut p = Picker::new(WidgetId::of("manager.launch"), "Launch · choose Agent");
-        p.searchable = false;
-        p.width = 84;
+        p.set_searchable(false);
+        p.list.width = (84, 84);
         let scope = match ws.and_then(|id| w.workspace(id)) {
             Some(x) => format!("{} › {role}", x.name),
             None => format!("{} › {role}", w.tilde(&w.cwd)),
@@ -452,24 +453,20 @@ impl ManagerScreen {
             WidgetId::of("manager.session"),
             "New session · choose Agent",
         );
-        p.searchable = false;
-        p.width = 84;
+        p.set_searchable(false);
+        p.list.width = (84, 84);
         p.scope = Some(format!(
             "instance {} › {}",
             i.id.trim_start_matches("jk-"),
             i.role
         ));
         let (mut items, mut targets) = agent_rows(w, i.workspace, Some(&i.role));
-        items.push(PickerItem {
-            label: "Shell".into(),
-            detail: "zsh · no provider account".into(),
-            glyph: "$",
-            group: "shells",
-            tag: None,
-            matched: vec![],
-            disabled: false,
-            key: String::new(),
-        });
+        items.push(
+            Item::new("Shell")
+                .detail("zsh · no provider account")
+                .glyph("$")
+                .group("shells"),
+        );
         targets.push((Agent::ClaudeCode, Some("__shell__".into())));
         p.set_items(items);
         self.picker_targets = targets;
@@ -1839,7 +1836,7 @@ fn agent_rows(
     w: &World,
     ws: Option<WorkspaceId>,
     role: Option<&str>,
-) -> (Vec<PickerItem>, Vec<(Agent, Option<String>)>) {
+) -> (Vec<Item>, Vec<(Agent, Option<String>)>) {
     let wsr = ws.and_then(|id| w.workspace(id));
     let mut items = vec![];
     let mut targets = vec![];
@@ -1868,15 +1865,13 @@ fn agent_rows(
             (None, Some(why)) => (why.clone(), true, Some("unavailable")),
             (None, None) => ("no usable account".to_owned(), true, Some("unavailable")),
         };
-        items.push(PickerItem {
-            label: a.label().into(),
-            detail,
-            glyph: if a.registerable() { "▪" } else { "·" },
-            group: "agents",
-            tag,
-            matched: vec![],
-            disabled,
-            key: String::new(),
+        items.push(Item {
+            tag: (tag).map(Into::into),
+            ..Item::new(a.label())
+                .detail(detail)
+                .glyph(if a.registerable() { "▪" } else { "·" })
+                .group("agents")
+                .disabled(disabled)
         });
         targets.push((a, offer.preselected.clone()));
     }

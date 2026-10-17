@@ -1142,29 +1142,32 @@ mod widget_tests {
         crate::core::list::NavProfile::Vim.install();
         use crate::widgets::completion::Completion;
         use crate::widgets::option_list::Item;
-        use crate::widgets::picker::{Picker, PickerItem};
+        use crate::widgets::picker::Picker;
         let items = || {
             (0..5)
-                .map(|i| PickerItem::new(format!("p{i}")))
+                .map(|i| Item::new(format!("p{i}")))
                 .collect::<Vec<_>>()
         };
         let mut p = Picker::new(WidgetId::of("p"), "P");
         p.set_items(items());
         p.on_key(&c('j'));
-        assert_eq!(p.cursor, 0, "a searchable picker types its letters");
-        assert_eq!(p.query.text(), "j");
+        assert_eq!(
+            p.list.cursor.index, 0,
+            "a searchable picker types its letters"
+        );
+        assert_eq!(p.query(), "j");
         p.on_key(&k(KeyCode::Down));
-        assert_eq!(p.cursor, 1);
+        assert_eq!(p.list.cursor.index, 1);
         let mut p = Picker::new(WidgetId::of("p"), "P");
-        p.searchable = false;
+        p.set_searchable(false);
         p.set_items(items());
         p.on_key(&c('G'));
-        assert_eq!(p.cursor, 4, "a plain list takes the whole table");
+        assert_eq!(p.list.cursor.index, 4, "a plain list takes the whole table");
         let mut p = Picker::new(WidgetId::of("p"), "P").nav(NavKeys::NO_VIM);
-        p.searchable = false;
+        p.set_searchable(false);
         p.set_items(items());
         p.on_key(&c('j'));
-        assert_eq!(p.cursor, 0);
+        assert_eq!(p.list.cursor.index, 0);
 
         let item = |l: &str| Item::new(l).glyph("T");
         let mut comp = Completion::new(WidgetId::of("c"));

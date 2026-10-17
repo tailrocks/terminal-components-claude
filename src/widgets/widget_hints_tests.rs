@@ -14,7 +14,8 @@ use crate::widgets::info_dialog::InfoDialog;
 use crate::widgets::input::TextInput;
 use crate::widgets::list::{ListBox, ListItem, SelectMode};
 use crate::widgets::menu::{ContextMenu, MenuBar, MenuItem};
-use crate::widgets::picker::{Picker, PickerItem};
+use crate::widgets::option_list::Item;
+use crate::widgets::picker::Picker;
 use crate::widgets::props::Prop;
 use crate::widgets::select::Select;
 use crate::widgets::tree::{TreeNode, TreeView};
@@ -113,18 +114,18 @@ fn menu_hints_under_desktop_and_vim() {
 #[test]
 fn picker_hints_follow_search_and_query() {
     let mut p = Picker::new(ID, "Open");
-    p.items = vec![PickerItem::new("a")];
+    p.items = vec![Item::new("a")];
     assert_eq!(
         line(&p),
         "Type Filter · ↑↓ Move · Enter Choose · Esc Cancel"
     );
-    p.query.set_text("a");
+    p.set_query("a");
     assert_eq!(line(&p), "Type Filter · ↑↓ Move · Enter Choose · Esc Clear");
     let fixed = Picker::new(ID, "Mode")
         .choose_hint("Switch")
         .dismiss(crate::ui::popup::Dismiss::ESCAPE);
     let mut fixed = fixed;
-    fixed.searchable = false;
+    fixed.set_searchable(false);
     assert_eq!(line(&fixed), "↑↓ Move · Enter Switch · Esc Cancel");
 }
 

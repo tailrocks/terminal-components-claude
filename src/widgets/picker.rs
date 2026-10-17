@@ -1,10 +1,15 @@
 //! Searchable picker: a centered modal with a query field and grouped,
 //! ranked rows. Used for quick switchers, tab lists and enum pickers.
 //! Ranking is the owner's job (it supplies the rows for the query).
+//!
+//! The body (cursor, scroll and bar, wheel, row hit parts, key
+//! navigation and type-ahead, the query field and the popup policy) is an
+//! [`OptionList`]; its rows are [`Item`]s. The picker keeps its frame,
+//! title, status and the row content (glyph, label, detail, tag, group).
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
@@ -12,7 +17,6 @@ use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Navigable, RowSource};
-use crate::core::scroll::{ScrollPane, ScrollState, Scrollable};
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
@@ -20,60 +24,11 @@ use crate::ui::popup::{Placement, place_with};
 use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
 use crate::widgets::keyhint::Hint;
+use crate::widgets::option_list::{Item, OptionList};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PickerItem {
-    pub label: String,
-    pub detail: String,
-    pub glyph: &'static str,
-    pub group: &'static str,
-    /// Trailing hint on the row (e.g. "open").
-    pub tag: Option<&'static str>,
-    pub matched: Vec<usize>,
-    pub disabled: bool,
-    /// Owner identity the row stands for (a tab, an activity, a path).
-    /// Stable across refreshes; empty when the owner keys by index.
-    pub key: String,
-}
-
-impl PickerItem {
-    /// The glyph of a new item; it draws as
-    /// [`Glyphs::bullet`](crate::theme::Glyphs::bullet).
-    pub const DEFAULT_GLYPH: &'static str = "·";
-
-    pub fn new(label: impl Into<String>) -> Self {
-        Self {
-            label: label.into(),
-            detail: String::new(),
-            glyph: Self::DEFAULT_GLYPH,
-            group: "",
-            tag: None,
-            matched: vec![],
-            disabled: false,
-            key: String::new(),
-        }
-    }
-    pub fn detail(mut self, d: impl Into<String>) -> Self {
-        self.detail = d.into();
-        self
-    }
-    pub fn glyph(mut self, g: &'static str) -> Self {
-        self.glyph = g;
-        self
-    }
-    pub fn group(mut self, g: &'static str) -> Self {
-        self.group = g;
-        self
-    }
-    pub fn key(mut self, k: impl Into<String>) -> Self {
-        self.key = k.into();
-        self
-    }
-    pub fn disabled(mut self, d: bool) -> Self {
-        self.disabled = d;
-        self
-    }
-}
+/// The glyph a row draws as [`Glyphs::bullet`](crate::theme::Glyphs::bullet)
+/// when it sets none (or sets this one).
+pub const DEFAULT_GLYPH: &str = "·";
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum PickerStatus {
@@ -94,28 +49,22 @@ pub struct Picker {
     pub status: PickerStatus,
     pub title: String,
     pub placeholder: String,
-    /// The query field: its text, caret, selection, undo and keys are the
-    /// shared [`EditField`]'s, so it edits, selects (Select All, a double
-    /// click on a word, a drag) and undoes like every text field. Owners
-    /// read [`EditField::text`] and replace it with [`EditField::set_text`]
-    /// (the caret goes to the end).
-    pub query: EditField,
-    pub items: Vec<PickerItem>,
-    pub cursor: usize,
-    /// The rows and the bar ([`Scrollable`]).
-    pub scroll: ScrollPane,
-    pub width: u16,
-    pub max_rows: u16,
-    /// Where the picker sits and how it keeps off the screen edges.
-    /// Default [`Place::DEFAULT`](crate::ui::popup::Place): centred like a
-    /// dialog, one free cell from every edge.
-    pub fit: crate::ui::popup::Place,
-    /// Where the picker opens relative to [`Self::anchor`]. Default
-    /// [`Placement::Center`] (the quick-switcher position, ignoring the
-    /// anchor); an anchored placement turns it into a drop-down under (or
-    /// beside) a control.
-    pub placement: Placement,
-    /// The rectangle an anchored [`Self::placement`] opens next to.
+    /// The rows. A row's [`Item::key`] is its identity across refreshes
+    /// ([`Self::refresh_items`]); a row that sets no glyph draws the
+    /// theme's bullet ([`DEFAULT_GLYPH`]).
+    pub items: Vec<Item>,
+    /// The list body: cursor, scroll and bar, wheel, keys and type-ahead,
+    /// the query field and the popup policy (`max_rows` default 12,
+    /// `width` (64, 64), `placement` [`Placement::Center`], `fit`,
+    /// `dismiss`, `look`, `nav`).
+    ///
+    /// The query ([`OptionList::query`]) is the shared [`EditField`], so
+    /// it edits, selects (Select All, a double click on a word, a drag)
+    /// and undoes like every text field; `None` makes a fixed-choice
+    /// picker. Owners read [`Self::query`] and replace it with
+    /// [`Self::set_query`].
+    pub list: OptionList,
+    /// The rectangle an anchored [`OptionList::placement`] opens next to.
     /// Default `Rect::ZERO`.
     pub anchor: Rect,
     /// The hint row at the bottom of the picker (e.g. "↵ open · esc
@@ -135,21 +84,9 @@ pub struct Picker {
     /// [`Self::empty_text`] when set. Default `None`.
     pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
-    /// Show the query field (false for fixed-choice pickers).
-    pub searchable: bool,
-    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
-    /// query field that owns the list keeps the only focus bar.
-    pub cursor_style: CursorStyle,
-    /// The cursor moved since the last render: the next render pulls it
-    /// into view. Wheel scrolling leaves it alone so the viewport and the
-    /// selection never fight.
-    cursor_dirty: bool,
     /// How a cut label or detail reveals its full text on hover (see
     /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// Which dismissals close the picker without choosing. Default
-    /// [`Dismiss::LIGHT`](crate::ui::popup::Dismiss::LIGHT): Esc and a click outside both cancel.
-    pub dismiss: crate::ui::popup::Dismiss,
     /// The last action, kept for the stack while the picker is a
     /// [`crate::ui::layer::Layer`].
     pub(crate) pending: Option<PickerAction>,
@@ -158,36 +95,32 @@ pub struct Picker {
     /// forward. Default `true` (today's binding); off, Delete deletes the
     /// character after the caret like a search field.
     pub delete_is_secondary: bool,
-    /// Which keys move the list cursor (default [`NavKeys::default`]). A
-    /// searchable picker types its letters and edits the query with
-    /// ←/→ and Home/End, so there only ↑/↓ and paging move; a plain list
-    /// takes the whole table.
-    pub nav: NavKeys,
     /// What the footer says Enter does on a row ([`HasHints`]). Default
     /// `Choose`; a tab switcher says `Switch`.
     pub choose_hint: std::borrow::Cow<'static, str>,
 }
 
 /// The footer while the picker is on top: `Type Filter` when it searches,
-/// how the cursor moves (from [`Picker::nav`]), Enter
+/// how the cursor moves (from [`OptionList::nav`]), Enter
 /// ([`Picker::choose_hint`]), and Esc as it acts now (`Clear` while a
 /// query is typed, `Cancel` when the dismiss policy lets Esc close it).
 impl HasHints for Picker {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        let searchable = self.is_searchable();
         let mut v = vec![];
-        if self.searchable {
+        if searchable {
             v.push(Hint::new("Type", "Filter"));
         }
         // a searchable picker's letters edit the query
         v.extend(
-            nav_hints(&self.nav, self.searchable, false)
+            nav_hints(&self.list.nav, searchable, false)
                 .into_iter()
                 .filter(|h| h.key != "Type"),
         );
         v.push(Hint::new("Enter", self.choose_hint.clone()));
-        if self.searchable && !self.query.text().is_empty() {
+        if !self.query().is_empty() {
             v.push(Hint::new("Esc", "Clear"));
-        } else if self.dismiss.escape {
+        } else if self.list.dismiss.escape {
             v.push(Hint::new("Esc", self.strings.hint_cancel));
         }
         v
@@ -216,20 +149,27 @@ pub enum PickerAction {
 }
 
 impl Picker {
+    /// Default [`OptionList::max_rows`] of a picker.
+    pub const MAX_ROWS: u16 = 12;
+    /// Default width of a picker in cells, before it is clamped to the
+    /// screen.
+    pub const WIDTH: u16 = 64;
+
     pub fn new(id: WidgetId, title: &str) -> Self {
+        let list = OptionList::new(id)
+            .query(EditField::single(""))
+            .max_rows(Self::MAX_ROWS)
+            .width(Self::WIDTH, Self::WIDTH)
+            .placement(Placement::Center)
+            // the pointer tints a row; the cursor stays the keyboard's
+            .hover_moves_cursor(false);
         Self {
             id,
             status: PickerStatus::Ready,
             title: title.to_owned(),
             placeholder: crate::theme::Strings::DEFAULT.search_placeholder.into(),
-            query: EditField::single(""),
             items: vec![],
-            cursor: 0,
-            scroll: ScrollPane::default(),
-            width: 64,
-            max_rows: 12,
-            fit: crate::ui::popup::Place::DEFAULT,
-            placement: Placement::Center,
+            list,
             anchor: Rect::ZERO,
             hints: String::new(),
             backdrop: Backdrop::DEFAULT,
@@ -238,14 +178,9 @@ impl Picker {
             strings: crate::theme::Strings::DEFAULT,
             empty: None,
             area: Rect::ZERO,
-            searchable: true,
-            cursor_style: CursorStyle::default(),
-            cursor_dirty: true,
             reveal: None,
-            dismiss: crate::ui::popup::Dismiss::LIGHT,
             pending: None,
             delete_is_secondary: true,
-            nav: NavKeys::default(),
             choose_hint: std::borrow::Cow::Borrowed("Choose"),
         }
     }
@@ -256,9 +191,12 @@ impl Picker {
         self
     }
 
-    /// See [`Self::nav`].
+    /// Which keys move the list cursor ([`OptionList::nav`], default
+    /// [`NavKeys::default`]). A searchable picker types its letters and
+    /// edits the query with ←/→ and Home/End, so there only ↑/↓ and
+    /// paging move; a plain list takes the whole table.
     pub fn nav(mut self, nav: NavKeys) -> Self {
-        self.nav = nav;
+        self.list.nav = nav;
         self
     }
 
@@ -267,33 +205,76 @@ impl Picker {
         self
     }
 
-    /// The query caret as a byte offset.
+    /// Show the query field (on by default); off makes a fixed-choice
+    /// picker.
+    pub fn searchable(mut self, on: bool) -> Self {
+        self.set_searchable(on);
+        self
+    }
+
+    /// [`Self::searchable`] in place: on keeps (or starts) an empty query,
+    /// off drops it.
+    pub fn set_searchable(&mut self, on: bool) {
+        match (on, self.list.query.is_some()) {
+            (true, false) => self.list.query = Some(EditField::single("")),
+            (false, true) => self.list.query = None,
+            _ => {}
+        }
+    }
+
+    /// Whether the picker shows its query field.
+    pub fn is_searchable(&self) -> bool {
+        self.list.query.is_some()
+    }
+
+    /// The query text; empty for a picker without a query.
+    pub fn query(&self) -> &str {
+        self.list.query.as_ref().map_or("", EditField::text)
+    }
+
+    /// Replace the query text (the caret goes to the end). Nothing for a
+    /// picker without a query.
+    pub fn set_query(&mut self, text: &str) {
+        if let Some(q) = &mut self.list.query {
+            q.set_text(text);
+        }
+    }
+
+    /// The query caret as a byte offset (0 without a query).
     pub fn caret(&self) -> usize {
-        self.query.buffer.cursor_offset()
+        self.list
+            .query
+            .as_ref()
+            .map_or(0, |q| q.buffer.cursor_offset())
     }
 
     /// Width in cells before clamping to the screen. Default 64.
     pub fn width(mut self, width: u16) -> Self {
-        self.width = width;
+        self.list = self.list.width(width, width);
         self
     }
 
-    /// See [`Self::placement`].
+    /// See [`OptionList::placement`]. Default [`Placement::Center`] (the
+    /// quick-switcher position, ignoring the anchor); an anchored
+    /// placement turns it into a drop-down under (or beside) a control.
     pub fn placement(mut self, placement: Placement) -> Self {
-        self.placement = placement;
+        self.list.placement = placement;
         self
     }
 
     /// Open next to `anchor` per `placement` (see [`Self::anchor`]).
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
-        self.placement = placement;
+        self.list.placement = placement;
         self
     }
 
-    /// See [`Self::fit`].
+    /// Where the picker sits and how it keeps off the screen edges
+    /// ([`OptionList::fit`]). Default
+    /// [`Place::DEFAULT`](crate::ui::popup::Place): centred like a dialog,
+    /// one free cell from every edge.
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
-        self.fit = fit;
+        self.list.fit = fit;
         self
     }
 
@@ -311,7 +292,7 @@ impl Picker {
 
     /// Most rows shown before the list scrolls. Default 12.
     pub fn max_rows(mut self, rows: u16) -> Self {
-        self.max_rows = rows;
+        self.list.max_rows = rows;
         self
     }
 
@@ -333,64 +314,77 @@ impl Picker {
         self
     }
 
+    /// Which dismissals close the picker without choosing
+    /// ([`OptionList::dismiss`]). Default
+    /// [`Dismiss::LIGHT`](crate::ui::popup::Dismiss::LIGHT): Esc and a
+    /// click outside both cancel.
     pub fn dismiss(mut self, dismiss: crate::ui::popup::Dismiss) -> Self {
-        self.dismiss = dismiss;
+        self.list.dismiss = dismiss;
         self
     }
 
     /// A click outside the picker: cancels it when its [`Self::dismiss`]
     /// policy allows.
     pub fn on_click_outside(&mut self) -> Option<PickerAction> {
-        self.dismiss
+        self.list
+            .dismiss
             .outside_click
             .then_some(PickerAction::Cancelled)
     }
 
+    /// How the cursor row is marked ([`OptionList::look`]). Default
+    /// [`CursorStyle::Fill`]: the query field that owns the list keeps the
+    /// only focus bar.
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
-        self.cursor_style = cursor_style;
+        self.list.look = cursor_style;
         self
     }
 
     /// The frame's height in rows before it is fitted to a screen: the
     /// title, the search field (when searchable), the rows up to
-    /// [`Self::max_rows`] (two for a loading or failed status) and the
-    /// hint row.
+    /// [`OptionList::max_rows`] (two for a loading or failed status) and
+    /// the hint row.
     pub fn height(&self) -> u16 {
+        let max = self.list.max_rows;
         let rows = if self.status == PickerStatus::Ready {
-            (self.items.len() as u16).clamp(1, self.max_rows)
+            (self.items.len() as u16).clamp(1, max)
         } else {
-            (self.items.len() as u16).clamp(2, self.max_rows)
+            (self.items.len() as u16).clamp(2, max)
         };
-        let query_rows = if self.searchable { 2 } else { 0 };
+        let query_rows = if self.is_searchable() { 2 } else { 0 };
         2 + 1 + query_rows + rows + 2
+    }
+
+    /// The first row an action may target, or 0.
+    fn first_enabled(&self) -> usize {
+        self.items.iter().position(|i| !i.disabled).unwrap_or(0)
     }
 
     /// Replace the rows for a new query: the cursor deliberately returns to
     /// the first eligible row.
-    pub fn set_items(&mut self, items: Vec<PickerItem>) {
+    pub fn set_items(&mut self, items: Vec<Item>) {
         self.items = items;
-        self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
-        self.scroll.v = ScrollState::new(self.items.len());
-        self.cursor_dirty = true;
+        self.list.reset(self.items.len());
+        self.list.cursor.index = self.first_enabled();
     }
 
     /// Refresh the rows while the picker stays open: the cursor follows the
-    /// row's `key`, so an insertion or removal above it never retargets the
-    /// selection. A vanished key falls to the first eligible row.
-    pub fn refresh_items(&mut self, items: Vec<PickerItem>) {
+    /// row's [`Item::key`], so an insertion or removal above it never
+    /// retargets the selection. A vanished key, or rows keyed by position,
+    /// fall to the first eligible row.
+    pub fn refresh_items(&mut self, items: Vec<Item>) {
         let keep = self
             .items
-            .get(self.cursor)
-            .filter(|i| !i.key.is_empty())
-            .map(|i| i.key.clone());
-        let offset = self.scroll.offset;
+            .get(self.list.cursor.index)
+            .map(|i| i.key)
+            .filter(|k| !matches!(k, ItemKey::Index(_)));
+        let offset = self.list.scroll.offset;
         self.items = items;
-        self.cursor = keep
+        self.list.cursor.index = keep
             .and_then(|k| self.items.iter().position(|i| i.key == k && !i.disabled))
-            .unwrap_or_else(|| self.items.iter().position(|i| !i.disabled).unwrap_or(0));
-        self.scroll.set_content(self.items.len());
-        self.scroll.scroll_to(offset);
-        self.cursor_dirty = true;
+            .unwrap_or_else(|| self.first_enabled());
+        self.list.scroll.set_content(self.items.len());
+        self.list.scroll.scroll_to(offset);
     }
 
     /// The row an action may target: only a real, enabled row of a ready
@@ -402,55 +396,53 @@ impl Picker {
         self.items.get(i).filter(|it| !it.disabled).map(|_| i)
     }
 
-    /// The key of the eligible cursor row, for owners that map identity.
-    pub fn current_key(&self) -> Option<&str> {
-        self.eligible(self.cursor)
-            .map(|i| self.items[i].key.as_str())
-            .filter(|k| !k.is_empty())
+    /// The eligible cursor row.
+    pub fn current(&self) -> Option<&Item> {
+        self.eligible(self.list.cursor.index)
+            .map(|i| &self.items[i])
+    }
+
+    /// The key of the eligible cursor row, for owners that map identity;
+    /// `None` for rows keyed by position.
+    pub fn current_key(&self) -> Option<ItemKey> {
+        self.current()
+            .map(|it| it.key)
+            .filter(|k| !matches!(k, ItemKey::Index(_)))
     }
 
     /// Pasted text enters the query as one edit: line breaks become spaces
     /// and exactly one `QueryChanged` is emitted.
     pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerAction>) {
-        if !self.searchable || self.status == PickerStatus::Loading(String::new()) {
+        if self.status == PickerStatus::Loading(String::new()) {
             return (Outcome::Consumed, None);
         }
+        let Some(query) = &mut self.list.query else {
+            return (Outcome::Consumed, None);
+        };
         // a tab is a space in a one-line query; line breaks flatten in
         // the field ([`EditField::paste`])
         let flat = text.replace('\t', " ");
-        if flat.is_empty() || !self.query.paste(&flat) {
+        if flat.is_empty() || !query.paste(&flat) {
             return (Outcome::Consumed, None);
         }
         (Outcome::Changed, Some(PickerAction::QueryChanged))
     }
 
-    /// Move the cursor and ask the next render to keep it in view.
+    /// Move the cursor and keep it in view.
     pub fn set_cursor(&mut self, i: usize) {
-        self.cursor = i.min(self.items.len().saturating_sub(1));
-        self.cursor_dirty = true;
-        self.scroll.ensure_visible(self.cursor);
+        self.list.cursor.index = i.min(self.items.len().saturating_sub(1));
+        self.list.scroll.ensure_visible(self.list.cursor.index);
     }
 
     pub fn row_id(&self, i: usize) -> WidgetId {
-        self.id.part(Self::row_part(i))
-    }
-
-    fn row_part(i: usize) -> PartRef {
-        PartRef::item(Part::ROW, ItemKey::index(i))
-    }
-
-    /// A keyboard move: the next render keeps the cursor in view.
-    fn move_to(&mut self, i: usize) {
-        self.cursor = i;
-        self.cursor_dirty = true;
-        self.scroll.ensure_visible(self.cursor);
+        self.list.row_id(i)
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
         // a searchable picker types its letters, and its Home/End and ←/→
         // edit the query; the list keeps ↑/↓ and paging
-        let typing = self.searchable;
-        let nav = self.nav.action(key).filter(|n| {
+        let typing = self.is_searchable();
+        let nav = self.list.nav.action(key).filter(|n| {
             !(typing
                 && (matches!(key.code, KeyCode::Char(_))
                     || matches!(n, Nav::Home | Nav::End | Nav::Left | Nav::Right)))
@@ -459,33 +451,29 @@ impl Picker {
         let Some(nav) = nav else {
             return self.on_other_key(key);
         };
-        match self
-            .cursor()
-            .apply(nav, self, self.scroll.viewport_len)
-            .index()
-        {
-            Some(i) => {
-                self.move_to(i);
-                (Outcome::Changed, None)
-            }
+        match self.list.nav_step(nav, &self.items[..]).index() {
+            Some(_) => (Outcome::Changed, None),
             None => self.on_other_key(key),
         }
     }
 
     fn on_other_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
+        let searchable = self.is_searchable();
         match key.code {
             KeyCode::Esc => {
-                if self.searchable && !self.query.text().is_empty() {
-                    self.query.record(crate::core::edit::EditKind::Other);
-                    self.query.buffer.set_text("");
+                if let Some(q) = &mut self.list.query
+                    && !q.text().is_empty()
+                {
+                    q.record(crate::core::edit::EditKind::Other);
+                    q.buffer.set_text("");
                     return (Outcome::Changed, Some(PickerAction::QueryChanged));
                 }
-                if !self.dismiss.escape {
+                if !self.list.dismiss.escape {
                     return (Outcome::Consumed, None);
                 }
                 (Outcome::Changed, Some(PickerAction::Cancelled))
             }
-            KeyCode::Enter => match self.eligible(self.cursor) {
+            KeyCode::Enter => match self.eligible(self.list.cursor.index) {
                 Some(i) => {
                     let ev = if key.alt() {
                         PickerAction::ChosenAlt(i)
@@ -494,55 +482,47 @@ impl Picker {
                     };
                     (Outcome::Changed, Some(ev))
                 }
-                None if self.searchable && !self.query.text().trim().is_empty() => {
+                None if searchable && !self.query().trim().is_empty() => {
                     (Outcome::Changed, Some(PickerAction::Submit))
                 }
                 None => (Outcome::Consumed, None),
             },
             KeyCode::Char('n') | KeyCode::Char('j') if key.ctrl() => {
-                if let Some(i) = self.cursor().step(1, self).index() {
-                    self.move_to(i);
-                }
+                self.list.step(1, &self.items[..]);
                 (Outcome::Changed, None)
             }
             KeyCode::Char('p') | KeyCode::Char('k') if key.ctrl() => {
-                if let Some(i) = self.cursor().step(-1, self).index() {
-                    self.move_to(i);
-                }
+                self.list.step(-1, &self.items[..]);
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerAction::NextScope)),
             KeyCode::BackTab => (Outcome::Changed, Some(PickerAction::PrevScope)),
-            KeyCode::Delete if self.delete_is_secondary || !self.searchable => {
-                match self.eligible(self.cursor) {
+            KeyCode::Delete if self.delete_is_secondary || !searchable => {
+                match self.eligible(self.list.cursor.index) {
                     Some(i) => (Outcome::Changed, Some(PickerAction::Secondary(i))),
                     None => (Outcome::Consumed, None),
                 }
             }
-            KeyCode::Backspace if self.query.text().is_empty() || !self.searchable => {
+            KeyCode::Backspace if self.query().is_empty() => {
                 (Outcome::Changed, Some(PickerAction::Back))
             }
             // everything else edits the query: typing, the caret keys,
             // Select All, the clipboard keys, undo
-            _ if self.searchable => {
-                let r = self.query.on_key(key);
-                if r.edited {
-                    (Outcome::Changed, Some(PickerAction::QueryChanged))
-                } else if r.outcome == Outcome::Changed && r.exit.is_none() {
-                    (Outcome::Changed, None)
-                } else {
-                    // the picker is modal: an unused key or chord stops here
-                    (Outcome::Consumed, None)
+            _ => match &mut self.list.query {
+                Some(q) => {
+                    let r = q.on_key(key);
+                    if r.edited {
+                        (Outcome::Changed, Some(PickerAction::QueryChanged))
+                    } else if r.outcome == Outcome::Changed && r.exit.is_none() {
+                        (Outcome::Changed, None)
+                    } else {
+                        // the picker is modal: an unused key or chord stops here
+                        (Outcome::Consumed, None)
+                    }
                 }
-            }
-            _ => (Outcome::Consumed, None),
+                None => (Outcome::Consumed, None),
+            },
         }
-    }
-
-    /// The row `id` is (the inverse [`Self::on_click`] needs until S15
-    /// hands it the routed part).
-    fn row_of(&self, id: WidgetId) -> Option<usize> {
-        self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
@@ -550,10 +530,8 @@ impl Picker {
         if id == crate::ui::popup::backdrop_id(self.id) {
             return self.on_click_outside();
         }
-        let i = self.eligible(self.row_of(id)?)?;
-        self.cursor = i;
-        self.cursor_dirty = true;
-        self.scroll.pointer_move();
+        let i = self.eligible(self.list.row_of(id, self.items.len())?)?;
+        self.list.select(i, &self.items[..]);
         Some(PickerAction::Chosen(i))
     }
 
@@ -571,7 +549,7 @@ impl Picker {
     }
 
     fn paint(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
-        self.scroll.begin(ctx.track_click);
+        self.list.scroll.begin(ctx.track_click);
         let s = ctx.theme.strings;
         let old = std::mem::replace(&mut self.strings, s);
         use crate::theme::Strings;
@@ -590,13 +568,19 @@ impl Picker {
         // click never passes through.
         let modal = crate::ui::popup::Dismiss {
             pass_through: false,
-            ..self.dismiss
+            ..self.list.dismiss
         };
         crate::ui::popup::backdrop(ctx, self.id, modal, screen);
         let h = self.height().min(screen.height.saturating_sub(2));
-        let w = self.width.min(screen.width.saturating_sub(4));
-        let area = place_with(screen, self.anchor, w, h, self.placement, self.fit);
-        let _ = Constraint::Length(0);
+        let w = self.list.width.1.min(screen.width.saturating_sub(4));
+        let area = place_with(
+            screen,
+            self.anchor,
+            w,
+            h,
+            self.list.placement,
+            self.list.fit,
+        );
         self.area = area;
         let bg = t.surface_elevated;
         fill(buf, area, Style::new().bg(bg));
@@ -632,7 +616,7 @@ impl Picker {
             }
         }
         y += 1;
-        if self.searchable {
+        if let Some(query) = &mut self.list.query {
             let field = Rect::new(inner.x, y, inner.width, 1);
             let fstate = crate::ui::ctx::VisualState {
                 focused: true,
@@ -647,11 +631,11 @@ impl Picker {
                 t.gutter_symbol(fstate),
                 t.gutter(fstate, fs.bg.unwrap_or(bg), false),
             );
-            self.query.keys = ctx.theme.field_keys.unwrap_or_default();
+            query.keys = ctx.theme.field_keys.unwrap_or_default();
             let w = field.width.saturating_sub(3) as usize;
             // the text and the cell after it, where the caret can sit
             let line = Rect::new(field.x + 2, y, field.width.saturating_sub(2), 1);
-            let caret = if self.query.text().is_empty() {
+            let caret = if query.text().is_empty() {
                 buf.set_string(
                     line.x,
                     y,
@@ -670,7 +654,7 @@ impl Picker {
                     underline: Some(t.text_secondary),
                     follow_caret: true,
                 };
-                self.query.draw_line(buf, line, &look)
+                query.draw_line(buf, line, &look)
             };
             if line.width > 0 {
                 // the whole field row past the gutter is the text target
@@ -690,13 +674,21 @@ impl Picker {
             inner.width,
             inner.bottom().saturating_sub(y + u16::from(hints_fit)),
         );
-        self.scroll.set_content(self.items.len());
-        self.scroll.set_viewport(list.height as usize);
-        // only a cursor move pulls the viewport; a wheel scroll must survive
-        if self.cursor_dirty {
-            self.scroll.ensure_visible(self.cursor);
-            self.cursor_dirty = false;
-        }
+        // the content and viewport; only a moved cursor pulls the view, so
+        // a wheel scroll survives
+        self.list.layout(list, &self.items[..], ctx);
+        let hint_row = |buf: &mut Buffer| {
+            // owners with a shell-level hint bar pass an empty string
+            if !hints.is_empty() {
+                let hy = inner.bottom().saturating_sub(1);
+                buf.set_string(
+                    inner.x,
+                    hy,
+                    truncate(hints, inner.width as usize),
+                    t.faint().bg(bg),
+                );
+            }
+        };
         match &self.status {
             PickerStatus::Loading(label) => {
                 crate::widgets::progress::render_spinner(
@@ -706,16 +698,7 @@ impl Picker {
                     label,
                     bg,
                 );
-                // hints row still applies
-                if !hints.is_empty() {
-                    let hy = inner.bottom().saturating_sub(1);
-                    buf.set_string(
-                        inner.x,
-                        hy,
-                        truncate(hints, inner.width as usize),
-                        t.faint().bg(bg),
-                    );
-                }
+                hint_row(buf);
                 return;
             }
             PickerStatus::Error { message, detail } => {
@@ -724,15 +707,7 @@ impl Picker {
                     e = e.hint(d);
                 }
                 crate::widgets::empty::render(list, buf, t, &e, bg);
-                if !hints.is_empty() {
-                    let hy = inner.bottom().saturating_sub(1);
-                    buf.set_string(
-                        inner.x,
-                        hy,
-                        truncate(hints, inner.width as usize),
-                        t.faint().bg(bg),
-                    );
-                }
+                hint_row(buf);
                 return;
             }
             PickerStatus::Ready => {}
@@ -749,17 +724,17 @@ impl Picker {
                 bg,
             );
         }
-        let has_sb = self.scroll.overflows();
+        let has_sb = self.list.scroll.overflows();
         let row_w = list.width.saturating_sub(u16::from(has_sb));
         // column widths come from every item, not just the visible ones,
         // so scrolling never shifts the columns; one solver shares the row
         // between label and detail by what they measure, so neither is cut
         // beside cells the other does not use
-        let measure = |f: &dyn Fn(&PickerItem) -> u16| self.items.iter().map(f).max().unwrap_or(0);
+        let measure = |f: &dyn Fn(&Item) -> u16| self.items.iter().map(f).max().unwrap_or(0);
         let label_need = measure(&|i| width(&i.label) as u16).max(6);
         let detail_need = measure(&|i| width(&i.detail) as u16);
-        let tag_col = measure(&|i| i.tag.map_or(0, |t| width(t) as u16));
-        let group_col = measure(&|i| width(i.group) as u16);
+        let tag_col = measure(&|i| i.tag.as_deref().map_or(0, |t| width(t) as u16));
+        let group_col = measure(&|i| width(&i.group) as u16);
         let label_cap = label_need.min((row_w * 45 / 100).max(6));
         let mut cols = vec![
             Col::content(label_cap.min(12), label_cap),
@@ -777,156 +752,141 @@ impl Picker {
         let widths = columns::solve(&cols, row_w.saturating_sub(4), 2);
         let label_col = widths[0];
         let detail_col = widths[1];
+        let items = &self.items[..];
+        let reveal = self.reveal;
         let mut last_group = "";
-        for (k, i) in self.scroll.visible_range().enumerate() {
-            let ry = list.y + k as u16;
-            let it = &self.items[i];
-            let rid = self.row_id(i);
-            let mut s = ctx.state(rid);
-            s.focused = i == self.cursor;
-            s.disabled = it.disabled;
-            let cr = t.cursor_row(s, bg, self.cursor_style);
-            let st = cr.style;
-            let row = Rect::new(list.x, ry, list.width.saturating_sub(u16::from(has_sb)), 1);
-            fill(buf, row, st);
-            buf.set_string(row.x, ry, cr.gutter, cr.gutter_style);
-            // group label inline (first row of a group shows it right-aligned muted)
-            let show_group = it.group != last_group && !it.group.is_empty();
-            last_group = it.group;
-            buf.set_string(
-                row.x + 1,
-                ry,
-                if it.glyph == PickerItem::DEFAULT_GLYPH {
+        self.list
+            .paint_rows(list, bg, items, buf, ctx, |r, buf, ctx| {
+                let it = &items[r.index];
+                let (row, ry, cr) = (r.area, r.area.y, &r.look);
+                let rid = self.list.row_id(r.index);
+                let st = cr.style;
+                let focused = r.state.focused;
+                // group label inline (first row of a group shows it right-aligned muted)
+                let show_group = it.group != last_group && !it.group.is_empty();
+                last_group = it.group.as_ref();
+                let glyph: &str = if it.glyph.is_empty() || it.glyph == DEFAULT_GLYPH {
                     t.glyphs.bullet
                 } else {
-                    it.glyph
-                },
-                st.fg(if s.focused {
-                    t.text_primary
-                } else {
-                    t.row_ink(&cr, t.text_muted)
-                })
-                .remove_modifier(Modifier::BOLD),
-            );
-            // fixed columns: label · detail · tag · group, so rows line up
-            let mut x = row.x + 3;
-            let label = truncate(&it.label, label_col as usize);
-            let label_cut = !it.disabled
-                && crate::ui::reveal::truncated(
-                    ctx,
-                    self.reveal,
-                    rid,
-                    Rect::new(row.x + 3, ry, label_col, 1),
-                    &it.label,
+                    &it.glyph
+                };
+                buf.set_string(
+                    row.x + 1,
+                    ry,
+                    glyph,
+                    st.fg(if focused {
+                        t.text_primary
+                    } else {
+                        t.row_ink(cr, t.text_muted)
+                    })
+                    .remove_modifier(Modifier::BOLD),
                 );
-            for (bi, ch) in label.char_indices() {
-                let mut cs = st;
-                if it.matched.contains(&bi) {
-                    cs = cs.add_modifier(Modifier::BOLD);
-                } else if !s.focused {
-                    cs = cs.remove_modifier(Modifier::BOLD);
-                }
-                let g = ch.to_string();
-                buf.set_string(x, ry, &g, cs);
-                x += width(&g) as u16;
-            }
-            let mut rx = row.right();
-            if group_col > 0 {
-                rx = rx.saturating_sub(group_col + 1);
-                if show_group {
-                    buf.set_string(
-                        rx,
-                        ry,
-                        it.group,
-                        st.fg(t.row_ink(&cr, t.legible(t.text_muted, st.bg.unwrap_or(bg))))
-                            .remove_modifier(Modifier::BOLD),
+                // fixed columns: label · detail · tag · group, so rows line up
+                let mut x = row.x + 3;
+                let label = truncate(&it.label, label_col as usize);
+                let label_cut = !it.disabled
+                    && crate::ui::reveal::truncated(
+                        ctx,
+                        reveal,
+                        rid,
+                        Rect::new(row.x + 3, ry, label_col, 1),
+                        &it.label,
                     );
+                for (bi, ch) in label.char_indices() {
+                    let mut cs = st;
+                    if it.matched.contains(&bi) {
+                        cs = cs.add_modifier(Modifier::BOLD);
+                    } else if !focused {
+                        cs = cs.remove_modifier(Modifier::BOLD);
+                    }
+                    let g = ch.to_string();
+                    buf.set_string(x, ry, &g, cs);
+                    x += width(&g) as u16;
                 }
-            }
-            if tag_col > 0 {
-                rx = rx.saturating_sub(tag_col + 2);
-                if let Some(tag) = it.tag {
-                    buf.set_string(
-                        rx,
-                        ry,
-                        tag,
-                        st.fg(t.row_ink(&cr, t.text_secondary))
-                            .remove_modifier(Modifier::BOLD),
-                    );
-                }
-            }
-            if !it.detail.is_empty() {
-                let dx = row.x + 3 + label_col + 2;
-                let room = (detail_col as usize).min(rx.saturating_sub(dx + 1) as usize);
-                if room >= 4 {
-                    buf.set_string(
-                        dx,
-                        ry,
-                        truncate(&it.detail, room),
-                        st.fg(t.row_ink(&cr, t.text_muted))
-                            .remove_modifier(Modifier::BOLD),
-                    );
-                    if !it.disabled && !label_cut {
-                        crate::ui::reveal::truncated(
-                            ctx,
-                            self.reveal,
-                            rid,
-                            Rect::new(dx, ry, room as u16, 1),
-                            &it.detail,
+                let mut rx = row.right();
+                if group_col > 0 {
+                    rx = rx.saturating_sub(group_col + 1);
+                    if show_group {
+                        buf.set_string(
+                            rx,
+                            ry,
+                            &it.group,
+                            st.fg(t.row_ink(cr, t.legible(t.text_muted, st.bg.unwrap_or(bg))))
+                                .remove_modifier(Modifier::BOLD),
                         );
                     }
                 }
-            }
-            if !it.disabled {
-                ctx.register_part(self.id, Self::row_part(i), row);
-            }
-        }
-        if has_sb {
-            self.scroll
-                .draw_with_fade(list, buf, ctx, self.id, true, &[]);
-        }
-        // hints row: owners with a shell-level hint bar pass an empty string
-        if !hints.is_empty() {
-            let hy = inner.bottom().saturating_sub(1);
-            buf.set_string(
-                inner.x,
-                hy,
-                truncate(hints, inner.width as usize),
-                t.faint().bg(bg),
-            );
-        }
+                if tag_col > 0 {
+                    rx = rx.saturating_sub(tag_col + 2);
+                    if let Some(tag) = &it.tag {
+                        buf.set_string(
+                            rx,
+                            ry,
+                            tag,
+                            st.fg(t.row_ink(cr, t.text_secondary))
+                                .remove_modifier(Modifier::BOLD),
+                        );
+                    }
+                }
+                if !it.detail.is_empty() {
+                    let dx = row.x + 3 + label_col + 2;
+                    let room = (detail_col as usize).min(rx.saturating_sub(dx + 1) as usize);
+                    if room >= 4 {
+                        buf.set_string(
+                            dx,
+                            ry,
+                            truncate(&it.detail, room),
+                            st.fg(t.row_ink(cr, t.text_muted))
+                                .remove_modifier(Modifier::BOLD),
+                        );
+                        if !it.disabled && !label_cut {
+                            crate::ui::reveal::truncated(
+                                ctx,
+                                reveal,
+                                rid,
+                                Rect::new(dx, ry, room as u16, 1),
+                                &it.detail,
+                            );
+                        }
+                    }
+                }
+            });
+        hint_row(buf);
     }
 }
 
+/// The picker's rows as the shared nav table sees them
+/// (`tests/navigable.rs`), forwarded to its items.
 impl RowSource for Picker {
     fn len(&self) -> usize {
         self.items.len()
     }
     fn enabled(&self, i: usize) -> bool {
-        !self.items[i].disabled
+        self.items[..].enabled(i)
     }
     fn label(&self, i: usize) -> &str {
         &self.items[i].label
     }
-}
-
-impl Navigable for Picker {
-    fn cursor(&self) -> Cursor {
-        Cursor::new(self.cursor)
+    fn key(&self, i: usize) -> ItemKey {
+        self.items[..].key(i)
     }
 }
 
-impl Scrollable for Picker {
-    fn pane(&mut self) -> &mut ScrollPane {
-        &mut self.scroll
+/// The list's cursor.
+impl Navigable for Picker {
+    fn cursor(&self) -> Cursor {
+        self.list.cursor
     }
 }
 
 /// The picker's pointer gestures: a wheel or a bar press scrolls its
-/// list; a completed click on a row chooses it ([`Picker::on_click`]); a
-/// click outside it lands on its backdrop and cancels it when its
-/// [`Picker::dismiss`] policy allows ([`Picker::on_click_outside`]; a
-/// refused one is consumed); any other click on it is consumed.
+/// list (the [`OptionList`]'s
+/// [`Scrollable`](crate::core::scroll::Scrollable), per its
+/// [`WheelMode`](crate::widgets::option_list::WheelMode)); a completed
+/// click on a row chooses it ([`Picker::on_click`]); a click outside it
+/// lands on its backdrop and cancels it when its [`Picker::dismiss`]
+/// policy allows ([`Picker::on_click_outside`]; a refused one is
+/// consumed); any other click on it is consumed.
 impl crate::core::pointer::MouseTarget for Picker {
     type Action = PickerAction;
 
@@ -944,22 +904,24 @@ impl crate::core::pointer::MouseTarget for Picker {
         if ev.wheel().is_some() && ev.part().part == Part::BACKDROP {
             return Response::ignored();
         }
-        if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
+        if let Some(r) = crate::core::pointer::scroll_input(&mut self.list, ev) {
             return r.lift();
         }
         // the query field takes the text gestures (M21): a click places
         // the caret, a double click selects a word, a triple click the
         // query, a drag selects what it crosses
-        if self.searchable && ev.part().part == Part::QUERY {
-            let at = self.query.line_offset_at(ev.pos());
+        if ev.part().part == Part::QUERY
+            && let Some(query) = &mut self.list.query
+        {
+            let at = query.line_offset_at(ev.pos());
             match ev.phase() {
                 Some(Phase::Press) => {
-                    self.query.press(at, ev.count(), false);
+                    query.press(at, ev.count(), false);
                 }
                 Some(Phase::Drag) => {
-                    self.query.drag(at);
+                    query.drag(at);
                 }
-                Some(Phase::Click) => self.query.click(at, ev.count().max(1), false),
+                Some(Phase::Click) => query.click(at, ev.count().max(1), false),
                 _ => return Response::ignored(),
             }
             return Response::changed();
@@ -996,6 +958,7 @@ mod tests {
     use crate::core::focus::FocusRing;
     use crate::core::hit::Axis;
     use crate::core::hit::HitRegistry;
+    use crate::core::scroll::Scrollable;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
 
@@ -1010,10 +973,10 @@ mod tests {
         p.on_key(&k(KeyCode::Left, M::NONE));
         p.on_key(&k(KeyCode::Left, M::NONE));
         p.on_key(&k(KeyCode::Char('e'), M::NONE));
-        assert_eq!(p.query.text(), "orders");
+        assert_eq!(p.query(), "orders");
         assert_eq!(p.caret(), 4);
         p.on_key(&k(KeyCode::Backspace, M::NONE));
-        assert_eq!(p.query.text(), "ordrs");
+        assert_eq!(p.query(), "ordrs");
         p.on_key(&k(KeyCode::Home, M::NONE));
         assert_eq!(p.caret(), 0);
         // Delete stays the secondary action by default
@@ -1021,12 +984,12 @@ mod tests {
             p.on_key(&k(KeyCode::Delete, M::NONE)).1,
             Some(PickerAction::Secondary(_)) | None
         ));
-        assert_eq!(p.query.text(), "ordrs");
+        assert_eq!(p.query(), "ordrs");
         let mut f = picker(3).delete_is_secondary(false);
-        f.query.set_text("xyz");
+        f.set_query("xyz");
         f.on_key(&k(KeyCode::Home, M::NONE));
         f.on_key(&k(KeyCode::Delete, M::NONE));
-        assert_eq!(f.query.text(), "yz");
+        assert_eq!(f.query(), "yz");
     }
 
     #[test]
@@ -1048,19 +1011,10 @@ mod tests {
 
     fn picker(n: usize) -> Picker {
         let mut p = Picker::new(WidgetId::of("p"), "Palette");
-        p.max_rows = 6;
+        p.list.max_rows = 6;
         p.set_items(
             (0..n)
-                .map(|i| PickerItem {
-                    label: format!("Item {i:02}"),
-                    detail: String::new(),
-                    glyph: "·",
-                    group: "",
-                    tag: None,
-                    matched: vec![],
-                    disabled: false,
-                    key: format!("k{i}"),
-                })
+                .map(|i| Item::new(format!("Item {i:02}")).key(ItemKey::text(&format!("k{i}"))))
                 .collect(),
         );
         p
@@ -1082,7 +1036,7 @@ mod tests {
         use ratatui::crossterm::event::KeyModifiers as M;
         use ratatui::layout::Position;
         let mut p = picker(3);
-        p.query.set_text("orders by date");
+        p.set_query("orders by date");
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -1092,7 +1046,7 @@ mod tests {
             let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
             p.draw(screen, &mut buf, &mut ctx);
         }
-        let q = p.query.line_area();
+        let q = p.list.query.as_ref().unwrap().line_area();
         let ev = |phase, x: u16, count| {
             let pos = Position::new(x, q.y);
             let id = hits.hit(pos).expect("the query is a hit target");
@@ -1103,28 +1057,39 @@ mod tests {
         assert_eq!(p.caret(), 2, "a click places the caret");
         let _ = p.pointer(&ev(Phase::Press, q.x + 8, 2));
         let _ = p.pointer(&ev(Phase::Click, q.x + 8, 2));
-        assert_eq!(p.query.buffer.selected_text(), Some("by"), "double click");
+        assert_eq!(
+            p.list.query.as_mut().unwrap().buffer.selected_text(),
+            Some("by"),
+            "double click"
+        );
         let _ = p.pointer(&ev(Phase::Press, q.x, 1));
         let _ = p.pointer(&ev(Phase::Drag, q.x + 6, 1));
-        assert_eq!(p.query.buffer.selected_text(), Some("orders"), "a drag");
-        p.query.buffer.clear_selection();
+        assert_eq!(
+            p.list.query.as_mut().unwrap().buffer.selected_text(),
+            Some("orders"),
+            "a drag"
+        );
+        p.list.query.as_mut().unwrap().buffer.clear_selection();
         p.on_key(&k(KeyCode::Char('a'), M::SUPER));
-        assert_eq!(p.query.buffer.selected_text(), Some("orders by date"));
+        assert_eq!(
+            p.list.query.as_mut().unwrap().buffer.selected_text(),
+            Some("orders by date")
+        );
         assert_eq!(
             p.on_key(&k(KeyCode::Char('x'), M::NONE)).1,
             Some(PickerAction::QueryChanged),
             "typing replaces the selection"
         );
-        assert_eq!(p.query.text(), "x");
+        assert_eq!(p.query(), "x");
         // a query longer than the field keeps its caret on a character
-        p.query.set_text("long ".repeat(30));
+        p.set_query(&"long ".repeat(30));
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
         let mut buf = Buffer::empty(screen);
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         p.draw(screen, &mut buf, &mut ctx);
         let caret = ctx.cursor.expect("the query caret");
-        assert!(p.query.line_area().contains(caret));
+        assert!(p.list.query.as_ref().unwrap().line_area().contains(caret));
         assert_ne!(buf[(caret.x, caret.y)].symbol(), "…");
         assert_ne!(buf[(caret.x.saturating_sub(1), caret.y)].symbol(), "…");
     }
@@ -1135,19 +1100,22 @@ mod tests {
         use ratatui::crossterm::event::KeyModifiers as M;
         let mut p = picker(5);
         // Home/End edit a searchable picker's query; a plain one moves
-        p.searchable = false;
+        p.set_searchable(false);
         p.items[0].disabled = true;
         p.items[4].disabled = true;
-        p.cursor = 2;
+        p.list.cursor.index = 2;
         p.on_key(&k(KeyCode::Home, M::NONE));
-        assert_eq!(p.cursor, 1, "Home stops on the first enabled row");
+        assert_eq!(
+            p.list.cursor.index, 1,
+            "Home stops on the first enabled row"
+        );
         p.on_key(&k(KeyCode::End, M::NONE));
-        assert_eq!(p.cursor, 3, "End stops on the last enabled row");
-        p.scroll.viewport_len = 10;
+        assert_eq!(p.list.cursor.index, 3, "End stops on the last enabled row");
+        p.list.scroll.viewport_len = 10;
         p.on_key(&k(KeyCode::PageUp, M::NONE));
-        assert_eq!(p.cursor, 1, "PageUp snaps to an enabled row");
+        assert_eq!(p.list.cursor.index, 1, "PageUp snaps to an enabled row");
         p.on_key(&k(KeyCode::PageDown, M::NONE));
-        assert_eq!(p.cursor, 3, "PageDown snaps to an enabled row");
+        assert_eq!(p.list.cursor.index, 3, "PageDown snaps to an enabled row");
     }
 
     #[test]
@@ -1164,13 +1132,13 @@ mod tests {
         );
         let mut p = picker(3);
         p.items[0].disabled = true;
-        p.cursor = 0;
+        p.list.cursor.index = 0;
         assert_eq!(
             p.on_key(&k(KeyCode::Delete, M::NONE)),
             (Outcome::Consumed, None)
         );
         p.status = PickerStatus::Loading("…".into());
-        p.cursor = 1;
+        p.list.cursor.index = 1;
         assert_eq!(
             p.on_key(&k(KeyCode::Delete, M::NONE)),
             (Outcome::Consumed, None)
@@ -1197,30 +1165,30 @@ mod tests {
             p.on_key(&k(KeyCode::Delete, M::NONE)),
             (Outcome::Changed, Some(PickerAction::Secondary(1)))
         );
-        assert_eq!(p.current_key(), Some("k1"));
+        assert_eq!(p.current_key(), Some(ItemKey::text("k1")));
     }
 
     #[test]
     fn refresh_keeps_identity_and_query_reset_selects_first() {
         let mut p = picker(4);
-        p.cursor = 2;
+        p.list.cursor.index = 2;
         // a row above the cursor disappears: the cursor follows its key
         let mut items = p.items.clone();
         items.remove(0);
         p.refresh_items(items);
-        assert_eq!(p.cursor, 1);
-        assert_eq!(p.current_key(), Some("k2"));
+        assert_eq!(p.list.cursor.index, 1);
+        assert_eq!(p.current_key(), Some(ItemKey::text("k2")));
         // the cursor row itself disappears: first eligible row, never a
         // neighbour pretending to be it
         let mut items = p.items.clone();
         items.remove(1);
         items[0].disabled = true;
         p.refresh_items(items);
-        assert_eq!(p.current_key(), Some("k3"));
+        assert_eq!(p.current_key(), Some(ItemKey::text("k3")));
         // a query reset deliberately selects the first eligible row
-        p.cursor = 1;
+        p.list.cursor.index = 1;
         p.set_items(picker(3).items);
-        assert_eq!(p.cursor, 0);
+        assert_eq!(p.list.cursor.index, 0);
     }
 
     #[test]
@@ -1230,13 +1198,13 @@ mod tests {
         for c in "a👩\u{200d}💻".chars() {
             p.on_key(&k(KeyCode::Char(c), M::NONE));
         }
-        assert_eq!(p.query.text(), "a👩\u{200d}💻");
+        assert_eq!(p.query(), "a👩\u{200d}💻");
         let (o, ev) = p.on_key(&k(KeyCode::Backspace, M::NONE));
         assert_eq!(
             (o, ev),
             (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
-        assert_eq!(p.query.text(), "a", "backspace removes the whole cluster");
+        assert_eq!(p.query(), "a", "backspace removes the whole cluster");
         p.on_key(&k(KeyCode::Backspace, M::NONE));
         assert_eq!(
             p.on_key(&k(KeyCode::Backspace, M::NONE)),
@@ -1247,26 +1215,26 @@ mod tests {
             (o, ev),
             (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
-        assert_eq!(p.query.text(), "gp du ");
+        assert_eq!(p.query(), "gp du ");
         assert_eq!(p.on_paste(""), (Outcome::Consumed, None));
         assert_eq!(
             p.on_key(&k(KeyCode::Char('w'), M::CONTROL)),
             (Outcome::Changed, Some(PickerAction::QueryChanged))
         );
-        assert_eq!(p.query.text(), "gp ");
+        assert_eq!(p.query(), "gp ");
         p.on_key(&k(KeyCode::Char('u'), M::CONTROL));
-        assert_eq!(p.query.text(), "");
+        assert_eq!(p.query(), "");
         assert_eq!(p.on_key(&k(KeyCode::Char('u'), M::CONTROL)).1, None);
         // a search-disabled picker ignores paste and typing
-        p.searchable = false;
+        p.set_searchable(false);
         assert_eq!(p.on_paste("x"), (Outcome::Consumed, None));
         let (_, ev) = p.on_key(&k(KeyCode::Char('x'), M::NONE));
         assert_eq!(ev, None);
         // an unassigned modified chord is consumed by the modal, not typed
-        p.searchable = true;
+        p.set_searchable(true);
         let (_, ev) = p.on_key(&k(KeyCode::Char('s'), M::CONTROL));
         assert_eq!(ev, None);
-        assert_eq!(p.query.text(), "");
+        assert_eq!(p.query(), "");
     }
 
     #[test]
@@ -1274,16 +1242,7 @@ mod tests {
         let mut p = Picker::new(WidgetId::of("p"), "Pick");
         p.set_items(
             (0..40)
-                .map(|i| PickerItem {
-                    label: format!("item {i:02}"),
-                    detail: String::new(),
-                    glyph: "",
-                    group: "",
-                    tag: None,
-                    matched: vec![],
-                    disabled: false,
-                    key: format!("k{i}"),
-                })
+                .map(|i| Item::new(format!("item {i:02}")).key(ItemKey::text(&format!("k{i}"))))
                 .collect(),
         );
         let theme = Theme::junie();
@@ -1294,7 +1253,7 @@ mod tests {
         p.hints = "hints".into();
         p.draw(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx);
         assert!(
-            p.scroll.viewport_len >= 1,
+            p.list.scroll.viewport_len >= 1,
             "a short screen still shows a row"
         );
         let shown: String = (0..8)
@@ -1306,13 +1265,16 @@ mod tests {
             })
             .collect();
         assert!(shown.contains("item 00"), "{shown}");
-        let view = p.scroll.viewport_len;
+        let view = p.list.scroll.viewport_len;
         let key = Key {
             code: KeyCode::PageDown,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         };
         p.on_key(&key);
-        assert_eq!(p.cursor, view, "one page is one viewport row set");
+        assert_eq!(
+            p.list.cursor.index, view,
+            "one page is one viewport row set"
+        );
     }
 
     fn render(p: &mut Picker) -> String {
@@ -1336,7 +1298,7 @@ mod tests {
     fn only_the_query_field_carries_a_focus_bar_and_the_cursor_row_is_a_fill() {
         let t = Theme::junie();
         let mut p = picker(4);
-        p.query.set_text("it");
+        p.set_query("it");
         let out = render(&mut p);
         assert_eq!(
             out.matches('▎').count(),
@@ -1370,17 +1332,20 @@ mod tests {
         let before = render(&mut p);
         assert!(before.contains("Item 00"));
         assert!(!before.contains("Item 10"));
-        p.wheel(Axis::Vertical, 3).outcome();
+        p.list.wheel(Axis::Vertical, 3).outcome();
         let after = render(&mut p);
         assert!(!after.contains("Item 00"), "wheel moved the viewport");
         assert!(after.contains("Item 03"));
-        assert_eq!(p.scroll.offset, 3);
+        assert_eq!(p.list.scroll.offset, 3);
         // a second render keeps the offset
         let again = render(&mut p);
         assert_eq!(again, after);
-        assert_eq!(p.scroll.offset, 3);
-        assert_eq!(p.cursor, 0, "selection is preserved while wheel scrolling");
-        p.wheel(Axis::Vertical, -3).outcome();
+        assert_eq!(p.list.scroll.offset, 3);
+        assert_eq!(
+            p.list.cursor.index, 0,
+            "selection is preserved while wheel scrolling"
+        );
+        p.list.wheel(Axis::Vertical, -3).outcome();
         let back = render(&mut p);
         assert_eq!(back, before);
     }
@@ -1389,17 +1354,17 @@ mod tests {
     fn keyboard_navigation_pulls_the_cursor_back_into_view() {
         let mut p = picker(30);
         render(&mut p);
-        p.wheel(Axis::Vertical, 10).outcome();
+        p.list.wheel(Axis::Vertical, 10).outcome();
         render(&mut p);
-        assert_eq!(p.scroll.offset, 10);
+        assert_eq!(p.list.scroll.offset, 10);
         let key = Key {
             code: KeyCode::Down,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         };
         p.on_key(&key);
         let s = render(&mut p);
-        assert_eq!(p.cursor, 1);
-        assert!(p.scroll.visible_range().contains(&p.cursor));
+        assert_eq!(p.list.cursor.index, 1);
+        assert!(p.list.scroll.visible_range().contains(&p.list.cursor.index));
         assert!(s.contains("Item 01"));
     }
 
@@ -1407,10 +1372,10 @@ mod tests {
     fn wheel_at_the_boundary_is_consumed_not_changed() {
         let mut p = picker(3);
         render(&mut p);
-        assert_eq!(p.wheel(Axis::Vertical, 1).outcome(), Outcome::Consumed);
+        assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Consumed);
         let mut p = picker(30);
         render(&mut p);
-        assert_eq!(p.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
+        assert_eq!(p.list.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
     }
 
     #[test]

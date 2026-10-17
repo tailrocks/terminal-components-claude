@@ -27,7 +27,7 @@ use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::ScrollPanel;
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::props::{Prop, PropsList};
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::steps::{Step, StepRail};
@@ -392,14 +392,9 @@ fn the_text_area_pages_and_drags_its_bar() {
 fn popup_lists_page_and_drag_their_bars() {
     let id = WidgetId::of("picker");
     let mut w = Picker::new(id, "Pick");
-    w.set_items(
-        labels(50)
-            .iter()
-            .map(|l| PickerItem::new(l.clone()))
-            .collect(),
-    );
+    w.set_items(labels(50).iter().map(|l| Item::new(l.clone())).collect());
     let hits = frame(|a, b, c| w.draw(a, b, c));
-    press_and_drag("Picker", &mut w, bar(&hits, id, Axis::Vertical));
+    press_and_drag("Picker", &mut w.list, bar(&hits, id, Axis::Vertical));
 
     let id = WidgetId::of("completion");
     let mut w = Completion::new(id);

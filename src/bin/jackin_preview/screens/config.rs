@@ -18,8 +18,9 @@ use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::picker::{Picker, PickerItem};
+use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::select::Select;
@@ -1880,7 +1881,7 @@ impl ConfigTabs {
     /// on the main surface.
     fn open_role_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(self.ids.form.sub("rolepick"), "Add role override");
-        p.width = 72;
+        p.list.width = (72, 72);
         p.scope = Some(format!("{} roles", self.registry.len()));
         let items = self.role_picker_items("");
         p.set_items(items);
@@ -1889,7 +1890,7 @@ impl ConfigTabs {
 
     /// Rows for the Role picker filtered by `query`; owners route their
     /// `picker_items` hook here for the `cfg.role` tag.
-    pub fn role_picker_items(&mut self, query: &str) -> Vec<PickerItem> {
+    pub fn role_picker_items(&mut self, query: &str) -> Vec<Item> {
         let q = query.to_lowercase();
         let mut items = vec![];
         let mut targets = vec![];
@@ -1898,22 +1899,19 @@ impl ConfigTabs {
                 continue;
             }
             let n = self.pending.env_of(Some(r)).len();
-            items.push(PickerItem {
-                label: r.clone(),
-                detail: if n > 0 {
-                    format!(
-                        "{} · Enter adds another",
-                        junie_tui::ui::text::plural(n, "override", "overrides")
-                    )
-                } else {
-                    "no overrides yet".into()
-                },
-                glyph: if n > 0 { "▪" } else { "·" },
-                group: "roles",
-                tag: if n > 0 { Some("configured") } else { None },
-                matched: vec![],
-                disabled: false,
-                key: String::new(),
+            items.push(Item {
+                tag: (if n > 0 { Some("configured") } else { None }).map(Into::into),
+                ..Item::new(r.clone())
+                    .detail(if n > 0 {
+                        format!(
+                            "{} · Enter adds another",
+                            junie_tui::ui::text::plural(n, "override", "overrides")
+                        )
+                    } else {
+                        "no overrides yet".into()
+                    })
+                    .glyph(if n > 0 { "▪" } else { "·" })
+                    .group("roles")
             });
             targets.push(r.clone());
         }
