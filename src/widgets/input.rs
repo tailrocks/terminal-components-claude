@@ -88,6 +88,18 @@ pub struct TextInput {
     pub label_hit: bool,
     /// Which ended edits run validation. Default [`ValidateOn::Change`].
     pub validate_on: ValidateOn,
+    /// A short readout at the right end of the field row, inside it: a
+    /// match count, a scope (` scope ‹ here › `), a unit. Empty (default)
+    /// shows none. The text run narrows to make room; a field too narrow
+    /// for both drops the readout first.
+    pub readout: String,
+    /// Make the readout a link: drawn on the title ladder (rest, hover,
+    /// press) and registered as a click target under this id, for the
+    /// owner to route (cycle a scope, open a menu). `None` (default): a
+    /// quiet readout that is part of the field.
+    pub readout_link: Option<WidgetId>,
+    /// Where the readout was drawn in the last render.
+    pub readout_area: Rect,
 }
 
 /// Which ended edits (Enter, Tab, Esc, blur) validate the value.
@@ -150,7 +162,29 @@ impl TextInput {
             focus_edit: false,
             label_hit: true,
             validate_on: ValidateOn::Change,
+            readout: String::new(),
+            readout_link: None,
+            readout_area: Rect::ZERO,
         }
+    }
+
+    /// See [`Self::readout`].
+    pub fn readout(mut self, text: &str) -> Self {
+        self.readout = text.to_owned();
+        self
+    }
+
+    /// Replace the readout (a live count): see [`Self::readout`].
+    pub fn set_readout(&mut self, text: &str) {
+        if self.readout != text {
+            self.readout = text.to_owned();
+        }
+    }
+
+    /// See [`Self::readout_link`].
+    pub fn readout_link(mut self, id: WidgetId) -> Self {
+        self.readout_link = Some(id);
+        self
     }
 
     pub fn placeholder(mut self, p: &str) -> Self {
@@ -813,12 +847,25 @@ impl TextInput {
         let gutter = t.gutter(s, fs.bg.unwrap_or(bg), false);
         buf.set_string(field.x, field.y, t.gutter_symbol(s), gutter);
         let trailing = if s.error { 2 } else { 0 };
+        // the readout ` text ` sits at the right end, before the error mark;
+        // it shows only while at least 8 cells of text run stay beside it
+        let readout_w = if self.readout.is_empty() {
+            0
+        } else {
+            width(&self.readout) as u16 + 2
+        };
+        let readout_w = if field.width >= 3 + trailing + readout_w + 8 {
+            readout_w
+        } else {
+            0
+        };
         let inner = Rect::new(
             field.x + 2.min(field.width),
             field.y,
-            field.width.saturating_sub(3 + trailing),
+            field.width.saturating_sub(3 + trailing + readout_w),
             1,
         );
+        self.readout_area = Rect::ZERO;
         self.text_area = inner;
         if !self.disabled && self.field.sel.drag {
             ctx.autoscroll(inner);
@@ -860,6 +907,24 @@ impl TextInput {
         ctx.control(self.id, field, self.disabled);
         if !self.disabled {
             ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
+        }
+        if readout_w > 0 {
+            let rx = field.right().saturating_sub(trailing + readout_w);
+            let r = Rect::new(rx, field.y, readout_w, 1);
+            let fbg = fs.bg.unwrap_or(bg);
+            // a link walks the title ladder; a plain readout is quiet ink
+            let st = match self.readout_link {
+                Some(id) if !self.disabled => ctx.title_style(id, fbg),
+                _ => fs.fg(t.legible(t.text_muted, fbg)),
+            };
+            buf.set_string(rx, field.y, format!(" {} ", self.readout), st);
+            self.readout_area = r;
+            if let Some(id) = self.readout_link
+                && !self.disabled
+            {
+                // registered after the field: it wins under the pointer
+                ctx.clickable(id, r);
+            }
         }
 
         // help / error row
@@ -983,6 +1048,68 @@ mod tests {
         );
         input.render(area, buf, &mut ctx, theme.surface);
         ctx.cursor
+    }
+
+    #[test]
+    fn the_readout_sits_inside_the_field_and_narrows_the_text_run() {
+        let row = |buf: &Buffer, y: u16| -> String {
+            (0..buf.area.width)
+                .map(|x| buf[(x, y)].symbol().to_owned())
+                .collect()
+        };
+        let area = Rect::new(0, 0, 40, 3);
+        let mut plain = TextInput::new(WidgetId::of("q"), "Find").value("report");
+        let mut buf = Buffer::empty(area);
+        render(&mut plain, area, &mut buf);
+        let full = plain.text_area.width;
+        let mut input = TextInput::new(WidgetId::of("q"), "Find")
+            .value("report")
+            .readout("12 matches");
+        let mut buf = Buffer::empty(area);
+        render(&mut input, area, &mut buf);
+        assert!(
+            row(&buf, 1).trim_end().ends_with("12 matches"),
+            "{}",
+            row(&buf, 1)
+        );
+        assert_eq!(input.readout_area.right(), 40, "flush with the field's end");
+        assert_eq!(input.text_area.width, full - 12, "the text run gives way");
+        assert!(input.text_area.right() <= input.readout_area.x);
+        // too narrow for both: the readout goes first
+        let narrow = Rect::new(0, 0, 18, 3);
+        let mut buf = Buffer::empty(narrow);
+        render(&mut input, narrow, &mut buf);
+        assert!(!row(&buf, 1).contains("matches"));
+        assert_eq!(input.readout_area, Rect::ZERO);
+    }
+
+    #[test]
+    fn a_readout_link_is_a_click_target_above_the_field() {
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let link = WidgetId::of("q.scope");
+        let mut input = TextInput::new(WidgetId::of("q"), "")
+            .readout("scope ‹ here ›")
+            .readout_link(link);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let area = Rect::new(0, 0, 40, 2);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        input.render(area, &mut buf, &mut ctx, theme.surface);
+        let r = input.readout_area;
+        assert_eq!(hits.hit(Position::new(r.x + 2, r.y)), Some(link));
+        assert_eq!(hits.hit(Position::new(3, r.y)), Some(input.id));
+        // hover lifts the link (the title ladder), not the field
+        let rest = buf[(r.x + 2, r.y)].fg;
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let hover = Interaction {
+            hover: Some(link),
+            ..Default::default()
+        };
+        let mut ctx = RenderCtx::new(&theme, hover, &mut hits, &mut ring);
+        input.render(area, &mut buf, &mut ctx, theme.surface);
+        assert_ne!(buf[(r.x + 2, r.y)].fg, rest, "hover shows on the link");
     }
 
     #[test]

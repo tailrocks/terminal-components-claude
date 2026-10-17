@@ -22,8 +22,8 @@
 120x40 TrueColor Buttons 0c7d7bca7e95a89b
 120x40 TrueColor Buttons · Options 8a9f0381f7d40da9
 120x40 TrueColor Buttons · States 79a8d67aea2e9174
-120x40 TrueColor Inputs e3d00436ac4f96e5
-120x40 TrueColor Inputs · Options c1a180c31171c368
+120x40 TrueColor Inputs 31f86db3964f5e2b
+120x40 TrueColor Inputs · Options 7d8cdede9b290cf5
 120x40 TrueColor Inputs · States 5841b4f5dd9c0985
 120x40 TrueColor Text areas 2e4dcfda752291a4
 120x40 TrueColor Text areas · Options 4b0916d7693295f1
@@ -129,9 +129,9 @@
 120x40 TrueColor Connections 5d200aa6ae37044e
 120x40 TrueColor Connections · Options d07f27042ffad2e2
 120x40 TrueColor Connections · States 3ebacda6db7dbc28
-120x40 TrueColor Finder 125585d73bbbcc37
+120x40 TrueColor Finder b3339cc306217994
 120x40 TrueColor Finder · Options a42c1a75b7d2c5b4
-120x40 TrueColor Finder · States 0fd8d6c6d16d688f
+120x40 TrueColor Finder · States 8d578dd77a77feaa
 120x40 TrueColor Disk cleanup 6bfed458263b29ff
 120x40 TrueColor Activity bd55e807d7cc1b58
 120x40 TrueColor Workspaces f47356618edaae44
@@ -164,8 +164,8 @@
 120x40 Ansi256 Buttons 7d1b9b501a4f4ba8
 120x40 Ansi256 Buttons · Options 78682e90f8b8c684
 120x40 Ansi256 Buttons · States 7ebd4cafcc314c0c
-120x40 Ansi256 Inputs a5e4e4bb03c06128
-120x40 Ansi256 Inputs · Options bc245df3e64f8979
+120x40 Ansi256 Inputs 29f0817306af5163
+120x40 Ansi256 Inputs · Options a7d9fdbe1974ce27
 120x40 Ansi256 Inputs · States 83506914a8eb5176
 120x40 Ansi256 Text areas 1952d5cc474d6c3f
 120x40 Ansi256 Text areas · Options a03e920bffb52f0e
@@ -271,9 +271,9 @@
 120x40 Ansi256 Connections 63183337f28968d2
 120x40 Ansi256 Connections · Options f9d85cd08ae56965
 120x40 Ansi256 Connections · States 6ad8dd9c08e17faf
-120x40 Ansi256 Finder e0f3a39f58dc06b8
+120x40 Ansi256 Finder 60f8ab0b73392e70
 120x40 Ansi256 Finder · Options 11b66faf068e4727
-120x40 Ansi256 Finder · States fed85ca20d79e6fd
+120x40 Ansi256 Finder · States 3fccd30f8f1e9626
 120x40 Ansi256 Disk cleanup 8fc0c2cc4fb0bfeb
 120x40 Ansi256 Activity 052634993f63e2b6
 120x40 Ansi256 Workspaces fc86e27808a6c88c
@@ -306,8 +306,8 @@
 120x40 Ansi16 Buttons 5a4b1ba506cb26db
 120x40 Ansi16 Buttons · Options f76946d56c494e71
 120x40 Ansi16 Buttons · States e8111a29d2623e02
-120x40 Ansi16 Inputs cff4a8f7b14ae270
-120x40 Ansi16 Inputs · Options 6a857f72ec45575e
+120x40 Ansi16 Inputs cdb5fc31fc5cfa10
+120x40 Ansi16 Inputs · Options e3b3553eca38fe29
 120x40 Ansi16 Inputs · States 2c55003f8bd26246
 120x40 Ansi16 Text areas a39acb7d0c6fb525
 120x40 Ansi16 Text areas · Options 9ef48b068491e68b
@@ -413,9 +413,9 @@
 120x40 Ansi16 Connections 513f58edb8e68c52
 120x40 Ansi16 Connections · Options cf438d4d4c0098af
 120x40 Ansi16 Connections · States 86afa4dc40b231c0
-120x40 Ansi16 Finder 4fbf29badf400991
+120x40 Ansi16 Finder abd18611b45bec6f
 120x40 Ansi16 Finder · Options 0c51e1fe5c1e82af
-120x40 Ansi16 Finder · States eb5158706452572f
+120x40 Ansi16 Finder · States b1347f418e2d9d44
 120x40 Ansi16 Disk cleanup e9cda4e4578635c5
 120x40 Ansi16 Activity 6fa0e215bc1bd1f6
 120x40 Ansi16 Workspaces 8da08bd04e854376
@@ -448,8 +448,8 @@
 120x40 Mono Buttons 50dea672242725b0
 120x40 Mono Buttons · Options 74008e97e2a96f24
 120x40 Mono Buttons · States c5aad9afb5c3a6ff
-120x40 Mono Inputs d5065985716ca77b
-120x40 Mono Inputs · Options 531908b8756652cd
+120x40 Mono Inputs 3e80399d6e4a74f5
+120x40 Mono Inputs · Options bcc586db9bf97c16
 120x40 Mono Inputs · States 0da44237cef19de1
 120x40 Mono Text areas d9866f9aeb940762
 120x40 Mono Text areas · Options 261f8d3000d7d758
@@ -555,9 +555,9 @@
 120x40 Mono Connections 25fcbe18ebafd54c
 120x40 Mono Connections · Options 42dbe7eaf61dd0d8
 120x40 Mono Connections · States 3d36a736f96b17e3
-120x40 Mono Finder 5f117fa9a9b038c2
+120x40 Mono Finder 1bc16a20f3cf9ff0
 120x40 Mono Finder · Options 722ea0c68a830e64
-120x40 Mono Finder · States f89efc36ed78dd0e
+120x40 Mono Finder · States eb498ff9ee6b3fb1
 120x40 Mono Disk cleanup d7d281eba9fd4512
 120x40 Mono Activity 7c40d47ee81627ed
 120x40 Mono Workspaces 2056e40268880f77
@@ -590,8 +590,8 @@
 80x24 TrueColor Buttons e5997d5042b220d2
 80x24 TrueColor Buttons · Options 5e3939905238bc4b
 80x24 TrueColor Buttons · States 1935d3b284461072
-80x24 TrueColor Inputs f6abdfabe901ca64
-80x24 TrueColor Inputs · Options 1a4300aca3ce335b
+80x24 TrueColor Inputs 816bf59be5203577
+80x24 TrueColor Inputs · Options 945089aac5d82e8f
 80x24 TrueColor Inputs · States f4b05666ccda1301
 80x24 TrueColor Text areas 3ee73296f3025664
 80x24 TrueColor Text areas · Options 762d59e66a44e0e1
@@ -697,9 +697,9 @@
 80x24 TrueColor Connections 1852ed1865e1af5c
 80x24 TrueColor Connections · Options 4380b1424db9d98c
 80x24 TrueColor Connections · States a2759a46e0496766
-80x24 TrueColor Finder 5eec4cbb7ed5db6f
+80x24 TrueColor Finder 8d2f99d359bf0358
 80x24 TrueColor Finder · Options e2aa74aff53fc105
-80x24 TrueColor Finder · States cad1e445c373868d
+80x24 TrueColor Finder · States 143d119e7b4ed5bc
 80x24 TrueColor Disk cleanup 3105da758793d3ed
 80x24 TrueColor Activity 1aaa2c4312c48703
 80x24 TrueColor Workspaces 47c2655d70b8bd41
@@ -732,8 +732,8 @@
 80x24 Ansi256 Buttons c251a13ca14a6527
 80x24 Ansi256 Buttons · Options 7b18dc091cd9d672
 80x24 Ansi256 Buttons · States f75abcce7361b20f
-80x24 Ansi256 Inputs 3b70439b751732bf
-80x24 Ansi256 Inputs · Options c727c0371d187b73
+80x24 Ansi256 Inputs 934fe540b6b1ccca
+80x24 Ansi256 Inputs · Options 26fe9284127d3603
 80x24 Ansi256 Inputs · States cc02cff047e60e84
 80x24 Ansi256 Text areas aee732eb887a08f6
 80x24 Ansi256 Text areas · Options c92b979562d0792b
@@ -839,9 +839,9 @@
 80x24 Ansi256 Connections fe5345195da8299c
 80x24 Ansi256 Connections · Options 2fa800c05adc1efb
 80x24 Ansi256 Connections · States 5e4d3254ee42a8b4
-80x24 Ansi256 Finder 0caf2a467953cb0b
+80x24 Ansi256 Finder 38b68bb9d9d089bb
 80x24 Ansi256 Finder · Options 83b02df6f0a9fa03
-80x24 Ansi256 Finder · States 19ac4dc67c47cc63
+80x24 Ansi256 Finder · States 2217a4819f24bb14
 80x24 Ansi256 Disk cleanup bded21c71f433eb8
 80x24 Ansi256 Activity 24ddc78c6496e26c
 80x24 Ansi256 Workspaces 226336cd8dc8f204
@@ -874,8 +874,8 @@
 80x24 Ansi16 Buttons f6a65a692f07ccd6
 80x24 Ansi16 Buttons · Options fa62046894f023d2
 80x24 Ansi16 Buttons · States e6040ef11d8eb3dc
-80x24 Ansi16 Inputs 7e7b59d8e0e0a42e
-80x24 Ansi16 Inputs · Options 6c0b644293a56950
+80x24 Ansi16 Inputs 6aaa84c3c66da887
+80x24 Ansi16 Inputs · Options bb1eb43b35a5b477
 80x24 Ansi16 Inputs · States d6b84580c3e7d552
 80x24 Ansi16 Text areas 8eaff4938b9f8bfd
 80x24 Ansi16 Text areas · Options 442621e14ca596f4
@@ -981,9 +981,9 @@
 80x24 Ansi16 Connections e83c428401048c1f
 80x24 Ansi16 Connections · Options abf124e4450cf31f
 80x24 Ansi16 Connections · States a44c8ca675bb83ad
-80x24 Ansi16 Finder b0389902cdb2e4c0
+80x24 Ansi16 Finder 60655b69834f43a0
 80x24 Ansi16 Finder · Options ae9a51a7212f977a
-80x24 Ansi16 Finder · States 5d283a823213bd8d
+80x24 Ansi16 Finder · States 1d4d5212e1a85e13
 80x24 Ansi16 Disk cleanup 35ad40fd78eb2b19
 80x24 Ansi16 Activity 6a14407e7b8dabe9
 80x24 Ansi16 Workspaces 422ab527cceadea3
@@ -1016,8 +1016,8 @@
 80x24 Mono Buttons 512656175f415ea2
 80x24 Mono Buttons · Options 7fb950fc21fc09e0
 80x24 Mono Buttons · States 18ce42efec89dcaa
-80x24 Mono Inputs 1fa07489404ca4f8
-80x24 Mono Inputs · Options bbe9d36a98631816
+80x24 Mono Inputs 8eb1e45f8ccd3c81
+80x24 Mono Inputs · Options 651667cda3f3038d
 80x24 Mono Inputs · States 43eeaecde5251b36
 80x24 Mono Text areas 945c2e765efc5635
 80x24 Mono Text areas · Options aac5e553af120ad6
@@ -1123,9 +1123,9 @@
 80x24 Mono Connections fd01acbdde286e78
 80x24 Mono Connections · Options 4e01a33ced29c699
 80x24 Mono Connections · States 451b6ab0ff41beaa
-80x24 Mono Finder b8d194e4901b1442
+80x24 Mono Finder 2fb1b6ec8a185246
 80x24 Mono Finder · Options 9f55ba178ed0bb08
-80x24 Mono Finder · States 5dbaa275864fd8d1
+80x24 Mono Finder · States 92ca0be17c5da0bb
 80x24 Mono Disk cleanup 4a2357051d584d7f
 80x24 Mono Activity de372762b8cab8a7
 80x24 Mono Workspaces f740dd31cb553c69
@@ -1159,7 +1159,7 @@
 72x20 TrueColor Buttons · Options c26624b59750adda
 72x20 TrueColor Buttons · States 54c93e222989fe63
 72x20 TrueColor Inputs a4ad854e82108559
-72x20 TrueColor Inputs · Options 5b23eb09d17d2f84
+72x20 TrueColor Inputs · Options 03e38b81ef50a346
 72x20 TrueColor Inputs · States 57336179b3ca1839
 72x20 TrueColor Text areas d37de27eb31ca672
 72x20 TrueColor Text areas · Options ba06ba5aabf305f8
@@ -1265,9 +1265,9 @@
 72x20 TrueColor Connections 0b550623e4e9351e
 72x20 TrueColor Connections · Options 45c116e314a37e0f
 72x20 TrueColor Connections · States 1e5be4d5df946110
-72x20 TrueColor Finder 366a1947d040d225
+72x20 TrueColor Finder 7b2cf05c17d8b4ed
 72x20 TrueColor Finder · Options 0f674f1bd79c53c5
-72x20 TrueColor Finder · States 443c7ec44122cad8
+72x20 TrueColor Finder · States 9d88e529c7b6ec42
 72x20 TrueColor Disk cleanup 06847dbe35e2d370
 72x20 TrueColor Activity bfe729ca286e0f92
 72x20 TrueColor Workspaces 98568ab40d36436a
@@ -1301,7 +1301,7 @@
 72x20 Ansi256 Buttons · Options 4beebdd822fb1919
 72x20 Ansi256 Buttons · States 2cfd0000ae6b4296
 72x20 Ansi256 Inputs 6b60a3c8889cb9b7
-72x20 Ansi256 Inputs · Options e4b3adc5c5b0a501
+72x20 Ansi256 Inputs · Options 7250189604a75f59
 72x20 Ansi256 Inputs · States 587cf62db9f48ef6
 72x20 Ansi256 Text areas 46606d90e479fb1d
 72x20 Ansi256 Text areas · Options 01bf6b89d9e1527d
@@ -1407,9 +1407,9 @@
 72x20 Ansi256 Connections 0a5520aa9096b7f0
 72x20 Ansi256 Connections · Options d77b1a4f3ef05df3
 72x20 Ansi256 Connections · States 25a511f3f4b251f4
-72x20 Ansi256 Finder b6a50869cb4630e2
+72x20 Ansi256 Finder 8934c06b13838ff2
 72x20 Ansi256 Finder · Options 0be2ea56151a51b9
-72x20 Ansi256 Finder · States f86b653c5c18d7d5
+72x20 Ansi256 Finder · States ca3f25e53444ef29
 72x20 Ansi256 Disk cleanup 8575c5ad08e0a1fd
 72x20 Ansi256 Activity 3bc209c205abd911
 72x20 Ansi256 Workspaces 739a0098ab2e6dd9
@@ -1443,7 +1443,7 @@
 72x20 Ansi16 Buttons · Options 43d11721141c0e06
 72x20 Ansi16 Buttons · States 98abcbb65c7a433f
 72x20 Ansi16 Inputs 405ace329ecdc155
-72x20 Ansi16 Inputs · Options 67c530dd8465f75a
+72x20 Ansi16 Inputs · Options ce71262f2b29584b
 72x20 Ansi16 Inputs · States 1d34a9e7c0b801a4
 72x20 Ansi16 Text areas 61d540eac49dcad7
 72x20 Ansi16 Text areas · Options 0a9fb973d3ad1500
@@ -1549,9 +1549,9 @@
 72x20 Ansi16 Connections 5adb39e288600320
 72x20 Ansi16 Connections · Options e01b849b9a7b13a2
 72x20 Ansi16 Connections · States 324c43dd9b9bf3a3
-72x20 Ansi16 Finder 43f342125b92f446
+72x20 Ansi16 Finder d37fdd39ecbd83b8
 72x20 Ansi16 Finder · Options 9128363455447448
-72x20 Ansi16 Finder · States 8e2273b7eb33c8da
+72x20 Ansi16 Finder · States 0e990e902b94cece
 72x20 Ansi16 Disk cleanup de2cd612577ab98a
 72x20 Ansi16 Activity 5a7a986dac246f9a
 72x20 Ansi16 Workspaces d94430efb129a8c8
@@ -1585,7 +1585,7 @@
 72x20 Mono Buttons · Options e6c7bac083ad1120
 72x20 Mono Buttons · States 3152367258d06fa9
 72x20 Mono Inputs 5dbe475e606245d5
-72x20 Mono Inputs · Options 32e8465daf69ec68
+72x20 Mono Inputs · Options 9d8af1a1c27c3789
 72x20 Mono Inputs · States 30a584734b0de31a
 72x20 Mono Text areas 51ec0ef09dec7f7d
 72x20 Mono Text areas · Options ca20126fa135238e
@@ -1691,9 +1691,9 @@
 72x20 Mono Connections ed8afbf5b2f78d06
 72x20 Mono Connections · Options f894f5f01eddac70
 72x20 Mono Connections · States b32f95c1be68e0cc
-72x20 Mono Finder bfb7ad8ddc8cc6f8
+72x20 Mono Finder 4cc88446eceee0f6
 72x20 Mono Finder · Options 47ffd6bc30584002
-72x20 Mono Finder · States 377c31601e13c050
+72x20 Mono Finder · States 4060c2de757e208a
 72x20 Mono Disk cleanup dc69fab49d38fcec
 72x20 Mono Activity 98b2b364986b6ea4
 72x20 Mono Workspaces 765191300cf96f42
@@ -1726,8 +1726,8 @@
 100x30 TrueColor Buttons f01d6b971c89868a
 100x30 TrueColor Buttons · Options 586311348fd8092b
 100x30 TrueColor Buttons · States fc9fe783083d00f0
-100x30 TrueColor Inputs ae5b703617c9c893
-100x30 TrueColor Inputs · Options 808ed55bf2feeaed
+100x30 TrueColor Inputs 2ee175e5a6fedac2
+100x30 TrueColor Inputs · Options 12cc78b275880280
 100x30 TrueColor Inputs · States f5644f3c09cb29ee
 100x30 TrueColor Text areas 2f3142e99ac630cc
 100x30 TrueColor Text areas · Options 5d16efada7f34512
@@ -1833,9 +1833,9 @@
 100x30 TrueColor Connections bc195664ff92c769
 100x30 TrueColor Connections · Options 2b3343650cac7ce2
 100x30 TrueColor Connections · States 82adb5aa2ecf0ad8
-100x30 TrueColor Finder f475c911c86e2701
+100x30 TrueColor Finder 0710f3bb296cd37a
 100x30 TrueColor Finder · Options 63e5069e9ca659e5
-100x30 TrueColor Finder · States 31da725b7737130a
+100x30 TrueColor Finder · States ad91dcb6a0e38397
 100x30 TrueColor Disk cleanup 1ef520002c892f4d
 100x30 TrueColor Activity ad4101e2f1b25a7e
 100x30 TrueColor Workspaces 9223779887629457
@@ -1868,8 +1868,8 @@
 100x30 Ansi256 Buttons 9604335947fa61dd
 100x30 Ansi256 Buttons · Options 5ee9ca2660efbe66
 100x30 Ansi256 Buttons · States af2bd8b9588e17d9
-100x30 Ansi256 Inputs 7b59a8ab886e95dc
-100x30 Ansi256 Inputs · Options 2548ae973e1d4751
+100x30 Ansi256 Inputs 9b85743a6dc62476
+100x30 Ansi256 Inputs · Options 6b230458bcbf7737
 100x30 Ansi256 Inputs · States 04d3c7a9bc879dc2
 100x30 Ansi256 Text areas 01d2ccfc1263cd9a
 100x30 Ansi256 Text areas · Options bc92c264c169ce13
@@ -1975,9 +1975,9 @@
 100x30 Ansi256 Connections c531f4c9db00dd36
 100x30 Ansi256 Connections · Options d0c0841623eb6cd7
 100x30 Ansi256 Connections · States 6c15a38a90882080
-100x30 Ansi256 Finder 5fa3edbc7b94facc
+100x30 Ansi256 Finder 262b319c3f552800
 100x30 Ansi256 Finder · Options 61f0156cd8f0b137
-100x30 Ansi256 Finder · States 5c24a7bc04d06c23
+100x30 Ansi256 Finder · States 2539267b9af431c6
 100x30 Ansi256 Disk cleanup 27ee1f6590e368fc
 100x30 Ansi256 Activity dae478a7f58226bf
 100x30 Ansi256 Workspaces f8302853ba560fcb
@@ -2010,8 +2010,8 @@
 100x30 Ansi16 Buttons 28c200a4b80c93ce
 100x30 Ansi16 Buttons · Options 4f9a99f7f15b2bce
 100x30 Ansi16 Buttons · States b840323bc50ad0f9
-100x30 Ansi16 Inputs 7b884aef373ad576
-100x30 Ansi16 Inputs · Options 52ef69880db8d781
+100x30 Ansi16 Inputs a7fce6c2e65276a5
+100x30 Ansi16 Inputs · Options aa26cd24e1c32ab4
 100x30 Ansi16 Inputs · States ca261be8177a2502
 100x30 Ansi16 Text areas 2983dff13419999c
 100x30 Ansi16 Text areas · Options 22d3587ac35f04a7
@@ -2117,9 +2117,9 @@
 100x30 Ansi16 Connections e92afd5ca4563df0
 100x30 Ansi16 Connections · Options 9d62d4012946b903
 100x30 Ansi16 Connections · States 74433e52e9688f04
-100x30 Ansi16 Finder 3ef123d8a03aac41
+100x30 Ansi16 Finder c387a1b1650b97eb
 100x30 Ansi16 Finder · Options 2625c34da8134cea
-100x30 Ansi16 Finder · States c08fce28be0754ee
+100x30 Ansi16 Finder · States 8350d417d8e7642c
 100x30 Ansi16 Disk cleanup 948dc76fb01c46f1
 100x30 Ansi16 Activity 9711d782b24fbffc
 100x30 Ansi16 Workspaces 530440e580e2928d
@@ -2152,8 +2152,8 @@
 100x30 Mono Buttons 0e8986bf92edb023
 100x30 Mono Buttons · Options 1bdadbd6e1012cc9
 100x30 Mono Buttons · States 7381381812b3093a
-100x30 Mono Inputs 8234b0497a718cd9
-100x30 Mono Inputs · Options d40cfce32a64cb50
+100x30 Mono Inputs e7f760da0460c51c
+100x30 Mono Inputs · Options 446294a2b0e10cfd
 100x30 Mono Inputs · States 55fa40d694347997
 100x30 Mono Text areas 06026991e36dab19
 100x30 Mono Text areas · Options 3971c77aa6c6386e
@@ -2259,9 +2259,9 @@
 100x30 Mono Connections 809fe2c424bec10a
 100x30 Mono Connections · Options c133bec18a3cbfc4
 100x30 Mono Connections · States c5d12115c368634f
-100x30 Mono Finder 1ae2bee298d13770
+100x30 Mono Finder 59e3124f042a8e26
 100x30 Mono Finder · Options 78e1bd617361d733
-100x30 Mono Finder · States 90999a2eeb7a3081
+100x30 Mono Finder · States 043da092b1519811
 100x30 Mono Disk cleanup 3b20fad3a1808d0c
 100x30 Mono Activity 412e985f6b546de1
 100x30 Mono Workspaces 201794c2b3352a38
@@ -2294,8 +2294,8 @@
 160x50 TrueColor Buttons 92e386b1bc16edb9
 160x50 TrueColor Buttons · Options 7d072c51d007a54a
 160x50 TrueColor Buttons · States e8746bd247c6fc31
-160x50 TrueColor Inputs 403491134963bedf
-160x50 TrueColor Inputs · Options 3e9b2bbd07de781f
+160x50 TrueColor Inputs c0594dfe455fc0d9
+160x50 TrueColor Inputs · Options 87a75ab1e4171d4a
 160x50 TrueColor Inputs · States 76d88feaf9abb826
 160x50 TrueColor Text areas be387f624a51e30a
 160x50 TrueColor Text areas · Options c7d92995f8abd128
@@ -2401,9 +2401,9 @@
 160x50 TrueColor Connections 0956c22809b32335
 160x50 TrueColor Connections · Options 54d56e4101882ce9
 160x50 TrueColor Connections · States 147634f3ebba1fcf
-160x50 TrueColor Finder 4ca049c4b34055f6
+160x50 TrueColor Finder 4010d4fcbdc55741
 160x50 TrueColor Finder · Options c677c988cc3d9a37
-160x50 TrueColor Finder · States 0c4c0224f2b72216
+160x50 TrueColor Finder · States a7c7c0678db393cf
 160x50 TrueColor Disk cleanup 9ff75c9f2216ed2a
 160x50 TrueColor Activity 1c11af27abecadd7
 160x50 TrueColor Workspaces 5e1e8ee14c3b77ab
@@ -2436,8 +2436,8 @@
 160x50 Ansi256 Buttons 222cbf1bef7e152c
 160x50 Ansi256 Buttons · Options d1fcc391de21ce43
 160x50 Ansi256 Buttons · States ca7bb7d863a1f0a1
-160x50 Ansi256 Inputs 59cf38f2f79569c6
-160x50 Ansi256 Inputs · Options ef34fdb62203f314
+160x50 Ansi256 Inputs 0abb5c6c31fa006b
+160x50 Ansi256 Inputs · Options 1f50243aed3e4020
 160x50 Ansi256 Inputs · States 474677061dedbf01
 160x50 Ansi256 Text areas 360ccf05f55ca576
 160x50 Ansi256 Text areas · Options 15de215f7fff30c1
@@ -2543,9 +2543,9 @@
 160x50 Ansi256 Connections e7ea762cc6baf200
 160x50 Ansi256 Connections · Options 52af18165abc8c84
 160x50 Ansi256 Connections · States 669dba8a3588da24
-160x50 Ansi256 Finder 0290e86bab105b0c
+160x50 Ansi256 Finder 5ed1f5e4742c2224
 160x50 Ansi256 Finder · Options 8f95b66dd8da4f1a
-160x50 Ansi256 Finder · States 062e638fd129415e
+160x50 Ansi256 Finder · States 733d616158ce8759
 160x50 Ansi256 Disk cleanup 9ca8b2ca3ea7cdbc
 160x50 Ansi256 Activity 77d82167caf79255
 160x50 Ansi256 Workspaces 9b99ca6fdda14b9b
@@ -2578,8 +2578,8 @@
 160x50 Ansi16 Buttons 056846e9b532b9c9
 160x50 Ansi16 Buttons · Options d13d8d230173d59c
 160x50 Ansi16 Buttons · States eb7a15793a5c6101
-160x50 Ansi16 Inputs 9c4f8e4a5478fac7
-160x50 Ansi16 Inputs · Options 2ea082d4e55daecf
+160x50 Ansi16 Inputs d2f01f31e6f0af87
+160x50 Ansi16 Inputs · Options 3c18dd605240c8ac
 160x50 Ansi16 Inputs · States 54eefbc67e9a9995
 160x50 Ansi16 Text areas e888a4cd4dd2015f
 160x50 Ansi16 Text areas · Options 2776766529c9f15a
@@ -2685,9 +2685,9 @@
 160x50 Ansi16 Connections c2a3ece4583b5ad6
 160x50 Ansi16 Connections · Options c0a0b682fcca65fe
 160x50 Ansi16 Connections · States 8634072959655e3f
-160x50 Ansi16 Finder ad2ac84b1fecead9
+160x50 Ansi16 Finder 2859bcb58cd5d513
 160x50 Ansi16 Finder · Options 0cbd345e15343a32
-160x50 Ansi16 Finder · States 50f703eb8d2ec666
+160x50 Ansi16 Finder · States 61576f8b13b9ffe9
 160x50 Ansi16 Disk cleanup d30ca01d6f4f35c4
 160x50 Ansi16 Activity 27d255630b24f315
 160x50 Ansi16 Workspaces 613aa42383b88a11
@@ -2720,8 +2720,8 @@
 160x50 Mono Buttons a0dc5a830a9ea6a6
 160x50 Mono Buttons · Options 218ba022954e1805
 160x50 Mono Buttons · States 5ddf48e296bdd7d4
-160x50 Mono Inputs 2fa8045d2055561c
-160x50 Mono Inputs · Options 88548923c98b8100
+160x50 Mono Inputs c28536dc6d507e26
+160x50 Mono Inputs · Options 357d7940e0db56cf
 160x50 Mono Inputs · States 7c3877730f529fe0
 160x50 Mono Text areas 853e0ec27f54f88e
 160x50 Mono Text areas · Options 7acc8d29cfaa748d
@@ -2827,9 +2827,9 @@
 160x50 Mono Connections 4a250a8751596169
 160x50 Mono Connections · Options e226a09f4fd1480d
 160x50 Mono Connections · States 86f1372588604324
-160x50 Mono Finder e8c555e0c1bb4d22
+160x50 Mono Finder c2c5db8b5c1dee52
 160x50 Mono Finder · Options 4524acc90728d235
-160x50 Mono Finder · States f283b46d203189e7
+160x50 Mono Finder · States 6564edf0da502f0a
 160x50 Mono Disk cleanup e24def8df359da6b
 160x50 Mono Activity 011a068015789a1e
 160x50 Mono Workspaces 91b78b4a83b5156c

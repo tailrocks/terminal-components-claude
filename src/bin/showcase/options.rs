@@ -467,6 +467,7 @@ pub static INPUTS: &[Opt] = &[
     Opt::new("inputs.label_hit", "Label click focuses", OFF_ON).default(1),
     Opt::new("inputs.wrap_label", "Wrap long labels", OFF_ON),
     Opt::new("inputs.plain_label", "Hide \"optional\"", OFF_ON),
+    Opt::new("inputs.readout", "Readout", OFF_ON).default(1),
     Opt::new(
         "inputs.required_message",
         "Required message",
