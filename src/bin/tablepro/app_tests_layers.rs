@@ -207,3 +207,20 @@ fn a_context_menu_closes_on_esc_and_on_an_outside_click_back_to_its_owner() {
     assert!(h.app.modal().is_none(), "{}", h.text());
     assert_eq!(h.focus(), Some(g), "K9");
 }
+
+/// CO4: the footer names the open picker's own keys (it showed nothing
+/// before: the library picker reported no hints), and Esc says Clear
+/// while a query is typed, since that is what Esc does then.
+#[test]
+fn the_footer_names_the_open_pickers_keys() {
+    let mut h = H::connected(120, 40);
+    h.ctrl('o');
+    assert!(h.app.top_as::<Picker>().is_some());
+    let footer = h.text().lines().last().unwrap_or_default().to_owned();
+    assert!(footer.contains("Type Filter"), "{footer}");
+    assert!(footer.contains("Enter Choose"), "{footer}");
+    assert!(footer.contains("Esc Cancel"), "{footer}");
+    h.type_str("ord");
+    let footer = h.text().lines().last().unwrap_or_default().to_owned();
+    assert!(footer.contains("Esc Clear"), "{footer}");
+}
