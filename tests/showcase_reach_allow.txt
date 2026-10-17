@@ -19,10 +19,6 @@ StatusHints | Playground | 80x24 | R3 squeezes instead of overflowing: no Page::
 StatusHints | Playground | 100x25 | R3 squeezes instead of overflowing: no Page::measure yet
 StatusHints | Playground | 106x29 | R3 squeezes instead of overflowing: no Page::measure yet
 StatusHints | Playground | 120x40 | R3 squeezes instead of overflowing: no Page::measure yet
-HelpKeys | Playground | 80x24 | R5 squeezes instead of overflowing: no Page::measure yet
-HelpKeys | Playground | 100x25 | R5 squeezes instead of overflowing: no Page::measure yet
-HelpKeys | Playground | 106x29 | R5 squeezes instead of overflowing: no Page::measure yet
-HelpKeys | Playground | 120x40 | R5 squeezes instead of overflowing: no Page::measure yet
 QuitLeave | Playground | 80x24 | R6 squeezes instead of overflowing: no Page::measure yet
 QuitLeave | Playground | 100x25 | R6 squeezes instead of overflowing: no Page::measure yet
 QuitLeave | Playground | 106x29 | R6 squeezes instead of overflowing: no Page::measure yet
