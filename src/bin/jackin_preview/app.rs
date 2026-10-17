@@ -912,15 +912,6 @@ impl App {
                         ),
                     ],
                 ),
-                (
-                    "Everywhere",
-                    vec![
-                        ("Esc", "back one level"),
-                        ("s", "Settings"),
-                        ("?", "this help"),
-                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
-                    ],
-                ),
             ],
             Route::Usage => vec![
                 (
@@ -1078,21 +1069,7 @@ impl App {
                         ("p", "purge…"),
                     ],
                 ),
-                (
-                    "Everywhere",
-                    vec![
-                        ("Tab Shift+Tab", "next / previous"),
-                        ("Esc", "back one level"),
-                        ("u", "Usage overlay"),
-                        ("c", "Accounts & Usage"),
-                        ("s", "Settings"),
-                        ("F5", "refresh now"),
-                        ("?", "this help"),
-                        ("q", "back / quit"),
-                        ("Ctrl+Q", "quit · asks only about unsaved edits"),
-                        ("Ctrl+C", "quit · same as Ctrl+Q"),
-                    ],
-                ),
+                ("Everywhere", vec![("F5", "refresh now")]),
                 (
                     "Editor and Settings",
                     vec![
