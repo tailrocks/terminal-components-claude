@@ -76,3 +76,47 @@ fn alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol() {
     assert!(f.contains("Alt+R Run all"), "{f}");
     keyboard::session::leave();
 }
+
+/// S14 (SC34, truthful clipboard): `y` on a grid and on a history entry
+/// puts the text on the clipboard ([`junie_tui::shell::Clipboard`]) and
+/// the status says what really happened, instead of claiming a copy that
+/// never reached any clipboard.
+#[test]
+fn y_copies_a_cell_and_a_history_query_for_real() {
+    use junie_tui::core::edit::clipboard;
+    let mut h = H::connected(160, 40);
+    let w = h.app.workbench.as_mut().unwrap();
+    w.open_table("public", "customers", false);
+    let grid = match w.active_tab() {
+        Some(crate::workbench::WorkTab::Table(t)) => t.grid.id,
+        _ => panic!("a table tab"),
+    };
+    h.app.shell.focus.focus(grid);
+    h.draw();
+    clipboard::copy("");
+    h.key(KeyCode::Char('y'));
+    let cell = clipboard::text().unwrap_or_default();
+    assert!(
+        !cell.is_empty(),
+        "the cell is on the clipboard: {}",
+        h.text()
+    );
+    assert!(
+        h.text()
+            .contains(&format!("Copied {}", cell.chars().count())),
+        "{}",
+        h.text()
+    );
+
+    h.ctrl('y');
+    let sql = match h.wb().active_tab() {
+        Some(crate::workbench::WorkTab::History(t)) => t
+            .current_entry(&h.app.history)
+            .map(|e| e.sql.clone())
+            .expect("a history entry"),
+        _ => panic!("the history tab: {}", h.text()),
+    };
+    h.key(KeyCode::Char('y'));
+    assert_eq!(clipboard::text().as_deref(), Some(sql.as_str()));
+    assert!(h.text().contains("Copied query"), "{}", h.text());
+}
