@@ -154,20 +154,39 @@ fn the_app_menu_disconnects_and_quits_by_mouse() {
     assert!(h.app.shell.quit, "Quit did not quit");
 }
 
-// mouse #40: pending work keeps the connection open
+// mouse #40, K4 (S14): Disconnect drops the workbench page, so unsaved
+// work asks first through the leave guard (Router::request): Cancel keeps
+// the connection open, Disconnect drops the work and goes back to the
+// connection list
 #[test]
-fn disconnect_keeps_an_unsaved_query() {
-    use crate::app::STRIP_APP;
+fn disconnect_asks_before_dropping_an_unsaved_query() {
+    use crate::app::{Route, STRIP_APP};
+    use ratatui::crossterm::event::KeyCode;
     let mut h = H::connected(120, 40);
-    h.key(ratatui::crossterm::event::KeyCode::Tab);
+    h.key(KeyCode::Tab);
     h.type_str("SELECT 1");
-    h.key(ratatui::crossterm::event::KeyCode::Esc);
-    let r = h.app.shell.hits.area_of(STRIP_APP).unwrap();
-    h.click(r.x, r.y);
-    let (x, y) = h.find("Disconnect").unwrap();
-    h.click(x, y);
+    h.key(KeyCode::Esc);
+    let disconnect = |h: &mut H| {
+        let r = h.app.shell.hits.area_of(STRIP_APP).unwrap();
+        h.click(r.x, r.y);
+        let (x, y) = h.find("Disconnect").unwrap();
+        h.click(x, y);
+    };
+    disconnect(&mut h);
     assert!(h.app.workbench.is_some());
-    assert!(h.text().contains("before disconnecting"), "{}", h.text());
+    let text = h.text();
+    assert!(text.contains("Disconnect from"), "{text}");
+    assert!(text.contains("1 unsaved query will be lost"), "{text}");
+    h.key(KeyCode::Esc);
+    assert!(h.app.modal().is_none());
+    assert_eq!(h.app.route(), Route::Workbench, "Cancel stays");
+    assert!(h.app.workbench.is_some());
+    disconnect(&mut h);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.route(), Route::Connections, "{}", h.text());
+    assert!(h.app.workbench.is_none());
+    assert!(h.text().contains("Disconnected from"), "{}", h.text());
 }
 
 // docs/design/close-button.md: a query tab's × is a three-cell plate like
