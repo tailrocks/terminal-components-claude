@@ -209,7 +209,9 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
 #[test]
 fn editor_booleans_are_literals() {
     let t = Theme::junie();
-    let h = Harness::new(140, 45, PageId::Editor);
+    // wide enough for the editor to show the builder line whole (it
+    // scrolls sideways itself when narrower)
+    let h = Harness::new(180, 45, PageId::Editor);
     let (x, y) = h.find("gzip(true)");
     let cell = h.cell(x + 5, y);
     assert_eq!(cell.symbol(), "t");
