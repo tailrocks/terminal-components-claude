@@ -4894,4 +4894,98 @@ pub static SHOWN: &[(&str, Shown)] = &[
         StateRow("pickers", "loading"),
     ),
     ("state::loading", StateRow("pickers", "loading")),
+    // public functions the showcase already shows (SC-G1)
+    (
+        "core::focus::request_focus_next",
+        Demo("focusnavigation", "request_focus_next"),
+    ),
+    ("ui::columns::solve", Demo("columns", "columns::solve")),
+    (
+        "ui::leave::QuitKeys::classify",
+        Demo("quitleave", "QuitKeys::classify"),
+    ),
+    (
+        "ui::popup::place_with",
+        Demo("popupstooltips", "place_with →"),
+    ),
+    (
+        "ui::text::width",
+        Demo("textutilities", "width 10 cells for"),
+    ),
+    ("ui::text::wider_than", Demo("textutilities", "wider_than")),
+    (
+        "ui::text::width_capped",
+        Demo("textutilities", "width_capped"),
+    ),
+    (
+        "ui::text::truncate",
+        Demo("textutilities", "truncate payments"),
+    ),
+    (
+        "ui::text::slice_cells",
+        Demo("textutilities", "slice_cells"),
+    ),
+    (
+        "ui::text::truncate_middle",
+        Demo("textutilities", "truncate_middle"),
+    ),
+    (
+        "ui::text::thousands",
+        Demo("textutilities", "thousands 1,234,567"),
+    ),
+    ("ui::text::fit", Demo("textutilities", "fit [ok")),
+    ("ui::text::fit_right", Demo("textutilities", "fit_right")),
+    ("ui::text::center_x", Demo("textutilities", "center_x")),
+    (
+        "ui::text::plural",
+        Demo("textutilities", "plural 1 row · 3 rows"),
+    ),
+    (
+        "ui::text::truncate_sep",
+        Demo("textutilities", "truncate_sep"),
+    ),
+    ("ui::text::crumb_fit", Demo("textutilities", "crumb_fit")),
+    (
+        "ui::text::duration",
+        Demo("textutilities", "duration Spoken"),
+    ),
+    ("ui::text::bytes", Demo("textutilities", "bytes 512")),
+    ("ui::text::wrap_with", Demo("textutilities", "wrap_with at")),
+    (
+        "ui::text::find_ranges",
+        Demo("textutilities", "find_ranges"),
+    ),
+    (
+        "widgets::hintbar::HintBar::resolve",
+        Demo("statushints", "HintBar::resolve"),
+    ),
+    (
+        "widgets::keyhint::toggle_hint",
+        Demo("statushints", "toggle_hint Ctrl+H"),
+    ),
+    (
+        "widgets::keyhint::render_toned",
+        Demo("statushints", "render_toned"),
+    ),
+    (
+        "widgets::keyhint::render_status",
+        Demo("statushints", "render_status"),
+    ),
+    (
+        "widgets::props::render_with",
+        Demo("textutilities", "props::render_with"),
+    ),
+    (
+        "widgets::statusbar::StatusBar::layout",
+        Demo("chrome", "StatusBar::layout places"),
+    ),
+    (
+        "theme::Theme::interactive",
+        Demo("overview", "Theme::interactive(kind, state, plane)"),
+    ),
+    (
+        "theme::Theme::legible",
+        Demo("overview", "Theme::legible steps it up"),
+    ),
+    ("theme::contrast_ratio", Demo("overview", "contrast_ratio")),
 ];
