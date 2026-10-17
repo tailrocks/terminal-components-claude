@@ -173,7 +173,7 @@ impl Shot {
             let mut notch = 0usize;
             let mut across = |s: &mut Self, out: &mut BTreeSet<String>| {
                 notch += 1;
-                if notch % rows != 0 {
+                if !notch.is_multiple_of(rows) {
                     return;
                 }
                 if let Some(h) = h {
