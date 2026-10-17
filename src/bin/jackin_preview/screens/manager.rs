@@ -17,7 +17,7 @@ use junie_tui::theme::{ButtonKind, Tone};
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::master_detail::{MasterDetail, Mode};
-use junie_tui::ui::text::{fit, truncate, truncate_middle, width};
+use junie_tui::ui::text::{fit, truncate_middle, width};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
@@ -1269,7 +1269,7 @@ impl ManagerScreen {
                 buf.set_string(
                     inner.x,
                     y,
-                    truncate(text, inner.width as usize),
+                    junie_tui::ui::reveal::cut(Rect::new(inner.x, y, inner.width, 1), text),
                     style.bg(bg),
                 );
             }
@@ -1570,7 +1570,10 @@ impl ManagerScreen {
                             buf.set_string(
                                 r.x + 2,
                                 yy,
-                                truncate(text, r.width.saturating_sub(3) as usize),
+                                junie_tui::ui::reveal::cut(
+                                    Rect::new(r.x + 2, yy, r.width.saturating_sub(3), 1),
+                                    text,
+                                ),
                                 st,
                             );
                             legible_on_fill(buf, r, t, bg);
@@ -1670,14 +1673,14 @@ impl ManagerScreen {
             buf.set_string(
                 inner.x,
                 y,
-                truncate(
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x, y, inner.width, 1),
                     &format!(
                         "◉ {}  {ws} · {} · {}",
                         i.id.trim_start_matches("jk-"),
                         i.role,
                         i.agent.label()
                     ),
-                    inner.width as usize,
                 ),
                 st,
             );
@@ -1706,7 +1709,10 @@ impl ManagerScreen {
             buf.set_string(
                 inner.x + 3,
                 y + 1,
-                truncate(&live, inner.width.saturating_sub(3) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x + 3, y + 1, inner.width.saturating_sub(3), 1),
+                    &live,
+                ),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
             // live state: the `◉` and the word `running` in the accent
@@ -1722,9 +1728,9 @@ impl ManagerScreen {
             buf.set_string(
                 inner.x + 3,
                 y + 2,
-                truncate(
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x + 3, y + 2, inner.width.saturating_sub(3), 1),
                     &format!("account {}", acc.label(&w.accounts)),
-                    inner.width.saturating_sub(3) as usize,
                 ),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
@@ -1760,14 +1766,14 @@ impl ManagerScreen {
                 buf.set_string(
                     inner.x,
                     y,
-                    truncate(
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(inner.x, y, inner.width, 1),
                         &format!(
                             "◌ {}  {ws} · {} · {}",
                             i.id.trim_start_matches("jk-"),
                             i.role,
                             i.status.label()
                         ),
-                        inner.width as usize,
                     ),
                     t.secondary().bg(bg),
                 );
@@ -1810,13 +1816,13 @@ impl ManagerScreen {
             buf.set_string(
                 inner.x,
                 y,
-                truncate(
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x, y, inner.width, 1),
                     &format!(
                         "Usage        {} · {}",
                         summary.health.label(),
                         summary.issues_line()
                     ),
-                    inner.width as usize,
                 ),
                 t.muted().bg(bg),
             );

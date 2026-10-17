@@ -956,7 +956,7 @@ impl TextInput {
         if text.is_empty() {
             // the placeholder stays until the first character, with the
             // caret on it while editing (macOS)
-            let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
+            let p = crate::ui::reveal::fit(ctx, inner, &self.placeholder, s.focused);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
             if s.editing && inner.width > 0 {
                 ctx.set_cursor(Position::new(inner.x, inner.y));
@@ -1016,18 +1016,19 @@ impl TextInput {
         // help / error row
         if area.height >= label_rows + 2 {
             let msg_y = field.y + 1;
+            let msg = Rect::new(label_x, msg_y, area.width.saturating_sub(2), 1);
             if let Some(e) = &self.field.error {
                 buf.set_string(
                     label_x,
                     msg_y,
-                    crate::ui::text::truncate(e, area.width.saturating_sub(2) as usize),
+                    crate::ui::reveal::fit(ctx, msg, e, s.focused),
                     t.error_fg().bg(bg),
                 );
             } else if !self.help.is_empty() {
                 buf.set_string(
                     label_x,
                     msg_y,
-                    crate::ui::text::truncate(&self.help, area.width.saturating_sub(2) as usize),
+                    crate::ui::reveal::fit(ctx, msg, &self.help, s.focused),
                     t.muted().bg(bg),
                 );
             }
@@ -1160,6 +1161,38 @@ impl EditMenuHost for TextInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// R-apps-4: a help line cut with `…` reveals in full: on hover
+    /// (the expansion tooltip) and, while the field is focused, on the
+    /// footer's peek line.
+    #[test]
+    fn a_cut_help_line_reveals_on_hover_and_on_the_peek_line() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        let t = crate::theme::Theme::junie();
+        let help = "Checked out after the clone finishes, before any hook runs";
+        let mut f = TextInput::new(WidgetId::of("f"), "Branch").help(help);
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let area = Rect::new(0, 0, 24, 3);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction {
+                focus: Some(f.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        f.render(area, &mut buf, &mut ctx, t.canvas);
+        assert_eq!(ctx.peek.as_deref(), Some(help));
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        assert!(
+            hits.hover_at(Position::new(4, 2)).is_some(),
+            "the cut help hovers"
+        );
+    }
 
     /// Drawn at its measured size the field shows its label, its whole
     /// value and its help.
