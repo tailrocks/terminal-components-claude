@@ -8,8 +8,8 @@
 holla activity 72x20 btm child logs tests worker # R-apps-4 R-apps-11
 holla activity 80x24 btm logs worker # R-apps-4 R-apps-11
 holla activity 100x25 btm logs worker # R-apps-4 R-apps-11
-holla activity-failed 72x20 Node Open definition here project # R-apps-7
-holla activity-failed 80x24 Open definition here project # R-apps-7
+holla activity-failed 72x20 Node here project # R-apps-4 (header project kind cut without reveal)
+holla activity-failed 80x24 here project # R-apps-4 (header project kind cut without reveal)
 holla activity-merged 72x20 btm here tests # R-apps-4 R-apps-11
 holla activity-merged 80x24 btm # R-apps-4 R-apps-11
 holla activity-merged 100x25 btm # R-apps-4 R-apps-11
@@ -88,10 +88,8 @@ tablepro conn-form-new 72x20 Acme Analytics Development Filter Local Production 
 tablepro conn-form-new 80x24 Acme Analytics Development Filter Local Production Scratch Staging mysql sqlite # R-apps-2 R-apps-4
 tablepro connections-empty 72x20 Select moves # R-apps-2
 tablepro connections-empty 80x24 Select moves # R-apps-2
-tablepro history 72x20 Copy # R-apps-4 R-apps-7
-tablepro history 80x24 Copy # R-apps-7
-tablepro history 106x29 312 Copy # R-apps-3 R-apps-7
-tablepro history 120x40 312 Copy # R-apps-3 R-apps-7
+tablepro history 106x29 312 # R-apps-3
+tablepro history 120x40 312 # R-apps-3
 tablepro query-editing 106x29 312 # R-apps-3
 tablepro query-editing 120x40 312 # R-apps-3
 tablepro result-affected 106x29 312 # R-apps-3

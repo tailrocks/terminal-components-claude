@@ -1648,7 +1648,8 @@ impl QueryTab {
         let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
         let rects = junie_tui::widgets::button::row_layout(area, &widths, 1);
         for (b, r) in buttons.iter_mut().zip(rects) {
-            if r.right() <= area.right() {
+            // the toolbar is one row; its commands keep their chords
+            if r.bottom() <= area.bottom() {
                 b.render(r, buf, ctx, bg);
             }
         }
@@ -2713,10 +2714,20 @@ impl HistoryTab {
         // the query, its facts and the actions at their natural height:
         // a card too short for them scrolls instead of dropping the facts
         let editor_nat = (wrapped.lines().count() as u16 + 1).max(3);
+        let action_widths = [
+            self.open_btn.width(),
+            self.rerun_btn.width(),
+            self.copy_btn.width(),
+        ];
+        // a narrow card wraps the actions instead of dropping one (R-apps-7)
         let natural = |a: Size| {
             Size::new(
                 a.width,
-                editor_nat + 1 + props::measure(&facts, a.width) + 2,
+                editor_nat
+                    + 1
+                    + props::measure(&facts, a.width)
+                    + 1
+                    + junie_tui::widgets::button::row_lines(a.width, &action_widths, 2),
             )
         };
         let size = self.detail_view.fit(inner.as_size(), natural);
@@ -2744,15 +2755,12 @@ impl HistoryTab {
                 cbg,
             );
             // actions follow the facts instead of sinking to the bottom
-            let ay = (fy + used + 1).min(inner.bottom().saturating_sub(1));
-            let widths = [
-                self.open_btn.width(),
-                self.rerun_btn.width(),
-                self.copy_btn.width(),
-            ];
+            let lines =
+                junie_tui::widgets::button::row_lines(inner.width, &action_widths, 2);
+            let ay = (fy + used + 1).min(inner.bottom().saturating_sub(lines));
             let rects = junie_tui::widgets::button::row_layout(
                 Rect::new(inner.x, ay, inner.width, 1),
-                &widths,
+                &action_widths,
                 2,
             );
             self.open_btn.render(rects[0], buf, ctx, cbg);

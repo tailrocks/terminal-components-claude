@@ -18,7 +18,7 @@ use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::master_detail::{MasterDetail, Mode};
 use junie_tui::ui::text::{fit, truncate_middle, width};
-use junie_tui::widgets::button::{Button, row_layout};
+use junie_tui::widgets::button::{Button, row_layout, row_lines};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::keyhint::{Hint, hint};
@@ -1624,9 +1624,11 @@ impl ManagerScreen {
             }
         }
         // action row at the bottom of the card
-        let ay = inner.bottom().saturating_sub(1).max(y);
+        // a narrow card wraps the actions upward instead of dropping one
+        let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
+        let lines = row_lines(inner.width + 1, &widths, 2);
+        let ay = inner.bottom().saturating_sub(lines).max(y);
         if ay < inner.bottom() {
-            let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
             let rects = row_layout(Rect::new(inner.x - 1, ay, inner.width + 1, 1), &widths, 2);
             for (b, r) in self.actions.iter_mut().zip(rects) {
                 b.render(r, buf, ctx, bg);
