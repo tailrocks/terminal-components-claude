@@ -242,6 +242,8 @@ questions.
 | A20 | `Strings::not_in_preview` exists but no app reads it: holla `src/bin/holla/app.rs` and jackin `screens/capsule.rs` still hard-code "Not in this preview". | — | `rg '"Not in this preview"' src/bin` = 0 (tests aside) | `api.md` #28 |
 | A21 | Undo in tables (SIg7 remainder): fields have Ctrl+Z / Ctrl+Shift+Z (`d5ad6ffb6`), but DataGrid undoes pending changes only with `u` and DataTable has no undo. | S11 (`EditField`) if it fits | Ctrl+Z / Ctrl+Shift+Z on a grid edit, with a test; `u` kept as an option | `standards-interaction.md` gap 7 |
 | A22 | Automatic ASCII glyphs (SVg6 remainder): `Glyphs::ASCII` and `Strings::ASCII` are opt-in only; nothing selects them for `TERM=linux` or the Windows console. The plan's "SVg6 done, S17 verify only" overstates this. | T or S17 | a detection unit test (`TERM=linux` picks ASCII) with an override | `standards-visual.md` gap 6 |
+| A23 | A non-searchable Picker ignores typed letters (no type-ahead); Tree, ContextMenu, DataTable and DataGrid already type-select. | S12 (Picker body on `OptionList`) | a type-ahead test on a non-searchable Picker | `interaction.md` #11 |
+| A24 | Alt+click does not trigger the Picker's `ChosenAlt` action (Alt+Enter does). | S9 (modifier clicks) or S12 | an Alt+click test reporting `ChosenAlt` | `interaction.md` #6 |
 
 Not tasks (watch list): `performance.md` "Remaining risks" (stale-frame
 wheel notches, reveal wrap cost, a full render per frame,
