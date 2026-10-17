@@ -14,7 +14,7 @@ fn nested() -> H {
     let path = h.app.world.location.cwd.clone();
     h.app.go(Go::Push(Page::Files { path, query: None }));
     h.draw();
-    assert_eq!(h.app.tabs[0].stack.len(), 3, "{}", h.text());
+    assert_eq!(h.app.router.tab(0).len(), 3, "{}", h.text());
     h
 }
 
@@ -31,11 +31,11 @@ fn the_breadcrumb_goes_back_one_level_or_to_the_root_by_mouse() {
         Some(CRUMBS.child(1))
     );
     h.click(mid.x, mid.y);
-    assert_eq!(h.app.tabs[0].stack.len(), 2, "{}", h.text());
+    assert_eq!(h.app.router.tab(0).len(), 2, "{}", h.text());
     // to the root: the first link
     let root = h.app.crumbs.areas[0];
     h.click(root.x, root.y);
-    assert_eq!(h.app.tabs[0].stack.len(), 1, "{}", h.text());
+    assert_eq!(h.app.router.tab(0).len(), 1, "{}", h.text());
     assert!(
         h.app.crumbs.segments.is_empty(),
         "the root page shows no trail"
@@ -48,5 +48,5 @@ fn the_current_page_in_the_trail_is_not_a_link() {
     let last = h.app.crumbs.areas[2];
     assert_eq!(h.app.shell.hits.hit(last.as_position()), None);
     h.click(last.x, last.y);
-    assert_eq!(h.app.tabs[0].stack.len(), 3);
+    assert_eq!(h.app.router.tab(0).len(), 3);
 }
