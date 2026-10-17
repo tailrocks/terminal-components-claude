@@ -1,5 +1,5 @@
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 use ratatui::style::Color;
 
 use crate::ui::ctx::RenderCtx;
@@ -455,7 +455,7 @@ impl Meter {
             MeterVisual::Line => {
                 // value + suffix always fit; the track takes what is left
                 let track_w = area.width.saturating_sub(vw + 3);
-                if track_w < 6 {
+                if track_w < MIN_TRACK {
                     buf.set_string(
                         area.x,
                         area.y,
@@ -534,6 +534,35 @@ impl Meter {
                 buf.set_string(area.x + bar_w, area.y, suffix, suffix_style);
             }
         }
+    }
+}
+
+/// The shortest track a line meter draws: below it the meter shows its
+/// value alone.
+const MIN_TRACK: u16 = 6;
+
+/// The narrowest a meter shows its value and marker whole, with a track
+/// when it has one: a line meter's value, marker and shortest track, a
+/// block meter's value inside its bar, a meter without a run its message
+/// and marker.
+impl crate::ui::measure::Measure for Meter {
+    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+        let t = ctx.theme;
+        let value = match self.tone {
+            MeterTone::Refreshing => format!("{} refreshing", t.glyphs.spinner_frame(0)),
+            MeterTone::Unknown if self.value.is_empty() => t.glyphs.none.to_owned(),
+            _ => self.value.clone(),
+        };
+        let vw = width(&value) as u16;
+        let w = if !self.paint(t, t.canvas).has_run {
+            vw + 2
+        } else {
+            match self.visual {
+                MeterVisual::Line => vw + 3 + MIN_TRACK,
+                MeterVisual::Block => vw.max(4) + 2,
+            }
+        };
+        Size::new(w, 1)
     }
 }
 

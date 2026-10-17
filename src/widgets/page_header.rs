@@ -211,6 +211,41 @@ impl Heading {
     }
 }
 
+/// The narrowest the header shows its title, status, right meta and
+/// subtitle whole (plan §1.4 `Measure`), and its rows.
+impl crate::ui::measure::Measure for PageHeader {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        _ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let w = |s: &str| width(s) as u16;
+        let used = w(&self.title) + self.status.as_ref().map_or(0, |(s, _)| w(s));
+        let row = match &self.right {
+            // the meta shows when it fits with the gap to spare
+            Some(r) => (used + self.right_gap + w(r) + 1).max(used + 2 * self.inset),
+            None => used + 2 * self.inset,
+        };
+        let sub = self
+            .subtitle
+            .as_ref()
+            .map_or(0, |(s, _)| w(s) + 2 * self.inset);
+        ratatui::layout::Size::new(row.max(sub), self.height())
+    }
+}
+
+/// The narrowest a heading shows its text and meta whole: one row.
+impl crate::ui::measure::Measure for Heading {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        _ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let meta = self.meta.as_deref().map_or(0, |m| 2 + width(m) as u16);
+        ratatui::layout::Size::new(width(&self.text) as u16 + meta, 1)
+    }
+}
+
 /// Ink-only style in `tone`: the header keeps the plane it is drawn on.
 fn ink(t: &Theme, tone: Tone) -> Style {
     Style::new().fg(t.tone(tone))
@@ -224,6 +259,43 @@ mod tests {
         (0..buf.area.width)
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect()
+    }
+
+    /// At its measure a header and a heading show every part whole.
+    #[test]
+    fn a_header_and_a_heading_at_their_measure_show_everything() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let ctx = crate::ui::ctx::RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let h = PageHeader::new("Usage and capacity")
+            .status(" · offline · last good 4 min ago", Tone::Warning)
+            .right("refreshes every 2 s")
+            .right_gap(4)
+            .subtitle("Plan quotas, filesystems and host load", Tone::Muted);
+        let size = h.measure(ratatui::layout::Size::ZERO, &ctx);
+        let mut buf = Buffer::empty(Rect::new(0, 0, size.width, size.height));
+        assert_eq!(h.render(buf.area, &mut buf, &t), size.height);
+        let top = row(&buf, 0);
+        for part in [
+            "Usage and capacity",
+            "last good 4 min ago",
+            "refreshes every 2 s",
+        ] {
+            assert!(top.contains(part), "{part:?} in {top:?}");
+        }
+        assert!(row(&buf, 1).contains("host load"));
+        let g = Heading::new("Sections").meta("3 cards");
+        let size = g.measure(ratatui::layout::Size::ZERO, &ctx);
+        let mut buf = Buffer::empty(Rect::new(0, 0, size.width, 1));
+        g.render(buf.area, &mut buf, &t, t.canvas);
+        assert_eq!(row(&buf, 0), "Sections  3 cards");
     }
 
     #[test]
