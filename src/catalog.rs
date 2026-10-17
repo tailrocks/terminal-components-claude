@@ -2377,6 +2377,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::table::DataTable::selection_column"),
     Capability::builder("widgets::table::DataTable::esc_clears"),
     Capability::builder("widgets::table::DataTable::toggle_mods"),
+    Capability::builder("widgets::table::DataTable::click"),
     Capability::builder("widgets::table::DataTable::disabled_rows"),
     Capability::builder("widgets::table::DataTable::horizontal"),
     Capability::builder("widgets::table::DataTable::overflow_marks"),
