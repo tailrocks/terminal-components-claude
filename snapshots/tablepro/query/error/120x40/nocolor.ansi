@@ -19,7 +19,7 @@
  │      ▸ Functions          │││  ━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────── │ [0m
  │      ▸ Sequences          │││   [0m[1m✗[0m failed · 2 ms                                                                    │ [0m
  │    ▸ S analytics          │││    Error                                                                             │ [0m
- │    ▸ S audit              │││                                                                                      │ [0m
+ │    ▸ S audit              │││    ───────────────────────────────────────────────────────────────────────────────   │ [0m
  │                           │││    [0m[1m![0m relation "missing_table" does not exist                                         │ [0m
  │                           │││      Check the schema search path or qualify the table name.                         │ [0m
  │                           │││      Enter on the result tab jumps to the statement                                  │ [0m
