@@ -284,6 +284,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::hit::HitRegistry::register_thumb"),
     Capability::function("core::hit::HitRegistry::accept_release"),
     Capability::function("core::hit::HitRegistry::accepts_release"),
+    Capability::function("core::hit::HitRegistry::bars"),
     Capability::function("core::hit::HitRegistry::bar"),
     Capability::function("core::hit::HitRegistry::register_backdrop"),
     Capability::function("core::hit::HitRegistry::register_backdrop_of"),

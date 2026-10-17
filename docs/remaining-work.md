@@ -80,10 +80,12 @@ Open (the audit agent): each row is a page whose Playground squeezes
 (cuts or drops content) instead of overflowing, because it has no
 `Page::measure` yet. Fix: give the page a `measure` that returns the size
 its Playground needs to show everything (its sections' natural heights,
-its widest row), so the template scrolls instead of cutting; where a
-missing word is only an inner list's later rows (reachable by scrolling
-that list), say so and keep the line with that reason. Delete the page's
-lines in the allowlist with the fix. Words shown are a sample of what is
+its widest row), so the template scrolls instead of cutting. Content an
+inner scroller holds (a list's, table's, log's or stack's later rows) is
+reachable when that scroller shows a scrollbar: the gate wheels every
+inner scroller with a bar to its end at each position of the section
+(the shared rule, `Shot::inner`), so such rows need no line. Delete the
+page's lines in the allowlist with the fix. Words shown are a sample of what is
 never in view at the smallest failing size.
 
 | Id | Page | Section | Fails at | Never in view (sample) |
@@ -99,7 +101,7 @@ never in view at the smallest failing size.
 | R9 | Inputs | Playground | 80x24, 100x25, 106x29, 120x40 | `Alt Apply Cancel Cmd Copy Ctrl Cut Deleting` |
 | R10 | TextAreas | Playground | 80x24, 100x25, 106x29, 120x40 | `API Commit Junie Plan Reading Review Use add` |
 | R11 | Chips | Playground | 80x24, 100x25, 106x29, 120x40 | `100 120 5432 Acme Add Applies Empty Engine` |
-| R12 | ChecksRadios | Playground | 80x24, 100x25, 106x29 | `Auto Beta Isolation Radio Read Region Repeatable Serializable` |
+| R12 | ChecksRadios | Playground | done: its rest is an inner scroller's rows (the inner-scroller rule) | — |
 | R13 | Toolbars | Playground | 80x24, 100x25, 106x29 | `Action Activated End Explain Home Keys Last Line` |
 | R14 | Tables | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1044 1045 1046 1047` |
 | R15 | Editable | Playground | 80x24, 100x25, 106x29, 120x40 | `1050 1051 1052 1053 118 Activated Alt Basic` |
