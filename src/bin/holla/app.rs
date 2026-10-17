@@ -375,9 +375,8 @@ impl App {
         match input {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
-            Input::Paste(text) => self.on_paste(&text),
-            Input::Key(key) => shell::KeyRouter::route(self, &key),
             Input::Mouse(m) => PointerRouter::route(self, m),
+            other => shell::KeyRouter::input(self, other),
         }
     }
 
@@ -460,7 +459,6 @@ impl App {
     }
 
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
-        let out;
         match &m {
             Msg::ActivityEnded { id, ok } => {
                 if let Some(a) = self.world.activity(id) {
@@ -474,7 +472,6 @@ impl App {
                         self.set_status(&format!("{name} failed · exit {exit}"), Tone::Error);
                     }
                 }
-                out = Outcome::Changed;
             }
             Msg::BatchDone { id, ok } => {
                 // each count in its own tone: ok success, failed error,
@@ -505,7 +502,6 @@ impl App {
                     })
                     .unwrap_or_default();
                 self.set_status_parts(parts, if *ok { Tone::Success } else { Tone::Error });
-                out = Outcome::Changed;
             }
             Msg::PlanDone { plan } => {
                 if let Some(p) = self.world.plan(plan) {
@@ -525,24 +521,11 @@ impl App {
                         tone,
                     );
                 }
-                out = Outcome::Changed;
             }
-            Msg::DiscoveryDone { .. } | Msg::PlanStepEnded { .. } | Msg::ScanDone => {
-                out = Outcome::Changed
-            }
+            Msg::DiscoveryDone { .. } | Msg::PlanStepEnded { .. } | Msg::ScanDone => {}
         }
-        out.or(self.deliver_all(|s, w, cx| s.on_msg(&m, w, cx)))
-    }
-
-    fn on_paste(&mut self, text: &str) -> Outcome {
-        if let Some(top) = self.modals.top_mut() {
-            // a picker reports one QueryChanged per paste, never one per
-            // grapheme
-            let out = top.layer.on_paste(text);
-            return self.settle_layer(out.or(Outcome::Consumed));
-        }
-        let text = text.to_owned();
-        self.with_top(|s, w, cx| s.on_paste(&text, w, cx))
+        // every message redraws
+        Outcome::Changed.or(self.deliver_all(|s, w, cx| s.on_msg(&m, w, cx)))
     }
 
     fn attached(&self) -> bool {
@@ -3375,6 +3358,18 @@ impl shell::KeyHost for App {
 
     fn page_key(&mut self, key: &Key) -> Outcome {
         self.with_top(|s, w, cx| s.on_key(key, w, cx))
+    }
+
+    /// A picker reports one QueryChanged per paste, never one per
+    /// grapheme.
+    fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
+        let top = self.modals.top_mut()?;
+        let out = top.layer.on_paste(text);
+        Some(self.settle_layer(out.or(Outcome::Consumed)))
+    }
+
+    fn page_paste(&mut self, text: &str) -> Outcome {
+        self.with_top(|s, w, cx| s.on_paste(text, w, cx))
     }
 
     /// Esc on another tab shows the Here tab; on the Here tab, the page's

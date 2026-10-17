@@ -299,16 +299,8 @@ impl App {
         match input {
             Input::Resize(..) => Outcome::Changed,
             Input::Tick => self.on_tick(),
-            Input::Paste(text) => {
-                // the top layer takes the paste; nothing under it does
-                if let Some(top) = self.layers.top_mut() {
-                    let out = top.layer.on_paste(&text).or(Outcome::Consumed);
-                    return self.take_layer().or(out);
-                }
-                self.with_page(|p, h, cx| p.on_paste(&text, h, cx))
-            }
-            Input::Key(key) => shell::KeyRouter::route(self, &key),
             Input::Mouse(m) => PointerRouter::route(self, m),
+            other => shell::KeyRouter::input(self, other),
         }
     }
 
@@ -2559,6 +2551,16 @@ impl shell::KeyHost for App {
 
     fn page_key(&mut self, key: &Key) -> Outcome {
         self.with_page(|p, h, cx| p.on_key(key, h, cx))
+    }
+
+    fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
+        let top = self.layers.top_mut()?;
+        let out = top.layer.on_paste(text).or(Outcome::Consumed);
+        Some(self.take_layer().or(out))
+    }
+
+    fn page_paste(&mut self, text: &str) -> Outcome {
+        self.with_page(|p, h, cx| p.on_paste(text, h, cx))
     }
 
     fn esc_top(&mut self) -> Outcome {
