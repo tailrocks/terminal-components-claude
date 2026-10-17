@@ -7,7 +7,7 @@ use std::ops::Range;
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 use ratatui::style::Style;
 
 use crate::app::PageId;
@@ -24,6 +24,7 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::{HScroll, TrackClick};
 use junie_tui::theme::{CursorStyle, SyntaxTone, Tone};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::popup::{Dismiss, Place, Placement};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
@@ -426,33 +427,9 @@ impl EditorPage {
         cx.status(format!("Block ran in {ms} ms"));
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let (l, r) = crate::pages::layout::columns(area, (area.width * 62 / 100).max(40), 2);
-        let focused = ctx.interaction.focused(self.editor.id);
-        let meta = if self.run_ticks > 0 {
-            "running".to_owned()
-        } else if self.editor.read_only {
-            "read-only".to_owned()
-        } else {
-            format!("{} blocks", self.editor.blocks().len())
-        };
-        let panel = Panel::card(Some("retry.rs")).focused(focused).meta(&meta);
-        let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(26)), buf, t);
-        self.editor.render(inner, buf, ctx, bg);
-
-        // the toolbar over the State card: find and run, each with its
-        // key, after the editor in Tab order (left column first)
-        let widths = [self.find.width(), self.run_button.width()];
-        let rects =
-            junie_tui::widgets::button::row_layout(Rect::new(r.x, r.y, r.width, 1), &widths, 2);
-        self.find.render(rects[0], buf, ctx, t.canvas);
-        self.run_button.render(rects[1], buf, ctx, t.canvas);
-        let r = Rect::new(r.x, r.y + 2, r.width, r.height.saturating_sub(2));
-        let panel = Panel::card(Some("State"));
-        let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(12)), buf, t);
+    /// The State card's facts: mode, cursor, block, runs, diagnostics,
+    /// completion and find.
+    fn state_props(&self) -> Vec<Prop> {
         let pos = self.editor.field.buffer.cursor_pos();
         let all = self.editor.blocks();
         let cur = self.editor.cursor_offset();
@@ -514,6 +491,75 @@ impl EditorPage {
             ),
             Prop::new("Find", find),
         ];
+        props
+    }
+
+    /// The Diagnostics card's empty state.
+    fn no_diagnostics() -> EmptyState {
+        EmptyState::new("Nothing flagged").hint("Run the second block: its unwrap() gets a warning")
+    }
+
+    /// The right column's width: the State card's facts, the empty
+    /// diagnostics' notice at its `Measure::min_width` (it wraps), the
+    /// toolbar's buttons.
+    fn right_need(&self, ctx: &RenderCtx) -> u16 {
+        Panel::card(Some("State"))
+            .outer(Size::new(props::width(&self.state_props()), 0))
+            .width
+            .max(
+                Panel::card(Some("Diagnostics"))
+                    .outer(Size::new(
+                        Self::no_diagnostics().min_width(Size::ZERO, ctx),
+                        0,
+                    ))
+                    .width,
+            )
+            .max(self.find.width() + 2 + self.run_button.width())
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        // the editor takes 62 % (at least EDITOR_MIN), giving way to the
+        // right column's need before the page scrolls sideways
+        let right = self.right_need(ctx);
+        let (l, r) = if area.width >= EDITOR_MIN + 2 + right {
+            let left = (area.width * 62 / 100)
+                .max(EDITOR_MIN)
+                .min(area.width - 2 - right);
+            crate::pages::layout::columns(area, left, 2)
+        } else {
+            // too narrow for both: the toolbar and cards under the editor
+            let below = (EDITOR_H + 1).min(area.height);
+            (
+                Rect::new(area.x, area.y, area.width, EDITOR_H.min(area.height)),
+                Rect::new(area.x, area.y + below, area.width, area.height - below),
+            )
+        };
+        let focused = ctx.interaction.focused(self.editor.id);
+        let meta = if self.run_ticks > 0 {
+            "running".to_owned()
+        } else if self.editor.read_only {
+            "read-only".to_owned()
+        } else {
+            format!("{} blocks", self.editor.blocks().len())
+        };
+        let panel = Panel::card(Some("retry.rs")).focused(focused).meta(&meta);
+        let bg = panel.bg(t);
+        let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(EDITOR_H)), buf, t);
+        self.editor.render(inner, buf, ctx, bg);
+
+        // the toolbar over the State card: find and run, each with its
+        // key, after the editor in Tab order (left column first)
+        let widths = [self.find.width(), self.run_button.width()];
+        let rects =
+            junie_tui::widgets::button::row_layout(Rect::new(r.x, r.y, r.width, 1), &widths, 2);
+        self.find.render(rects[0], buf, ctx, t.canvas);
+        self.run_button.render(rects[1], buf, ctx, t.canvas);
+        let r = Rect::new(r.x, r.y + 2, r.width, r.height.saturating_sub(2));
+        let panel = Panel::card(Some("State"));
+        let bg = panel.bg(t);
+        let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(12)), buf, t);
+        let props = self.state_props();
         props::render(inner, buf, t, &props, bg);
 
         let y = r.y + 13;
@@ -522,14 +568,7 @@ impl EditorPage {
             let bg = panel.bg(t);
             let inner = panel.render(Rect::new(r.x, y, r.width, (r.bottom() - y).min(9)), buf, t);
             if self.editor.diagnostics.is_empty() {
-                empty::render(
-                    inner,
-                    buf,
-                    t,
-                    &EmptyState::new("Nothing flagged")
-                        .hint("Run the second block: its unwrap() gets a warning"),
-                    bg,
-                );
+                empty::render(inner, buf, t, &Self::no_diagnostics(), bg);
             } else {
                 for (i, d) in self.editor.diagnostics.iter().enumerate() {
                     let yy = inner.y + i as u16;
@@ -600,6 +639,15 @@ fn states_grid() -> StateGrid {
         .column("Warning", warned.placeholder("Type code"))
 }
 
+/// The narrowest the editor column is laid out: the code scrolls
+/// sideways inside it.
+const EDITOR_MIN: u16 = 40;
+/// The editor card's rows.
+const EDITOR_H: u16 = 26;
+/// The right column's rows: the toolbar and a blank row, the State card,
+/// a blank row, the Diagnostics card.
+const RIGHT_H: u16 = 2 + 12 + 1 + 9;
+
 impl Page for EditorPage {
     fn title(&self) -> &'static str {
         "Code editor"
@@ -612,6 +660,24 @@ impl Page for EditorPage {
     }
     fn animating(&self) -> bool {
         self.run_ticks > 0
+    }
+
+    /// The editor beside the toolbar, State and Diagnostics cards: the
+    /// editor at least [`EDITOR_MIN`] columns (it scrolls sideways
+    /// itself), the right column as wide as it needs
+    /// ([`EditorPage::right_need`]), as tall as the editor card. Narrower
+    /// than both side by side, the right column goes under the editor at
+    /// the room's width.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let right = self.right_need(ctx);
+        if avail.width >= EDITOR_MIN + 2 + right {
+            Size::new(EDITOR_MIN + 2 + right, EDITOR_H)
+        } else {
+            Size::new(
+                avail.width.max(EDITOR_MIN).max(right),
+                EDITOR_H + 1 + RIGHT_H,
+            )
+        }
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
