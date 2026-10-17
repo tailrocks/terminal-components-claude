@@ -112,7 +112,7 @@ never in view at the smallest failing size.
 | R20 | Lists | Playground | 80x24, 100x25, 106x29, 120x40 | `1000 BoxOnly Ctrl Double Elixir Haskell ListCmd Page` |
 | R21 | Trees | Playground | 80x24, 100x25, 106x29 | `Activate Cargo CollapseAll Connections Double Expand ExpandAll None` |
 | R22 | Tabs | Playground | 80x24, 100x25, 106x29, 120x40 | `Checks DDL Data Export Foreign Import Indexes Migrate` |
-| R23 | Menus | Playground | 80x24, 100x25 | `Action Chosen Control Dismissed Enter F10 Keys Menu` |
+| R23 | Menus | Playground | **Done** (reach-a): `measure` through `tiles`: the file list at every file's row beside the actions card (stacked when they do not fit), the Last facts wrap | — |
 | R24 | Dialogs | Playground | 80x24, 100x25, 106x29 | `Action Bodies Buttons Cancel Cancelled Close DialogResult Edit` |
 | R25 | Pickers | Playground | 80x24, 100x25, 106x29, 120x40 | `Back Cancelled Chosen ChosenAlt Commands Commit Detail Export` |
 | R26 | DialogKinds | Playground | 80x24, 100x25, 106x29, 120x40 | `Action Bool Cancel Changed Check Choose Chooser Closed` |
