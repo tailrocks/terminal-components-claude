@@ -138,6 +138,33 @@ impl Split {
         self.drag_to(dir, area, gap, pos);
     }
 
+    /// The natural extent of the split along its axis (plan §1.4
+    /// `Measure`): the fewest cells that give the first pane at least
+    /// `first` and the second at least `second` at the current ratio,
+    /// minima and maximised pane, `gap` included. Laid out at it, neither
+    /// pane is squeezed.
+    pub fn extent_for(&self, first: u16, second: u16, gap: u16) -> u16 {
+        match self.maximized {
+            Maximized::First => return first,
+            Maximized::Second => return second,
+            Maximized::None => {}
+        }
+        let fits = |usable: u16| {
+            if usable < self.min_first + self.min_second {
+                return false;
+            }
+            let a = self
+                .first_of(usable)
+                .clamp(self.min_first, usable - self.min_second);
+            a >= first && usable - a >= second
+        };
+        let mut usable = first.saturating_add(second);
+        while usable < u16::MAX && !fits(usable) {
+            usable += 1;
+        }
+        usable.saturating_add(gap)
+    }
+
     /// Vertical split: first pane on top. `gap` rows between them.
     pub fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
@@ -774,6 +801,41 @@ mod split_keys_tests {
                 .hint(SplitDir::Vertical)
                 .is_none()
         );
+    }
+}
+
+#[cfg(test)]
+mod split_extent_tests {
+    use super::*;
+
+    /// Laid out at `extent_for`, each pane gets at least what it asked
+    /// for, in both directions, and one cell less squeezes one.
+    #[test]
+    fn a_split_at_its_extent_gives_each_pane_its_size() {
+        for split in [
+            Split::new(30, 10, 10),
+            Split::new(65, 4, 3),
+            Split::new(50, 0, 0),
+        ] {
+            for (a, b) in [(20, 40), (40, 8), (5, 5)] {
+                let e = split.extent_for(a, b, 1);
+                let (f, g) = split.horizontal(Rect::new(0, 0, e, 3), 1);
+                assert!(
+                    f.width >= a && g.width >= b,
+                    "{split:?} {a},{b}: {f:?} {g:?}"
+                );
+                let (f, g) = split.vertical(Rect::new(0, 0, 3, e), 1);
+                assert!(
+                    f.height >= a && g.height >= b,
+                    "{split:?} {a},{b}: {f:?} {g:?}"
+                );
+                let (f, g) = split.horizontal(Rect::new(0, 0, e - 1, 3), 1);
+                assert!(f.width < a || g.width < b, "tight: {split:?} {a},{b}");
+            }
+        }
+        let mut zoomed = Split::new(30, 10, 10);
+        zoomed.toggle_max(Maximized::Second);
+        assert_eq!(zoomed.extent_for(20, 40, 1), 40, "the zoomed pane alone");
     }
 }
 
