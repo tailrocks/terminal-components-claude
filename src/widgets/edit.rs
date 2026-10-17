@@ -252,6 +252,10 @@ pub struct EditField {
     pub multiline: bool,
     /// Keys and the pointer only move, select and copy.
     pub read_only: bool,
+    /// A run of typing (or deleting) undoes as one step, the way desktop
+    /// fields group typing. Default `true`; `false` makes every keystroke
+    /// its own undo step (holla's finder query, parity H10/H11).
+    pub undo_runs: bool,
     /// The error an empty value shows when the field is required, checked
     /// when there is no [`Self::validator`] (a validator owns validation
     /// when supplied). `None`: an empty value is fine.
@@ -286,6 +290,7 @@ impl EditField {
             validate_when: ValidateWhen::default(),
             multiline,
             read_only: false,
+            undo_runs: true,
             required: None,
             line_off: 0,
             line_area: ratatui::layout::Rect::ZERO,
@@ -383,6 +388,9 @@ impl EditField {
             read_only,
         ) == Some(Applied::Edited);
         if edited {
+            if !self.undo_runs {
+                self.undo.seal();
+            }
             self.after_edit();
         }
         EditResult::changed(edited)
@@ -839,6 +847,25 @@ mod tests {
         };
         assert_eq!(f.on_key(&chord).outcome, Outcome::Ignored);
         assert_eq!(f.text(), "ab", "exits leave the text alone");
+    }
+
+    #[test]
+    fn undo_groups_typing_unless_every_key_is_a_step() {
+        let undo = Key {
+            code: KeyCode::Char('z'),
+            mods: M::CONTROL,
+        };
+        let mut runs = EditField::single("");
+        let mut keys = EditField::single("");
+        keys.undo_runs = false;
+        for f in [&mut runs, &mut keys] {
+            for c in "pull".chars() {
+                f.on_key(&ch(c));
+            }
+            f.on_key(&undo);
+        }
+        assert_eq!(runs.text(), "", "a typing run is one step");
+        assert_eq!(keys.text(), "pul", "every keystroke is a step");
     }
 
     #[test]
