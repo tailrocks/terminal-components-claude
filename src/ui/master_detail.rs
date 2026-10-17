@@ -226,6 +226,21 @@ impl MasterDetail {
         })
     }
 
+    /// The pane the collapsed layout shows with `focus` this frame: the
+    /// drawer while focus is in the detail (or the drawer was open and
+    /// focus did not return to the master), else the master. An owner
+    /// measuring its collapsed content reads it before [`Self::layout`].
+    pub fn collapsed_mode(&self, focus: &crate::ui::ctx::Interaction) -> Mode {
+        // focus returned to the master: the drawer gives the body back
+        let open = self.drawer && !focus.focused(self.master);
+        let detail_focused = focus.focus.is_some_and(|f| self.in_detail(f)) && !focus.focus_hidden;
+        if detail_focused || open {
+            Mode::Drawer
+        } else {
+            Mode::Master
+        }
+    }
+
     /// See [`Self::collapse_below`].
     pub fn collapse_below(mut self, width: u16) -> Self {
         self.collapse_below = width;
@@ -367,15 +382,8 @@ impl MasterDetail {
                 self.seam.render(l.seam, buf, ctx, bg);
             }
         } else {
-            let focus = ctx.interaction;
-            if focus.focused(self.master) {
-                // focus returned to the master: the drawer gives the body back
-                self.drawer = false;
-            }
-            let detail_focused =
-                focus.focus.is_some_and(|f| self.in_detail(f)) && !focus.focus_hidden;
-            if detail_focused || self.drawer {
-                self.drawer = true;
+            self.drawer = self.collapsed_mode(&ctx.interaction) == Mode::Drawer;
+            if self.drawer {
                 l.mode = Mode::Drawer;
                 l.detail = area;
                 // the master keeps its focus stop so Shift+Tab still reaches it
@@ -651,6 +659,23 @@ mod tests {
                     _ => assert_eq!(rects, None, "{width}"),
                 }
             }
+        }
+    }
+
+    /// `collapsed_mode` read before a frame is the mode the narrow
+    /// layout then draws: the drawer while focus is in the detail and
+    /// after, until focus returns to the master.
+    #[test]
+    fn collapsed_mode_is_the_mode_the_narrow_layout_draws() {
+        let mut md = MasterDetail::new(M, D);
+        for focus in [None, Some(D), None, Some(M), None] {
+            let i = Interaction {
+                focus,
+                ..Default::default()
+            };
+            let before = md.collapsed_mode(&i);
+            let (l, _) = frame(&mut md, 80, focus);
+            assert_eq!(before, l.mode, "{focus:?}");
         }
     }
 

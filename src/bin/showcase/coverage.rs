@@ -6448,6 +6448,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "natural_width",
             "panes_width",
             "split_rects",
+            "collapsed_mode",
         ],
     ),
     (
