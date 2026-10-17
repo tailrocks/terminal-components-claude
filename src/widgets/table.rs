@@ -18,6 +18,7 @@ use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture, SelectionMode, TriState};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::row::{RowLook, RowUi};
 use crate::widgets::edit::{EditExit, EditField, Validator};
 use crate::widgets::option_editor::{
     Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
@@ -1703,14 +1704,7 @@ impl DataTable {
                 s.hovered = false;
                 s.pressed = false;
             }
-            let mut row_style = t.row(s, bg);
-            fill(buf, row_rect, row_style);
-            buf.set_string(
-                row_rect.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, row_style.bg.unwrap_or(bg), false),
-            );
+            let mut row_style = RowUi::paint(ctx, buf, row_rect, s, RowLook::Bar, bg).style();
             if row_disabled {
                 row_style = row_style.fg(t.legible(t.text_muted, row_style.bg.unwrap_or(bg)));
             }
