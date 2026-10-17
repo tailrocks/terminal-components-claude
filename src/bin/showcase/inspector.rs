@@ -10,7 +10,8 @@
 //! At 100 columns and wider the pane docks on the right of the page; below
 //! that it opens as an overlay drawn by the app (light dismiss, Esc
 //! closes). Everything here is library widgets: `Tabs`, `props`, and the
-//! option controls of [`OptionsView`].
+//! option controls of [`OptionsView`]. The tab's body scrolls in a library
+//! `ScrollView` when it is taller than the pane.
 
 use std::collections::VecDeque;
 
@@ -25,6 +26,7 @@ use junie_tui::core::event::{Input, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::scroll_view::{Axes, ScrollView};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::tabs::Tabs;
 
@@ -53,6 +55,9 @@ impl Tab {
 pub struct Inspector {
     pub tabs: Tabs,
     pub options: OptionsView,
+    /// The tab's body, scrolled when it is taller than the pane (values
+    /// cut to the pane's width reveal in full on hover).
+    pub view: ScrollView,
     /// The page [`Self::options`] was built for.
     page: PageId,
     /// The last inputs, newest first: `(input, outcome)`.
@@ -87,6 +92,7 @@ impl Inspector {
         Self {
             tabs: Tabs::new(ID.sub("tabs"), &labels),
             options: view(page),
+            view: ScrollView::new(ID.sub("body")).axes(Axes::VERTICAL),
             page,
             log: VecDeque::new(),
             inputs: 0,
@@ -103,6 +109,7 @@ impl Inspector {
         let i = Tab::ALL.iter().position(|t| *t == tab).unwrap_or(0);
         self.tabs.set_active(i);
         self.tabs.cursor = i;
+        self.view.reset();
     }
 
     /// Show `page`'s option table (rebuilt when the page changed).
@@ -142,7 +149,8 @@ impl Inspector {
     }
 
     /// Draw the pane into `area` (inside its card): the tab strip, then the
-    /// tab. `state` is the State tab's diagnostics.
+    /// tab, at its natural height in the pane's scroll view. `state` is the
+    /// State tab's diagnostics.
     pub fn render(
         &mut self,
         area: Rect,
@@ -155,38 +163,28 @@ impl Inspector {
         self.tabs.render(strip, buf, ctx, bg);
         let top = area.y.saturating_add(3).min(area.bottom());
         let body = Rect::new(area.x, top, area.width, area.bottom() - top);
-        match self.tab() {
-            Tab::State => self.render_state(body, buf, ctx, bg, state),
-            Tab::Options => self.options.render(body, buf, ctx, bg),
-        }
-    }
-
-    fn render_state(
-        &mut self,
-        area: Rect,
-        buf: &mut Buffer,
-        ctx: &mut RenderCtx,
-        bg: Color,
-        state: &[Prop],
-    ) {
-        let t = ctx.theme;
-        let used = props::render(area, buf, t, state, bg);
-        let y = area.y + used + 1;
-        if y + 1 >= area.bottom() {
-            return;
-        }
-        buf.set_string(area.x, y, "Events", t.title().bg(bg));
+        let avail = body.as_size();
         let log: Vec<Prop> = self
             .log
             .iter()
             .map(|(input, out)| Prop::new(out, input.clone()))
             .collect();
-        let rest = Rect::new(area.x, y + 1, area.width, area.bottom() - y - 1);
-        if log.is_empty() {
-            buf.set_string(rest.x, rest.y, "No input yet", t.faint().bg(bg));
-        } else {
-            props::render(rest, buf, t, &log, bg);
-        }
+        let size = match self.tab() {
+            Tab::State => {
+                // the bar's column and gap come off the width when it shows
+                let w = avail.width.saturating_sub(2).max(1);
+                let rows = props::measure(state, w) + 2 + props::measure(&log, w).max(1);
+                ratatui::layout::Size::new(avail.width, rows)
+            }
+            Tab::Options => self.options.measure(avail),
+        };
+        let tab = self.tab();
+        let options = &mut self.options;
+        self.view
+            .render(body, size, buf, ctx, |area, buf, ctx| match tab {
+                Tab::State => render_state(area, buf, ctx, bg, state, &log),
+                Tab::Options => options.render(area, buf, ctx, bg),
+            });
     }
 
     pub fn on_blur(&mut self, from: Option<WidgetId>) -> Outcome {
@@ -195,6 +193,21 @@ impl Inspector {
 
     /// Route `ev` to the pane; `None` when it is not the pane's.
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
+        // the body's own wheel and bar
+        if let PageEvent::Pointer(p) = ev
+            && let Some(r) = self.view.pointer(p)
+        {
+            return Some((r.outcome(), None));
+        }
+        let before = self.tabs.active;
+        let out = self.handle_inner(ev, cx);
+        if self.tabs.active != before {
+            self.view.reset();
+        }
+        out
+    }
+
+    fn handle_inner(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
         match ev {
             PageEvent::Key(key) if cx.focus.current() == Some(self.tabs.id) => {
                 return Some((self.tabs.on_key(key).0, None));
@@ -221,5 +234,29 @@ impl Inspector {
             return Some(vec![("←→", "Switch tab")]);
         }
         self.options.hints(focus)
+    }
+}
+
+/// The State tab: the diagnostics, then the input log.
+fn render_state(
+    area: Rect,
+    buf: &mut Buffer,
+    ctx: &mut RenderCtx,
+    bg: Color,
+    state: &[Prop],
+    log: &[Prop],
+) {
+    let t = ctx.theme;
+    let used = props::render(area, buf, t, state, bg);
+    let y = area.y + used + 1;
+    if y + 1 >= area.bottom() {
+        return;
+    }
+    buf.set_string(area.x, y, "Events", t.title().bg(bg));
+    let rest = Rect::new(area.x, y + 1, area.width, area.bottom() - y - 1);
+    if log.is_empty() {
+        buf.set_string(rest.x, rest.y, "No input yet", t.faint().bg(bg));
+    } else {
+        props::render(rest, buf, t, log, bg);
     }
 }
