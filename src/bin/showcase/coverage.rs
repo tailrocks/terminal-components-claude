@@ -5905,6 +5905,11 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     ("ui::columns::solve", Demo("columns", "columns::solve")),
     (
+        "ui::columns::reveal_dropped",
+        Demo("columns", "… reveals it"),
+    ),
+    ("ui::columns::dropped_text", Demo("columns", "… reveals it")),
+    (
         "ui::leave::QuitKeys::classify",
         Demo("quitleave", "QuitKeys::classify"),
     ),

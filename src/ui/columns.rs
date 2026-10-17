@@ -79,6 +79,65 @@ impl Col {
     }
 }
 
+/// The text of the cells a row drops at this width (`widths[i] == 0`), as
+/// `title value` pairs joined with ` · ` (a header row passes its titles
+/// as `cells` and empty `titles`). Empty cells and an empty result are
+/// left out.
+pub fn dropped_text(titles: &[&str], cells: &[&str], widths: &[u16]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    for (i, cell) in cells.iter().enumerate() {
+        if widths.get(i).copied().unwrap_or(0) > 0 || cell.trim().is_empty() {
+            continue;
+        }
+        match titles.get(i).filter(|t| !t.is_empty()) {
+            Some(t) => parts.push(format!("{t} {cell}")),
+            None => parts.push((*cell).to_owned()),
+        }
+    }
+    parts.join(" · ")
+}
+
+/// Mark a row of a hand-rolled table whose columns did not all fit
+/// (R-apps-3): the `…` overflow item at `at` (one cell, usually the row's
+/// last) stands for the dropped cells ([`dropped_text`]) and reveals them
+/// on hover, the way a strip reveals the items it collapsed
+/// ([`crate::ui::reveal`]); on the cursor row of the focused table
+/// (`cursor`) they also show on the footer's peek line. Nothing is drawn
+/// when no column dropped. Returns whether the item was drawn.
+///
+/// A table that can live on [`crate::widgets::table::DataTable`] gets
+/// this from its column priority; this is for rows that keep their own
+/// look (group headers, change marks) over the shared [`solve`].
+#[allow(clippy::too_many_arguments)]
+pub fn reveal_dropped(
+    ctx: &mut RenderCtx,
+    buf: &mut Buffer,
+    at: Rect,
+    titles: &[&str],
+    cells: &[&str],
+    widths: &[u16],
+    cursor: bool,
+    bg: Color,
+) -> bool {
+    let hidden = dropped_text(titles, cells, widths);
+    if hidden.is_empty() || at.is_empty() {
+        return false;
+    }
+    // a row's fill (the cursor row) stays under the item
+    let under = buf.cell((at.x, at.y)).map(|c| c.bg);
+    crate::ui::reveal::overflow(ctx, buf, Rect::new(at.x, at.y, 1, 1), &hidden, bg);
+    if let (Some(fill), Some(c)) = (under, buf.cell_mut((at.x, at.y)))
+        && fill != bg
+        && fill != ratatui::style::Color::Reset
+    {
+        c.set_bg(fill);
+    }
+    if cursor {
+        crate::ui::reveal::peek(ctx, &hidden);
+    }
+    true
+}
+
 /// Widths for `cols` in `avail` cells with `gap` cells between visible
 /// columns. A dropped column gets 0 (and no gap). The result never exceeds
 /// `avail`.

@@ -316,10 +316,23 @@ impl ColumnsPage {
             self.rules.render(rules, buf, ctx, bg);
             if inner.height > 8 {
                 let y = rules.bottom() + 1;
-                let caption = format!("Row at {avail} cells: the lowest drop priority goes first");
+                let caption = format!(
+                    "Row at {avail} cells: the lowest drop priority goes first, … reveals it"
+                );
                 crate::pages::layout::caption(inner.x, y, buf, t, &caption, bg);
                 let row = Rect::new(inner.x, y + 1, (avail + 5).min(inner.width), 2);
                 self.row.render(row, buf, ctx, bg);
+                // the dropped columns end the row in `…`, which reveals
+                // them (columns::reveal_dropped, R-apps-3)
+                let spec = self::rules();
+                let cols: Vec<Col> = spec.iter().map(|r| r.col).collect();
+                let widths = columns::solve(&cols, avail, GAP);
+                let titles: Vec<&str> = spec.iter().map(|r| r.name).collect();
+                let cells: Vec<&str> = spec.iter().map(|r| r.value).collect();
+                let at = Rect::new(row.right(), y + 2, 1, 1);
+                if at.x < inner.right() {
+                    columns::reveal_dropped(ctx, buf, at, &titles, &cells, &widths, false, bg);
+                }
             }
             panel.draw_meta(r, buf, t, "Col rules · columns::solve");
         }

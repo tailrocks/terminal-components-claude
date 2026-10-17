@@ -1170,15 +1170,51 @@ impl TreeView {
                 );
                 lx += 2;
             }
-            buf.set_string(
-                lx,
-                y,
-                crate::ui::text::fit(&row.label, (lw as usize).saturating_sub((lx - x) as usize)),
-                label_style,
-            );
+            let meta_shown = meta_w > 0 && meta_w + 4 < avail;
+            let label_cell = Rect::new(lx, y, lw.saturating_sub(lx - x), 1);
+            let meta_col = self.show_meta;
+            match row
+                .meta
+                .as_deref()
+                .filter(|m| meta_col && !m.is_empty() && !meta_shown)
+            {
+                // no room for the meta column: the meta follows the label,
+                // cut with … and revealed with it (R-apps-3), never dropped
+                Some(m) if !row.note => {
+                    let label_cell = Rect::new(lx, y, avail.saturating_sub(lx - x + 1), 1);
+                    let full = format!("{}  {m}", row.label);
+                    rp.label(
+                        ctx,
+                        buf,
+                        &mut self.core.reveal,
+                        rid,
+                        label_cell,
+                        &full,
+                        label_style,
+                    );
+                    let meta_x = lx + crate::ui::text::width(&row.label) as u16 + 2;
+                    for mx in meta_x..label_cell.right() {
+                        if let Some(c) = buf.cell_mut((mx, y)) {
+                            c.set_fg(t.text_muted);
+                        }
+                    }
+                }
+                _ => {
+                    buf.set_string(
+                        lx,
+                        y,
+                        crate::ui::text::fit(&row.label, label_cell.width as usize),
+                        label_style,
+                    );
+                    if !row.note {
+                        self.core
+                            .reveal
+                            .cell(ctx, rid, label_cell, &row.label, s.focused);
+                    }
+                }
+            }
             if let Some(m) = &row.meta
-                && meta_w > 0
-                && meta_w + 4 < avail
+                && meta_shown
             {
                 buf.set_string(
                     rect.right().saturating_sub(meta_w + 1),
@@ -1730,6 +1766,41 @@ mod scroll_tests {
         ] {
             assert!(all.contains(part), "{part:?} in\n{all}");
         }
+    }
+
+    /// R-apps-3: a tree too narrow for its meta column no longer drops the
+    /// meta: it follows the label, cut with `…`, and the row reveals both.
+    #[test]
+    fn a_narrow_tree_cuts_its_meta_after_the_label_and_reveals_it() {
+        let mut t = TreeView::new(
+            WidgetId::of("t"),
+            vec![
+                TreeNode::leaf_meta("customers", "312 rows"),
+                TreeNode::leaf_meta("orders", "4 rows"),
+            ],
+        );
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 20, 2);
+        let mut buf = Buffer::empty(area);
+        t.render(area, &mut buf, &mut ctx, theme.canvas);
+        let rows: Vec<String> = (0..2)
+            .map(|y| (0..20).map(|x| buf[(x, y)].symbol()).collect::<String>())
+            .collect();
+        assert!(rows[0].contains("customers  3"), "{rows:?}");
+        assert!(
+            rows[0].contains('…'),
+            "the meta is cut, not dropped: {rows:?}"
+        );
+        assert!(rows[1].contains("orders  4 rows"), "{rows:?}");
+        assert!(
+            crate::ui::reveal::overflowed()
+                .iter()
+                .any(|s| s == "customers  312 rows"),
+            "the cut row reveals its meta"
+        );
     }
 
     fn render(t: &mut TreeView) -> String {

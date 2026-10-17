@@ -757,38 +757,48 @@ impl FilesPage {
             } else {
                 st
             };
-            buf.set_string(row.x + 3, y, fit(&name, name_w as usize), ns);
+            // a cut name reveals on hover, the cursor row's on the peek line
+            let name_cell = Rect::new(row.x + 3, y, name_w, 1);
+            let shown = junie_tui::ui::reveal::fit(ctx, name_cell, &name, s.focused);
+            buf.set_string(row.x + 3, y, fit(&shown, name_w as usize), ns);
             let mut x = row.x + 3 + name_w + 2;
-            if x + 10 <= row.right() {
-                buf.set_string(
-                    x,
-                    y,
-                    fit_right(
-                        &if e.is_dir {
-                            "–".to_owned()
-                        } else {
-                            junie_tui::ui::text::bytes(e.size)
-                        },
-                        9,
-                    ),
-                    plain.fg(t.text_secondary),
-                );
-            }
-            x += 11;
-            if x + 17 <= row.right() {
-                buf.set_string(
-                    x,
-                    y,
-                    crate::scenario::CLOCK.stamp(e.mtime),
-                    plain.fg(t.text_muted),
-                );
-            }
-            x += 18;
+            let size = if e.is_dir {
+                "–".to_owned()
+            } else {
+                junie_tui::ui::text::bytes(e.size)
+            };
+            let stamp = crate::scenario::CLOCK.stamp(e.mtime);
             let tail = match &e.error {
                 Some(err) => err.clone(),
                 None => format!("{}{}", e.kind, if e.hidden { " · hidden" } else { "" }),
             };
+            // the columns that do not fit end the row in `…`, which
+            // reveals them (R-apps-3)
+            let mut shown_w = [0u16; 3];
+            if x + 10 <= row.right() {
+                shown_w[0] = 9;
+                buf.set_string(x, y, fit_right(&size, 9), plain.fg(t.text_secondary));
+            }
+            x += 11;
+            if x + 17 <= row.right() {
+                shown_w[1] = 17;
+                buf.set_string(x, y, &stamp, plain.fg(t.text_muted));
+            }
+            x += 18;
             let avail = row.right().saturating_sub(x + 1) as usize;
+            if avail >= 6 {
+                shown_w[2] = avail as u16;
+            }
+            junie_tui::ui::columns::reveal_dropped(
+                ctx,
+                buf,
+                Rect::new(row.right().saturating_sub(1), y, 1, 1),
+                &["size", "modified", ""],
+                &[size.as_str(), stamp.as_str(), tail.as_str()],
+                &shown_w,
+                s.focused,
+                bg,
+            );
             if avail >= 6 {
                 buf.set_string(
                     x,

@@ -847,15 +847,19 @@ impl ConfigTabs {
                 );
                 x += widths[i] + 2;
             }
-            if hidden > 0 {
-                let tag = format!("{hidden}›");
-                buf.set_string(
-                    list_area.right().saturating_sub(width(&tag) as u16),
-                    y,
-                    &tag,
-                    t.faint().bg(bg),
-                );
-            }
+            // the columns this width drops: one `…` after the last header,
+            // which reveals their names (R-apps-3; it was a `2›` tag that
+            // covered the last header's last letter)
+            junie_tui::ui::columns::reveal_dropped(
+                ctx,
+                buf,
+                Rect::new(list_area.right().saturating_sub(1), y, 1, 1),
+                &[],
+                &header,
+                &widths,
+                false,
+                bg,
+            );
             y += 1;
         }
         let blocker_rows = {
@@ -1004,6 +1008,19 @@ impl ConfigTabs {
                     buf.set_string(x, y, fit(&shown, cw as usize), cs);
                     x += cw + 2;
                 }
+                // the columns this width drops end the row in `…`, which
+                // reveals them (R-apps-3)
+                let cells: Vec<&str> = row.cells.iter().map(|(c, _)| c.as_str()).collect();
+                junie_tui::ui::columns::reveal_dropped(
+                    ctx,
+                    buf,
+                    Rect::new(rect.right().saturating_sub(1), y, 1, 1),
+                    &header,
+                    &cells,
+                    &widths,
+                    s.focused,
+                    bg,
+                );
             }
             if row.problem.is_some() {
                 buf.set_string(rect.right().saturating_sub(2), y, "!", style.fg(t.error));

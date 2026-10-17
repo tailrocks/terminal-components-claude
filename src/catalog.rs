@@ -811,6 +811,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("ui::columns::HeaderAction::Autofit"),
     Capability::variant("ui::columns::HeaderAction::ResetWidths"),
     Capability::ty("ui::columns::HeaderLabels"),
+    Capability::function("ui::columns::dropped_text"),
+    Capability::function("ui::columns::reveal_dropped"),
     Capability::function("ui::columns::solve"),
     Capability::function("ui::columns::ColumnSizing::user"),
     Capability::function("ui::columns::ColumnSizing::width"),

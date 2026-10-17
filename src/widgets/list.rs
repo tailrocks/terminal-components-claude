@@ -322,6 +322,23 @@ impl ListBox {
         (lw, meta_w)
     }
 
+    /// The meta shows in its own column at `text_w` (else it follows the
+    /// label, [`Self::row_text`]).
+    fn meta_shown(item: &ListItem, text_w: usize) -> bool {
+        let (_, meta_w) = Self::label_width(item, text_w);
+        meta_w > 0 && meta_w + 4 < text_w.saturating_sub(2)
+    }
+
+    /// The row's text at `text_w`: its label, followed by its meta when the
+    /// meta column has no room, so the meta is cut with `…` and revealed
+    /// with the label instead of dropped (R-apps-3).
+    fn row_text(item: &ListItem, text_w: usize) -> String {
+        match item.meta.as_deref().filter(|m| !m.is_empty()) {
+            Some(m) if !Self::meta_shown(item, text_w) => format!("{}  {m}", item.label),
+            _ => item.label.clone(),
+        }
+    }
+
     /// The rows the focused cursor row wraps to in place, when the reveal
     /// is open in [`crate::ui::reveal::RevealMode::InlineWrap`].
     fn inline_rows(
@@ -333,7 +350,7 @@ impl ListBox {
         let item = self.items.get(self.core.cursor).filter(|it| !it.disabled)?;
         let (lw, _) = Self::label_width(item, text_w);
         let rid = self.row_id(self.core.cursor);
-        let label = item.label.clone();
+        let label = Self::row_text(item, text_w);
         self.core
             .reveal
             .inline(ctx, rid, lw as u16, &label, true, room)
@@ -619,7 +636,6 @@ impl ListBox {
                 };
                 rp.mark(ctx, buf, row.x + 1, y, kind, focused);
             }
-            let label_w = text_w.saturating_sub(2);
             let (lw, meta_w) = Self::label_width(item, text_w);
             if let Some(rows) = block {
                 // the cursor row wrapped in place: every line, then a
@@ -631,11 +647,28 @@ impl ListBox {
                 }
             } else {
                 let label = Rect::new(row.x + 3, y, lw as u16, 1);
-                rp.label(ctx, buf, &mut self.core.reveal, rid, label, &item.label, st);
+                match item.meta.as_deref().filter(|m| !m.is_empty()) {
+                    // no room for the meta column: the meta follows the
+                    // label, cut with … and revealed with it (R-apps-3)
+                    Some(_) if !Self::meta_shown(item, text_w) => {
+                        let full = Self::row_text(item, text_w);
+                        rp.label(ctx, buf, &mut self.core.reveal, rid, label, &full, st);
+                        let meta_x = label.x + crate::ui::text::width(&item.label) as u16 + 2;
+                        for mx in meta_x..label.right() {
+                            if let Some(c) = buf.cell_mut((mx, y))
+                                && !item.disabled
+                            {
+                                c.set_fg(t.text_muted);
+                            }
+                        }
+                    }
+                    _ => {
+                        rp.label(ctx, buf, &mut self.core.reveal, rid, label, &item.label, st);
+                    }
+                }
             }
             if let Some(m) = &item.meta
-                && meta_w > 0
-                && meta_w + 4 < label_w
+                && Self::meta_shown(item, text_w)
             {
                 let mx = sp
                     .content
@@ -1076,6 +1109,33 @@ mod reveal_tests {
         assert_eq!(at(0, "3").fg, theme.text_muted);
         let slow = at(1, "1");
         assert_eq!(slow.fg, theme.tone_on(Tone::Warning, slow.bg));
+    }
+
+    /// R-apps-3: a list too narrow for a row's meta column no longer drops
+    /// the meta: it follows the label, cut with `…`, and the row reveals
+    /// both (hover, and the peek line on the cursor row).
+    #[test]
+    fn a_narrow_list_cuts_the_meta_after_the_label_and_reveals_it() {
+        let theme = Theme::junie();
+        let items = vec![ListItem::new("select 1").meta("412 ms · 3 rows")];
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 20, 1);
+        let mut buf = Buffer::empty(area);
+        l.render(area, &mut buf, &mut ctx, theme.canvas);
+        let row: String = (0..20).map(|x| buf[(x, 0)].symbol()).collect();
+        assert!(row.contains("select 1  412"), "{row:?}");
+        assert!(row.contains('…'), "the meta is cut, not dropped: {row:?}");
+        let x = (0..20).find(|&x| buf[(x, 0)].symbol() == "4").unwrap();
+        assert_eq!(buf[(x, 0)].fg, theme.text_muted, "the meta keeps its ink");
+        assert!(
+            crate::ui::reveal::overflowed()
+                .iter()
+                .any(|s| s == "select 1  412 ms · 3 rows"),
+            "the cut row reveals its meta"
+        );
     }
 
     /// Cut labels stop one blank column short of the scrollbar, never

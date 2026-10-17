@@ -22,7 +22,6 @@ TextUtilities | Playground | 120x40 | R41 squeezes instead of overflowing: no Pa
 QueryWorkbench | Playground | 80x24 | R42 squeezes instead of overflowing: no Page::measure yet
 QueryWorkbench | Playground | 100x25 | R42 squeezes instead of overflowing: no Page::measure yet
 QueryWorkbench | Playground | 106x29 | R42 squeezes instead of overflowing: no Page::measure yet
-QueryWorkbench | Playground | 120x40 | R42 squeezes instead of overflowing: no Page::measure yet
 Connections | Playground | 80x24 | R43 squeezes instead of overflowing: no Page::measure yet
 Connections | Playground | 100x25 | R43 squeezes instead of overflowing: no Page::measure yet
 Finder | Playground | 80x24 | R44 squeezes instead of overflowing: no Page::measure yet

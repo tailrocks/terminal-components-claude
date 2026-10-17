@@ -1690,10 +1690,29 @@ impl ShellPage<Holla> for PlanTab {
             let inner = panel.render(out_area, buf, t);
             self.view.render(inner, buf, ctx, t.canvas);
         } else {
-            self.outline_area = rail_area;
+            // the outline keeps its column heading when it is alone too
+            // (R-apps-3: the heading was dropped below the split width)
+            Heading::new("step").render(
+                Rect::new(
+                    rail_area.x + 7,
+                    rail_area.y,
+                    rail_area.width.saturating_sub(7),
+                    1,
+                ),
+                buf,
+                t,
+                t.canvas,
+            );
+            let rows = Rect::new(
+                rail_area.x,
+                rail_area.y + 1,
+                rail_area.width,
+                rail_area.height.saturating_sub(1),
+            );
+            self.outline_area = rows;
             render_outline(
                 &p,
-                rail_area,
+                rows,
                 buf,
                 ctx,
                 OUTLINE,
