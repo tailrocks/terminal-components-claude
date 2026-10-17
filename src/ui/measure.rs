@@ -31,11 +31,24 @@ pub fn at_least(size: Size, min: Size) -> Size {
 pub struct Tile<'a> {
     pub min_width: u16,
     pub height: &'a dyn Fn(u16) -> u16,
+    /// The tile takes a share of the row's spare width. Default on; off
+    /// keeps it at `min_width` (content of a set width).
+    pub grow: bool,
 }
 
 impl<'a> Tile<'a> {
     pub fn new(min_width: u16, height: &'a dyn Fn(u16) -> u16) -> Self {
-        Self { min_width, height }
+        Self {
+            min_width,
+            height,
+            grow: true,
+        }
+    }
+
+    /// Keep the tile at its `min_width` (see [`Tile::grow`]).
+    pub fn fixed(mut self) -> Self {
+        self.grow = false;
+        self
     }
 }
 
@@ -60,7 +73,8 @@ impl Tiled {
 /// whose tiles fit side by side (each at its `min_width`, `gap.0` between)
 /// shares the width (equal shares, every tile at least its minimum), and
 /// is as tall as its tallest tile; a row that does not fit stacks its
-/// tiles, each the full width. Rows are `gap.1` apart. The result is never
+/// tiles, each the full width. A [`Tile::fixed`] tile keeps its minimum
+/// width either way. Rows are `gap.1` apart. The result is never
 /// narrower than its widest tile, so a container that lays it out at
 /// [`Tiled::size`] (a [`ScrollView`](crate::ui::scroll_view::ScrollView))
 /// scrolls instead of cutting a tile.
@@ -81,19 +95,25 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
         let gaps = gap.0.saturating_mul(n - 1);
         let mins: u16 = row.iter().map(|t| t.min_width).sum();
         if mins.saturating_add(gaps) <= width {
-            // side by side: equal shares, every tile at least its minimum
-            let room = width - gaps;
+            // side by side: the growing tiles share what the fixed ones
+            // leave, each at least its minimum
             let mut widths: Vec<u16> = row.iter().map(|t| t.min_width).collect();
-            let mut spare = room - mins;
-            let share = room / n;
-            for w in widths.iter_mut() {
-                let add = share.saturating_sub(*w).min(spare);
-                *w += add;
-                spare -= add;
-            }
-            // what is left goes to the last tile, so the row fills
-            if let Some(last) = widths.last_mut() {
-                *last += spare;
+            let mut spare = width - gaps - mins;
+            let fixed: u16 = row.iter().filter(|t| !t.grow).map(|t| t.min_width).sum();
+            let growing = row.iter().filter(|t| t.grow).count() as u16;
+            if growing > 0 {
+                let share = (width - gaps - fixed) / growing;
+                for (w, t) in widths.iter_mut().zip(row.iter()) {
+                    if t.grow {
+                        let add = share.saturating_sub(*w).min(spare);
+                        *w += add;
+                        spare -= add;
+                    }
+                }
+                // what is left goes to the last growing tile: the row fills
+                if let Some(i) = row.iter().rposition(|t| t.grow) {
+                    widths[i] += spare;
+                }
             }
             let h = row
                 .iter()
@@ -112,8 +132,9 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
                 if k > 0 {
                     y = y.saturating_add(gap.1);
                 }
-                let h = (t.height)(width);
-                rects.push(Rect::new(0, y, width, h));
+                let w = if t.grow { width } else { t.min_width };
+                let h = (t.height)(w);
+                rects.push(Rect::new(0, y, w, h));
                 y = y.saturating_add(h);
             }
         }
@@ -158,6 +179,14 @@ mod tests {
         let t = tiles(60, &rows, (2, 1));
         assert_eq!(t.rects[0].width, 40);
         assert_eq!(t.rects[1], Rect::new(42, 0, 18, 3));
+        // a fixed tile keeps its width; the other takes the rest
+        let rows: [&[Tile]; 1] = [&[Tile::new(20, &short).fixed(), Tile::new(5, &short)]];
+        let t = tiles(60, &rows, (2, 1));
+        assert_eq!(t.rects[0], Rect::new(0, 0, 20, 3));
+        assert_eq!(t.rects[1], Rect::new(22, 0, 38, 3));
+        let t = tiles(24, &rows, (2, 1));
+        assert_eq!(t.rects[0], Rect::new(0, 0, 20, 3));
+        assert_eq!(t.rects[1], Rect::new(0, 4, 24, 3));
     }
 
     #[test]
