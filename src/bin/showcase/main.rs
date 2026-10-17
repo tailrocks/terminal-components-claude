@@ -26,9 +26,9 @@ mod app_tests_dialogs;
 #[cfg(test)]
 mod app_tests_feedback;
 #[cfg(test)]
-mod app_tests_finder;
-#[cfg(test)]
 mod app_tests_file_browser;
+#[cfg(test)]
+mod app_tests_finder;
 #[cfg(test)]
 mod app_tests_focusnav;
 #[cfg(test)]
