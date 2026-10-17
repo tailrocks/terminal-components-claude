@@ -3006,6 +3006,23 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("overview", "shell.overrides"),
     ),
     ("theme::Glyphs", Option("overview", "shell.glyphs")),
+    ("theme::Charset", Option("overview", "shell.glyphs")),
+    (
+        "theme::Charset::Unicode",
+        Option("overview", "shell.glyphs=unicode"),
+    ),
+    (
+        "theme::Charset::Ascii",
+        Option("overview", "shell.glyphs=ascii"),
+    ),
+    // `CommonArgs::theme` applies the detected charset; the options seed
+    // from it and draw with its glyphs and copy (`App::apply_shell`)
+    ("theme::Charset::glyphs", Option("overview", "shell.glyphs")),
+    (
+        "theme::Charset::strings",
+        Option("overview", "shell.strings"),
+    ),
+    ("theme::Charset::apply", Option("overview", "shell.glyphs")),
     ("theme::Theme::glyphs", Option("overview", "shell.glyphs")),
     (
         "theme::Theme::with_glyphs",
