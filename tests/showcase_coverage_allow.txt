@@ -380,9 +380,17 @@ ui::ctx::RenderCtx::modal_backdrop_with | covered by the demo of its owner Rende
 ui::ctx::legible_on_fill | covered by the demo of RenderCtx (coverage.rs VIA) once SC34 shows it | SC34
 ui::ctx::fill | covered by the demo of RenderCtx (coverage.rs VIA) once SC34 shows it | SC34
 
+# ui::pane_tree
+ui::pane_tree::PaneRefusal | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::ZoomedFocus | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::ZoomedResize | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::NoNeighbour | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::NothingToResize | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::AtMinimum | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::OnePane | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+ui::pane_tree::PaneRefusal::message | widget actions: the Inspector State log of widget events (the showcase on Shell); the pane tree page reports a refusal in the status line | SC34
+
 # ui::layout
-ui::layout::SplitCmd::Up | vertical seam chord: the pane tree page resizes its stacked panes with it | SC45
-ui::layout::SplitCmd::Down | vertical seam chord: the pane tree page resizes its stacked panes with it | SC45
 ui::layout::StackScroll::pointer | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 ui::layout::StackLayout::slot | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 ui::layout::Stack::chrome | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
