@@ -315,8 +315,8 @@ const WS: WidgetId = WidgetId::of("workspaces");
 
 #[test]
 fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
-    let h = Harness::new(120, 40, PageId::Workspaces);
-    let text = h.text();
+    // the page scrolls to the card's right edge
+    let text = Harness::new(120, 40, PageId::Workspaces).page_text();
     assert!(!text.contains("arrives with"), "{text}");
     for needle in [
         "payments-platform",
@@ -331,8 +331,10 @@ fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
     ] {
         assert!(text.contains(needle), "{needle}: {text}");
     }
-    // narrow: the tree alone, the detail is a drawer away
-    let h = Harness::new(80, 24, PageId::Workspaces);
+    // narrow (the page at its natural width is below a collapse
+    // threshold set above it): the tree alone, the detail is a drawer away
+    let mut h = Harness::new(80, 24, PageId::Workspaces);
+    h.opt("workspaces.collapse_below=108");
     let text = h.text();
     assert!(!text.contains("arrives with"), "{text}");
     assert!(text.contains("payments-platform"), "{text}");
@@ -342,6 +344,7 @@ fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
 #[test]
 fn workspaces_narrow_detail_is_a_drawer() {
     let mut h = Harness::new(80, 24, PageId::Workspaces);
+    h.opt("workspaces.collapse_below=108");
     h.focus(WS.sub("tree"));
     assert!(h.text().contains("Tab shows details"), "{}", h.text());
     h.key(KeyCode::Tab);
