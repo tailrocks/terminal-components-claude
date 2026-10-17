@@ -83,9 +83,6 @@ MasterDetail | Playground | 80x24 | R36 squeezes instead of overflowing: no Page
 MasterDetail | Playground | 100x25 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 120x40 | R36 squeezes instead of overflowing: no Page::measure yet
-PaneTree | Playground | 80x24 | R37 squeezes instead of overflowing: no Page::measure yet
-PaneTree | Playground | 100x25 | R37 squeezes instead of overflowing: no Page::measure yet
-PaneTree | Playground | 106x29 | R37 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 80x24 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 100x25 | R38 squeezes instead of overflowing: no Page::measure yet
 Editor | Playground | 106x29 | R38 squeezes instead of overflowing: no Page::measure yet
