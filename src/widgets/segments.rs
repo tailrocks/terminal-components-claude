@@ -76,6 +76,19 @@ pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u1
     w.saturating_sub(sep) + 2 * t.spacing.chrome_edge
 }
 
+/// The narrowest a strip is laid out at (plan §1.4 `Measure` min width):
+/// what does not fit collapses into its revealing `…` overflow item, so
+/// it is whole at any width that keeps its strongest segment and that
+/// item.
+pub fn min_width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
+    let strongest = left
+        .iter()
+        .chain(right)
+        .max_by_key(|s| s.priority)
+        .map_or(0, |s| crate::ui::text::width(&s.shown()) as u16);
+    strongest + 2 + 1 + 2 * t.spacing.chrome_edge
+}
+
 pub fn render(
     area: Rect,
     buf: &mut Buffer,
