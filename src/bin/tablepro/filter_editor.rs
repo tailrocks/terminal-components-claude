@@ -365,7 +365,10 @@ impl FilterEditor {
         buf.set_string(
             inner.x,
             y,
-            junie_tui::ui::text::truncate(&format!("WHERE {preview}"), inner.width as usize),
+            junie_tui::ui::reveal::cut(
+                Rect::new(inner.x, y, inner.width, 1),
+                &format!("WHERE {preview}"),
+            ),
             t.secondary().bg(bg),
         );
         let ay = inner.bottom().saturating_sub(1);

@@ -1589,7 +1589,10 @@ impl CapsuleScreen {
                     buf.set_string(
                         r.x + 2,
                         r.y,
-                        truncate(&title, r.width.saturating_sub(6) as usize),
+                        junie_tui::ui::reveal::cut(
+                            Rect::new(r.x + 2, r.y, r.width.saturating_sub(6), 1),
+                            &title,
+                        ),
                         ts,
                     );
                     if !g.is_empty() {
@@ -2813,7 +2816,7 @@ impl Layer<ModalResult, World> for UsageDialog {
                 Line::Text(s, tone) => buf.set_string(
                     body.x,
                     yy,
-                    truncate(s, body.width as usize),
+                    junie_tui::ui::reveal::cut(Rect::new(body.x, yy, body.width, 1), s),
                     Style::new().fg(t.tone(*tone)).bg(bg),
                 ),
                 Line::Meter(label, pct, value, tone) => {
@@ -2856,7 +2859,10 @@ impl Layer<ModalResult, World> for UsageDialog {
         buf.set_string(
             inner.x,
             inner.bottom().saturating_sub(1),
-            truncate(hint, inner.width as usize),
+            junie_tui::ui::reveal::cut(
+                Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
+                hint,
+            ),
             t.faint().bg(bg),
         );
         let _ = props::render;

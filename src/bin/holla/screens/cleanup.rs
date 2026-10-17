@@ -19,7 +19,7 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextAnchor;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::master_detail::MasterDetail;
-use junie_tui::ui::text::{fit, truncate, width, wrap};
+use junie_tui::ui::text::{fit, width, wrap};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
 use junie_tui::widgets::panel::Panel;
@@ -621,7 +621,10 @@ impl CleanupPage {
                 Row::Note(n) => buf.set_string(
                     area.x + 5,
                     y,
-                    truncate(n, row_w.saturating_sub(5) as usize),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(area.x + 5, y, row_w.saturating_sub(5), 1),
+                        n,
+                    ),
                     t.muted(),
                 ),
                 Row::Category(ci) => {
@@ -790,7 +793,7 @@ impl CleanupPage {
                         buf.set_string(
                             x,
                             y,
-                            truncate(&tail, avail),
+                            junie_tui::ui::reveal::cut(Rect::new(x, y, (avail) as u16, 1), &tail),
                             plain.fg(if ineligible { quiet } else { t.text_faint }),
                         );
                     }
@@ -846,7 +849,7 @@ impl CleanupPage {
             buf.set_string(
                 inner.x + label_w,
                 y,
-                truncate(v, vw),
+                junie_tui::ui::reveal::cut(Rect::new(inner.x + label_w, y, (vw) as u16, 1), v),
                 Style::new().fg(t.tone(*tone)).bg(bg),
             );
         }

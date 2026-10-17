@@ -843,7 +843,10 @@ impl TableTab {
                 buf.set_string(
                     body.x + 1,
                     sy,
-                    junie_tui::ui::text::truncate(&joined(&parts), avail),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(body.x + 1, sy, (avail) as u16, 1),
+                        &joined(&parts),
+                    ),
                     t.muted().bg(bg),
                 );
             }
@@ -2616,7 +2619,10 @@ impl HistoryTab {
             buf.set_string(
                 sx,
                 area.y + 1,
-                junie_tui::ui::text::truncate(&scope, area.right().saturating_sub(sx) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(sx, area.y + 1, area.right().saturating_sub(sx), 1),
+                    &scope,
+                ),
                 t.muted().bg(bg),
             );
         }

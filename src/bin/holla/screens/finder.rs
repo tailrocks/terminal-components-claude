@@ -716,7 +716,12 @@ impl FinderPage {
             let (l, v, tone) = &flat[i];
             buf.set_string(inner.x, y, l, t.muted().bg(bg));
             let st = Style::new().fg(t.tone(*tone)).bg(bg);
-            buf.set_string(inner.x + label_w, y, truncate(v, vw), st);
+            buf.set_string(
+                inner.x + label_w,
+                y,
+                junie_tui::ui::reveal::cut(Rect::new(inner.x + label_w, y, (vw) as u16, 1), v),
+                st,
+            );
         }
         if has_sb {
             scrollbar::render_with_fade(
@@ -780,7 +785,10 @@ impl FinderPage {
             buf.set_string(
                 area.x + 2,
                 area.y,
-                truncate(&placeholder, text_w),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(area.x + 2, area.y, (text_w) as u16, 1),
+                    &placeholder,
+                ),
                 fs.fg(t.text_muted),
             );
         } else {
@@ -1480,7 +1488,10 @@ impl ShellPage<Holla> for FinderPage {
             buf.set_string(
                 body.x + 3,
                 l.summary.y,
-                truncate(&line, body.width.saturating_sub(3) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(body.x + 3, l.summary.y, body.width.saturating_sub(3), 1),
+                    &line,
+                ),
                 t.muted(),
             );
         }

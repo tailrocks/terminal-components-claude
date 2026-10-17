@@ -10,7 +10,7 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::{DismissReason, Layer, LayerCx, LayerOut, LayerSpec};
-use junie_tui::ui::text::{truncate, width, wrap};
+use junie_tui::ui::text::{width, wrap};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::scrollbar;
 use ratatui::buffer::Buffer;
@@ -192,7 +192,7 @@ impl TextModal {
         buf.set_string(
             inner.x,
             inner.y,
-            truncate(&self.title, inner.width as usize),
+            junie_tui::ui::reveal::cut(Rect::new(inner.x, inner.y, inner.width, 1), &self.title),
             t.title().bg(bg),
         );
         if !self.subtitle.is_empty() {
@@ -225,7 +225,7 @@ impl TextModal {
                 buf.set_string(
                     body.x,
                     y,
-                    truncate(value, body.width as usize),
+                    junie_tui::ui::reveal::cut(Rect::new(body.x, y, body.width, 1), value),
                     t.faint().bg(bg),
                 );
                 continue;
@@ -236,9 +236,14 @@ impl TextModal {
                 buf.set_string(
                     vx,
                     y,
-                    truncate(
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(
+                            vx,
+                            y,
+                            body.width.saturating_sub(kc + 2 + u16::from(has_sb)),
+                            1,
+                        ),
                         value,
-                        body.width.saturating_sub(kc + 2 + u16::from(has_sb)) as usize,
                     ),
                     Style::new().fg(t.tone(*tone)).bg(bg),
                 );
@@ -246,7 +251,10 @@ impl TextModal {
                 buf.set_string(
                     body.x,
                     y,
-                    truncate(value, body.width.saturating_sub(u16::from(has_sb)) as usize),
+                    junie_tui::ui::reveal::cut(
+                        Rect::new(body.x, y, body.width.saturating_sub(u16::from(has_sb)), 1),
+                        value,
+                    ),
                     Style::new().fg(t.tone(*tone)).bg(bg),
                 );
             }
