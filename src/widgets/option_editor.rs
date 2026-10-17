@@ -289,7 +289,9 @@ pub struct EditorConfig {
     /// [`Placement::Below`] (flips above when there is no room).
     pub placement: Placement,
     /// What the wheel does over an open popup list. Default
-    /// [`WheelMode::Cursor`]: it moves the cursor.
+    /// [`WheelMode::Viewport`]: it scrolls the list and the cursor stays
+    /// (plan §3 "Wheel in popup lists", as every popup list);
+    /// [`WheelMode::Cursor`] moves the cursor.
     pub wheel: WheelMode,
 }
 
@@ -308,7 +310,7 @@ impl Default for EditorConfig {
             flag_out_of_set: true,
             tag_separator: ", ",
             placement: Placement::Below,
-            wheel: WheelMode::Cursor,
+            wheel: WheelMode::Viewport,
         }
     }
 }
