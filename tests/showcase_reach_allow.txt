@@ -28,10 +28,6 @@ CellEditors | Playground | 80x24 | R18 squeezes instead of overflowing: no Page:
 CellEditors | Playground | 100x25 | R18 squeezes instead of overflowing: no Page::measure yet
 CellEditors | Playground | 106x29 | R18 squeezes instead of overflowing: no Page::measure yet
 CellEditors | Playground | 120x40 | R18 squeezes instead of overflowing: no Page::measure yet
-Columns | Playground | 80x24 | R19 squeezes instead of overflowing: no Page::measure yet
-Columns | Playground | 100x25 | R19 squeezes instead of overflowing: no Page::measure yet
-Columns | Playground | 106x29 | R19 squeezes instead of overflowing: no Page::measure yet
-Columns | Playground | 120x40 | R19 squeezes instead of overflowing: no Page::measure yet
 Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
