@@ -14,6 +14,8 @@ mod app_tests_code;
 #[cfg(test)]
 mod app_tests_colour;
 #[cfg(test)]
+mod app_tests_connections;
+#[cfg(test)]
 mod app_tests_context;
 #[cfg(test)]
 mod app_tests_coverage;

@@ -282,6 +282,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Diff => DIFF,
         PageId::Terminal => TERMINAL,
         PageId::QueryWorkbench => QUERY_WORKBENCH,
+        PageId::Connections => CONNECTIONS,
         _ => &[],
     }
 }
@@ -317,6 +318,26 @@ pub static QUERY_WORKBENCH: &[Opt] = &[
         "Environment",
         &["production", "staging", "development", "local"],
     ),
+];
+
+/// Connections (SC47): the list's grouping, meta and width, the empty
+/// list, the selected connection's connect state and the form's width
+/// (`pages/connections.rs`).
+pub static CONNECTIONS: &[Opt] = &[
+    Opt::new(
+        "connections.group_by",
+        "Group by",
+        &["folder", "environment"],
+    ),
+    Opt::new("connections.meta", "Engine column", OFF_ON).default(1),
+    Opt::new("connections.list_width", "List width", &["36", "28", "44"]),
+    Opt::new("connections.list", "List", &["sample", "empty"]),
+    Opt::new(
+        "connections.state",
+        "Connect state",
+        &["idle", "connecting", "connected", "failed"],
+    ),
+    Opt::new("connections.form_width", "Form width", &["60", "52", "72"]).behaviour(),
 ];
 
 /// Panels (SC22): `Panel` chrome and the `ScrollPanel` knobs.
