@@ -82,9 +82,10 @@ pub const SURFACES: &[Root] = &[
     // screen the Playground scrolls sideways and the log's last lines
     // (`739.63s`) are out of view.
     Root::new("showcase/pages/scrolling", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:Row 001"]),
-    // `✓ 07 Ready` is the step-rail end-state at every width (the rail's
-    // `7 of 7` counter compacts to `7/7` at 72 columns); 30s is tight under load.
-    Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:✓ Ready"]).timeout(60000),
+    // `38 lines` (the viewport's meta) is the job's end-state at every
+    // width: on a narrow screen the Playground scrolls sideways and the
+    // step rail's `✓ 07 Ready` is out of view; 30s is tight under load.
+    Root::new("showcase/pages/terminal", Bin::Showcase, &["--page", "terminal"], BOOT).sends(&["wait:38 lines"]).timeout(60000),
     // SC25: Diff and Terminal sections, the narrow and no-file diff, a
     // renamed file, find marks and retention in the terminal
     Root::new("showcase/sections/diff-options", Bin::Showcase, &["--page", "diff"], BOOT).sends(&["tab", "2", "wait:Page width"]).pending(),
