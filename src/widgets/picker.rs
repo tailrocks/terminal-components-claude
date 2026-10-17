@@ -777,11 +777,11 @@ impl Picker {
         let reveal = self.reveal;
         let mut last_group = "";
         self.list
-            .paint_rows(list, bg, items, buf, ctx, |r, buf, ctx| {
-                let it = &items[r.index];
-                let (row, ry, cr) = (r.area, r.area.y, &r.look);
-                let rid = self.list.row_id(r.index);
-                let st = cr.style;
+            .paint_rows(list, bg, items, buf, ctx, |i, r, buf, ctx| {
+                let it = &items[i];
+                let (row, ry) = (r.area, r.area.y);
+                let rid = self.list.row_id(i);
+                let st = r.style();
                 let focused = r.state.focused;
                 // group label inline (first row of a group shows it right-aligned muted)
                 let show_group = it.group != last_group && !it.group.is_empty();
@@ -798,7 +798,7 @@ impl Picker {
                     st.fg(if focused {
                         t.text_primary
                     } else {
-                        t.row_ink(cr, t.text_muted)
+                        r.ink(ctx, t.text_muted)
                     })
                     .remove_modifier(Modifier::BOLD),
                 );
@@ -832,7 +832,7 @@ impl Picker {
                             rx,
                             ry,
                             &it.group,
-                            st.fg(t.row_ink(cr, t.legible(t.text_muted, st.bg.unwrap_or(bg))))
+                            st.fg(r.ink(ctx, t.legible(t.text_muted, r.bg())))
                                 .remove_modifier(Modifier::BOLD),
                         );
                     }
@@ -844,7 +844,7 @@ impl Picker {
                             rx,
                             ry,
                             tag,
-                            st.fg(t.row_ink(cr, t.text_secondary))
+                            st.fg(r.ink(ctx, t.text_secondary))
                                 .remove_modifier(Modifier::BOLD),
                         );
                     }
@@ -857,7 +857,7 @@ impl Picker {
                             dx,
                             ry,
                             truncate(&it.detail, room),
-                            st.fg(t.row_ink(cr, t.text_muted))
+                            st.fg(r.ink(ctx, t.text_muted))
                                 .remove_modifier(Modifier::BOLD),
                         );
                         if !it.disabled && !label_cut {

@@ -37,9 +37,10 @@ use crate::core::pointer::PointerEvent;
 use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, ScrollState, Scrollable};
 use crate::core::typeahead::TypeAhead;
-use crate::theme::{CursorRow, CursorStyle};
-use crate::ui::ctx::{RenderCtx, VisualState, fill};
+use crate::theme::CursorStyle;
+use crate::ui::ctx::RenderCtx;
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id};
+use crate::ui::row::{RowLook, RowPaint, RowUi};
 use crate::widgets::edit::EditField;
 use crate::widgets::scrollbar;
 
@@ -215,23 +216,6 @@ impl<T: AsItem> RowSource for [T] {
             k => k,
         }
     }
-}
-
-/// One row as [`OptionList::paint_rows`] hands it to the owner, after the
-/// fill and the gutter are drawn: the owner draws the content.
-#[derive(Debug, Clone, Copy)]
-pub struct RowPaint {
-    /// The row's index in the source.
-    pub index: usize,
-    /// The row's cells, scrollbar column excluded; content starts at
-    /// `area.x + 1` (after the gutter).
-    pub area: Rect,
-    /// The row's state: `focused` on the highlighted row, `hovered`
-    /// only where hover does not move the cursor, `disabled` from the
-    /// source.
-    pub state: VisualState,
-    /// The resolved row look ([`crate::theme::Theme::cursor_row`]).
-    pub look: CursorRow,
 }
 
 /// The body of a popup list. See the module docs.
@@ -571,10 +555,14 @@ impl OptionList {
     }
 
     /// Paint the visible rows in `inner` (the area given to
-    /// [`Self::layout`]) on the plane `bg`: each row's fill and gutter,
-    /// then `content` draws the row's own cells, then its hit part is
-    /// registered; last the bar (with the edge fade per
-    /// [`Self::fade_edges`]).
+    /// [`Self::layout`]) on the plane `bg`: each row's body and gutter
+    /// through the one row painter ([`RowUi::paint`] with
+    /// [`RowLook::Fill`] of [`Self::look`]), then `content` draws the
+    /// row's own cells (its index and the [`RowPaint`]; the row's area
+    /// excludes the bar column and content starts at `area.x + 1`; its
+    /// state is `focused` on the highlighted row, `hovered` only where
+    /// hover does not move the cursor), then its hit part is registered;
+    /// last the bar (with the edge fade per [`Self::fade_edges`]).
     pub fn paint_rows<S: RowSource + ?Sized>(
         &self,
         inner: Rect,
@@ -582,9 +570,8 @@ impl OptionList {
         src: &S,
         buf: &mut Buffer,
         ctx: &mut RenderCtx,
-        mut content: impl FnMut(&RowPaint, &mut Buffer, &mut RenderCtx),
+        mut content: impl FnMut(usize, &RowPaint, &mut Buffer, &mut RenderCtx),
     ) {
-        let t = ctx.theme;
         let has_sb = self.scroll.overflows();
         let highlighted = self.highlighted();
         let len = src.len();
@@ -598,17 +585,9 @@ impl OptionList {
             state.disabled = !src.enabled(i);
             // the cursor follows the pointer: the hover is the cursor
             state.hovered &= !self.hover_moves_cursor;
-            let look = t.cursor_row(state, bg, self.look);
             let area = Rect::new(inner.x, y, inner.width.saturating_sub(u16::from(has_sb)), 1);
-            fill(buf, area, look.style);
-            buf.set_string(area.x, y, look.gutter, look.gutter_style);
-            let row = RowPaint {
-                index: i,
-                area,
-                state,
-                look,
-            };
-            content(&row, buf, ctx);
+            let row = RowUi::paint(ctx, buf, area, state, RowLook::Fill(self.look), bg);
+            content(i, &row, buf, ctx);
             ctx.register_part(self.id, Self::row_part(i), area);
         }
         if has_sb {
@@ -711,8 +690,8 @@ mod tests {
                 rows,
                 &mut buf,
                 &mut ctx,
-                |r, buf, _| {
-                    buf.set_string(r.area.x + 1, r.area.y, &rows[r.index].label, r.look.style);
+                |i, r, buf, _| {
+                    buf.set_string(r.area.x + 1, r.area.y, &rows[i].label, r.style());
                 },
             );
         }
