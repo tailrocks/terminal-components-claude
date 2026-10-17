@@ -877,6 +877,25 @@ fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
 }
 
 #[test]
+fn the_next_row_is_an_action_row_with_its_message_and_arrows() {
+    let mut h = Harness::new(120, 40, PageId::Buttons);
+    let next = WidgetId::of("buttons").sub("next");
+    // scroll the row into view through focus, then walk it
+    h.focus(next.child(0));
+    assert!(h.text().contains("2 not available yet"), "{}", h.text());
+    h.key(KeyCode::Right);
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(next.child(2)),
+        "→ skips the disabled Retry failed"
+    );
+    h.key(KeyCode::Right);
+    assert_eq!(h.app.shell.focus.current(), Some(next.child(2)), "stops at the end");
+    h.key(KeyCode::Left);
+    assert_eq!(h.app.shell.focus.current(), Some(next.child(0)));
+}
+
+#[test]
 fn the_sidebar_hides_behind_its_rail_and_comes_back() {
     use crate::pages::sidebars::SidebarsPage;
     let page = |h: &Harness| -> bool {

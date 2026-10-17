@@ -369,14 +369,16 @@ impl FilterEditor {
             t.secondary().bg(bg),
         );
         let ay = inner.bottom().saturating_sub(1);
-        let widths = [self.cancel.width(), self.apply.width()];
-        let rects = junie_tui::widgets::button::row_layout_right(
-            Rect::new(inner.x, ay, inner.width, 1),
-            &widths,
-            1,
-        );
-        self.cancel.render(rects[0], buf, ctx, bg);
-        self.apply.render(rects[1], buf, ctx, bg);
+        junie_tui::widgets::action_row::ActionRow::new()
+            .align(junie_tui::widgets::button::RowAlign::End)
+            .gap(1)
+            .render(
+                Rect::new(inner.x, ay, inner.width, 1),
+                buf,
+                ctx,
+                bg,
+                &mut [&mut self.cancel, &mut self.apply],
+            );
         // controls on top of the surface
         ctx.hits.register(self.column.id, self.column.area);
         ctx.hits.register(self.op.id, self.op.area);
