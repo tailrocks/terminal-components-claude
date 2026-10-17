@@ -62,8 +62,6 @@ AccountsUsage | Playground | 106x29 | R48 squeezes instead of overflowing: no Pa
 AccountsUsage | Playground | 120x40 | R48 squeezes instead of overflowing: no Page::measure yet
 LaunchCockpit | Playground | 80x24 | R49 squeezes instead of overflowing: no Page::measure yet
 LaunchCockpit | Playground | 100x25 | R49 squeezes instead of overflowing: no Page::measure yet
-ReadOnlyReport | Playground | 80x24 | R50 squeezes instead of overflowing: no Page::measure yet
-ReadOnlyReport | Playground | 100x25 | R50 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 80x24 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 100x25 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 106x29 | R51 squeezes instead of overflowing: no Page::measure yet
