@@ -955,6 +955,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::grid::DataGrid::empty"),
     Capability::builder("widgets::grid::DataGrid::validator"),
     Capability::builder("widgets::grid::DataGrid::editable"),
+    Capability::builder("widgets::grid::DataGrid::click"),
+    Capability::builder("widgets::grid::DataGrid::toggle_mods"),
     Capability::builder("widgets::grid::DataGrid::duplicate_keys"),
     Capability::builder("widgets::grid::DataGrid::nav"),
     Capability::builder("widgets::grid::DataGrid::keymap"),

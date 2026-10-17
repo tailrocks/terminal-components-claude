@@ -334,7 +334,7 @@ fn tables_and_grids_draw_ascii() {
         });
         g.sort = Some((0, SortDir::Desc));
         g.filtered_cols.insert(1);
-        g.selected_rows.insert(0);
+        g.selection.set(0, true);
         g.render(Rect::new(0, 0, 40, 8), buf, ctx, t.canvas);
     });
 }
