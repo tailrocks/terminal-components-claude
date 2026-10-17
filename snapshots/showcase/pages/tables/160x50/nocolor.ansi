@@ -5,7 +5,7 @@
     Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
-  ▾ Tables                  Tasks                                                                                                        unsorted · 1–20 of 24  [0m
+  ▾ Tables                  Tasks                                                                                                        unsorted · 1–21 of 24  [0m
  [0m[1m▎  › Basic table       [0m                                                                                                                                        [0m
       Editable                 ID     Task                                                   Owner    Status     Branch                  Changes   Duration     [0m
       Data grid                #1040  Add rate limiting to auth endpoints                    mira     Done       feat/rate-limit              14     6m 52s  ┃  [0m
@@ -24,10 +24,11 @@
                                #1053  Add pagination to audit log                            ana      Done       feat/audit-pages             16     5m 44s  ┃  [0m
                                #1054  Refactor retry helper into crate                       sofia    ▸ Running  refactor/retry               11        45s  ┃  [0m
                                #1055  Rotate signing keys quarterly                          mira     Queued     sec/key-rotation              0         0s  ┃  [0m
-                               #1056  Fix timezone bug in scheduler                          jonas    Done       fix/tz-scheduler              7     3m 08s  ┆  [0m
-                               #1057  Document webhook retry semantics                       kai      Done       docs/webhooks                 2     1m 05s  ┆  [0m
+                               #1056  Fix timezone bug in scheduler                          jonas    Done       fix/tz-scheduler              7     3m 08s  ┃  [0m
+                               #1057  Document webhook retry semantics                       kai      Done       docs/webhooks                 2     1m 05s  ┃  [0m
                                #1058  Add dark mode to admin panel                           ana      Paused     feat/admin-dark              40    12m 00s  ┆  [0m
-                            [0m[2m   #1059  Bump minimum Node to 22                                sofia    Queued     chore/node-22                 0         0s  [0m┆  [0m
+                               #1059  Bump minimum Node to 22                                sofia    Queued     chore/node-22                 0         0s  ┆  [0m
+                            [0m[2m   #1060  Cache dependency graph between runs                    mira     ▸ Running  perf/dep-cache               19     3m 30s  [0m┆  [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                             Reviewers                                                                                                2 selected · header mixed  [0m
@@ -44,7 +45,6 @@
                                Check                                                                                                                Result      [0m
                                                                                                                                                                 [0m
                                                                                   No checks have run yet                                                        [0m
-                                                                                                                                                                [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
