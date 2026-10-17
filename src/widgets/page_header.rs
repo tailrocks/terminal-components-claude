@@ -25,7 +25,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 
 use crate::theme::{Theme, Tone};
-use crate::ui::text::{truncate, width};
+use crate::ui::text::width;
 
 /// A page's title row and optional subtitle; see the module docs.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,7 +120,7 @@ impl PageHeader {
         if let Some((status, tone)) = &self.status {
             let left = area.width.saturating_sub(title_w + 2 * self.inset);
             if left > 0 {
-                let s = truncate(status, left as usize);
+                let s = crate::ui::reveal::cut(Rect::new(x + title_w, area.y, left, 1), status);
                 used += width(&s) as u16;
                 buf.set_string(x + title_w, area.y, s, ink(t, *tone));
             }
@@ -142,12 +142,8 @@ impl PageHeader {
         if area.height < 2 {
             return 1;
         }
-        buf.set_string(
-            x,
-            area.y + 1,
-            truncate(sub, area.width.saturating_sub(2 * self.inset) as usize),
-            ink(t, *tone),
-        );
+        let row = Rect::new(x, area.y + 1, area.width.saturating_sub(2 * self.inset), 1);
+        buf.set_string(x, row.y, crate::ui::reveal::cut(row, sub), ink(t, *tone));
         2
     }
 }
@@ -194,7 +190,7 @@ impl Heading {
         buf.set_string(
             area.x,
             area.y,
-            truncate(&self.text, area.width as usize),
+            crate::ui::reveal::cut(Rect::new(area.x, area.y, area.width, 1), &self.text),
             ink,
         );
         if let Some(meta) = &self.meta {
@@ -259,6 +255,41 @@ mod tests {
         (0..buf.area.width)
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect()
+    }
+
+    /// R-apps-4: a heading and a subtitle cut with `…` reveal in full on
+    /// hover.
+    #[test]
+    fn a_cut_heading_and_subtitle_reveal_on_hover() {
+        let t = Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 3));
+        let mut ctx = crate::ui::ctx::RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        PageHeader::new("Usage")
+            .subtitle("Identities sorted by their worst window first", Tone::Muted)
+            .render(Rect::new(0, 0, 20, 2), &mut buf, &t);
+        Heading::new("Recoverable toggles until emptied").render(
+            Rect::new(0, 2, 20, 1),
+            &mut buf,
+            &t,
+            t.canvas,
+        );
+        ctx.flush_overlays(&mut buf);
+        drop(ctx);
+        for y in [1, 2] {
+            assert!(row(&buf, y).contains('…'), "{:?}", row(&buf, y));
+            assert!(
+                hits.hover_at(ratatui::layout::Position::new(4, y))
+                    .is_some(),
+                "row {y} hovers"
+            );
+        }
     }
 
     /// At its measure a header and a heading show every part whole.

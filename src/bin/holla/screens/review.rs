@@ -13,7 +13,6 @@ use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::scroll_view::{Axes, ScrollView};
-use junie_tui::ui::text::truncate;
 use junie_tui::widgets::action_row::ActionRow;
 use junie_tui::widgets::button::{Button, RowAlign};
 use junie_tui::widgets::input::{InputAction, TextInput};
@@ -548,9 +547,14 @@ impl ShellPage<Holla> for GatePage {
             buf.set_string(
                 inner.x + 4,
                 y,
-                truncate(
+                junie_tui::ui::reveal::cut(
+                    Rect::new(
+                        inner.x + 4,
+                        y,
+                        inner.width.saturating_sub(4 + u16::from(has_sb)),
+                        1,
+                    ),
                     rest,
-                    inner.width.saturating_sub(4 + u16::from(has_sb)) as usize,
                 ),
                 t.secondary(),
             );
@@ -915,7 +919,7 @@ impl ShellPage<Holla> for TrustPage {
         let t = ctx.theme;
         let title = format!("Trust {}?", w.location.short(&self.config));
         buf.set_string(area.x + 1, area.y, &title, t.title());
-        buf.set_string(area.x + 1, area.y + 1, "not trusted yet · review the exact definition, commands and environment before it runs", t.muted());
+        buf.set_string(area.x + 1, area.y + 1, junie_tui::ui::reveal::cut(Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 1), "not trusted yet · review the exact definition, commands and environment before it runs"), t.muted());
         let (facts, body) = self.lines(w);
         let buttons_y = area.bottom().saturating_sub(1);
         // the facts at their natural height, scrolled when the definition
@@ -955,7 +959,10 @@ impl ShellPage<Holla> for TrustPage {
             buf.set_string(
                 inner.x,
                 inner.y + k as u16,
-                truncate(line, inner.width as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x, inner.y + k as u16, inner.width, 1),
+                    line,
+                ),
                 st,
             );
         }
@@ -1271,10 +1278,14 @@ impl ShellPage<Holla> for ArgsPage {
         let t = ctx.theme;
         let title = format!("{} · arguments", self.label);
         buf.set_string(area.x + 1, area.y, &title, t.title());
+        // cut with `…` and revealed on hover, never clipped (R-apps-4)
         buf.set_string(
             area.x + 1,
             area.y + 1,
-            "field name, expected value, default and validation · secrets stay masked",
+            junie_tui::ui::reveal::cut(
+                Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 1),
+                "field name, expected value, default and validation · secrets stay masked",
+            ),
             t.muted(),
         );
         let col_w = area.width.saturating_sub(2).min(56);
@@ -1298,7 +1309,10 @@ impl ShellPage<Holla> for ArgsPage {
             buf.set_string(
                 inner.x,
                 inner.y,
-                truncate(&self.preview(), inner.width as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x, inner.y, inner.width, 1),
+                    &self.preview(),
+                ),
                 t.secondary().bg(panel.bg(t)),
             );
         }

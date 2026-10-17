@@ -14,7 +14,7 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
 use junie_tui::ui::master_detail::{MasterDetail, Mode};
-use junie_tui::ui::text::{fit, truncate, width};
+use junie_tui::ui::text::{fit, width};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::input::TextInput;
@@ -839,7 +839,12 @@ impl ConfigTabs {
                 if widths[i] == 0 {
                     continue;
                 }
-                buf.set_string(x, y, truncate(h, widths[i] as usize), t.muted().bg(bg));
+                buf.set_string(
+                    x,
+                    y,
+                    junie_tui::ui::reveal::cut(Rect::new(x, y, widths[i], 1), h),
+                    t.muted().bg(bg),
+                );
                 x += widths[i] + 2;
             }
             if hidden > 0 {
@@ -992,7 +997,11 @@ impl ConfigTabs {
                     if row.change == Change::Removed {
                         cs = cs.add_modifier(Modifier::CROSSED_OUT);
                     }
-                    buf.set_string(x, y, fit(&truncate(text, cw as usize), cw as usize), cs);
+                    // a cut cell reveals on hover, the cursor row's on the
+                    // peek line (R-apps-4)
+                    let cell = Rect::new(x, y, cw, 1);
+                    let shown = junie_tui::ui::reveal::fit(ctx, cell, text, s.focused);
+                    buf.set_string(x, y, fit(&shown, cw as usize), cs);
                     x += cw + 2;
                 }
             }
@@ -1168,11 +1177,19 @@ impl ConfigTabs {
             if y >= inner.bottom() {
                 break;
             }
-            buf.set_string(inner.x, y, truncate(&k, lw as usize), t.muted().bg(bg));
+            buf.set_string(
+                inner.x,
+                y,
+                junie_tui::ui::reveal::cut(Rect::new(inner.x, y, lw, 1), &k),
+                t.muted().bg(bg),
+            );
             buf.set_string(
                 inner.x + lw,
                 y,
-                truncate(&v, inner.width.saturating_sub(lw) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(inner.x + lw, y, inner.width.saturating_sub(lw), 1),
+                    &v,
+                ),
                 Style::new().fg(t.tone(tone)).bg(bg),
             );
         }

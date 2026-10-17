@@ -445,7 +445,7 @@ impl SettingsScreen {
             t.secondary().bg(bg).add_modifier(Modifier::BOLD),
         );
         y += 1;
-        buf.set_string(x, y, truncate("Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>", area.width.saturating_sub(4) as usize), t.muted().bg(bg));
+        buf.set_string(x, y, junie_tui::ui::reveal::cut(Rect::new(x, y, area.width.saturating_sub(4), 1), "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>"), t.muted().bg(bg));
     }
 
     fn render_trust(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -558,18 +558,18 @@ impl SettingsScreen {
             buf.set_string(
                 area.x + 2,
                 ny,
-                truncate(
+                junie_tui::ui::reveal::cut(
+                    Rect::new(area.x + 2, ny, area.width.saturating_sub(4), 1),
                     "An untrusted source blocks + Load role until it is trusted here or",
-                    area.width.saturating_sub(4) as usize,
                 ),
                 t.faint().bg(bg),
             );
             buf.set_string(
                 area.x + 2,
                 ny + 1,
-                truncate(
+                junie_tui::ui::reveal::cut(
+                    Rect::new(area.x + 2, ny + 1, area.width.saturating_sub(4), 1),
                     "in the trust dialog that the load opens.",
-                    area.width.saturating_sub(4) as usize,
                 ),
                 t.faint().bg(bg),
             );
@@ -702,7 +702,10 @@ impl SettingsScreen {
             buf.set_string(
                 dx,
                 y,
-                truncate(&detail, rect.right().saturating_sub(dx + 1) as usize),
+                junie_tui::ui::reveal::cut(
+                    Rect::new(dx, y, rect.right().saturating_sub(dx + 1), 1),
+                    &detail,
+                ),
                 st.fg(t.text_muted),
             );
             legible_on_fill(buf, rect, t, bg);
