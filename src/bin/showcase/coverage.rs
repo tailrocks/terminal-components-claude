@@ -5960,7 +5960,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "on_key",
             "on_paste",
             "on_click",
-            "on_wheel",
+            "wheel",
             "render",
         ],
     ),

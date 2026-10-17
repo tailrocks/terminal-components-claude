@@ -9,9 +9,9 @@ use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
 use junie_tui::core::focus::BlurAction;
-use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
+use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::CursorStyle;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
@@ -626,14 +626,7 @@ impl CellEditorsPage {
             }
             PageEvent::Pointer(p) if self.chooser.as_ref().is_some_and(|c| p.on(c.id)) => {
                 let c = self.chooser.as_mut()?;
-                if let Some((axis, delta)) = p.wheel() {
-                    // ChoiceEditor has no MouseTarget: its only wheel API
-                    return (axis == Axis::Vertical).then(|| c.on_wheel(delta));
-                }
-                if !p.is(Phase::Click) {
-                    return None;
-                }
-                let (o, r) = c.on_click(p.id, &cfg);
+                let (o, r) = c.pointer(p).into_parts();
                 self.on_choice(r, cx);
                 Some(o)
             }

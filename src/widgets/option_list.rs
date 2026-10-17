@@ -733,6 +733,30 @@ impl OptionList {
     }
 }
 
+/// The text gestures on a popup's query line ([`Part::QUERY`]), one copy
+/// for the Picker's search and the Combo's (M21, S11): a press places the
+/// caret (a double press selects a word), a drag selects what it crosses,
+/// the click lands it (a triple click selects the query). `None`: the
+/// event is not on a query line.
+pub fn query_pointer(query: &mut EditField, ev: &PointerEvent) -> Option<Response<()>> {
+    use crate::core::intent::Phase;
+    if ev.part().part != Part::QUERY {
+        return None;
+    }
+    let at = query.line_offset_at(ev.pos());
+    match ev.phase() {
+        Some(Phase::Press) => {
+            query.press(at, ev.count(), false);
+        }
+        Some(Phase::Drag) => {
+            query.drag(at);
+        }
+        Some(Phase::Click) => query.click(at, ev.count().max(1), false),
+        _ => return Some(Response::ignored()),
+    }
+    Some(Response::changed())
+}
+
 /// The wheel and the bar move the rows' view ([`ScrollPane`]); under
 /// [`WheelMode::Cursor`] the wheel moves the cursor instead. A sideways
 /// notch is consumed: what is beneath the popup does not move.
