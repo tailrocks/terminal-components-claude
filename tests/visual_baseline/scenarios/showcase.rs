@@ -184,8 +184,9 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/sections/diskcleanup-options", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["tab", "2", "wait:Typed phrase"]).pending(),
     Root::new("showcase/sections/diskcleanup-states", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["tab", "3", "wait:Usage tree"]).pending(),
     Root::new("showcase/flows/diskcleanup/scanning", Bin::Showcase, &["--page", "diskcleanup", "--motion", "paused", "--opt", "diskcleanup.scan=scanning"], BOOT).sends(&["wait:scanning ~/work"]).pending(),
-    Root::new("showcase/flows/diskcleanup/permanent", Bin::Showcase, &["--page", "diskcleanup", "--opt", "diskcleanup.mode=permanent"], BOOT).sends(&["wait:DELETE 4"]).pending(),
-    Root::new("showcase/flows/diskcleanup/gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending(),
+    Root::new("showcase/flows/diskcleanup/permanent", Bin::Showcase, &["--page", "diskcleanup", "--opt", "diskcleanup.mode=permanent"], BOOT).sends(&["wait:permanent delete"]).pending(),
+    Root::new("showcase/flows/diskcleanup/drawer", Bin::Showcase, &["--page", "diskcleanup", "--opt", "diskcleanup.collapse_below=108"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "wait:Freshness"]).pending(),
+    Root::new("showcase/flows/diskcleanup/gate1", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:Cleanup categories", "tab", "tab", "tab", "tab", "d", "wait:gate 1 of 2"]).pending(),
     // SC51 filled Activity: the page, its sections, a failed run with
     // find marks, and a stopped run with a hidden stream
     Root::new("showcase/pages/activity", Bin::Showcase, &["--page", "activity", "--motion", "paused"], BOOT).sends(&["wait:following"]).pending(),
