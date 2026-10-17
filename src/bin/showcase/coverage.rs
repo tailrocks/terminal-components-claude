@@ -6732,6 +6732,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "widgets::keyhint::render_styled",
             "widgets::keyhint::render_parts",
             "widgets::keyhint::render_parts_at",
+            "widgets::keyhint::width",
         ],
     ),
     (
