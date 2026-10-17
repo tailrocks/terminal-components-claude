@@ -248,6 +248,13 @@ pub static SHELL: &[Opt] = &[
         ],
     )
     .behaviour(),
+    // appearance, last so the controls above keep their rows: every
+    // card's heading row (`Theme::with_card_heading`)
+    Opt::new(
+        "shell.card_heading",
+        "Card heading",
+        &["plain", "rule", "band", "emphasis"],
+    ),
 ];
 
 /// A page's own option table. Each page step (SC3 onward) adds its page's
@@ -381,6 +388,13 @@ pub static FINDER: &[Opt] = &[
 /// Panels (SC22): `Panel` chrome and the `ScrollPanel` knobs.
 pub static PANELS: &[Opt] = &[
     Opt::new("panels.focus_mark", "Card focus mark", &["title", "bar"]),
+    // `theme` follows `shell.card_heading` (`Theme::card_heading`); the
+    // others set `Panel::heading_style` on this page's cards
+    Opt::new(
+        "panels.heading",
+        "Card heading",
+        &["theme", "plain", "rule", "band", "emphasis"],
+    ),
     Opt::new("panels.title_min", "Title keeps", &["12", "4", "20"]),
     Opt::new("panels.pad_x", "Card padding", &["2", "1", "0"]),
     Opt::new("panels.meta_short", "Short meta", &["auto", "custom"]),
