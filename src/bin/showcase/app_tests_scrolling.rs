@@ -420,9 +420,10 @@ fn the_panels_states_grid_draws_every_panel_state() {
     let _ = KeyModifiers::NONE;
 }
 
-/// The row under a card's title: blank by default, the rule under
-/// `panels.heading=rule` or the shell-wide `shell.card_heading=rule`; a
-/// page's own style wins over the shell's. The framed pane never changes.
+/// The row under a card's title: the rule by default (the library's
+/// default `CardHeading::Rule`), blank under `panels.heading=plain` or the
+/// shell-wide `shell.card_heading=plain`; a page's own style wins over the
+/// shell's. The framed pane never changes.
 #[test]
 fn card_heading_options_set_the_heading_apart() {
     let under = |h: &Harness, title: &str| {
@@ -433,8 +434,16 @@ fn card_heading_options_set_the_heading_apart() {
             .collect::<String>()
     };
     let mut h = Harness::on(120, 40, PageId::Panels);
-    assert_eq!(under(&h, "Titled card").trim(), "", "plain by default");
+    assert_eq!(under(&h, "Titled card"), "─".repeat(10), "rule by default");
     let framed = h.row(h.find("Framed · split pane").unwrap().1);
+    h.opt("panels.heading=plain");
+    assert_eq!(under(&h, "Titled card").trim(), "");
+    assert_eq!(
+        h.row(h.find("Framed · split pane").unwrap().1),
+        framed,
+        "the frame ignores it"
+    );
+    h.opt("shell.card_heading=plain");
     h.opt("panels.heading=rule");
     assert_eq!(under(&h, "Titled card"), "─".repeat(10));
     assert_eq!(under(&h, "Card · scrollable"), "─".repeat(10));
