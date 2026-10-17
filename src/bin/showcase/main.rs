@@ -56,6 +56,8 @@ mod app_tests_popups;
 #[cfg(test)]
 mod app_tests_screens;
 #[cfg(test)]
+mod app_tests_screens_report;
+#[cfg(test)]
 mod app_tests_scrolling;
 #[cfg(test)]
 mod app_tests_selectable;

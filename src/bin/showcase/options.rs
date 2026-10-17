@@ -281,6 +281,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Scrolling => SCROLLING,
         PageId::Diff => DIFF,
         PageId::Terminal => TERMINAL,
+        PageId::ReadOnlyReport => READONLY_REPORT,
         _ => &[],
     }
 }
@@ -1351,6 +1352,15 @@ pub static NOTICES: &[Opt] = &[
     ),
     Opt::new("notices.mark_cut", "Mark the cut …", OFF_ON).default(1),
     Opt::new("notices.width", "Width", &["wide", "narrow"]),
+];
+
+/// Read-only report (SC56): the report's state, its meters' visual,
+/// the attention notices and whether facts copy.
+pub static READONLY_REPORT: &[Opt] = &[
+    Opt::new("readonlyreport.offline", "Offline (last-good)", OFF_ON),
+    Opt::new("readonlyreport.visual", "Meter visual", &["block", "line"]),
+    Opt::new("readonlyreport.notices", "Attention notices", OFF_ON).default(1),
+    Opt::new("readonlyreport.copyable", "Facts copy", OFF_ON).default(1),
 ];
 
 /// Empty & error (SC21): the empty state's kind, hint and actions, and

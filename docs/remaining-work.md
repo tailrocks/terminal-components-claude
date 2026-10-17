@@ -23,7 +23,7 @@ apps' hand-rolled copies move onto it. Agents edit their own rows here.
 | Screens › Workspaces | `workspaces` | SC52 | p0 screens agent | Open |
 | Screens › Accounts & usage | `accountsusage` | SC53 | p0 screens agent | Open |
 | Screens › Launch cockpit | `launchcockpit` | SC55 | p0 screens agent | Open |
-| Screens › Read-only report | `readonlyreport` | SC56 | p0 screens agent | Open |
+| Screens › Read-only report | `readonlyreport` | SC56 | p0-screens-c | **Done**. Composed: `Panel` card with the `live · ago` meta, `MeterList`, copyable `PropsList` facts, `Notice`s, `ButtonRow` actions (Refresh / `r`, Copy report, Next). Gaps: no `PageHeader`/`Heading` yet (S17), so the meta header is a card's meta; the Next buttons post a status because the showcase has no cross-page route request |
 
 Status: 2026-10-17, derived from the repository at `42f0b372e`
 (`origin/design/interaction-polish`). This is the one list of everything
