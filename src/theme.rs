@@ -194,7 +194,9 @@ pub struct Ladders {
     /// [`StateModifiers::thumb_hover`] / [`StateModifiers::thumb_pressed`]
     /// where colour cannot).
     pub handle: Ladder,
-    /// Splitter seam ink.
+    /// Splitter seam ink, the same model as [`Self::handle`]: rest is the
+    /// divider grey, hover a lighter grey, pressed (dragged) the phosphor
+    /// accent. Hover and drag also swap the thin divider for the heavy rule.
     pub seam: Ladder,
 }
 
@@ -222,11 +224,11 @@ pub struct StateModifiers {
     pub selected: Modifier,
     /// Added to a disabled control.
     pub disabled: Modifier,
-    /// Added to a hovered scrollbar thumb. Empty where the handle ladder
+    /// Added to a hovered scrollbar thumb or splitter seam. Empty where the handle ladder
     /// carries hover in colour; `BOLD` in monochrome (WCAG 1.4.1: colour
     /// alone cannot carry state there).
     pub thumb_hover: Modifier,
-    /// Added to a pressed (held, dragged) scrollbar thumb. Empty where the
+    /// Added to a pressed (held, dragged) scrollbar thumb or seam. Empty where the
     /// ladder's accent step carries it; `REVERSED` in monochrome.
     pub thumb_pressed: Modifier,
 }
@@ -788,7 +790,7 @@ impl Theme {
                 accent: Ladder::new(GREEN, GREEN_80, GREEN_60),
                 danger: Ladder::new(RED_FILL, RED_FILL_HOVER, RED_FILL_PRESSED),
                 handle: Ladder::new(WHITE_50, WHITE_70, GREEN),
-                seam: Ladder::new(WHITE_30, WHITE_50, WHITE),
+                seam: Ladder::new(WHITE_30, WHITE_50, GREEN),
             },
             mods: StateModifiers::COLOR,
             tint_selection: true,
@@ -974,7 +976,7 @@ impl Theme {
             accent: lad(78, 71, 65),
             danger: lad(160, 124, 88),
             handle: lad(245, 252, 78),
-            seam: lad(239, 245, 231),
+            seam: lad(239, 245, 78),
         };
     }
 
@@ -1044,7 +1046,7 @@ impl Theme {
             accent: Ladder::new(LightGreen, Green, LightGreen),
             danger: Ladder::new(Red, Red, Red),
             handle: Ladder::new(Gray, White, LightGreen),
-            seam: Ladder::new(DarkGray, Gray, White),
+            seam: Ladder::new(DarkGray, Gray, LightGreen),
         };
     }
 
@@ -1460,44 +1462,22 @@ impl Theme {
             };
         }
 
-        if kind == Kind::Handle {
-            // a scrollbar thumb keeps one glyph in every state: rest is the
-            // neutral step, hover the lighter one, pressed the accent.
-            // Focus does not light it (the `▎` is the only focus cue); in
-            // monochrome the state modifiers carry hover and press
-            let lad = self.ladders.handle;
+        if glyph {
+            // a scrollbar thumb and a splitter seam keep one glyph in every
+            // state: rest is the neutral step, hover the lighter one,
+            // pressed (held, dragged) the accent. Focus does not light them
+            // (the `▎` is the only focus cue); in monochrome the state
+            // modifiers carry hover and press
+            let lad = if kind == Kind::Handle {
+                self.ladders.handle
+            } else {
+                self.ladders.seam
+            };
             let mut style = Style::new().fg(lad.step(s.hovered, s.pressed));
             if s.pressed {
                 style = style.add_modifier(m.thumb_pressed);
             } else if s.hovered {
                 style = style.add_modifier(m.thumb_hover);
-            }
-            return Interactive {
-                style,
-                gutter: " ",
-                gutter_style: Style::new(),
-                on_fill: false,
-            };
-        }
-
-        if glyph {
-            let lad = self.ladders.seam;
-            // focus raises the ink one step and hover one more; pressed is
-            // the top step plus weight
-            let fg = if s.pressed {
-                lad.pressed
-            } else if s.hovered {
-                if s.focused { lad.pressed } else { lad.hover }
-            } else if s.focused {
-                lad.hover
-            } else {
-                lad.rest
-            };
-            let mut style = Style::new().fg(fg);
-            if s.pressed {
-                style = style.add_modifier(m.pressed);
-            } else if s.hovered {
-                style = style.add_modifier(m.hover | m.hover_flat);
             }
             return Interactive {
                 style,
@@ -2336,13 +2316,14 @@ pub struct Glyphs {
     /// [`Self::divider`] for a solid track, or `" "` to hide it.
     pub scroll_track: &'static str,
     /// Vertical scrollbar thumb in every state (rest, hover, held: colour
-    /// carries the state); also a held divider. `┃`.
+    /// carries the state); also a hovered or dragged divider. `┃`.
     pub scroll_thumb: &'static str,
     /// Horizontal scrollbar track, the same dash family as
     /// [`Self::scroll_track`]. `┄`. [`Self::h_divider`] for a solid track,
     /// `" "` to hide it.
     pub scroll_h_track: &'static str,
-    /// Horizontal scrollbar thumb in every state; also a held divider. `━`.
+    /// Horizontal scrollbar thumb in every state; also a hovered or dragged divider.
+    /// `━`.
     pub scroll_h_thumb: &'static str,
     /// A vertical divider between panes (a splitter seam at rest, a pane
     /// edge that is not scrolling, a column separator). `│`.
