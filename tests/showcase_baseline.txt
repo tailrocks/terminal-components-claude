@@ -759,7 +759,7 @@
 80x24 TrueColor Panels 36231b501814b762
 80x24 TrueColor Panels · Options 75688b58a81d532a
 80x24 TrueColor Panels · States 4431a9ac23c3631f
-80x24 TrueColor Scrolling aeaec8482c69b0f0
+80x24 TrueColor Scrolling 0d7e38baa7a9d31f
 80x24 TrueColor Scrolling · Options 29ca67bd32c2d19b
 80x24 TrueColor Scrolling · States 13846a46acce76a3
 80x24 TrueColor Splits & stacks 2307b3f2f06b7bb4
@@ -923,7 +923,7 @@
 80x24 Ansi256 Panels ff1a523153cc0c56
 80x24 Ansi256 Panels · Options c422526e7c350fa8
 80x24 Ansi256 Panels · States 6a480f5cd598a3a2
-80x24 Ansi256 Scrolling 54f57fd36be98dd8
+80x24 Ansi256 Scrolling 50f935201898318a
 80x24 Ansi256 Scrolling · Options c18d107b6366da45
 80x24 Ansi256 Scrolling · States 173e79694ddc2d7d
 80x24 Ansi256 Splits & stacks 9a8b23be93d303b6
@@ -1087,7 +1087,7 @@
 80x24 Ansi16 Panels fdb431439a8df760
 80x24 Ansi16 Panels · Options 2eefb5eedfbe0ebf
 80x24 Ansi16 Panels · States ab65e7934b7820ab
-80x24 Ansi16 Scrolling 07fb8b5d8321b15a
+80x24 Ansi16 Scrolling 2d9aa8d6587c1715
 80x24 Ansi16 Scrolling · Options 587a77ad83e9a923
 80x24 Ansi16 Scrolling · States ff99dcea266174f9
 80x24 Ansi16 Splits & stacks 168dcf2b87fd9dc1
@@ -1251,7 +1251,7 @@
 80x24 Mono Panels 4ec0469ec2d51d80
 80x24 Mono Panels · Options 1671dd2decab67d1
 80x24 Mono Panels · States db062780688c9021
-80x24 Mono Scrolling b4c63b29858c0d98
+80x24 Mono Scrolling 01f2aa3bdab047fb
 80x24 Mono Scrolling · Options 7c8d0ada61631485
 80x24 Mono Scrolling · States 3c12b73c72f25fcc
 80x24 Mono Splits & stacks ca0583b42fbb4ced
@@ -1415,7 +1415,7 @@
 72x20 TrueColor Panels 71c08e02ac32c93c
 72x20 TrueColor Panels · Options 4ef90ee6edbfbc17
 72x20 TrueColor Panels · States 7e408619b262c56d
-72x20 TrueColor Scrolling 663a3a132b1b01cd
+72x20 TrueColor Scrolling 1dd4c23bba3ce4e6
 72x20 TrueColor Scrolling · Options 3656fc8f689de690
 72x20 TrueColor Scrolling · States b67da63a44d06dd3
 72x20 TrueColor Splits & stacks e5d3e35b77d7603a
@@ -1579,7 +1579,7 @@
 72x20 Ansi256 Panels 219b6173a1f1b15e
 72x20 Ansi256 Panels · Options a93d6affb6290ca8
 72x20 Ansi256 Panels · States ffd99df8ae4aee1f
-72x20 Ansi256 Scrolling a75aa1f5f3287989
+72x20 Ansi256 Scrolling 94141a4e0012120f
 72x20 Ansi256 Scrolling · Options 98dcd1dfea8328fe
 72x20 Ansi256 Scrolling · States f61f1d713de97780
 72x20 Ansi256 Splits & stacks 3869cbdf9c9f7ed7
@@ -1743,7 +1743,7 @@
 72x20 Ansi16 Panels 6d3fa45bda1ce1c9
 72x20 Ansi16 Panels · Options 40010aa4aabd67e9
 72x20 Ansi16 Panels · States 2d8452e3324b3a5b
-72x20 Ansi16 Scrolling dd837f32c9670863
+72x20 Ansi16 Scrolling f9542908a36a9487
 72x20 Ansi16 Scrolling · Options 2b5b2e6fa9ea9433
 72x20 Ansi16 Scrolling · States 47d888ba0db9c64c
 72x20 Ansi16 Splits & stacks 0296fb6455007bdf
@@ -1907,7 +1907,7 @@
 72x20 Mono Panels ea6b93c1325a0f71
 72x20 Mono Panels · Options 4228b85f85945257
 72x20 Mono Panels · States 1280ea4bbaa023cd
-72x20 Mono Scrolling 4046a8730ea07149
+72x20 Mono Scrolling 906a6e35f742f1e5
 72x20 Mono Scrolling · Options 4a419a774c2a4657
 72x20 Mono Scrolling · States f216f2f63f064251
 72x20 Mono Splits & stacks f94bca07487fe7d1

@@ -1240,6 +1240,22 @@ fn titles(h: &Harness) -> String {
         .unwrap_or_default()
 }
 
+/// The card title rows at both ends of the page body's sideways scroll
+/// (the Playground keeps a minimum width and scrolls sideways on a
+/// narrow screen). The body is left at its right end.
+fn titles_across(h: &mut Harness) -> String {
+    let p = h.app.page().index();
+    let l = h.app.pages[p].template_mut().unwrap().view.last_layout();
+    let max = l.content.width.saturating_sub(l.viewport.width) as usize;
+    let mut out = vec![];
+    for x in [0, max] {
+        h.app.pages[p].template_mut().unwrap().view.scroll_to(x, 0);
+        h.draw();
+        out.push(titles(h));
+    }
+    out.join("\n")
+}
+
 /// Rows of the thumb in column `x`, within the long list's bar (the page
 /// has more bars below it in the same column).
 fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
@@ -1309,8 +1325,9 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
     h.term.backend_mut().resize(80, 24);
     h.app.handle(Input::Resize(80, 24));
     h.draw();
-    let title = titles(&h);
     let drawn = h.text().lines().filter(|l| l.contains("Row ")).count() as u32;
+    // (the page keeps its minimum width and scrolls sideways to the log)
+    let title = titles_across(&mut h);
     // at 80 columns the labels keep their positions in their short form
     // ("a–b/n", layout audit #7), never cut inside a number
     assert!(
@@ -1432,11 +1449,19 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
         "the resize re-laid the prose out"
     );
     // at 80 columns the labels keep their positions and shorten their
-    // suffix; the prose label is the first one and never says following
-    let row = titles(&h);
-    assert_eq!(row.matches('–').count(), 3, "all three labels stay: {row}");
-    let before_log = row.rsplit_once('–').map(|(a, _)| a.to_owned()).unwrap();
-    assert!(!before_log.contains("following"), "{row}");
+    // suffix (the page scrolls sideways to the log); the prose label
+    // never says following
+    let rows = titles_across(&mut h);
+    let label = |title: &str, next: &str| -> Option<String> {
+        rows.lines()
+            .filter_map(|l| l.split_once(title).map(|(_, r)| r))
+            .map(|r| r.split(next).next().unwrap_or(r).to_owned())
+            .find(|r| r.contains('–'))
+    };
+    let prose = label("Wrapp", "Long").expect(&rows);
+    assert!(!prose.contains("following"), "{rows}");
+    assert!(label("Long", "Log").is_some(), "the list label stays: {rows}");
+    assert!(label("Log", "\n").is_some(), "the log label stays: {rows}");
 }
 
 #[test]
