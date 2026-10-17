@@ -463,6 +463,8 @@ fn states_grid() -> StateGrid {
             FocusedHover,
             Selected,
             Busy,
+            Loading,
+            Error,
             Overflow,
             Narrow,
         ])
