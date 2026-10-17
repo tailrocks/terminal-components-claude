@@ -21,7 +21,7 @@ fn lists(h: &Harness) -> &ListsPage {
 }
 
 fn hint_keys(h: &Harness) -> String {
-    h.app.pages[h.app.page.index()]
+    h.app.pages[h.app.page().index()]
         .hints(h.app.shell.focus.current())
         .iter()
         .map(|(k, _)| *k)

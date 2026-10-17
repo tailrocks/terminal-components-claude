@@ -106,11 +106,11 @@ impl<P> Default for Shell<P> {
 
 impl<P: Default> Shell<P> {
     /// Copy `text` ([`Request::Copy`]) through [`Self::clipboard`] and
-    /// report the true result on the status line
-    /// ([`Clipboard::report`]).
-    pub fn copy_at(&mut self, text: &str, now: Moment) -> Copied {
+    /// report the true result on the status line, naming it `what` when
+    /// given ([`Clipboard::report`]).
+    pub fn copy_at(&mut self, text: &str, what: Option<&str>, now: Moment) -> Copied {
         let r = self.clipboard.copy(text);
-        let (msg, tone) = Clipboard::report(&r, text);
+        let (msg, tone) = Clipboard::report(&r, text, what);
         self.status.set_at(msg, tone, now);
         r
     }

@@ -31,7 +31,7 @@ impl Harness {
 
     pub fn on(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
@@ -98,7 +98,7 @@ impl Harness {
     }
 
     pub fn section(&mut self, s: Section) {
-        let page = self.app.page;
+        let page = self.app.page();
         if let Some(t) = self.app.pages[page.index()].template_mut() {
             t.set_section(s);
         }

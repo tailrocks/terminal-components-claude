@@ -478,7 +478,7 @@ mod tests {
             (PageId::Terminal, WidgetId::of("terminal").sub("term")),
         ] {
             let mut app = App::new(Theme::junie());
-            app.goto(page);
+            app.open_page(page);
             let mut term = Terminal::new(TestBackend::new(140, 40)).unwrap();
             term.draw(|frame| app.render(frame)).unwrap();
             let area = app.shell.hits.area_of(id).unwrap();

@@ -25,7 +25,7 @@ struct Harness {
 impl Harness {
     fn new(width: u16, height: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
-        app.goto(page);
+        app.open_page(page);
         let mut term = Terminal::new(TestBackend::new(width, height)).unwrap();
         term.draw(|frame| app.render(frame)).unwrap();
         Self { app, term }
