@@ -34,6 +34,7 @@ pub mod nav_list;
 pub mod notice;
 pub mod option_editor;
 pub mod option_list;
+pub mod page_header;
 pub mod panel;
 pub mod picker;
 pub mod progress;

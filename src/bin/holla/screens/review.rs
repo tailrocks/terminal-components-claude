@@ -12,10 +12,11 @@ use junie_tui::core::scroll::ScrollState;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::text::{truncate, width};
+use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::{Button, row_layout_right};
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::page_header::PageHeader;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
@@ -28,8 +29,8 @@ use ratatui::layout::{Position, Rect};
 use crate::domain::action::{ArgSpec, Item, Risk};
 use crate::screens::finder::item_facts;
 use crate::screens::{
-    Cx, GateTarget, Go, ModalResult, Screen, StatusBits, heading, open_context, risk_tone,
-    row_choice, scroll_drag, scroll_press,
+    Cx, GateTarget, Go, ModalResult, Screen, StatusBits, open_context, risk_tone, row_choice,
+    scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
 use junie_tui::ui::context::ContextAnchor;
@@ -478,17 +479,12 @@ impl ShellPage<Holla> for GatePage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
-        buf.set_string(area.x + 1, area.y, &self.title, t.title());
-        let sub = " · gate 1 of 2 · review the resolved facts, then continue deliberately";
-        buf.set_string(
-            area.x + 1 + width(&self.title) as u16,
-            area.y,
-            truncate(
-                sub,
-                area.width.saturating_sub(width(&self.title) as u16 + 2) as usize,
-            ),
-            t.muted(),
-        );
+        PageHeader::new(&self.title)
+            .status(
+                " · gate 1 of 2 · review the resolved facts, then continue deliberately",
+                Tone::Muted,
+            )
+            .render(area, buf, t);
         let facts_h = (self.facts.len() as u16 + 2).min(area.height / 2);
         let facts_area = Rect::new(
             area.x + 1,
@@ -1280,7 +1276,6 @@ impl ShellPage<Holla> for ArgsPage {
         );
         self.cancel.render(rects[0], buf, ctx, t.canvas);
         self.run.render(rects[1], buf, ctx, t.canvas);
-        let _ = heading;
     }
 
     fn hints(&self, _focus: Option<WidgetId>, _w: &World) -> Vec<Hint> {
