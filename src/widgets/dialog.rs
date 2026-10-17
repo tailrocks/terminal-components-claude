@@ -57,13 +57,6 @@ pub enum DialogResult {
     Cancelled,
 }
 
-/// Lines of a dialog's code preview shown when there is room.
-const CODE_LINES: usize = 6;
-
-/// Rows of facts a dialog with a code preview keeps for its facts on a
-/// short screen before the preview shrinks.
-const MIN_FACTS: u16 = 2;
-
 #[derive(Debug, Clone)]
 pub struct Dialog {
     pub id: WidgetId,
@@ -100,10 +93,6 @@ pub struct Dialog {
     /// Home/End, the scrollbar) and says how much is below. Default on.
     /// Off: the body is cut at the bottom, as before.
     pub body_scroll: bool,
-    /// Lines of the code preview shown this frame: [`CODE_LINES`], fewer
-    /// when the screen is so short that the facts above would get fewer
-    /// than [`MIN_FACTS`] rows (the rest is summarised as "… N more").
-    code_cap: usize,
     /// Cap on the dialog's height in rows; the body scrolls past it.
     /// `None` (default): as tall as the content, up to the bounds.
     pub max_height: Option<u16>,
@@ -394,7 +383,6 @@ impl Dialog {
             title_status: None,
             confirm_index: None,
             body_scroll: true,
-            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -438,7 +426,6 @@ impl Dialog {
             title_status: None,
             confirm_index: None,
             body_scroll: true,
-            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -483,7 +470,6 @@ impl Dialog {
             title_status: None,
             confirm_index: None,
             body_scroll: true,
-            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -569,7 +555,6 @@ impl Dialog {
             title_status: None,
             confirm_index: token.map(|_| 1),
             body_scroll: true,
-            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -800,24 +785,28 @@ impl Dialog {
         }
     }
 
-    /// Rows the code preview takes below the facts: at most six lines,
-    /// the blank row above them and, when a line is wider than the text
-    /// column `inner_w`, the horizontal bar under them.
-    fn code_rows(code: &[String], inner_w: u16, h_cfg: &HScroll, cap: usize) -> u16 {
+    /// Rows the code preview adds to the body's scrolling part: the
+    /// blank row above it and every line (R-apps-14: the preview joins the
+    /// body scroll, so no line is only summarised as "… N more").
+    fn code_rows(code: &[String]) -> u16 {
         if code.is_empty() {
             0
         } else {
-            let bar = h_cfg.shows_bar(&Self::code_extent(code, inner_w));
-            code.len().min(cap) as u16 + 1 + u16::from(bar)
+            code.len() as u16 + 1
         }
     }
 
-    /// The code preview's horizontal extent: its widest shown line
-    /// against the text column.
+    /// The horizontal bar under the scrolling part when a code line is
+    /// wider than the text column `inner_w`: 1 row, else 0.
+    fn code_bar_rows(code: &[String], inner_w: u16, h_cfg: &HScroll) -> u16 {
+        u16::from(!code.is_empty() && h_cfg.shows_bar(&Self::code_extent(code, inner_w)))
+    }
+
+    /// The code preview's horizontal extent: its widest line against the
+    /// text column.
     fn code_extent(code: &[String], inner_w: u16) -> ScrollState {
         let widest = code
             .iter()
-            .take(6)
             .map(|l| crate::ui::text::width(l))
             .max()
             .unwrap_or(0);
@@ -873,23 +862,21 @@ impl Dialog {
         match &self.body {
             DialogBody::Text(t) => crate::ui::text::wrap(t, inner_w as usize).len() as u16,
             DialogBody::Input(_) => 0,
-            DialogBody::Facts { facts, .. } => crate::widgets::props::measure(facts, inner_w),
+            DialogBody::Facts { facts, code, .. } => {
+                crate::widgets::props::measure(facts, inner_w) + Self::code_rows(code)
+            }
         }
     }
 
     /// Rows the body takes that never scroll: the prompt field, the code
-    /// preview and the typed acknowledgement.
+    /// preview's horizontal bar and the typed acknowledgement.
     fn fixed_rows(&self, width: u16) -> u16 {
         match &self.body {
             DialogBody::Text(_) => 0,
             DialogBody::Input(i) => i.height_for(self.field_width(width)),
             DialogBody::Facts { code, ack, .. } => {
-                Self::code_rows(
-                    code,
-                    self.inner_width(width),
-                    &self.scroll.h_cfg,
-                    self.code_cap,
-                ) + self.ack_rows(ack.as_ref(), width)
+                Self::code_bar_rows(code, self.inner_width(width), &self.scroll.h_cfg)
+                    + self.ack_rows(ack.as_ref(), width)
             }
         }
     }
@@ -1269,7 +1256,6 @@ impl Dialog {
         self.follow_strings(ctx.theme.strings);
         let t = ctx.theme;
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
-        self.code_cap = CODE_LINES;
         self.scroll.begin(ctx.track_click);
         self.gap = t.spacing.button_gap;
         // at least one column of padding: the scrollbar lives there
@@ -1343,17 +1329,8 @@ impl Dialog {
         let actions_y = area.bottom().saturating_sub(1 + self.pad.y + action_rows);
         // the scrolling part of the body ends above the parts anchored over
         // the actions; the row right below it is a blank separator, where
-        // "↓ N more" goes while there is more below
-        // a short screen shrinks the code preview before the facts: they
-        // keep MIN_FACTS rows to scroll through (R-apps-10)
-        let room = actions_y.saturating_sub(1).saturating_sub(body_y);
-        let facts = matches!(&self.body, DialogBody::Facts { facts, .. } if !facts.is_empty());
-        while facts
-            && self.code_cap > 1
-            && room.saturating_sub(1 + self.fixed_rows(width)) < MIN_FACTS
-        {
-            self.code_cap -= 1;
-        }
+        // "↓ N more" goes while there is more below; the facts and the
+        // code preview scroll together (R-apps-10, R-apps-14)
         let fixed = self.fixed_rows(width);
         let scroll_bottom = actions_y.saturating_sub(1 + fixed).max(body_y);
         let viewport = scroll_bottom - body_y;
@@ -1385,23 +1362,16 @@ impl Dialog {
                 inp.render(r, buf, ctx, bg);
             }
             DialogBody::Facts { facts, code, ack } => {
-                // the acknowledgement and the code preview are anchored above
-                // the actions; the facts get the remaining rows and scroll
-                // when the screen is too short
+                // the facts and the code preview below them scroll as one
+                // sheet; the code's horizontal bar and the acknowledgement
+                // are anchored above the actions
                 let sheet_area = Rect::new(0, 0, inner.width, content);
                 let mut sheet = Buffer::empty(sheet_area);
                 fill(&mut sheet, sheet_area, ratatui::style::Style::new().bg(bg));
                 crate::widgets::props::render(sheet_area, &mut sheet, t, facts, bg);
-                blit_rows(
-                    &sheet,
-                    offset,
-                    buf,
-                    Rect::new(inner.x, body_y, inner.width, viewport),
-                );
+                let facts_h = crate::widgets::props::measure(facts, inner.width);
                 let mut y = scroll_bottom;
                 if !code.is_empty() {
-                    y += 1;
-                    let max = code.len().min(self.code_cap);
                     // preformatted lines never wrap: a wider one scrolls
                     // sideways, cut with … on the side it continues past
                     let extent = Self::code_extent(code, inner.width);
@@ -1421,19 +1391,15 @@ impl Dialog {
                             crate::ui::text::truncate(line, w as usize)
                         }
                     };
-                    for (i, line) in code.iter().take(max).enumerate() {
-                        let shown = if i == max - 1 && code.len() > max {
-                            format!(
-                                "{} {}",
-                                cut(line, inner.width.saturating_sub(12)),
-                                Strings::fill(t.strings.more_cut, &[&(code.len() - max)])
-                            )
-                        } else {
-                            cut(line, inner.width)
-                        };
-                        buf.set_string(inner.x, y + i as u16, &shown, t.secondary().bg(bg));
+                    let code_y = facts_h + 1;
+                    for (i, line) in code.iter().enumerate() {
+                        sheet.set_string(
+                            0,
+                            code_y + i as u16,
+                            cut(line, inner.width),
+                            t.secondary().bg(bg),
+                        );
                     }
-                    y += max as u16;
                     if self.scroll.h_cfg.shows_bar(&self.scroll.h) {
                         let hb = Rect::new(inner.x, y, inner.width, 1);
                         if hb.y < actions_y {
@@ -1442,6 +1408,12 @@ impl Dialog {
                         y += 1;
                     }
                 }
+                blit_rows(
+                    &sheet,
+                    offset,
+                    buf,
+                    Rect::new(inner.x, body_y, inner.width, viewport),
+                );
                 if let Some(a) = ack {
                     y += 1;
                     let r = Rect::new(field_x, y, field_w, a.input.height_for(field_w));
@@ -1455,7 +1427,10 @@ impl Dialog {
             let track = Rect::new(area.right() - 2, body_y, 1, viewport);
             self.scroll.set_track(self.id, Axis::Vertical, track);
             let below = self.scroll.max_offset() - self.scroll.offset;
-            if below > 0 && scroll_bottom < actions_y {
+            // the code's horizontal bar, when it shows, sits on that row
+            let hb = self.scroll.h_track();
+            let h_bar = !hb.is_empty() && hb.y == scroll_bottom;
+            if below > 0 && scroll_bottom < actions_y && !h_bar {
                 buf.set_string(
                     inner.x,
                     scroll_bottom,
@@ -1674,6 +1649,39 @@ mod tests {
         let (_, st) = theme.status(StatusKind::Warn);
         let c = &buf[(x, y)];
         assert_eq!(c.fg, theme.legible(st.fg.unwrap(), c.bg));
+    }
+
+    /// R-apps-14: a code preview longer than the room joins the body
+    /// scroll: every line is reached by scrolling (↓, End, the wheel),
+    /// none is only summarised as "… N more".
+    #[test]
+    fn every_line_of_a_long_code_preview_is_reached_by_scrolling_the_body() {
+        let code: Vec<String> = (1..=14).map(|i| format!("step {i:02} apt-get")).collect();
+        let mut d = Dialog::facts(
+            WidgetId::of("plan"),
+            "Start plan",
+            vec![Prop::new("Host", "mbp"), Prop::new("Steps", "14")],
+            code,
+            None,
+            Button::primary(WidgetId::of("plan").sub("ok"), "Start"),
+        );
+        let screen = Rect::new(0, 0, 72, 20);
+        let text = rows(&draw(&mut d, screen, screen)).join("\n");
+        assert!(text.contains("Host"), "{text}");
+        assert!(text.contains("step 01"), "{text}");
+        assert!(!text.contains("… "), "no line is summarised: {text}");
+        assert!(text.contains("more"), "the cut is announced: {text}");
+        let mut focus = crate::core::focus::Focus::default();
+        focus.focus(d.actions[0].id);
+        let ring = FocusRing::default();
+        let mut seen = text;
+        for _ in 0..20 {
+            d.on_key(&key(KeyCode::Down), &mut focus, &ring);
+            seen.push_str(&rows(&draw(&mut d, screen, screen)).join("\n"));
+        }
+        for i in 1..=14 {
+            assert!(seen.contains(&format!("step {i:02}")), "line {i}: {seen}");
+        }
     }
 
     #[test]
