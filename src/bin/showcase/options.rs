@@ -268,6 +268,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::EmptyError => EMPTY_ERROR,
         PageId::Meters => METERS,
         PageId::Sidebars => SIDEBARS,
+        PageId::Forms => FORMS,
         PageId::Notices => NOTICES,
         PageId::DiskCleanup => DISK_CLEANUP,
         PageId::Activity => ACTIVITY,
@@ -1389,6 +1390,23 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.reserve_value", "Reserve the value column", OFF_ON).default(1),
     Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Forms: the fields' validation timing and blur action, whether the task
+/// name is required, the description's rows, the help and placeholder
+/// texts, and the managed (disabled) toggle (`pages/forms.rs`, `apply`).
+pub static FORMS: &[Opt] = &[
+    Opt::new("forms.required", "Task name required", OFF_ON).default(1),
+    Opt::new(
+        "forms.validate_when",
+        "Validate",
+        &["after-error", "commit", "live"],
+    ),
+    Opt::new("forms.blur", "On blur", &["commit", "cancel", "keep"]),
+    Opt::new("forms.desc_rows", "Description rows", &["4", "2", "6"]),
+    Opt::new("forms.help", "Help text", OFF_ON).default(1),
+    Opt::new("forms.placeholders", "Placeholders", OFF_ON).default(1),
+    Opt::new("forms.managed", "Managed toggle", OFF_ON).default(1),
 ];
 
 /// Sidebars: the `NavList`'s mode, widths, keys and badges, and the
