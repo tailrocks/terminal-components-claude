@@ -521,8 +521,12 @@ impl crate::core::pointer::MouseTarget for NavList {
         let bar = scrollbar::id_for(self.id);
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
-                Axis::Vertical => Self::scrolled(self.scroll.scroll_by(delta as isize)).into(),
-                Axis::Horizontal => Response::ignored(),
+                // rows that fit pass the notch on to the container
+                // (scroll chaining, as a `ScrollPane` does)
+                Axis::Vertical if self.scroll.overflows() => {
+                    Self::scrolled(self.scroll.scroll_by(delta as isize)).into()
+                }
+                _ => Response::ignored(),
             };
         }
         if ev.id == bar {
@@ -593,6 +597,45 @@ mod tests {
         let mut buf = Buffer::empty(area);
         nav.render(area, &mut buf, &mut ctx, theme.canvas);
         (buf, hits)
+    }
+
+    /// A list whose rows fit leaves the wheel to its container (scroll
+    /// chaining); one that overflows takes it.
+    #[test]
+    fn the_wheel_passes_on_while_the_rows_fit() {
+        use crate::core::pointer::MouseTarget;
+        let mut nav = list();
+        let (_, hits) = draw(&mut nav, false);
+        let id = nav.id;
+        let wheel = |hits: &HitRegistry| {
+            PointerEvent::wheel_on(
+                hits,
+                id,
+                Axis::Vertical,
+                1,
+                ratatui::layout::Position::new(2, 2),
+                ratatui::crossterm::event::KeyModifiers::NONE,
+            )
+        };
+        let ev = wheel(&hits);
+        assert_eq!(
+            nav.pointer(&ev).outcome(),
+            Outcome::Ignored,
+            "fits: passed on"
+        );
+        let mut long = NavList::new(
+            WidgetId::of("nav"),
+            (0..20)
+                .map(|i| NavItem::new(&format!("Item {i}")))
+                .collect(),
+        );
+        let (_, hits) = draw(&mut long, false);
+        let ev = wheel(&hits);
+        assert_eq!(
+            long.pointer(&ev).outcome(),
+            Outcome::Changed,
+            "overflows: scrolls"
+        );
     }
 
     /// Row `y` without the divider column.
