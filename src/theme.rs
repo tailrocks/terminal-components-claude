@@ -492,6 +492,8 @@ mod palette {
     pub const POPOVER: Color = rgb(0x3f3f46);
     /// Menu selection: a cool blue that does not compete with the accent.
     pub const HIGHLIGHT: Color = rgb(0x2f5aa8);
+    /// Indigo: the cursor inside a blue selection (`Theme::highlight_on_selection`).
+    pub const INDIGO: Color = rgb(0x4b3fa8);
     pub const WHITE: Color = rgb(0xffffff);
     pub const WHITE_70: Color = rgb(0xb3b3b3);
     pub const WHITE_50: Color = rgb(0x808080);
@@ -634,6 +636,11 @@ pub struct Theme {
 
     /// Text selection and grid range tint (see [`Self::selection`]).
     pub selection_bg: Color,
+    /// The cursor fill where it sits inside a selected range (a grid's
+    /// cursor cell in its range selection): its own hue, so the cursor
+    /// never reads as one more selected cell beside [`Self::selection_bg`]
+    /// ([`Self::cursor_in_selection`], standards-visual gap 3).
+    pub highlight_on_selection: Color,
     /// Hover step of the focused-selected tint ([`Self::accent_bg`]): hover
     /// keeps the selection hue instead of replacing it.
     pub accent_bg_hover: Color,
@@ -720,6 +727,7 @@ impl Theme {
             syntax_literal: SYNTAX_LITERAL,
             accent_bg_hover: GREEN_35,
             selection_bg: BLUE_20,
+            highlight_on_selection: INDIGO,
             danger_label: RED_LABEL,
             ladders: Ladders {
                 canvas: Ladder::new(BLACK, CANVAS_HOVER, CANVAS_PRESSED),
@@ -871,6 +879,7 @@ impl Theme {
         self.popover = i(237);
         self.highlight = i(25);
         self.highlight_danger = i(88);
+        self.highlight_on_selection = i(55);
         self.border_subtle = i(238);
         self.border_strong = i(242);
         self.scroll_track = i(239);
@@ -932,6 +941,9 @@ impl Theme {
         self.popover = DarkGray;
         self.highlight = Blue;
         self.highlight_danger = Red;
+        // the selection is reversed video here: the Blue cursor fill
+        // already stands apart from it
+        self.highlight_on_selection = Blue;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
         // the only grey below the thumb's Gray: the dotted glyph, not the
@@ -1001,6 +1013,7 @@ impl Theme {
         self.popover = DarkGray;
         self.highlight = DarkGray;
         self.highlight_danger = DarkGray;
+        self.highlight_on_selection = DarkGray;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
         // the only grey below the thumb's Gray: the dotted glyph, not the
@@ -1821,6 +1834,26 @@ impl Theme {
         };
         self.interactive(Kind::CursorRow(CursorStyle::Fill), s, Plane::Canvas)
             .style
+    }
+
+    /// [`Self::cell_cursor`] where the cursor sits inside a selected range:
+    /// the [`Self::highlight_on_selection`] fill, so it reads as the
+    /// cursor, not as one more selected cell. Without colour the range is
+    /// reversed video and so is the cursor fill: the cursor drops the
+    /// reverse there and stands out as the one plain, bold cell.
+    pub fn cursor_in_selection(&self, error: bool, pressed: bool) -> Style {
+        let st = self.cell_cursor(error, pressed);
+        if error || pressed {
+            return st;
+        }
+        if self.level == ColorLevel::Mono {
+            return st
+                .remove_modifier(Modifier::REVERSED)
+                .add_modifier(Modifier::BOLD);
+        }
+        let bg = self.highlight_on_selection;
+        st.bg(bg)
+            .fg(self.legible(st.fg.unwrap_or(self.text_primary), bg))
     }
 
     /// A rule or separator that reads on `bg`: the subtle border on the dark
@@ -3933,6 +3966,34 @@ mod tests {
         assert_eq!(t.syntax(SyntaxTone::Str).fg, Some(t.syntax_string));
         assert_eq!(t.syntax(SyntaxTone::Literal).fg, Some(t.syntax_literal));
         assert_eq!(t.syntax(SyntaxTone::Ident).fg, Some(t.text_primary));
+    }
+
+    /// SVg3: the cursor inside a selected range is its own token. Its text
+    /// reads (≥ 4.5:1), and it never looks like the range around it or
+    /// like the cursor outside one, at every colour level.
+    #[test]
+    fn the_cursor_inside_a_selection_reads_and_stands_apart() {
+        for level in ColorLevel::ALL {
+            let t = Theme::for_level(level);
+            let c = t.cursor_in_selection(false, false);
+            let sel = t.selection();
+            assert_ne!(
+                (c.bg, c.add_modifier),
+                (sel.bg, sel.add_modifier),
+                "{level:?}: the cursor looks like the range"
+            );
+            if level == ColorLevel::Mono {
+                continue;
+            }
+            let bg = c.bg.unwrap();
+            let r = contrast_ratio(c.fg.unwrap(), bg).unwrap();
+            assert!(r >= 4.5, "{level:?}: cursor text {r:.2}");
+            if level != ColorLevel::Ansi16 {
+                // the two blues are apart: a hue of its own
+                assert_ne!(bg, t.selection_bg, "{level:?}");
+                assert_ne!(bg, t.highlight, "{level:?}");
+            }
+        }
     }
 
     #[test]
