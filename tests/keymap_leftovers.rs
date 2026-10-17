@@ -128,21 +128,24 @@ fn menu_items() -> Vec<MenuItem> {
 fn context_menus_take_type_ahead_when_asked() {
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items()).type_ahead(false);
     m.on_key(&ch('p'));
-    assert_eq!(m.cursor, 0, "off when switched off");
+    assert_eq!(m.list.cursor.index, 0, "off when switched off");
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items());
     m.on_key(&ch('p'));
-    assert_eq!(m.cursor, 2, "on by default (Desktop profile, K34)");
+    assert_eq!(
+        m.list.cursor.index, 2,
+        "on by default (Desktop profile, K34)"
+    );
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items()).type_ahead(true);
     m.on_key(&ch('p'));
-    assert_eq!(m.cursor, 2);
+    assert_eq!(m.list.cursor.index, 2);
     m.on_key(&ch('r'));
     // "pr" matches nothing: the cursor stays
-    assert_eq!(m.cursor, 2);
+    assert_eq!(m.list.cursor.index, 2);
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items()).type_ahead(true);
     m.on_key(&ch('r'));
-    assert_eq!(m.cursor, 3);
+    assert_eq!(m.list.cursor.index, 3);
     m.on_key(&ch('r'));
-    assert_eq!(m.cursor, 4, "a repeated letter cycles");
+    assert_eq!(m.list.cursor.index, 4, "a repeated letter cycles");
     // a menu bar hands its open menu the letters, never `l` to the next title
     let mut bar = MenuBar::new(
         WidgetId::of("bar"),
@@ -153,7 +156,7 @@ fn context_menus_take_type_ahead_when_asked() {
     let (_, ev) = bar.on_key(&ch('r'));
     assert_eq!(ev, None);
     assert_eq!(bar.open_index(), Some(0));
-    assert_eq!(bar.open.as_ref().unwrap().cursor, 3);
+    assert_eq!(bar.open.as_ref().unwrap().list.cursor.index, 3);
     let (_, ev) = bar.on_key(&key(KeyCode::Right));
     assert_eq!(ev, Some(MenuBarAction::Opened(1)), "arrows still switch");
 }

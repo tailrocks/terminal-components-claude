@@ -1445,7 +1445,7 @@ impl App {
                 let (o, act) = r.into_parts();
                 return Some(match act {
                     Some(MenuBarAction::Chosen(mi, ii)) => {
-                        let label = self.host_menu.menus[mi][ii].label.clone();
+                        let label = self.host_menu.menus[mi][ii].item.label.clone();
                         self.run_host_menu(&label)
                     }
                     Some(MenuBarAction::Brand) => {
@@ -2197,7 +2197,7 @@ impl shell::KeyHost for App {
         let (o, ev) = self.host_menu.on_key(key);
         Some(match ev {
             Some(MenuBarAction::Chosen(mi, ii)) => {
-                let label = self.host_menu.menus[mi][ii].label.clone();
+                let label = self.host_menu.menus[mi][ii].item.label.clone();
                 self.run_host_menu(&label)
             }
             Some(MenuBarAction::Brand) => {

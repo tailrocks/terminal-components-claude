@@ -3766,7 +3766,7 @@ mod tests {
         assert_eq!(g.col_rects[1].width, 4, "\"name\" is the widest text");
         // the header menu sorts, autofits and resets
         let menu = g.header_menu(1);
-        let labels: Vec<_> = menu.iter().map(|(_, m)| m.label.as_str()).collect();
+        let labels: Vec<_> = menu.iter().map(|(_, m)| m.item.label.as_str()).collect();
         assert_eq!(
             labels,
             [
@@ -3777,8 +3777,8 @@ mod tests {
                 "Reset Column Widths"
             ]
         );
-        assert!(menu[2].1.disabled, "nothing to clear");
-        assert!(!menu[4].1.disabled, "a user width exists");
+        assert!(menu[2].1.item.disabled, "nothing to clear");
+        assert!(!menu[4].1.item.disabled, "a user width exists");
         g.on_header_action(1, HeaderAction::ResetWidths);
         assert!(g.sizing.is_default());
         g.on_header_action(1, HeaderAction::SortDesc);

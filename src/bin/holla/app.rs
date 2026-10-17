@@ -551,7 +551,7 @@ impl App {
         let (o, ev) = self.menu.on_key(key);
         match ev {
             Some(MenuBarAction::Chosen(mi, ii)) => {
-                let label = self.menu.menus[mi][ii].label.clone();
+                let label = self.menu.menus[mi][ii].item.label.clone();
                 self.run_menu(&label)
             }
             Some(MenuBarAction::Brand) => {
@@ -1422,7 +1422,7 @@ impl App {
             let (o, act) = r.into_parts();
             return Some(match act {
                 Some(MenuBarAction::Chosen(mi, ii)) => {
-                    let label = self.menu.menus[mi][ii].label.clone();
+                    let label = self.menu.menus[mi][ii].item.label.clone();
                     self.run_menu(&label)
                 }
                 Some(MenuBarAction::Brand) => {

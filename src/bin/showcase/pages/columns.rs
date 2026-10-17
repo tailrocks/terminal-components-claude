@@ -326,9 +326,9 @@ impl ColumnsPage {
                 .sized
                 .header_menu(c)
                 .into_iter()
-                .map(|(_, m)| match &m.reason {
-                    Some(why) => Prop::new(&m.label, why.clone()).tone(Tone::Muted),
-                    None => Prop::new(&m.label, "available"),
+                .map(|(_, m)| match &m.item.reason {
+                    Some(why) => Prop::new(&m.item.label, why.clone()).tone(Tone::Muted),
+                    None => Prop::new(&m.item.label, "available"),
                 })
                 .collect();
             props::render(inner, buf, t, &items, bg);
