@@ -665,8 +665,20 @@ impl TextArea {
         if text.is_empty() {
             // the placeholder stays until the first character, with the
             // caret on it while editing (macOS)
-            let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
-            buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
+            // it wraps over the area's rows (a placeholder cannot scroll
+            // sideways); the last row cuts what is still left
+            let w = inner.width as usize;
+            let wrapped =
+                crate::ui::text::wrap_with(&self.placeholder, w, crate::ui::text::WrapOpts::PLAIN);
+            let n = (inner.height as usize).max(1).min(wrapped.len());
+            for (i, line) in wrapped.iter().take(n).enumerate() {
+                let line = if i + 1 == n && wrapped.len() > n {
+                    crate::ui::text::truncate(&wrapped[i..].join(" "), w)
+                } else {
+                    line.clone()
+                };
+                buf.set_string(inner.x, inner.y + i as u16, &line, t.placeholder(s));
+            }
             if s.editing && inner.width > 0 {
                 ctx.set_cursor(Position::new(inner.x, inner.y));
             }
@@ -1058,6 +1070,43 @@ mod tests {
         ] {
             assert!(text.contains(line), "{text}");
         }
+    }
+
+    /// A placeholder longer than the area wraps over its rows by word (it
+    /// cannot scroll sideways); with too few rows the last one cuts the
+    /// rest with `…`.
+    #[test]
+    fn a_long_placeholder_wraps_over_the_rows() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        let t = crate::theme::Theme::junie();
+        let text = |rows: u16| {
+            let mut a = TextArea::new(WidgetId::of("d"), "Description", rows)
+                .placeholder("What should Junie do, and what does done look like?");
+            let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+            let mut ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            let area = Rect::new(0, 0, 30, a.height());
+            let mut buf = Buffer::empty(area);
+            a.render(area, &mut buf, &mut ctx, t.canvas);
+            (0..area.height)
+                .map(|y| (0..30).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let whole = text(3);
+        for word in ["What", "Junie", "done", "look", "like?"] {
+            assert!(whole.contains(word), "{word}: {whole}");
+        }
+        let one = text(1);
+        assert!(
+            one.contains("What should Junie do") && one.contains('…'),
+            "{one}"
+        );
     }
 
     /// An editing text area consumes only the keys it uses: unbound

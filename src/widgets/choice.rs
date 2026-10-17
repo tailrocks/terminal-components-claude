@@ -106,6 +106,12 @@ impl Checkbox {
         Outcome::Changed
     }
 
+    /// The row's natural width (plan §1.4 `Measure`): the gutter, the
+    /// box and the whole label with its cell of padding.
+    pub fn width(&self) -> u16 {
+        crate::ui::text::width(&self.label) as u16 + 6
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         let area = Rect::new(area.x, area.y, area.width, 1.min(area.height));
@@ -233,6 +239,15 @@ impl RadioGroup {
     /// Option `i` as a part of the group.
     pub fn option_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
+    }
+
+    /// The group's natural width (plan §1.4 `Measure`): its label after
+    /// the gutter, and every option whole after its mark with a cell of
+    /// padding.
+    pub fn width(&self) -> u16 {
+        let w = |t: &str| crate::ui::text::width(t) as u16;
+        let options = self.options.iter().map(|o| w(o) + 6).max().unwrap_or(0);
+        (w(&self.label) + 2).max(options)
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -598,6 +613,40 @@ mod tests {
             row.contains("Auto-merge approved PRs") && row.contains("off"),
             "{row:?}"
         );
+    }
+
+    /// At their widths a checkbox shows its whole label and a radio
+    /// group every option; one column less cuts the longest.
+    #[test]
+    fn a_checkbox_and_a_radio_group_at_their_widths_show_every_label() {
+        let theme = Theme::junie();
+        let rows = |w: u16, h: u16, draw: &mut dyn FnMut(Rect, &mut Buffer, &mut RenderCtx)| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let area = Rect::new(0, 0, w, h);
+            let mut buf = Buffer::empty(area);
+            draw(area, &mut buf, &mut ctx);
+            (0..h)
+                .map(|y| (0..w).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let mut cb = Checkbox::new(WidgetId::of("c"), "Run tests before opening a PR", true);
+        let w = cb.width();
+        let text = rows(w, 1, &mut |a, b, c| cb.render(a, b, c, theme.canvas));
+        assert!(text.contains("Run tests before opening a PR"), "{text}");
+        let text = rows(w - 2, 1, &mut |a, b, c| cb.render(a, b, c, theme.canvas));
+        assert!(!text.contains("Run tests before opening a PR"), "{text}");
+        let mut rg = RadioGroup::new(WidgetId::of("r"), "Mode", &["Fast", "Thoroughly"], 0);
+        let (w, h) = (rg.width(), rg.height());
+        let text = rows(w, h, &mut |a, b, c| rg.render(a, b, c, theme.canvas));
+        assert!(
+            text.contains("Thoroughly") && text.contains("Mode"),
+            "{text}"
+        );
+        let text = rows(w - 2, h, &mut |a, b, c| rg.render(a, b, c, theme.canvas));
+        assert!(!text.contains("Thoroughly"), "{text}");
     }
 
     fn mark(cb: &mut Checkbox) -> String {

@@ -6586,7 +6586,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "widgets::choice::Checkbox",
         Protocol,
-        &["on_key", "on_click", "render"],
+        &["on_key", "on_click", "render", "width"],
     ),
     (
         "widgets::choice::RadioGroup",
@@ -6598,6 +6598,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "option_id",
             "option_part",
             "render",
+            "width",
         ],
     ),
     (
