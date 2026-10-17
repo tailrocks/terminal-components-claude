@@ -8,10 +8,6 @@
 # and so does a listed entry that passes (delete its line when the page is
 # fixed).
 
-TextAreas | Playground | 80x24 | R10 the text areas scroll their long lines sideways themselves (the demo); the inner-scroller rule does not wheel sideways yet
-TextAreas | Playground | 100x25 | R10 the text areas scroll their long lines sideways themselves (the demo); the inner-scroller rule does not wheel sideways yet
-TextAreas | Playground | 106x29 | R10 the text areas scroll their long lines sideways themselves (the demo); the inner-scroller rule does not wheel sideways yet
-TextAreas | Playground | 120x40 | R10 the text areas scroll their long lines sideways themselves (the demo); the inner-scroller rule does not wheel sideways yet
 Grid | Playground | 80x24 | R16 squeezes instead of overflowing: no Page::measure yet
 Grid | Playground | 100x25 | R16 squeezes instead of overflowing: no Page::measure yet
 Grid | Playground | 106x29 | R16 squeezes instead of overflowing: no Page::measure yet

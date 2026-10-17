@@ -288,9 +288,9 @@ fn hit_testing_prefers_rows_over_their_container() {
 
 #[test]
 fn table_sorts_both_directions_and_clears() {
-    // wide enough for every column of the task table (the page is as
-    // wide as its columns) and tall enough for its 20 rows
-    let mut h = Harness::new(160, 51, PageId::Tables);
+    // tall enough for the task table to show 20 rows under the section
+    // strip and above the Reviewers and Checks cards
+    let mut h = Harness::new(120, 51, PageId::Tables);
     // the section strip, then the table
     h.key(tab());
     h.key(tab());
@@ -302,17 +302,8 @@ fn table_sorts_both_directions_and_clears() {
     h.key(KeyCode::Char('s'));
     assert!(h.text().contains("ID ▾"));
     // the cursor stayed on its row (now last), so the view scrolled with it
-    // (the card's meta sits right of the screen: the page is as wide as
-    // the table's columns)
-    let table = &h.app.pages[PageId::Tables.index()]
-        .as_any()
-        .and_then(|a| a.downcast_ref::<crate::pages::tables::TablesPage>())
-        .expect("the tables page")
-        .table;
-    assert_eq!(
-        junie_tui::widgets::scrollbar::position_label(&table.scroll),
-        "5–24 of 24"
-    );
+    // (the horizontal bar of the wide table takes the body's last row)
+    assert!(h.text().contains("5–24 of 24"), "{}", h.text());
     // Home: the first row (desktop keys; `g` only under the Vim profile)
     h.key(KeyCode::Home);
     assert!(h.row(h.find_row("#10").unwrap()).contains("#1063"));
@@ -374,14 +365,7 @@ fn editable_table_commit_cancel_and_validation() {
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("abc");
     h.key(KeyCode::Enter);
-    // the error is the card's meta, right of a 120-column screen: ask the
-    // table
-    let table = &h.app.pages[PageId::Editable.index()]
-        .as_any()
-        .and_then(|a| a.downcast_ref::<crate::pages::editable::EditablePage>())
-        .expect("the editable page")
-        .table;
-    assert_eq!(table.edit_error(), Some("Changes must be a whole number"));
+    assert!(h.text().contains("Changes must be a whole number"));
     assert!(
         h.app.pages[PageId::Editable.index()].editing(),
         "invalid value keeps editing"
