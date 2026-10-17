@@ -5,7 +5,7 @@
 //! (`crate::options::INPUTS`).
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -19,8 +19,9 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, KeyMap};
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::{Measure, Tile, Tiled, tiles};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::widgets::field_common::PointerSelect;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::panel::Panel;
@@ -241,130 +242,182 @@ impl InputsPage {
         self.fields.iter().position(|i| i.id == f)
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let width = area.width.saturating_sub(4) / 2;
-        let rows: Vec<u16> = self
-            .fields
-            .chunks(2)
-            .map(|pair| {
-                pair.iter()
-                    .map(|f| f.height_for(width))
-                    .max()
-                    .unwrap_or(TextInput::HEIGHT)
-            })
-            .collect();
-        // the card's title, padding and border around the rows
-        let fields_h = rows.iter().sum::<u16>() + 5;
-        let focus = self
+    /// The fields in the card's content `width` wide: in pairs side by
+    /// side when both fit whole, stacked otherwise.
+    fn field_tiles(&self, width: u16, ctx: &RenderCtx) -> Tiled {
+        let mins: Vec<u16> = self
             .fields
             .iter()
-            .any(|f| ctx.interaction.has_focus(f.id))
-            .then_some(0);
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(fields_h),
-                StackChild::fixed(18),
-                StackChild::fixed(7),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
-        match l.slot(0) {
-            Some(r) => self.render_fields(r, &rows, buf, ctx),
-            None => self.fields.iter().for_each(|f| ctx.focus_stop(f.id)),
-        }
-        if let Some(r) = l.slot(1) {
-            self.render_commands(r, buf, ctx);
-        }
-        if let Some(r) = l.slot(2) {
-            render_undo(r, buf, ctx);
-        }
+            .map(|f| f.measure(Size::new(0, 0), ctx).width)
+            .collect();
+        let heights: Vec<Box<dyn Fn(u16) -> u16 + '_>> = self
+            .fields
+            .iter()
+            .map(|f| Box::new(move |w: u16| f.height_for(w)) as Box<dyn Fn(u16) -> u16>)
+            .collect();
+        let tiles_v: Vec<Tile> = heights
+            .iter()
+            .zip(&mins)
+            .map(|(h, &m)| Tile::new(m, h.as_ref()))
+            .collect();
+        let rows: Vec<&[Tile]> = tiles_v.chunks(2).collect();
+        tiles(width, &rows, (4, 0))
     }
 
-    fn render_fields(&mut self, area: Rect, rows: &[u16], buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let panel = Panel::card(Some("Playground"))
-            .meta("Type to edit · Enter Apply · Esc Cancel · Tab Next");
-        let bg = panel.bg(t);
-        let inner = panel.render(area, buf, t);
-        let (l, r) = crate::pages::layout::columns(inner, (inner.width / 2).saturating_sub(2), 4);
-        let mut y = 0;
-        for (k, pair) in self.fields.chunks_mut(2).enumerate() {
-            let h = rows[k];
-            for (f, col) in pair.iter_mut().zip([l, r]) {
-                let slot = Rect::new(col.x, col.y + y, col.width, h);
-                if slot.bottom() <= inner.bottom() {
-                    f.render(slot, buf, ctx, bg);
-                } else {
-                    ctx.focus_stop(f.id);
-                }
-            }
-            y += h;
-        }
-    }
-
-    /// The text commands and their keys under each preset (the custom key
-    /// map adds its binding to both).
-    fn render_commands(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
+    /// The text commands under each preset (the custom key map adds its
+    /// binding to both): a caption and its sheet.
+    fn command_sheets(&self) -> [(&'static str, bool, Vec<Prop>); 2] {
         let custom = self.opts.value("inputs.text_keymap") == "custom";
-        let meta = if custom {
-            "custom key map: Alt+A selects all"
-        } else {
-            "the preset's key map"
-        };
-        let panel = Panel::card(Some("Text commands")).meta(meta);
-        let bg = panel.bg(t);
-        let inner = panel.render(area, buf, t);
-        let (l, r) = crate::pages::layout::columns(inner, (inner.width / 2).saturating_sub(2), 4);
-        for (keys, name, col) in [
-            (FieldKeys::Desktop, "Desktop keys", l),
-            (FieldKeys::Emacs, "Emacs keys", r),
-        ] {
+        [
+            (FieldKeys::Desktop, "Desktop keys"),
+            (FieldKeys::Emacs, "Emacs keys"),
+        ]
+        .map(|(keys, name)| {
             let map = if custom {
                 custom_text_keymap(keys)
             } else {
                 keys.text_keymap()
             };
             let chosen = field_keys(&self.opts, "inputs.field_keys") == Some(keys);
-            let style = if chosen {
+            let list = TEXT_COMMANDS
+                .iter()
+                .map(|(cmd, label)| Prop::new(label, keys_of(&map, *cmd)).wrap())
+                .collect();
+            (name, chosen, list)
+        })
+    }
+
+    /// The two sheets inside the commands card, `width` wide: side by
+    /// side when both fit, stacked otherwise.
+    fn command_tiles(&self, width: u16) -> Tiled {
+        let sheets = self.command_sheets();
+        let (a, b) = (&sheets[0].2, &sheets[1].2);
+        let ha = |w: u16| 1 + props::measure(a, w);
+        let hb = |w: u16| 1 + props::measure(b, w);
+        tiles(
+            width,
+            &[&[
+                Tile::new(props::width(a), &ha),
+                Tile::new(props::width(b), &hb),
+            ]],
+            (4, 1),
+        )
+    }
+
+    fn commands_panel(&self) -> Panel<'static> {
+        let meta = if self.opts.value("inputs.text_keymap") == "custom" {
+            "custom key map: Alt+A selects all"
+        } else {
+            "the preset's key map"
+        };
+        Panel::card(Some("Text commands")).meta(meta)
+    }
+
+    /// The cards' heights at `width`: the fields, the commands, undo.
+    fn heights(&self, width: u16, ctx: &RenderCtx) -> [u16; 3] {
+        let fp = Panel::card(Some("Playground")).meta(FIELDS_META);
+        let inner = fp.inner(Size::new(width, 0)).width;
+        let fields = fp
+            .outer(Size::new(inner, self.field_tiles(inner, ctx).size.height))
+            .height;
+        let panel = self.commands_panel();
+        let inner = panel.inner(Size::new(width, 0)).width;
+        let commands = panel
+            .outer(Size::new(inner, self.command_tiles(inner).size.height))
+            .height;
+        let undo = Panel::card(Some("Undo history"));
+        let inner = undo.inner(Size::new(width, 0)).width;
+        let rows = text::wrap(UNDO_NOTE, inner.max(1) as usize).len() as u16;
+        [fields, commands, undo.outer(Size::new(inner, rows)).height]
+    }
+
+    /// The narrowest Playground: two fields side by side, either sheet
+    /// of commands whole, the cards' title rows.
+    fn natural_width(&self, ctx: &RenderCtx) -> u16 {
+        // two fields side by side, each with its label, value and help whole
+        let field = self
+            .fields
+            .iter()
+            .map(|f| f.measure(Size::new(0, 0), ctx).width)
+            .max()
+            .unwrap_or(0);
+        let fields_w = field.max(FIELDS_W);
+        let sheets = self.command_sheets();
+        let sheet = props::width(&sheets[0].2).max(props::width(&sheets[1].2));
+        let card = |p: Panel, w: u16| p.outer(Size::new(w, 0)).width;
+        card(Panel::card(Some("Playground")).meta(FIELDS_META), fields_w)
+            .max(card(self.commands_panel(), sheet))
+            .max(card(
+                Panel::card(Some("Undo history")).meta(UNDO_META),
+                UNDO_W,
+            ))
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let [fields, commands, undo] = self.heights(area.width, ctx);
+        let r = Rect::new(area.x, area.y, area.width, fields);
+        self.render_fields(r, buf, ctx);
+        let r = Rect::new(area.x, r.bottom() + 1, area.width, commands);
+        self.render_commands(r, buf, ctx);
+        let r = Rect::new(area.x, r.bottom() + 1, area.width, undo);
+        render_undo(r, buf, ctx);
+    }
+
+    fn render_fields(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("Playground")).meta(FIELDS_META);
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let tiled = self.field_tiles(inner.width, ctx);
+        for (i, f) in self.fields.iter_mut().enumerate() {
+            f.render(tiled.at(i, inner), buf, ctx, bg);
+        }
+    }
+
+    /// The text commands and their keys under each preset.
+    fn render_commands(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = self.commands_panel();
+        let bg = panel.bg(t);
+        let inner = panel.render(area, buf, t);
+        let tiled = self.command_tiles(inner.width);
+        for (i, (name, chosen, list)) in self.command_sheets().iter().enumerate() {
+            let col = tiled.at(i, inner);
+            let style = if *chosen {
                 t.muted().fg(t.chosen(false))
             } else {
                 t.muted()
             };
             buf.set_string(col.x, col.y, name, style.bg(bg));
-            let list: Vec<Prop> = TEXT_COMMANDS
-                .iter()
-                .map(|(cmd, label)| Prop::new(label, keys_of(&map, *cmd)))
-                .collect();
             let body = Rect::new(col.x, col.y + 1, col.width, col.height.saturating_sub(1));
-            props::render(body, buf, t, &list, bg);
+            props::render(body, buf, t, list, bg);
         }
     }
 }
 
+/// The fields card's content is never narrower than this.
+const FIELDS_W: u16 = 48;
+const FIELDS_META: &str = "Type to edit · Enter Apply · Esc Cancel · Tab Next";
+/// The undo card's note wraps; it is never narrower than this.
+const UNDO_W: u16 = 30;
+const UNDO_META: &str = "Ctrl+Z · Ctrl+Shift+Z";
+const UNDO_NOTE: &str = "A run of typed characters undoes as one step (Typing), and so does \
+     a run of deletions (Deleting); a space, a paste or a cut (Other) starts a new step. \
+     Type two words in Project name, then Ctrl+Z.";
+
 /// How undo groups edits (the `UndoStack` every text control keeps).
 fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
-    let panel = Panel::card(Some("Undo history")).meta("Ctrl+Z · Ctrl+Shift+Z");
+    let panel = Panel::card(Some("Undo history")).meta(UNDO_META);
     let bg = panel.bg(t);
     let inner = panel.render(area, buf, t);
-    let lines = [
-        "A run of typed characters undoes as one step (Typing), and so does",
-        "a run of deletions (Deleting); a space, a paste or a cut (Other)",
-        "starts a new step. Type two words in Project name, then Ctrl+Z.",
-    ];
-    for (i, line) in lines.iter().enumerate() {
+    for (i, line) in text::wrap(UNDO_NOTE, inner.width.max(1) as usize)
+        .iter()
+        .enumerate()
+    {
         let y = inner.y + i as u16;
         if y < inner.bottom() {
-            buf.set_string(
-                inner.x,
-                y,
-                junie_tui::ui::text::truncate(line, inner.width as usize),
-                t.secondary().bg(bg),
-            );
+            buf.set_string(inner.x, y, line, t.secondary().bg(bg));
         }
     }
 }
@@ -402,6 +455,12 @@ impl Page for InputsPage {
     }
     fn blurb(&self) -> &'static str {
         "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert."
+    }
+
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let w = avail.width.max(self.natural_width(ctx));
+        let h = self.heights(w, ctx).iter().sum::<u16>() + 2;
+        Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

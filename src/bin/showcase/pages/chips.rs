@@ -6,10 +6,11 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
@@ -21,9 +22,10 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::TrackClick;
 use junie_tui::theme::{CursorStyle, Tone};
 use junie_tui::ui::ctx::RenderCtx;
-use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::{Measure, Tile, Tiled, tiles};
 use junie_tui::ui::popup::{Dismiss, Place, Placement};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::widgets::chips::{Chip, ChipAction, ChipBar, ChipCmd};
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::icon_button::IconButton;
@@ -314,62 +316,107 @@ impl ChipsPage {
             .map_or(room, |w| w.min(room))
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        // whole sections scroll on a short terminal; nothing is drawn
-        // past the page into the row above the footer
-        let has = |id| ctx.interaction.has_focus(id);
-        let focus = if has(self.filters.id) {
-            Some(0)
-        } else if has(self.streams.id) {
-            Some(1)
-        } else if has(self.sort.id) || has(self.page_size.id) || has(self.engine.id) {
-            Some(2)
+    fn filters_panel(&self, focused: bool) -> (Panel<'static>, String) {
+        let active = self.filters.chips.iter().filter(|c| c.enabled).count();
+        (
+            Panel::card(Some("Filters")).focused(focused),
+            format!("{active} active"),
+        )
+    }
+
+    fn streams_meta(&self) -> &'static str {
+        if self.streams.digit_toggles {
+            "not removable · 1–9 switch a stream"
         } else {
-            None
+            "not removable · Space switches a stream"
+        }
+    }
+
+    /// The Playground's cards in `width` columns: the filters, the
+    /// streams, the selects and the strip, then the properties beside
+    /// the empty state; each never narrower than its content whole.
+    /// `measure` and `render_playground` share it.
+    fn tiled(&self, width: u16, ctx: &RenderCtx) -> Tiled {
+        let t = ctx.theme;
+        let any = Size::new(0, 1);
+        let w = |s: &str| text::width(s) as u16;
+        let card =
+            |p: Panel, meta: &str, content: u16| p.meta(meta).outer(Size::new(content, 0)).width;
+        let bar = |b: &ChipBar| {
+            self.opts
+                .number("chipsselects.bar_width")
+                .unwrap_or_else(|| b.measure(any, ctx).width)
         };
-        let rows = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(6),
-                StackChild::fixed(5),
-                StackChild::fixed(8),
-                StackChild::fixed(7),
-                StackChild::flex(3, 11),
-            ],
-            focus,
-            buf,
-            ctx,
+        let (fp, meta) = self.filters_panel(false);
+        let last = w(&format!("last action: {}", self.last));
+        let filters_w = card(fp, &meta, bar(&self.filters).max(last));
+        let streams_w = card(
+            Panel::card(Some("Streams")),
+            self.streams_meta(),
+            bar(&self.streams),
         );
-        match rows.slot(0) {
-            Some(r) => self.render_filters(r, buf, ctx),
-            None => ctx.focus_stop(self.filters.id),
-        }
-        match rows.slot(1) {
-            Some(r) => self.render_streams(r, buf, ctx),
-            None => ctx.focus_stop(self.streams.id),
-        }
-        match rows.slot(2) {
-            Some(r) => self.render_selects(r, buf, ctx),
-            None => {
-                for sel in self.selects() {
-                    ctx.focus_stop(sel.id);
-                }
-            }
-        }
-        if let Some(r) = rows.slot(3) {
-            render_strip(r, buf, ctx);
-        }
-        if let Some(r) = rows.slot(4) {
-            render_below(r, buf, ctx);
-        }
+        let selects_w = card(Panel::card(Some("Selects")), "", 3 * (SELECT_W + 2));
+        let (left, right) = strip();
+        let strip_w = card(
+            Panel::card(Some("Segment strip")),
+            "",
+            segments::width(&left, &right, t),
+        );
+        let strip_panel = Panel::card(Some("Segment strip"));
+        let facts = properties();
+        let props_panel = Panel::card(Some("Properties"));
+        let empty = empty_state().measure(any, ctx);
+        let empty_panel = Panel::card(Some("Empty state"));
+        let fixed = |h: u16| move |_: u16| h;
+        let (h6, h5, h8) = (fixed(6), fixed(5), fixed(8));
+        let strip_h = |w: u16| {
+            let inner = strip_panel.inner(Size::new(w, 0)).width;
+            strip_panel
+                .outer(Size::new(inner, 3 + note_rows(inner)))
+                .height
+        };
+        let props_h = |w: u16| sheet_height(&props_panel, &facts, w);
+        let empty_h = |w: u16| {
+            let inner = empty_panel.inner(Size::new(w, 0)).width;
+            let e = empty_state();
+            empty_panel
+                .outer(Size::new(
+                    inner,
+                    junie_tui::widgets::empty::height(&e, inner),
+                ))
+                .height
+                .max(empty_panel.outer(empty).height)
+        };
+        tiles(
+            width,
+            &[
+                &[Tile::new(filters_w, &h6)],
+                &[Tile::new(streams_w, &h5)],
+                &[Tile::new(selects_w, &h8)],
+                &[Tile::new(strip_w, &strip_h)],
+                &[
+                    Tile::new(sheet_width(&props_panel, &facts), &props_h),
+                    Tile::new(empty_panel.outer(empty).width, &empty_h),
+                ],
+            ],
+            (2, 1),
+        )
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let tiled = self.tiled(area.width, ctx);
+        self.render_filters(tiled.at(0, area), buf, ctx);
+        self.render_streams(tiled.at(1, area), buf, ctx);
+        self.render_selects(tiled.at(2, area), buf, ctx);
+        render_strip(tiled.at(3, area), buf, ctx);
+        render_below(tiled.at(4, area), tiled.at(5, area), buf, ctx);
     }
 
     fn render_filters(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.filters.id);
-        let active = self.filters.chips.iter().filter(|c| c.enabled).count();
-        let meta = format!("{active} active");
-        let panel = Panel::card(Some("Filters")).focused(focused).meta(&meta);
+        let (panel, meta) = self.filters_panel(focused);
+        let panel = panel.meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let w = self.bar_width(inner.width);
@@ -391,12 +438,9 @@ impl ChipsPage {
     fn render_streams(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.streams.id);
-        let meta = if self.streams.digit_toggles {
-            "not removable · 1–9 switch a stream"
-        } else {
-            "not removable · Space switches a stream"
-        };
-        let panel = Panel::card(Some("Streams")).focused(focused).meta(meta);
+        let panel = Panel::card(Some("Streams"))
+            .focused(focused)
+            .meta(self.streams_meta());
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let w = self.bar_width(inner.width);
@@ -473,6 +517,10 @@ impl Page for ChipsPage {
     }
     fn blurb(&self) -> &'static str {
         "Removable chips, a popup select, and strips that drop what does not fit"
+    }
+
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width, ctx).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -618,6 +666,39 @@ fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let panel = Panel::card(Some("Segment strip"));
     let bg = panel.bg(t);
     let inner = panel.render(area, buf, t);
+    let (left, right) = strip();
+    segments::render(
+        Rect::new(inner.x, inner.y, inner.width, 1),
+        buf,
+        ctx,
+        &left,
+        &right,
+        bg,
+    );
+    let narrow = Rect::new(inner.x, inner.y + 2, inner.width.min(44), 1).intersection(inner);
+    segments::render(narrow, buf, ctx, &left, &right, bg);
+    for (i, line) in text::wrap(STRIP_NOTE, inner.width.max(1) as usize)
+        .iter()
+        .enumerate()
+    {
+        buf.set_string(inner.x, inner.y + 3 + i as u16, line, t.faint().bg(bg));
+    }
+}
+
+/// The strip's note.
+const STRIP_NOTE: &str =
+    "the same strip at 44 columns: low-priority segments leave first, from the right";
+
+/// Rows the strip's note takes at `w` columns.
+fn note_rows(w: u16) -> u16 {
+    text::wrap(STRIP_NOTE, w.max(1) as usize).len() as u16
+}
+
+/// Each select's narrowest width in the Selects card.
+const SELECT_W: u16 = 18;
+
+/// The identity strip's segments, left and right.
+fn strip() -> ([Segment; 5], [Segment; 3]) {
     let left = [
         Segment::new("▪", Tone::Success).priority(9),
         Segment::new("Acme", Tone::Normal).bold().priority(9),
@@ -632,37 +713,12 @@ fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         Segment::new("truecolor · 120×40", Tone::Muted).priority(2),
         Segment::new("? help", Tone::Muted).priority(3),
     ];
-    segments::render(
-        Rect::new(inner.x, inner.y, inner.width, 1),
-        buf,
-        ctx,
-        &left,
-        &right,
-        bg,
-    );
-    let narrow = Rect::new(inner.x, inner.y + 2, inner.width.min(44), 1).intersection(inner);
-    segments::render(narrow, buf, ctx, &left, &right, bg);
-    if inner.y + 3 < inner.bottom() {
-        buf.set_string(
-            inner.x,
-            inner.y + 3,
-            junie_tui::ui::text::truncate(
-                "the same strip at 44 columns: low-priority segments leave first, from the right",
-                inner.width as usize,
-            ),
-            t.faint().bg(bg),
-        );
-    }
+    (left, right)
 }
 
-/// Properties beside an empty state.
-fn render_below(below: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-    let t = ctx.theme;
-    let (l, r) = crate::pages::layout::columns(below, (below.width * 55 / 100).max(36), 2);
-    let panel = Panel::card(Some("Properties"));
-    let bg = panel.bg(t);
-    let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(11)), buf, t);
-    let props = vec![
+/// The properties card's facts.
+fn properties() -> Vec<Prop> {
+    vec![
         Prop::new("Engine", "PostgreSQL 16.3"),
         Prop::new("Host", "prod-db-1.acme.io:5432"),
         Prop::new("Environment", "production"),
@@ -672,18 +728,23 @@ fn render_below(below: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         )
         .wrap(),
         Prop::new("Last used", "1 hour ago").tone(Tone::Muted),
-    ];
-    props::render(inner, buf, t, &props, bg);
+    ]
+}
+
+fn empty_state() -> EmptyState {
+    EmptyState::new("No results yet").hint("A title and one hint, centred in whatever is left")
+}
+
+/// Properties beside an empty state.
+fn render_below(l: Rect, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    let t = ctx.theme;
+    let panel = Panel::card(Some("Properties"));
+    let bg = panel.bg(t);
+    let inner = panel.render(l, buf, t);
+    props::render(inner, buf, t, &properties(), bg);
 
     let panel = Panel::card(Some("Empty state"));
     let bg = panel.bg(t);
-    let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(11)), buf, t);
-    empty::render(
-        inner,
-        buf,
-        t,
-        &EmptyState::new("No results yet")
-            .hint("A title and one hint, centred in whatever is left"),
-        bg,
-    );
+    let inner = panel.render(r, buf, t);
+    empty::render(inner, buf, t, &empty_state(), bg);
 }
