@@ -179,3 +179,34 @@ fix, with the reason.
    `TypeAheadPrecedence` and the `type_ahead_timeout` builders are
    allowlisted to SC29, which shows the Cursor/RowSource defaults together
    on the Scrolling page.
+
+## Status (T19 sync, 2026-10-17)
+
+Each entry above was checked against `git log`, the code at HEAD,
+`docs/remaining-work.md` and the plan's SC outcomes; entries that only
+said "open" or "planned" get their owner id, fixed ones their commit.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| SC14 1 | Decision (the `+N` button is S5's code; the page demonstrates it) | — | `tabs.more_button` swaps the button. |
+| SC14 2 | Fixed | 7cd9a8835 | ↓ on a focused strip opens the overflow menu (`TabCmd::ShowHidden`, `ChipCmd::ShowHidden`). |
+| SC14 3 | Decision (`Tabs` has no disabled state and no app asks for one) | — | Selection shows in every row by design. |
+| SC16 1 | Open → S22 | — | `RowMenu` moves onto `CommandMenu`; `pages/row_menu.rs` is deleted in S22's contract. |
+| SC16 2 | Open → A13 | — | Primary press-drag-release on a button menu (`release_from` is private). |
+| SC28 1 | Fixed | 8016cb3ab | `Application::{input_config, keyboard_protocol}`; test `runtime::tests::the_event_loop_reads_input_through_the_apps_input_config`. |
+| SC28 2 | Fixed | 8016cb3ab | `Focus::ensure_valid_with` and a second draw; test `a_removed_focused_tag_falls_back_per_the_shell_option`. |
+| SC28 3 | Fixed | aabb7771e | `shell.focus_fallback` defaults to `nearest`; test `focus_moved_onto_an_unfocusable_control_stays_where_it_was`. |
+| SC28 4 | Decision (Ctrl+click follows `shell.platform`; a separate option would duplicate it) | — | — |
+| SC28 5 | Decision (a page cannot read the app's configuration; the Inspector Options tab shows live values) | — | — |
+| SC28 6 | Open → S27 | SC57 | Strategy B nav policies. |
+| SC27 1 | Open → A13 | with V1 | The legacy `showcase/flows/settings/toggled_off` capture is re-recorded with the Settings flows. |
+| SC27 7 | Fixed; one shared overflow menu open → A13 | 921049106 | `Toolbar` overflow `»` menu; Toolbar, Tabs `+N`, ChipBar and MenuBar `»` still each own their menu. |
+| SC5 1 | Open → SC36 | S17 | `SidebarRail` on the Sidebars page when `NavList` moves into the library. |
+| SC5 2 | Open → SC38 | S19 | The library drawer is `MasterDetail`. |
+| SC5 3 | Decision (`0` is the showcase's jump-to-navigation key) | — | The rail opens by click and Ctrl+B. |
+| SC5 4 | Decision (outer levels collapse, as Windows Explorer's address bar) | d62744f97 | The current page is cut in the middle when too wide (library fix in the same step). |
+| SC6 1 | Open → SC33 | S8b | `HelpOverlay::from_keymaps` replaces the hand-listed `?` sections. |
+| SC6 2 | Decision (a page option must not change how the showcase quits from one page only) | — | — |
+| SC15 1 | Fixed | 2398b5f91 | `NavKeys::{move_hint, page_hint, ends_hint}`; Lists and Trees build their hints from them. |
+| SC15 2 | Fixed | 71273406c | Panels and Scrolling take `NavKeys::ends_hint` (SC22); the entry above is stale. |
+| SC15 3 | Fixed in part; rest open → SC34, SC41 | 71273406c | SC29 shows `TypeAheadPrecedence` and the Cursor/RowSource timeouts; `MenuBar::type_ahead_timeout` moved to SC34 and `ContextMenu::type_ahead_timeout` to SC41 (plan §7.8). |

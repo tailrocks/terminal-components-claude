@@ -359,3 +359,24 @@ The generated inventory files are in `/private/tmp/claude-501/-Users-donbeave-Pr
 | T2 | `ColumnSpec::type_label` is documented as "shown under the name when `type_row` is on", but `DataGrid` has no type row and never draws it. | Fixed as a header tooltip, not a type row: the pointer resting on a typed column's header shows `name · type` through `ui::tooltip` (the macOS header tool tip; DataGrip and Sequel Ace show a column's type the same way), and the tip names a cut title whole, so it replaces that header's reveal. A second header row would change every grid's header height and the baseline's one-row header, and a grid has no `type_row` switch; the doc now says what the grid does. No visual change at rest. The Data grid Schema card keeps listing each `ColumnSpec` (type included) as a reading of the spec, not a stand-in. Test: `grid::tests::a_column_type_label_is_its_header_tooltip`. |
 | T3 | `DataTable::ensure_col_visible` uses the `viewport_len` measured at the previous horizontal offset. Moving the cell cursor right can shift the offset to columns that are wider, so fewer fit than the stale count says and the cursor column is drawn cut or not at all; a constrained editor opened there has no anchor and its popup does not draw (Cell editors at 140 columns, Priority). | Fixed: `ScrollPane::reveal_column` measures the cursor column against the columns as laid out at the offset it lands on, and again at every layout until something else scrolls sideways, so the whole column fits (a column wider than the view starts it; WCAG 2.4.11, as SVg9 does for rows). Table and grid both call it, and opening an editor brings its cell back into view first, so a popup always anchors to a drawn cell. Tests: `scroll_panes::moving_right_keeps_the_{table,grid}_cursor_column_whole`, `a_sideways_notch_after_a_move_is_not_undone`, `{table,grid}::choice_tests::an_editor_opened_off_screen_scrolls_its_cell_into_view`; the Cell editors Priority test runs at 140 columns again. |
 
+## Status (T19 sync, 2026-10-17)
+
+Every ⚠️ and ❌ row of the capability matrix maps to an SC step in
+`shared-components-plan.md` §7.7 ("Library inventory", 162 rows), and
+each capability is declared in the showcase or held, with its step, in
+`tests/showcase_coverage_allow.txt` (the coverage gate fails otherwise);
+✅ rows need nothing. Counted from §7.7 against `docs/remaining-work.md`
+§3.3 (SC0–SC29 done), the rows and the summary's "Main findings" stand
+as follows. T1–T3 above keep their own status.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| Matrix rows on done steps only (142) | Fixed | SC steps in plan §7.8 | Shown, or their remaining lines re-pointed by that step to a later one in the allowlist. |
+| Matrix rows partly on a done step (17) | Fixed in part; rest open → SC30, SC31, SC32, SC33, SC34, SC36, SC37 or SC41 | plan §7.7 | E.g. `popup::Dismiss` and `modal::Frame::close_button` → SC31, `HelpOverlay::from_keymaps` → SC33, `edit::clipboard` → SC34, tick/motion and too-small → SC30. |
+| Matrix rows on open steps only (3) | Open → SC57 (2), SC31 (1) | plan §7.7 | Strategy B nav policies (S27/SC57) and stacked modals (`ModalStack`, SC31). |
+| Main finding: whole widgets never shown | Fixed except `ModalStack` → SC31 | SC5, SC6, SC7, SC17, SC18, SC22 | `Breadcrumb`, `SidebarRail`, `ButtonRow`, the three dialog kinds, `HelpOverlay`, `KeyReference` and `PropsList` have pages. |
+| Main finding: hand-drawn instead of the library widget | Fixed (crumb, `?` help); Sidebars `NavList` open → SC36 | SC5, SC6 | The header crumb is the library `Breadcrumb` (SC5) and `?` opens `HelpOverlay` (SC6); the Basic table header menu was already the library's (SC11 outcome). |
+| Main finding: builders and policies never called | Fixed for done steps; rest open → its SC step | plan §7.7, allowlist | Each builder is a matrix row and follows that row's status. |
+| Main finding: `--motion reduced` behaves like `full` | Open → SC30 | — | Real `Motion` Full/Reduced/Paused. |
+| Main finding: Inspector hidden below 100 columns, no in-app colour switch | Open → A14 | — | SC1 added the Options tab and `--opt`; A14 records the narrow-width and colour-level gaps as fixed or a decision. |
+

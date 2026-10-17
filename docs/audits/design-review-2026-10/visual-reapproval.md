@@ -298,3 +298,23 @@ manager, scenarios, settings, usage: 650 identical); the accepted files'
 sha list equals the reviewed one; `cargo xtask visual accept` per half
 (c12eccdfa). Re-captured after rebasing onto S7 part 1 (the library
 Shell, 4400f40ab): no jackin frame moved.
+
+## Status (T19 sync, 2026-10-17)
+
+The "Regressions found and fixed" and "Stale scenario steps fixed"
+tables already carry a fix and a test for every row; the rows below add
+the hashes those tables name only by subject, and an owner for each
+item recorded as not fixed or waiting for the owner.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| Regressions: backdrop, input, tab pane, holla rows, history opt-out | Fixed | 45521da32, f7e8b7538, e7c743cdd, 7bbf22b44, c75f2ce25 | Hashes for the fixes the regressions table names by subject (backdrop dims without erasing; untouched field not flagged; tab pane shows no focus under a layer; holla `legible_on_fill`; `HOLLA_NO_HISTORY` from the first frame). |
+| holla: popup frames invisible at 16 colours and `none` | Open → A1 | — | `DarkGray` frame on the `DarkGray` popover plane; also in the baseline. |
+| holla: running spinner and queued `○` on the selected tab at 16 colours | Open → A1 | — | 2.9:1 and 3.2:1; Tabs should run its inks through `Theme::legible` on the selected fill. |
+| jackin: capsule tab number and editor dirty `•` on the selected tab at 16 colours | Open → A1 | — | 3.2:1 and 2.4:1; same library fix as the holla row. |
+| holla: `HOLLA_NO_HISTORY=1` pinned in captures | Decision (product owner, 2026-10-17) | "Decision: holla captures keep `HOLLA_NO_HISTORY=1`" | Ranking keeps coverage through three `-with-history` rows. |
+| jackin owner question 1: usage meter label width | Open → D1 | — | Owner decision pending. |
+| jackin owner question 2: pin `Ctrl+S` while dirty | Open → D2 | — | Owner decision pending; a library `Footer` rule in S8b if answered (b). |
+| jackin owner question 3: Save-time validation | Open → D3 | — | Owner decision pending; `ValidateWhen` stays an override (S11). |
+| jackin owner question 4: fixed-choice pickers show no `▎` | Open → D4 | — | Owner decision pending. |
+| jackin owner question 5: domain status decides quota meters | Open → D5 | — | Owner decision pending; `QuotaTone` moves to the library in S23-Q. |
