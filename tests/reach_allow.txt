@@ -56,7 +56,7 @@ holla plan-running 80x24 step # R-apps-3
 holla plan-running 100x25 step # R-apps-3
 holla plan-running 106x29 step # R-apps-3
 holla snapshot 72x20 truecolor # R-apps-1
-holla start-plan 72x20 Host Plan Reboot Steps after cached for kernel outdated security session the this upgradable # R-apps-1 R-apps-10
+holla start-plan 72x20 apt get update # R-apps-14
 holla top-files 72x20 cleanup for gate same the # R-apps-1 R-apps-4
 holla top-files 80x24 cleanup for gate same the # R-apps-1 R-apps-4
 holla top-files 100x25 cleanup gate # R-apps-4
