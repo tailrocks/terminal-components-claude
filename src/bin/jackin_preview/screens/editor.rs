@@ -1764,7 +1764,7 @@ impl Page<Jackin> for EditorScreen {
             }
             EdTab::Roles if focus == Some(ROLES) => self.roles_key(key, w, cx),
             EdTab::Accounts if focus == Some(ACCOUNTS) => self.accounts_key(key, w, cx),
-            t if t.cfg().is_some() && focus == Some(self.cfg.list_id(t.cfg().unwrap())) => {
+            t if t.cfg().is_some() && self.cfg.owns(t.cfg().unwrap(), focus) => {
                 let o = self.cfg.on_key(t.cfg().unwrap(), key, w, cx);
                 if o.consumed() {
                     self.sync_pending();
@@ -2174,7 +2174,7 @@ impl Page<Jackin> for EditorScreen {
                         v.push(hint("c", "Manage accounts"));
                     }
                 },
-                t => v.extend(self.cfg.hints(t.cfg().unwrap())),
+                t => v.extend(self.cfg.hints(t.cfg().unwrap(), focus)),
             }
         }
         v.push(hint("[ ]", "Switch tab"));

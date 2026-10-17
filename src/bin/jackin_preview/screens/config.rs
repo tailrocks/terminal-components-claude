@@ -13,6 +13,7 @@ use junie_tui::core::pointer::PointerEvent;
 use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
+use junie_tui::ui::master_detail::{MasterDetail, Mode};
 use junie_tui::ui::text::{fit, truncate, width};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::dialog::Dialog;
@@ -20,7 +21,7 @@ use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::option_list::Item;
-use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::panel::{Panel, PanelFocus};
 use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
@@ -220,6 +221,9 @@ pub struct ConfigTabs {
     /// The rows' context menu (right-click, Shift+F10, Menu key): each item
     /// replays the row key it shows. Its `config` is the knob.
     pub menu: RowMenu<(Tab, RowKey), KeyCode>,
+    /// The Environments list beside its variable card: the card sits at
+    /// the right from 150 columns and is a drawer below (R-apps-2).
+    md: MasterDetail,
 }
 
 #[derive(Clone, Copy)]
@@ -227,6 +231,7 @@ struct Ids {
     mounts: WidgetId,
     envs: WidgetId,
     form: WidgetId,
+    card: WidgetId,
 }
 
 impl ConfigTabs {
@@ -267,9 +272,30 @@ impl ConfigTabs {
                 mounts: base.sub("mounts"),
                 envs: base.sub("envs"),
                 form: base.sub("form"),
+                card: base.sub("card"),
             },
             menu: RowMenu::new(base.sub("menu")),
+            // the card keeps its 56 columns two from the right edge
+            md: MasterDetail::new(base.sub("envs"), base.sub("card"))
+                .detail_share(0, 56, 56)
+                .collapse_below(150),
         }
+    }
+
+    /// Whether `focus` is on `tab`'s list or on its variable card.
+    pub fn owns(&self, tab: Tab, focus: Option<WidgetId>) -> bool {
+        focus == Some(self.list_id(tab))
+            || (tab == Tab::Environments && focus == Some(self.ids.card))
+    }
+
+    /// Whether the row under the cursor has a card (a variable).
+    fn has_card(&self, tab: Tab) -> bool {
+        let st = self.state_ref(tab);
+        tab == Tab::Environments
+            && matches!(
+                st.rows.get(st.cursor).map(|r| &r.key),
+                Some(RowKey::Env(..))
+            )
     }
 
     pub fn list_id(&self, tab: Tab) -> WidgetId {
@@ -765,19 +791,28 @@ impl ConfigTabs {
         let id = self.list_id(tab);
         let focused = ctx.interaction.focused(id);
         let scope = self.scope;
-        let wide = area.width >= 150 && tab != Tab::Mounts;
-        let (list_area, card_area) = if wide {
-            (
-                Rect::new(area.x, area.y, area.width - 58, area.height),
-                Some(Rect::new(
-                    area.right() - 56,
-                    area.y,
-                    56,
-                    area.height.min(24),
-                )),
-            )
-        } else {
+        let has_card = self.has_card(tab);
+        let (list_area, card_area) = if tab == Tab::Mounts {
             (area, None)
+        } else {
+            let l = self.md.layout(area, buf, ctx, bg);
+            match l.mode {
+                Mode::Drawer => {
+                    // the card covers the body; the list keeps its stop
+                    if has_card {
+                        self.render_inspector(tab, l.detail, buf, ctx);
+                    }
+                    return None;
+                }
+                Mode::Split => (
+                    l.master,
+                    Some(Rect {
+                        height: l.detail.height.min(24),
+                        ..l.detail
+                    }),
+                ),
+                Mode::Master => (l.master, None),
+            }
         };
         // header row for tables
         let header: Vec<&str> = match (tab, scope) {
@@ -1013,6 +1048,10 @@ impl ConfigTabs {
         if let Some(card) = card_area {
             self.render_inspector(tab, card, buf, ctx);
         }
+        if has_card {
+            // narrow: the card's hidden stop after the list opens the drawer
+            self.md.finish(ctx);
+        }
         status
     }
 
@@ -1113,7 +1152,15 @@ impl ConfigTabs {
             }
             _ => return,
         };
-        let inner = Panel::card(Some(&title)).meta(&meta).render(area, buf, t);
+        // the card is a focus stop: Tab reaches it from the list (narrow,
+        // focusing it opens the drawer) and Esc returns
+        let focused = ctx.interaction.focused(self.ids.card);
+        ctx.control(self.ids.card, area, false);
+        let inner = Panel::card(Some(&title))
+            .meta(&meta)
+            .focused(focused)
+            .focus_mark(PanelFocus::Bar)
+            .render(area, buf, t);
         let bg = t.surface;
         let lw = 14u16;
         for (i, (k, v, tone)) in lines.into_iter().enumerate() {
@@ -1133,7 +1180,10 @@ impl ConfigTabs {
 
     // ------------------------------------------------------------- keys
 
-    pub fn hints(&self, tab: Tab) -> Vec<Hint> {
+    pub fn hints(&self, tab: Tab, focus: Option<WidgetId>) -> Vec<Hint> {
+        if tab == Tab::Environments && focus == Some(self.ids.card) {
+            return self.md.hints(focus);
+        }
         let st = self.state_ref(tab);
         let key = st.rows.get(st.cursor).map(|r| r.key.clone());
         let mut v = vec![];
@@ -1200,6 +1250,14 @@ impl ConfigTabs {
     }
 
     pub fn on_key(&mut self, tab: Tab, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
+        if tab == Tab::Environments {
+            if let Some(o) = self.md.on_key(key, cx.focus) {
+                return o;
+            }
+            if cx.focus.current() == Some(self.ids.card) {
+                return Outcome::Ignored;
+            }
+        }
         self.build_rows(tab, w);
         if self.menu.is_context_key(key) {
             let st = self.state_ref(tab);
@@ -1770,6 +1828,10 @@ impl ConfigTabs {
         w: &mut World,
         cx: &mut Cx,
     ) -> Outcome {
+        if id == self.ids.card {
+            cx.focus.focus(id);
+            return Outcome::Changed;
+        }
         self.build_rows(tab, w);
         let list = self.list_id(tab);
         let st = self.state_ref(tab);
