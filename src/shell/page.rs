@@ -103,6 +103,13 @@ pub trait Page<A: PageTypes> {
         cx.back();
         Outcome::Changed
     }
+    /// Ctrl+C reached the shell with nothing to copy: the page's first
+    /// refusal before it quits (cancel a running query, the remaining
+    /// steps of a plan). `Ignored` lets the shell quit through its guard
+    /// ([`super::KeyRouter`]).
+    fn on_interrupt(&mut self, _s: &mut A::State, _cx: &mut PageCx<A>) -> Outcome {
+        Outcome::Ignored
+    }
     /// What leaving this page (or quitting) would lose.
     fn stakes(&mut self, _s: &A::State) -> Stakes {
         Stakes::Clean

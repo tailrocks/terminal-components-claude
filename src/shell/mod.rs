@@ -10,6 +10,8 @@
 //!   ([`background`]).
 //! - [`Page`]: what every page of every app can do, so an app's screen
 //!   trait only adds its own extras.
+//! - [`KeyRouter`], [`ShellKeys`] and [`ShellAction`]: the one key order
+//!   every app routes keys in ([`KeyHost`] names its stages).
 //! - [`StatusLine`]: the transient status message and its expiry rule.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
@@ -17,6 +19,7 @@
 mod app;
 mod cx;
 mod page;
+mod router;
 mod status;
 
 pub use crate::ui::layer::LayerTag;
@@ -25,6 +28,7 @@ pub use cx::{Cx, Request, background};
 pub use page::{
     Page, PageCx, PageTypes, open_context, rebuild_on_tick, replay_key, row_anchor, row_choice,
 };
+pub use router::{KeyHost, KeyRouter, ShellAction, ShellKeys};
 pub use status::StatusLine;
 
 use crate::runtime::Application;

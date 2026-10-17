@@ -1,0 +1,483 @@
+use std::time::Duration;
+
+use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+use ratatui::layout::Rect;
+
+use super::*;
+use crate::core::id::WidgetId;
+use crate::theme::Theme;
+use crate::ui::ctx::RenderCtx;
+use crate::widgets::list::{ListBox, ListItem, SelectMode};
+use crate::widgets::too_small::TooSmall;
+
+use super::super::{App, Shell};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Cmd {
+    Delete,
+    Run,
+}
+
+/// Which stage took a key.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Took {
+    Layer,
+    Menu,
+    Interrupt,
+    Quit,
+    Action(ShellAction<Cmd>),
+    Chrome,
+    Page,
+    EscTop,
+    Note(String),
+    Nothing,
+}
+
+/// An app whose every stage logs what it took. Flags say which stages are
+/// present and willing.
+struct Host {
+    shell: Shell,
+    keys: ShellKeys<Cmd>,
+    layer: Option<bool>,
+    menu: bool,
+    capture: bool,
+    interrupts: bool,
+    dirty: bool,
+    chrome: bool,
+    /// The page takes these keys.
+    page_takes: Vec<Key>,
+    /// The page's focused list (type-ahead), when set.
+    list: Option<ListBox>,
+    esc_top: bool,
+    took: Vec<Took>,
+}
+
+impl Host {
+    fn new() -> Self {
+        Self {
+            shell: Shell::new(),
+            keys: ShellKeys::new()
+                .bind(KeyBinding::ctrl('r'), ShellAction::App(Cmd::Run))
+                .bind(KeyBinding::char('d'), ShellAction::App(Cmd::Delete)),
+            layer: None,
+            menu: false,
+            capture: false,
+            interrupts: false,
+            dirty: false,
+            chrome: false,
+            page_takes: vec![],
+            list: None,
+            esc_top: false,
+            took: vec![],
+        }
+    }
+
+    fn key(&mut self, key: Key) -> Took {
+        self.took.clear();
+        KeyRouter::route(self, &key);
+        self.took.last().cloned().unwrap_or(Took::Nothing)
+    }
+}
+
+impl App for Host {
+    type Status = ();
+    fn shell(&self) -> &Shell {
+        &self.shell
+    }
+    fn shell_mut(&mut self) -> &mut Shell {
+        &mut self.shell
+    }
+    fn theme(&self) -> Theme {
+        Theme::junie()
+    }
+    fn too_small(&self) -> TooSmall<'_> {
+        TooSmall::new("demo").min(20, 3)
+    }
+    fn now_ms(&self) -> u64 {
+        0
+    }
+    fn tick(&self) -> u64 {
+        0
+    }
+    fn tick_interval(&self) -> Duration {
+        Duration::from_millis(100)
+    }
+    fn draw(&mut self, _area: Rect, _buf: &mut Buffer, _ctx: &mut RenderCtx) {}
+    fn on_input(&mut self, _input: crate::core::event::Input) -> Outcome {
+        Outcome::Ignored
+    }
+}
+
+impl KeyHost for Host {
+    type Cmd = Cmd;
+    fn shell_keys(&self) -> &ShellKeys<Cmd> {
+        &self.keys
+    }
+    fn layer_key(&mut self, _key: &Key) -> Option<Outcome> {
+        let takes = self.layer?;
+        if takes {
+            self.took.push(Took::Layer);
+            return Some(Outcome::Changed);
+        }
+        Some(Outcome::Ignored)
+    }
+    fn menu_key(&mut self, _key: &Key) -> Option<Outcome> {
+        self.menu.then(|| {
+            self.took.push(Took::Menu);
+            Outcome::Changed
+        })
+    }
+    fn capturing(&self) -> bool {
+        self.capture
+    }
+    fn interrupt(&mut self) -> Outcome {
+        if self.interrupts {
+            self.took.push(Took::Interrupt);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+    fn dirty(&mut self) -> bool {
+        self.dirty
+    }
+    fn shell_action(&mut self, action: ShellAction<Cmd>, _key: &Key) -> Outcome {
+        self.took.push(Took::Action(action));
+        Outcome::Changed
+    }
+    fn chrome_key(&mut self, _key: &Key) -> Outcome {
+        if self.chrome {
+            self.took.push(Took::Chrome);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+    fn page_key(&mut self, key: &Key) -> Outcome {
+        if self.page_takes.contains(key) {
+            self.took.push(Took::Page);
+            return Outcome::Changed;
+        }
+        if let Some(l) = self.list.as_mut() {
+            let out = l.on_key(key);
+            if out == Outcome::Changed {
+                self.took.push(Took::Page);
+            }
+            return out;
+        }
+        Outcome::Ignored
+    }
+    fn esc_top(&mut self) -> Outcome {
+        if self.esc_top {
+            self.took.push(Took::EscTop);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+    fn request_quit(&mut self) -> Outcome {
+        self.took.push(Took::Quit);
+        Outcome::Changed
+    }
+    fn note(&mut self, text: &str) {
+        self.took.push(Took::Note(text.into()));
+    }
+}
+
+fn k(code: KeyCode) -> Key {
+    Key {
+        code,
+        mods: KeyModifiers::NONE,
+    }
+}
+
+fn ch(c: char) -> Key {
+    k(KeyCode::Char(c))
+}
+
+fn ctrl(c: char) -> Key {
+    Key {
+        code: KeyCode::Char(c),
+        mods: KeyModifiers::CONTROL,
+    }
+}
+
+fn with_mods(code: KeyCode, mods: KeyModifiers) -> Key {
+    Key { code, mods }
+}
+
+/// The cross-app key-order table (plan §4, S8a acceptance): every row is
+/// a state, a key and the stage that must take it.
+#[test]
+fn the_key_order_table() {
+    type Setup = fn(&mut Host);
+    let rows: Vec<(&str, Setup, Key, Took)> = vec![
+        // too small: only the quit keys
+        (
+            "too small: q quits",
+            |h| h.shell.too_small = true,
+            ch('q'),
+            Took::Quit,
+        ),
+        (
+            "too small: Ctrl+C quits",
+            |h| h.shell.too_small = true,
+            ctrl('c'),
+            Took::Quit,
+        ),
+        (
+            "too small: other keys are inert",
+            |h| h.shell.too_small = true,
+            ch('d'),
+            Took::Nothing,
+        ),
+        // a layer holds the keyboard
+        (
+            "layer before shell keys",
+            |h| h.layer = Some(true),
+            ctrl('r'),
+            Took::Layer,
+        ),
+        (
+            "layer before page",
+            |h| {
+                h.layer = Some(true);
+                h.page_takes = vec![ch('x')]
+            },
+            ch('x'),
+            Took::Layer,
+        ),
+        (
+            "a layer's untaken Ctrl+Q still quits",
+            |h| h.layer = Some(false),
+            ctrl('q'),
+            Took::Quit,
+        ),
+        (
+            "a layer's untaken letter never reaches the page",
+            |h| {
+                h.layer = Some(false);
+                h.page_takes = vec![ch('x')]
+            },
+            ch('x'),
+            Took::Nothing,
+        ),
+        // an open menu bar
+        (
+            "open menu before shell keys",
+            |h| h.menu = true,
+            k(KeyCode::Tab),
+            Took::Menu,
+        ),
+        // capture: an editing field first
+        (
+            "editing field takes a letter shortcut",
+            |h| {
+                h.capture = true;
+                h.page_takes = vec![ch('d')]
+            },
+            ch('d'),
+            Took::Page,
+        ),
+        (
+            "editing field passes: shell letter stays quiet",
+            |h| h.capture = true,
+            ch('d'),
+            Took::Nothing,
+        ),
+        (
+            "editing field passes a chord on to the shell",
+            |h| h.capture = true,
+            ctrl('r'),
+            Took::Action(ShellAction::App(Cmd::Run)),
+        ),
+        (
+            "editing field binding the chord keeps it",
+            |h| {
+                h.capture = true;
+                h.page_takes = vec![ctrl('r')]
+            },
+            ctrl('r'),
+            Took::Page,
+        ),
+        (
+            "editing field: Ctrl+Q quits",
+            |h| h.capture = true,
+            ctrl('q'),
+            Took::Quit,
+        ),
+        (
+            "editing field: q types, never quits",
+            |h| h.capture = true,
+            ch('q'),
+            Took::Nothing,
+        ),
+        // interrupt
+        (
+            "Ctrl+C: the page refuses first",
+            |h| h.interrupts = true,
+            ctrl('c'),
+            Took::Interrupt,
+        ),
+        (
+            "Ctrl+C: nothing to cancel quits",
+            |_| {},
+            ctrl('c'),
+            Took::Quit,
+        ),
+        // shell keys before the page
+        (
+            "app chord before the page",
+            |h| h.page_takes = vec![ctrl('r')],
+            ctrl('r'),
+            Took::Action(ShellAction::App(Cmd::Run)),
+        ),
+        (
+            "F1 help",
+            |_| {},
+            k(KeyCode::F(1)),
+            Took::Action(ShellAction::Help),
+        ),
+        (
+            "F10 menu bar",
+            |_| {},
+            k(KeyCode::F(10)),
+            Took::Action(ShellAction::MenuBar),
+        ),
+        (
+            "Ctrl+F2 menu bar (SI10)",
+            |_| {},
+            with_mods(KeyCode::F(2), KeyModifiers::CONTROL),
+            Took::Action(ShellAction::MenuBar),
+        ),
+        (
+            "Ctrl+PgDn next page (SI23)",
+            |_| {},
+            with_mods(KeyCode::PageDown, KeyModifiers::CONTROL),
+            Took::Action(ShellAction::NextPage),
+        ),
+        (
+            "Ctrl+PgUp previous page (SI23)",
+            |_| {},
+            with_mods(KeyCode::PageUp, KeyModifiers::CONTROL),
+            Took::Action(ShellAction::PrevPage),
+        ),
+        // focused chrome, then the page
+        (
+            "focused chrome before the page",
+            |h| {
+                h.chrome = true;
+                h.page_takes = vec![k(KeyCode::Enter)]
+            },
+            k(KeyCode::Enter),
+            Took::Chrome,
+        ),
+        (
+            "page",
+            |h| h.page_takes = vec![ch('x')],
+            ch('x'),
+            Took::Page,
+        ),
+        (
+            "page before the fallback ?",
+            |h| h.page_takes = vec![ch('?')],
+            ch('?'),
+            Took::Page,
+        ),
+        // fallback
+        (
+            "? help when the page passes",
+            |_| {},
+            ch('?'),
+            Took::Action(ShellAction::Help),
+        ),
+        ("q quits when clean", |_| {}, ch('q'), Took::Quit),
+        (
+            "q over unsaved work: a note",
+            |h| h.dirty = true,
+            ch('q'),
+            Took::Note("Unsaved changes · Ctrl+Q asks before quitting".into()),
+        ),
+        (
+            "Esc: the page's ladder",
+            |h| h.esc_top = true,
+            k(KeyCode::Esc),
+            Took::EscTop,
+        ),
+        (
+            "Esc at the top never quits",
+            |_| {},
+            k(KeyCode::Esc),
+            Took::Note("Esc never quits · Ctrl+Q quits".into()),
+        ),
+        (
+            "Esc quits when configured",
+            |h| h.keys.quit.esc_quits = true,
+            k(KeyCode::Esc),
+            Took::Quit,
+        ),
+        ("Tab moves focus", |_| {}, k(KeyCode::Tab), Took::Nothing),
+    ];
+    for (name, setup, key, want) in rows {
+        let mut h = Host::new();
+        setup(&mut h);
+        assert_eq!(h.key(key), want, "{name}");
+    }
+}
+
+fn list_host() -> Host {
+    let items = ["alpha", "delta", "dune", "echo"]
+        .iter()
+        .map(|s| ListItem::new(s))
+        .collect();
+    let mut h = Host::new();
+    h.list = Some(ListBox::new(WidgetId::of("list"), items, SelectMode::Single).type_ahead(true));
+    h
+}
+
+/// CO2: a page letter shortcut wins over a focused list's type-ahead
+/// (`TypeAheadPrecedence::Shortcuts`), and a letter no shortcut takes
+/// types into the list. The router owns the rule: no app wraps its own
+/// key path in `route_key`.
+#[test]
+fn a_letter_shortcut_wins_over_a_focused_lists_type_ahead() {
+    let mut h = list_host();
+    assert_eq!(
+        h.key(ch('d')),
+        Took::Action(ShellAction::App(Cmd::Delete)),
+        "the shortcut takes `d`"
+    );
+    assert_eq!(
+        h.list.as_ref().unwrap().cursor,
+        0,
+        "and the list did not type it"
+    );
+    assert_eq!(
+        h.key(ch('e')),
+        Took::Page,
+        "a letter no shortcut takes types"
+    );
+    assert_eq!(h.list.as_ref().unwrap().cursor, 3);
+}
+
+#[test]
+fn tab_and_shift_tab_walk_the_ring_after_the_page() {
+    let mut h = Host::new();
+    let mut ring = crate::core::focus::FocusRing::default();
+    ring.register(WidgetId::of("a"));
+    ring.register(WidgetId::of("b"));
+    h.shell.ring = ring;
+    h.key(k(KeyCode::Tab));
+    assert_eq!(h.shell.focus.current(), Some(WidgetId::of("a")));
+    h.key(k(KeyCode::Tab));
+    assert_eq!(h.shell.focus.current(), Some(WidgetId::of("b")));
+    h.key(with_mods(KeyCode::BackTab, KeyModifiers::SHIFT));
+    assert_eq!(h.shell.focus.current(), Some(WidgetId::of("a")));
+}
+
+#[test]
+fn an_activation_that_changed_something_flashes_the_focused_control() {
+    let mut h = Host::new();
+    h.page_takes = vec![k(KeyCode::Enter)];
+    h.shell.focus.set(Some(WidgetId::of("ok")));
+    h.key(k(KeyCode::Enter));
+    assert_eq!(h.shell.pointer.flashing(0), Some(WidgetId::of("ok")));
+}
