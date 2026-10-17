@@ -21,5 +21,5 @@
 [0m[2m   ╰────────────────────────────────────────────────────────────────────────╯   [0m
 [0m[2m                                                                                [0m
 [0m[2m ~/work/engine   main                                          no color · 80×24 [0m
- [0m[1m←→ C[0mhoose  [0m[1mEnter[0m Cance[0m[1ml  ↑↓[0m Scroll  [0m[1mEsc Cancel [0m                [0m[1m   [0m             [0m
+ [0m[1mEsc[0m Cancel  …       cargo clean · 900.0 MiB — 900.0 MiB of generated artifacts [0m
 [?25l

@@ -3,7 +3,7 @@
  [0m[1m Here › Arguments  [0m                                                    [0m
  ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────── [0m
   [0m[1mRun tests · arguments[0m                                                 [0m
-  field name, expected value, default and validation · secrets stay mask[0m
+  field name, expected value, default and validation · secrets stay m…  [0m
                                                                         [0m
    [0m[1mfilter  optional                                      [0m               [0m
  ▎ test name substring                                                  [0m
