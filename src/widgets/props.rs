@@ -15,8 +15,9 @@ use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::{Theme, Tone};
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::RenderCtx;
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
+use crate::ui::row::{RowLook, RowUi};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -538,16 +539,8 @@ impl PropsList {
             if i == self.cursor {
                 cursor_rows.extend(row.y..row.bottom());
             }
-            let st = t.row(s, bg);
-            fill(buf, row, st);
-            for gy in row.y..row.bottom() {
-                buf.set_string(
-                    row.x,
-                    gy,
-                    t.gutter_symbol(s),
-                    t.gutter(s, st.bg.unwrap_or(bg), false),
-                );
-            }
+            let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
+            let st = rp.style();
             buf.set_string(
                 row.x + 2,
                 y,
@@ -567,14 +560,8 @@ impl PropsList {
                     buf.set_string(vx, y + k as u16, text, ls);
                 }
             } else {
-                buf.set_string(vx, y, crate::ui::text::truncate(&p.value, vw), vs);
-                self.reveal.cell(
-                    ctx,
-                    rid,
-                    Rect::new(vx, y, vw as u16, 1),
-                    &p.value,
-                    s.focused,
-                );
+                let cell = Rect::new(vx, y, vw as u16, 1);
+                rp.label(ctx, buf, &mut self.reveal, rid, cell, &p.value, vs);
             }
             if hint_w > 0 {
                 buf.set_string(
