@@ -11,6 +11,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::core::scroll::ScrollState;
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{RenderCtx, fill, legible_on_fill};
@@ -1475,9 +1476,11 @@ impl ShellPage<Holla> for FilesPage {
                     return scroll_press(self.list_area, pos, &mut self.scroll);
                 }
                 if let Some(i) = row {
+                    let again = self.cursor == i;
                     self.cursor = i;
-                    // a double click opens the row
-                    if ev.count() >= 2 {
+                    // the row opens on the library's data-view activation
+                    // (a double click)
+                    if ClickPolicy::DATA.activates(ev.count(), again) {
                         return match self.mode {
                             Mode::Browse => self.open_current(w, cx),
                             Mode::Find => self.open_actions(cx),
