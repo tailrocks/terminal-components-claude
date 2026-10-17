@@ -6,7 +6,10 @@
 //! is one, so by default Esc and a click on the dimmed backdrop both close
 //! (cancelling is the safe answer, destructive dialogs included). Dialogs
 //! with a typed acknowledgement close on Esc only: a stray click must not
-//! throw away what was typed.
+//! throw away what was typed. A dialog whose cancel action is itself
+//! destructive (a danger "Cancel launch") refuses light dismissal too
+//! ([`Dialog::guard_destructive_dismiss`]): the stray click would take that
+//! action.
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -151,6 +154,15 @@ pub struct Dialog {
     /// click never throws away what was typed (Esc and Cancel still
     /// close). Default on.
     pub guard_dirty_prompt: bool,
+    /// A dialog whose dismissal resolves to a destructive action (its
+    /// cancel action is a [`ButtonKind::Danger`] button, such as "Cancel
+    /// launch") refuses light dismissal: a click on the backdrop (which
+    /// flashes the frame instead) and focus leaving it. Esc and the `×`
+    /// still follow [`Self::dismiss`], since they are deliberate. Default
+    /// on, as macOS alert sheets never close on an outside click and a
+    /// WAI-ARIA `alertdialog` needs an explicit answer. Off: the policy
+    /// applies unchanged.
+    pub guard_destructive_dismiss: bool,
 }
 
 /// What Enter in a dialog's typed acknowledgement does
@@ -237,6 +249,37 @@ impl Dialog {
     pub fn guard_dirty_prompt(mut self, on: bool) -> Self {
         self.guard_dirty_prompt = on;
         self
+    }
+
+    /// See [`Self::guard_destructive_dismiss`].
+    pub fn guard_destructive_dismiss(mut self, on: bool) -> Self {
+        self.guard_destructive_dismiss = on;
+        self
+    }
+
+    /// Whether a dismissal resolves to a destructive action: the cancel
+    /// action is a danger button.
+    fn dismissal_is_destructive(&self) -> bool {
+        self.cancel_index
+            .and_then(|i| self.actions.get(i))
+            .is_some_and(|b| b.kind == ButtonKind::Danger)
+    }
+
+    /// The dismissal policy in force now: [`Self::dismiss`] with light
+    /// dismissal refused while a guard holds (an edited prompt under
+    /// [`Self::guard_dirty_prompt`] refuses the outside click; a
+    /// destructive cancel under [`Self::guard_destructive_dismiss`]
+    /// refuses the outside click and focus out).
+    pub(crate) fn dismiss_in_force(&self) -> Dismiss {
+        let mut d = self.dismiss;
+        if self.guard_dirty_prompt && self.prompt_dirty() {
+            d.outside_click = false;
+        }
+        if self.guard_destructive_dismiss && self.dismissal_is_destructive() {
+            d.outside_click = false;
+            d.focus_out = false;
+        }
+        d
     }
 
     /// Whether the body has a text field (a prompt or a typed
@@ -344,6 +387,7 @@ impl Dialog {
             mnemonics: true,
             pristine: String::new(),
             guard_dirty_prompt: true,
+            guard_destructive_dismiss: true,
         }
     }
 
@@ -386,6 +430,7 @@ impl Dialog {
             mnemonics: true,
             pristine: String::new(),
             guard_dirty_prompt: true,
+            guard_destructive_dismiss: true,
         }
     }
 
@@ -429,6 +474,7 @@ impl Dialog {
             mnemonics: true,
             pristine,
             guard_dirty_prompt: true,
+            guard_destructive_dismiss: true,
         }
     }
 
@@ -513,6 +559,7 @@ impl Dialog {
             mnemonics: true,
             pristine: String::new(),
             guard_dirty_prompt: true,
+            guard_destructive_dismiss: true,
         }
     }
 
@@ -1167,7 +1214,7 @@ impl Dialog {
     /// Click on the dimmed backdrop: dismisses when the policy allows,
     /// consumed either way (nothing under a modal is reachable).
     pub fn on_click_outside(&mut self) -> Outcome {
-        if self.dismiss.outside_click && !(self.guard_dirty_prompt && self.prompt_dirty()) {
+        if self.dismiss_in_force().outside_click {
             self.dismissed()
         } else {
             Outcome::Consumed
@@ -1744,6 +1791,53 @@ mod tests {
         locked.on_key(&esc, &mut focus, &ring);
         locked.on_click_outside();
         assert_eq!(locked.result, None);
+    }
+
+    /// A28: a dialog whose cancel action is destructive ("Cancel launch")
+    /// must not take it on a stray backdrop click or a focus loss; Esc
+    /// still resolves to it, and the guard is the dialog's to turn off.
+    #[test]
+    fn a_destructive_cancel_refuses_light_dismissal_but_not_esc() {
+        use crate::core::intent::DismissReason as R;
+        use crate::ui::layer::Overlay;
+        let id = WidgetId::of("d");
+        let destructive_cancel = || {
+            Dialog::confirm(id, "Credentials?", "The launch is paused.", "Retry").actions(
+                vec![
+                    Button::secondary(id.sub("retry"), "Retry"),
+                    Button::danger(id.sub("cancel"), "Cancel launch"),
+                ],
+                Some(1),
+            )
+        };
+        let mut d = destructive_cancel();
+        assert_eq!(d.on_click_outside(), Outcome::Consumed);
+        assert_eq!(d.result, None, "a stray click does not cancel the launch");
+        let policy = Overlay::dismiss(&d);
+        assert!(
+            !policy.allows(R::OutsideClick),
+            "the layer stack refuses it"
+        );
+        assert!(!policy.allows(R::FocusOut));
+        assert!(policy.allows(R::Esc) && policy.allows(R::CloseButton));
+        let mut focus = crate::core::focus::Focus::default();
+        let ring = FocusRing::default();
+        let esc = Key {
+            code: KeyCode::Esc,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        d.on_key(&esc, &mut focus, &ring);
+        assert_eq!(d.result, Some(DialogResult::Action(1)), "Esc still cancels");
+
+        // the guard is the dialog's to turn off
+        let mut light = destructive_cancel().guard_destructive_dismiss(false);
+        light.on_click_outside();
+        assert_eq!(light.result, Some(DialogResult::Action(1)));
+
+        // a destructive confirm with a safe cancel keeps light dismissal
+        let mut del = Dialog::destructive(id, "Delete?", "Gone for good.", "Delete");
+        del.on_click_outside();
+        assert_eq!(del.result, Some(DialogResult::Action(0)));
     }
 
     #[test]

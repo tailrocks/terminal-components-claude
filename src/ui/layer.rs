@@ -537,14 +537,11 @@ use crate::widgets::select::{Select, SelectAction};
 
 impl Overlay for Dialog {
     type Action = DialogResult;
-    /// Its policy, except that a prompt with typed text refuses the
-    /// outside click under [`Dialog::guard_dirty_prompt`].
+    /// Its policy with light dismissal refused while a guard holds
+    /// ([`Dialog::guard_dirty_prompt`],
+    /// [`Dialog::guard_destructive_dismiss`]).
     fn dismiss(&self) -> Dismiss {
-        let mut d = self.dismiss;
-        if self.guard_dirty_prompt && self.prompt_dirty() {
-            d.outside_click = false;
-        }
-        d
+        self.dismiss_in_force()
     }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(Overlay::dismiss(self)).initial_focus(self.initial_focus)
