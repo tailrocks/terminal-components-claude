@@ -732,6 +732,27 @@ impl GridPage {
         out
     }
 
+    /// The sections at `width`: the grid card at its set height (the grid
+    /// scrolls the rest both ways), the legend, the schema and commands
+    /// facts wrapped.
+    fn heights(&self, width: u16) -> [u16; 4] {
+        let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
+        [
+            GRID_H,
+            3,
+            crate::pages::layout::sheet_height(
+                &Panel::card(Some("Schema")),
+                &wrap(self.schema()),
+                width,
+            ),
+            crate::pages::layout::sheet_height(
+                &Panel::card(Some("Commands")),
+                &self.commands(),
+                width,
+            ),
+        ]
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let focus = if ctx.interaction.has_focus(self.grid.id)
@@ -748,18 +769,10 @@ impl GridPage {
         let schema = self.schema();
         let commands = self.commands();
         let filters_h = u16::from(!self.filter_values.is_empty());
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::flex(12, 26.max(area.height.saturating_sub(46))),
-                StackChild::fixed(3),
-                StackChild::fixed(schema.len() as u16 + 3),
-                StackChild::fixed(commands.len() as u16 + 3),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let heights = self.heights(area.width);
+        let l = self
+            .sections
+            .layout(area, &heights.map(StackChild::fixed), focus, buf, ctx);
         match l.slot(0) {
             Some(card) => {
                 let focused = ctx.interaction.focused(self.grid.id)
@@ -821,7 +834,8 @@ impl GridPage {
                 t.canvas,
             );
         }
-        for (slot, title, props) in [(2, "Schema", schema), (3, "Commands", commands)] {
+        let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
+        for (slot, title, props) in [(2, "Schema", wrap(schema)), (3, "Commands", commands)] {
             if let Some(r) = l.slot(slot) {
                 let panel = Panel::card(Some(title));
                 let bg = panel.bg(t);
@@ -831,6 +845,10 @@ impl GridPage {
         }
     }
 }
+
+/// The grid card's height at every screen size: the grid scrolls the
+/// rest of its rows.
+const GRID_H: u16 = 26;
 
 impl Page for GridPage {
     fn title(&self) -> &'static str {
@@ -852,6 +870,31 @@ impl Page for GridPage {
     }
     fn animating(&self) -> bool {
         self.commit_ticks > 0
+    }
+
+    /// The grid takes the page's width (it scrolls both ways itself,
+    /// down to its min width); the facts wrap; the grid card keeps its
+    /// set height at every screen size.
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        use junie_tui::ui::measure::Measure;
+        let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
+        // the card's position readout stays whole (it says what is
+        // loaded, beyond the grid's window)
+        let meta = format!("read-only · {}", self.grid.position_label());
+        let card = Panel::card(Some(TABLE))
+            .meta(&meta)
+            .outer(ratatui::layout::Size::new(0, 0))
+            .width;
+        let w = [
+            card,
+            self.grid.min_width(ratatui::layout::Size::new(0, 0), ctx) + 4,
+            crate::pages::layout::sheet_width(&Panel::card(Some("Schema")), &wrap(self.schema())),
+            crate::pages::layout::sheet_width(&Panel::card(Some("Commands")), &self.commands()),
+        ]
+        .into_iter()
+        .fold(avail.width, u16::max);
+        let h = self.heights(w).iter().sum::<u16>() + 3;
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

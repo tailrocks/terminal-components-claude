@@ -2016,7 +2016,8 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
 
 #[test]
 fn a_grid_range_drag_held_below_the_grid_autoscrolls_on_the_tick() {
-    let mut h = Harness::new(120, 30, PageId::Grid);
+    // tall enough that the grid card ends above the last row
+    let mut h = Harness::new(120, 40, PageId::Grid);
     let (x, y) = h.find("1001").unwrap();
     h.mouse(MouseKind::Down, x, y);
     // the pointer leaves the grid at the bottom and rests on the last row
