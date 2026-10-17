@@ -11,7 +11,7 @@
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -25,6 +25,7 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir, StackChild};
 use junie_tui::ui::master_detail::{MasterDetail, Mode};
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::truncate;
 use junie_tui::widgets::button::{Button, ButtonRow};
@@ -195,6 +196,10 @@ fn tree_nodes() -> Vec<TreeNode> {
         .collect()
 }
 
+/// The narrowest inspector the page asks for: its warning wraps, its
+/// facts and meter details cut and reveal the rest.
+const INSPECTOR_MIN: u16 = 40;
+
 pub fn page() -> Box<dyn Page> {
     Box::new(AccountsUsagePage::new())
 }
@@ -338,6 +343,59 @@ impl AccountsUsagePage {
         }
     }
 
+    /// The inspector's content `width` wide (inside its frame): the
+    /// warning, the facts, the quota meters and the action row, each
+    /// after a blank row.
+    fn inspector_height(&self, account: Option<&'static Account>, width: u16) -> u16 {
+        let w = width.saturating_sub(2);
+        let mut h = 0;
+        if let Some(n) = account.and_then(|a| self.warning(a)) {
+            h += n.height(w) + 1;
+        }
+        h += self.facts.props.len() as u16 + 1;
+        if let Some(a) = account {
+            h += self.quotas(a).height() + 1;
+        }
+        h + 1
+    }
+
+    /// The tree's card and the inspector's frame at their natural sizes
+    /// (the inspector as wide as its actions, at least `INSPECTOR_MIN`).
+    fn panes(&self, ctx: &RenderCtx) -> (Size, Panel<'static>, u16) {
+        let tree = Panel::framed(Some("Accounts"))
+            .meta("3 providers")
+            .outer(self.tree.measure(Size::ZERO, ctx));
+        let buttons = self.refresh.width() + 2 + self.set_default.width();
+        let frame = Panel::framed(Some("Accounts")).meta("inspector");
+        // the facts and the meters' details cut a long value and reveal
+        // it (the credential path); the warning wraps
+        let inner = (buttons + 2).max(INSPECTOR_MIN);
+        let detail = frame.outer(Size::new(inner, 0)).width;
+        (tree, frame, detail)
+    }
+
+    /// The accounts card's height `width` wide: the card's chrome around
+    /// the tree beside the inspector at the pane widths (or the pane the
+    /// collapsed layout shows), at least 14 rows.
+    fn accounts_height(&self, width: u16, ctx: &RenderCtx) -> u16 {
+        let (tree, frame, _) = self.panes(ctx);
+        let card = Panel::card(Some("Accounts"));
+        let inner = card.inner(Size::new(self.frame_width(width), 0)).width;
+        let account = account_at(&self.shown);
+        let inspector = |w: u16| {
+            let r = frame.inner(Size::new(w, 0)).width;
+            frame
+                .outer(Size::new(r, self.inspector_height(account, r)))
+                .height
+        };
+        let body = match self.md.split_rects(Rect::new(0, 0, inner, 1)) {
+            Some((_, d)) => tree.height.max(inspector(d.width)),
+            None if self.md.collapsed_mode(&ctx.interaction) == Mode::Drawer => inspector(inner),
+            None => tree.height + 2,
+        };
+        card.outer(Size::new(inner, body)).height.max(14)
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let focus = if [TREE, INSPECTOR, REFRESH, DEFAULT]
@@ -351,9 +409,13 @@ impl AccountsUsagePage {
             None
         };
         let usage_h = ACCOUNTS.len() as u16 + 4;
+        let accounts_h = self.accounts_height(area.width, ctx);
         let l = self.sections.layout(
             area,
-            &[StackChild::flex(14, 22), StackChild::fixed(usage_h)],
+            &[
+                StackChild::flex(accounts_h, accounts_h.max(22)),
+                StackChild::fixed(usage_h),
+            ],
             focus,
             buf,
             ctx,
@@ -633,6 +695,34 @@ impl Page for AccountsUsagePage {
     }
     fn blurb(&self) -> &'static str {
         "Accounts by provider with an inspector: warnings, facts, quota meters, usage table"
+    }
+
+    /// The accounts card over the usage table: the card as wide as the
+    /// tree beside the inspector at `MasterDetail::natural_width` (or the
+    /// width option's demo frame), the table at its min width (it
+    /// scrolls sideways itself); the card as tall as its tree or its
+    /// inspector at the pane width. The health line cuts and reveals.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let (tree, _, detail) = self.panes(ctx);
+        let card = Panel::card(Some("Accounts"));
+        let frame = match self.opts.number("accountsusage.width") {
+            Some(w) => w,
+            None => {
+                card.outer(Size::new(self.md.natural_width(tree.width, detail), 0))
+                    .width
+            }
+        };
+        let usage = Panel::card(Some("Usage"))
+            .meta("last 7 days")
+            .outer(Size::new(self.usage.min_width(avail, ctx), 0))
+            .width;
+        let width = avail.width.max(frame).max(usage);
+        let usage_h = ACCOUNTS.len() as u16 + 4;
+        let height = self.sections.stack.measure(&[
+            StackChild::fixed(self.accounts_height(width, ctx)),
+            StackChild::fixed(usage_h),
+        ]);
+        Size::new(width, height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
