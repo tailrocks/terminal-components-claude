@@ -1,7 +1,7 @@
  [0m[1;7m jackin❯ [0m   File   Go   Help                                            Workspaces  inside the Construct  ● 2 running  [0m
                                                                                                                         [0m
  ╭─[0m[1m Workspaces [0m────────── 2 running ─╮ │  Current directory · payments-platform                       saved workspace   [0m
- │ [0m[1m▎   Current directory            [0m │ │                                                                                [0m
+ │ [0m[1m▎   Current directory            [0m │ │  ───────────────────────────────────────────────────────────────────────────   [0m
  │   ▸ payments-platform             │ │  Working dir   /workspace/payments-platform                                    [0m
  │   ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree                           [0m
  │   ▸ release-automation            │ │                ~/src/shared-libs · ro shared                                   [0m
