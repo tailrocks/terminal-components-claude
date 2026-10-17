@@ -152,7 +152,7 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | 2 | Fixed | 55d88297c, 3ec122eb2, b34ead943 | `Dismiss` policy per dialog; `guard_dirty_prompt` (default on) refuses light dismiss of a dirty prompt; press and release must both land on the backdrop (`core::pointer`); SIg1 guard. |
 | 3 | Open → A11 | — | Standard defaults plus per-widget overrides are in place (AGENTS.md); app-level profiles beyond `NavProfile` and a user keymap file are not. |
 | 4 | Fixed | 55d88297c, 1cee36e98 | `MenuBar::hover_switch`; hover switching stops when the terminal reports no buttonless motion (`Interaction::motion_unreported`); `MenuBar::press_drag` press-drag-release (M12). |
-| 5 | Partial; Open → S9 | 85cec55af | Client detection (`ClientPlatform::from_env`: `LC_TERMINAL`, `TERM_PROGRAM`) and Option-click toggle landed. Checkbox-cell click with no modifier is `CheckClick` in S9. |
+| 5 | Fixed (S9) | 85cec55af; S9 "RowSelection, ClickPolicy and desktop click modifiers" | Client detection (`ClientPlatform::from_env`: `LC_TERMINAL`, `TERM_PROGRAM`) and Option-click toggle landed; the toggle sets live in `SelectGesture` (`toggle_mods_for`). A click on a check box (table checkbox column, list `✓` column, a tree node's mark) toggles with no modifier (`CheckClick::BoxOnly`; `a_click_on_the_mark_column_toggles_through_the_hit_regions`). |
 | 6 | Partial; Open → S11 | d5ad6ffb6, 1da20cc01 | Text fields: `EditEntry::Immediate` default, keyboard focus `FocusSelect::SelectAll`, click places the caret (keyboard.md #1). Grid cells in `Explicit` and `EditField` remain S11. |
 | 7 | Open → S8b | — | Hide undeliverable chords and a `?` overlay from the live keymaps (`HelpOverlay::from_keymaps`); see also CO3. |
 | 8 | Open → S10 | 0e99f5329 (delay) | Hover reveal has the 300 ms delay (M25). Peek line on focus plus a peek key, never →, is SI8 in S10; reveal for cut labels in A12. |
@@ -160,7 +160,7 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | 10 | Open → S8a, A11 | — | A second documented menu-bar binding is S8a (`ShellKeys::menu_bar`); Alt+mnemonics per menu with F10 shown in the hints is A11. |
 | 11 | Fixed | 4b857a079, 3ec122eb2 | `Dialog::destructive` opens on Cancel (`initial_focus: cancel_id`; test `a_destructive_dialog_names_the_focused_cancel_button_not_confirm`); label mnemonics replace y/n. Plan S5 deviation 1. |
 | 13 | Open → S12 | — | `Select::arrows` still defaults to `SelectArrows::Step` (`src/widgets/select.rs`); S12 flips it to `Open`. Tab-in-open-select behaviour already matches APG. |
-| 14 | Open → S9 | — | `ClickPolicy`/`Activate` by role: data views `Double`, navigation lists and menus `Single` (M15). |
+| 14 | Fixed (S9) | S9 table, list, tree and props commits | `ClickPolicy::DATA` (double click activates) is the default of every data view; `ClickPolicy::NAVIGATION` (one click) for navigation lists and sidebars (the showcase sidebar uses it); menus keep their own one-click choice. Double click is the router's timed count (`PointerConfig::double_click_ms`, 500 ms). |
 | 15 | Fixed | 63b9ac943 | `FocusVisible::{Always, KeyboardOnly}` (default `Always`) exists on buttons only; text inputs and areas have no such option, so they always show focus. |
 | 16 | Open → S8a | — | Coalesce only wheel, motion, resize and repeated navigation in `KeyRouter`; S2 added `drain_pending_input` for every app. |
 | 17 | Open → S14 | — | Ctrl+C copies with a selection, else `Page::on_interrupt`, else quit through `LeaveGuard` (`QuitKeys`); quit confirmation only when data would be lost (`App::stakes`). |
@@ -170,9 +170,9 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | 21 | Open → S12 | — | Disabled reason in the status row with the dimmed shortcut kept (`Item` reason, SI21/SV15). |
 | 22 | Partial; Open → A11 | 7bf62651d, 777adce9a, 3825da948 | `FocusFallback::Nearest` is the runtime fallback (K8, S7). Tab cycling inside modals is A11. |
 | 23 | Open → S8a | 02421eb86 | Tab keys are a `Tabs::keymap` (keymap pass). Letters and digits only while the strip has focus, and global Ctrl+PgUp/PgDn, are S8a; dirty-tab close goes through S14's guard. |
-| 24 | Open → S9 | — | Commit on selection change and ask Save / Don't Save / Cancel only on invalid (`RowSelection::apply`). |
+| 24 | Fixed (S9 verified; page guard → S18) | — | Table and grid clicks commit a valid edit on a selection change and keep an invalid one with its error (`clicking_another_cell_preserves_invalid_edit_and_cursor`); the showcase Selectable editor asks Save / Don't Save / Cancel only when its edits are invalid (`changing_the_selection_commits_valid_edits`, `changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel`), its right click included since S9. That editor guard is page code: it moves into the library with `FormPanel` (S18). |
 | Gap 1 | Fixed | b34ead943 | The runtime enables `?1004`; `runtime::FocusClickGuard` drops the click within 300 ms of FocusIn (`set_focus_click_guard`). |
-| Gap 2 | Open → S9 | — | Shift-click fallback: click the anchor, then Shift+arrows (`SelectGesture`). |
+| Gap 2 | Fixed (S9) | S9 list commit | A click sets the anchor (`SelectGesture::Only`) and Shift+arrows extend from it, growing and shrinking (`SelectGesture::Extend`; `shift_arrows_extend_and_shrink_from_the_clicked_anchor`), in List and Table. |
 | Gap 3 | Open → S14, A11 | — | S14 owns the `Clipboard` and OSC 52 writes; documenting the terminal's bypass modifier and in-app selection under capture is A11. |
 | Gap 4 | Open → S8b | — | `core::keyboard` already detects the kitty protocol (`super_delivered`); feeding detected keys into the hints is S8b. |
 | Gap 5 | Open → S11 | — | Bracketed paste never fires shortcuts; multi-line paste into a single-line field flattens or warns. |
