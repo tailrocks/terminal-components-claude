@@ -177,16 +177,11 @@ fn a_text_field_waiting_for_enter_hints_edit() {
 /// profiles; closed, nothing.
 #[test]
 fn completion_hints_read_its_own_keys() {
-    use crate::widgets::completion::{Completion, CompletionItem};
+    use crate::widgets::completion::Completion;
+    use crate::widgets::option_list::Item;
     let open = || {
         let mut c = Completion::new(ID);
-        let item = CompletionItem {
-            label: "SELECT".into(),
-            glyph: "K".into(),
-            detail: String::new(),
-            insert: "SELECT".into(),
-            matched: vec![],
-        };
+        let item = Item::new("SELECT").glyph("K");
         c.open(vec![item], ratatui::layout::Rect::new(0, 0, 10, 1), 0);
         c
     };

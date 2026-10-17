@@ -82,7 +82,7 @@ impl HasHints for Completion {
             return vec![];
         }
         // the editor under it types the letters: never "Type to jump"
-        let mut v = nav_hints(&self.nav, false, false);
+        let mut v = nav_hints(&self.list.nav, false, false);
         v.extend([hint("Enter", "Accept"), hint("Esc", "Close")]);
         v
     }
