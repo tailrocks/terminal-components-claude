@@ -66,6 +66,11 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/pages/pickers", Bin::Showcase, &["--page", "pickers"], BOOT),
     Root::new("showcase/pages/chrome", Bin::Showcase, &["--page", "chrome", "--motion", "paused"], BOOT),
     Root::new("showcase/pages/settings", Bin::Showcase, &["--page", "settings"], BOOT),
+    // Priority 0: Settings on the template (its section strip is the first
+    // stop, so the scenarios below tab once more into the screen)
+    Root::new("showcase/sections/settings-options", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "2", "wait:Confirm on save"]).pending(),
+    Root::new("showcase/sections/settings-states", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "3", "wait:Section tabs"]).pending(),
+    Root::new("showcase/flows/settings/environment-single", Bin::Showcase, &["--page", "settings", "--opt", "settings.tab=environment", "--opt", "settings.env_select=single"], BOOT).sends(&["wait:DATABASE_URL"]).pending(),
     Root::new("showcase/pages/taskrunner", Bin::Showcase, &["--page", "taskrunner"], BOOT),
     // Priority 0: the Task runner on the template
     Root::new("showcase/sections/taskrunner-options", Bin::Showcase, &["--page", "taskrunner"], BOOT).sends(&["tab", "2", "wait:Log wraps"]).pending(),
@@ -506,7 +511,7 @@ pub const OVERLAYS: &[Root] = &[
     // mouse #40: the brand asks before quitting.
     Root::new("showcase/overlays/quit_confirm", Bin::Showcase, &["--page", "overview"], BOOT).click("Junie").pending().dismiss_pending(),
     // Unsaved Settings edits: `q` asks Cancel / Discard first (7b54eb459).
-    Root::new("showcase/overlays/settings_quit_guard", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved", "q", "wait:Unsaved changes"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_quit_guard", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved", "q", "wait:Unsaved changes"]).pending().dismiss_pending(),
     // V4: every overlay site in src/bin/showcase has a row (overlay_sites).
     // Dialogs: the first drop gate's Continue opens the second (typed token).
     Root::new("showcase/overlays/dialogs_gate2", Bin::Showcase, &["--page", "dialogs"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "tab", "enter", "wait:1 of 2", "right", "enter", "wait:2 of 2"]).pending().dismiss_pending(),
@@ -533,10 +538,10 @@ pub const OVERLAYS: &[Root] = &[
     Root::new("showcase/overlays/selectable_discard", Bin::Showcase, &["--page", "selectable"], BOOT).sends(&["wait:Ari Moreno", "tab", "tab", "down", "space", "wait:1 selected", "enter", "enter", "end", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "backspace", "enter", "wait:Unsaved changes"]).click("Cleo Barnes").pending().dismiss_pending(),
     // Settings: Save with unsaved edits asks (keyboard and pointer), Remove…
     // asks before removing a member, Add variable… prompts for the name.
-    Root::new("showcase/overlays/settings_save_keyboard", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved", "tab", "tab", "enter", "wait:Save settings?"]).pending().dismiss_pending(),
-    Root::new("showcase/overlays/settings_save_pointer", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved"]).click("Save changes").pending().dismiss_pending(),
-    Root::new("showcase/overlays/settings_remove_member", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "wait:Remove…"]).click("Remove…").pending().dismiss_pending(),
-    Root::new("showcase/overlays/settings_add_variable", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "right", "wait:Add variable…"]).click("Add variable…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_save_keyboard", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved", "tab", "tab", "enter", "wait:Save settings?"]).pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_save_pointer", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "space", "wait:General · unsaved"]).click("Save changes").pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_remove_member", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "right", "wait:Remove…"]).click("Remove…").pending().dismiss_pending(),
+    Root::new("showcase/overlays/settings_add_variable", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "right", "right", "wait:Add variable…"]).click("Add variable…").pending().dismiss_pending(),
     // Task runner: Cancel on a running pipeline asks first.
     Root::new("showcase/overlays/taskrunner_cancel", Bin::Showcase, &["--page", "taskrunner", "--motion", "paused"], BOOT).sends(&["r", "wait:Cancel"]).click("Cancel").pending().dismiss_pending(),
     // SC47/SC48 screens: the connection form and delete, the finder's
@@ -565,7 +570,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/chips/toggled", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "space"]),
     // The same paused endpoint keeps the subsequent scroll actions deterministic.
     Root::new("showcase/flows/scrolling/scrolled", Bin::Showcase, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], BOOT).sends(&["wait:739.63s", "tab", "tab", "down", "down", "down"]),
-    Root::new("showcase/flows/settings/toggled", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "space"]),
+    Root::new("showcase/flows/settings/toggled", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "space"]),
     // Selectable table journeys (keyboard only, so every size runs the same
     // steps): Tab focuses the table, the owner row is disabled, Space selects
     // Ari, Shift+Down extends over Cleo and Bo — two roles, so the editor bulk
@@ -591,7 +596,7 @@ pub const JOURNEYS: &[Root] = &[
     Root::new("showcase/flows/editable/committed", Bin::Showcase, &["--page", "editabletables"], BOOT).sends(&["tab", "tab", "enter", "type:x", "enter", "wait:1 edits"]),
     // S11: fifth stop is the Auto-merge toggle; space twice round-trips it —
     // the value is back to off and the `· unsaved` title proves the toggles.
-    Root::new("showcase/flows/settings/toggled_off", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "space", "space", "wait:General · unsaved"]),
+    Root::new("showcase/flows/settings/toggled_off", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "tab", "tab", "tab", "tab", "space", "space", "wait:General · unsaved"]),
     // ------------------------------------------- audit hole closures (§holes) --
 
     // editor_diag: `}` jumps to the second block, Ctrl+R runs it; the run is 10
@@ -616,7 +621,7 @@ pub const JOURNEYS: &[Root] = &[
     // old 72x20-100x30 variants waited on the Page size popup (`500`).
     Root::new("showcase/flows/chips/select_open", Bin::Showcase, &["--page", "chipsselects"], BOOT).sends(&["tab", "tab", "tab", "tab", "enter", "wait:customer"]),
     // settings_members: tabs bar → Members, then into the table, cursor row 2.
-    Root::new("showcase/flows/settings/members", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "right", "tab", "down", "wait:cursor: Jonas Weber"]),
+    Root::new("showcase/flows/settings/members", Bin::Showcase, &["--page", "settings"], BOOT).sends(&["tab", "tab", "right", "tab", "down", "wait:cursor: Jonas Weber"]),
     // chrome_menu_view: File menu open, `right` twice switches to the View
     // menu (past Edit). The first Tab focuses the section strip.
     Root::new("showcase/flows/chrome/menu_view", Bin::Showcase, &["--page", "chrome"], BOOT).sends(&["tab", "tab", "enter", "right", "right", "wait:Zoom pane"]),
