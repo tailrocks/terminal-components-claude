@@ -42,7 +42,7 @@ use std::rc::Rc;
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::core::event::{Key, Outcome};
@@ -764,6 +764,36 @@ pub fn queue_cut(area: Rect, full: &str) {
     });
 }
 
+/// Cut text queued so far this frame (a
+/// [`ScrollView`](crate::ui::scroll_view::ScrollView) marks where its
+/// content's start).
+pub(crate) fn cuts_len() -> usize {
+    CUTS.with(|q| q.borrow().len())
+}
+
+/// Put cut text queued since `from` inside `content` on screen, like
+/// [`HitRegistry::scroll_since`](crate::core::hit::HitRegistry::scroll_since):
+/// cut to `window`, moved so `window`'s top-left lands on `to`, dropped
+/// when out of view.
+pub(crate) fn scroll_cuts_since(from: usize, content: Rect, window: Rect, to: Position) {
+    let (dx, dy) = (window.x.saturating_sub(to.x), window.y.saturating_sub(to.y));
+    CUTS.with(|q| {
+        let mut q = q.borrow_mut();
+        let from = from.min(q.len());
+        let tail: Vec<(Rect, String)> = q.drain(from..).collect();
+        for (area, full) in tail {
+            if !area.intersects(content) {
+                q.push((area, full));
+                continue;
+            }
+            let r = area.intersection(window);
+            if !r.is_empty() {
+                q.push((Rect::new(r.x - dx, r.y - dy, r.width, r.height), full));
+            }
+        }
+    });
+}
+
 /// Drop text queued outside a frame (a new frame starts clean).
 pub(crate) fn clear_cuts() {
     CUTS.with(|q| q.borrow_mut().clear());
@@ -821,6 +851,10 @@ struct Tip {
     text: Rc<str>,
     source: Source,
     feed: Feed,
+    /// The scrolled views the anchor was drawn in
+    /// ([`RenderCtx::shifts`]): the anchor moves by their offsets when
+    /// the reveal is drawn.
+    shifts: Vec<crate::ui::ctx::Shift>,
 }
 
 /// The frame's single reveal, drawn by one queued overlay.
@@ -900,10 +934,12 @@ fn show(ctx: &mut RenderCtx, id: WidgetId, anchor: Rect, full: &str, source: Sou
         text: shared(full),
         source,
         feed,
+        shifts: ctx.shifts.clone(),
     });
     if !slot.queued {
         slot.queued = true;
-        ctx.overlay(|buf, ctx| {
+        // the tip carries its own views' offsets ([`Tip::shifts`])
+        ctx.overlay_unshifted(|buf, ctx| {
             ctx.reveal_slot.queued = false;
             if let Some(tip) = ctx.reveal_slot.tip.take() {
                 draw(buf, ctx, &tip);
@@ -950,7 +986,18 @@ fn layout(
 fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     let screen = *buf.area();
     let t = ctx.theme;
-    let (area, lines) = layout(screen, tip.anchor, tip.id, &tip.text, &tip.feed, t);
+    // an anchor in a scrolled view is where the view shows it
+    let (dx, dy) = crate::ui::ctx::total_shift(&tip.shifts);
+    if tip.anchor.x < dx || tip.anchor.y < dy {
+        return;
+    }
+    let anchor = Rect::new(
+        tip.anchor.x - dx,
+        tip.anchor.y - dy,
+        tip.anchor.width,
+        tip.anchor.height,
+    );
+    let (area, lines) = layout(screen, anchor, tip.id, &tip.text, &tip.feed, t);
     let area = area.intersection(screen);
     if area.is_empty() {
         return;

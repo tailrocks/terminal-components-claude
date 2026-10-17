@@ -6132,6 +6132,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "jump_end",
             "pointer_move",
             "ensure_visible",
+            "reveal_span",
             "follow",
             "visible_range",
             "thumb",

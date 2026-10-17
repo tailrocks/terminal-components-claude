@@ -225,14 +225,17 @@ impl InspectChanges {
             };
         }
         match self.mode {
+            // a pane whose content fits passes the notch on (scroll
+            // chaining); nothing beneath this modal scrolls, so it stops here
             InspectMode::Advanced => {
-                if self.tree_area.contains(pos) {
+                let out = if self.tree_area.contains(pos) {
                     self.tree.wheel(axis, delta).outcome()
                 } else if self.diff_area.contains(pos) {
                     self.diff.wheel(axis, delta).outcome()
                 } else {
                     Outcome::Consumed
-                }
+                };
+                out.or(Outcome::Consumed)
             }
             InspectMode::Compact => {
                 if self.open {
