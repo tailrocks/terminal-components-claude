@@ -136,7 +136,7 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | 12 | Open → A11 | — | jackin still shows "Delete…" before a plain confirmation (`src/bin/jackin_preview/screens/manager.rs:801`); keycap set uses `Del`, not "Delete". |
 | 13 | Fixed | ef2f81640 | Dotted track `┆`/`┄` in `Theme::scroll_track`; see the note under #13 and hscroll.md. Thumb glyph and held colour per row 6. |
 | 14 | Partial: S10 fixed; Open → T | "a selected row is bold", "every chosen-value mark is RowPaint::mark" | Selected rows are bold at every level and their marks follow `Theme::chosen`; success vs accent separation is the theme track. |
-| 15 | Open → S12 | — | Disabled items reachable; reason in the hint or status row with the dimmed shortcut kept (`Item` reason, SI21/SV15). |
+| 15 | Fixed (S12) | S12 "a disabled row keeps its dimmed shortcut and says why in the status row" | Disabled menu rows are reachable by the cursor (`ContextMenu::skip_disabled(false)` default, knob kept) and keep their shortcut dimmed; the reason shows in the menu's status row (bottom border, dimmed, cut to fit) while the cursor or pointer is on the row (SI21). Baseline: only the Menus · States rows changed (the Reasons sample has no reason column; its hovered sample says why). |
 | 16 | Partial (S10) | "the peek line shows the focused cut value in full" | The peek line shows the focused cut value without a tooltip (nothing to dismiss); the tooltip rules of #5 stand. Menu/Picker/Select with S12, A12. |
 | Gap 1 | Open → T | — | `border_strong` (at least 3:1) for field and control outlines (SVg1). |
 | Gap 2 | Open → T | — | One pressed direction for every ladder (SVg2). |
