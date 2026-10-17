@@ -13,18 +13,19 @@ use crate::scenario::{Motion, Scenario};
 use crate::screens::{files, finder};
 
 fn finder_cursor(h: &mut H) -> (usize, bool) {
-    let f = h.app.tabs[0]
-        .stack
-        .last_mut()
+    let f = h
+        .app
+        .router
+        .top_of_mut(0)
         .and_then(|s| s.as_finder())
         .expect("the finder is the top page");
     (f.cursor, f.cursor_on_row())
 }
 
 fn preview_offset(h: &mut H) -> usize {
-    h.app.tabs[0]
-        .stack
-        .last_mut()
+    h.app
+        .router
+        .top_of_mut(0)
         .and_then(|s| s.as_finder())
         .map(|f| f.preview_offset())
         .expect("the finder is the top page")
@@ -301,10 +302,10 @@ fn e33_e39_input_mode_returns_on_esc_ends_with_the_program_and_a_kill_reports_re
     let id = activity_id(&h);
     h.ticks(2);
     let input = |h: &mut H| {
-        h.app.tabs[h.app.active]
-            .stack
-            .last_mut()
-            .and_then(|s| s.as_activity())
+        h.app
+            .router
+            .current_mut()
+            .as_activity()
             .map(|a| a.input)
             .expect("an activity tab")
     };
@@ -362,9 +363,10 @@ fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_valida
     h.ticks(10);
     open(&mut h, "Disk overview");
     assert!(h.text().contains("Here › Disk › Overview"), "{}", h.text());
-    let rows = h.app.tabs[0]
-        .stack
-        .last_mut()
+    let rows = h
+        .app
+        .router
+        .top_of_mut(0)
         .and_then(|s| s.as_disk())
         .map(|d| d.overview_rows())
         .expect("the overview page");

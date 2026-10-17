@@ -112,7 +112,7 @@ impl H {
         None
     }
     pub fn tab_kind(&self) -> TabKind {
-        self.app.tabs[self.app.active].kind.clone()
+        self.app.tabs[self.app.active()].kind.clone()
     }
 }
 

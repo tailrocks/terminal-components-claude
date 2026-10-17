@@ -11,7 +11,7 @@ use junie_tui::shell::Page;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::keyhint::Hint;
 
-use crate::app::{TabEntry, TabKind};
+use crate::app::TabKind;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Cx, Go, Holla, Screen};
@@ -56,17 +56,16 @@ impl Screen for TickProbe {}
 #[test]
 fn a_background_tabs_tick_status_shows_when_the_tab_is_shown() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
-    h.app.tabs.push(TabEntry {
-        kind: TabKind::Plan("probe".into()),
-        stack: vec![Box::new(TickProbe { ticked: false })],
-        pending: vec![],
-    });
-    assert_eq!(h.app.active, 0);
+    h.app.add_tab(
+        TabKind::Plan("probe".into()),
+        Box::new(TickProbe { ticked: false }),
+    );
+    assert_eq!(h.app.active(), 0);
     h.ticks(1);
     assert_eq!(h.app.tabs.len(), 2, "a background tab never closes itself");
     assert!(!h.text().contains("probe finished in the background"));
     h.alt(KeyCode::Char('1'));
-    assert_eq!(h.app.active, 1);
+    assert_eq!(h.app.active(), 1);
     assert!(
         h.text().contains("probe finished in the background"),
         "the status waited for the tab:\n{}",
@@ -79,15 +78,14 @@ fn a_background_tabs_tick_status_shows_when_the_tab_is_shown() {
 #[test]
 fn ctrl_page_keys_step_the_tabs() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
-    h.app.tabs.push(TabEntry {
-        kind: TabKind::Plan("probe".into()),
-        stack: vec![Box::new(TickProbe { ticked: true })],
-        pending: vec![],
-    });
+    h.app.add_tab(
+        TabKind::Plan("probe".into()),
+        Box::new(TickProbe { ticked: true }),
+    );
     h.ctrl(KeyCode::PageDown);
-    assert_eq!(h.app.active, 1);
+    assert_eq!(h.app.active(), 1);
     h.ctrl(KeyCode::PageDown);
-    assert_eq!(h.app.active, 0, "wraps to the first tab");
+    assert_eq!(h.app.active(), 0, "wraps to the first tab");
     h.ctrl(KeyCode::PageUp);
-    assert_eq!(h.app.active, 1);
+    assert_eq!(h.app.active(), 1);
 }

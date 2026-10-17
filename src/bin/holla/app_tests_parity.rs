@@ -22,7 +22,7 @@ pub(crate) fn open(h: &mut H, label: &str) {
     // clears whatever query was left there
     h.alt(KeyCode::Char('0'));
     for _ in 0..8 {
-        if h.app.tabs[0].stack.len() <= 1 || !h.app.modals.is_empty() {
+        if h.app.router.tab(0).len() <= 1 || !h.app.modals.is_empty() {
             break;
         }
         h.key(KeyCode::Esc);

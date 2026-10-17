@@ -307,21 +307,21 @@ fn page_inventory_has_marker_focus_hit_and_escape_contract() {
     for case in page_cases() {
         let mut h = (case.build)();
         (case.open)(&mut h);
-        let depth = h.app.tabs[0].stack.len();
+        let depth = h.app.router.tab(0).len();
         assert_surface(&h, case.name, case.marker, case.focus);
         assert!(h.app.modals.is_empty(), "{}: unexpected modal", case.name);
 
         h.key(KeyCode::Esc);
         if case.name == "Finder" {
             assert_eq!(
-                h.app.tabs[0].stack.len(),
+                h.app.router.tab(0).len(),
                 depth,
                 "{}: Esc changed the finder stack",
                 case.name
             );
         } else {
             assert_eq!(
-                h.app.tabs[0].stack.len(),
+                h.app.router.tab(0).len(),
                 depth - 1,
                 "{}: Esc did not pop the page",
                 case.name
@@ -580,12 +580,12 @@ fn finder_file_and_modal_mouse_contracts() {
     let mut double = build_rust();
     let (dx, dy) = double.find("Run tests").expect("double-click row");
     let tabs = double.app.tabs.len();
-    let stack = double.app.tabs[0].stack.len();
+    let stack = double.app.router.tab(0).len();
     double.click(dx + 2, dy);
     double.click(dx + 2, dy);
     assert!(
         double.app.tabs.len() > tabs
-            || double.app.tabs[0].stack.len() > stack
+            || double.app.router.tab(0).len() > stack
             || !double.app.modals.is_empty(),
         "double-click did not activate a finder row\n{}",
         double.text()
@@ -824,11 +824,11 @@ fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
     let row = h.app.shell.hits.hit(Position::new(dx + 2, dy));
     assert_eq!(row, h.app.shell.hits.hit(Position::new(dx + 30, dy)));
     let tabs = h.app.tabs.len();
-    let stack = h.app.tabs[0].stack.len();
+    let stack = h.app.router.tab(0).len();
     h.click(dx + 2, dy);
     h.click(dx + 30, dy);
     assert!(
-        h.app.tabs.len() == tabs && h.app.tabs[0].stack.len() == stack && h.app.modals.is_empty(),
+        h.app.tabs.len() == tabs && h.app.router.tab(0).len() == stack && h.app.modals.is_empty(),
         "two distant clicks activated the row as a double click\n{}",
         h.text()
     );
