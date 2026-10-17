@@ -2826,6 +2826,28 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::progress::ProgressStatus::Paused",
         Demo("progress", "Migrate schema ━"),
     ),
+    // Priority 0 Screens (SC49, SC51, SC52): what the screens show of
+    // functions whose own pages come later
+    (
+        "widgets::progress::spinner_frame",
+        Demo("activity", "running · 12 min"),
+    ),
+    (
+        "widgets::steps::StepRail::counts",
+        Demo("activity", "4 of 5"),
+    ),
+    (
+        "widgets::viewport::TextViewport::retention",
+        Option("activity", "activity.retention"),
+    ),
+    (
+        "widgets::viewport::TextViewport::set_marks",
+        Option("activity", "activity.find"),
+    ),
+    (
+        "widgets::tree::TreeView::cursor_path",
+        Demo("workspaces", "/workspace/payments-platform"),
+    ),
     (
         "widgets::notice::Notice",
         Demo("notices", "Authentication failed"),
