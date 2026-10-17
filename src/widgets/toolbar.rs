@@ -53,8 +53,9 @@ pub struct ToolItem {
     pub separator_after: bool,
     /// What the command does, shown on hover.
     pub tip: Option<String>,
-    /// Why a disabled command is unavailable, shown in the overflow menu
-    /// in place of the shortcut ([`MenuItem::reason`]).
+    /// Why a disabled command is unavailable, shown in the overflow menu's
+    /// status row while the cursor is on it; the row keeps its dimmed
+    /// shortcut ([`MenuItem::reason`]).
     pub reason: Option<String>,
 }
 
@@ -829,8 +830,10 @@ mod tests {
         let (buf, _, hits) = render_w(&mut t, focus, 24, &Theme::junie());
         let screen: Vec<String> = (0..12).map(|y| line(&buf, y)).collect();
         let menu = screen[1..].join("\n");
+        // the read-only Format keeps its dimmed shortcut; its reason waits
+        // for the cursor in the status row (SI21)
         assert!(
-            menu.contains("Format") && menu.contains("Read-only"),
+            menu.contains("Format") && menu.contains("F6") && !menu.contains("Read-only"),
             "{menu}"
         );
         assert!(menu.contains("● Wrap"), "a toggle shows its state: {menu}");

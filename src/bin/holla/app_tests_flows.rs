@@ -843,11 +843,14 @@ fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
         .open_alternatives(&id, ratatui::layout::Rect::new(2, 6, 10, 1));
     h.draw();
     let t = h.text();
-    let row = t
-        .lines()
-        .find(|l| l.contains(label.as_str()))
+    let (x, y) = h
+        .find(label.as_str())
         .unwrap_or_else(|| panic!("{label} listed\n{t}"));
-    assert!(row.contains("Not in this preview"), "{row}");
+    assert!(!t.contains("Not in this preview"), "{t}");
+    // the pointer on the disabled row says why in the menu's status row
+    h.mouse(junie_tui::core::event::MouseKind::Move, x + 1, y);
+    let t = h.text();
+    assert!(t.contains("Not in this preview"), "{t}");
 }
 
 /// Keyboard audit #3: the page gets the first chance at Ctrl+C, and the
