@@ -82,11 +82,8 @@ jackin cockpit-failure 80x24 build lines log # R-apps-12
 jackin cockpit-failure 100x25 build log # R-apps-12
 jackin editor-accounts 72x20 disabled globally needs ready registry secret unavailable unsupported # R-apps-4
 jackin editor-accounts 80x24 globally registry # R-apps-4
-jackin editor-env 72x20 Codex Pending Primary Resolution Variable credential launch never resolved sandbox stored text workspace # R-apps-2
-jackin editor-env 80x24 Codex Original Pending Primary Resolution Variable credential launch never resolved sandbox stored text workspace # R-apps-2
-jackin editor-env 100x25 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
-jackin editor-env 106x29 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
-jackin editor-env 120x40 Original Pending Resolution Variable launch never resolved stored text workspace # R-apps-2
+jackin editor-env 72x20 Codex Primary sandbox # R-apps-4
+jackin editor-env 80x24 Codex Primary sandbox # R-apps-4
 jackin editor-mounts 72x20 Source src # R-apps-3
 jackin editor-mounts 80x24 Source src # R-apps-3
 jackin editor-mounts 100x25 Source src # R-apps-3
@@ -121,11 +118,8 @@ jackin manager-hard 160x50 ask refreshing # R-apps-2 R-apps-6 R-apps-8
 jackin settings 72x20 Zhokhov alexey chainargos # R-apps-4
 jackin settings 80x24 alexey chainargos # R-apps-4
 jackin settings-agents 72x20 json # R-apps-4
-jackin settings-env 72x20 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-2
-jackin settings-env 80x24 1Password 1password CLI GitHub Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored token # R-apps-2
-jackin settings-env 100x25 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-2
-jackin settings-env 106x29 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com credential eng01 gh01 launch never resolved stored # R-apps-2
-jackin settings-env 120x40 1Password 1password Original Pending Reference Resolution Variable Vault chainargos com eng01 gh01 launch never resolved stored # R-apps-2
+jackin settings-env 72x20 GitHub token # R-apps-4
+jackin settings-env 80x24 GitHub token # R-apps-4
 jackin settings-mounts 72x20 Isolation Kind Source cache host roles # R-apps-3
 jackin settings-mounts 80x24 Isolation Kind Source cache host roles # R-apps-3
 jackin settings-mounts 100x25 Source cache roles # R-apps-3
