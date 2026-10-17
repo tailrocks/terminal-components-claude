@@ -11,7 +11,7 @@
  │        ▸ T organizations     1.2 k  │││   ‹1      order_number  customer_id                           organization_id                       [0m[1mstatus ∇ [0m 9›   │ [0m
  │        ▸ T customers        48.9 k  │││  [0m[1m▎  [0m  1[0m[1m          10001  1b3a6759-b804-4ed8-b95…b7428564812 →  a1cc5725-426b-4be8-b1d…4c2d5a36aa8 →  [0m[1;7mpending  [0m[1m    [0m┃ │ [0m
  │        ▸ T products            312  │││       2          10002  64e6f4de-3e02-4ca0-9a5…24565132551 →  45e4f51f-21b8-4d1a-bf0…43208da8925 →  pending      ┃ │ [0m
- │        ▸ T [0m[1morders           [0m 1.2 M  │││       3          10003  32143a01-1da3-4ac1-b99…c6075254378 →  216371dc-bcdb-491e-816…d0cc6d4df3e →  pending      ┃ │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders            1.2 M [0m │││       3          10003  32143a01-1da3-4ac1-b99…c6075254378 →  216371dc-bcdb-491e-816…d0cc6d4df3e →  pending      ┃ │ [0m
  │        ▸ T order_items       3.8 M  │││       4          10008  fb78dd25-a96f-4296-b51…1c3440148c6 →  e420b1cb-f102-48d9-944…c74d87ca6b7 →  pending      ┆ │ [0m
  │        ▸ T payments          1.2 M  │││       5          10009  dd2c444c-7d3a-4a51-94f…e11c0218d65 →  cbc419eb-5897-4d5d-84b…b4e319a287a →  pending      ┆ │ [0m
  │        ▸ T subscriptions     1.1 k  │││       6          10016  e0ada9f0-d147-4112-800…2d482f763e1 →  856eb1ff-ef23-4b8b-b3e…8c43bcce08f →  pending      ┆ │ [0m

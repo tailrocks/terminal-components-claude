@@ -11,7 +11,7 @@
  │        ▸ T organizations  │││                                                                                      │ [0m
  │        ▸ T customers      │││     Name                  Type            Nullable  Default                 Key      │ [0m
  │        ▸ T products       │││  [0m[1m▎  id                    uuid            no        gen_random_uuid()       PK      [0m │ [0m
- │        ▸ T [0m[1morders       [0m  │││     order_number          integer         no        nextval('orders_numbe…           │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders        [0m │││     order_number          integer         no        nextval('orders_numbe…           │ [0m
  │        ▸ T order_items    │││     customer_id           uuid            no        —                       FK       │ [0m
  │        ▸ T payments       │││     organization_id       uuid            no        —                       FK       │ [0m
  │        ▸ T subscriptions  │││     status                text            no        'pending'                        │ [0m
