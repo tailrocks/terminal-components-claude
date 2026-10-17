@@ -142,7 +142,7 @@ never in view at the smallest failing size.
 | R50 | ReadOnlyReport | Playground | done: Page::measure (MeterList, props::width, Notice Measure, ButtonRow::width) | — |
 | R51 | Forms | Playground | 80x24, 100x25, 106x29, 120x40 | `Options Review and does done like look off` |
 | R52 | Sidebars | Playground | done: Page::measure (content card's lines unwrapped beside the sidebar) | — |
-| R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
+| R53 | Settings | Playground | done: Page::measure (TextArea::width, Toggle::width) | — |
 | R54 | TaskRunner | Playground | done: Page::measure (pipeline as wide as its two buttons) | — |
 
 Reach-b landing (2026-10-17): landed the shared pieces only: `Measure` for
