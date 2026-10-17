@@ -85,7 +85,7 @@ pub const SITES: &[Site] = &[
     rows("holla/screens/disk.rs::row_menu", &["holla/overlays/disk_row_menu"]),
     rows("holla/screens/files.rs::open_actions_at", &["holla/overlays/files_actions"]),
     rows("holla/screens/files.rs::open_jump", &["holla/flows/files/jump"]),
-    rows("holla/screens/plan.rs::on_key", &["holla/overlays/plan_cancel"]),
+    rows("holla/screens/plan.rs::on_interrupt", &["holla/overlays/plan_cancel"]),
     rows("holla/screens/plan.rs::step_menu", &["holla/overlays/plan_step_menu"]),
     rows("holla/screens/review.rs::sequence_menu", &["holla/overlays/review_sequence_menu"]),
     rows("holla/screens/snapshot.rs::body_menu", &["holla/overlays/snapshot_body_menu"]),
