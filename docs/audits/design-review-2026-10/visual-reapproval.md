@@ -367,8 +367,11 @@ still (no switch to `--motion reduced`, whose frame never settles).
   clock through an app's tick until the step has passed and restores
   `running`.
 - `shell::App::advance_clock` (default `None`): `shell::handle` asks it
-  only under `Motion::Paused`; otherwise, or when the app has no virtual
-  clock, the request is the ordinary paste it is. jackin implements it
+  only when the process opted in (`JUNIE_TUI_TEST_CLOCK=1`, read once,
+  `Shell::clock_steps`) and under `Motion::Paused`; otherwise, or when
+  the app has no virtual clock, the request is the ordinary paste it is,
+  so real users can never step a clock. The harness sets the variable
+  only for a scenario that sends an `advance:` step. jackin implements it
   with `run_step` over `App::on_tick`; the cockpit and the handoff now
   read the world clock's `running` instead of `motion == Paused` (the
   same value outside a step), so the launch pipeline runs during a step.
@@ -384,7 +387,9 @@ still (no switch to `--motion reduced`, whose frame never settles).
 - Tests: `clock::tests` (request parsing, a step on a stopped clock, a
   tick that does not advance ends the step),
   `shell::app::tests::a_clock_step_*` (a paused app's job fires and the
-  clock stops again; not paused or no clock: an ordinary paste), and
+  clock stops again; not paused or no clock: an ordinary paste),
+  `without_the_test_opt_in_a_clock_step_request_is_delivered_unchanged`
+  (shell and jackin), and
   `jackin_preview::app_tests_clock` (the four layers open after a step
   through `Input::Paste`, and ticks then change nothing). The shell and
   jackin tests fail with the shell's interception disabled.

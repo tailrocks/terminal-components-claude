@@ -73,6 +73,12 @@ pub struct Shell<P = ()> {
     pub quit: bool,
     /// Tick delivery and decorative motion.
     pub motion: Motion,
+    /// Explicit clock steps ([`crate::clock::ClockStep`]) are honoured:
+    /// only when a test harness opted in (`JUNIE_TUI_TEST_CLOCK=1`, read
+    /// once per process, [`crate::clock::ClockStep::opted_in`]), and then
+    /// only under [`Motion::Paused`]. Otherwise a request is the ordinary
+    /// paste it is, so no user input can step a real app's clock.
+    pub clock_steps: bool,
     /// Where focus goes when its control vanishes on the same page.
     /// Default [`FocusFallback::Nearest`] (K8).
     pub focus_fallback: FocusFallback,
@@ -103,6 +109,7 @@ impl<P> Shell<P> {
             too_small: false,
             quit: false,
             motion: Motion::Full,
+            clock_steps: crate::clock::ClockStep::opted_in(),
             focus_fallback: FocusFallback::Nearest,
             footer_keys: HintKeys::default(),
             context: ContextConfig::DEFAULT,
@@ -286,7 +293,8 @@ pub trait App {
     /// ([`crate::clock::ClockStep`]): run the app's stopped clock for that
     /// long through its own ticks ([`crate::clock::run_step`]) so jobs
     /// scheduled on virtual time fire, then stop it again. The shell asks
-    /// only under [`Motion::Paused`]. Default `None`: the app has no
+    /// only under [`Motion::Paused`] when a test opted in
+    /// ([`Shell::clock_steps`]). Default `None`: the app has no
     /// virtual clock and the request reaches [`Self::on_input`] as the
     /// ordinary paste it is.
     fn advance_clock(&mut self, _ms: u64) -> Option<Outcome> {
@@ -393,7 +401,7 @@ pub fn handle<A: App + ?Sized>(app: &mut A, input: Input) -> Outcome {
     // an explicit clock step (paused captures, `ClockStep`) runs the
     // app's clock instead of pasting its request
     let step = match &input {
-        Input::Paste(text) if app.shell().motion == Motion::Paused => {
+        Input::Paste(text) if app.shell().clock_steps && app.shell().motion == Motion::Paused => {
             crate::clock::ClockStep::parse(text)
         }
         _ => None,
