@@ -13,7 +13,7 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 
-use crate::app::{App, Screen};
+use crate::app::{App, Route};
 use crate::workbench::WorkTab;
 
 pub struct H {
@@ -161,7 +161,7 @@ impl H {
 #[test]
 fn connections_screen_lists_and_connects_with_keyboard() {
     let mut h = H::new(120, 40);
-    assert_eq!(h.app.screen, Screen::Connections);
+    assert_eq!(h.app.route(), Route::Connections);
     assert!(h.text().contains("Local PostgreSQL"));
     assert!(h.text().contains("Production"));
     // navigate to Production and connect
@@ -172,7 +172,7 @@ fn connections_screen_lists_and_connects_with_keyboard() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Opening SSH tunnel") || h.text().contains("Authenticating"));
     h.ticks(14);
-    assert_eq!(h.app.screen, Screen::Workbench);
+    assert_eq!(h.app.route(), Route::Workbench);
     assert_eq!(h.wb().connection.name, "Production");
     assert!(h.text().contains("production"));
     assert!(
@@ -206,7 +206,7 @@ fn a_double_click_on_a_connection_connects_and_one_click_selects() {
         "the double click connects"
     );
     h.ticks(14);
-    assert_eq!(h.app.screen, Screen::Workbench);
+    assert_eq!(h.app.route(), Route::Workbench);
     assert_eq!(h.wb().connection.name, "Production");
 }
 
@@ -222,7 +222,7 @@ fn failed_connection_shows_error_and_retry() {
         .unwrap();
     h.app.connections.start_connect(i);
     h.ticks(14);
-    assert_eq!(h.app.screen, Screen::Connections);
+    assert_eq!(h.app.route(), Route::Connections);
     assert!(h.text().contains("Could not reach the host"));
     assert!(h.text().contains("Reconnect"));
 }
@@ -982,7 +982,7 @@ fn acceptance_flow_keyboard_only() {
     }
     h.key(KeyCode::Enter);
     h.ticks(14);
-    assert_eq!(h.app.screen, Screen::Workbench);
+    assert_eq!(h.app.route(), Route::Workbench);
     assert_eq!(h.wb().connection.name, "Production");
     // explorer → orders
     for _ in 0..5 {
@@ -1081,7 +1081,7 @@ fn acceptance_flow_mouse() {
     let (x, y) = h.find("Connect ").expect("connect button");
     h.click(x + 1, y);
     h.ticks(14);
-    assert_eq!(h.app.screen, Screen::Workbench);
+    assert_eq!(h.app.route(), Route::Workbench);
     // explorer row → table tab
     let (x, y) = h.find("T orders").expect("orders row");
     h.click(x + 2, y);
