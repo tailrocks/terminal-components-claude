@@ -87,6 +87,7 @@ impl From<LayerResult> for ModalResult {
             LayerResult::Choice(c) => ModalResult::Choice(c),
             LayerResult::Info(r) => ModalResult::Info(r),
             LayerResult::Help => ModalResult::Help,
+            LayerResult::File(r) => ModalResult::Browser(r),
         }
     }
 }

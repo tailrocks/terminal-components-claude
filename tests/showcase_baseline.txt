@@ -81,7 +81,9 @@
 120x40 TrueColor Popups & tooltips 2f8bd17f05fda7fc
 120x40 TrueColor Popups & tooltips · Options 5dd5a9219593e9c0
 120x40 TrueColor Popups & tooltips · States 52517b7ab233dc61
-120x40 TrueColor File browser 28286b9b93d46139
+120x40 TrueColor File browser 1de264920277cdd8
+120x40 TrueColor File browser · Options df76433fe61951dd
+120x40 TrueColor File browser · States 63e734d52c7c020f
 120x40 TrueColor Progress 1a1d712164baa236
 120x40 TrueColor Progress · Options fd0acc185027fec6
 120x40 TrueColor Progress · States feefb565e12e86c1
@@ -229,7 +231,9 @@
 120x40 Ansi256 Popups & tooltips dcd8567d875dd887
 120x40 Ansi256 Popups & tooltips · Options 14c8ab5016495103
 120x40 Ansi256 Popups & tooltips · States 0222618eec8cd86b
-120x40 Ansi256 File browser 16bc26a0a80a3a5b
+120x40 Ansi256 File browser e4ba19099ccee10c
+120x40 Ansi256 File browser · Options ddf0cb9411e99306
+120x40 Ansi256 File browser · States 09155dffa2cced36
 120x40 Ansi256 Progress 675a44038c64d40c
 120x40 Ansi256 Progress · Options a0dd2bbd1d2fe76a
 120x40 Ansi256 Progress · States 97686944ab9d2a8e
@@ -377,7 +381,9 @@
 120x40 Ansi16 Popups & tooltips 2797ffd49ee95418
 120x40 Ansi16 Popups & tooltips · Options 6b5a5affe7a821ec
 120x40 Ansi16 Popups & tooltips · States 0568750b3adf7956
-120x40 Ansi16 File browser feb26c19ec7efca8
+120x40 Ansi16 File browser 44daaf04a2defe94
+120x40 Ansi16 File browser · Options a6c25222f1fd4d09
+120x40 Ansi16 File browser · States 41b7377ad8ca8a2b
 120x40 Ansi16 Progress d96e612f01f62c47
 120x40 Ansi16 Progress · Options 16adf087b62a112e
 120x40 Ansi16 Progress · States e98e191303abfbd4
@@ -525,7 +531,9 @@
 120x40 Mono Popups & tooltips 51b26b80daa0f56d
 120x40 Mono Popups & tooltips · Options 94d169883862b393
 120x40 Mono Popups & tooltips · States a840309a3ea00ba3
-120x40 Mono File browser 1aab5b536f647709
+120x40 Mono File browser a9080ab4faee0c9f
+120x40 Mono File browser · Options 31faf1c749222e4a
+120x40 Mono File browser · States 0b568c74a740bdd4
 120x40 Mono Progress ab69fc3484d868b2
 120x40 Mono Progress · Options e8042ce005ff2479
 120x40 Mono Progress · States 2a80f76a8643eca6
@@ -673,7 +681,9 @@
 80x24 TrueColor Popups & tooltips 037555fc1dcffb6a
 80x24 TrueColor Popups & tooltips · Options ae3bc56a3d0e310e
 80x24 TrueColor Popups & tooltips · States 93708ac980085570
-80x24 TrueColor File browser e77bc11de12d5ff4
+80x24 TrueColor File browser 6b6657b947c8268c
+80x24 TrueColor File browser · Options 0378629bd91a9591
+80x24 TrueColor File browser · States d742c57bf9ee3fd8
 80x24 TrueColor Progress 11636df701131731
 80x24 TrueColor Progress · Options 590fd229582eff00
 80x24 TrueColor Progress · States 85af45bf220315eb
@@ -821,7 +831,9 @@
 80x24 Ansi256 Popups & tooltips a70816a4f12da952
 80x24 Ansi256 Popups & tooltips · Options cfd20e60056e3f0b
 80x24 Ansi256 Popups & tooltips · States f7552075dfa2bfe7
-80x24 Ansi256 File browser cff0d3a0b18090f4
+80x24 Ansi256 File browser d0f75b6721886533
+80x24 Ansi256 File browser · Options 852eb4db73c01bb0
+80x24 Ansi256 File browser · States f498b662bc029e5f
 80x24 Ansi256 Progress a48a20f870c2b99e
 80x24 Ansi256 Progress · Options 78f02699271a5bd4
 80x24 Ansi256 Progress · States a9a12fd34962feaf
@@ -969,7 +981,9 @@
 80x24 Ansi16 Popups & tooltips 14b0d1d49eef8b00
 80x24 Ansi16 Popups & tooltips · Options 8495daed4b708b24
 80x24 Ansi16 Popups & tooltips · States 26dac1cb787cda50
-80x24 Ansi16 File browser a6e098bd1d8e2797
+80x24 Ansi16 File browser 2f5317be3f0b3f83
+80x24 Ansi16 File browser · Options 2eb0ccab7eb86676
+80x24 Ansi16 File browser · States 921dca266899e1a0
 80x24 Ansi16 Progress b964357a6cc8178e
 80x24 Ansi16 Progress · Options 659a3f63310800b2
 80x24 Ansi16 Progress · States 82a4eaab885c9506
@@ -1117,7 +1131,9 @@
 80x24 Mono Popups & tooltips 911f1add5ab5f9e2
 80x24 Mono Popups & tooltips · Options a45f451544d14032
 80x24 Mono Popups & tooltips · States 1b3239f341e676f2
-80x24 Mono File browser 165477cfc35a4ee5
+80x24 Mono File browser 98d44f962e083ab7
+80x24 Mono File browser · Options 844a122dee0c4204
+80x24 Mono File browser · States 280e4a7c84e946c0
 80x24 Mono Progress 184ab38c2e7832c8
 80x24 Mono Progress · Options 7e8a4438ec605b3c
 80x24 Mono Progress · States 767736e2f3cb9130
@@ -1265,7 +1281,9 @@
 72x20 TrueColor Popups & tooltips 17a823783b94fb7e
 72x20 TrueColor Popups & tooltips · Options 6ee2d19e0297f246
 72x20 TrueColor Popups & tooltips · States f62f8af1e2a2bf85
-72x20 TrueColor File browser 683d04dd1676c67c
+72x20 TrueColor File browser 9c3c1409e5392e81
+72x20 TrueColor File browser · Options 7ae7f66a85923c21
+72x20 TrueColor File browser · States c9414dbbb8ca7340
 72x20 TrueColor Progress 5b29a67e626e8cac
 72x20 TrueColor Progress · Options 103072ffb0a1d959
 72x20 TrueColor Progress · States 23c4698ecf539184
@@ -1413,7 +1431,9 @@
 72x20 Ansi256 Popups & tooltips 69e84ef825fc7ff1
 72x20 Ansi256 Popups & tooltips · Options b3f5318b0c444cdb
 72x20 Ansi256 Popups & tooltips · States 8a58b376cf4cd389
-72x20 Ansi256 File browser d5c44ca7648f4ed4
+72x20 Ansi256 File browser 9e49c417f033729f
+72x20 Ansi256 File browser · Options e1327c9eaa8a2e86
+72x20 Ansi256 File browser · States 6cb7f3aa8f0104c3
 72x20 Ansi256 Progress 28e9be6aa1b88851
 72x20 Ansi256 Progress · Options c88ba7559b46076f
 72x20 Ansi256 Progress · States c0700d2c7421e526
@@ -1561,7 +1581,9 @@
 72x20 Ansi16 Popups & tooltips 94fc0c4132446406
 72x20 Ansi16 Popups & tooltips · Options c52c021248adda44
 72x20 Ansi16 Popups & tooltips · States 31ec40b297460f95
-72x20 Ansi16 File browser ce746b9100b882ef
+72x20 Ansi16 File browser 0b8144218a44f6ed
+72x20 Ansi16 File browser · Options 2479bb5a09c6f48e
+72x20 Ansi16 File browser · States 2c7f7180b42382bc
 72x20 Ansi16 Progress ce579055a3fb59e7
 72x20 Ansi16 Progress · Options 2e4caa7a2168a8dd
 72x20 Ansi16 Progress · States 6aeb7a3fc231631d
@@ -1709,7 +1731,9 @@
 72x20 Mono Popups & tooltips a30fe1b2996a5954
 72x20 Mono Popups & tooltips · Options bcd39b3f8a63978a
 72x20 Mono Popups & tooltips · States 84ec5d932d6cd527
-72x20 Mono File browser f852e96baa66e4fd
+72x20 Mono File browser c05503ea690da2b3
+72x20 Mono File browser · Options a84f4fc3bff39770
+72x20 Mono File browser · States cbd6a1fcfcc45aca
 72x20 Mono Progress d4d5d1955212707d
 72x20 Mono Progress · Options cc2393e57fe071bb
 72x20 Mono Progress · States 5538ce07399e82cf
@@ -1857,7 +1881,9 @@
 100x30 TrueColor Popups & tooltips 84506d3c1122318e
 100x30 TrueColor Popups & tooltips · Options 46cbc023ad5cbfe0
 100x30 TrueColor Popups & tooltips · States fefbf5b62d52de95
-100x30 TrueColor File browser c9bfa16c80e14bca
+100x30 TrueColor File browser 67af857d6381dab3
+100x30 TrueColor File browser · Options bcc751b6728a98d9
+100x30 TrueColor File browser · States d637df4ecb92fdd0
 100x30 TrueColor Progress cba13b325d1ac869
 100x30 TrueColor Progress · Options 4591d237a8e0653d
 100x30 TrueColor Progress · States a9ce379c90e28fa7
@@ -2005,7 +2031,9 @@
 100x30 Ansi256 Popups & tooltips 89ad93e36495b7cc
 100x30 Ansi256 Popups & tooltips · Options b64fe592039768f1
 100x30 Ansi256 Popups & tooltips · States 4ca0ea188498a060
-100x30 Ansi256 File browser b5f8598e9567d318
+100x30 Ansi256 File browser 10332a522290657f
+100x30 Ansi256 File browser · Options e7cce7dbd0d3b205
+100x30 Ansi256 File browser · States 5e4ff971d9f7f235
 100x30 Ansi256 Progress 6b3a6c65b3321e36
 100x30 Ansi256 Progress · Options 160d8caed235b950
 100x30 Ansi256 Progress · States 07701e78679b887a
@@ -2153,7 +2181,9 @@
 100x30 Ansi16 Popups & tooltips 669e3d6482e7c480
 100x30 Ansi16 Popups & tooltips · Options a0fac1641c1f58be
 100x30 Ansi16 Popups & tooltips · States 7512b6242de8330b
-100x30 Ansi16 File browser 7bba5f6667dfad07
+100x30 Ansi16 File browser d116b1cf44fdf6f4
+100x30 Ansi16 File browser · Options d6522d351b79a0a2
+100x30 Ansi16 File browser · States 311973fef2d68f4d
 100x30 Ansi16 Progress 9df2e80f6811d69b
 100x30 Ansi16 Progress · Options ea3876eecc81e66b
 100x30 Ansi16 Progress · States 685d06a163530ad1
@@ -2301,7 +2331,9 @@
 100x30 Mono Popups & tooltips 9395a0559d2387a3
 100x30 Mono Popups & tooltips · Options 4d50810af2e6b11f
 100x30 Mono Popups & tooltips · States 3635d43658b2f406
-100x30 Mono File browser 47c139840c91a446
+100x30 Mono File browser cbecceb5b651f8b7
+100x30 Mono File browser · Options e757e4a48923dd4d
+100x30 Mono File browser · States e2160f8c93617544
 100x30 Mono Progress c581570ae2d5748e
 100x30 Mono Progress · Options 9689ee3b138c5fba
 100x30 Mono Progress · States 74185b05b09cbf8b
@@ -2449,7 +2481,9 @@
 160x50 TrueColor Popups & tooltips ce026b3d3a322784
 160x50 TrueColor Popups & tooltips · Options 6fe6af4caf189758
 160x50 TrueColor Popups & tooltips · States e6f09084366cfb3c
-160x50 TrueColor File browser 330a62f2c4721dce
+160x50 TrueColor File browser 02d6a2a2880ee23a
+160x50 TrueColor File browser · Options a836fc953334939a
+160x50 TrueColor File browser · States 54c4d52ba70a589e
 160x50 TrueColor Progress 373a5d552d6365f7
 160x50 TrueColor Progress · Options 0452a084ae04128d
 160x50 TrueColor Progress · States 9cdff6f5fa7010dd
@@ -2597,7 +2631,9 @@
 160x50 Ansi256 Popups & tooltips 061e42127adad5c3
 160x50 Ansi256 Popups & tooltips · Options 1b81a0070a185229
 160x50 Ansi256 Popups & tooltips · States 84654622d14a17ff
-160x50 Ansi256 File browser 6e719c540e5c65c8
+160x50 Ansi256 File browser c79fda05bb71713e
+160x50 Ansi256 File browser · Options 7101b9b39e429b60
+160x50 Ansi256 File browser · States 6b961859c89fe5e0
 160x50 Ansi256 Progress 32819b56bb3e09a0
 160x50 Ansi256 Progress · Options 823a684523d24277
 160x50 Ansi256 Progress · States c5c9d1ae5bbd24c8
@@ -2745,7 +2781,9 @@
 160x50 Ansi16 Popups & tooltips 3ca501105ea8182c
 160x50 Ansi16 Popups & tooltips · Options a9cad17768ec4675
 160x50 Ansi16 Popups & tooltips · States 700eef964735899c
-160x50 Ansi16 File browser 80e49077e9188cdf
+160x50 Ansi16 File browser 4bd4447c877b27dc
+160x50 Ansi16 File browser · Options d699fb5785c6e5ba
+160x50 Ansi16 File browser · States 9a73e3844ca8410e
 160x50 Ansi16 Progress 969612bded281437
 160x50 Ansi16 Progress · Options ab568e8d0f3edead
 160x50 Ansi16 Progress · States 66aef7cabeb94747
@@ -2893,7 +2931,9 @@
 160x50 Mono Popups & tooltips 22ab732cdfaed653
 160x50 Mono Popups & tooltips · Options bbcb2c9d13a48432
 160x50 Mono Popups & tooltips · States b1248060cc1e0c25
-160x50 Mono File browser 42f772f5c0b28d4e
+160x50 Mono File browser 1feb98fd942addc5
+160x50 Mono File browser · Options 7c72234b0230109f
+160x50 Mono File browser · States 25f32b92ad33944d
 160x50 Mono Progress 56f2ddc55a11d101
 160x50 Mono Progress · Options c88ae5321629cd36
 160x50 Mono Progress · States 282afad85e418bee

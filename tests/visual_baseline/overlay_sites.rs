@@ -181,6 +181,7 @@ pub const SITES: &[Site] = &[
     rows("showcase/pages/dialog_kinds.rs::open_key_picker", &["showcase/overlays/dialogkinds_key_picker"]),
     rows("showcase/pages/finder.rs::open_alternatives", &["showcase/overlays/finder_alternatives"]),
     rows("showcase/pages/finder.rs::open_why", &["showcase/overlays/finder_why"]),
+    rows("showcase/pages/file_browser.rs::open", &["showcase/overlays/filebrowser", "showcase/overlays/filebrowser_url"]),
     rows("showcase/pages/selectable.rs::ask_delete", &["showcase/flows/selectable/delete_confirm"]),
     rows("showcase/pages/selectable.rs::open_menu", &["showcase/overlays/selectable_context"]),
     rows("showcase/pages/selectable.rs::table_input", &["showcase/overlays/selectable_discard"]),
