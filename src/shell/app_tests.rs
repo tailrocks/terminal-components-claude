@@ -168,3 +168,112 @@ fn the_too_small_screen_draws_no_page_and_keeps_focus() {
     assert!(app.shell.too_small);
     assert_eq!(app.focused(), Some(WidgetId::of("b")));
 }
+
+/// An app with a virtual clock and a job due at 1,100 ms (V12): pastes
+/// are logged, so a clock-step request that reaches `on_input` shows.
+struct Clocked {
+    shell: Shell,
+    clock: crate::clock::SimClock,
+    job_fired: bool,
+    pastes: Vec<String>,
+    steps: bool,
+}
+
+impl Clocked {
+    fn new(motion: Motion, steps: bool) -> Self {
+        let mut shell = Shell::new();
+        shell.motion = motion;
+        let mut clock = crate::clock::SimClock::new(0, 0);
+        clock.running = motion != Motion::Paused;
+        Self {
+            shell,
+            clock,
+            job_fired: false,
+            pastes: vec![],
+            steps,
+        }
+    }
+    fn on_tick(&mut self) -> Outcome {
+        self.clock.advance(500);
+        if self.clock.now_ms >= 1_100 && !self.job_fired {
+            self.job_fired = true;
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+}
+
+impl App for Clocked {
+    type Status = ();
+    fn shell(&self) -> &Shell {
+        &self.shell
+    }
+    fn shell_mut(&mut self) -> &mut Shell {
+        &mut self.shell
+    }
+    fn theme(&self) -> Theme {
+        Theme::junie()
+    }
+    fn too_small(&self) -> TooSmall<'_> {
+        TooSmall::new("demo").min(20, 3)
+    }
+    fn now_ms(&self) -> u64 {
+        self.clock.now_ms as u64
+    }
+    fn tick(&self) -> u64 {
+        0
+    }
+    fn tick_interval(&self) -> Duration {
+        Duration::from_millis(500)
+    }
+    fn draw(&mut self, _area: Rect, _buf: &mut Buffer, _ctx: &mut RenderCtx) {}
+    fn on_input(&mut self, input: Input) -> Outcome {
+        match input {
+            Input::Tick => self.on_tick(),
+            Input::Paste(text) => {
+                self.pastes.push(text);
+                Outcome::Changed
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+    fn advance_clock(&mut self, ms: u64) -> Option<Outcome> {
+        self.steps
+            .then(|| crate::clock::run_step(self, |a| &mut a.clock, ms, Clocked::on_tick))
+    }
+}
+
+#[test]
+fn a_clock_step_runs_a_paused_apps_jobs_and_leaves_its_clock_stopped() {
+    let mut app = Clocked::new(Motion::Paused, true);
+    // paused: ticks never fire the job
+    for _ in 0..5 {
+        let _ = Application::handle(&mut app, Input::Tick);
+    }
+    assert!(!app.job_fired);
+    let out = Application::handle(
+        &mut app,
+        Input::Paste(crate::clock::ClockStep::request(1_100)),
+    );
+    assert_eq!(out, Outcome::Changed);
+    assert!(app.job_fired, "the step fired the job due at 1,100 ms");
+    assert_eq!(app.clock.now_ms, 1_500);
+    assert!(app.pastes.is_empty(), "the request is not pasted");
+    let _ = Application::handle(&mut app, Input::Tick);
+    assert_eq!(app.clock.now_ms, 1_500, "stopped again after the step");
+}
+
+#[test]
+fn a_clock_step_request_is_an_ordinary_paste_unless_paused_and_supported() {
+    let request = crate::clock::ClockStep::request(1_100);
+    // not paused: the app's clock runs anyway, the text is a paste
+    let mut full = Clocked::new(Motion::Full, true);
+    let _ = Application::handle(&mut full, Input::Paste(request.clone()));
+    assert_eq!(full.pastes, vec![request.clone()]);
+    assert_eq!(full.clock.now_ms, 0);
+    // paused, but the app has no clock to step (the default)
+    let mut plain = Clocked::new(Motion::Paused, false);
+    let _ = Application::handle(&mut plain, Input::Paste(request.clone()));
+    assert_eq!(plain.pastes, vec![request]);
+    assert!(!plain.job_fired);
+}
