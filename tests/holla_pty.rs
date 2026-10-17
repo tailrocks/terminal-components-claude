@@ -1,262 +1,124 @@
-//! Fresh-process proofs of the holla preview on an owned pseudo-terminal:
+//! Fresh-process proofs of the holla preview on a tuiscotti PTY session:
 //! the colour policy matrix (F23f: explicit palette, `NO_COLOR` empty and
 //! non-empty, `NO_COLOR` against an explicit flag) and the bounded input
 //! flood (F23d: dispatch and quit latency under a queue the terminal keeps
 //! feeding). Every wait is bounded and nothing touches the developer's
 //! terminal.
 //!
-//! Scope: macOS and Linux. Colour SGR is asserted separately from
-//! reverse/bold/dim/underline so an attribute-only frame is never mistaken
+//! The PTY, the emulator and the input writer are tuiscotti's
+//! (`tuiscotti::tui`, T17): no hand-rolled pseudo-terminal here. Colour classes
+//! are read from the emulated cells (`Color::Rgb` for 24-bit SGR,
+//! `Color::Indexed` for `38;5;n` and the `3x`/`9x` forms), modifiers from
+//! the cell `Mods`, so colour is still asserted separately from
+//! reverse/bold/dim/underline and an attribute-only frame is never mistaken
 //! for a coloured one.
+//!
+//! Scope: macOS and Linux.
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
-use std::ffi::{c_int, c_ulong, c_void};
-use std::fs::File;
-use std::io::{Read, Write};
-use std::os::fd::FromRawFd;
-use std::os::unix::process::CommandExt;
-use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-#[cfg(target_os = "macos")]
-const TIOCSCTTY: c_ulong = 0x2000_7461;
-#[cfg(target_os = "linux")]
-const TIOCSCTTY: c_ulong = 0x540E;
-
-#[repr(C)]
-struct Winsize {
-    ws_row: u16,
-    ws_col: u16,
-    ws_xpixel: u16,
-    ws_ypixel: u16,
-}
-
-#[cfg_attr(target_os = "linux", link(name = "util"))]
-unsafe extern "C" {
-    fn openpty(
-        amaster: *mut c_int,
-        aslave: *mut c_int,
-        name: *mut u8,
-        termp: *const c_void,
-        winp: *const c_void,
-    ) -> c_int;
-    fn setsid() -> c_int;
-    fn ioctl(fd: c_int, req: c_ulong, ...) -> c_int;
-}
+use tuiscotti::Observation;
+use tuiscotti::frame::Color;
+use tuiscotti::tui::{CancelToken, Session, Tui};
 
 const BOUND: Duration = Duration::from_secs(15);
 
-struct Pty {
-    master: File,
-    child: std::process::Child,
-    output: Arc<Mutex<Vec<u8>>>,
-}
-
-impl Pty {
-    fn spawn(args: &[&str], env: &[(&str, Option<&str>)], cols: u16, rows: u16) -> Self {
-        let mut master: c_int = -1;
-        let mut slave: c_int = -1;
-        let win = Winsize {
-            ws_row: rows,
-            ws_col: cols,
-            ws_xpixel: 0,
-            ws_ypixel: 0,
+fn spawn(args: &[&str], env: &[(&str, Option<&str>)], cols: u16, rows: u16) -> Session {
+    let mut tui = Tui::new([env!("CARGO_BIN_EXE_holla")])
+        .args(args)
+        .size(cols, rows)
+        .env("TERM", "xterm-256color")
+        .env("COLORTERM", "truecolor")
+        .env_remove("NO_COLOR")
+        .env_remove("HOLLA_NO_MOTION")
+        .env_remove("CLICOLOR_FORCE")
+        .env_remove("FORCE_COLOR");
+    for (k, v) in env {
+        tui = match v {
+            Some(v) => tui.env(k, v),
+            None => tui.env_remove(k),
         };
-        // SAFETY: valid out-pointers; the winsize outlives the call.
-        let rc = unsafe {
-            openpty(
-                &mut master,
-                &mut slave,
-                std::ptr::null_mut(),
-                std::ptr::null(),
-                (&win as *const Winsize).cast(),
-            )
-        };
-        assert_eq!(rc, 0, "openpty failed");
-        // SAFETY: freshly created descriptors owned here.
-        let slave_in = unsafe { File::from_raw_fd(slave) };
-        let slave_out = slave_in.try_clone().unwrap();
-        let slave_err = slave_in.try_clone().unwrap();
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_holla"));
-        cmd.args(args)
-            .env("TERM", "xterm-256color")
-            .env("COLORTERM", "truecolor")
-            .env_remove("NO_COLOR")
-            .env_remove("HOLLA_NO_MOTION")
-            .env_remove("CLICOLOR_FORCE")
-            .env_remove("FORCE_COLOR")
-            .stdin(Stdio::from(slave_in))
-            .stdout(Stdio::from(slave_out))
-            .stderr(Stdio::from(slave_err));
-        for (k, v) in env {
-            match v {
-                Some(v) => {
-                    cmd.env(k, v);
-                }
-                None => {
-                    cmd.env_remove(k);
-                }
-            }
-        }
-        // SAFETY: only async-signal-safe calls run between fork and exec.
-        unsafe {
-            cmd.pre_exec(|| {
-                setsid();
-                ioctl(0, TIOCSCTTY, 0);
-                Ok(())
-            });
-        }
-        let child = cmd.spawn().expect("spawn holla on the pty");
-        drop(cmd);
-        // SAFETY: master is an owned open descriptor.
-        let master = unsafe { File::from_raw_fd(master) };
-        let output = Arc::new(Mutex::new(Vec::new()));
-        let sink = Arc::clone(&output);
-        let mut reader = master.try_clone().unwrap();
-        std::thread::spawn(move || {
-            let mut buf = [0u8; 8192];
-            loop {
-                match reader.read(&mut buf) {
-                    Ok(0) | Err(_) => break,
-                    Ok(n) => sink.lock().unwrap().extend_from_slice(&buf[..n]),
-                }
-            }
-        });
-        Self {
-            master,
-            child,
-            output,
-        }
     }
-
-    fn text(&self) -> String {
-        String::from_utf8_lossy(&self.output.lock().unwrap()).into_owned()
-    }
-
-    fn wait_for(&self, what: &str, mut cond: impl FnMut(&str) -> bool) {
-        let start = Instant::now();
-        while !cond(&self.text()) {
-            assert!(
-                start.elapsed() < BOUND,
-                "timed out waiting for {what}; output: {:?}",
-                self.text()
-            );
-            std::thread::sleep(Duration::from_millis(20));
-        }
-    }
-
-    fn send(&mut self, bytes: &[u8]) {
-        // the pty input buffer is small: feed it in chunks and, on a write
-        // error, say whether the application is still alive
-        for (i, chunk) in bytes.chunks(512).enumerate() {
-            if let Err(e) = self.master.write_all(chunk) {
-                let status = self.child.try_wait().unwrap();
-                panic!(
-                    "write of chunk {i} to the pty failed: {e}; child status {status:?}; output tail: {:?}",
-                    self.text().chars().rev().take(200).collect::<String>()
-                );
-            }
-            self.master.flush().unwrap();
-        }
-    }
-
-    fn wait_exit(&mut self) -> i32 {
-        let start = Instant::now();
-        loop {
-            if let Some(s) = self.child.try_wait().unwrap() {
-                return s.code().unwrap_or(-1);
-            }
-            assert!(
-                start.elapsed() < BOUND,
-                "holla did not exit; output: {:?}",
-                self.text()
-            );
-            std::thread::sleep(Duration::from_millis(20));
-        }
-    }
+    tui.spawn().expect("spawn holla on a tuiscotti pty")
 }
 
-impl Drop for Pty {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
+fn screen_text(obs: &Observation) -> String {
+    tuiscotti::render::frame_from_screen(&obs.screen, "holla_pty").text()
 }
 
-/// SGR classes found in a stream, counted separately: colour never hides
-/// behind an attribute and an attribute never counts as colour. Crossterm
-/// serializes the sixteen named colours as `38;5;n` with n below 16, so
-/// that form counts as the basic palette, never as the 256-colour cube.
+fn wait_for(session: &Session, what: &str, cond: impl Fn(&Observation) -> bool) -> Observation {
+    session
+        .wait_predicate(cond, Instant::now() + BOUND, &CancelToken::new())
+        .unwrap_or_else(|e| panic!("timed out waiting for {what}: {e}"))
+}
+
+/// Wait for the child to exit and return its exit code.
+fn wait_exit(session: &Session) -> u32 {
+    let exit = session
+        .wait_exit(Instant::now() + BOUND, &CancelToken::new())
+        .unwrap_or_else(|e| panic!("holla did not exit: {e}"));
+    assert!(
+        exit.status.signal().is_none(),
+        "holla was killed: {}",
+        exit.status
+    );
+    exit.status.code()
+}
+
+/// Colour and attribute classes found on a screen, counted per cell and
+/// kept apart: colour never hides behind an attribute and an attribute
+/// never counts as colour. The emulator keeps crossterm's `38;5;n` with n
+/// below 16 and the `3x`/`9x` forms alike as a palette index below 16, so
+/// both count as the basic palette, never as the 256-colour cube.
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Sgr {
     truecolor: usize,
-    /// `38;5;n` with n >= 16: the 256-colour cube and greys.
+    /// Palette index >= 16: the 256-colour cube and greys.
     indexed: usize,
-    /// `3x`/`9x`/`4x`/`10x` or `38;5;n` with n < 16.
+    /// Palette index < 16.
     basic: usize,
     reverse: usize,
     bold: usize,
     dim: usize,
     underline: usize,
     /// Distinct palette indexes below 16 that were used.
-    palette: Vec<u32>,
+    palette: Vec<u8>,
 }
 
-fn classify(text: &str) -> Sgr {
-    let mut s = Sgr::default();
-    let mut rest = text;
-    while let Some(i) = rest.find("\x1b[") {
-        rest = &rest[i + 2..];
-        let Some(end) = rest.find(|c: char| c.is_ascii_alphabetic()) else {
-            break;
-        };
-        let (params, tail) = rest.split_at(end);
-        let final_byte = tail.chars().next().unwrap();
-        rest = &tail[1..];
-        if final_byte != 'm' {
-            continue;
-        }
-        let toks: Vec<u32> = params
-            .split([';', ':'])
-            .map(|t| t.parse().unwrap_or(0))
-            .collect();
-        let mut i = 0;
-        while i < toks.len() {
-            match toks[i] {
-                38 | 48 | 58 => match toks.get(i + 1) {
-                    Some(2) => {
-                        s.truecolor += 1;
-                        i += 4;
-                    }
-                    Some(5) => {
-                        match toks.get(i + 2) {
-                            Some(n) if *n < 16 => {
-                                s.basic += 1;
-                                if !s.palette.contains(n) {
-                                    s.palette.push(*n);
-                                }
-                            }
-                            _ => s.indexed += 1,
-                        }
-                        i += 2;
-                    }
-                    _ => {}
-                },
-                30..=37 | 40..=47 | 90..=97 | 100..=107 => s.basic += 1,
-                7 => s.reverse += 1,
-                1 => s.bold += 1,
-                2 => s.dim += 1,
-                4 => s.underline += 1,
-                _ => {}
+impl Sgr {
+    fn colour(&mut self, c: Color) {
+        match c {
+            Color::Default => {}
+            Color::Rgb(_) => self.truecolor += 1,
+            Color::Indexed(n) if n < 16 => {
+                self.basic += 1;
+                if !self.palette.contains(&n) {
+                    self.palette.push(n);
+                }
             }
-            i += 1;
+            Color::Indexed(_) => self.indexed += 1,
         }
     }
-    s
+
+    fn add(&mut self, obs: &Observation) {
+        for cell in obs.screen.cells() {
+            self.colour(cell.fg);
+            self.colour(cell.bg);
+            self.colour(cell.underline_color);
+            let m = cell.mods;
+            self.reverse += usize::from(m.reverse);
+            self.bold += usize::from(m.bold);
+            self.dim += usize::from(m.dim);
+            self.underline += usize::from(m.underline);
+        }
+    }
 }
 
+/// Every frame the run drew is classified: the first frame, the frame after
+/// Tab moved focus to the preview, and the frame after Shift+Tab moved it
+/// back.
 fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
     let mut base = vec![
         "--scenario",
@@ -267,21 +129,33 @@ fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
         "40",
     ];
     base.extend_from_slice(args);
-    let mut pty = Pty::spawn(&base, env, 100, 30);
-    pty.wait_for("the first frame", |t| {
+    let session = spawn(&base, env, 100, 30);
+    let mut sgr = Sgr::default();
+    let first = wait_for(&session, "the first frame", |o| {
+        let t = screen_text(o);
         t.contains("holla") && t.contains("Suggested")
     });
+    sgr.add(&first);
+    let settle = |s: &Session| {
+        s.wait_stable_quiet(
+            Instant::now() + BOUND,
+            Duration::from_millis(150),
+            &CancelToken::new(),
+        )
+        .unwrap_or_else(|e| panic!("the frame never settled: {e}"))
+    };
     // a stable second frame: Tab moves to the preview and back
-    pty.send(b"\t");
-    std::thread::sleep(Duration::from_millis(150));
-    pty.send(b"\x1b[Z");
-    std::thread::sleep(Duration::from_millis(150));
+    session.send_bytes(b"\t").expect("Tab");
+    sgr.add(&settle(&session));
+    session.send_bytes(b"\x1b[Z").expect("Shift+Tab");
+    let last = settle(&session);
+    sgr.add(&last);
     // Ctrl+Q on a clean shell quits (Esc never quits, keyboard audit #21)
-    pty.send(b"\x11");
-    let code = pty.wait_exit();
-    assert_eq!(code, 0, "clean exit: {:?}", pty.text());
-    let text = pty.text();
-    (classify(&text), text)
+    session.send_bytes(b"\x11").expect("Ctrl+Q");
+    let text = screen_text(&last);
+    let code = wait_exit(&session);
+    assert_eq!(code, 0, "clean exit: {text}");
+    (sgr, text)
 }
 
 #[test]
@@ -376,14 +250,16 @@ fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
 
 #[test]
 fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
-    let mut pty = Pty::spawn(
+    let session = spawn(
         &["--scenario", "first-use", "--motion", "reduced"],
         &[],
         100,
         30,
     );
-    pty.wait_for("the first frame", |t| t.contains("holla"));
-    let before = pty.text().len();
+    let first = wait_for(&session, "the first frame", |o| {
+        screen_text(o).contains("holla")
+    });
+    let before = first.revision;
     // 8000 Ctrl+B presses: a single byte each (no escape-sequence boundary
     // ambiguity across pty reads) bound to nothing on the root, so every one
     // is an ignored event; the queue keeps feeding while the loop drains.
@@ -391,21 +267,33 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     // per readiness), so the runtime must keep reading what the terminal
     // still holds without new input arriving: crossterm 0.29 alone leaves
     // it in the kernel on Linux and the quit behind it is never seen.
+    // tuiscotti's writer thread feeds the whole flood through the pty in
+    // one acknowledged write, blocking while the kernel buffer is full, so
+    // the application sees the same back-pressured burst.
     let flood: Vec<u8> = vec![0x02; 8000];
     let start = Instant::now();
-    pty.send(&flood);
+    session.send_bytes(&flood).unwrap_or_else(|e| {
+        panic!(
+            "the flood write failed: {e}; child status {:?}",
+            session.poll_exit()
+        )
+    });
     // discovery ticks keep landing while the flood drains: the frame changes
-    pty.wait_for("a redraw during the flood", |t| t.len() > before + 64);
+    wait_for(&session, "a redraw during the flood", |o| {
+        o.revision > before
+    });
     // a quit queued behind the flood is honoured once the flood is consumed
     // (Ctrl+Q: Esc never quits, keyboard audit #21). Its latency is timed on
     // its own: the redraw wait above follows the app's tick cadence, not
     // the drain.
     let quit = Instant::now();
-    pty.send(b"\x11");
-    let code = pty.wait_exit();
+    session
+        .send_bytes(b"\x11")
+        .expect("Ctrl+Q behind the flood");
+    let code = wait_exit(&session);
     let quit_latency = quit.elapsed();
     let elapsed = start.elapsed();
-    assert_eq!(code, 0, "clean exit after the flood: {:?}", pty.text());
+    assert_eq!(code, 0, "clean exit after the flood");
     assert!(
         quit_latency < Duration::from_secs(3),
         "the quit behind 8000 ignored events took {quit_latency:?}"
