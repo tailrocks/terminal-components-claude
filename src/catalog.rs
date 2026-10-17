@@ -2726,6 +2726,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::segments::Segment::priority"),
     Capability::builder("widgets::segments::Segment::lead"),
     Capability::function("widgets::segments::render"),
+    Capability::function("widgets::segments::width"),
     // widgets::select
     Capability::ty("widgets::select::Select"),
     Capability::ty("widgets::select::SelectAction"),
