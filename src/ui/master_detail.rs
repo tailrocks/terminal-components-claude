@@ -148,7 +148,17 @@ impl MasterDetail {
     /// a seam drag never resizes the container). Laid out at it, the
     /// layout does not collapse and neither pane is squeezed.
     pub fn natural_width(&self, master: u16, detail: u16) -> u16 {
-        let both = match self.size {
+        self.panes_width(master, detail).max(self.collapse_below)
+    }
+
+    /// The fewest columns that show the master at least `master` and the
+    /// detail at least `detail` columns wide side by side, as
+    /// [`Self::natural_width`] but without its [`Self::collapse_below`]
+    /// floor: an owner that lets the layout collapse on purpose (a
+    /// threshold set above what its panes need, to show the drawer)
+    /// measures with this, so the collapse still happens below it.
+    pub fn panes_width(&self, master: u16, detail: u16) -> u16 {
+        match self.size {
             DetailSize::Resizable => self.split.natural_extent(master, detail, self.gap),
             DetailSize::Share { pct, min, max } => {
                 // the share never draws the detail wider than its max
@@ -176,8 +186,44 @@ impl MasterDetail {
                 }
                 w
             }
-        };
-        both.max(self.collapse_below)
+        }
+    }
+
+    /// The master's and the detail's rects in `area` while both panes
+    /// show side by side; `None` when `area` is narrower than
+    /// [`Self::collapse_below`] (one pane). [`Self::layout`] places the
+    /// panes here, so an owner measuring its content (a pane's height at
+    /// the width it gets) reads the same widths.
+    pub fn split_rects(&self, area: Rect) -> Option<(Rect, Rect)> {
+        if area.width < self.collapse_below {
+            return None;
+        }
+        Some(match self.size {
+            DetailSize::Share { pct, min, max } => {
+                let dw = (area.width as u32 * pct as u32 / 100) as u16;
+                let dw = dw.clamp(min, max.max(min));
+                let master = Rect::new(
+                    area.x,
+                    area.y,
+                    area.width.saturating_sub(dw + self.gap),
+                    area.height,
+                );
+                (
+                    master,
+                    Rect::new(master.right() + self.gap, area.y, dw, area.height),
+                )
+            }
+            DetailSize::MasterShare { pct, min, max } => {
+                let mw = ((area.width as u32 * pct as u32 + 50) / 100) as u16;
+                let mw = mw.clamp(min, max.max(min)).min(area.width);
+                let dx = (mw + self.gap).min(area.width);
+                (
+                    Rect::new(area.x, area.y, mw, area.height),
+                    Rect::new(area.x + dx, area.y, area.width - dx, area.height),
+                )
+            }
+            DetailSize::Resizable => self.split.horizontal(area, self.gap),
+        })
     }
 
     /// See [`Self::collapse_below`].
@@ -307,39 +353,18 @@ impl MasterDetail {
         bg: Color,
     ) -> MdLayout {
         let mut l = MdLayout::default();
-        if area.width >= self.collapse_below {
+        if let Some((master, detail)) = self.split_rects(area) {
             l.mode = Mode::Split;
-            match self.size {
-                DetailSize::Share { pct, min, max } => {
-                    let dw = (area.width as u32 * pct as u32 / 100) as u16;
-                    let dw = dw.clamp(min, max.max(min));
-                    l.master = Rect::new(
-                        area.x,
-                        area.y,
-                        area.width.saturating_sub(dw + self.gap),
-                        area.height,
-                    );
-                    l.detail = Rect::new(l.master.right() + self.gap, area.y, dw, area.height);
+            l.master = master;
+            l.detail = detail;
+            if self.size == DetailSize::Resizable {
+                self.container = area;
+                let handle = self.split.handle(SplitDir::Horizontal, area, self.gap);
+                if !handle.is_empty() {
+                    let off = (self.gap / 2).min(handle.width.saturating_sub(1));
+                    l.seam = Rect::new(handle.x + off, handle.y, 1, handle.height);
                 }
-                DetailSize::MasterShare { pct, min, max } => {
-                    let mw = ((area.width as u32 * pct as u32 + 50) / 100) as u16;
-                    let mw = mw.clamp(min, max.max(min)).min(area.width);
-                    l.master = Rect::new(area.x, area.y, mw, area.height);
-                    let dx = (mw + self.gap).min(area.width);
-                    l.detail = Rect::new(area.x + dx, area.y, area.width - dx, area.height);
-                }
-                DetailSize::Resizable => {
-                    self.container = area;
-                    let (m, d) = self.split.horizontal(area, self.gap);
-                    l.master = m;
-                    l.detail = d;
-                    let handle = self.split.handle(SplitDir::Horizontal, area, self.gap);
-                    if !handle.is_empty() {
-                        let off = (self.gap / 2).min(handle.width.saturating_sub(1));
-                        l.seam = Rect::new(handle.x + off, handle.y, 1, handle.height);
-                    }
-                    self.seam.render(l.seam, buf, ctx, bg);
-                }
+                self.seam.render(l.seam, buf, ctx, bg);
             }
         } else {
             let focus = ctx.interaction;
@@ -605,6 +630,46 @@ mod tests {
                 assert!(l.detail.width >= d, "detail {:?} for {d}", l.detail);
             }
         }
+    }
+
+    /// An owner measuring a pane reads the widths the layout draws:
+    /// `split_rects` is the layout's split, and `None` where it collapses.
+    #[test]
+    fn split_rects_are_the_panes_the_layout_draws() {
+        for mut md in [
+            MasterDetail::new(M, D),
+            MasterDetail::new(M, D)
+                .detail_share(40, 30, 44)
+                .collapse_below(72),
+            MasterDetail::new(M, D).master_share(33, 10, 40),
+        ] {
+            for width in [60, 72, 90, 108, 140] {
+                let (l, _) = frame(&mut md, width, None);
+                let rects = md.split_rects(Rect::new(0, 0, width, 20));
+                match l.mode {
+                    Mode::Split => assert_eq!(rects, Some((l.master, l.detail)), "{width}"),
+                    _ => assert_eq!(rects, None, "{width}"),
+                }
+            }
+        }
+    }
+
+    /// `panes_width` is what the panes need: a collapse threshold set
+    /// above it still collapses the layout there.
+    #[test]
+    fn panes_width_leaves_a_higher_collapse_threshold_in_force() {
+        let mut md = MasterDetail::new(M, D)
+            .detail_share(40, 30, 44)
+            .collapse_below(108);
+        let w = md.panes_width(50, 30);
+        assert!(w < 108, "{w}");
+        assert_eq!(md.natural_width(50, 30), 108);
+        let (l, _) = frame(&mut md, w, None);
+        assert_eq!(l.mode, Mode::Master);
+        md.collapse_below = 0;
+        let (l, _) = frame(&mut md, w, None);
+        assert_eq!(l.mode, Mode::Split);
+        assert!(l.master.width >= 50 && l.detail.width >= 30, "{l:?}");
     }
 
     /// A moved seam shares the same room out: the natural width is the

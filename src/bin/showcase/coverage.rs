@@ -6446,6 +6446,8 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "in_detail",
             "last",
             "natural_width",
+            "panes_width",
+            "split_rects",
         ],
     ),
     (
