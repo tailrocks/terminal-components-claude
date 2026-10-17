@@ -1258,4 +1258,50 @@ mod tests {
         unsafe { std::env::remove_var("CI") };
         assert!(refuse_in_ci("import").is_ok());
     }
+
+    /// The first `"…"` value on the first line of `text` that starts with
+    /// `key`, after the key.
+    fn quoted_value(text: &str, key: &str) -> String {
+        let line = text
+            .lines()
+            .find(|l| l.starts_with(key))
+            .unwrap_or_else(|| panic!("no line starting with {key}"));
+        let rest = &line[key.len()..];
+        let start = rest.find('"').expect("a quoted value") + 1;
+        let len = rest[start..].find('"').expect("a closing quote");
+        rest[start..start + len].to_string()
+    }
+
+    /// `mise.toml` pins the developer tools (docs/dependencies.md, "Tools
+    /// via mise"). Its Rust, tuiscotti CLI and velnor-actions must stay the
+    /// versions `rust-toolchain.toml` (what CI installs), the tuiscotti
+    /// dev-dependency and the velnor release manifest name.
+    #[test]
+    fn mise_pins_match_the_repository_pins() {
+        let read = |p: &str| std::fs::read_to_string(root().join(p)).unwrap();
+        let mise = read("mise.toml");
+        assert_eq!(
+            quoted_value(&mise, "rust = "),
+            quoted_value(&read("rust-toolchain.toml"), "channel = "),
+            "mise.toml rust must equal the rust-toolchain.toml channel"
+        );
+        let cargo = read("Cargo.toml");
+        let dep = cargo
+            .lines()
+            .find(|l| l.starts_with("tuiscotti = "))
+            .expect("the tuiscotti dev-dependency");
+        assert_eq!(
+            quoted_value(&mise, "\"cargo:https://github.com/tailrocks/tuiscotti\" = "),
+            format!(
+                "rev:{}",
+                quoted_value(&dep[dep.find("rev").unwrap()..], "rev")
+            ),
+            "mise.toml tuiscotti CLI must use the Cargo.toml tuiscotti rev"
+        );
+        assert_eq!(
+            quoted_value(&mise, "\"github:tailrocks/velnor-new\" = "),
+            quoted_value(&read(".velnor/release-manifest.json"), "  \"version\""),
+            "mise.toml velnor-actions must be the .velnor/release-manifest.json release"
+        );
+    }
 }
