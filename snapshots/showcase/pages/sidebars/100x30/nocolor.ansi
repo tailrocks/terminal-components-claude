@@ -2,28 +2,28 @@
                                                                                                     [0m
  [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text f… [0m
                                                                                                     [0m
-    Overview                                 ‹       Tasks                                          [0m
-  ▸ App shell           Workspace               │                                                   [0m
-  ▸ Inputs & forms    › T Tasks               3 │    One focus stop. ↑↓ (or j k) move the cursor,   [0m
-  ▸ Tables              R Runs                  │    Enter opens.                                   [0m
-  ▾ Navigation          B Branches              │                                                   [0m
-      Lists                                     │    ›  current item · persists when focus leaves   [0m
-      Trees             Project                 │    ▎  keyboard cursor · only while focused        [0m
- [0m[1m▎  › Sidebars     [0m     M Members               │    ░  hover · follows the pointer                 [0m
-      Tabs              E Environment           │                                                   [0m
-      Menus          [0m[2m   $ Billing               [0m│    Disabled items are skipped and ignore the      [0m
-  ▸ Overlays                                    │    pointer.                                       [0m
-  ▸ Feedback            Preferences             │    Collapse keeps rows and markers, initials      [0m
-  ▸ Layout              K Keyboard              │    only.                                          [0m
-  ▸ Text & code         A Appearance            │    ‹ on the frame or Ctrl+B hides the sidebar     [0m
-  ▸ Screens                                     │    behind its rail.                               [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                  [0m
+  ▸ Tables                                   ‹       Tasks                                          [0m
+  ▾ Navigation          Workspace               │                                                   [0m
+      Lists           › T Tasks               3 │    One focus stop. ↑↓ (or j k) move the cursor,   [0m
+      Trees             R Runs                  │    Enter opens.                                   [0m
+ [0m[1m▎  › Sidebars     [0m     B Branches              │                                                   [0m
+      Tabs                                      │    ›  current item · persists when focus leaves   [0m
+      Menus             Project                 │    ▎  keyboard cursor · only while focused        [0m
+  ▸ Overlays            M Members               │    ░  hover · follows the pointer                 [0m
+  ▸ Feedback            E Environment           │                                                   [0m
+  ▸ Layout           [0m[2m   $ Billing               [0m│    Disabled items are skipped and ignore the      [0m
+  ▸ Text & code                                 │    pointer.                                       [0m
+  ▸ Screens             Preferences             │    Collapse keeps rows and markers, initials      [0m
+                        K Keyboard              │    only.                                          [0m
+                        A Appearance            │    ‹ on the frame or Ctrl+B hides the sidebar     [0m
+                                                │    behind its rail.                               [0m
                                                 │                                                   [0m
                                                 │    Last: none yet                                 [0m
                                                                                                     [0m
                        Collapse                                                                     [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m
