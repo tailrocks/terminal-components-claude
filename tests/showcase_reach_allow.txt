@@ -8,10 +8,6 @@
 # and so does a listed entry that passes (delete its line when the page is
 # fixed).
 
-Overview | Playground | 80x24 | R1 squeezes instead of overflowing: no Page::measure yet
-Overview | Playground | 100x25 | R1 squeezes instead of overflowing: no Page::measure yet
-Overview | Playground | 106x29 | R1 squeezes instead of overflowing: no Page::measure yet
-Overview | Playground | 120x40 | R1 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 80x24 | R8 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 100x25 | R8 squeezes instead of overflowing: no Page::measure yet
 Buttons | Playground | 106x29 | R8 squeezes instead of overflowing: no Page::measure yet
