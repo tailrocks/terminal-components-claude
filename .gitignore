@@ -13,3 +13,5 @@ docs/refactoring-plan/evidence/*.tar.gz
 # above). The two entries below are leftovers of the retired tuisnap CLI.
 /snapshots.actual
 /snapshots.diff
+
+.claude/
