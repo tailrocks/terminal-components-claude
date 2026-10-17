@@ -412,7 +412,11 @@ fn the_current_page_marker_is_neutral_unless_the_sidebar_has_focus() {
     assert_eq!(marker(&h), t.accent);
     h.key(KeyCode::Tab);
     assert_ne!(h.app.shell.focus.current(), Some(NAV));
-    assert_eq!(marker(&h), t.text_primary);
+    assert_eq!(
+        marker(&h),
+        t.accent,
+        "the accent stays (InactiveSelection::Accent)"
+    );
     // no focus bar in the sidebar while the page holds focus
     let side = h.app.sidebar_area();
     let buf = h.term.backend().buffer();
@@ -464,4 +468,34 @@ fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
     assert_eq!(cell.fg, t.text_primary);
     assert!(cell.modifier.contains(Modifier::BOLD));
     assert_eq!(h.sidebar()[0].matches('▎').count(), 0);
+}
+
+/// The current page's sidebar row keeps a fill after focus leaves the
+/// sidebar (owner decision 2026-10-17): the accent by default, macOS's
+/// neutral grey under `shell.inactive_selection=neutral`, none under
+/// `none` (the old look, only the `›`).
+#[test]
+fn the_current_sidebar_row_keeps_its_fill_when_focus_leaves() {
+    let t = Theme::junie();
+    let mut h = Harness::new(120, 40, PageId::Scrolling);
+    h.key(KeyCode::Char('0'));
+    assert_eq!(h.app.shell.focus.current(), Some(NAV));
+    let bg = |h: &Harness| {
+        let (x, y) = h.nav_row("Scrolling").expect("the current row");
+        h.term.backend().buffer()[(x, y)].bg
+    };
+    assert_eq!(bg(&h), t.accent_bg, "focused: the accent tint");
+    h.key(KeyCode::Tab);
+    assert_ne!(h.app.shell.focus.current(), Some(NAV));
+    assert_eq!(bg(&h), t.accent_bg, "unfocused: still the accent");
+    let opt = |h: &mut Harness, arg: &str| {
+        h.app.apply_opt(crate::options::parse_opt(arg).unwrap());
+        h.draw();
+    };
+    opt(&mut h, "shell.inactive_selection=neutral");
+    assert_eq!(bg(&h), t.selection_inactive, "neutral: macOS's grey");
+    opt(&mut h, "shell.inactive_selection=none");
+    let side = h.app.sidebar_area();
+    let plane = h.term.backend().buffer()[(side.x + 1, side.bottom() - 1)].bg;
+    assert_eq!(bg(&h), plane, "none: the plane");
 }

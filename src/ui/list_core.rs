@@ -73,6 +73,9 @@ pub struct ListCore {
     /// not in the tab sequence"). Its error actions stay focusable.
     /// Default `true`.
     pub skip_when_empty: bool,
+    /// How the selected row looks while the widget is unfocused; `None`
+    /// (the default) takes [`crate::theme::Theme::inactive_selection`].
+    pub inactive_selection: Option<crate::theme::InactiveSelection>,
 }
 
 impl ListCore {
@@ -93,6 +96,7 @@ impl ListCore {
             content: ContentState::Ready,
             empty: None,
             skip_when_empty: true,
+            inactive_selection: None,
         }
     }
 

@@ -1682,7 +1682,7 @@ impl DataTable {
                 // hover lifts the box like a sortable title
                 _ if lifted => st,
                 TriState::None => st,
-                _ => st.fg(t.legible(t.chosen(focused), st.bg.unwrap_or(header_bg))),
+                _ => st.fg(t.legible(ctx.chosen(focused), st.bg.unwrap_or(header_bg))),
             };
             let r = Rect::new(area.x + 3, header_y, 3, 1);
             buf.set_string(r.x, r.y, state.glyph_in(&t.glyphs), st);
@@ -1780,7 +1780,7 @@ impl DataTable {
                         row_style.fg(t.disabled).add_modifier(Modifier::DIM),
                     )
                 } else if s.selected {
-                    (t.glyphs.check_on, row_style.fg(t.chosen(focused)))
+                    (t.glyphs.check_on, row_style.fg(ctx.chosen(focused)))
                 } else {
                     (t.glyphs.check_off, row_style.fg(t.text_muted))
                 };
