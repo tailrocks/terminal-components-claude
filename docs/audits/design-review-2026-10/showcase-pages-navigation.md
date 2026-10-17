@@ -180,6 +180,31 @@ fix, with the reason.
    allowlisted to SC29, which shows the Cursor/RowSource defaults together
    on the Scrolling page.
 
+## S14 Page stack in the showcase shell
+
+1. **The header trail of a pushed page shows the stack, not the sidebar
+   group.** A root page (reached from the sidebar, `--page` or
+   Ctrl+PgDn) keeps "group › page" as plain text, as before: the sidebar
+   is how pages are reached, and a group is not a page. A page opened from
+   another page's link ("Disk cleanup →" on Read-only report) shows the
+   stack ("Read-only report › Disk cleanup"); every earlier level is a
+   link that pops back to it (M5, `Router::breadcrumb` and
+   `Router::crumb_click`). Keeping the group in front of a pushed trail
+   would show a level that looks like a link but goes nowhere (a group
+   has no page), so it is dropped there. This is a deliberate visual
+   change of the header on pushed pages only; root pages are unchanged.
+   Tests: `report_link_pushes_the_page_and_esc_returns_to_the_button`,
+   `report_header_trail_pops_back_to_the_report`.
+2. **Esc at the top of a pushed page goes back** (focus returns to the
+   control the page was left from); at the root of the stack it still
+   returns focus to the sidebar.
+3. **Fixed: the coverage gate did not scan `src/shell`.** `shell` was not
+   in `ROOTS` (`src/bin/showcase/catalog_scan.rs`), and its API lives in
+   private modules re-exported from `shell`, which the scan did not
+   follow. Both are fixed; the 187 shell capabilities are in
+   `src/catalog.rs`, pending on SC34 (the showcase shell page) except the
+   run-loop entry and the OSC 52 output plumbing (`permanent`).
+
 ## Status (T19 sync, 2026-10-17)
 
 Each entry above was checked against `git log`, the code at HEAD,
