@@ -1586,7 +1586,7 @@ fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     assert!(!h.wb().maximized, "z went to the find query");
     assert_eq!(h.wb().active, active, "] went to the find query");
     assert_eq!(
-        h.wb_query().editor.find.as_ref().map(|f| f.needle.as_str()),
+        h.wb_query().editor.find.as_ref().map(|f| f.needle.text()),
         Some("z]")
     );
     h.key(KeyCode::Esc);
@@ -1631,7 +1631,7 @@ fn the_query_editor_selects_all_with_cmd_a() {
     h.type_str("FROM orders");
     h.cmd('a');
     assert_eq!(
-        h.wb_query().editor.buffer.selected_text(),
+        h.wb_query().editor.field.buffer.selected_text(),
         Some("SELECT 1\nFROM orders")
     );
     h.type_str("SELECT 2");

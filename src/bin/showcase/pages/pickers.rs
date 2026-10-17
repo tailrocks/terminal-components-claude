@@ -187,7 +187,7 @@ struct Rows {
 
 impl Rows {
     fn fill(&self, kind: Kind, p: &mut Picker) {
-        let q = p.query.clone();
+        let q = p.query.text().to_owned();
         match kind {
             Kind::Quick => {
                 let mut ranked: Vec<(u32, PickerItem)> = self

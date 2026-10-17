@@ -182,7 +182,7 @@ fn a_paste_lands_in_the_open_pickers_search() {
     h.app.handle(Input::Paste("customers".into()));
     h.draw();
     let p = h.app.top_as::<Picker>().expect("the picker stays open");
-    assert_eq!(p.query, "customers");
+    assert_eq!(p.query.text(), "customers");
     assert!(
         p.items.iter().any(|it| it.label == "customers"),
         "the results follow the pasted query"

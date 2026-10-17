@@ -123,7 +123,7 @@ impl FilterEditor {
             self.value2.commit();
         }
         if op.needs_value() && self.value.text().trim().is_empty() {
-            self.value.error = Some("A value is required for this operator".into());
+            self.value.field.error = Some("A value is required for this operator".into());
             focus.focus(self.value.id);
             return Outcome::Changed;
         }

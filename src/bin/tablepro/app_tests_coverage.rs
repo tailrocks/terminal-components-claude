@@ -761,7 +761,7 @@ fn open_quickly_query_edits_at_the_caret() {
     h.key(KeyCode::Left);
     h.key(KeyCode::Char('e'));
     match h.app.top_as::<Picker>() {
-        Some(p) => assert_eq!(p.query, "orders"),
+        Some(p) => assert_eq!(p.query.text(), "orders"),
         _ => panic!("Open Quickly closed\n{}", h.text()),
     }
 }

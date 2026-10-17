@@ -1,7 +1,5 @@
 //! Key bindings shared by every text-editing control.
 
-use std::ops::Range;
-
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -69,98 +67,13 @@ impl Default for PointerSelect {
     }
 }
 
-/// Pointer gesture bookkeeping shared by the text fields: where the press
-/// landed and whether a drag selected from it since.
-#[derive(Debug, Clone, Default)]
-pub(crate) struct PressState {
-    pub at: Option<usize>,
-    pub dragged: bool,
-    /// The word the second press of a double click selected: a drag from
-    /// it extends by words ([`PointerSelect::drag_by_word`]).
-    pub word: Option<Range<usize>>,
-}
-
-/// A press with its multi-click `count` at byte `offset`: remember it for
-/// the drag; the second press of a double click selects the word there
-/// and a drag from it extends by words (per `sel`). `true` when the
-/// selection changed.
-pub(crate) fn press_select(
-    buffer: &mut TextBuffer,
-    press: &mut PressState,
-    sel: PointerSelect,
-    offset: usize,
-    count: u8,
-    whole_word: bool,
-) -> bool {
-    *press = PressState {
-        at: Some(offset),
-        dragged: false,
-        word: None,
-    };
-    if count == 2 && sel.word && sel.drag_by_word && !whole_word {
-        let w = buffer.word_range_at(offset);
-        buffer.select_range(w.start, w.end);
-        press.word = Some(w);
-        return true;
-    }
-    false
-}
-
-/// Apply a click with `count` (1 single, 2 double, 3+ triple) at byte
-/// `offset` to `buffer` per `sel`. A release that ends a drag keeps the
-/// dragged selection.
-pub(crate) fn click_select(
-    buffer: &mut TextBuffer,
-    press: &mut PressState,
-    sel: PointerSelect,
-    offset: usize,
-    count: u8,
-    whole_word: bool,
-) {
-    let dragged = std::mem::take(&mut press.dragged);
-    press.at = None;
-    press.word = None;
-    if dragged {
-        return;
-    }
-    if count >= 3 && sel.line {
-        buffer.select_line_at(offset);
-    } else if count == 2 && sel.word {
-        if whole_word {
-            buffer.select_all();
-        } else {
-            buffer.select_word_at(offset);
-        }
-    } else {
-        buffer.select_range(offset, offset);
-        buffer.clear_selection();
-    }
-}
-
-/// A drag to byte `offset`: extend the selection from the press.
-/// After a double-click press ([`press_select`]) it extends by whole
-/// words: the pressed word stays selected and the far end snaps to the
-/// word under the pointer.
-pub(crate) fn drag_select(buffer: &mut TextBuffer, press: &mut PressState, offset: usize) {
-    let anchor = press.at.unwrap_or_else(|| buffer.cursor_offset());
-    press.at = Some(anchor);
-    press.dragged = true;
-    if let Some(w) = press.word.clone() {
-        let to = buffer.word_range_at(offset);
-        if to.start < w.start {
-            buffer.select_range(w.end, to.start);
-        } else {
-            buffer.select_range(w.start, to.end.max(w.end));
-        }
-        return;
-    }
-    buffer.select_range(anchor, offset);
-}
-
 /// A text control the pointer selects in: a press, a drag from it and a
-/// completed click with its count. `TextInput` and `TextArea` implement
-/// it; owners route through [`route_press`], [`route_drag`] and
-/// [`route_click`] instead of matching each field by hand.
+/// completed click with its count. Implemented once, for every
+/// [`Editable`](crate::widgets::edit::Editable) control (`TextInput`,
+/// `TextArea`, `CodeEditor`), on its
+/// [`EditField`](crate::widgets::edit::EditField); owners route through
+/// [`route_press`], [`route_drag`] and [`route_click`] instead of matching
+/// each field by hand.
 pub trait PointerField {
     /// The hit id the field registers.
     fn pointer_id(&self) -> WidgetId;
@@ -600,10 +513,14 @@ mod select_all_tests {
                 .value("hello world")
                 .field_keys(keys);
             i.begin_edit();
-            i.buffer.move_doc_end(false);
-            i.buffer.clear_selection();
+            i.field.buffer.move_doc_end(false);
+            i.field.buffer.clear_selection();
             assert_eq!(i.on_key(&k('a', M::SUPER)).0, Outcome::Changed);
-            assert_eq!(i.buffer.selected_text(), Some("hello world"), "{keys:?}");
+            assert_eq!(
+                i.field.buffer.selected_text(),
+                Some("hello world"),
+                "{keys:?}"
+            );
             i.on_key(&k('z', M::NONE));
             assert_eq!(i.text(), "z", "typing replaces the selection");
         }
@@ -614,15 +531,15 @@ mod select_all_tests {
             .field_keys(FieldKeys::Desktop);
         assert_eq!(wait.on_key(&k('a', M::CONTROL)).0, Outcome::Changed);
         assert!(wait.editing);
-        assert_eq!(wait.buffer.selected_text(), Some("abc"));
+        assert_eq!(wait.field.buffer.selected_text(), Some("abc"));
         // the widget key map
         let mut remapped = TextInput::new(WidgetId::of("r"), "Name")
             .value("abc")
             .text_keymap(vec![(KeyBinding::ctrl('g'), TextCmd::SelectAll)]);
         remapped.begin_edit();
-        remapped.buffer.clear_selection();
+        remapped.field.buffer.clear_selection();
         remapped.on_key(&k('g', M::CONTROL));
-        assert_eq!(remapped.buffer.selected_text(), Some("abc"));
+        assert_eq!(remapped.field.buffer.selected_text(), Some("abc"));
     }
 
     #[test]
@@ -633,11 +550,11 @@ mod select_all_tests {
             .field_keys(FieldKeys::Desktop);
         a.begin_edit();
         a.on_key(&k('a', M::CONTROL));
-        assert_eq!(a.buffer.selected_text(), Some("one\ntwo\nthree"));
+        assert_eq!(a.field.buffer.selected_text(), Some("one\ntwo\nthree"));
         a.commit();
         a.on_key(&k('a', M::SUPER));
         assert!(a.editing, "Select All picks the edit up again");
-        assert_eq!(a.buffer.selected_text(), Some("one\ntwo\nthree"));
+        assert_eq!(a.field.buffer.selected_text(), Some("one\ntwo\nthree"));
     }
 
     #[test]
@@ -647,13 +564,13 @@ mod select_all_tests {
             CodeEditor::new(WidgetId::of("c"), "SELECT 1;\nSELECT 2;").field_keys(FieldKeys::Emacs);
         e.begin_edit();
         e.on_key(&k('a', M::SUPER));
-        assert_eq!(e.buffer.selected_text(), Some("SELECT 1;\nSELECT 2;"));
+        assert_eq!(e.field.buffer.selected_text(), Some("SELECT 1;\nSELECT 2;"));
         e.on_key(&k('x', M::NONE));
         assert_eq!(e.text(), "x");
         let mut ro = CodeEditor::new(WidgetId::of("r"), "fn main() {}").read_only(true);
         ro.on_key(&k('a', M::SUPER));
         assert_eq!(
-            ro.buffer.selected_text(),
+            ro.field.buffer.selected_text(),
             Some("fn main() {}"),
             "read-only selects for Copy"
         );
@@ -863,12 +780,12 @@ mod cmd_edit_tests {
                 .value("hello world")
                 .field_keys(keys);
             i.begin_edit();
-            i.buffer.move_doc_end(false);
+            i.field.buffer.move_doc_end(false);
             i.on_key(&cmd_key(KeyCode::Left));
-            assert_eq!(i.buffer.cursor_offset(), 0, "{keys:?}");
+            assert_eq!(i.field.buffer.cursor_offset(), 0, "{keys:?}");
             i.on_key(&k(KeyCode::Right, M::ALT));
             i.on_key(&cmd_shift(KeyCode::Right));
-            assert_eq!(i.buffer.selected_text(), Some(" world"));
+            assert_eq!(i.field.buffer.selected_text(), Some(" world"));
             i.on_key(&cmd('c'));
             assert_eq!(seen.borrow().last().map(String::as_str), Some(" world"));
             i.on_key(&cmd('x'));
@@ -912,22 +829,26 @@ mod cmd_edit_tests {
                 .field_keys(keys);
             a.begin_edit();
             a.on_key(&cmd_key(KeyCode::Down));
-            assert_eq!(a.buffer.cursor_offset(), a.buffer.text().len(), "{keys:?}");
+            assert_eq!(
+                a.field.buffer.cursor_offset(),
+                a.field.buffer.text().len(),
+                "{keys:?}"
+            );
             a.on_key(&cmd_key(KeyCode::Up));
-            assert_eq!(a.buffer.cursor_offset(), 0);
+            assert_eq!(a.field.buffer.cursor_offset(), 0);
             a.on_key(&cmd_key(KeyCode::Right));
-            assert_eq!(a.buffer.cursor_offset(), 3);
+            assert_eq!(a.field.buffer.cursor_offset(), 3);
             a.on_key(&cmd_shift(KeyCode::Down));
-            assert_eq!(a.buffer.selected_text(), Some("\ntwo\nthree"));
+            assert_eq!(a.field.buffer.selected_text(), Some("\ntwo\nthree"));
             a.on_key(&cmd('x'));
-            assert_eq!(a.buffer.text(), "one");
+            assert_eq!(a.field.buffer.text(), "one");
             a.on_key(&k(KeyCode::Esc, M::NONE));
             assert!(!a.editing);
             a.on_key(&cmd('v'));
             assert!(a.editing, "Cmd+V picks the edit up");
-            assert_eq!(a.buffer.text(), "one\ntwo\nthree");
+            assert_eq!(a.field.buffer.text(), "one\ntwo\nthree");
             a.on_key(&cmd('z'));
-            assert_eq!(a.buffer.text(), "one");
+            assert_eq!(a.field.buffer.text(), "one");
         }
     }
 
@@ -940,7 +861,7 @@ mod cmd_edit_tests {
         e.begin_edit();
         e.on_key(&cmd_key(KeyCode::Down));
         e.on_key(&cmd_shift(KeyCode::Left));
-        assert_eq!(e.buffer.selected_text(), Some("SELECT 2;"));
+        assert_eq!(e.field.buffer.selected_text(), Some("SELECT 2;"));
         e.on_key(&cmd('x'));
         assert_eq!(e.text(), "SELECT 1;\n");
         e.on_key(&cmd('z'));
@@ -949,7 +870,7 @@ mod cmd_edit_tests {
         e.on_key(&k(KeyCode::Esc, M::NONE));
         assert!(!e.editing);
         e.on_key(&cmd_key(KeyCode::Up));
-        assert_eq!(e.buffer.cursor_offset(), 0, "Cmd+↑ while browsing");
+        assert_eq!(e.field.buffer.cursor_offset(), 0, "Cmd+↑ while browsing");
         e.on_key(&cmd('v'));
         assert!(e.editing);
         assert_eq!(e.text(), "SELECT 2;SELECT 1;\nSELECT 2;");
@@ -957,7 +878,7 @@ mod cmd_edit_tests {
         let mut ro = CodeEditor::new(WidgetId::of("r"), "fn main() {}\nfn x() {}").read_only(true);
         ro.on_key(&cmd_key(KeyCode::Down));
         ro.on_key(&cmd_shift(KeyCode::Left));
-        assert_eq!(ro.buffer.selected_text(), Some("fn x() {}"));
+        assert_eq!(ro.field.buffer.selected_text(), Some("fn x() {}"));
         ro.on_key(&cmd('c'));
         assert_eq!(seen.borrow().last().map(String::as_str), Some("fn x() {}"));
         for key in [cmd('x'), cmd('v'), cmd('z')] {

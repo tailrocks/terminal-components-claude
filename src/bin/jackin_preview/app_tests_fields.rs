@@ -41,7 +41,7 @@ fn ctrl_q_reaches_past_an_editing_name_field() {
 
 fn name_selection(h: &H) -> Option<String> {
     let e = h.app.screens.editor.as_ref().expect("the editor");
-    e.name.buffer.selected_text().map(str::to_owned)
+    e.name.field.buffer.selected_text().map(str::to_owned)
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn dragging_across_the_editor_name_selects_it() {
 fn rename_input(h: &H) -> Option<String> {
     match h.app.top_layer::<Dialog>() {
         Some(d) => match &d.body {
-            DialogBody::Input(i) => i.buffer.selected_text().map(str::to_owned),
+            DialogBody::Input(i) => i.field.buffer.selected_text().map(str::to_owned),
             _ => panic!("a prompt"),
         },
         _ => panic!("the rename prompt is open"),

@@ -1254,7 +1254,11 @@ impl App {
     /// `error` in its status row.
     fn files_jump_rows(&mut self, error: Option<String>) {
         let active = self.active;
-        let Some(query) = self.modals.top_as::<Picker>().map(|p| p.query.clone()) else {
+        let Some(query) = self
+            .modals
+            .top_as::<Picker>()
+            .map(|p| p.query.text().to_owned())
+        else {
             return;
         };
         let rows = self
@@ -1290,7 +1294,7 @@ impl App {
                     Some(entry) => entry.get::<Picker>(),
                     None => self.modals.top_as::<Picker>(),
                 };
-                let Some(query) = picker.map(|p| p.query.clone()) else {
+                let Some(query) = picker.map(|p| p.query.text().to_owned()) else {
                     return Outcome::Consumed;
                 };
                 // Submit: a typed path with no suggestion resolves on its own
