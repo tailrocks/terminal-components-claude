@@ -4,18 +4,18 @@
  ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────── [0m
   [0m[1mReview · Restart payments[0m · gate 1 of 2 · review the resolved facts, then c…  [0m
                                                                                 [0m
-  Action       systemctl restart payments on prod-eu-1 · production ·           [0m
-               in-flight requests are dropped                                   [0m
-  Host         prod-eu-1 · production                                           [0m
-  In           prod-eu-1 · host-wide                                            [0m
-  Scope        on prod-eu-1                                                     [0m
-  Changes      payments restarts · brief outage on prod-eu-1                    [0m
-  Risk         privileged                                                       [0m
-  Data         live · 0 s ago                                                   [0m
+  Action       systemctl restart payments on prod-eu-1 · production ·        ┃  [0m
+               in-flight requests are dropped                                ┃  [0m
+  Host         prod-eu-1 · production                                        ┃  [0m
+  In           prod-eu-1 · host-wide                                         ┃  [0m
+  Scope        on prod-eu-1                                                  ┆  [0m
+  Changes      payments restarts · brief outage on prod-eu-1                 ┆  [0m
+  Risk         privileged                                                    ┆  [0m
                                                                                 [0m
  ╭─ Sequence · 2 commands ───────────────────────────────────────── y copies ─╮ [0m
  │  01  sudo systemctl restart payments                                       │ [0m
  │  02  systemctl status payments                                             │ [0m
+ │                                                                            │ [0m
  ╰────────────────────────────────────────────────────────────────────────────╯ [0m
                                                                                 [0m
                                                          ▎[0m[1mCancel [0m   Continue…   [0m

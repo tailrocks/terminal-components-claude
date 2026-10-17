@@ -4,14 +4,14 @@
  ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────── [0m
   [0m[1mReview · Stop and remove all containers[0m · gate 1 of 2 · review the …  [0m
                                                                         [0m
-  Action       stop the running containers, then remove every captured  [0m
-               container on mbp (running and stopped) · images and      [0m
-               volumes stay · rm runs only after stop succeeds          [0m
-  Host         mbp · local                                              [0m
-  In           mbp · host-wide                                          [0m
-  Scope        host                                                     [0m
+  Action       stop the running containers, then remove every        ┃  [0m
+               captured container on mbp (running and stopped) ·     ┆  [0m
+               images and volumes stay · rm runs only after stop     ┆  [0m
                                                                         [0m
  ╭─ Sequence · 2 commands ───────────────────────────────── y copies ─╮ [0m
+ │  01  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 … │ [0m
+ │  02  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 ac… │ [0m
+ │                                                                    │ [0m
  ╰────────────────────────────────────────────────────────────────────╯ [0m
                                                                         [0m
                                                  ▎[0m[1mCancel [0m   Continue…   [0m

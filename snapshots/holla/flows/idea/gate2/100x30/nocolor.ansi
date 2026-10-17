@@ -4,24 +4,24 @@
 [0m[2m ━━━━━━━━━━│                                                                            │────────── [0m
 [0m[2m  Review · │  [0m[1;2mTrash 4 items · gate 2 of 2[0m[2m                                               │ately      [0m
 [0m[2m           │                                                                            │           [0m
-[0m[2m  Action   │  [0mAction        move to Trash 4 items under ~/work/ide                    [0m[2m ┃│           [0m
-[0m[2m  Host     │  [0mHost          mbp · local                                               [0m[2m ┃│           [0m
-[0m[2m  Mode     │  [0mMode          Trash · native macOS Trash · space returns after the Trash[0m[2m ┃│           [0m
-[0m[2m  Estimate │  [0m              is emptied                                                [0m[2m ┃│ · not a   [0m
-[0m[2m           │  [0mEstimate      44.0 KiB allocated · APFS clones may overcount · purgeable[0m[2m ┃│           [0m
-[0m[2m  Denied   │  [0m              space excluded · not a free-space guarantee               [0m[2m ┆│nk rules   [0m
-[0m[2m  Revision │  [0mDenied        none · every path passed the lexical, protected-root,     [0m[2m ┆│           [0m
-[0m[2m  Threat mo│  [0m              user-data and symlink rules                               [0m[2m ┆│ rename    [0m
-[0m[2m           │  [0mRevision      bd45d030348d92d6 · any change to paths, mode or dry run   [0m[2m ┆│           [0m
-[0m[2m  Paths    │  ↓ 5 more                                                                  │           [0m
-[0m[2m           │  /Users/alex/work/ide/.idea                                                │           [0m
-[0m[2m           │  /Users/alex/work/ide/a/b/c/d/e/deep.iml                                   │           [0m
-[0m[2m ╭─ Sequenc│  /Users/alex/work/ide/app.iml                                              │ copies ─╮ [0m
-[0m[2m │  01  tra│  /Users/alex/work/ide/mod/mod.iml                                          │         │ [0m
-[0m[2m │  02  tra│                                                                            │         │ [0m
-[0m[2m │  03  tra│  [0m[1;2mType TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm               [0m[2m  │         │ [0m
-[0m[2m │  04  tra│[0m[1;2;7m▎                                                                         [0m[2m  │         │ [0m
-[0m[2m │         │                                                                            │         │ [0m
+[0m[2m  Action   │  [0mAction        move to Trash 4 items under ~/work/ide                    [0m[2m ┃│        ┃  [0m
+[0m[2m  Host     │  [0mHost          mbp · local                                               [0m[2m ┃│        ┃  [0m
+[0m[2m  Mode     │  [0mMode          Trash · native macOS Trash · space returns after the Trash[0m[2m ┃│        ┃  [0m
+[0m[2m  Estimate │  [0m              is emptied                                                [0m[2m ┃│ · not  ┃  [0m
+[0m[2m           │  [0mEstimate      44.0 KiB allocated · APFS clones may overcount · purgeable[0m[2m ┃│        ┃  [0m
+[0m[2m  Denied   │  [0m              space excluded · not a free-space guarantee               [0m[2m ┆│nk      ┃  [0m
+[0m[2m           │  [0mDenied        none · every path passed the lexical, protected-root,     [0m[2m ┆│        ┃  [0m
+[0m[2m  Revision │  [0m              user-data and symlink rules                               [0m[2m ┆│        ┃  [0m
+[0m[2m  Threat mo│  [0mRevision      bd45d030348d92d6 · any change to paths, mode or dry run   [0m[2m ┆│ rename ┃  [0m
+[0m[2m           │  ↓ 5 more                                                                  │        ┃  [0m
+[0m[2m  Paths    │  /Users/alex/work/ide/.idea                                                │        ┃  [0m
+[0m[2m           │  /Users/alex/work/ide/a/b/c/d/e/deep.iml                                   │        ┆  [0m
+[0m[2m  Recoverab│  /Users/alex/work/ide/app.iml                                              │        ┆  [0m
+[0m[2m           │  /Users/alex/work/ide/mod/mod.iml                                          │           [0m
+[0m[2m ╭─ Sequenc│                                                                            │ copies ─╮ [0m
+[0m[2m │  01  tra│  [0m[1;2mType TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm               [0m[2m  │       ┃ │ [0m
+[0m[2m │  02  tra│[0m[1;2;7m▎                                                                         [0m[2m  │       ┃ │ [0m
+[0m[2m │  03  tra│                                                                            │       ┆ │ [0m
 [0m[2m ╰─────────│                                                        Cancel    Execute   │─────────╯ [0m
 [0m[2m           │                                                                            │           [0m
 [0m[2m           ╰─────────────────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m╯ontinue…   [0m
