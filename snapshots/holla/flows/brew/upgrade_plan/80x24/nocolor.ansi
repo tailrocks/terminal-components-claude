@@ -21,5 +21,5 @@
                                                        Cancel    [0m[1;7mConfirm plan [0m  [0m
                                                                                 [0m
  [0m[1m~[0m           review · 9 steps · 4 branches parallel            no color · 80×24 [0m
-  [0m[1mEsc[0m Discard plan  …  [0m[1m![0m Upgrade Homebrew packages · 4 ok · 1 failed · 0 cance… [0m
+ [0m[1m↑↓[0m Step  …         [0m[1m![0m Upgrade Homebrew packages · 4 ok · 1 failed · 0 cancelled [0m
 [?25l

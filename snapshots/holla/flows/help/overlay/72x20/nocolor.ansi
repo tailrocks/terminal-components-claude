@@ -1,21 +1,21 @@
 [0m[2m  holla❯    File   Go   Help         holla · Rust project  mbp · local  [0m
 [0m[2m                                                                        [0m
-[0m[2m  H╭────────────────────────────────────────────────────────────────╮   [0m
-[0m[2m ━━│                                                                │── [0m
-[0m[2m [0m [0m[2m │  [0m[1;2mKey reference[0m[2m                                           Here  │›  [0m
-[0m[2m   │                                                                │   [0m
-[0m[2m   │  Finder                                                     ┃  │ ┃ [0m
-[0m[2m  ›│  [0m[1;2mType[0m[2m             search actions and resources together ·   ┃  │ ┃ [0m
-[0m[2m   │                   @parent @children @system @all narrow the ┆  │ ┃ [0m
-[0m[2m   │                   scope                                     ┆  │ ┃ [0m
-[0m[2m   │  [0m[1;2m↑↓[0m[2m               move · PgUp PgDn Home End                 ┆  │ ┃ [0m
-[0m[2m   │  [0m[1;2mEnter[0m[2m            primary action · destructive rows open a  ┆  │ ┃ [0m
-[0m[2m   │                   review instead                            ┆  │ ┆ [0m
-[0m[2m   │  [0m[1;2mAlt+Enter[0m[2m        alternatives · run, copy, insert,         ┆  │ ┆ [0m
-[0m[2m   │                   arguments, pin, alias, hide, why          ┆  │ ┆ [0m
-[0m[2m   │                                                                │   [0m
-[0m[2m   ╰────────────────────────────────────────────────────────────────╯   [0m
-[0m[2m                                                                        [0m
+[0m[2m  Here ╭─[0m[1;2m Key reference [0m[2m────────────────────── 1–13 of 49 ─ × ─╮        [0m
+[0m[2m ━━━━━━│  [0m[1;2mFinder[0m[2m                                              ┃│─────── [0m
+[0m[2m [0m [0m[2m Sear│  [0m[1;2mType[0m[2m            search actions and resources        ┃│here ›  [0m
+[0m[2m       │                  together · @parent @children        ┃│        [0m
+[0m[2m    Sug│                  @system @all narrow the scope       ┆│      ┃ [0m
+[0m[2m  › Ins│  [0m[1;2m↑↓[0m[2m              move · PgUp PgDn Home End           ┆│ifac… ┃ [0m
+[0m[2m    Pul│  [0m[1;2mEnter[0m[2m           primary action · destructive rows   ┆│ beh… ┃ [0m
+[0m[2m    Rev│                  open a review instead               ┆│acked ┃ [0m
+[0m[2m    Run│  [0m[1;2mAlt+Enter[0m[2m       alternatives · run, copy, insert,   ┆│ce t… ┃ [0m
+[0m[2m    Who│                  arguments, pin, alias, hide, why    ┆│for … ┃ [0m
+[0m[2m       │  [0m[1;2mTab[0m[2m             preview › tab strip › finder        ┆│      ┆ [0m
+[0m[2m    Rec│  [0m[1;2mCtrl+↑ / Ctrl+↓[0m[2m scope outward (parent, system) /    ┆│      ┆ [0m
+[0m[2m    not│                  inward (children)                   ┆│      ┆ [0m
+[0m[2m       │  [0m[1;2mEsc[0m[2m             clear query › scope back to here    ┆│        [0m
+[0m[2m    → '│                                                Done   │        [0m
+[0m[2m       ╰───────────────────────────────────────────────────────╯        [0m
 [0m[2m ~/work/holla   main   ↓3   • 5                        no color · 72×20 [0m
-      [0m[1m    [0m         [0m[1m  [0m     [0m[1m↑↓ Scro[0mll  [0m[1mEsc Close   [0m                       [0m
+ [0m[1m↑↓ S[0mcroll  [0m[1mEsc [0mClose  [0m[1m     [0m       [0m[1m         [0m                            [0m
 [?25l

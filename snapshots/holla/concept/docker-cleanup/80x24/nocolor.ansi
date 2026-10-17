@@ -21,5 +21,5 @@
     → docker stop acme-api-1 acme-wor…-1 acme-redis-1 · on devbox · destructive [0m
                                                                                 [0m
  [0m[1m/work/scratch[0m                                                 no color · 80×24 [0m
-   [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mEsc[0m Clear  …   [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mEsc[0m Clear  …     [0m
 [?25h[5;16H[6 q

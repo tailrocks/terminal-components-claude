@@ -27,5 +27,5 @@
     → tools/deploy-preview.sh --env preview · here · mutating                                       [0m
                                                                                                     [0m
  [0m[1m~/work/acme[0m   main   ↑1                                                          no color · 100×30 [0m
-     [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  …     [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m Alternatives…  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  …         [0m
 [?25h[5;4H[6 q

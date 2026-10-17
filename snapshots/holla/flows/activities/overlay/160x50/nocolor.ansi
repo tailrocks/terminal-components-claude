@@ -47,5 +47,5 @@
 [0m[2m                                                                                                                                                                [0m
 [0m[2m                                                                                                                                                                [0m
 [0m[2m ~/work/acme   main   ↑1                                                                                                       ⠋ 4 running    no color · 160×50 [0m
-                          [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m       [0m[1m   ↑↓ Mov[0me  [0m[1mEnter[0m Switch [0m[1m Esc[0m Cancel  [0m[1m       [0m        [0m[1m      [0m             api tests finished · exit 0 [0m
+ [0m[1m↑↓ M[0move  [0m[1mEnter [0mSwitch [0m[1m Esc [0mCancel [0m[1m         [0m                [0m[1m   [0m          [0m[1m       [0m        [0m[1m      [0m                                      api tests finished · exit 0 [0m
 [?25l
