@@ -2118,10 +2118,11 @@ impl Page<Jackin> for EditorScreen {
             "Save…".into()
         };
         let widths = [self.cancel.width(), self.save.width()];
+        let lines = junie_tui::widgets::button::row_lines(area.width.saturating_sub(4), &widths, 3);
         let rects = row_layout_right(
             Rect::new(
                 area.x,
-                area.bottom().saturating_sub(1),
+                area.bottom().saturating_sub(lines),
                 area.width.saturating_sub(4),
                 1,
             ),

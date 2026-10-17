@@ -1455,6 +1455,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::button::Button::render"),
     Capability::function("widgets::button::row_layout"),
     Capability::function("widgets::button::row_layout_right"),
+    Capability::function("widgets::button::row_lines"),
     Capability::function("widgets::button::ButtonRow::step"),
     Capability::function("widgets::button::ButtonRow::more_id"),
     Capability::function("widgets::button::ButtonRow::rows"),
