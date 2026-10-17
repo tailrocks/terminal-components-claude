@@ -11,15 +11,9 @@
 Grid | Playground | 80x24 | R16 squeezes instead of overflowing: no Page::measure yet
 Grid | Playground | 100x25 | R16 squeezes instead of overflowing: no Page::measure yet
 Grid | Playground | 106x29 | R16 squeezes instead of overflowing: no Page::measure yet
-Grid | Playground | 120x40 | R16 squeezes instead of overflowing: no Page::measure yet
-Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
-Tabs | Playground | 120x40 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Scrolling | Playground | 80x24 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 100x25 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 106x29 | R34 squeezes instead of overflowing: no Page::measure yet
-Scrolling | Playground | 120x40 | R34 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 80x24 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 100x25 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Page::measure yet
@@ -55,7 +49,6 @@ Activity | Playground | 120x40 | R46 squeezes instead of overflowing: no Page::m
 Workspaces | Playground | 80x24 | R47 squeezes instead of overflowing: no Page::measure yet
 Workspaces | Playground | 100x25 | R47 squeezes instead of overflowing: no Page::measure yet
 Workspaces | Playground | 106x29 | R47 squeezes instead of overflowing: no Page::measure yet
-Workspaces | Playground | 120x40 | R47 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 80x24 | R48 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 100x25 | R48 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 106x29 | R48 squeezes instead of overflowing: no Page::measure yet
@@ -63,7 +56,6 @@ AccountsUsage | Playground | 120x40 | R48 squeezes instead of overflowing: no Pa
 LaunchCockpit | Playground | 80x24 | R49 squeezes instead of overflowing: no Page::measure yet
 LaunchCockpit | Playground | 100x25 | R49 squeezes instead of overflowing: no Page::measure yet
 ReadOnlyReport | Playground | 80x24 | R50 squeezes instead of overflowing: no Page::measure yet
-ReadOnlyReport | Playground | 100x25 | R50 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 80x24 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 100x25 | R51 squeezes instead of overflowing: no Page::measure yet
 Forms | Playground | 106x29 | R51 squeezes instead of overflowing: no Page::measure yet
@@ -71,7 +63,4 @@ Forms | Playground | 120x40 | R51 squeezes instead of overflowing: no Page::meas
 Sidebars | Playground | 80x24 | R52 squeezes instead of overflowing: no Page::measure yet
 Sidebars | Playground | 100x25 | R52 squeezes instead of overflowing: no Page::measure yet
 Settings | Playground | 80x24 | R53 squeezes instead of overflowing: no Page::measure yet
-Settings | Playground | 100x25 | R53 squeezes instead of overflowing: no Page::measure yet
-Settings | Playground | 106x29 | R53 squeezes instead of overflowing: no Page::measure yet
-Settings | Playground | 120x40 | R53 squeezes instead of overflowing: no Page::measure yet
 TaskRunner | Playground | 80x24 | R54 squeezes instead of overflowing: no Page::measure yet
