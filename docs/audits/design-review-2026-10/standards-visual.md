@@ -115,3 +115,36 @@ Defaults must follow the standards cited in this review. Every behaviour
 stays configurable, so users who prefer different behaviour can override
 the defaults (app-wide profile, per-widget setting, or key map; see
 `AGENTS.md`, "Component architecture").
+
+## Status (T19 sync, 2026-10-17)
+
+Each row was checked against the code at `942b869d7`, the plan's §4 table, its "Step status" and outcome sections, and `docs/remaining-work.md`; the inline notes under #13 and gap 9 above keep their text, and their rows here add the commits.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Partial; Open → S10 | — | One accent and focus return to the opener (K9, popups restore the owner's focus, plan S5) hold. Neutral active state as text_primary + BOLD is S10 (visual). |
+| 2 | Open → T | — | Mono hover and press modifiers (no underline on hover, REVERSED for pressed) belong to the theme track. `StateModifiers.hover_enabled` not added yet. |
+| 3 | Open → T | — | `text_faint` is still one value (`WHITE_43`, `src/theme.rs`); plane-relative values with a contrast test per plane are the theme track. |
+| 4 | Open → T | — | Panel title marker and `border_strong` on the focused panel are T; the `▎` gutter plus BOLD stays as is. |
+| 5 | Open → S10 | 0e99f5329 (delay) | Hover reveal waits 300 ms (`Reveal::delay_ms`, M25). Keyboard reveal everywhere and the peek key are S10 (K12, SI8); cut labels in Tree, List, Picker, DataTable are A12. |
+| 6 | Decision (one thumb glyph) | e9b8f3631 | AGENTS.md "Visual states": the thumb keeps one glyph; colour carries rest, hover and pressed, and `StateModifiers::thumb_hover`/`thumb_pressed` carry it in mono. Supersedes the glyph-per-state correction. |
+| 7 | Open → A11 | — | The showcase tree still has a "Chrome" group (`src/bin/showcase/app.rs`); rename to "App shell", Overview alone at the top, two levels at most. |
+| 8 | Open → A11 | — | Editor choice by option count, `▾` only on the active or hovered cell, `☐/☑` for booleans. |
+| 9 | Fixed | 4b857a079 | `Dialog::destructive` opens on Cancel and the danger button is never the default (test `a_destructive_dialog_names_the_focused_cancel_button_not_confirm`). Plan S5 deviation 1. |
+| 10 | Open → A11, CO4 | — | Backdrop dim at 16 colours and mono is A11. The footer showing the modal's hints, not the page's, is CO4 (S8b). |
+| 11 | Partial; Open → CO5 | ae4d7eb41 | Status info expires after 5 s on the shell clock; errors persist until the next action (WCAG 2.2.1). Error-over-hints footer composition is CO5 (S8b). |
+| 12 | Open → A11 | — | jackin still shows "Delete…" before a plain confirmation (`src/bin/jackin_preview/screens/manager.rs:801`); keycap set uses `Del`, not "Delete". |
+| 13 | Fixed | ef2f81640 | Dotted track `┆`/`┄` in `Theme::scroll_track`; see the note under #13 and hscroll.md. Thumb glyph and held colour per row 6. |
+| 14 | Open → S10, T | — | Non-colour selection cue (marker column or BOLD) is S10 (visual); success vs accent separation is the theme track. |
+| 15 | Open → S12 | — | Disabled items reachable; reason in the hint or status row with the dimmed shortcut kept (`Item` reason, SI21/SV15). |
+| 16 | Open → S10 | — | Same 1.4.13 rules as #5 (Esc dismiss, hoverable, persistent), clamped to the screen edge with a 1-cell margin; with K12 and A12. |
+| Gap 1 | Open → T | — | `border_strong` (at least 3:1) for field and control outlines (SVg1). |
+| Gap 2 | Open → T | — | One pressed direction for every ladder (SVg2). |
+| Gap 3 | Open → S10 | — | `highlight_on_selection` token for a cursor row inside a selected range; no such token in `src/theme.rs` yet. |
+| Gap 4 | Open → A11 | — | DIM (SGR 2) fallback: pair with a glyph or reason and document the fallback. |
+| Gap 5 | Open → A11 | — | Test focus and pressed BOLD against a bold-is-bright 16-colour profile. |
+| Gap 6 | Partial; Open → A22 | 18f15fd5f, acfbe62db | `Glyphs::ASCII` and `Strings::ASCII` exist (opt-in, `LevelOverrides::ASCII_MONO`). Automatic selection for `TERM=linux` or the Windows console is not implemented and no step owns it. |
+| Gap 7 | Open → T | — | Honour `COLORFGBG` or a `follow_terminal` option at the 16-colour level (SVg7). |
+| Gap 8 | Partial; Open → S22 | 45968977b | `Motion::{Full, Reduced, Paused}` and `NO_MOTION` in every app (S2). The 12 wall-clock spinner sites still animate under reduced motion; S22 moves them to `ctx.interaction.tick`. |
+| Gap 9 | Fixed | 126c4183c, ab64d7535, 30cce2a55 | `ScrollState::context` defaults to 1; pointer moves reveal exactly. See the note under gap 9. |
+| Gap 10 | Open → S8b | — | One left-aligned hint bar for every app (`Theme::hintbar.align`, visual change). |

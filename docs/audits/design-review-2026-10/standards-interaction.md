@@ -141,3 +141,43 @@ the defaults (app-wide profile, per-widget setting, or key map; see
 
 - Verdict 12 (vim keys on, type-ahead off): fixed. `NavProfile::Desktop` is the default (desktop keys, type-ahead on in lists, trees, selects and menus); `NavProfile::Vim` is the opt-in profile. Disabled rows stay skipped by the arrows (`Cursor::skip_disabled`, per widget), as before.
 - Gap 10 (type-ahead timing): the reset is `TypeAhead::DEFAULT_TIMEOUT` (1 s), configurable per widget (`type_ahead_timeout`); the search wraps. Wide-character truncation is not part of S4.
+
+## Status (T19 sync, 2026-10-17)
+
+Each row was checked against the code at `942b869d7`, the plan's §4 table, its "Step status" and outcome sections, and `docs/remaining-work.md`; verdict 12 and the type-ahead half of gap 10 are covered by "Status (plan S4)" above.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Open → A11 | — | Consume-by-default and completion pass-through hold (`popup::Dismiss`). Remaining: a full-width sheet when the popup can neither flip nor shift, never clipped. |
+| 2 | Fixed | 55d88297c, 3ec122eb2, b34ead943 | `Dismiss` policy per dialog; `guard_dirty_prompt` (default on) refuses light dismiss of a dirty prompt; press and release must both land on the backdrop (`core::pointer`); SIg1 guard. |
+| 3 | Open → A11 | — | Standard defaults plus per-widget overrides are in place (AGENTS.md); app-level profiles beyond `NavProfile` and a user keymap file are not. |
+| 4 | Fixed | 55d88297c, 1cee36e98 | `MenuBar::hover_switch`; hover switching stops when the terminal reports no buttonless motion (`Interaction::motion_unreported`); `MenuBar::press_drag` press-drag-release (M12). |
+| 5 | Partial; Open → S9 | 85cec55af | Client detection (`ClientPlatform::from_env`: `LC_TERMINAL`, `TERM_PROGRAM`) and Option-click toggle landed. Checkbox-cell click with no modifier is `CheckClick` in S9. |
+| 6 | Partial; Open → S11 | d5ad6ffb6, 1da20cc01 | Text fields: `EditEntry::Immediate` default, keyboard focus `FocusSelect::SelectAll`, click places the caret (keyboard.md #1). Grid cells in `Explicit` and `EditField` remain S11. |
+| 7 | Open → S8b | — | Hide undeliverable chords and a `?` overlay from the live keymaps (`HelpOverlay::from_keymaps`); see also CO3. |
+| 8 | Open → S10 | 0e99f5329 (delay) | Hover reveal has the 300 ms delay (M25). Peek line on focus plus a peek key, never →, is SI8 in S10; reveal for cut labels in A12. |
+| 9 | Fixed | 9315b44f1 | `TrackClick::Page` is the default with hold-repeat (M35); `Jump` stays an option. Native horizontal wheel (66/67) maps to `WheelLeft`/`WheelRight` in `core::event`. |
+| 10 | Open → S8a, A11 | — | A second documented menu-bar binding is S8a (`ShellKeys::menu_bar`); Alt+mnemonics per menu with F10 shown in the hints is A11. |
+| 11 | Fixed | 4b857a079, 3ec122eb2 | `Dialog::destructive` opens on Cancel (`initial_focus: cancel_id`; test `a_destructive_dialog_names_the_focused_cancel_button_not_confirm`); label mnemonics replace y/n. Plan S5 deviation 1. |
+| 13 | Open → S12 | — | `Select::arrows` still defaults to `SelectArrows::Step` (`src/widgets/select.rs`); S12 flips it to `Open`. Tab-in-open-select behaviour already matches APG. |
+| 14 | Open → S9 | — | `ClickPolicy`/`Activate` by role: data views `Double`, navigation lists and menus `Single` (M15). |
+| 15 | Fixed | 63b9ac943 | `FocusVisible::{Always, KeyboardOnly}` (default `Always`) exists on buttons only; text inputs and areas have no such option, so they always show focus. |
+| 16 | Open → S8a | — | Coalesce only wheel, motion, resize and repeated navigation in `KeyRouter`; S2 added `drain_pending_input` for every app. |
+| 17 | Open → S14 | — | Ctrl+C copies with a selection, else `Page::on_interrupt`, else quit through `LeaveGuard` (`QuitKeys`); quit confirmation only when data would be lost (`App::stakes`). |
+| 18 | Fixed | e184db2b0, 0d785adad | Blur commits (`BlurAction::Commit` default) and a dead-space press ends the edit; see interaction.md #15. Invalid values stay marked; validation timing is SIg9 (S11). |
+| 19 | Partial; Open → S11 | d5ad6ffb6 | `esc_reverts` defaults to false: Esc ends the multiline edit and keeps the text. Esc then Tab plus F6 leaving a CodeEditor, hinted, is K17 in S11. |
+| 20 | Fixed | d5ad6ffb6, 170ce0e90 | `FieldKeys::for_platform`: Emacs bindings on macOS clients, `Desktop` elsewhere; Alt+Backspace and Ctrl+W delete a word in both presets. |
+| 21 | Open → S12 | — | Disabled reason in the status row with the dimmed shortcut kept (`Item` reason, SI21/SV15). |
+| 22 | Partial; Open → A11 | 7bf62651d, 777adce9a, 3825da948 | `FocusFallback::Nearest` is the runtime fallback (K8, S7). Tab cycling inside modals is A11. |
+| 23 | Open → S8a | 02421eb86 | Tab keys are a `Tabs::keymap` (keymap pass). Letters and digits only while the strip has focus, and global Ctrl+PgUp/PgDn, are S8a; dirty-tab close goes through S14's guard. |
+| 24 | Open → S9 | — | Commit on selection change and ask Save / Don't Save / Cancel only on invalid (`RowSelection::apply`). |
+| Gap 1 | Fixed | b34ead943 | The runtime enables `?1004`; `runtime::FocusClickGuard` drops the click within 300 ms of FocusIn (`set_focus_click_guard`). |
+| Gap 2 | Open → S9 | — | Shift-click fallback: click the anchor, then Shift+arrows (`SelectGesture`). |
+| Gap 3 | Open → S14, A11 | — | S14 owns the `Clipboard` and OSC 52 writes; documenting the terminal's bypass modifier and in-app selection under capture is A11. |
+| Gap 4 | Open → S8b | — | `core::keyboard` already detects the kitty protocol (`super_delivered`); feeding detected keys into the hints is S8b. |
+| Gap 5 | Open → S11 | — | Bracketed paste never fires shortcuts; multi-line paste into a single-line field flattens or warns. |
+| Gap 6 | Open → S10 | — | The focus gutter `▎` is already a glyph cue. A non-colour selection cue (marker or BOLD) is SV14 in S10. |
+| Gap 7 | Partial; Open → A21 | d5ad6ffb6 | Fields: Ctrl+Z undo and Ctrl+Shift+Z redo (`UndoStack`, K15). DataGrid undoes pending changes with `u` only; DataTable has no undo. No step owns table undo. |
+| Gap 8 | Fixed | 3d0f10bd8 | Popups re-place against the current screen every frame; a showcase test locks it (S5). Focus kept visible is SVg9 in `standards-visual.md`. |
+| Gap 9 | Open → S11 | — | `ValidateWhen::Commit`, then `AfterError` while an error shows; error text near the field and in the status line (`FieldError`). |
+| Gap 10 | Partial; Open → A11 | f46630729 | Type-ahead reset and wrap: see "Status (plan S4)". Wide-character truncation, ellipsis and column snapping remain A11. |
