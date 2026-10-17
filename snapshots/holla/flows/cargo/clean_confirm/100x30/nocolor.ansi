@@ -27,5 +27,5 @@
 [0m[2m    → cargo clean · here · destructive                                                              [0m
 [0m[2m                                                                                                    [0m
 [0m[2m ~/work/engine   main                                                             no color · 100×30 [0m
-      [0m[1m    [0m         [0m[1m  [0m       [0m[1m    ←→[0m Choose  [0m[1mEnter Canc[0mel  [0m[1mEsc[0m Cancel  [0m[1m   [0m          [0m[1m   [0m               [0m
+ [0m[1m←→ C[0mhoose  [0m[1mEnter[0m Cance[0m[1ml  Esc[0m Cancel   [0m[1m         [0m                [0m[1m   [0m          [0m[1m   [0m                    [0m
 [?25l
