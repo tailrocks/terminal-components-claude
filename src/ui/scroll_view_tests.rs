@@ -412,6 +412,24 @@ fn fit_leaves_room_for_the_vertical_bar() {
     assert_eq!(view.fit(area, |_| Size::new(60, 30)), Size::new(60, 30));
 }
 
+/// Content as tall as the view and wider than it is measured again at
+/// the height the horizontal bar leaves: no vertical scroll for the bar.
+#[test]
+fn fit_leaves_room_for_the_horizontal_bar() {
+    let view = ScrollView::new(WidgetId::of("fit"));
+    let area = Size::new(40, 10);
+    // fills the height, 60 columns
+    let fill = |a: Size| Size::new(60, a.height);
+    let size = view.fit(area, fill);
+    assert_eq!(size, Size::new(60, 9));
+    let l = view.layout(Rect::new(0, 0, 40, 10), size);
+    assert!(l.viewport.height < 10, "a horizontal bar");
+    assert_eq!(l.content.height, l.viewport.height, "no vertical scroll");
+    assert_eq!(l.viewport.width, 40, "no vertical bar");
+    // content taller than the view is left as it is
+    assert_eq!(view.fit(area, |_| Size::new(60, 30)), Size::new(60, 30));
+}
+
 /// A `▎` drawn outside the focused control (a legend explaining the mark)
 /// is not its gutter: the view follows the gutter inside the control.
 #[test]

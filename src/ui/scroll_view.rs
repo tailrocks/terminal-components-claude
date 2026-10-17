@@ -298,21 +298,36 @@ impl ScrollView {
     /// that is taller than the view and no wider, when the vertical bar
     /// will take its columns: then `measure` again at the width the bar
     /// leaves, so content that only overflows downwards never scrolls
-    /// sideways by the bar's width.
+    /// sideways by the bar's width. Likewise when it is wider than the
+    /// view and no taller: the horizontal bar will take its row, so
+    /// `measure` again at the height the bar leaves, and content that
+    /// fills the height and only overflows sideways never scrolls down by
+    /// the bar's row.
     pub fn fit(&self, area: Size, measure: impl Fn(Size) -> Size) -> Size {
         let size = measure(area);
         let pad = self.padding;
         let (pad_w, pad_h) = (pad.left + pad.right, pad.top + pad.bottom);
         let room = 1 + self.scrollbar_gap;
+        let shows = self.bars != ScrollbarVisibility::Never;
+        let always = self.bars == ScrollbarVisibility::Always;
         let bar = self.axes.vertical
-            && self.bars != ScrollbarVisibility::Never
+            && shows
             && area.width > room
-            && (self.bars == ScrollbarVisibility::Always
-                || size.height.saturating_add(pad_h) > area.height);
+            && (always || size.height.saturating_add(pad_h) > area.height);
         if bar && size.width.saturating_add(pad_w) <= area.width {
             let narrower = measure(Size::new(area.width - room, area.height));
             if narrower.width.saturating_add(pad_w) <= area.width - room {
                 return narrower;
+            }
+        }
+        let h_bar = self.axes.horizontal
+            && shows
+            && area.height > 1
+            && (always || size.width.saturating_add(pad_w) > area.width);
+        if h_bar && size.height.saturating_add(pad_h) <= area.height {
+            let shorter = measure(Size::new(area.width, area.height - 1));
+            if shorter.height.saturating_add(pad_h) <= area.height - 1 {
+                return shorter;
             }
         }
         size
