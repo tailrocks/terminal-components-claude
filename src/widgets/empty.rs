@@ -229,7 +229,34 @@ impl crate::ui::measure::Measure for EmptyState {
         let width = title.max(hint).max(buttons);
         ratatui::layout::Size::new(width, height(self, width))
     }
+
+    /// The hint wraps itself (taller, never cut), so the state is whole
+    /// at any width that holds its title, its button row and the hint
+    /// wrapped to `HINT_MIN` (24) text columns (or its longest word, or its
+    /// one line when shorter): a container lays it out in the room it
+    /// has instead of scrolling sideways for the hint's one line.
+    fn min_width(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> u16 {
+        let w = |s: &str| crate::ui::text::width(s) as u16;
+        let full = self.measure(avail, ctx).width;
+        let hint = self.hint.as_deref().map_or(0, |h| {
+            let word = h.split_whitespace().map(w).max().unwrap_or(0);
+            (w(h).min(HINT_MIN)).max(word) + 4
+        });
+        let title = w(&self.title) + if self.kind == EmptyKind::Error { 2 } else { 0 };
+        let gap = ctx.theme.spacing.button_gap;
+        let buttons = self
+            .actions
+            .iter()
+            .map(|a| Button::secondary(a.id, &a.label).width())
+            .sum::<u16>()
+            + gap * self.actions.len().saturating_sub(1) as u16;
+        title.max(hint).max(buttons).min(full)
+    }
 }
+
+/// The text columns a wrapping hint keeps at least ([`EmptyState`]'s
+/// `Measure::min_width`).
+const HINT_MIN: u16 = 24;
 
 /// In a States grid an empty state is drawn by [`render_ctx`]; its
 /// interactive states are those of its first action button.
@@ -307,6 +334,31 @@ mod tests {
         ] {
             assert!(all.contains(part), "{part:?} in {all:?}");
         }
+    }
+
+    /// At its minimum width the hint wraps and loses no word; the
+    /// minimum is under the one-line measure.
+    #[test]
+    fn an_empty_state_at_its_min_width_wraps_its_hint_whole() {
+        use crate::ui::measure::Measure;
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let e = EmptyState::new("Nothing flagged")
+            .hint("Run the second block: its unwrap() gets a warning");
+        let zero = ratatui::layout::Size::ZERO;
+        let full = e.measure(zero, &ctx).width;
+        let min = e.min_width(zero, &ctx);
+        assert!(min < full, "{min} < {full}");
+        let area = Rect::new(0, 0, min, height(&e, min));
+        let mut buf = Buffer::empty(area);
+        render_ctx(area, &mut buf, &mut ctx, &e, Color::Reset);
+        let all = text(&buf);
+        for word in ["Nothing flagged", "Run", "second", "unwrap()", "warning"] {
+            assert!(all.contains(word), "{word:?} in {all:?}");
+        }
+        assert!(!all.contains('…'), "{all:?}");
     }
 
     #[test]
