@@ -3,7 +3,7 @@
 //! `ui::text::fuzzy`) with its scope readout inside the field
 //! (`TextInput::readout` as a link: a click widens it, Alt+↑↓ step it),
 //! the ranked results
-//! (`DataTable`, grouped by kind), and a preview card (`props`) with
+//! (`DataTable`, grouped by kind), and a preview `DetailCard` with
 //! Alternatives… (a `ContextMenu`) and Why? (an `InfoDialog`); on a narrow
 //! page the preview folds to a one-line summary (`segments`). Options:
 //! `crate::options::FINDER`.
@@ -33,13 +33,14 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::fuzzy;
-use junie_tui::widgets::button::{Button, row_layout};
-use junie_tui::widgets::empty::{self, EmptyState};
+use junie_tui::widgets::button::Button;
+use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::info_dialog::InfoDialog;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::menu::{ContextMenu, MenuItem};
+use junie_tui::widgets::detail_card::DetailCard;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::props::{self, Prop};
+use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction};
@@ -452,16 +453,12 @@ impl FinderPage {
             let panel = Panel::card(Some("Preview"));
             let bg = panel.bg(t);
             if let Some(inner) = panel.try_render(r, buf, t) {
-                empty::render(inner, buf, t, &EmptyState::new("Nothing selected"), bg);
+                DetailCard::empty(EmptyState::new("Nothing selected"))
+                    .render(inner, buf, ctx, bg, &mut []);
             }
             return;
         };
         let meta = format!("{} · {}", a.group, SCOPES[a.scope].to_lowercase());
-        let panel = Panel::card(Some(a.name)).meta(&meta);
-        let bg = panel.bg(t);
-        let Some(inner) = panel.try_render(r, buf, t) else {
-            return;
-        };
         let facts = vec![
             Prop::new("Runs", a.runs).copyable(),
             Prop::new("In", "~/work/holla"),
@@ -478,19 +475,19 @@ impl FinderPage {
             ),
             Prop::new("Data", "live · 2 s ago").tone(Tone::Muted),
         ];
-        let h = props::measure(&facts, inner.width).min(inner.height.saturating_sub(2));
-        props::render(
-            Rect::new(inner.x, inner.y, inner.width, h),
-            buf,
-            t,
-            &facts,
-            bg,
-        );
-        let y = (inner.y + h + 1).min(inner.bottom().saturating_sub(1));
-        let widths = [self.alternatives.width(), self.why.width()];
-        let rects = row_layout(Rect::new(inner.x, y, inner.width, 1), &widths, 2);
-        self.alternatives.render(rects[0], buf, ctx, bg);
-        self.why.render(rects[1], buf, ctx, bg);
+        // the facts, then Alternatives… and Why? right under them
+        DetailCard::new(a.name)
+            .meta(&meta)
+            .props(facts)
+            .fit(true)
+            .reserve(2)
+            .render(
+                r,
+                buf,
+                ctx,
+                t.canvas,
+                &mut [&mut self.alternatives, &mut self.why],
+            );
     }
 
     /// The narrow preview: one line naming what Enter runs.

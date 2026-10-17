@@ -128,10 +128,10 @@
 120x40 TrueColor Query workbench c29bac0f7b653b33
 120x40 TrueColor Query workbench · Options d61248e841dd1686
 120x40 TrueColor Query workbench · States ef5a2f7480bfd6cf
-120x40 TrueColor Connections 5d200aa6ae37044e
-120x40 TrueColor Connections · Options d07f27042ffad2e2
+120x40 TrueColor Connections cd3bc71d5719ab4c
+120x40 TrueColor Connections · Options 57c964fc931852c9
 120x40 TrueColor Connections · States 3ebacda6db7dbc28
-120x40 TrueColor Finder b3339cc306217994
+120x40 TrueColor Finder 902c355f927c5e24
 120x40 TrueColor Finder · Options a42c1a75b7d2c5b4
 120x40 TrueColor Finder · States 8d578dd77a77feaa
 120x40 TrueColor Disk cleanup 7772917a3a956a45
@@ -284,10 +284,10 @@
 120x40 Ansi256 Query workbench 9758607d06589913
 120x40 Ansi256 Query workbench · Options 2cad43cc07405ad1
 120x40 Ansi256 Query workbench · States 8e598980df0279d2
-120x40 Ansi256 Connections 63183337f28968d2
-120x40 Ansi256 Connections · Options f9d85cd08ae56965
+120x40 Ansi256 Connections 1e4de59b5f9985f6
+120x40 Ansi256 Connections · Options f523b0cc1919140e
 120x40 Ansi256 Connections · States 6ad8dd9c08e17faf
-120x40 Ansi256 Finder 60f8ab0b73392e70
+120x40 Ansi256 Finder f466537f13846cd0
 120x40 Ansi256 Finder · Options 11b66faf068e4727
 120x40 Ansi256 Finder · States 3fccd30f8f1e9626
 120x40 Ansi256 Disk cleanup 05fbf8f59a0ab182
@@ -440,8 +440,8 @@
 120x40 Ansi16 Query workbench aa4bd647d3451a19
 120x40 Ansi16 Query workbench · Options f0b00cb1db98eac2
 120x40 Ansi16 Query workbench · States 51744000c5bd1cff
-120x40 Ansi16 Connections 513f58edb8e68c52
-120x40 Ansi16 Connections · Options cf438d4d4c0098af
+120x40 Ansi16 Connections c6a0d31fbe2584fa
+120x40 Ansi16 Connections · Options f2373c1a266885cc
 120x40 Ansi16 Connections · States 86afa4dc40b231c0
 120x40 Ansi16 Finder abd18611b45bec6f
 120x40 Ansi16 Finder · Options 0c51e1fe5c1e82af
@@ -596,8 +596,8 @@
 120x40 Mono Query workbench 207789cfc05b0ede
 120x40 Mono Query workbench · Options 0f36e0da498269ab
 120x40 Mono Query workbench · States 775c590544c92528
-120x40 Mono Connections 25fcbe18ebafd54c
-120x40 Mono Connections · Options 42dbe7eaf61dd0d8
+120x40 Mono Connections 49ea163dbb8889d8
+120x40 Mono Connections · Options 1657e33d0de47a3f
 120x40 Mono Connections · States 3d36a736f96b17e3
 120x40 Mono Finder 1bc16a20f3cf9ff0
 120x40 Mono Finder · Options 722ea0c68a830e64
@@ -752,8 +752,8 @@
 80x24 TrueColor Query workbench 0327d050f7b9b42c
 80x24 TrueColor Query workbench · Options 33a0ca1ac1e1dccd
 80x24 TrueColor Query workbench · States 97832ec4d5a17502
-80x24 TrueColor Connections 1852ed1865e1af5c
-80x24 TrueColor Connections · Options 4380b1424db9d98c
+80x24 TrueColor Connections 808df98a2ff96271
+80x24 TrueColor Connections · Options 869c4e1bdb02050f
 80x24 TrueColor Connections · States a2759a46e0496766
 80x24 TrueColor Finder 8d2f99d359bf0358
 80x24 TrueColor Finder · Options e2aa74aff53fc105
@@ -908,8 +908,8 @@
 80x24 Ansi256 Query workbench 63f1a590faba6543
 80x24 Ansi256 Query workbench · Options 9c97737a3e84d514
 80x24 Ansi256 Query workbench · States b38d1af1c7983267
-80x24 Ansi256 Connections fe5345195da8299c
-80x24 Ansi256 Connections · Options 2fa800c05adc1efb
+80x24 Ansi256 Connections 3b60dfb8b5bfe371
+80x24 Ansi256 Connections · Options 3647180e0f5fdeec
 80x24 Ansi256 Connections · States 5e4d3254ee42a8b4
 80x24 Ansi256 Finder 38b68bb9d9d089bb
 80x24 Ansi256 Finder · Options 83b02df6f0a9fa03
@@ -1064,8 +1064,8 @@
 80x24 Ansi16 Query workbench 546dc45e0fbcd206
 80x24 Ansi16 Query workbench · Options 66b8c356d2ef9757
 80x24 Ansi16 Query workbench · States 73e766f14b7e8d3e
-80x24 Ansi16 Connections e83c428401048c1f
-80x24 Ansi16 Connections · Options abf124e4450cf31f
+80x24 Ansi16 Connections b1eb09f8bb174755
+80x24 Ansi16 Connections · Options b3ffb3f76fa3cf60
 80x24 Ansi16 Connections · States a44c8ca675bb83ad
 80x24 Ansi16 Finder 60655b69834f43a0
 80x24 Ansi16 Finder · Options ae9a51a7212f977a
@@ -1220,8 +1220,8 @@
 80x24 Mono Query workbench 7da64a82c0099876
 80x24 Mono Query workbench · Options 9570ce047cc87ad5
 80x24 Mono Query workbench · States f9cdf6ba718f2986
-80x24 Mono Connections fd01acbdde286e78
-80x24 Mono Connections · Options 4e01a33ced29c699
+80x24 Mono Connections f89ce98f0d46c232
+80x24 Mono Connections · Options 2de33e7185d8aa06
 80x24 Mono Connections · States 451b6ab0ff41beaa
 80x24 Mono Finder 2fb1b6ec8a185246
 80x24 Mono Finder · Options 9f55ba178ed0bb08
@@ -1376,8 +1376,8 @@
 72x20 TrueColor Query workbench 2f18868ca8c6a4af
 72x20 TrueColor Query workbench · Options 9d68ff9903bb86d6
 72x20 TrueColor Query workbench · States fb9397375cd39b09
-72x20 TrueColor Connections 0b550623e4e9351e
-72x20 TrueColor Connections · Options 45c116e314a37e0f
+72x20 TrueColor Connections 51b38cdd7fb2b937
+72x20 TrueColor Connections · Options 239bdb4c6d7f20c0
 72x20 TrueColor Connections · States 1e5be4d5df946110
 72x20 TrueColor Finder 7b2cf05c17d8b4ed
 72x20 TrueColor Finder · Options 0f674f1bd79c53c5
@@ -1532,8 +1532,8 @@
 72x20 Ansi256 Query workbench 0efa4ff1ba19daeb
 72x20 Ansi256 Query workbench · Options e62856a0c3ee3d0a
 72x20 Ansi256 Query workbench · States 2b65bc7c88cebb7b
-72x20 Ansi256 Connections 0a5520aa9096b7f0
-72x20 Ansi256 Connections · Options d77b1a4f3ef05df3
+72x20 Ansi256 Connections f04314a3694566d5
+72x20 Ansi256 Connections · Options 1c8f60b89d6d7a42
 72x20 Ansi256 Connections · States 25a511f3f4b251f4
 72x20 Ansi256 Finder 8934c06b13838ff2
 72x20 Ansi256 Finder · Options 0be2ea56151a51b9
@@ -1688,8 +1688,8 @@
 72x20 Ansi16 Query workbench b1ecfc0f28671c84
 72x20 Ansi16 Query workbench · Options 8b609ada177c19ae
 72x20 Ansi16 Query workbench · States 6cefd5194c64c67b
-72x20 Ansi16 Connections 5adb39e288600320
-72x20 Ansi16 Connections · Options e01b849b9a7b13a2
+72x20 Ansi16 Connections 81235e4afe5f7d98
+72x20 Ansi16 Connections · Options 386c996b7253a283
 72x20 Ansi16 Connections · States 324c43dd9b9bf3a3
 72x20 Ansi16 Finder d37fdd39ecbd83b8
 72x20 Ansi16 Finder · Options 9128363455447448
@@ -1844,8 +1844,8 @@
 72x20 Mono Query workbench c415a9972567da0c
 72x20 Mono Query workbench · Options e48f406193180df0
 72x20 Mono Query workbench · States 3a7e17068da61219
-72x20 Mono Connections ed8afbf5b2f78d06
-72x20 Mono Connections · Options f894f5f01eddac70
+72x20 Mono Connections f3888acfce65999c
+72x20 Mono Connections · Options 1b311a3240de51ed
 72x20 Mono Connections · States b32f95c1be68e0cc
 72x20 Mono Finder 4cc88446eceee0f6
 72x20 Mono Finder · Options 47ffd6bc30584002
@@ -2000,8 +2000,8 @@
 100x30 TrueColor Query workbench 2c388a0e06891650
 100x30 TrueColor Query workbench · Options 93260647cbd81f57
 100x30 TrueColor Query workbench · States ccf93e7f63fb32dd
-100x30 TrueColor Connections bc195664ff92c769
-100x30 TrueColor Connections · Options 2b3343650cac7ce2
+100x30 TrueColor Connections f826b1e11733354d
+100x30 TrueColor Connections · Options 98a3e384d05f0cf1
 100x30 TrueColor Connections · States 82adb5aa2ecf0ad8
 100x30 TrueColor Finder 0710f3bb296cd37a
 100x30 TrueColor Finder · Options 63e5069e9ca659e5
@@ -2156,8 +2156,8 @@
 100x30 Ansi256 Query workbench c69b169d8eb29294
 100x30 Ansi256 Query workbench · Options 87a2a532205b24fb
 100x30 Ansi256 Query workbench · States a2f214b23dba40e8
-100x30 Ansi256 Connections c531f4c9db00dd36
-100x30 Ansi256 Connections · Options d0c0841623eb6cd7
+100x30 Ansi256 Connections ab1ac56d770a3cbc
+100x30 Ansi256 Connections · Options 0e74e2810f5527d0
 100x30 Ansi256 Connections · States 6c15a38a90882080
 100x30 Ansi256 Finder 262b319c3f552800
 100x30 Ansi256 Finder · Options 61f0156cd8f0b137
@@ -2312,8 +2312,8 @@
 100x30 Ansi16 Query workbench 0f8124edf45045d3
 100x30 Ansi16 Query workbench · Options e2aea8616e7056f9
 100x30 Ansi16 Query workbench · States a6e0d092565c3779
-100x30 Ansi16 Connections e92afd5ca4563df0
-100x30 Ansi16 Connections · Options 9d62d4012946b903
+100x30 Ansi16 Connections f3c303e17b55672b
+100x30 Ansi16 Connections · Options 9fc36f6571f86694
 100x30 Ansi16 Connections · States 74433e52e9688f04
 100x30 Ansi16 Finder c387a1b1650b97eb
 100x30 Ansi16 Finder · Options 2625c34da8134cea
@@ -2468,8 +2468,8 @@
 100x30 Mono Query workbench 207952aa520e28e8
 100x30 Mono Query workbench · Options 5343de2dc88836a6
 100x30 Mono Query workbench · States 3f03c387972a89d6
-100x30 Mono Connections 809fe2c424bec10a
-100x30 Mono Connections · Options c133bec18a3cbfc4
+100x30 Mono Connections b25132a2aa305b67
+100x30 Mono Connections · Options 9ee93803dc12a2a3
 100x30 Mono Connections · States c5d12115c368634f
 100x30 Mono Finder 59e3124f042a8e26
 100x30 Mono Finder · Options 78e1bd617361d733
@@ -2624,10 +2624,10 @@
 160x50 TrueColor Query workbench 095f0f5f895959fb
 160x50 TrueColor Query workbench · Options 9a0f17c0397dc465
 160x50 TrueColor Query workbench · States ece2218807c0815e
-160x50 TrueColor Connections 0956c22809b32335
-160x50 TrueColor Connections · Options 54d56e4101882ce9
+160x50 TrueColor Connections da7b8625f083501f
+160x50 TrueColor Connections · Options c2b95601d4608f86
 160x50 TrueColor Connections · States 147634f3ebba1fcf
-160x50 TrueColor Finder 4010d4fcbdc55741
+160x50 TrueColor Finder 217ea644aa76511b
 160x50 TrueColor Finder · Options c677c988cc3d9a37
 160x50 TrueColor Finder · States a7c7c0678db393cf
 160x50 TrueColor Disk cleanup 3def65b13c358f0f
@@ -2780,10 +2780,10 @@
 160x50 Ansi256 Query workbench 0494098ba8badb48
 160x50 Ansi256 Query workbench · Options 3ce03b2fbcbc72ec
 160x50 Ansi256 Query workbench · States 9ca5c120054cf149
-160x50 Ansi256 Connections e7ea762cc6baf200
-160x50 Ansi256 Connections · Options 52af18165abc8c84
+160x50 Ansi256 Connections 2de12e5c1357fdf4
+160x50 Ansi256 Connections · Options 5303bcd2e280e2f3
 160x50 Ansi256 Connections · States 669dba8a3588da24
-160x50 Ansi256 Finder 5ed1f5e4742c2224
+160x50 Ansi256 Finder a224b2fc28469358
 160x50 Ansi256 Finder · Options 8f95b66dd8da4f1a
 160x50 Ansi256 Finder · States 733d616158ce8759
 160x50 Ansi256 Disk cleanup 027700206b51c0ec
@@ -2936,8 +2936,8 @@
 160x50 Ansi16 Query workbench 0f2268f218cb7489
 160x50 Ansi16 Query workbench · Options 8140b144ac41aaa9
 160x50 Ansi16 Query workbench · States eed835d14d911840
-160x50 Ansi16 Connections c2a3ece4583b5ad6
-160x50 Ansi16 Connections · Options c0a0b682fcca65fe
+160x50 Ansi16 Connections 23d3b585cdf503dc
+160x50 Ansi16 Connections · Options 47f19c080fb61819
 160x50 Ansi16 Connections · States 8634072959655e3f
 160x50 Ansi16 Finder 2859bcb58cd5d513
 160x50 Ansi16 Finder · Options 0cbd345e15343a32
@@ -3092,8 +3092,8 @@
 160x50 Mono Query workbench a9c92a0d8c100f95
 160x50 Mono Query workbench · Options f51920f88afa8718
 160x50 Mono Query workbench · States e095c6c6ec720a8f
-160x50 Mono Connections 4a250a8751596169
-160x50 Mono Connections · Options e226a09f4fd1480d
+160x50 Mono Connections 0d65a4b70bcb78d3
+160x50 Mono Connections · Options 7084fd3039590dce
 160x50 Mono Connections · States 86f1372588604324
 160x50 Mono Finder c2c5db8b5c1dee52
 160x50 Mono Finder · Options 4524acc90728d235

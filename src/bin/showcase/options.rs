@@ -352,7 +352,11 @@ pub static CONNECTIONS: &[Opt] = &[
         &["folder", "environment"],
     ),
     Opt::new("connections.meta", "Engine column", OFF_ON).default(1),
-    Opt::new("connections.list_width", "List width", &["36", "28", "44"]),
+    Opt::new(
+        "connections.list_width",
+        "List share %",
+        &["40", "30", "50"],
+    ),
     Opt::new("connections.list", "List", &["sample", "empty"]),
     Opt::new(
         "connections.state",

@@ -3733,6 +3733,47 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::action_row::ActionRow::step",
         Demo("buttons", "Retry failed"),
     ),
+    // DetailCard (S17, SC36): the Connections screen's detail pane
+    (
+        "widgets::detail_card::DetailCard",
+        Demo("connections", "Engine"),
+    ),
+    (
+        "widgets::detail_card::DetailLayout",
+        Demo("connections", "Connect"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::meta",
+        Demo("connections", "production"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::props",
+        Demo("connections", "Last used"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::actions",
+        Demo("connections", "Duplicate"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::max_size",
+        Demo("connections", "Database"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::reserve",
+        Option("connections", "connections.state"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::focused",
+        Demo("connections", "Edit…"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::fit",
+        Demo("connections", "SSL"),
+    ),
+    (
+        "widgets::detail_card::DetailCard::render",
+        Demo("connections", "Delete…"),
+    ),
     // PageHeader and Heading (S17, SC36): the Meters page's header
     (
         "widgets::page_header::PageHeader",

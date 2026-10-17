@@ -890,7 +890,11 @@ fn the_next_row_is_an_action_row_with_its_message_and_arrows() {
         "→ skips the disabled Retry failed"
     );
     h.key(KeyCode::Right);
-    assert_eq!(h.app.shell.focus.current(), Some(next.child(2)), "stops at the end");
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(next.child(2)),
+        "stops at the end"
+    );
     h.key(KeyCode::Left);
     assert_eq!(h.app.shell.focus.current(), Some(next.child(0)));
 }

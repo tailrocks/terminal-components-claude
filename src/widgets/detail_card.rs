@@ -52,6 +52,11 @@ pub struct DetailCard {
     pub empty: Option<EmptyState>,
     /// The card is the focused pane (its frame shows it).
     pub focused: bool,
+    /// The card takes only the height it needs (its facts and
+    /// [`Self::reserve`]), so the actions follow the facts instead of
+    /// sitting at the foot of a tall pane. Default off: the card fills
+    /// the area up to [`Self::max_height`].
+    pub fit: bool,
 }
 
 /// Where a rendered [`DetailCard`] put its parts.
@@ -82,7 +87,14 @@ impl DetailCard {
             reserve: 3,
             empty: None,
             focused: false,
+            fit: false,
         }
+    }
+
+    /// See [`Self::fit`].
+    pub fn fit(mut self, on: bool) -> Self {
+        self.fit = on;
+        self
     }
 
     /// A card with nothing to detail: it shows `state` instead.
@@ -148,7 +160,7 @@ impl DetailCard {
                 ..DetailLayout::default()
             };
         }
-        let card = Rect::new(
+        let mut card = Rect::new(
             area.x,
             area.y,
             self.max_width.map_or(area.width, |w| area.width.min(w)),
@@ -157,6 +169,14 @@ impl DetailCard {
         let mut panel = Panel::card(Some(&self.title)).focused(self.focused);
         if let Some(m) = &self.meta {
             panel = panel.meta(m);
+        }
+        if self.fit {
+            // the card's chrome, measured on a scratch buffer
+            let mut scratch = Buffer::empty(card);
+            let probe = panel.render(card, &mut scratch, t);
+            let chrome = card.height.saturating_sub(probe.height);
+            let need = chrome + props::measure(&self.props, probe.width) + self.reserve;
+            card.height = card.height.min(need);
         }
         let cbg = panel.bg(t);
         let inner = panel.render(card, buf, t);
@@ -263,6 +283,33 @@ mod tests {
                 l.actions[1].y
             )),
             Some(edit.id)
+        );
+    }
+
+    #[test]
+    fn a_fitted_card_ends_under_its_facts() {
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 40, 30);
+        let mut buf = Buffer::empty(area);
+        let mut ok = Button::primary(WidgetId::of("ok"), "Open");
+        let card = DetailCard::new("orders").props(vec![Prop::new("Rows", "12")]);
+        let tall = card
+            .clone()
+            .render(area, &mut buf, &mut ctx, t.canvas, &mut [&mut ok]);
+        assert_eq!(tall.card.height, 30);
+        let fitted = card
+            .fit(true)
+            .render(area, &mut buf, &mut ctx, t.canvas, &mut [&mut ok]);
+        assert_eq!(fitted.props_h, 1);
+        assert_eq!(fitted.actions[0].y, fitted.slot.bottom());
+        assert!(fitted.card.height < 10, "{:?}", fitted.card);
+        assert_eq!(
+            fitted.card.bottom(),
+            fitted.actions[0].y + 2,
+            "the action row ends the card"
         );
     }
 

@@ -339,7 +339,7 @@ fn states_grid() -> StateGrid {
 }
 
 /// A library hint as the page's footer pair.
-fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
+pub(crate) fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
     let action = match h.action {
         Cow::Borrowed(s) => s,
         Cow::Owned(_) => "",
