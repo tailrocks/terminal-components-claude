@@ -11,7 +11,7 @@ use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
-use crate::ui::row::{RowLook, RowUi};
+use crate::ui::row::{MarkKind, RowLook, RowUi};
 
 /// A node in a tree: label, optional trailing metadata, children.
 #[derive(Debug, Clone)]
@@ -1007,7 +1007,8 @@ impl TreeView {
             }
             s.focused = focused && ri == self.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
-            let st = RowUi::paint(ctx, buf, full, s, RowLook::Bar, bg).style();
+            let rp = RowUi::paint(ctx, buf, full, s, RowLook::Bar, bg);
+            let st = rp.style();
             let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
             // the row is a target even when its indent leaves no room for
@@ -1049,7 +1050,7 @@ impl TreeView {
                 && let Some(m) = self.selected_marker
             {
                 // the current item is a fact: accent only while focused
-                buf.set_string(x, y, m, st.fg(t.chosen(focused)));
+                rp.mark(ctx, buf, x, y, MarkKind::Glyph(m), focused);
             }
             x += 2;
             let meta_w = row

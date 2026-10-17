@@ -18,7 +18,7 @@ use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
 use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture, SelectionMode, TriState};
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::row::{RowLook, RowUi};
+use crate::ui::row::{MarkKind, RowLook, RowUi};
 use crate::widgets::edit::{EditExit, EditField, Validator};
 use crate::widgets::option_editor::{
     Affordance, ChoiceEditor, ChoiceResult, ColumnEditor, EditorConfig,
@@ -1704,21 +1704,20 @@ impl DataTable {
                 s.hovered = false;
                 s.pressed = false;
             }
-            let mut row_style = RowUi::paint(ctx, buf, row_rect, s, RowLook::Bar, bg).style();
+            let rp = RowUi::paint(ctx, buf, row_rect, s, RowLook::Bar, bg);
+            let mut row_style = rp.style();
             if row_disabled {
                 row_style = row_style.fg(t.legible(t.text_muted, row_style.bg.unwrap_or(bg)));
             }
-            let marker = match (self.selection_mode, s.selected) {
-                (SelectionMode::Single, true) => t.glyphs.current,
-                (SelectionMode::Multi, true) if check_w == 0 => t.glyphs.tick,
-                _ => " ",
-            };
-            let ms = if s.selected {
-                row_style.fg(if focused { t.accent } else { t.text_secondary })
-            } else {
-                row_style
-            };
-            buf.set_string(row_rect.x + 1, y, marker, ms);
+            match (self.selection_mode, s.selected) {
+                (SelectionMode::Single, true) => {
+                    rp.mark(ctx, buf, row_rect.x + 1, y, MarkKind::Current, focused)
+                }
+                (SelectionMode::Multi, true) if check_w == 0 => {
+                    rp.mark(ctx, buf, row_rect.x + 1, y, MarkKind::Tick, focused)
+                }
+                _ => {}
+            }
             if check_w > 0 && area.width > 3 + check_w {
                 let r = Rect::new(area.x + 3, y, 3, 1);
                 let (glyph, gs) = if row_disabled {
