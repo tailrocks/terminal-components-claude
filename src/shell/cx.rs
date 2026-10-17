@@ -22,6 +22,10 @@ pub enum Request<R, W: ?Sized = (), G = ()> {
     /// A footer status of a [`StatusKind`]: drawn with its glyph and tone
     /// ([`crate::theme::Theme::status`]); a failure stays like an error.
     StatusAs(String, StatusKind),
+    /// A footer status reporting the progress of a background job
+    /// ("Saving settings…"); it ends with the job
+    /// ([`super::StatusLine::progress`], [`super::StatusLine::end_job`]).
+    Progress(String, super::JobKey),
     /// Open a layer on top, owned by the page that asked
     /// ([`crate::ui::layer::ShellLayers::open`]).
     Open(Box<dyn Layer<R, W>>, LayerTag),
@@ -52,7 +56,10 @@ impl<R, W: ?Sized, G> Request<R, W, G> {
     /// navigation, the clipboard) is dropped, so the page in front never
     /// changes under the user because of a page behind it.
     pub fn allowed_in_background(&self) -> bool {
-        matches!(self, Self::Status(..) | Self::StatusAs(..))
+        matches!(
+            self,
+            Self::Status(..) | Self::StatusAs(..) | Self::Progress(..)
+        )
     }
 }
 
@@ -117,6 +124,12 @@ impl<'a, R, W: ?Sized, G> Cx<'a, R, W, G> {
     /// A footer status of `kind` ("✓ Connection saved").
     pub fn status_as(&mut self, kind: StatusKind, s: impl Into<String>) {
         self.requests.push(Request::StatusAs(s.into(), kind));
+    }
+
+    /// The progress of background `job` ("Saving settings…"): it ends
+    /// when the job's result arrives ([`super::StatusLine::end_job`]).
+    pub fn progress(&mut self, job: super::JobKey, s: impl Into<String>) {
+        self.requests.push(Request::Progress(s.into(), job));
     }
 
     /// An error status: it stays until the next action.
