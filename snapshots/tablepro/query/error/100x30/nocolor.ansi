@@ -15,7 +15,7 @@
    │  ━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────── │ [0m
    │   [0m[1m✗[0m failed · 2 ms                                                                            │ [0m
    │    Error                                                                                     │ [0m
-   │                                                                                              │ [0m
+   │    ──────────────────────────────────────────────────────────────────────────────────────    │ [0m
    │    [0m[1m![0m relation "missing_table" does not exist                                                 │ [0m
    │      Check the schema search path or qualify the table name.                                 │ [0m
    │      Enter on the result tab jumps to the statement                                          │ [0m
