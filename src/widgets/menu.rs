@@ -615,7 +615,6 @@ impl ContextMenu {
         // the popover plane: the strongest neutral, so a menu reads as a
         // floating command list over the page
         let bg = t.popover;
-        let plane = Plane::Popover;
         fill(buf, area, Style::new().bg(bg));
         let block = ratatui::widgets::Block::new()
             .borders(ratatui::widgets::Borders::ALL)
@@ -696,7 +695,14 @@ impl ContextMenu {
             // bar and never the accent); hover and press walk the plane's
             // ladder. A destructive row is soft rose at rest and takes the
             // deep red cursor fill: the tone of the plane, not the alarm red
-            let it = t.interactive(Kind::CursorRow(CursorStyle::Fill), s, plane);
+            let it = crate::ui::row::RowUi::resolve(
+                ctx,
+                row,
+                s,
+                crate::ui::row::RowLook::Fill(CursorStyle::Fill),
+                bg,
+            )
+            .look;
             let mut st = it.style;
             if item.danger && !it.on_fill && !item.item.disabled {
                 st = st.fg(t.legible(t.error_soft, st.bg.unwrap_or(bg)));
