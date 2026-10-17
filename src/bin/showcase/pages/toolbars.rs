@@ -14,8 +14,9 @@
 //! toolbar's.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
@@ -24,8 +25,11 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::NavKeys;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::{Tile, Tiled, tiles};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::toolbar::{ToolItem, Toolbar, ToolbarAction};
 
 const ID: WidgetId = WidgetId::of("toolbars");
@@ -184,29 +188,17 @@ impl ToolbarsPage {
         cx.status(self.last.clone());
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[5, 1, 5, 1, 5, 1, 6, 0]);
-
-        let panel = Panel::card(Some("Query toolbar")).meta("one Tab stop · ←→ · Enter");
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        self.query
-            .render(Rect::new(inner.x, inner.y, inner.width, 1), buf, ctx, bg);
-        let state = if self.running {
+    fn state_text(&self) -> &'static str {
+        if self.running {
             "running · Stop is enabled, Run waits"
         } else {
             "idle · Stop is disabled until a run starts"
-        };
-        buf.set_string(inner.x, inner.y + 2, state, t.muted().bg(bg));
+        }
+    }
 
-        let panel = Panel::card(Some("Narrow toolbar")).meta("» holds what does not fit");
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[2], buf, t);
-        let w = NARROW_W.min(inner.width);
-        self.narrow
-            .render(Rect::new(inner.x, inner.y, w, 1), buf, ctx, bg);
-        // what the overflow menu holds, with why a disabled item waits
+    /// What the narrow toolbar's overflow menu holds, with why a disabled
+    /// item waits.
+    fn behind_text(&self) -> String {
         let hidden: Vec<String> = self
             .narrow
             .hidden()
@@ -219,50 +211,107 @@ impl ToolbarsPage {
                 }
             })
             .collect();
-        let text = if hidden.is_empty() {
+        if hidden.is_empty() {
             "everything fits: no » button".to_owned()
         } else {
             format!("behind »: {}", hidden.join(" · "))
-        };
-        buf.set_string(
-            inner.x,
-            inner.y + 2,
-            junie_tui::ui::text::truncate(&text, inner.width as usize),
-            t.muted().bg(bg),
+        }
+    }
+
+    fn last_facts(&self) -> Vec<Prop> {
+        vec![
+            Prop::new("Action", self.last.clone()).wrap(),
+            Prop::new(
+                "Keys",
+                "Tab enters once · ←→ move (disabled skipped) · Home End · Enter Space run",
+            )
+            .wrap(),
+        ]
+    }
+
+    /// The four cards, one under the other, at `width`: each never
+    /// narrower than its toolbar shown whole and its first line.
+    fn tiled(&self, width: u16) -> Tiled {
+        let w = |s: &str| text::width(s) as u16;
+        let card = |p: Panel, content: u16| p.outer(Size::new(content, 0)).width;
+        let query_p = Panel::card(Some("Query toolbar")).meta(QUERY_META);
+        let narrow_p = Panel::card(Some("Narrow toolbar")).meta(NARROW_META);
+        let format_p = Panel::card(Some("Formatting toolbar")).meta("toggles");
+        let last_p = Panel::card(Some("Last"));
+        let facts = self.last_facts();
+        let behind = self.behind_text();
+        let query_w = card(
+            Panel::card(Some("Query toolbar")).meta(QUERY_META),
+            self.query.width().max(w(self.state_text())),
         );
+        let narrow_w = card(
+            Panel::card(Some("Narrow toolbar")).meta(NARROW_META),
+            NARROW_W,
+        );
+        let format_w = card(
+            Panel::card(Some("Formatting toolbar")).meta("toggles"),
+            self.format.width(),
+        );
+        let query_h = |_: u16| query_p.outer(Size::new(0, 3)).height;
+        let narrow_h = |w: u16| {
+            let inner = narrow_p.inner(Size::new(w, 0)).width;
+            let rows = text::wrap(&behind, inner.max(1) as usize).len() as u16;
+            narrow_p.outer(Size::new(inner, 2 + rows)).height
+        };
+        let format_h = |_: u16| format_p.outer(Size::new(0, 1)).height;
+        let last_h = |w: u16| sheet_height(&last_p, &facts, w);
+        tiles(
+            width,
+            &[
+                &[Tile::new(query_w, &query_h)],
+                &[Tile::new(narrow_w, &narrow_h)],
+                &[Tile::new(format_w, &format_h)],
+                &[Tile::new(sheet_width(&last_p, &facts), &last_h)],
+            ],
+            (2, 1),
+        )
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let tiled = self.tiled(area.width);
+
+        let panel = Panel::card(Some("Query toolbar")).meta(QUERY_META);
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(0, area), buf, t);
+        self.query
+            .render(Rect::new(inner.x, inner.y, inner.width, 1), buf, ctx, bg);
+        buf.set_string(inner.x, inner.y + 2, self.state_text(), t.muted().bg(bg));
+
+        let panel = Panel::card(Some("Narrow toolbar")).meta(NARROW_META);
+        let bg = panel.bg(t);
+        let inner = panel.render(tiled.at(1, area), buf, t);
+        let w = NARROW_W.min(inner.width);
+        self.narrow
+            .render(Rect::new(inner.x, inner.y, w, 1), buf, ctx, bg);
+        let behind = self.behind_text();
+        for (i, line) in text::wrap(&behind, inner.width.max(1) as usize)
+            .iter()
+            .enumerate()
+        {
+            buf.set_string(inner.x, inner.y + 2 + i as u16, line, t.muted().bg(bg));
+        }
 
         let panel = Panel::card(Some("Formatting toolbar")).meta("toggles");
         let bg = panel.bg(t);
-        let inner = panel.render(rows[4], buf, t);
+        let inner = panel.render(tiled.at(2, area), buf, t);
         self.format
             .render(Rect::new(inner.x, inner.y, inner.width, 1), buf, ctx, bg);
 
         let panel = Panel::card(Some("Last"));
         let bg = panel.bg(t);
-        let inner = panel.render(rows[6], buf, t);
-        let lines = [
-            ("Action", self.last.clone()),
-            (
-                "Keys",
-                "Tab enters once · ←→ move (disabled skipped) · Home End · Enter Space run".into(),
-            ),
-        ];
-        for (i, (k, v)) in lines.iter().enumerate() {
-            let y = inner.y + i as u16;
-            if y >= inner.bottom() {
-                break;
-            }
-            buf.set_string(inner.x, y, k, t.muted().bg(bg));
-            let w = inner.width.saturating_sub(9) as usize;
-            buf.set_string(
-                inner.x + 9,
-                y,
-                junie_tui::ui::text::truncate(v, w),
-                t.primary().bg(bg),
-            );
-        }
+        let inner = panel.render(tiled.at(3, area), buf, t);
+        props::render(inner, buf, t, &self.last_facts(), bg);
     }
 }
+
+const QUERY_META: &str = "one Tab stop · ←→ · Enter";
+const NARROW_META: &str = "» holds what does not fit";
 
 /// The States grid: a command toolbar and a toggle toolbar.
 fn states_grid() -> StateGrid {
@@ -313,6 +362,10 @@ impl Page for ToolbarsPage {
 
     fn blurb(&self) -> &'static str {
         "A row of commands that is one focus stop: shortcuts, tips, toggles, separators"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        self.tiled(avail.width).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
