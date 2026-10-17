@@ -14,7 +14,7 @@
 //! The page is wiring and demo data only.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -35,6 +35,19 @@ use junie_tui::widgets::panel::{CardHeading, Panel, PanelCmd, PanelFocus, Scroll
 use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("panels");
+
+/// The narrowest column side by side: the Nested card's group keeps its
+/// width; the cards wrap and the panes scroll sideways themselves.
+const COL_MIN: u16 = 36;
+/// Rows each scrolling pane keeps at least.
+const PANE_H: u16 = 9;
+/// Where the group's note starts in the Nested card: after the group's
+/// columns and a gap.
+const NOTE_X: u16 = 32;
+const TITLED: &str = "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.";
+const UNTITLED: &str = "Untitled card. Same surface, content starts at the padding edge.";
+const NESTED_NOTE: &str =
+    "A group inside a card is a muted label plus indent. The focus bar stays on the control.";
 
 pub struct PanelsPage {
     template: Template,
@@ -169,30 +182,73 @@ impl PanelsPage {
         p
     }
 
+    /// The left column's width in a Playground `width` wide, and whether
+    /// the panes sit beside it (else under it): side by side only while
+    /// both columns keep [`COL_MIN`].
+    fn split(width: u16) -> (u16, bool) {
+        let half = (width / 2).saturating_sub(1);
+        if half >= COL_MIN {
+            (half, true)
+        } else {
+            (width, false)
+        }
+    }
+
+    /// The left column's cards at a column `lw` wide: each tall enough for
+    /// its text wrapped to its width, never shorter than the fixed rows
+    /// they had (7, 6, 7).
+    fn children(&self, lw: u16) -> [StackChild; 3] {
+        let iw = |p: &Panel| p.inner(Size::new(lw, 0)).width as usize;
+        let titled = self.card(Some("Titled card"));
+        let untitled = self.card(None);
+        let nested = self.card(Some("Nested"));
+        let lines = |text: &str, w: usize| junie_tui::ui::text::wrap(text, w.max(1)).len() as u16;
+        // the group takes its label and three rows; the note wraps beside
+        // it when it has room, else under it after a blank row
+        let nw = iw(&nested) as u16;
+        let body = if Self::note_beside(nw) {
+            lines(NESTED_NOTE, (nw - NOTE_X) as usize).max(4)
+        } else {
+            4 + 1 + lines(NESTED_NOTE, nw as usize)
+        };
+        [
+            StackChild::fixed((lines(TITLED, iw(&titled)) + 3).max(7)),
+            StackChild::fixed((lines(UNTITLED, iw(&untitled)) + 2).max(6)),
+            StackChild::fixed((body + 3).max(7)),
+        ]
+    }
+
+    /// Whether the Nested card's note fits beside its group in a card
+    /// `inner` cells wide (else it goes under the group).
+    fn note_beside(inner: u16) -> bool {
+        inner > NOTE_X + 20
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let (l, r) = crate::pages::layout::columns(area, area.width / 2 - 1, 2);
+        let (lw, side) = Self::split(area.width);
+        let children = self.children(lw);
+        let (l, r) = if side {
+            crate::pages::layout::columns(area, lw, 2)
+        } else {
+            // the panes under the cards
+            let lh = self.sections.stack.measure(&children).min(area.height);
+            let below = (lh + 1).min(area.height);
+            (
+                Rect::new(area.x, area.y, area.width, lh),
+                Rect::new(area.x, area.y + below, area.width, area.height - below),
+            )
+        };
         // the left column's cards scroll as whole sections on a short
         // terminal rather than drawing into the row under the page
         let focus = ctx.interaction.has_focus(self.nested.id).then_some(2);
-        let lrows = self.sections.layout(
-            l,
-            &[
-                StackChild::fixed(7),
-                StackChild::fixed(6),
-                StackChild::fixed(7),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let lrows = self.sections.layout(l, &children, focus, buf, ctx);
 
         // titled card
         let panel = self.card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(0).and_then(|r| panel.try_render(r, buf, t)) {
-            let text = "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.";
-            for (i, line) in junie_tui::ui::text::wrap(text, inner.width as usize)
+            for (i, line) in junie_tui::ui::text::wrap(TITLED, inner.width as usize)
                 .iter()
                 .enumerate()
             {
@@ -206,12 +262,9 @@ impl PanelsPage {
         let panel = self.card(None);
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(1).and_then(|r| panel.try_render(r, buf, t)) {
-            for (i, line) in junie_tui::ui::text::wrap(
-                "Untitled card. Same surface, content starts at the padding edge.",
-                inner.width as usize,
-            )
-            .iter()
-            .enumerate()
+            for (i, line) in junie_tui::ui::text::wrap(UNTITLED, inner.width as usize)
+                .iter()
+                .enumerate()
             {
                 if i < inner.height as usize {
                     buf.set_string(inner.x, inner.y + i as u16, line, t.secondary().bg(bg));
@@ -242,20 +295,23 @@ impl PanelsPage {
         let group = Rect::new(
             inner.x,
             inner.y + 1,
-            inner.width.min(30),
+            inner.width.min(NOTE_X - 2),
             inner.height.saturating_sub(1).min(3),
         );
         self.nested.render(group, buf, ctx, bg);
-        let note_x = group.right() + 2;
-        if note_x + 20 < inner.right() {
-            let note = "A group inside a card is a muted label plus indent. The focus bar stays on the control.";
-            for (i, line) in junie_tui::ui::text::wrap(note, (inner.right() - note_x) as usize)
-                .iter()
-                .enumerate()
-            {
-                if (i as u16) < inner.height {
-                    buf.set_string(note_x, inner.y + i as u16, line, t.muted().bg(bg));
-                }
+        // the note beside the group when it has room, else under it
+        let (note_x, note_y) = if Self::note_beside(inner.width) {
+            (inner.x + NOTE_X, inner.y)
+        } else {
+            (inner.x, inner.y + 5)
+        };
+        for (i, line) in junie_tui::ui::text::wrap(NESTED_NOTE, (inner.right() - note_x) as usize)
+            .iter()
+            .enumerate()
+        {
+            let y = note_y + i as u16;
+            if y < inner.bottom() {
+                buf.set_string(note_x, y, line, t.muted().bg(bg));
             }
         }
     }
@@ -341,6 +397,23 @@ impl Page for PanelsPage {
     }
     fn blurb(&self) -> &'static str {
         "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
+    }
+
+    /// The cards whole and the panes at least [`PANE_H`] rows: side by
+    /// side when both columns keep [`COL_MIN`], else the panes under the
+    /// cards. As wide as the room (the cards wrap to it), never narrower
+    /// than a column.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let width = avail.width.max(COL_MIN);
+        let (lw, side) = Self::split(width);
+        let left = self.sections.stack.measure(&self.children(lw));
+        let panes = 2 * PANE_H + 1;
+        let height = if side {
+            left.max(panes)
+        } else {
+            left + 1 + panes
+        };
+        Size::new(width, height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
