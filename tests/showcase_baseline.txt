@@ -16,7 +16,7 @@
 120x40 TrueColor Quit & leave c9680f2afa80db76
 120x40 TrueColor Quit & leave · Options a25a0e816064fb5e
 120x40 TrueColor Quit & leave · States f44a2f8d87bbe96d
-120x40 TrueColor Focus & navigation 8afb2f534fad6835
+120x40 TrueColor Focus & navigation 4842751f7dfb588d
 120x40 TrueColor Focus & navigation · Options 19873d6f87733e74
 120x40 TrueColor Focus & navigation · States 761755ada66c3d30
 120x40 TrueColor Buttons cf63ed1db993cad5
@@ -180,7 +180,7 @@
 120x40 Ansi256 Quit & leave 6fc583bbef511c1f
 120x40 Ansi256 Quit & leave · Options 38fa9e819068ee7f
 120x40 Ansi256 Quit & leave · States fea379736eea181a
-120x40 Ansi256 Focus & navigation 89ca0c1916bd0029
+120x40 Ansi256 Focus & navigation 784a54b9e1d284d0
 120x40 Ansi256 Focus & navigation · Options 6ebb6c457af71d6d
 120x40 Ansi256 Focus & navigation · States 9a73994d5368c8c5
 120x40 Ansi256 Buttons 6527a887cb2786a3
@@ -344,7 +344,7 @@
 120x40 Ansi16 Quit & leave 181b978653d2605d
 120x40 Ansi16 Quit & leave · Options 6057be3c6e3664bc
 120x40 Ansi16 Quit & leave · States cf9d835d793dc43d
-120x40 Ansi16 Focus & navigation db83c12207a74e3c
+120x40 Ansi16 Focus & navigation e785e6fc3a127260
 120x40 Ansi16 Focus & navigation · Options fb1cf4c380abbd6b
 120x40 Ansi16 Focus & navigation · States 709ad4130c6506a7
 120x40 Ansi16 Buttons d6f18cfec58b89af
@@ -508,7 +508,7 @@
 120x40 Mono Quit & leave 66bc52cbd4d8dca0
 120x40 Mono Quit & leave · Options 0009063f4d7ca379
 120x40 Mono Quit & leave · States a471965f3956cf10
-120x40 Mono Focus & navigation 763393d1be6b19f5
+120x40 Mono Focus & navigation 5e2822b00fa0edab
 120x40 Mono Focus & navigation · Options 515a11bd951cc138
 120x40 Mono Focus & navigation · States 8d64f3de3c8c646e
 120x40 Mono Buttons bafa572c20a0255a
@@ -672,7 +672,7 @@
 80x24 TrueColor Quit & leave 40b051b2ad8f62a2
 80x24 TrueColor Quit & leave · Options 5ce1f95a7ef8d5c4
 80x24 TrueColor Quit & leave · States 09fb5ce9a27ac31d
-80x24 TrueColor Focus & navigation a76dd1fb51ee10cb
+80x24 TrueColor Focus & navigation 0984968ab9987f82
 80x24 TrueColor Focus & navigation · Options 17c520d78130d386
 80x24 TrueColor Focus & navigation · States ed96dee33a8ab316
 80x24 TrueColor Buttons e5997d5042b220d2
@@ -836,7 +836,7 @@
 80x24 Ansi256 Quit & leave 4bd03799b80df704
 80x24 Ansi256 Quit & leave · Options 907d05cd26783214
 80x24 Ansi256 Quit & leave · States c907cf936216d133
-80x24 Ansi256 Focus & navigation d25be450c083832d
+80x24 Ansi256 Focus & navigation 97d0c57f3e171b55
 80x24 Ansi256 Focus & navigation · Options 19980f74d428627a
 80x24 Ansi256 Focus & navigation · States 66637448220550a2
 80x24 Ansi256 Buttons c251a13ca14a6527
@@ -1000,7 +1000,7 @@
 80x24 Ansi16 Quit & leave b49f94f53a0c9e54
 80x24 Ansi16 Quit & leave · Options 4a7b46c5426f0cb7
 80x24 Ansi16 Quit & leave · States 6850107c85329799
-80x24 Ansi16 Focus & navigation 089ee361464af09b
+80x24 Ansi16 Focus & navigation e0dfa1f0367f31c6
 80x24 Ansi16 Focus & navigation · Options 325ce69527383f46
 80x24 Ansi16 Focus & navigation · States 876e78244883229d
 80x24 Ansi16 Buttons f6a65a692f07ccd6
@@ -1164,7 +1164,7 @@
 80x24 Mono Quit & leave e43d8ee268aac9fe
 80x24 Mono Quit & leave · Options 3e7734c002a99ec1
 80x24 Mono Quit & leave · States 1be3970fe9b2e8eb
-80x24 Mono Focus & navigation 961ba654b5fda29d
+80x24 Mono Focus & navigation c3c973d62ce3e5b8
 80x24 Mono Focus & navigation · Options 4011fd144658c744
 80x24 Mono Focus & navigation · States 174372bf0f0cb555
 80x24 Mono Buttons 512656175f415ea2
@@ -1328,7 +1328,7 @@
 72x20 TrueColor Quit & leave 70416baf03ac4111
 72x20 TrueColor Quit & leave · Options d4e16cbcc3128da0
 72x20 TrueColor Quit & leave · States ae50556a2c3a74af
-72x20 TrueColor Focus & navigation bb14621b4fbd5dae
+72x20 TrueColor Focus & navigation cb537c8e34fe3aeb
 72x20 TrueColor Focus & navigation · Options 835d0dd16137001a
 72x20 TrueColor Focus & navigation · States 10c71c8183950dd4
 72x20 TrueColor Buttons cb9db3718ea0a1da
@@ -1492,7 +1492,7 @@
 72x20 Ansi256 Quit & leave 8d6a5ceaa00f9524
 72x20 Ansi256 Quit & leave · Options 86830e4c76b68763
 72x20 Ansi256 Quit & leave · States 2d33d78937605b29
-72x20 Ansi256 Focus & navigation 83afb19c9ccf4c22
+72x20 Ansi256 Focus & navigation eb84b65eed751ccb
 72x20 Ansi256 Focus & navigation · Options 8c94804ac9b11f07
 72x20 Ansi256 Focus & navigation · States 3297fab7e713f649
 72x20 Ansi256 Buttons c911cf2415aac7b0
@@ -1656,7 +1656,7 @@
 72x20 Ansi16 Quit & leave a70cfe7430a13b60
 72x20 Ansi16 Quit & leave · Options 497182d55fb9f489
 72x20 Ansi16 Quit & leave · States 39587d3039bbe478
-72x20 Ansi16 Focus & navigation dfd307c33b78fa52
+72x20 Ansi16 Focus & navigation 03cc98669f451ed5
 72x20 Ansi16 Focus & navigation · Options 0430756a3c922136
 72x20 Ansi16 Focus & navigation · States e65f6743f601812b
 72x20 Ansi16 Buttons 7ad15fbfe71ac14a
@@ -1820,7 +1820,7 @@
 72x20 Mono Quit & leave 8b12f2ddad38ddb2
 72x20 Mono Quit & leave · Options c835deed22b463ff
 72x20 Mono Quit & leave · States 2e2c83d72ee7ad26
-72x20 Mono Focus & navigation ae8d59b877b1fbb4
+72x20 Mono Focus & navigation dc9d61b1040be1f3
 72x20 Mono Focus & navigation · Options 3aaa0001c880ab7c
 72x20 Mono Focus & navigation · States 4d579a8a8ad939a3
 72x20 Mono Buttons 258416c954abb220
@@ -1984,7 +1984,7 @@
 100x30 TrueColor Quit & leave ff5ef06498420a59
 100x30 TrueColor Quit & leave · Options 3687cefd33208154
 100x30 TrueColor Quit & leave · States 9c6eca1fbf7bbf25
-100x30 TrueColor Focus & navigation 206b5a9e85b1e6d6
+100x30 TrueColor Focus & navigation d88a00ae3b1dacdc
 100x30 TrueColor Focus & navigation · Options f93690eb6451cb64
 100x30 TrueColor Focus & navigation · States ec5856948106429e
 100x30 TrueColor Buttons f01d6b971c89868a
@@ -2148,7 +2148,7 @@
 100x30 Ansi256 Quit & leave 7b5a086da2c26299
 100x30 Ansi256 Quit & leave · Options bf6b0dda2036d9b4
 100x30 Ansi256 Quit & leave · States 4cd752d32ea02c5f
-100x30 Ansi256 Focus & navigation 86391fc8309379d4
+100x30 Ansi256 Focus & navigation 930817c3cda27e24
 100x30 Ansi256 Focus & navigation · Options 4550a8c285b9b386
 100x30 Ansi256 Focus & navigation · States cbb45553892ae3f5
 100x30 Ansi256 Buttons 9604335947fa61dd
@@ -2312,7 +2312,7 @@
 100x30 Ansi16 Quit & leave ae30f11afaab85b3
 100x30 Ansi16 Quit & leave · Options 2db7638b5ebbadc7
 100x30 Ansi16 Quit & leave · States dd4b78e5fa6f38be
-100x30 Ansi16 Focus & navigation e686bd718c458bb1
+100x30 Ansi16 Focus & navigation d779bc2259dda952
 100x30 Ansi16 Focus & navigation · Options 6e9a5f8afce817fa
 100x30 Ansi16 Focus & navigation · States b2de24864f9532c9
 100x30 Ansi16 Buttons 28c200a4b80c93ce
@@ -2476,7 +2476,7 @@
 100x30 Mono Quit & leave 421cee8af8bf4ea8
 100x30 Mono Quit & leave · Options 85aa7f1baf905f4e
 100x30 Mono Quit & leave · States 71a75366925dab5f
-100x30 Mono Focus & navigation 3d287affd1750a3a
+100x30 Mono Focus & navigation 03cacd8bdb3dd35b
 100x30 Mono Focus & navigation · Options 637540462edfea99
 100x30 Mono Focus & navigation · States 23e0817fd4e80b70
 100x30 Mono Buttons 0e8986bf92edb023
@@ -2640,7 +2640,7 @@
 160x50 TrueColor Quit & leave 3e3a61070867111f
 160x50 TrueColor Quit & leave · Options 377e7cc257afb9c0
 160x50 TrueColor Quit & leave · States b6b0610b32adcd87
-160x50 TrueColor Focus & navigation ab02d5265824fd89
+160x50 TrueColor Focus & navigation b482f237c6dd38ac
 160x50 TrueColor Focus & navigation · Options 54de01da86f81fbc
 160x50 TrueColor Focus & navigation · States 968a921568e68180
 160x50 TrueColor Buttons 526504fab8ce8007
@@ -2804,7 +2804,7 @@
 160x50 Ansi256 Quit & leave c467131f1ebe9b79
 160x50 Ansi256 Quit & leave · Options 80974dbcef72dc05
 160x50 Ansi256 Quit & leave · States 675ac1163f1475bc
-160x50 Ansi256 Focus & navigation 10b02102d67480cb
+160x50 Ansi256 Focus & navigation a72803b76cf6fc1f
 160x50 Ansi256 Focus & navigation · Options c0f0edec0b602c67
 160x50 Ansi256 Focus & navigation · States f2fc857be789aff3
 160x50 Ansi256 Buttons e442e3dbd0527345
@@ -2968,7 +2968,7 @@
 160x50 Ansi16 Quit & leave d41083d6b3c16bdc
 160x50 Ansi16 Quit & leave · Options 364c32b631f3a040
 160x50 Ansi16 Quit & leave · States a8c9de9cd9a940c1
-160x50 Ansi16 Focus & navigation 9719acee5556246a
+160x50 Ansi16 Focus & navigation 164097ce8d009436
 160x50 Ansi16 Focus & navigation · Options 07629ef3432c2039
 160x50 Ansi16 Focus & navigation · States 31bdc812de477ee5
 160x50 Ansi16 Buttons 00e278e0ba607f49
@@ -3132,7 +3132,7 @@
 160x50 Mono Quit & leave 45bdbc29dec3b8ef
 160x50 Mono Quit & leave · Options 169fbb00fd97366d
 160x50 Mono Quit & leave · States 971ef8bc206a56a4
-160x50 Mono Focus & navigation 2e73c92f72b8510f
+160x50 Mono Focus & navigation 6b571245bb5b4ff9
 160x50 Mono Focus & navigation · Options 7844d2c4303e8382
 160x50 Mono Focus & navigation · States 0a8b970f25d36ce8
 160x50 Mono Buttons b4edda912f7d3ecc
