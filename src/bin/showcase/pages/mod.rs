@@ -219,6 +219,14 @@ pub trait Page {
     fn title(&self) -> &'static str;
     fn blurb(&self) -> &'static str;
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx);
+    /// The natural size of the Playground when offered `avail` (plan §1.4
+    /// `Measure`): the template lays the Playground out at it and scrolls
+    /// on the axes where it is larger than the page, so nothing is cut
+    /// off. Default `avail`: the Playground lays itself out in whatever
+    /// room it gets.
+    fn measure(&self, avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        avail
+    }
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome;
     /// Contextual key hints for the footer given the focused widget.
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint>;
