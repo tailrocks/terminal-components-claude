@@ -800,10 +800,7 @@ fn complete_jackin_flow_keyboard_first() {
         for _ in 0..3 {
             h.key(KeyCode::Tab);
         }
-        // ↓ opens the source list (SI13), ↓ moves, Enter chooses
         h.key(KeyCode::Down);
-        h.key(KeyCode::Down);
-        h.key(KeyCode::Enter);
         assert!(h.text().contains("Local agent folder"), "{}", h.text());
         h.key(KeyCode::Tab);
         h.key(KeyCode::Enter);
