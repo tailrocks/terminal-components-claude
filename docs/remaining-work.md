@@ -125,7 +125,7 @@ never in view at the smallest failing size.
 | R31 | Meters | Playground | done: Page::measure (PageHeader, Heading, MeterList Measure) | — |
 | R32 | Notices | Playground | done: Page::measure (notices at their option width, cards whole) | — |
 | R33 | Panels | Playground | done: Page::measure (cards wrap to their column, the nested note under its group when narrow, panes under the cards below 74 columns) | — |
-| R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 | `008 009 010 011 012 013 014 015` |
+| R34 | Scrolling | Playground | done: Page::measure (the room it gets, never shorter than the three bands with the scrolling cards at 10 rows, never narrower than 68 so the divider panes and the prose's longest word stay whole; position labels shorten and reveal on hover: `Panel` meta reveal; cursor lines cut through `reveal::cut`) | — |
 | R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::natural_extent, the starting ratio: a drag never resizes the page; the stack with its note) | — |
 | R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width at the starting ratio, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size at the starting ratios) | — |

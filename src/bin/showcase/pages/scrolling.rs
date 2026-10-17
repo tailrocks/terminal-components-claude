@@ -24,7 +24,7 @@ use std::time::Duration;
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -46,6 +46,7 @@ use junie_tui::theme::Theme;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::reveal;
 use junie_tui::ui::text::{fit, slice_cells, truncate};
 use junie_tui::widgets::grid::{CellKind, CellValue, ColumnSpec, DataGrid, GridRows, RowTotal};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
@@ -61,6 +62,15 @@ const HAND: WidgetId = ID.sub("hand");
 /// The divider demo: content that fits, and content that overflows.
 const FITS: WidgetId = ID.sub("fits");
 const OVER: WidgetId = ID.sub("over");
+
+/// The scrolling cards' fewest rows, then the mechanics and the
+/// collections bands under them.
+const TOP_MIN: u16 = 10;
+const MECHANICS_H: u16 = 10;
+const COLLECTIONS_H: u16 = 8;
+/// The narrowest Playground: the divider panes keep their captions and
+/// items, the prose its longest word and the hand-drawn table a column.
+const MIN_W: u16 = 68;
 
 /// Every tenth row is retired (disabled): skip-disabled steps over it.
 fn retired(i: usize) -> bool {
@@ -337,13 +347,16 @@ impl ScrollingPage {
             None
         };
         // the scrolling cards take every row the other two bands leave
-        let top = area.height.saturating_sub(10 + 8 + 3).max(10);
+        let top = area
+            .height
+            .saturating_sub(MECHANICS_H + COLLECTIONS_H + 3)
+            .max(TOP_MIN);
         let l = self.sections.layout(
             area,
             &[
                 StackChild::fixed(top),
-                StackChild::fixed(10),
-                StackChild::fixed(8),
+                StackChild::fixed(MECHANICS_H),
+                StackChild::fixed(COLLECTIONS_H),
             ],
             focus,
             buf,
@@ -636,7 +649,9 @@ impl ScrollingPage {
             } else {
                 t.secondary()
             };
-            buf.set_string(inner.x, y, truncate(l, inner.width as usize), style.bg(bg));
+            // a line cut on a narrow page reveals itself on hover
+            let row = Rect::new(inner.x, y, inner.width, 1);
+            buf.set_string(inner.x, y, reveal::cut(row, l), style.bg(bg));
         }
     }
 
@@ -824,6 +839,17 @@ impl Page for ScrollingPage {
     }
     fn blurb(&self) -> &'static str {
         "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
+    }
+
+    /// The room it gets, never shorter than the three bands with the
+    /// scrolling cards at [`TOP_MIN`] rows (their prose, list and log
+    /// scroll the rest themselves) and never narrower than [`MIN_W`]: the
+    /// template scrolls instead of the bands squeezing. The cards'
+    /// position labels shorten on a narrow page and reveal their full
+    /// text on hover.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let height = TOP_MIN + MECHANICS_H + COLLECTIONS_H + 3;
+        Size::new(avail.width.max(MIN_W), avail.height.max(height))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
