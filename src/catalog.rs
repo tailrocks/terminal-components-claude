@@ -1273,6 +1273,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::variant("widgets::props::PropsCmd::Copy"),
     Capability::builder("widgets::props::PropsList::keymap"),
     Capability::builder("widgets::props::PropsList::nav"),
+    Capability::builder("widgets::props::PropsList::click"),
     Capability::builder("widgets::props::PropsList::track_click"),
     Capability::builder("widgets::props::PropsList::scrollbar_gap"),
     Capability::builder("widgets::props::PropsList::sheet"),

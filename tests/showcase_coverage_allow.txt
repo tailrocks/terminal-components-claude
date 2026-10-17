@@ -327,6 +327,7 @@ widgets::input::ValidateOn::EveryCommit | Inputs page options: which ended edits
 # widgets::progress
 
 # widgets::props
+widgets::props::PropsList::click | S9 click policy on the property list (double click activates, M32): the Text utilities page gains a click option with the SC33 click options | SC33
 
 # widgets::scrollbar
 
