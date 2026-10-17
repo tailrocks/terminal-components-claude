@@ -2,11 +2,11 @@
                                                                         [0m
  [0m[1mComponents[0m      54  [0m[1mSidebars[0m  Sections, current item, focus cursor, h… [0m
                                                                         [0m
-    Overview      ┃                                  Tasks              [0m
+    Overview      ┃                          ‹       Tasks              [0m
   ▸ App shell     ┃     Workspace               ┃                       [0m
   ▸ Inputs & for… ┃   › T Tasks               3 ┃    One focus stop.    [0m
-  ▸ Tables        ┃     R Runs                  ┃    ↑↓ move the        [0m
-  ▾ Navigation    ┃     B Branches              ┃    cursor, Enter      [0m
+  ▸ Tables        ┃     R Runs                  ┃    ↑↓ (or j k) move   [0m
+  ▾ Navigation    ┃     B Branches              ┃    the cursor, Enter  [0m
       Lists       ┃                             ┃    opens.             [0m
       Trees       ┃     Project                 ┃                       [0m
  [0m[1m▎  › Sidebars    [0m┃     M Members               ┃    ›  current item ·  [0m
