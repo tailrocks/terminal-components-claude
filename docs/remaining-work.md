@@ -106,7 +106,7 @@ never in view at the smallest failing size.
 | R14 | Tables | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1044 1045 1046 1047` |
 | R15 | Editable | Playground | 80x24, 100x25, 106x29, 120x40 | `1050 1051 1052 1053 118 Activated Alt Basic` |
 | R16 | Grid | Playground | 80x24, 100x25, 106x29, 120x40 | `1011 1012 1013 120 150 1920 201 202` |
-| R17 | Selectable | Playground | 80x24, 100x25, 106x29, 120x40 | `APAC Billing Brandt Contract Ctrl Details Docs Eli` |
+| R17 | Selectable | Playground | done: its rest is an inner scroller's columns (the inner-scroller sweep) | — |
 | R18 | CellEditors | Playground | 80x24, 100x25, 106x29, 120x40 | `Ana Aziz Bea Berg Canary Cancel Checkbox Chen` |
 | R19 | Columns | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1040 1041 1042 1043` |
 | R20 | Lists | Playground | 80x24, 100x25, 106x29, 120x40 | `1000 BoxOnly Ctrl Double Elixir Haskell ListCmd Page` |
@@ -128,7 +128,7 @@ never in view at the smallest failing size.
 | R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size) | — |
 | R38 | Editor | Playground | 80x24, 100x25, 106x29, 120x40 | `200 Client Completion Diagnostics Err Error Exhausted Last` |
-| R39 | Diff | Playground | 80x24, 100x25, 106x29, 120x40 | `api cafe enabled endpoint example exponential health https` |
+| R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
 | R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
 | R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
 | R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 | `10312 10319 10326 10333 10340 10347 10354 10361` |
