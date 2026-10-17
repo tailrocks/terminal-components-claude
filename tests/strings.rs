@@ -247,7 +247,7 @@ fn required_fields_and_their_suffix_follow_the_theme() {
         )
     });
     i.validate();
-    assert_eq!(i.error.as_deref(), Some("Pflichtfeld"));
+    assert_eq!(i.error(), Some("Pflichtfeld"));
     // an error already shown follows a theme change
     draw(&Theme::junie(), (40, 3), |buf, ctx| {
         i.render(
@@ -257,7 +257,7 @@ fn required_fields_and_their_suffix_follow_the_theme() {
             ratatui::style::Color::Reset,
         )
     });
-    assert_eq!(i.error.as_deref(), Some("Required"));
+    assert_eq!(i.error(), Some("Required"));
     let mut i = TextInput::new(WidgetId::of("i"), "Name")
         .required(true)
         .required_message("Enter a name");
@@ -270,7 +270,7 @@ fn required_fields_and_their_suffix_follow_the_theme() {
         )
     });
     i.validate();
-    assert_eq!(i.error.as_deref(), Some("Enter a name"));
+    assert_eq!(i.error(), Some("Enter a name"));
     let mut o = TextInput::new(WidgetId::of("o"), "Note");
     let text = draw(&de(), (40, 3), |buf, ctx| {
         o.render(

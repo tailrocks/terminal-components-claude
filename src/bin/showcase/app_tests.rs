@@ -2087,6 +2087,31 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     assert!(h.term.backend().cursor_visible());
 }
 
+/// The K1 walk (S11): on every page of the catalogue, Tab through the focus
+/// ring; wherever the focus starts an edit (a text stop: a field, a text
+/// area, a code editor, a query), the caret shows the moment it lands.
+#[test]
+fn every_page_shows_a_caret_at_every_text_stop() {
+    let mut stops = 0;
+    for entry in crate::app::NAV_ENTRIES {
+        let mut h = Harness::new(120, 40, entry.id);
+        for _ in 0..24 {
+            h.key(tab());
+            if h.app.pages[entry.id.index()].editing() {
+                stops += 1;
+                assert!(
+                    h.term.backend().cursor_visible(),
+                    "{}: no caret at the text stop {:?}\n{}",
+                    entry.label,
+                    h.app.shell.focus.current(),
+                    h.text()
+                );
+            }
+        }
+    }
+    assert!(stops >= 10, "the walk reached the text stops ({stops})");
+}
+
 #[test]
 fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
     // the long list's card takes the rows the page's other bands leave

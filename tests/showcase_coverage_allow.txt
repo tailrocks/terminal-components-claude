@@ -938,7 +938,6 @@ widgets::too_small::TooSmall::applies | public function registered by SC-G1 (a q
 widgets::edit::FieldError | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::FieldError::message | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::FieldError::into_message | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
-widgets::edit::Validator | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::Validator::validate_in | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::ValidateWhen | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::ValidateWhen::Commit | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
@@ -973,3 +972,16 @@ widgets::edit::EditField::press | EditField, Validate, ValidateWhen, FieldError 
 widgets::edit::EditField::drag | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::click | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::pressed | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::input::TextInput::validate_when | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::apply_as | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::draw_glyphs | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::draw_line | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::glyph_offset_at | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::graphemes | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::line_area | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::line_offset_at | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::EditField::line_scroll | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::FieldError::message_mut | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::input::TextInput::error | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::input::TextInput::set_error | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
+widgets::edit::LineLook | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32

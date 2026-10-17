@@ -1574,7 +1574,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("inputs", "inputs.pointer_select=by-word"),
     ),
     (
-        "widgets::input::TextValidator",
+        "widgets::edit::Validator",
         Demo("inputs", "Enter a valid email address"),
     ),
     (

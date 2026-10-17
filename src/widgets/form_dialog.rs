@@ -1193,7 +1193,7 @@ mod tests {
         assert_eq!(focus.current(), Some(WidgetId::of("f.name")));
         let name = f.field("name").unwrap();
         assert!(
-            matches!(&name.kind, FormFieldKind::Input(i) if i.error.is_some()),
+            matches!(&name.kind, FormFieldKind::Input(i) if i.field.error.is_some()),
             "the field shows its error"
         );
         f.set_text("name", "Work");

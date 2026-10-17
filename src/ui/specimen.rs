@@ -734,7 +734,7 @@ impl Specimen for crate::widgets::input::TextInput {
 
     /// The label and the field; an error adds its message row.
     fn specimen_height(&self, state: SpecimenState) -> u16 {
-        if state == SpecimenState::Error || self.error.is_some() {
+        if state == SpecimenState::Error || self.field.error.is_some() {
             3
         } else {
             2
@@ -754,8 +754,8 @@ impl Specimen for crate::widgets::input::TextInput {
         let v = state.visual();
         f.disabled |= v.disabled;
         f.editing = v.editing;
-        if v.error && f.error.is_none() {
-            f.error = Some("Enter a valid value".into());
+        if v.error && f.field.error.is_none() {
+            f.field.error = Some("Enter a valid value".into());
         }
         match state {
             SpecimenState::Empty => {
@@ -765,7 +765,10 @@ impl Specimen for crate::widgets::input::TextInput {
                 f = f.value("");
             }
             SpecimenState::Overflow => {
-                let long = format!("{} and a value longer than the field", f.buffer.text());
+                let long = format!(
+                    "{} and a value longer than the field",
+                    f.field.buffer.text()
+                );
                 f = f.value(&long);
             }
             _ => {}
@@ -774,7 +777,7 @@ impl Specimen for crate::widgets::input::TextInput {
         // samples never move the terminal cursor: draw the caret as a cell
         if v.editing && f.area.width > 3 {
             let field = f.area;
-            let text_w = crate::ui::text::width(f.buffer.text()) as u16;
+            let text_w = crate::ui::text::width(f.field.buffer.text()) as u16;
             let x = (field.x + 2 + text_w).min(field.right().saturating_sub(2));
             if let Some(c) = buf.cell_mut(Position::new(x, field.y)) {
                 c.bg = ctx.theme.text_primary;

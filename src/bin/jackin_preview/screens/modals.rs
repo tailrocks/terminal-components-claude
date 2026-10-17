@@ -660,7 +660,7 @@ impl OpFlow {
     }
 
     fn begin_load(&mut self, now_ms: i64, op: &SimOnePassword) {
-        self.picker.query.clear();
+        self.picker.query.set_text("");
         self.picker.title = match self.step {
             OpStep::Account => "Choose 1Password account".into(),
             OpStep::Vault => "Choose vault".into(),
@@ -732,7 +732,7 @@ impl OpFlow {
     pub fn refresh(&mut self, op: &SimOnePassword) {
         self.picker.status = PickerStatus::Ready;
         self.last_error = None;
-        let q = self.picker.query.to_lowercase();
+        let q = self.picker.query.text().to_lowercase();
         let matches = |s: &str| q.is_empty() || s.to_lowercase().contains(&q);
         let items: Vec<PickerItem> = match self.step {
             OpStep::Account => match op.list_accounts() {
@@ -932,7 +932,7 @@ impl OpFlow {
     pub fn on_key(&mut self, key: &Key, now_ms: i64, op: &SimOnePassword) -> Outcome {
         if key.is_char('r')
             && self.picker.status != PickerStatus::Ready
-            && self.picker.query.is_empty()
+            && self.picker.query.text().is_empty()
         {
             self.begin_load(now_ms, op);
             return Outcome::Changed;

@@ -21,7 +21,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::core::edit::{EditEntry, EditKind, FieldKeys, UndoStack};
+use crate::core::edit::{EditEntry, EditKind, FieldKeys};
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::request_focus_next;
 use crate::core::hit::Axis;
@@ -32,7 +32,8 @@ use crate::core::text::TextBuffer;
 use crate::theme::SyntaxTone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::{find_ranges, width};
-use crate::widgets::field_common::{Applied, EditAction, apply_edit, edit_key_with};
+use crate::widgets::edit::{EditField, Editable, LineLook};
+use crate::widgets::field_common::{EditAction, PointerField};
 use crate::widgets::scrollbar;
 
 pub type Highlighter = fn(&str) -> Vec<(Range<usize>, SyntaxTone)>;
@@ -51,9 +52,11 @@ pub struct Diagnostic {
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct FindState {
-    pub needle: String,
+    /// The query: the shared one-line [`EditField`] (caret, Select All,
+    /// the clipboard keys, undo).
+    pub needle: EditField,
     /// Whole-grapheme byte ranges in the original document, including when
     /// case-insensitive matching expands characters such as `İ`.
     pub matches: Vec<Range<usize>>,
@@ -76,7 +79,9 @@ pub enum EditorAction {
 #[derive(Debug, Clone)]
 pub struct CodeEditor {
     pub id: WidgetId,
-    pub buffer: TextBuffer,
+    /// The document: its text, caret and selection, undo history, keys
+    /// and pointer selection (the shared [`EditField`]).
+    pub field: EditField,
     pub editing: bool,
     pub read_only: bool,
     /// Rows (`scroll`) and the horizontal bar (`scroll.h`, kept in step
@@ -97,7 +102,6 @@ pub struct CodeEditor {
     pub area: Rect,
     text_area: Rect,
     gutter_w: u16,
-    drag_anchor: Option<usize>,
     /// Cached wanted column for vertical motion.
     cached_spans: Vec<(Range<usize>, SyntaxTone)>,
     cached_for: u64,
@@ -127,12 +131,6 @@ pub struct CodeEditor {
     /// The control-key preset. `None` (default) follows the theme's
     /// [`crate::theme::Theme::field_keys`].
     pub field_keys: Option<FieldKeys>,
-    keys: FieldKeys,
-    /// The text commands' keys (Select All). `None` (default) uses the
-    /// preset's ([`FieldKeys::text_keymap`]: Cmd+A, plus Ctrl+A or Ctrl+L).
-    pub text_keymap: Option<crate::core::keymap::KeyMap<crate::core::edit::TextCmd>>,
-    /// Undo history of the document (Ctrl+Z, Ctrl+Shift+Z).
-    undo: UndoStack,
     /// The document as the edit began, for [`Self::esc_reverts`].
     snapshot: Option<String>,
     focus_seen: bool,
@@ -183,11 +181,11 @@ fn hash_text(s: &str) -> u64 {
 
 impl CodeEditor {
     pub fn new(id: WidgetId, text: &str) -> Self {
-        let mut buffer = TextBuffer::multi(text);
-        buffer.move_doc_start(false);
+        let mut field = EditField::multi(text);
+        field.buffer.move_doc_start(false);
         Self {
             id,
-            buffer,
+            field,
             editing: false,
             read_only: false,
             scroll: ScrollPane::default(),
@@ -203,7 +201,6 @@ impl CodeEditor {
             area: Rect::ZERO,
             text_area: Rect::ZERO,
             gutter_w: 0,
-            drag_anchor: None,
             cached_spans: vec![],
             cached_for: 0,
             rendered_state: None,
@@ -215,9 +212,6 @@ impl CodeEditor {
             entry: crate::theme::Theme::DEFAULT_EDIT_ENTRY,
             esc_reverts: false,
             field_keys: None,
-            keys: FieldKeys::default(),
-            text_keymap: None,
-            undo: UndoStack::new(),
             snapshot: None,
             focus_seen: false,
         }
@@ -244,20 +238,17 @@ impl CodeEditor {
         mut self,
         keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
     ) -> Self {
-        self.text_keymap = Some(keymap);
+        self.field.text_keymap = Some(keymap);
         self
     }
     /// The edit action `key` means under the resolved preset and text keys.
     fn edit_action(&self, key: &Key) -> EditAction {
-        match &self.text_keymap {
-            Some(map) => crate::widgets::field_common::edit_key_in(key, true, self.keys, map),
-            None => edit_key_with(key, true, self.keys),
-        }
+        self.field.action(key)
     }
     /// See [`Self::field_keys`].
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
         self.field_keys = Some(keys);
-        self.keys = keys;
+        self.field.keys = keys;
         self
     }
     /// The entry policy in effect.
@@ -354,13 +345,12 @@ impl CodeEditor {
     }
 
     pub fn text(&self) -> &str {
-        self.buffer.text()
+        self.field.buffer.text()
     }
 
     pub fn set_text(&mut self, text: &str) {
-        self.undo.clear();
-        self.buffer.set_text(text);
-        self.buffer.move_doc_start(false);
+        self.field.set_text(text);
+        self.field.buffer.move_doc_start(false);
         self.diagnostics.clear();
         self.hscroll = 0;
         self.scroll.jump_start();
@@ -368,14 +358,14 @@ impl CodeEditor {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.buffer.is_empty()
+        self.field.buffer.is_empty()
     }
 
     /// Block (statement) containing the cursor, per the segmenter.
     pub fn current_block(&self) -> Option<Range<usize>> {
         let seg = self.segmenter?;
-        let cur = self.buffer.cursor_offset();
-        let blocks = seg(self.buffer.text());
+        let cur = self.field.buffer.cursor_offset();
+        let blocks = seg(self.field.buffer.text());
         blocks
             .iter()
             .find(|b| cur >= b.start && cur <= b.end)
@@ -385,34 +375,34 @@ impl CodeEditor {
 
     /// Selection text and range, or the current block.
     pub fn selection_or_block(&self) -> Option<(String, Range<usize>)> {
-        if let Some(r) = self.buffer.selection() {
-            return Some((self.buffer.text()[r.clone()].to_owned(), r));
+        if let Some(r) = self.field.buffer.selection() {
+            return Some((self.field.buffer.text()[r.clone()].to_owned(), r));
         }
         let b = self.current_block()?;
-        Some((self.buffer.text()[b.clone()].to_owned(), b))
+        Some((self.field.buffer.text()[b.clone()].to_owned(), b))
     }
 
     /// Byte ranges of all blocks.
     pub fn blocks(&self) -> Vec<Range<usize>> {
         self.segmenter
-            .map(|s| s(self.buffer.text()))
+            .map(|s| s(self.field.buffer.text()))
             .unwrap_or_default()
     }
 
     pub fn jump_to(&mut self, offset: usize) {
-        let offset = offset.min(self.buffer.text().len());
-        let pos = TextBuffer::pos_of(self.buffer.text(), offset);
-        self.buffer.set_cursor_line_col(pos.line, pos.col);
+        let offset = offset.min(self.field.buffer.text().len());
+        let pos = TextBuffer::pos_of(self.field.buffer.text(), offset);
+        self.field.buffer.set_cursor_line_col(pos.line, pos.col);
         self.scroll.ensure_visible(pos.line);
     }
 
     pub fn cursor_offset(&self) -> usize {
-        self.buffer.cursor_offset()
+        self.field.buffer.cursor_offset()
     }
 
     /// Screen cell of the cursor (anchor for a completion popup).
     pub fn cursor_cell(&self) -> Option<Rect> {
-        let pos = self.buffer.cursor_pos();
+        let pos = self.field.buffer.cursor_pos();
         if pos.line < self.scroll.offset
             || pos.line >= self.scroll.offset + self.scroll.viewport_len
             || pos.col < self.hscroll
@@ -428,7 +418,7 @@ impl CodeEditor {
     pub fn begin_edit(&mut self) {
         if !self.read_only {
             if !self.editing {
-                self.snapshot = Some(self.buffer.text().to_owned());
+                self.snapshot = Some(self.field.buffer.text().to_owned());
             }
             self.editing = true;
         }
@@ -441,7 +431,7 @@ impl CodeEditor {
 
     pub fn commit(&mut self) {
         self.editing = false;
-        self.buffer.clear_selection();
+        self.field.buffer.clear_selection();
     }
 
     // ---- find -------------------------------------------------------
@@ -450,11 +440,12 @@ impl CodeEditor {
     /// lowercase queries use Unicode lowercase matching and source graphemes.
     /// Long queries scroll within the footer to keep their insertion point visible.
     pub fn open_find(&mut self) {
-        let needle = self
+        let mut needle = self
             .find
             .as_ref()
             .map(|f| f.needle.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(|| EditField::single(""));
+        needle.keys = self.field.keys;
         self.find = Some(FindState {
             needle,
             matches: vec![],
@@ -470,12 +461,13 @@ impl CodeEditor {
         };
         f.matches.clear();
         f.current = 0;
-        if f.needle.is_empty() {
+        let needle = f.needle.text();
+        if needle.is_empty() {
             return;
         }
-        let case_sensitive = f.needle.chars().any(|c| c.is_uppercase());
-        f.matches = find_ranges(self.buffer.text(), &f.needle, case_sensitive);
-        let cur = self.buffer.cursor_offset();
+        let case_sensitive = needle.chars().any(|c| c.is_uppercase());
+        f.matches = find_ranges(self.field.buffer.text(), needle, case_sensitive);
+        let cur = self.field.buffer.cursor_offset();
         f.current = f.matches.iter().position(|m| m.start >= cur).unwrap_or(0);
     }
 
@@ -508,7 +500,7 @@ impl CodeEditor {
                     KeyCode::Enter => {
                         if key.shift() {
                             self.goto_match(-1);
-                        } else if f.needle.is_empty() {
+                        } else if f.needle.text().is_empty() {
                             f.editing = false;
                         } else {
                             f.editing = false;
@@ -516,20 +508,24 @@ impl CodeEditor {
                         }
                         return (Outcome::Changed, Some(EditorAction::CursorMoved));
                     }
-                    KeyCode::Backspace => {
-                        if let Some((start, _)) = f.needle.grapheme_indices(true).next_back() {
-                            f.needle.truncate(start);
+                    // the query is a text field: typing, the caret keys,
+                    // Select All, the clipboard keys and undo
+                    _ => {
+                        let r = f.needle.on_key(key);
+                        if r.edited {
+                            self.refind();
+                            self.goto_match(0);
+                            return (Outcome::Changed, Some(EditorAction::CursorMoved));
                         }
-                        self.refind();
-                        return (Outcome::Changed, None);
+                        return (
+                            if r.outcome == Outcome::Changed {
+                                Outcome::Changed
+                            } else {
+                                Outcome::Consumed
+                            },
+                            None,
+                        );
                     }
-                    KeyCode::Char(c) if !key.chord() => {
-                        f.needle.push(c);
-                        self.refind();
-                        self.goto_match(0);
-                        return (Outcome::Changed, Some(EditorAction::CursorMoved));
-                    }
-                    _ => return (Outcome::Consumed, None),
                 }
             }
         }
@@ -537,6 +533,14 @@ impl CodeEditor {
         // mode before dispatch so indentation cannot bypass mutation guards.
         if self.read_only && self.editing {
             self.commit();
+        }
+        // F6 / Shift+F6 leave the editor from any mode (K17): the pane key
+        // terminals deliver, where Ctrl+Tab usually never arrives
+        if key.code == KeyCode::F(6) && !key.ctrl() && !key.alt() {
+            let backward = key.shift();
+            self.commit();
+            request_focus_next(backward);
+            return (Outcome::Changed, Some(EditorAction::Leave { backward }));
         }
         if !self.editing {
             if self.entry() == EditEntry::Immediate && !self.focus_seen && !self.read_only {
@@ -558,10 +562,10 @@ impl CodeEditor {
         match action {
             EditAction::Cancel if self.esc_reverts => {
                 if let Some(snap) = self.snapshot.take()
-                    && snap != self.buffer.text()
+                    && snap != self.field.buffer.text()
                 {
-                    self.undo.record(&self.buffer, EditKind::Other);
-                    self.buffer.set_text(snap);
+                    self.field.record(EditKind::Other);
+                    self.field.buffer.set_text(snap);
                     self.after_change();
                 }
                 self.commit();
@@ -577,14 +581,14 @@ impl CodeEditor {
                     request_focus_next(backward);
                     return (Outcome::Changed, Some(EditorAction::Leave { backward }));
                 }
-                self.undo.record(&self.buffer, EditKind::Other);
+                self.field.record(EditKind::Other);
                 if backward {
                     self.dedent_selection();
-                } else if self.buffer.has_selection_lines() {
+                } else if self.field.buffer.has_selection_lines() {
                     self.indent_selection();
                 } else {
                     let spaces = " ".repeat(self.indent);
-                    self.buffer.insert_str(&spaces);
+                    self.field.buffer.insert_str(&spaces);
                 }
                 self.after_change();
                 (Outcome::Changed, Some(EditorAction::Changed))
@@ -595,14 +599,14 @@ impl CodeEditor {
             EditAction::None => match key.code {
                 KeyCode::PageUp if !key.chord() => {
                     for _ in 0..self.scroll.viewport_len.max(1) {
-                        self.buffer.move_up(false);
+                        self.field.buffer.move_up(false);
                     }
                     self.after_change();
                     (Outcome::Changed, Some(EditorAction::CursorMoved))
                 }
                 KeyCode::PageDown if !key.chord() => {
                     for _ in 0..self.scroll.viewport_len.max(1) {
-                        self.buffer.move_down(false);
+                        self.field.buffer.move_down(false);
                     }
                     self.after_change();
                     (Outcome::Changed, Some(EditorAction::CursorMoved))
@@ -610,17 +614,11 @@ impl CodeEditor {
                 _ => (Outcome::Ignored, None),
             },
             action => {
-                let applied = apply_edit(
-                    &mut self.buffer,
-                    &mut self.undo,
-                    action,
-                    key.code,
-                    self.read_only,
-                );
+                let edited = self.field.apply_as(action, key, self.read_only).edited;
                 self.after_change();
                 (
                     Outcome::Changed,
-                    Some(if applied == Some(Applied::Edited) {
+                    Some(if edited {
                         EditorAction::Changed
                     } else {
                         EditorAction::CursorMoved
@@ -633,10 +631,7 @@ impl CodeEditor {
     /// The text command `key` is bound to in the editor's text key map
     /// (its own, or the preset's [`FieldKeys::text_keymap`]).
     fn text_cmd(&self, key: &Key) -> Option<crate::core::edit::TextCmd> {
-        match &self.text_keymap {
-            Some(map) => lookup(map, key),
-            None => lookup(&self.keys.text_keymap(), key),
-        }
+        self.field.text_cmd(key)
     }
 
     fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
@@ -649,7 +644,7 @@ impl CodeEditor {
         if let Some(cmd) = self.text_cmd(key) {
             match cmd {
                 TextCmd::Cut | TextCmd::Paste | TextCmd::Undo | TextCmd::Redo if !key.cmd() => {}
-                TextCmd::Copy if self.buffer.selected_text().is_none() => {}
+                TextCmd::Copy if self.field.buffer.selected_text().is_none() => {}
                 TextCmd::Cut | TextCmd::Paste | TextCmd::Undo | TextCmd::Redo => {
                     if self.read_only {
                         return (Outcome::Consumed, None);
@@ -659,11 +654,16 @@ impl CodeEditor {
                 }
                 _ => {
                     let action = crate::widgets::field_common::text_cmd_action(cmd, true);
-                    if apply_edit(&mut self.buffer, &mut self.undo, action, key.code, true)
-                        .is_none()
-                    {
+                    if matches!(
+                        action,
+                        EditAction::Commit
+                            | EditAction::Cancel
+                            | EditAction::Tab { .. }
+                            | EditAction::None
+                    ) {
                         return (Outcome::Ignored, None);
                     }
+                    self.field.apply_as(action, key, true);
                     self.after_change();
                     return (Outcome::Changed, Some(EditorAction::CursorMoved));
                 }
@@ -675,12 +675,12 @@ impl CodeEditor {
         let plain = key.plain();
         match self.nav.action(key) {
             Some(Nav::Up) if plain => {
-                self.buffer.move_up(false);
+                self.field.buffer.move_up(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             Some(Nav::Down) if plain => {
-                self.buffer.move_down(false);
+                self.field.buffer.move_down(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
@@ -701,12 +701,12 @@ impl CodeEditor {
                 (Outcome::Changed, None)
             }
             Some(Nav::Home) if plain => {
-                self.buffer.move_doc_start(false);
+                self.field.buffer.move_doc_start(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             Some(Nav::End) => {
-                self.buffer.move_doc_end(false);
+                self.field.buffer.move_doc_end(false);
                 self.after_change();
                 (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
@@ -730,18 +730,18 @@ impl CodeEditor {
             }
             CodeCmd::Append => {
                 self.begin_edit();
-                self.buffer.move_right(false);
+                self.field.buffer.move_right(false);
                 (Outcome::Changed, None)
             }
             CodeCmd::PrevBlock => {
-                let cur = self.buffer.cursor_offset();
+                let cur = self.field.buffer.cursor_offset();
                 if let Some(b) = self.blocks().iter().rev().find(|b| b.start < cur) {
                     self.jump_to(b.start);
                 }
                 (Outcome::Changed, Some(EditorAction::CursorMoved))
             }
             CodeCmd::NextBlock => {
-                let cur = self.buffer.cursor_offset();
+                let cur = self.field.buffer.cursor_offset();
                 if let Some(b) = self.blocks().iter().find(|b| b.start > cur) {
                     self.jump_to(b.start);
                 }
@@ -763,8 +763,8 @@ impl CodeEditor {
     }
 
     fn after_change(&mut self) {
-        let pos = self.buffer.cursor_pos();
-        self.scroll.set_content(self.buffer.line_count());
+        let pos = self.field.buffer.cursor_pos();
+        self.scroll.set_content(self.field.buffer.line_count());
         self.scroll.ensure_visible(pos.line);
         let w = self.text_area.width.max(8) as usize;
         if pos.col < self.hscroll + 4 {
@@ -779,60 +779,51 @@ impl CodeEditor {
 
     fn indent_selection(&mut self) {
         let spaces = " ".repeat(self.indent);
-        let (a, b) = self.buffer.selection_lines();
+        let (a, b) = self.field.buffer.selection_lines();
         for line in a..=b {
-            let off = self.buffer.offset_at(line, 0);
-            self.buffer.insert_at(off, &spaces);
+            let off = self.field.buffer.offset_at(line, 0);
+            self.field.buffer.insert_at(off, &spaces);
         }
     }
 
     fn dedent_selection(&mut self) {
-        let (a, b) = self.buffer.selection_lines();
+        let (a, b) = self.field.buffer.selection_lines();
         for line in a..=b {
-            let off = self.buffer.offset_at(line, 0);
-            let text = self.buffer.text();
+            let off = self.field.buffer.offset_at(line, 0);
+            let text = self.field.buffer.text();
             let n = text[off..]
                 .chars()
                 .take(self.indent)
                 .take_while(|c| *c == ' ')
                 .count();
-            self.buffer.remove_range(off..off + n);
+            self.field.buffer.remove_range(off..off + n);
         }
     }
 
     // ---- mouse ------------------------------------------------------
 
+    /// The byte offset under `pos`. A pointer above or left of the text
+    /// names the line or column before the first visible one, so a drag
+    /// past the edge scrolls the editor and the selection runs on (M2).
     fn offset_at_pos(&self, pos: Position) -> usize {
-        let line = (pos.y.saturating_sub(self.text_area.y) as usize + self.scroll.offset)
-            .min(self.buffer.line_count().saturating_sub(1));
-        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.hscroll;
-        self.buffer.offset_at(line, col)
+        let line = (self.scroll.offset as isize + (pos.y as isize - self.text_area.y as isize))
+            .max(0) as usize;
+        let line = line.min(self.field.buffer.line_count().saturating_sub(1));
+        let col =
+            (self.hscroll as isize + (pos.x as isize - self.text_area.x as isize)).max(0) as usize;
+        self.field.buffer.offset_at(line, col)
     }
 
-    /// A click enters editing (one click, never two) and places the cursor
-    /// at the pointer; a read-only editor only moves the caret.
+    /// A click enters editing (one click, never two) and places the caret
+    /// at the pointer; a read-only editor only moves the caret. Same as
+    /// [`PointerField::on_click_count`] with a count of 1.
     pub fn on_click(&mut self, pos: Position) -> Outcome {
-        if self.read_only {
-            let off = self.offset_at_pos(pos);
-            self.jump_to(off);
-            return Outcome::Changed;
-        }
-        if !self.editing {
-            self.begin_edit();
-        }
-        let off = self.offset_at_pos(pos);
-        self.jump_to(off);
-        self.drag_anchor = Some(off);
-        Outcome::Changed
+        PointerField::on_click_count(self, pos, 1)
     }
 
+    /// A drag held since a press on the text selects from the press.
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
-        let Some(anchor) = self.drag_anchor else {
-            return Outcome::Ignored;
-        };
-        let off = self.offset_at_pos(pos);
-        self.buffer.select_range(anchor, off);
-        Outcome::Changed
+        PointerField::on_drag(self, pos)
     }
 
     /// Paste into the active find query, or into the editable document.
@@ -842,9 +833,7 @@ impl CodeEditor {
         if let Some(find) = self.find.as_mut()
             && find.editing
         {
-            let mut query = TextBuffer::single(&find.needle);
-            query.insert_str(text);
-            find.needle = query.text().to_owned();
+            find.needle.paste(text);
             self.refind();
             self.goto_match(0);
             return Outcome::Changed;
@@ -852,8 +841,8 @@ impl CodeEditor {
         if !self.editing || self.read_only {
             return Outcome::Ignored;
         }
-        self.undo.record(&self.buffer, EditKind::Other);
-        self.buffer.insert_str(text);
+        self.field.record(EditKind::Other);
+        self.field.buffer.insert_str(text);
         self.after_change();
         Outcome::Changed
     }
@@ -861,11 +850,11 @@ impl CodeEditor {
     // ---- render -----------------------------------------------------
 
     fn spans(&mut self) -> &[(Range<usize>, SyntaxTone)] {
-        let h = hash_text(self.buffer.text());
+        let h = hash_text(self.field.buffer.text());
         if h != self.cached_for {
             self.cached_spans = self
                 .highlighter
-                .map(|f| f(self.buffer.text()))
+                .map(|f| f(self.field.buffer.text()))
                 .unwrap_or_default();
             self.cached_for = h;
         }
@@ -882,7 +871,7 @@ impl CodeEditor {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.scroll.begin(ctx.track_click);
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
-        self.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
+        self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         // focus newly gained starts an immediate edit: the caret shows the
         // moment Tab lands here
         let shown = ctx.interaction.focused(self.id) && !ctx.inert;
@@ -922,7 +911,7 @@ impl CodeEditor {
         fill(buf, area, fs);
         let body_h = area.height.saturating_sub(1);
         let spans: Vec<(Range<usize>, SyntaxTone)> = self.spans().to_vec();
-        let text_owned = self.buffer.text().to_owned();
+        let text_owned = self.field.buffer.text().to_owned();
         let lines: Vec<&str> = text_owned.split('\n').collect();
         let line_count = lines.len();
         let num_w = (line_count.to_string().len() as u16).max(2);
@@ -960,20 +949,24 @@ impl CodeEditor {
         let viewport_changed =
             self.text_area.width != text_area.width || self.text_area.height != text_area.height;
         self.text_area = text_area;
-        let cur = self.buffer.cursor_pos();
-        let cur_off = self.buffer.cursor_offset();
+        if self.field.sel.drag {
+            // a drag held past an edge keeps selecting and scrolls (M2)
+            ctx.autoscroll(text_area);
+        }
+        let cur = self.field.buffer.cursor_pos();
+        let cur_off = self.field.buffer.cursor_offset();
         let rendered_state = (cur_off, self.cached_for, s.editing);
         if s.editing && (viewport_changed || self.rendered_state != Some(rendered_state)) {
             self.scroll.ensure_visible(cur.line);
         }
         self.rendered_state = Some(rendered_state);
-        let block = if self.buffer.selection().is_none() {
+        let block = if self.field.buffer.selection().is_none() {
             self.current_block()
         } else {
             None
         };
         let running = self.running.clone();
-        let sel = self.buffer.selection();
+        let sel = self.field.buffer.selection();
         let find = self.find.clone();
         let diags = self.diagnostics.clone();
         let bracket = self.bracket_pair();
@@ -1150,7 +1143,7 @@ impl CodeEditor {
         }
         // the placeholder stays until the first character, with the caret on
         // it while editing (macOS)
-        if self.buffer.is_empty() && !self.placeholder.is_empty() {
+        if self.field.buffer.is_empty() && !self.placeholder.is_empty() {
             put(
                 buf,
                 text_area.x,
@@ -1159,7 +1152,10 @@ impl CodeEditor {
                 fs.fg(t.text_muted),
             );
         }
-        if s.editing
+        // a read-only document is navigated by its caret: it shows while
+        // the editor has focus, so a click or an arrow visibly moves it
+        // (M39)
+        if (s.editing || (focused && self.read_only))
             && let Some(cursor) = self.cursor_cell()
         {
             ctx.set_cursor(Position::new(cursor.x, cursor.y));
@@ -1191,7 +1187,7 @@ impl CodeEditor {
                 fs
             };
             let count = if f.matches.is_empty() {
-                if f.needle.is_empty() {
+                if f.needle.text().is_empty() {
                     String::new()
                 } else {
                     "no matches".into()
@@ -1208,21 +1204,28 @@ impl CodeEditor {
             let query_room = available.saturating_sub(label.len() + count_room);
             // Keep the query's insertion point visible without splitting a
             // grapheme. Footer position readout yields to active search.
-            let mut start = f.needle.len();
-            let mut cells = 0;
-            for (offset, grapheme) in f.needle.grapheme_indices(true).rev() {
-                let next = cells + width(grapheme);
-                if next > query_room.saturating_sub(1) {
-                    break;
-                }
-                cells = next;
-                start = offset;
-            }
-            put(buf, nx, fy, &f.needle[start..], ns);
-            if f.editing {
+            let line =
+                Rect::new(nx, fy, query_room.min(u16::MAX as usize) as u16, 1).intersection(area);
+            let look = LineLook {
+                text: ns,
+                selection: t.selection(),
+                ellipsis: fs.fg(t.text_muted),
+                ellipsis_glyph: t.glyphs.ellipsis,
+                underline: None,
+                follow_caret: true,
+            };
+            let caret = self
+                .find
+                .as_mut()
+                .map(|f| f.needle.draw_line(buf, line, &look));
+            let editing = self.find.as_ref().is_some_and(|f| f.editing);
+            if editing {
                 ctx.cursor = None;
-                if focused && query_room > 0 {
-                    ctx.set_cursor(Position::new(nx + cells as u16, fy));
+                if focused
+                    && query_room > 0
+                    && let Some(caret) = caret
+                {
+                    ctx.set_cursor(caret);
                 }
             }
             if count_room > 0 {
@@ -1277,8 +1280,8 @@ impl CodeEditor {
     }
 
     fn bracket_pair(&self) -> Option<(usize, usize)> {
-        let text = self.buffer.text().as_bytes();
-        let cur = self.buffer.cursor_offset();
+        let text = self.field.buffer.text().as_bytes();
+        let cur = self.field.buffer.cursor_offset();
         let at = |i: usize| text.get(i).copied();
         let probe = [cur, cur.wrapping_sub(1)];
         for &p in &probe {
@@ -1336,10 +1339,33 @@ impl Scrollable for CodeEditor {
     }
 }
 
+/// The editor's text, for the pointer ([`PointerField`] through
+/// [`Editable`]): a press anchors a drag at the pointer (the second press
+/// of a double click selects the word), a drag selects from the press and
+/// scrolls past an edge, the release keeps the selection, a completed
+/// click places the caret (2: the word, 3: the line) and enters editing
+/// unless the document is read-only (M2).
+impl Editable for CodeEditor {
+    fn field(&mut self) -> &mut EditField {
+        &mut self.field
+    }
+    fn edit_id(&self) -> WidgetId {
+        self.id
+    }
+    fn offset_at(&self, pos: Position) -> usize {
+        self.offset_at_pos(pos)
+    }
+    fn pointer_begin(&mut self) {
+        self.begin_edit();
+    }
+    fn pointer_after(&mut self) {
+        self.after_change();
+    }
+}
+
 /// The editor's pointer gestures, as the apps route them: a wheel or a
-/// bar press scrolls it; a completed click enters editing and places the
-/// caret ([`CodeEditor::on_click`]); a drag from it selects
-/// ([`CodeEditor::on_drag`]).
+/// bar press scrolls it; the text takes press, drag and multi-click
+/// through [`PointerField`] (the [`Editable`] impl above).
 impl crate::core::pointer::MouseTarget for CodeEditor {
     type Action = ();
 
@@ -1356,8 +1382,9 @@ impl crate::core::pointer::MouseTarget for CodeEditor {
             return r;
         }
         match ev.phase() {
-            Some(Phase::Click) => self.on_click(ev.pos()).into(),
-            Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
+            Some(Phase::Press) => PointerField::on_press_count(self, ev.pos(), ev.count()).into(),
+            Some(Phase::Click) => PointerField::on_click_count(self, ev.pos(), ev.count()).into(),
+            Some(Phase::Drag) => PointerField::on_drag(self, ev.pos()).into(),
             _ => crate::core::response::Response::ignored(),
         }
     }
@@ -1443,6 +1470,93 @@ mod tests {
             code,
             mods: KeyModifiers::NONE,
         }
+    }
+
+    /// K17 (S11): F6 leaves the editor while editing (Tab indents there)
+    /// and while browsing, Shift+F6 backward; the document is kept.
+    #[test]
+    fn f6_leaves_the_editor_from_editing_and_browsing() {
+        let mut e = CodeEditor::new(WidgetId::of("c"), "SELECT 1;");
+        e.begin_edit();
+        e.on_key(&key(KeyCode::Char('x')));
+        assert_eq!(
+            e.on_key(&key(KeyCode::F(6))).1,
+            Some(EditorAction::Leave { backward: false })
+        );
+        assert!(!e.editing);
+        assert_eq!(e.text(), "xSELECT 1;", "the document is kept");
+        let back = Key {
+            code: KeyCode::F(6),
+            mods: KeyModifiers::SHIFT,
+        };
+        assert_eq!(
+            e.on_key(&back).1,
+            Some(EditorAction::Leave { backward: true }),
+            "from browsing too"
+        );
+    }
+
+    /// M2 (S11): the drag anchor is set by the press, through the router.
+    /// A drag selects from where the button went down (it started at the
+    /// previous click), the release away from the press keeps the
+    /// selection (the click's `jump_to` cleared it), a double click
+    /// selects the word, a triple click the line, and a drag above the
+    /// text runs the selection on to the start (the offset was unsigned).
+    /// A focused read-only document shows its caret (M39).
+    #[test]
+    fn a_drag_selects_from_the_press_and_multi_clicks_select_words_and_lines() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        let text = "SELECT id FROM users;\nSELECT name FROM orders;\nSELECT 1;";
+        let mut editor = CodeEditor::new(WidgetId::of("c"), text);
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let area = Rect::new(0, 0, 50, 6);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        {
+            let mut buf = Buffer::empty(area);
+            let mut ctx = RenderCtx::new(
+                &theme,
+                Interaction {
+                    focus: Some(editor.id),
+                    ..Default::default()
+                },
+                &mut hits,
+                &mut ring,
+            );
+            editor.render(area, &mut buf, &mut ctx, theme.surface);
+        }
+        let (ta, id) = (editor.text_area, editor.id);
+        let ev = |phase, x: u16, y: u16, count| {
+            let pos = Position::new(x, y);
+            PointerEvent::new(&hits, phase, id, pos, count, KeyModifiers::NONE)
+        };
+        let sel = |e: &CodeEditor| e.field.buffer.selected_text().map(str::to_owned);
+        // an earlier click elsewhere must not become the drag's anchor
+        let _ = editor.pointer(&ev(Phase::Press, ta.x + 2, ta.y + 2, 1));
+        let _ = editor.pointer(&ev(Phase::Click, ta.x + 2, ta.y + 2, 1));
+        let _ = editor.pointer(&ev(Phase::Press, ta.x + 7, ta.y + 1, 1));
+        let _ = editor.pointer(&ev(Phase::Drag, ta.x + 11, ta.y + 1, 1));
+        assert_eq!(sel(&editor).as_deref(), Some("name"), "from the press");
+        let _ = editor.pointer(&ev(Phase::Release, ta.x + 11, ta.y + 1, 1));
+        assert_eq!(sel(&editor).as_deref(), Some("name"), "kept on release");
+        // a double click selects the word, a triple click the line
+        let _ = editor.pointer(&ev(Phase::Press, ta.x + 14, ta.y + 1, 2));
+        let _ = editor.pointer(&ev(Phase::Click, ta.x + 14, ta.y + 1, 2));
+        assert_eq!(sel(&editor).as_deref(), Some("FROM"));
+        let _ = editor.pointer(&ev(Phase::Press, ta.x + 14, ta.y + 1, 3));
+        let _ = editor.pointer(&ev(Phase::Click, ta.x + 14, ta.y + 1, 3));
+        assert!(sel(&editor).is_some_and(|s| s.starts_with("SELECT name FROM orders;")));
+        // a drag above the text runs the selection on to its start
+        let _ = editor.pointer(&ev(Phase::Press, ta.x + 6, ta.y + 1, 1));
+        let _ = editor.pointer(&ev(Phase::Drag, ta.x, ta.y.saturating_sub(1), 1));
+        assert_eq!(editor.field.buffer.selection(), Some(0..28));
+        // a focused read-only document shows its caret where a click put it
+        let mut ro = CodeEditor::new(WidgetId::of("r"), text).read_only(true);
+        render(&mut ro, 50, 6);
+        ro.on_click(Position::new(ro.text_area.x + 3, ro.text_area.y + 1));
+        let caret = render(&mut ro, 50, 6).expect("the caret shows");
+        assert_eq!(caret, Position::new(ro.text_area.x + 3, ro.text_area.y + 1));
     }
 
     /// Keyboard audit #5, #16 and #17: focus starts the edit (caret
@@ -1569,9 +1683,9 @@ mod tests {
             editor.open_find();
             assert_eq!(editor.on_paste("a\u{301}"), Outcome::Changed);
             assert_eq!(editor.text(), "a\u{301}");
-            assert_eq!(editor.find.as_ref().unwrap().needle, "a\u{301}");
+            assert_eq!(editor.find.as_ref().unwrap().needle.text(), "a\u{301}");
             editor.on_key(&key(KeyCode::Backspace));
-            assert_eq!(editor.find.as_ref().unwrap().needle, "");
+            assert_eq!(editor.find.as_ref().unwrap().needle.text(), "");
         }
     }
 
