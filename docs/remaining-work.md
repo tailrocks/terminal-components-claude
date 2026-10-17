@@ -126,7 +126,7 @@ never in view at the smallest failing size.
 | R34 | Scrolling | Playground | done: Page::measure (cursor readout and the tree's metas whole) | — |
 | R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::extent_for, the stack with its note) | — |
 | R36 | MasterDetail | Playground | 80x24, 100x25, 106x29, 120x40 | `014 194 204 377 655 Analyzed Columns Indexes` |
-| R37 | PaneTree | Playground | 80x24, 100x25, 106x29 | `12s WARN across binaries masterdetail minimum nextest page` |
+| R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size) | — |
 | R38 | Editor | Playground | 80x24, 100x25, 106x29, 120x40 | `200 Client Completion Diagnostics Err Error Exhausted Last` |
 | R39 | Diff | Playground | 80x24, 100x25, 106x29, 120x40 | `api cafe enabled endpoint example exponential health https` |
 | R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
