@@ -352,3 +352,19 @@ fn a_roster_click_selects_the_instance_of_that_row() {
     }
     assert!(checked >= 2, "no scenario shows two running instances");
 }
+
+/// R-apps-9: a dialog that scrolls takes the wheel anywhere over its body
+/// (over a field, a label or the padding beside its bar), not only over
+/// its bare rows, as a macOS scroll view does.
+#[test]
+fn the_wheel_over_a_form_field_scrolls_the_form() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 80, 24);
+    h.key(KeyCode::Char('a'));
+    let (x, y) = h.find("Purpose label").expect("the account form");
+    // the focused name field is in view; the wheel scrolls past it
+    for _ in 0..4 {
+        h.mouse(MouseKind::WheelDown, x + 4, y);
+    }
+    let moved = h.find("Purpose label").is_none_or(|(_, y2)| y2 < y);
+    assert!(moved, "the form did not scroll:\n{}", h.text());
+}
