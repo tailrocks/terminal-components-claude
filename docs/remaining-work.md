@@ -127,7 +127,7 @@ never in view at the smallest failing size.
 | R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::extent_for, the stack with its note) | — |
 | R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size) | — |
-| R38 | Editor | Playground | 80x24, 100x25, 106x29, 120x40 | `200 Client Completion Diagnostics Err Error Exhausted Last` |
+| R38 | Editor | Playground | done: Page::measure (State facts and the empty diagnostics whole beside the editor) | — |
 | R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
 | R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 | `LIVE Viewport container credentials failure image launch queued` |
 | R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 | `234 512 567 Activate Connection Copy Ctrl CursorPos` |

@@ -73,9 +73,6 @@ Scrolling | Playground | 80x24 | R34 squeezes instead of overflowing: no Page::m
 Scrolling | Playground | 100x25 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 106x29 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 120x40 | R34 squeezes instead of overflowing: no Page::measure yet
-Editor | Playground | 80x24 | R38 squeezes instead of overflowing: no Page::measure yet
-Editor | Playground | 100x25 | R38 squeezes instead of overflowing: no Page::measure yet
-Editor | Playground | 106x29 | R38 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 80x24 | R40 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 100x25 | R40 squeezes instead of overflowing: no Page::measure yet
 Terminal | Playground | 106x29 | R40 squeezes instead of overflowing: no Page::measure yet
