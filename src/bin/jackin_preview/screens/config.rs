@@ -1040,8 +1040,9 @@ impl ConfigTabs {
                 if y >= list_area.bottom() {
                     break;
                 }
-                // each blocker wraps to two rows at most, the cut unmarked
-                y += Notice::error(p.as_str()).mark_cut(false).render(
+                // each blocker wraps to two rows at most; a cut ends in ` …`
+                // and reveals in full on hover (R-apps-5)
+                y += Notice::error(p.as_str()).render(
                     Rect::new(
                         list_area.x + 3,
                         y,
