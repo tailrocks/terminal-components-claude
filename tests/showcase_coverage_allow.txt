@@ -1013,6 +1013,7 @@ widgets::props::PropsList::set_props | widget operation or pointer plumbing an a
 widgets::props::PropsList::row_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::props::PropsList::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::props::PropsList::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::props::PropsList::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::props::PropsList::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::props::PropsList::click | S9 click policy on the property list (double click activates, M32): the Text utilities page gains a click option with the SC33 click options | SC33
 
@@ -1188,6 +1189,16 @@ core::selection::RowSelection::anchor | core::selection plumbing behind the widg
 core::selection::RowSelection::clear | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 core::selection::RowSelection::select_only | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 core::selection::RowSelection::toggle | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::apply | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::context_select | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::RowSelection::set | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::SelectGesture::toggle_mods_for | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::SelectGesture::toggle_mods | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::SelectGesture::from_key | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::Activate::fires | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::ClickPolicy::activates | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::ClickPolicy::edits | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
+core::selection::ClickPolicy::toggles | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 core::selection::RowSelection::extend | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 core::selection::RowSelection::select_all | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
 core::selection::RowSelection::toggle_all | core::selection plumbing behind the widgets: exercised through every widget that uses it; nothing of its own to show | permanent
@@ -1329,6 +1340,9 @@ widgets::grid::DataGrid::left_id | widget protocol (render, input, hit ids, meas
 widgets::grid::DataGrid::right_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::grid::DataGrid::on_press | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::grid::DataGrid::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::on_click_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::grid::DataGrid::select_rows | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::grid::DataGrid::context_selection | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
 widgets::grid::DataGrid::on_drag | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::grid::DataGrid::on_paste | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::grid::DataGrid::position_label | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
@@ -1353,6 +1367,12 @@ widgets::list::ListBox::activate | widget operation or pointer plumbing an app c
 widgets::list::ListBox::on_key | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::list::ListBox::on_click | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::list::ListBox::on_click_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::on_click_at | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::mark_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::list::ListBox::select | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::list::ListBox::remove_rows | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::list::ListBox::is_checked | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
+widgets::list::ListBox::set_checked | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
 widgets::list::ListBox::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
 # widgets::option_editor
@@ -1434,6 +1454,8 @@ widgets::table::DataTable::on_paste | widget protocol (render, input, hit ids, m
 widgets::table::DataTable::on_click_header | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::table::DataTable::on_click_cell | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::table::DataTable::on_click_cell_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::on_click_cell_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::table::DataTable::context_selection | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
 widgets::table::DataTable::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::table::DataTable::edit_error | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 
@@ -1489,6 +1511,10 @@ widgets::tree::TreeView::on_key | widget protocol (render, input, hit ids, measu
 widgets::tree::TreeView::on_click_row | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::tree::TreeView::on_click_toggle | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::tree::TreeView::on_click_with | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::on_click_at | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::on_click_row_count | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::row_at | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
+widgets::tree::TreeView::glyph_id | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 widgets::tree::TreeView::toggle_recursive | widget operation or pointer plumbing an app calls on an event: the playground of its type drives it; no surface of its own | permanent
 widgets::tree::TreeView::render | widget protocol (render, input, hit ids, measurement): every demo of its type runs it; nothing of its own to show | permanent
 
