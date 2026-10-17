@@ -1447,14 +1447,13 @@ impl ConnectionsScreen {
         // mark tabs with required-field errors
         form.tabs.items[0].error =
             form.name.field.error.is_some() || form.port.field.error.is_some();
-        form.tabs
-            .render(Rect::new(inner.x, inner.y, inner.width, 2), buf, ctx, bg);
-        let body = Rect::new(
-            inner.x,
-            inner.y + 3,
-            inner.width,
-            inner.height.saturating_sub(5),
-        );
+        let (strip, body) = Tabs::layout(inner);
+        form.tabs.render(strip, buf, ctx, bg);
+        // two rows under the form's fields stay for its buttons
+        let body = Rect {
+            height: body.height.saturating_sub(2),
+            ..body
+        };
         let (lc, rc) = junie_tui::ui::layout::Split::new(58, 30, 24).horizontal(body, 4);
         let fh = TextInput::HEIGHT;
         // each column is a measured stack: on a short terminal it scrolls

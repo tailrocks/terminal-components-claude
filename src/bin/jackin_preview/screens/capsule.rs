@@ -2646,30 +2646,26 @@ impl Layer<ModalResult, World> for UsageDialog {
         // bar holds the keys the strip draws as focused: the one `▎` on the
         // cursor tab
         let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
-        let mut strip = Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs);
+        // keys stay with the dialog: the strip is passive (not a ring stop,
+        // only its tabs are click targets) and draws as focused while the
+        // dialog's keys drive it
+        let mut strip = Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs)
+            .passive(true)
+            .passive_focused(self.tabbar_focus);
         strip.set_active(self.tab);
-        // keys stay with the dialog: the strip is not a ring stop, only its
-        // tabs are click targets; it draws as focused while the dialog's
-        // keys drive it
-        let inert = std::mem::replace(&mut ctx.inert, true);
-        let focus = std::mem::replace(
-            &mut ctx.interaction.focus,
-            self.tabbar_focus.then_some(strip.id),
-        );
-        strip.render(Rect::new(inner.x, y, inner.width, 2), buf, ctx, bg);
-        ctx.interaction.focus = focus;
-        ctx.inert = inert;
-        self.tab_areas.clear();
-        for (i, r) in strip.areas.iter().enumerate() {
-            ctx.clickable(strip.tab_id(i), *r);
-            self.tab_areas.push(*r);
-        }
-        let body = Rect::new(
+        let (strip_area, body) = Tabs::layout(Rect::new(
             inner.x,
-            y + 3,
+            y,
             inner.width,
-            inner.bottom().saturating_sub(y + 5),
-        );
+            inner.bottom().saturating_sub(y),
+        ));
+        strip.render(strip_area, buf, ctx, bg);
+        self.tab_areas.clear();
+        self.tab_areas.extend(strip.areas.iter().copied());
+        let body = Rect {
+            height: body.height.saturating_sub(2),
+            ..body
+        };
         // build body lines
         enum Line {
             Text(String, Tone),

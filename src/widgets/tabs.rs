@@ -125,6 +125,15 @@ pub struct Tabs {
     /// [`IconButton::new`] on the title ladder, tooltip `Show hidden`
     /// ([`crate::theme::Strings::tip_overflow`]).
     pub more_button: IconButton,
+    /// A strip whose keys belong to its owner (a dialog's tab bar): it is
+    /// neither a Tab stop nor a wheel region; its tabs (under
+    /// [`Self::tab_id`]), `×`, `+` and overflow buttons still click, and it
+    /// draws keyboard focus only when [`Self::passive_focused`] is set.
+    /// Default `false`.
+    pub passive: bool,
+    /// A [`Self::passive`] strip draws the `▎` on its cursor tab: its
+    /// owner holds the keys and drives the strip.
+    pub passive_focused: bool,
     /// The open overflow menu and the tab each of its rows stands for.
     menu: Option<(ContextMenu, Vec<usize>)>,
     /// Where the `+N` button was drawn (the menu's anchor).
@@ -257,6 +266,8 @@ impl Tabs {
             close_reveal: CloseReveal::Always,
             overflow_menu: true,
             more_button: IconButton::new(WidgetId::of("tabs.more"), "+"),
+            passive: false,
+            passive_focused: false,
             menu: None,
             more_area: Rect::ZERO,
             fit: 0,
@@ -283,12 +294,46 @@ impl Tabs {
             close_reveal: CloseReveal::Always,
             overflow_menu: true,
             more_button: IconButton::new(WidgetId::of("tabs.more"), "+"),
+            passive: false,
+            passive_focused: false,
             menu: None,
             more_area: Rect::ZERO,
             fit: 0,
             max_first: 0,
             revealed: None,
         }
+    }
+
+    /// The strip's height: the tab row and the rule under it.
+    pub const STRIP_H: u16 = 2;
+
+    /// Split `area` into the strip ([`Self::STRIP_H`] rows) and the body
+    /// under it, one blank row apart. Pages render the strip in the first
+    /// and their content in the second instead of offsetting by hand.
+    pub fn layout(area: Rect) -> (Rect, Rect) {
+        Self::layout_gap(area, 1)
+    }
+
+    /// [`Self::layout`] with `gap` blank rows between the strip and the
+    /// body.
+    pub fn layout_gap(area: Rect, gap: u16) -> (Rect, Rect) {
+        let strip_h = Self::STRIP_H.min(area.height);
+        let strip = Rect::new(area.x, area.y, area.width, strip_h);
+        let off = (Self::STRIP_H + gap).min(area.height);
+        let body = Rect::new(area.x, area.y + off, area.width, area.height - off);
+        (strip, body)
+    }
+
+    /// See [`Self::passive`].
+    pub fn passive(mut self, on: bool) -> Self {
+        self.passive = on;
+        self
+    }
+
+    /// See [`Self::passive_focused`].
+    pub fn passive_focused(mut self, on: bool) -> Self {
+        self.passive_focused = on;
+        self
     }
 
     pub fn rule(mut self, rule: TabRule) -> Self {
@@ -687,12 +732,20 @@ impl Tabs {
             return;
         }
         let t = ctx.theme;
-        let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
+        let focused = if self.passive {
+            self.passive_focused
+        } else {
+            ctx.interaction.focused_under(self.id, self.menu.is_some())
+        };
         // the strip is a focus stop with the geometry it draws in; tab and
         // button regions registered after it take precedence under the mouse.
-        // It is a scroll region too: the wheel moves its window
-        ctx.control(self.id, area, false);
-        ctx.scrollable(self.id, area);
+        // It is a scroll region too: the wheel moves its window. A passive
+        // strip's owner holds the keys and the wheel: only its parts
+        // (tabs, `×`, `+`, overflow) are targets
+        if !self.passive {
+            ctx.control(self.id, area, false);
+            ctx.scrollable(self.id, area);
+        }
         self.areas = vec![Rect::ZERO; self.items.len()];
         let y = area.y;
         if area.height >= 2 {
@@ -1209,6 +1262,55 @@ mod tests {
             assert_eq!(rule(TabRule::Accent, i), t.accent);
             assert_eq!(rule(TabRule::Neutral, i), t.border_strong);
         }
+    }
+
+    #[test]
+    fn layout_puts_the_body_one_row_under_the_strip() {
+        let (strip, body) = Tabs::layout(Rect::new(2, 3, 40, 10));
+        assert_eq!(strip, Rect::new(2, 3, 40, 2));
+        assert_eq!(body, Rect::new(2, 6, 40, 7));
+        let (strip, body) = Tabs::layout_gap(Rect::new(0, 0, 10, 10), 0);
+        assert_eq!((strip.height, body.y, body.height), (2, 2, 8));
+        // a short area never yields a body outside it
+        let (strip, body) = Tabs::layout(Rect::new(0, 0, 10, 2));
+        assert_eq!((strip.height, body.y, body.height), (2, 2, 0));
+    }
+
+    #[test]
+    fn a_passive_strip_is_no_stop_its_tabs_are_targets_and_its_owner_shows_focus() {
+        let theme = Theme::junie();
+        let mut tabs = Tabs::new(WidgetId::of("t"), &["Overview", "Claude", "Codex"])
+            .passive(true)
+            .passive_focused(true);
+        tabs.set_active(1);
+        tabs.cursor = 1;
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 2));
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+        }
+        assert!(!ring.contains(tabs.id), "not a Tab stop");
+        let a = tabs.areas[2];
+        assert_eq!(
+            hits.hit(ratatui::layout::Position::new(a.x + 1, 0)),
+            Some(tabs.tab_id(2)),
+            "each tab is still a click target"
+        );
+        assert_eq!(
+            hits.hit(ratatui::layout::Position::new(59, 0)),
+            None,
+            "the strip itself is no target"
+        );
+        assert_eq!(row(&buf, 0).matches('▎').count(), 1, "the owner's focus");
+        assert_eq!(buf[(tabs.areas[1].x, 0)].symbol(), "▎");
+        let mut tabs = tabs.passive_focused(false);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        tabs.render(Rect::new(0, 0, 60, 2), &mut buf, &mut ctx, theme.canvas);
+        assert!(!row(&buf, 0).contains('▎'));
     }
 
     #[test]
