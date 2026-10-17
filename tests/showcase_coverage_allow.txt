@@ -153,6 +153,25 @@ core::response::StateFlags::with | State tab readout of the library dispatcher: 
 
 # core::scroll
 
+# core::selection
+core::selection::SelectGesture | S9 selection gestures: shown as the click options of Lists, Tables, Trees once the widgets run on them | SC33
+core::selection::SelectGesture::Only | S9 selection gestures: shown as the click options of Lists, Tables, Trees once the widgets run on them | SC33
+core::selection::SelectGesture::Toggle | S9 selection gestures: shown as the click options of Lists, Tables, Trees once the widgets run on them | SC33
+core::selection::SelectGesture::Extend | S9 selection gestures: shown as the click options of Lists, Tables, Trees once the widgets run on them | SC33
+core::selection::SelectGesture::All | S9 selection gestures: shown as the click options of Lists, Tables, Trees once the widgets run on them | SC33
+core::selection::Activate | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::Activate::Single | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::Activate::Double | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::Activate::ClickAgain | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::Activate::Never | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::CheckClick | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::CheckClick::BoxOnly | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::CheckClick::Row | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::ClickPolicy | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::ClickPolicy::activate | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::ClickPolicy::edit_on | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+core::selection::ClickPolicy::check | S9 click policy: shown as the click options of Lists, Tables, Trees once the widgets run on it | SC33
+
 # core::shape
 core::shape::PointerShape | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
 core::shape::PointerShape::Default | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
