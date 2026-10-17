@@ -9,6 +9,8 @@ mod app_tests;
 #[cfg(test)]
 mod app_tests_chrome;
 #[cfg(test)]
+mod app_tests_clock;
+#[cfg(test)]
 mod app_tests_colour;
 #[cfg(test)]
 mod app_tests_context;

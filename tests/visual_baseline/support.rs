@@ -104,7 +104,8 @@ pub struct Case {
     /// did (the CLI's `--wait-for` would have run after them).
     pub needle: &'static str,
     /// DSL steps after the boot wait: key names, `type:<text>`,
-    /// `sleep:<ms>`, `wait:<needle>`.
+    /// `sleep:<ms>`, `wait:<needle>`, `advance:<ms>` (an explicit clock
+    /// step of a paused app, [`Session::advance_clock`]).
     pub sends: &'static [&'static str],
     pub timeout_ms: u64,
     /// Variables set over [`PINNED_ENV`] for this capture only: a scenario
@@ -437,6 +438,15 @@ impl Session {
         self.inner.send_text(text)
     }
 
+    /// An explicit clock step of `ms` virtual milliseconds (`advance:<ms>`):
+    /// a paused app runs its stopped clock for that long, so jobs on
+    /// virtual time complete, then stops it again and the frame settles
+    /// (`junie_tui::clock::ClockStep`, `shell::App::advance_clock`). It is
+    /// sent in band, after the inputs before it.
+    pub fn advance_clock(&mut self, ms: u64) -> Result<(), tuiscotti::TuiError> {
+        self.inner.paste(&junie_tui::clock::ClockStep::request(ms))
+    }
+
     pub fn mouse_move(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
         self.inner.mouse_move(col, row, MouseMods::NONE)
     }
@@ -618,6 +628,11 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
             session
                 .wait_for_text(needle)
                 .unwrap_or_else(|e| panic!("`wait:{needle}` timed out: {e}"));
+        } else if let Some(ms) = step.strip_prefix("advance:") {
+            session
+                .advance_clock(ms.parse().expect("advance:<ms>"))
+                .expect("advance_clock");
+            std::thread::sleep(Duration::from_millis(120));
         } else if let Some(text) = step.strip_prefix("type:") {
             session.type_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));
