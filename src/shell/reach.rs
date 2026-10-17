@@ -249,6 +249,15 @@ impl<A: App + Application> Probe<A> {
     /// Stops early once every word of `want` is reached. Returns the
     /// containers explored.
     pub(crate) fn explore(&mut self, want: &Words, reached: &mut Words) -> usize {
+        // the items a strip collapsed into its `…` overflow item are
+        // reached through its reveal, like text cut with `…`
+        for hidden in crate::ui::reveal::overflowed() {
+            for word in hidden.split(|c: char| !c.is_alphanumeric()) {
+                if word.chars().count() >= MIN_WORD {
+                    reached.cut.insert(word.to_owned());
+                }
+            }
+        }
         let left = want.against(reached).0;
         let mut acc = Acc {
             reached: std::mem::take(reached),
