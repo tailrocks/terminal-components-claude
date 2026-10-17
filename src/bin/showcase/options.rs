@@ -2012,6 +2012,22 @@ impl OptionsView {
             .any(|(_, c)| matches!(c, Control::Select(s) if s.open))
     }
 
+    /// The rows every group and control take, at `avail`'s width (the
+    /// controls fit any width): what a scroll view lays the view out at.
+    pub fn measure(&self, avail: ratatui::layout::Size) -> ratatui::layout::Size {
+        let rows: u16 = self
+            .rows
+            .iter()
+            .enumerate()
+            .map(|(i, r)| match r {
+                Row::Heading(_) => 1 + u16::from(i > 0),
+                Row::Note(_) => 1,
+                Row::Option(_, c) => c.height(),
+            })
+            .sum();
+        ratatui::layout::Size::new(avail.width, rows)
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let t = ctx.theme;
         let children: Vec<StackChild> = self
