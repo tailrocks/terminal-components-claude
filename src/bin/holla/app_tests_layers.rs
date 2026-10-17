@@ -375,3 +375,22 @@ fn every_open_layer_hears_focus_changes_not_only_dialogs() {
         "so does the covered one"
     );
 }
+
+/// R-apps-10: at 72×20 the start dialog's code preview took every row,
+/// leaving its facts none; the preview now shrinks first, so the facts
+/// keep rows to scroll through.
+#[test]
+fn a_short_screen_keeps_a_dialogs_facts_beside_its_code_preview() {
+    let mut h = H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 72, 20);
+    h.key(KeyCode::Char('c'));
+    let text = h.text();
+    assert!(text.contains("Start upgrade everything?"), "{text}");
+    assert!(
+        text.contains("Plan       Upgrade"),
+        "the facts show:\n{text}"
+    );
+    assert!(
+        text.contains("cat /etc/os-release"),
+        "the preview too:\n{text}"
+    );
+}
