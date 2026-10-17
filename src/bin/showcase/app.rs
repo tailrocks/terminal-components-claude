@@ -2153,7 +2153,7 @@ impl App {
     /// modals name their keys, CO4), a page layer's when it has any, the
     /// Inspector's, the sidebar's, else the page's with `Tab Next`; the
     /// EDIT badge while the page edits; the status line.
-    fn footer(&self) -> shell::Footer {
+    pub(crate) fn footer(&self) -> shell::Footer {
         let focus = self.shell.focus.current();
         let pairs =
             |v: Vec<(&'static str, &'static str)>| -> Vec<junie_tui::widgets::keyhint::Hint> {
