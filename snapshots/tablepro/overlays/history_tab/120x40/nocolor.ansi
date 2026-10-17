@@ -7,7 +7,7 @@
  │   Filter objects          │││    Search history · terms are ANDed                scope: Production  ·  status: any │ [0m
  │  ▾ D acme_prod            │││                                                                                      │ [0m
  │    ▾ S public             │││  [0m[1m▎› SELECT plan, count(*… 3 d ago · 5 ms [0m │  Query                Editor · 3 d ago   │ [0m
- │      ▾ Tables             │││     SELECT * FROM payme… 1 d ago · 24 ms  │                                          │ [0m
+ │      ▾ Tables             │││     SELECT * FROM payme… 1 d ago · 24 ms  │  ─────────────────────────────────────   │ [0m
  │        ▸ T organizations  │││     SELECT day, revenue… 3 h ago · 14 ms  │  ›  1 [0m[1mSELECT[0m plan, [0m[1mcount[0m(*) [0m[1mFROM[0m         │ [0m
  │        ▸ T customers      │││   [0m[1m![0m SELECT * FROM ordres     1 h ago · –  │     2 subscriptions [0m[1mGROUP[0m [0m[1mBY[0m plan        │ [0m
  │        ▸ T products       │││     SELECT o.id, o.tota… 1 h ago · 61 ms  │                                          │ [0m

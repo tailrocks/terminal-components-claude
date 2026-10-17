@@ -1,7 +1,7 @@
 [0m[2m  ▪  TablePro  Connections  6 saved                                      no color · 100×30  ? help  [0m
 [0m[2m                                                                                                    [0m
 [0m[2m ╭─ Connections ──────────── 6 ─╮    Production                                                     [0m
-[0m[2m │                              │                                                                   [0m
+[0m[2m │                              │    ────────────────────────────────────────────────────────────   [0m
 [0m[2m │ [0m [0m[2m Filter connections         │    Engine       PostgreSQL                                        [0m
 [0m[2m │ [0m [0m[2m▾ Personal                  │    Host         prod-db-1.acme.io:5432                            [0m
 [0m[2m │ [0m [0m[2m      Local PostgreSQL  pg  │    Database     acme_prod                                         [0m
