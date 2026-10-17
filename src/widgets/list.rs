@@ -675,6 +675,37 @@ impl ListBox {
     }
 }
 
+/// The narrowest the list shows every row's label and meta whole, one
+/// row per item (plan §1.4 `Measure`): the row's leading cells, the label
+/// (never under the room a row keeps for it before it drops the meta) and
+/// the meta after its gap. An empty list measures its empty state.
+impl crate::ui::measure::Measure for ListBox {
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        if self.items.is_empty() {
+            return match &self.core.empty {
+                Some(e) => e.measure(avail, ctx),
+                None => ratatui::layout::Size::new(0, 0),
+            };
+        }
+        let width = self
+            .items
+            .iter()
+            .map(|item| {
+                let label = crate::ui::text::width(&item.label) as u16;
+                // `label_width`: the meta shows while the label keeps 12
+                // cells; the row keeps 2 leading cells and 1 trailing
+                let text = match item.meta.as_deref().filter(|m| !m.is_empty()) {
+                    Some(m) => 2 + label.max(12) + 2 + crate::ui::text::width(m) as u16,
+                    None => 2 + label,
+                };
+                text + 1
+            })
+            .max()
+            .unwrap_or(0);
+        ratatui::layout::Size::new(width, self.items.len() as u16)
+    }
+}
+
 impl Scrollable for ListBox {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.core.scroll
@@ -1131,6 +1162,41 @@ mod reveal_tests {
                     .collect::<String>()
             })
             .collect()
+    }
+
+    /// At its measure every label and meta shows whole, and no row is
+    /// scrolled away.
+    #[test]
+    fn a_list_at_its_measure_shows_every_label_and_meta() {
+        use crate::ui::measure::Measure;
+        let mut l = ListBox::new(
+            WidgetId::of("l"),
+            vec![
+                ListItem::new("orders").meta("1,194"),
+                ListItem::new("customer_addresses").meta("88,201"),
+                ListItem::new("a"),
+                ListItem::new("a label far longer than the rest of them"),
+            ],
+            SelectMode::Single,
+        );
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let size = l.measure(ratatui::layout::Size::new(10, 2), &ctx);
+        drop(ctx);
+        assert_eq!(size.height, 4);
+        let rows = render_in(&mut l, size.width, size.height, Interaction::default());
+        for (row, parts) in rows.iter().zip([
+            &["orders", "1,194"][..],
+            &["customer_addresses", "88,201"],
+            &["a"],
+            &["a label far longer than the rest of them"],
+        ]) {
+            for p in parts {
+                assert!(row.contains(p), "{p:?} in {row:?}");
+            }
+        }
     }
 
     #[test]

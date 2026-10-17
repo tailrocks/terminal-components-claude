@@ -6300,7 +6300,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     (
         "ui::pane_tree::PaneNode",
         Protocol,
-        &["leaves", "layout", "node_at_mut", "path_to"],
+        &["leaves", "layout", "node_at_mut", "path_to", "natural_size"],
     ),
     (
         "ui::pane_tree::PaneNode",
@@ -6323,6 +6323,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "leaves",
             "zoomed",
             "framed",
+            "natural_size",
         ],
     ),
     (
@@ -6348,6 +6349,7 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
             "hints",
             "in_detail",
             "last",
+            "natural_width",
         ],
     ),
     (
