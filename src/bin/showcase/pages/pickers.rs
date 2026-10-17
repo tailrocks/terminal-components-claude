@@ -18,10 +18,11 @@
 //! dismissal are the picker's own.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent, Report};
 use junie_tui::core::event::{Key, Outcome};
@@ -35,7 +36,7 @@ use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::layers::LayerResult;
 use junie_tui::ui::popup::{Dismiss, Place, Placement, VAlign};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
-use junie_tui::ui::text::fuzzy;
+use junie_tui::ui::text::{self, fuzzy};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::option_list::Item;
@@ -633,11 +634,9 @@ impl PickersPage {
         ]
     }
 
-    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        // as many buttons per row as fit, the rest on the next rows
+    /// The buttons in lines of as many as fit in `room` cells.
+    fn button_lines(&self, room: u16) -> Vec<Vec<usize>> {
         let widths: Vec<u16> = self.buttons.iter().map(|b| b.width()).collect();
-        let room = area.width.saturating_sub(4);
         let mut lines: Vec<Vec<usize>> = vec![vec![]];
         let mut used = 0u16;
         for (i, w) in widths.iter().enumerate() {
@@ -650,8 +649,59 @@ impl PickersPage {
             }
             lines.last_mut().expect("a line").push(i);
         }
+        lines
+    }
+
+    fn result_facts(&self) -> Vec<Prop> {
+        let (label, detail) = self
+            .chosen
+            .clone()
+            .unwrap_or_else(|| ("nothing yet".into(), "—".into()));
+        vec![
+            Prop::new("Chosen", label).wrap(),
+            Prop::new("Detail", detail).wrap(),
+            Prop::new("Level", LEVELS[self.level].0),
+            Prop::new(
+                "Open tabs",
+                self.tabs
+                    .iter()
+                    .map(|t| t.0.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" · "),
+            )
+            .wrap(),
+            Prop::new("Last action", self.last.clone()).wrap(),
+            Prop::new("Pickers opened", self.opened.to_string()),
+        ]
+    }
+
+    fn applied_facts(&self) -> Vec<Prop> {
+        self.readout().into_iter().map(Prop::wrap).collect()
+    }
+
+    /// The cards' heights at `width`: the buttons and the note, Applied,
+    /// Result.
+    fn heights(&self, width: u16) -> [u16; 3] {
+        let room = width.saturating_sub(4);
+        let n = self.button_lines(room).len() as u16;
+        let note = text::wrap(QUICK_NOTE, room.max(1) as usize).len() as u16;
+        let applied = Panel::card(Some("Applied")).meta(APPLIED_META);
+        let result = Panel::card(Some("Result")).meta("PickerAction");
+        [
+            n + 1 + note + 3,
+            sheet_height(&applied, &self.applied_facts(), width),
+            sheet_height(&result, &self.result_facts(), width),
+        ]
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        // as many buttons per row as fit, the rest on the next rows
+        let widths: Vec<u16> = self.buttons.iter().map(|b| b.width()).collect();
+        let lines = self.button_lines(area.width.saturating_sub(4));
         let n = lines.len() as u16;
-        let rows = crate::pages::layout::rows(area, &[n + 5, 1, 10, 1, 0]);
+        let [top, applied_h, _] = self.heights(area.width);
+        let rows = crate::pages::layout::rows(area, &[top, 1, applied_h, 1, 0]);
         let panel = Panel::card(Some("Open a picker")).meta("Enter · click");
         let bg = panel.bg(t);
         let inner = panel.render(rows[0], buf, t);
@@ -663,58 +713,27 @@ impl PickersPage {
                 self.buttons[i].render(rect, buf, ctx, bg);
             }
         }
-        let inner = Rect::new(
-            inner.x,
-            inner.y + n - 1,
-            inner.width,
-            inner.height.saturating_sub(n - 1),
-        );
-        if inner.y + 2 < inner.bottom() {
-            buf.set_string(
-                inner.x,
-                inner.y + 2,
-                junie_tui::ui::text::truncate(
-                    "Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled rows say why · Remote: loads, r retries",
-                    inner.width as usize,
-                ),
-                t.muted().bg(bg),
-            );
+        for (i, l) in text::wrap(QUICK_NOTE, inner.width.max(1) as usize)
+            .iter()
+            .enumerate()
+        {
+            buf.set_string(inner.x, inner.y + n + 1 + i as u16, l, t.muted().bg(bg));
         }
 
-        let panel = Panel::card(Some("Applied")).meta("read back from a built picker");
+        let panel = Panel::card(Some("Applied")).meta(APPLIED_META);
         let bg = panel.bg(t);
         let inner = panel.render(rows[2], buf, t);
-        props::render(inner, buf, t, &self.readout(), bg);
+        props::render(inner, buf, t, &self.applied_facts(), bg);
 
         let panel = Panel::card(Some("Result")).meta("PickerAction");
         let bg = panel.bg(t);
-        let inner = panel.render(
-            Rect::new(rows[4].x, rows[4].y, rows[4].width, rows[4].height.min(8)),
-            buf,
-            t,
-        );
-        let (label, detail) = self
-            .chosen
-            .clone()
-            .unwrap_or_else(|| ("nothing yet".into(), "—".into()));
-        let props = vec![
-            Prop::new("Chosen", label),
-            Prop::new("Detail", detail),
-            Prop::new("Level", LEVELS[self.level].0),
-            Prop::new(
-                "Open tabs",
-                self.tabs
-                    .iter()
-                    .map(|t| t.0.as_str())
-                    .collect::<Vec<_>>()
-                    .join(" · "),
-            ),
-            Prop::new("Last action", self.last.clone()),
-            Prop::new("Pickers opened", self.opened.to_string()),
-        ];
-        props::render(inner, buf, t, &props, bg);
+        let inner = panel.render(rows[4], buf, t);
+        props::render(inner, buf, t, &self.result_facts(), bg);
     }
 }
+
+const QUICK_NOTE: &str = "Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled rows say why · Remote: loads, r retries";
+const APPLIED_META: &str = "read back from a built picker";
 
 /// The States grid: a branch picker without a search box.
 fn states_grid() -> StateGrid {
@@ -740,6 +759,19 @@ impl Page for PickersPage {
     }
     fn blurb(&self) -> &'static str {
         "One modal list for files, tabs, levels, commands and branches: search, scope, status"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let applied = Panel::card(Some("Applied")).meta(APPLIED_META);
+        let result = Panel::card(Some("Result")).meta("PickerAction");
+        let widest = self.buttons.iter().map(|b| b.width()).max().unwrap_or(0) + 4;
+        let w = avail
+            .width
+            .max(widest)
+            .max(sheet_width(&applied, &self.applied_facts()))
+            .max(sheet_width(&result, &self.result_facts()));
+        let [a, b, c] = self.heights(w);
+        Size::new(w, a + 1 + b + 1 + c)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
