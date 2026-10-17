@@ -176,7 +176,8 @@ xtask visual seal` after a reviewed harness change).
   `advance:<ms>` asks the app to run its stopped clock for that long
   (`junie_tui::clock::ClockStep`, `shell::App::advance_clock`; an app
   with a virtual clock implements it with `clock::run_step`), then the
-  frame is still. Never switch such a row to `--motion reduced`.
+  frame is still. The harness sets `JUNIE_TUI_TEST_CLOCK=1` for such a
+  scenario only; without it the request is an ordinary paste. Never switch such a row to `--motion reduced`.
 - New coverage goes into the tables as `.pending()` rows; a pending row
   gates once its approval is committed.
 - Whoever changes a re-approved surface re-runs its group and approves it

@@ -572,6 +572,11 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
     if matches!(case.color, Color::NoColorEnv) {
         tui = tui.env("NO_COLOR", "1");
     }
+    // a scenario that steps the clock opts in to clock steps (only it:
+    // every other capture runs with the production input path)
+    if case.sends.iter().any(|s| s.starts_with("advance:")) {
+        tui = tui.env(junie_tui::clock::ClockStep::ENV, "1");
+    }
     for (key, value) in case.env.iter().chain(extra) {
         tui = tui.env(key, value);
     }
