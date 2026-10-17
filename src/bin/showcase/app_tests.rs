@@ -374,7 +374,14 @@ fn editable_table_commit_cancel_and_validation() {
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str("abc");
     h.key(KeyCode::Enter);
-    assert!(h.text().contains("Changes must be a whole number"));
+    // the error is the card's meta, right of a 120-column screen: ask the
+    // table
+    let table = &h.app.pages[PageId::Editable.index()]
+        .as_any()
+        .and_then(|a| a.downcast_ref::<crate::pages::editable::EditablePage>())
+        .expect("the editable page")
+        .table;
+    assert_eq!(table.edit_error(), Some("Changes must be a whole number"));
     assert!(
         h.app.pages[PageId::Editable.index()].editing(),
         "invalid value keeps editing"

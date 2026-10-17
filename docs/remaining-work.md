@@ -104,7 +104,7 @@ never in view at the smallest failing size.
 | R12 | ChecksRadios | Playground | done: its rest is an inner scroller's rows (the inner-scroller rule) | — |
 | R13 | Toolbars | Playground | **Done** (reach-a): `measure` through `tiles`: each card never narrower than its toolbar shown whole (`Toolbar::width`) and its first line; the overflow readout and the Last facts wrap | — |
 | R14 | Tables | Playground | **Done** (reach-a): `measure`: every table with all its columns and every cell whole (`DataTable: Measure`), the tasks card at 20 rows (the table scrolls the rest), the reviewers and checks cards at their set heights; the page scrolls sideways where the tasks table is wider than the screen | — |
-| R15 | Editable | Playground | 80x24, 100x25, 106x29, 120x40 | `1050 1051 1052 1053 118 Activated Alt Basic` |
+| R15 | Editable | Playground | **Done** (reach-a): `measure`: the table with every column, cell and row whole (`DataTable: Measure`), the legend, columns and events facts wrapped | — |
 | R16 | Grid | Playground | 80x24, 100x25, 106x29, 120x40 | `1011 1012 1013 120 150 1920 201 202` |
 | R17 | Selectable | Playground | 80x24, 100x25, 106x29, 120x40 | `APAC Billing Brandt Contract Ctrl Details Docs Eli` |
 | R18 | CellEditors | Playground | 80x24, 100x25, 106x29, 120x40 | `Ana Aziz Bea Berg Canary Cancel Checkbox Chen` |
