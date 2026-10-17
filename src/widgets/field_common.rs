@@ -675,10 +675,10 @@ mod select_all_tests {
             more: false,
         });
         g.begin_edit();
-        g.edit.as_mut().unwrap().buffer.clear_selection();
+        g.edit.as_mut().unwrap().field.buffer.clear_selection();
         g.on_key(&k('a', M::SUPER));
         assert_eq!(
-            g.edit.as_ref().unwrap().buffer.selected_text(),
+            g.edit.as_ref().unwrap().field.buffer.selected_text(),
             Some("alpha")
         );
         let mut t = DataTable::new(
@@ -688,10 +688,10 @@ mod select_all_tests {
         )
         .cell_nav(true);
         t.begin_edit();
-        t.edit.as_mut().unwrap().buffer.clear_selection();
+        t.edit.as_mut().unwrap().field.buffer.clear_selection();
         t.on_key(&k('a', M::SUPER));
         assert_eq!(
-            t.edit.as_ref().unwrap().buffer.selected_text(),
+            t.edit.as_ref().unwrap().field.buffer.selected_text(),
             Some("beta")
         );
     }
@@ -984,11 +984,11 @@ mod cmd_edit_tests {
         g.begin_edit();
         g.on_key(&cmd('a'));
         g.on_key(&cmd('x'));
-        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "");
+        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "");
         g.on_key(&cmd('v'));
         g.on_key(&cmd_key(KeyCode::Left));
         g.on_key(&cmd('v'));
-        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "alphaalpha");
+        assert_eq!(g.edit.as_ref().unwrap().field.buffer.text(), "alphaalpha");
         let mut t = DataTable::new(
             WidgetId::of("t"),
             vec![Column::new("Name", Constraint::Length(8)).editable()],
@@ -1001,6 +1001,6 @@ mod cmd_edit_tests {
         assert_eq!(clipboard::text().as_deref(), Some("beta"));
         t.on_key(&cmd_key(KeyCode::Right));
         t.on_key(&cmd('v'));
-        assert_eq!(t.edit.as_ref().unwrap().buffer.text(), "betabeta");
+        assert_eq!(t.edit.as_ref().unwrap().field.buffer.text(), "betabeta");
     }
 }
