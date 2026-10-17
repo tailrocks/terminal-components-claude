@@ -6,8 +6,8 @@
    ─────────━━━━━━━━━━━──────────────────────────────────────────────────────   [0m
                                                                                 [0m
     ──● Use SSL / TLS on                         Startup commands               [0m
-                                                 SET statement_timeout = '…     [0m
-    ──● SSH tunnel on                                                           [0m
+                                                 SET statement_timeout =        [0m
+    ──● SSH tunnel on                            '60s';                         [0m
      SSH host  optional                                                         [0m
      bastion.acme.io                             Run after every connect, on…   [0m
                                                                                 [0m
