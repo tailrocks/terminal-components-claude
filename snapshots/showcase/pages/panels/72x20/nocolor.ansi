@@ -5,17 +5,17 @@
     Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
   ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
   ▸ Inputs & for… ┃                                                     [0m
-  ▸ Tables        ┃    Titled card surfa…   ┃  ╭─ Framed · …   1–3/50 ─╮[0m
-  ▸ Navigation    ┃                         ┃  │  Junie works        ┃ │[0m
-  ▸ Overlays      ┃    A card is a filled   ┃  │  through a task the ┆ │[0m
-  ▸ Feedback      ┃    surface. Its title   ┆  │  way a careful      ┆ │[0m
-  ▾ Layout        ┃    sits in the          ┆  ╰───────────────────────╯[0m
- [0m[1m▎  › Panels      [0m┃    top-left and         ┆                           [0m
-      Scrolling   ┃                         ┆    Card · scroll… 1–1/60  [0m
-      Splits & s… ┃                         ┆                           [0m
-      Master-det… ┆                         ┆       0.00s  info   R… ┃  [0m
- [0m[2m     Pane tree   [0m┆                         ┆    ━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
-                                            ┆                           [0m
+  ▸ Tables        ┃    Titled card                                   s ┃[0m
+  ▸ Navigation    ┃                                                    ┃[0m
+  ▸ Overlays      ┃    A card is a filled surface. Its title sits in t ┆[0m
+  ▸ Feedback      ┃    top-left and metadata on the right. It never ha ┆[0m
+  ▾ Layout        ┃    border.                                         ┆[0m
+ [0m[1m▎  › Panels      [0m┃                                                    ┆[0m
+      Scrolling   ┃                                                    ┆[0m
+      Splits & s… ┃                                                    ┆[0m
+      Master-det… ┆                                                    ┆[0m
+ [0m[2m     Pane tree   [0m┆    Untitled card. Same surface, content starts at  ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄ [0m
                                                                         [0m
  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
 [?25l
