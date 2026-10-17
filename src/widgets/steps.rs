@@ -56,6 +56,18 @@ pub struct Step {
 }
 
 impl Step {
+    /// The meta the rail shows at the row's end: the step's own, else
+    /// its state's word (queued, skipped, blocked).
+    fn shown_meta(&self) -> Option<String> {
+        match (&self.meta, self.state) {
+            (Some(m), _) => Some(m.clone()),
+            (None, StepState::Queued) => Some("queued".into()),
+            (None, StepState::Skipped) => Some("skipped".into()),
+            (None, StepState::Blocked) => Some("blocked".into()),
+            _ => None,
+        }
+    }
+
     pub fn new(label: &str) -> Self {
         Self {
             label: label.to_owned(),
@@ -286,13 +298,7 @@ impl StepRail {
             } else {
                 label_style
             };
-            let meta: Option<String> = match (&step.meta, step.state) {
-                (Some(m), _) => Some(m.clone()),
-                (None, StepState::Queued) => Some("queued".into()),
-                (None, StepState::Skipped) => Some("skipped".into()),
-                (None, StepState::Blocked) => Some("blocked".into()),
-                _ => None,
-            };
+            let meta = step.shown_meta();
             let meta_style = match step.state {
                 StepState::Running => st.fg(t.text_secondary),
                 StepState::Failed => st.fg(t.error),
@@ -347,6 +353,32 @@ impl StepRail {
     }
 }
 
+/// The rail's natural size (plan §1.4 `Measure`): every step on its row
+/// with its label whole and its meta shown (the row keeps 12 cells for
+/// the label before it drops the meta), one row per step.
+impl crate::ui::measure::Measure for StepRail {
+    fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        let lead = 3 + if self.numbered { 3 } else { 0 };
+        let width = self
+            .steps
+            .iter()
+            .map(|step| {
+                let label = crate::ui::text::width(&step.label) as u16;
+                let need = match step.shown_meta() {
+                    Some(m) => {
+                        let mw = crate::ui::text::width(&m) as u16;
+                        (label + mw + 2).max(mw + 12)
+                    }
+                    None => label,
+                };
+                lead + need + 1
+            })
+            .max()
+            .unwrap_or(0);
+        ratatui::layout::Size::new(width, self.steps.len() as u16)
+    }
+}
+
 impl Scrollable for StepRail {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.core.scroll
@@ -395,6 +427,62 @@ impl crate::core::pointer::MouseTarget for StepRail {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Laid out at its measure, every label and meta shows whole; one
+    /// column less cuts a label or drops a meta.
+    #[test]
+    fn at_its_measure_every_step_shows_whole() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        use crate::theme::Theme;
+        use crate::ui::ctx::Interaction;
+        use crate::ui::measure::Measure;
+        let mut r = StepRail::new(
+            WidgetId::of("r"),
+            ["Resolve tools", "Install dependencies", "Migrate database"]
+                .iter()
+                .map(|s| Step::new(s))
+                .collect(),
+        );
+        r.set_state(0, StepState::Done);
+        r.set_meta(0, Some("0.4 s".into()));
+        r.set_state(1, StepState::Done);
+        r.set_meta(1, Some("6.1 s".into()));
+        r.set_meta(2, Some("2 migrations".into()));
+        let t = Theme::junie();
+        let text = |r: &mut StepRail, w: u16| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let area = Rect::new(0, 0, w, 3);
+            let mut buf = Buffer::empty(area);
+            r.render(area, &mut buf, &mut ctx, t.canvas);
+            (0..3)
+                .map(|y| (0..w).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let size = {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            r.measure(ratatui::layout::Size::ZERO, &ctx)
+        };
+        assert_eq!(size.height, 3);
+        let whole = text(&mut r, size.width);
+        for needle in [
+            "Install dependencies",
+            "6.1 s",
+            "Migrate database",
+            "2 migrations",
+        ] {
+            assert!(whole.contains(needle), "{needle}: {whole}");
+        }
+        let cut = text(&mut r, size.width - 1);
+        assert!(
+            !cut.contains("Migrate database") || !cut.contains("2 migrations"),
+            "{cut}"
+        );
+    }
 
     #[test]
     fn frontier_and_counts() {
