@@ -138,11 +138,12 @@ impl MasterDetail {
     /// columns that show both panes side by side (never under
     /// [`Self::collapse_below`]) with the master at least `master` and
     /// the detail at least `detail` columns wide, at the detail's share
-    /// or the split's ratio and minima. Laid out at it, the layout does
-    /// not collapse and neither pane is squeezed.
+    /// or the split's starting ratio and minima ([`Split::natural_extent`]:
+    /// a seam drag never resizes the container). Laid out at it, the
+    /// layout does not collapse and neither pane is squeezed.
     pub fn natural_width(&self, master: u16, detail: u16) -> u16 {
         let both = match self.size {
-            DetailSize::Resizable => self.split.extent_for(master, detail, self.gap),
+            DetailSize::Resizable => self.split.natural_extent(master, detail, self.gap),
             DetailSize::Share { pct, min, max } => {
                 // the share never draws the detail wider than its max
                 let detail = detail.min(max.max(min));
