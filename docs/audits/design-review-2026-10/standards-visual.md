@@ -131,8 +131,8 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | 7 | Open → A11 | — | The showcase tree still has a "Chrome" group (`src/bin/showcase/app.rs`); rename to "App shell", Overview alone at the top, two levels at most. |
 | 8 | Open → A11 | — | Editor choice by option count, `▾` only on the active or hovered cell, `☐/☑` for booleans. |
 | 9 | Fixed | 4b857a079 | `Dialog::destructive` opens on Cancel and the danger button is never the default (test `a_destructive_dialog_names_the_focused_cancel_button_not_confirm`). Plan S5 deviation 1. |
-| 10 | Open → A11, CO4 | — | Backdrop dim at 16 colours and mono is A11. The footer showing the modal's hints, not the page's, is CO4 (S8b). |
-| 11 | Partial; Open → CO5 | ae4d7eb41 | Status info expires after 5 s on the shell clock; errors persist until the next action (WCAG 2.2.1). Error-over-hints footer composition is CO5 (S8b). |
+| 10 | Partial; Open → A11 | CO4 (S8b) | The footer shows the modal's own hints in every app (library modals implement `HasHints`, CO4). Backdrop dim at 16 colours and mono is A11. |
+| 11 | Fixed | ae4d7eb41; S8b "Footer composes hints" | Status info expires after 5 s on the shell clock; errors persist until the next action (WCAG 2.2.1); `shell::Footer` gives an error precedence over every hint, the pinned ones included (`an_error_status_is_never_cut_for_the_hints`). |
 | 12 | Open → A11 | — | jackin still shows "Delete…" before a plain confirmation (`src/bin/jackin_preview/screens/manager.rs:801`); keycap set uses `Del`, not "Delete". |
 | 13 | Fixed | ef2f81640 | Dotted track `┆`/`┄` in `Theme::scroll_track`; see the note under #13 and hscroll.md. Thumb glyph and held colour per row 6. |
 | 14 | Open → S10, T | — | Non-colour selection cue (marker column or BOLD) is S10 (visual); success vs accent separation is the theme track. |
@@ -147,4 +147,4 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | Gap 7 | Open → T | — | Honour `COLORFGBG` or a `follow_terminal` option at the 16-colour level (SVg7). |
 | Gap 8 | Partial; Open → S22 | 45968977b | `Motion::{Full, Reduced, Paused}` and `NO_MOTION` in every app (S2). The 12 wall-clock spinner sites still animate under reduced motion; S22 moves them to `ctx.interaction.tick`. |
 | Gap 9 | Fixed | 126c4183c, ab64d7535, 30cce2a55 | `ScrollState::context` defaults to 1; pointer moves reveal exactly. See the note under gap 9. |
-| Gap 10 | Open → S8b | — | One left-aligned hint bar for every app (`Theme::hintbar.align`, visual change). |
+| Gap 10 | Fixed (S8b) | holla and jackin footer commits | holla and jackin no longer centre their hint bars; every app is left-aligned (`the_hint_bar_is_left_aligned`); `Theme::centred_hints` stays an option. Re-approved. |
