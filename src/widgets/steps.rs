@@ -160,6 +160,18 @@ impl StepRail {
         self.steps.iter().position(|s| s.state == StepState::Failed)
     }
 
+    /// The right-aligned text of a step's row: its meta, or the word of a
+    /// state that has none (`queued`, `skipped`, `blocked`).
+    fn meta_of(step: &Step) -> Option<String> {
+        match (&step.meta, step.state) {
+            (Some(m), _) => Some(m.clone()),
+            (None, StepState::Queued) => Some("queued".into()),
+            (None, StepState::Skipped) => Some("skipped".into()),
+            (None, StepState::Blocked) => Some("blocked".into()),
+            _ => None,
+        }
+    }
+
     pub fn row_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::row_part(i))
     }
@@ -286,13 +298,7 @@ impl StepRail {
             } else {
                 label_style
             };
-            let meta: Option<String> = match (&step.meta, step.state) {
-                (Some(m), _) => Some(m.clone()),
-                (None, StepState::Queued) => Some("queued".into()),
-                (None, StepState::Skipped) => Some("skipped".into()),
-                (None, StepState::Blocked) => Some("blocked".into()),
-                _ => None,
-            };
+            let meta = Self::meta_of(step);
             let meta_style = match step.state {
                 StepState::Running => st.fg(t.text_secondary),
                 StepState::Failed => st.fg(t.error),
@@ -307,12 +313,11 @@ impl StepRail {
                 .unwrap_or(0);
             let show_meta = mw > 0 && avail >= mw + 12;
             let lw = if show_meta { avail - mw - 2 } else { avail };
-            buf.set_string(
-                x,
-                y,
-                crate::ui::text::truncate(&step.label, lw),
-                label_style,
-            );
+            // a cut label reveals its full text on hover (and on the peek
+            // line for the focused step)
+            let cell = Rect::new(x, y, lw as u16, 1);
+            let label = crate::ui::reveal::fit(ctx, cell, &step.label, s.focused);
+            buf.set_string(x, y, label, label_style);
             if show_meta && let Some(m) = &meta {
                 buf.set_string(row.right().saturating_sub(mw as u16 + 1), y, m, meta_style);
             }
@@ -344,6 +349,62 @@ impl StepRail {
             self.core.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         let _ = Style::new();
+    }
+}
+
+/// The narrowest the rail shows every step's label and meta whole, one
+/// row per step (plan §1.4 `Measure`): the state glyph and the ordinal,
+/// the label, and the meta after its gap (a meta shows only while the
+/// label keeps 10 cells beside it). An empty rail measures its empty
+/// state.
+impl crate::ui::measure::Measure for StepRail {
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        if self.steps.is_empty() {
+            return match &self.core.empty {
+                Some(e) => e.measure(avail, ctx),
+                None => ratatui::layout::Size::new(0, 0),
+            };
+        }
+        let lead = 3 + if self.numbered { 3 } else { 0 };
+        let width = self
+            .steps
+            .iter()
+            .map(|step| {
+                let label = crate::ui::text::width(&step.label) as u16;
+                let text = match Self::meta_of(step) {
+                    // `render`: the meta shows while `avail >= mw + 12`,
+                    // the label gets `avail - mw - 2`
+                    Some(m) => {
+                        let mw = crate::ui::text::width(&m) as u16;
+                        (label + 2 + mw).max(mw + 12)
+                    }
+                    None => label,
+                };
+                lead + text + 1
+            })
+            .max()
+            .unwrap_or(0);
+        ratatui::layout::Size::new(width, self.steps.len() as u16)
+    }
+
+    /// The narrowest the rail keeps every step's meta: a label then cuts
+    /// with `…` and reveals its full text on hover (and on the peek line
+    /// for the focused step), but no state word or duration is dropped.
+    fn min_width(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> u16 {
+        if self.steps.is_empty() {
+            return self.measure(avail, ctx).width;
+        }
+        let lead = 3 + if self.numbered { 3 } else { 0 };
+        let text = self
+            .steps
+            .iter()
+            .map(|step| match Self::meta_of(step) {
+                Some(m) => crate::ui::text::width(&m) as u16 + 12,
+                None => (crate::ui::text::width(&step.label) as u16).min(12),
+            })
+            .max()
+            .unwrap_or(0);
+        lead + text + 1
     }
 }
 
@@ -410,6 +471,108 @@ mod tests {
         r.set_state(2, StepState::Failed);
         assert_eq!(r.failed(), Some(2));
         assert_eq!(r.frontier(), Some(3));
+    }
+
+    #[test]
+    fn at_its_measured_size_every_label_and_meta_shows_whole() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        use crate::theme::Theme;
+        use crate::ui::ctx::Interaction;
+        use crate::ui::measure::Measure;
+        let mut r = StepRail::new(
+            WidgetId::of("r"),
+            ["Resolve workspace", "Pull base image", "Resolve credentials"]
+                .iter()
+                .map(|s| Step::new(s))
+                .collect(),
+        );
+        r.set_state(0, StepState::Done);
+        r.set_meta(0, Some("1.2s".into()));
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let size = r.measure(ratatui::layout::Size::new(0, 0), &ctx);
+        drop(ctx);
+        assert_eq!(size.height, 3);
+        let text = |r: &mut StepRail, w: u16| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, w, 3));
+            r.render(Rect::new(0, 0, w, 3), &mut buf, &mut ctx, theme.canvas);
+            (0..3)
+                .map(|y| (0..w).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        let whole = text(&mut r, size.width);
+        for word in [
+            "Resolve workspace",
+            "1.2s",
+            "Pull base image",
+            "Resolve credentials",
+            "queued",
+        ] {
+            assert!(whole.contains(word), "{word} whole at {}: {whole}", size.width);
+        }
+        // one cell narrower, a label or a meta gives way
+        let less = text(&mut r, size.width - 1);
+        assert!(
+            !less.contains("Resolve credentials") || less.matches("queued").count() < 2,
+            "{less}"
+        );
+        // at its min width every meta stays; labels cut with `…`
+        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let min = r.min_width(ratatui::layout::Size::new(0, 0), &ctx);
+        drop(ctx);
+        assert!(min < size.width);
+        let narrow = text(&mut r, min);
+        assert_eq!(narrow.matches("queued").count(), 2, "{narrow}");
+        assert!(narrow.contains("1.2s"), "{narrow}");
+        assert!(narrow.contains('…'), "{narrow}");
+    }
+
+    #[test]
+    fn a_cut_label_reveals_its_full_text_on_hover() {
+        use crate::core::{focus::FocusRing, hit::HitRegistry};
+        use crate::theme::Theme;
+        use crate::ui::ctx::Interaction;
+        use ratatui::layout::Position;
+        let mut r = StepRail::new(
+            WidgetId::of("r"),
+            vec![Step::new("Resolve credentials for the workspace")],
+        );
+        let theme = Theme::junie();
+        let draw = |r: &mut StepRail, hover: Option<WidgetId>| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                ..Default::default()
+            };
+            let mut buf = Buffer::empty(Rect::new(0, 0, 70, 3));
+            {
+                let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+                r.render(Rect::new(0, 0, 30, 1), &mut buf, &mut ctx, theme.canvas);
+                ctx.flush_overlays(&mut buf);
+            }
+            let text = (0..3)
+                .map(|y| (0..70).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n");
+            (text, hits)
+        };
+        let (text, hits) = draw(&mut r, None);
+        assert!(text.contains('…'), "the label is cut: {text}");
+        let id = hits
+            .hover_at(Position::new(8, 0))
+            .expect("a hover region on the cut label");
+        let (text, _) = draw(&mut r, Some(id));
+        assert!(
+            text.contains("Resolve credentials for the workspace"),
+            "hover shows the full label: {text}"
+        );
     }
 
     #[test]
