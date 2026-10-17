@@ -328,7 +328,7 @@ fn render_outline(
             let (mark, ms) = if !s.optional {
                 ("[✓]", plain.fg(quiet))
             } else if s.included {
-                ("[✓]", plain.fg(t.chosen(focused)))
+                ("[✓]", plain.fg(ctx.chosen(focused)))
             } else {
                 ("[ ]", plain.fg(t.text_muted))
             };

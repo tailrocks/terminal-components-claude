@@ -135,7 +135,7 @@ impl Checkbox {
         } else if self.checked || self.mixed {
             // a checked value is a fact; it takes the accent only while the
             // control has focus, so green stays the focus colour
-            st.fg(t.chosen(s.focused))
+            st.fg(t.chosen_in(s))
         } else {
             st.fg(t.text_muted)
         };
@@ -279,7 +279,7 @@ impl RadioGroup {
             let ms = if self.disabled {
                 st
             } else if on {
-                st.fg(t.chosen(focused))
+                st.fg(ctx.chosen(focused))
             } else {
                 st.fg(t.text_muted)
             };
@@ -368,7 +368,7 @@ impl Toggle {
         let (sw, ss) = if self.disabled {
             (if self.on { g.toggle_on } else { g.toggle_off }, st)
         } else if self.on {
-            (g.toggle_on, st.fg(t.chosen(s.focused)))
+            (g.toggle_on, st.fg(t.chosen_in(s)))
         } else {
             (g.toggle_off, st.fg(t.text_muted))
         };

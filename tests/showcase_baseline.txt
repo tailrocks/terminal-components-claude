@@ -1,495 +1,495 @@
 120x40 TrueColor Overview c73c0962823499cc
 120x40 TrueColor Overview · Options 2983c2c6b07ec1f6
-120x40 TrueColor Overview · States 3f81148fa4d62b56
+120x40 TrueColor Overview · States b666344384c39da6
 120x40 TrueColor Chrome 0affc7ec151f03b2
-120x40 TrueColor Chrome · Options 28358fa110c484b6
+120x40 TrueColor Chrome · Options 4713d2aad1dd1df6
 120x40 TrueColor Chrome · States dae60f275dd7de62
 120x40 TrueColor Status & hints f84f52c72a012739
 120x40 TrueColor Status & hints · Options ef087fdb9be85abd
 120x40 TrueColor Status & hints · States 443b3dbe17f9f82c
 120x40 TrueColor Breadcrumbs & rails 0616586086002211
-120x40 TrueColor Breadcrumbs & rails · Options a71b963a93411400
+120x40 TrueColor Breadcrumbs & rails · Options 738882d9886c11e6
 120x40 TrueColor Breadcrumbs & rails · States 5794559e35b83225
 120x40 TrueColor Help & keys 375d2517fac90548
 120x40 TrueColor Help & keys · Options 1577bdd988c85ea1
 120x40 TrueColor Help & keys · States e8616227a9291619
 120x40 TrueColor Quit & leave a20061743ef9a280
-120x40 TrueColor Quit & leave · Options a25a0e816064fb5e
+120x40 TrueColor Quit & leave · Options c078bf1b365782e9
 120x40 TrueColor Quit & leave · States f44a2f8d87bbe96d
 120x40 TrueColor Focus & navigation 0aec5515f816d248
 120x40 TrueColor Focus & navigation · Options 19873d6f87733e74
 120x40 TrueColor Focus & navigation · States 761755ada66c3d30
 120x40 TrueColor Buttons 9f75d5417f3e2783
-120x40 TrueColor Buttons · Options d62355217e4b0c44
+120x40 TrueColor Buttons · Options 1e1c11b444021ebf
 120x40 TrueColor Buttons · States 79a8d67aea2e9174
 120x40 TrueColor Inputs b86a3ce3618fd8a7
-120x40 TrueColor Inputs · Options 7d8cdede9b290cf5
+120x40 TrueColor Inputs · Options addcd612c7cee39f
 120x40 TrueColor Inputs · States 5841b4f5dd9c0985
 120x40 TrueColor Text areas 955ea5f0bc633484
-120x40 TrueColor Text areas · Options 4b0916d7693295f1
+120x40 TrueColor Text areas · Options 86f0ab6e3129dabc
 120x40 TrueColor Text areas · States a655233233e7d367
 120x40 TrueColor Chips & selects cdbb0da43d9f53ea
-120x40 TrueColor Chips & selects · Options d70141ac5ddc7adf
+120x40 TrueColor Chips & selects · Options 798c751dbac69594
 120x40 TrueColor Chips & selects · States 6e5c8694bb6c2276
-120x40 TrueColor Forms a8863163ac243abe
-120x40 TrueColor Forms · Options 22b25f64d9c50308
+120x40 TrueColor Forms 2432d79924d05c90
+120x40 TrueColor Forms · Options c476b233b3b02112
 120x40 TrueColor Forms · States 3b9a72c3e6abca91
-120x40 TrueColor Checks & radios ced55d92fa9b8477
-120x40 TrueColor Checks & radios · Options 6b6e850a27f5900e
-120x40 TrueColor Checks & radios · States a6e5c9649267b80c
+120x40 TrueColor Checks & radios 067e05d68d62b991
+120x40 TrueColor Checks & radios · Options 370deda80d2e195f
+120x40 TrueColor Checks & radios · States df44e30eba135eec
 120x40 TrueColor Toolbars b9ab8aebf7ec244f
-120x40 TrueColor Toolbars · Options 51b9f3ed7509bb8c
+120x40 TrueColor Toolbars · Options b6e856c91a3dc92f
 120x40 TrueColor Toolbars · States 777a8e4c3c6fd61c
-120x40 TrueColor Basic table c720d8f5419df579
+120x40 TrueColor Basic table 30ac68b949f70c35
 120x40 TrueColor Basic table · Options 6cae7f0760145762
-120x40 TrueColor Basic table · States 6c03d65748eef9d1
+120x40 TrueColor Basic table · States 13194dda1a80531a
 120x40 TrueColor Editable 8f7192d859141a80
-120x40 TrueColor Editable · Options 3acb76f803a52d46
+120x40 TrueColor Editable · Options e26737f14040d6f7
 120x40 TrueColor Editable · States a1211dfb0931518e
 120x40 TrueColor Data grid 551b09a0e7f3e135
-120x40 TrueColor Data grid · Options 91ca514e0253beb9
+120x40 TrueColor Data grid · Options 764c74cc745ddf03
 120x40 TrueColor Data grid · States b33789382ce3d5a0
 120x40 TrueColor Selection 3eb8e408ea31cf46
-120x40 TrueColor Selection · Options 634785e4520e2479
-120x40 TrueColor Selection · States 0fc1f5ced7f04967
+120x40 TrueColor Selection · Options 3f53eccc207de53f
+120x40 TrueColor Selection · States 83cef2f6baaa0ae4
 120x40 TrueColor Cell editors 5d3c609a648f194b
-120x40 TrueColor Cell editors · Options 761173a038ef0ed5
+120x40 TrueColor Cell editors · Options 553a392a4ff7b9a5
 120x40 TrueColor Cell editors · States 438ef7c0313e0d0c
 120x40 TrueColor Columns 0618f96f1cd9da33
-120x40 TrueColor Columns · Options 00656b2a171cf01d
-120x40 TrueColor Columns · States 55823c07862e90d2
-120x40 TrueColor Lists 5a2122aad5f424af
-120x40 TrueColor Lists · Options 35ba597ca8425596
-120x40 TrueColor Lists · States 8a8ef00a8239e054
+120x40 TrueColor Columns · Options a9a885273d46bc3c
+120x40 TrueColor Columns · States 1058a5561d113406
+120x40 TrueColor Lists 58999bd1f17ae1ce
+120x40 TrueColor Lists · Options fcd47e464ce33aec
+120x40 TrueColor Lists · States 936ec67f2a6468de
 120x40 TrueColor Trees 9216fe156d1c758d
-120x40 TrueColor Trees · Options 792a9840a5cf53a0
-120x40 TrueColor Trees · States 58cbebaf3970ab7c
-120x40 TrueColor Sidebars 662f421711a51ca7
-120x40 TrueColor Sidebars · Options aeb6a6b26b93eeef
-120x40 TrueColor Sidebars · States f6a24ba3a9e6e4ec
+120x40 TrueColor Trees · Options 3f9963fc7dc6ba5f
+120x40 TrueColor Trees · States 40508310c4f1fbbb
+120x40 TrueColor Sidebars 294ed30eddb6fa19
+120x40 TrueColor Sidebars · Options b9901d6d410aa82b
+120x40 TrueColor Sidebars · States 20ce75c4a12beb04
 120x40 TrueColor Tabs cc0f46d6fffd92b9
-120x40 TrueColor Tabs · Options 9308cd2191d8a676
+120x40 TrueColor Tabs · Options cdb92491c7ebba58
 120x40 TrueColor Tabs · States 8cb4a61271717cfb
 120x40 TrueColor Menus 44b321b7eadb004e
-120x40 TrueColor Menus · Options 48722a775811ad85
+120x40 TrueColor Menus · Options 573935168bfef88e
 120x40 TrueColor Menus · States ca2df3ed8b1de65a
 120x40 TrueColor Dialogs 0d9720eb2d375ea7
-120x40 TrueColor Dialogs · Options d505e5a569469d03
+120x40 TrueColor Dialogs · Options 089f64bb332571c1
 120x40 TrueColor Dialogs · States 3ac02046ceaaee31
 120x40 TrueColor Pickers e448fbcbe9519401
-120x40 TrueColor Pickers · Options f03b3ecbdc8643d4
+120x40 TrueColor Pickers · Options 0bb793bb0ab92fd3
 120x40 TrueColor Pickers · States 3946a935e98399b0
 120x40 TrueColor Dialog kinds 10bcfd7a882685af
-120x40 TrueColor Dialog kinds · Options c2088782c61f9ae9
-120x40 TrueColor Dialog kinds · States 8c1226e50e5fa553
+120x40 TrueColor Dialog kinds · Options 9ada937d422a8cf0
+120x40 TrueColor Dialog kinds · States f17cd6e662a32f07
 120x40 TrueColor Popups & tooltips da899ebc998e2d99
-120x40 TrueColor Popups & tooltips · Options d0fbc109c8f02dbd
+120x40 TrueColor Popups & tooltips · Options a0c9c2218d03b3e5
 120x40 TrueColor Popups & tooltips · States e6293b6828159010
 120x40 TrueColor File browser 4c01d5fd286ee00f
-120x40 TrueColor File browser · Options df76433fe61951dd
-120x40 TrueColor File browser · States 63e734d52c7c020f
+120x40 TrueColor File browser · Options 7abadd9f61fa504a
+120x40 TrueColor File browser · States e2433d3a1f596b12
 120x40 TrueColor Progress bf8edbf6f3cca4da
-120x40 TrueColor Progress · Options fd0acc185027fec6
+120x40 TrueColor Progress · Options 3a0fe34f5832d3a9
 120x40 TrueColor Progress · States 31f166c57c37187a
 120x40 TrueColor Empty & error 4dcec7b5f50640af
-120x40 TrueColor Empty & error · Options e797da0df0fb222e
+120x40 TrueColor Empty & error · Options 340082b0671727c9
 120x40 TrueColor Empty & error · States 6f14308151fc8e4e
 120x40 TrueColor Meters c8df6b63bedee16c
-120x40 TrueColor Meters · Options ec247489cb032098
+120x40 TrueColor Meters · Options 25288e43cb2fb119
 120x40 TrueColor Meters · States 7b0fe05b459bb3c6
 120x40 TrueColor Notices fec25c86eefe6ace
-120x40 TrueColor Notices · Options b782737677331e81
+120x40 TrueColor Notices · Options b68611baa681a77e
 120x40 TrueColor Notices · States 784f42a68b5f4d50
 120x40 TrueColor Panels 27043909aa32b78c
-120x40 TrueColor Panels · Options 12beea5795b39fb9
+120x40 TrueColor Panels · Options 6117c2954087000e
 120x40 TrueColor Panels · States dfb774a5924a0a64
 120x40 TrueColor Scrolling d571f01627743bc2
-120x40 TrueColor Scrolling · Options c921908cbfb30d9c
+120x40 TrueColor Scrolling · Options 20e78fd407a01680
 120x40 TrueColor Scrolling · States a3702c162b59289c
 120x40 TrueColor Splits & stacks 40c831777997cea0
 120x40 TrueColor Splits & stacks · Options 67e51da7473a734e
 120x40 TrueColor Splits & stacks · States 0a6f08f1ea184cf5
 120x40 TrueColor Master-detail 82d782dbe48a8759
-120x40 TrueColor Master-detail · Options 6c1bf1d9ae6ef16d
+120x40 TrueColor Master-detail · Options bf213813a41b170c
 120x40 TrueColor Master-detail · States 6ab61b596f2bdf55
 120x40 TrueColor Pane tree 171c594edd024f89
 120x40 TrueColor Pane tree · Options 7a1d350adaf918a7
 120x40 TrueColor Pane tree · States 70daa3b26d0ec80d
 120x40 TrueColor Code editor 09aef7f2809b0b93
-120x40 TrueColor Code editor · Options 0eaa6800528853b7
+120x40 TrueColor Code editor · Options 472e300943dbafb1
 120x40 TrueColor Code editor · States 8ec05e0012a4f530
 120x40 TrueColor Diff 58c968894f40df92
 120x40 TrueColor Diff · Options c9560a88218e5e50
 120x40 TrueColor Diff · States 5bea1d2e579919f7
 120x40 TrueColor Terminal 5f3ffd260a424d7d
-120x40 TrueColor Terminal · Options 0380abf5c73e4d1b
+120x40 TrueColor Terminal · Options 46544db830b48e98
 120x40 TrueColor Terminal · States 22aae73adafdf0f1
 120x40 TrueColor Text utilities f2fe8129ad7d6429
 120x40 TrueColor Text utilities · Options ba9d82ef54fcaac4
 120x40 TrueColor Text utilities · States f160ad04dea69297
-120x40 TrueColor Settings aaa926c18db96f26
-120x40 TrueColor Settings · Options 527273f76d0c159d
-120x40 TrueColor Settings · States 16be492659978862
+120x40 TrueColor Settings 9e0669233cc2b90e
+120x40 TrueColor Settings · Options 64d1f6ea142e4e28
+120x40 TrueColor Settings · States cf6d8ba342c83554
 120x40 TrueColor Task runner 431c505c778247b0
-120x40 TrueColor Task runner · Options 41d7de291d9ead61
-120x40 TrueColor Task runner · States 5102259fd1e5aa0f
+120x40 TrueColor Task runner · Options a6147b36976b6d88
+120x40 TrueColor Task runner · States 7427b087e925f015
 120x40 TrueColor Query workbench c29bac0f7b653b33
-120x40 TrueColor Query workbench · Options d61248e841dd1686
-120x40 TrueColor Query workbench · States ef5a2f7480bfd6cf
+120x40 TrueColor Query workbench · Options 5c63b613b483aae4
+120x40 TrueColor Query workbench · States 83b9c8893804ee18
 120x40 TrueColor Connections cd3bc71d5719ab4c
-120x40 TrueColor Connections · Options 57c964fc931852c9
-120x40 TrueColor Connections · States 3ebacda6db7dbc28
+120x40 TrueColor Connections · Options f6831c4ee75418ee
+120x40 TrueColor Connections · States 5a2cbc277b4a2278
 120x40 TrueColor Finder 902c355f927c5e24
-120x40 TrueColor Finder · Options a42c1a75b7d2c5b4
-120x40 TrueColor Finder · States 8d578dd77a77feaa
-120x40 TrueColor Disk cleanup 7772917a3a956a45
-120x40 TrueColor Disk cleanup · Options 6f9bbcbcb3ef6a62
-120x40 TrueColor Disk cleanup · States dabc004b229dff45
+120x40 TrueColor Finder · Options 27bd70b4898191b9
+120x40 TrueColor Finder · States 589174a29440a00b
+120x40 TrueColor Disk cleanup a40994a0e3e50787
+120x40 TrueColor Disk cleanup · Options 207c98bef3fc75b6
+120x40 TrueColor Disk cleanup · States 8378508bdd27866c
 120x40 TrueColor Activity dcebdc66244c43d5
-120x40 TrueColor Activity · Options f38057a3eb6d163a
+120x40 TrueColor Activity · Options 804c53c4e09b3398
 120x40 TrueColor Activity · States d7eea7993e73525f
 120x40 TrueColor Workspaces dcc3b6c76169dcfd
-120x40 TrueColor Workspaces · Options 187cd4e182f3099a
-120x40 TrueColor Workspaces · States fb541c79de914c80
+120x40 TrueColor Workspaces · Options 4e365cb15d235064
+120x40 TrueColor Workspaces · States abb16912b1dac338
 120x40 TrueColor Accounts & usage 4dcce8475fadcba4
-120x40 TrueColor Accounts & usage · Options cf57439f040dd299
+120x40 TrueColor Accounts & usage · Options ea50ac444652c0e0
 120x40 TrueColor Accounts & usage · States ba10e98d5145aa75
 120x40 TrueColor Launch cockpit 79d7e99d31f9766e
-120x40 TrueColor Launch cockpit · Options dde2496735eb4f6c
+120x40 TrueColor Launch cockpit · Options 5c996630aaba00af
 120x40 TrueColor Launch cockpit · States d249d8858ef333d4
 120x40 TrueColor Read-only report 149c5ad5c0ed41b4
-120x40 TrueColor Read-only report · Options e51a458516bd7373
+120x40 TrueColor Read-only report · Options 4af49eadbd2035e1
 120x40 TrueColor Read-only report · States 58a2a50c94dcf1b0
 120x40 TrueColor Inspector · State b295ae7f38dd5107
-120x40 TrueColor Inspector · Options a7aaff1058ecd0e1
+120x40 TrueColor Inspector · Options 342372942be93656
 120x40 Ansi256 Overview 92af368628f90ec2
 120x40 Ansi256 Overview · Options 73246a9a22b46881
-120x40 Ansi256 Overview · States 07e7f6f9b8cb7029
+120x40 Ansi256 Overview · States 8496a0882f16566d
 120x40 Ansi256 Chrome 8b4fe8ca092e4fa6
-120x40 Ansi256 Chrome · Options 4f32082ec845a678
+120x40 Ansi256 Chrome · Options e5048cef4f48f1da
 120x40 Ansi256 Chrome · States abc6e09319309a08
 120x40 Ansi256 Status & hints 170606edcaf661e4
 120x40 Ansi256 Status & hints · Options edbddbfbba94cc52
 120x40 Ansi256 Status & hints · States 92e4cbf779948495
 120x40 Ansi256 Breadcrumbs & rails 1f895ff3740705ab
-120x40 Ansi256 Breadcrumbs & rails · Options d42e167091c16e4b
+120x40 Ansi256 Breadcrumbs & rails · Options 8fc42210e6cc58e7
 120x40 Ansi256 Breadcrumbs & rails · States 028307c1366c6464
 120x40 Ansi256 Help & keys c0d7c7c43a8f97eb
 120x40 Ansi256 Help & keys · Options a31a5ee1c0be97cf
 120x40 Ansi256 Help & keys · States 7dbad73fa49b851c
 120x40 Ansi256 Quit & leave d1fb77a546564b33
-120x40 Ansi256 Quit & leave · Options 38fa9e819068ee7f
+120x40 Ansi256 Quit & leave · Options c4920c91b8a089be
 120x40 Ansi256 Quit & leave · States fea379736eea181a
 120x40 Ansi256 Focus & navigation fdfa4583f892e4ac
 120x40 Ansi256 Focus & navigation · Options 6ebb6c457af71d6d
 120x40 Ansi256 Focus & navigation · States 9a73994d5368c8c5
 120x40 Ansi256 Buttons b7df9c728ac673b9
-120x40 Ansi256 Buttons · Options 3474b973b8e579e2
+120x40 Ansi256 Buttons · Options 4bac9aa224abd743
 120x40 Ansi256 Buttons · States 7ebd4cafcc314c0c
 120x40 Ansi256 Inputs 042f0f9779e0e2fa
-120x40 Ansi256 Inputs · Options a7d9fdbe1974ce27
+120x40 Ansi256 Inputs · Options 59b012f0d782b2e9
 120x40 Ansi256 Inputs · States 83506914a8eb5176
 120x40 Ansi256 Text areas 5957f8012a4f32c9
-120x40 Ansi256 Text areas · Options a03e920bffb52f0e
+120x40 Ansi256 Text areas · Options 6fa449b75559fee9
 120x40 Ansi256 Text areas · States baaafd1047210075
 120x40 Ansi256 Chips & selects d52a3bcbc299388d
-120x40 Ansi256 Chips & selects · Options ff2afec19befc0eb
+120x40 Ansi256 Chips & selects · Options 630e736cd8144608
 120x40 Ansi256 Chips & selects · States 551ce2f43ddebebb
-120x40 Ansi256 Forms 828bfb20a99238a2
-120x40 Ansi256 Forms · Options e51a8827a4c9cf75
+120x40 Ansi256 Forms 1c6c829a1c9d0e24
+120x40 Ansi256 Forms · Options 77d61988579536fb
 120x40 Ansi256 Forms · States 7a8012a30a722e65
-120x40 Ansi256 Checks & radios f41aaf9ec87f0848
-120x40 Ansi256 Checks & radios · Options 2ed527d5b1b8f6a8
-120x40 Ansi256 Checks & radios · States 7c2d9b772cfc8820
+120x40 Ansi256 Checks & radios afc3d91605469ac8
+120x40 Ansi256 Checks & radios · Options bf5913b628f9c73f
+120x40 Ansi256 Checks & radios · States 8a9a4a5555c8861e
 120x40 Ansi256 Toolbars 3db9ccb6b090c74b
-120x40 Ansi256 Toolbars · Options c278cd532f17bfb6
+120x40 Ansi256 Toolbars · Options 4e08902bb05e52e5
 120x40 Ansi256 Toolbars · States 416556abfbd7ccd9
-120x40 Ansi256 Basic table d679cce30421d4a7
+120x40 Ansi256 Basic table 01723735272c879a
 120x40 Ansi256 Basic table · Options 1eaa6a2f4783465b
-120x40 Ansi256 Basic table · States c3321f95b9222b3a
+120x40 Ansi256 Basic table · States 09206c70b8e73b7e
 120x40 Ansi256 Editable b26fc83cab3d7e90
-120x40 Ansi256 Editable · Options 6595baad10d1ba0a
+120x40 Ansi256 Editable · Options 35e544f447099061
 120x40 Ansi256 Editable · States 0832a50fb8176bcf
 120x40 Ansi256 Data grid f75221e563486603
-120x40 Ansi256 Data grid · Options 2125496154af70ac
+120x40 Ansi256 Data grid · Options 07c226a65cbc71b8
 120x40 Ansi256 Data grid · States a964a23607146339
 120x40 Ansi256 Selection adb038dbf8060e29
-120x40 Ansi256 Selection · Options 6ff3b664e75beb69
-120x40 Ansi256 Selection · States c11cd67ce08fa531
+120x40 Ansi256 Selection · Options f654a6cc9e5afd29
+120x40 Ansi256 Selection · States bb0772c1472ea2fd
 120x40 Ansi256 Cell editors 788224e319beecb1
-120x40 Ansi256 Cell editors · Options ff5308dc06f3b9ad
+120x40 Ansi256 Cell editors · Options c8fcae786b04034d
 120x40 Ansi256 Cell editors · States 45040880d744bfdf
 120x40 Ansi256 Columns 5ef6e6c7c9bae5e2
-120x40 Ansi256 Columns · Options 65c7c1ccfa205fbc
-120x40 Ansi256 Columns · States b513dbc8148df41f
-120x40 Ansi256 Lists e9e41c5e1ec1a97c
-120x40 Ansi256 Lists · Options 12d0d0c4d96a0a60
-120x40 Ansi256 Lists · States 4ce471590b43626c
+120x40 Ansi256 Columns · Options 795c1c3b9787e571
+120x40 Ansi256 Columns · States 4544ce80b06522d7
+120x40 Ansi256 Lists 5b89436745f7741c
+120x40 Ansi256 Lists · Options 35af8e2d60e15dc0
+120x40 Ansi256 Lists · States 2f0679458a502610
 120x40 Ansi256 Trees 09edfc56cedabe87
-120x40 Ansi256 Trees · Options 4f68f3384ca615fa
-120x40 Ansi256 Trees · States 056558e95a341097
-120x40 Ansi256 Sidebars 38ed88f018b001e6
-120x40 Ansi256 Sidebars · Options 39644b9126130b1a
-120x40 Ansi256 Sidebars · States 479865f1cf2c762f
+120x40 Ansi256 Trees · Options ec0f76fbb5625a55
+120x40 Ansi256 Trees · States 67b6031aec79da2a
+120x40 Ansi256 Sidebars 4f535a66b16c0087
+120x40 Ansi256 Sidebars · Options 8de58bcbe6939106
+120x40 Ansi256 Sidebars · States bc77c0908a2f1d15
 120x40 Ansi256 Tabs c0c8d71d3810420d
-120x40 Ansi256 Tabs · Options 3b99388183d6d651
+120x40 Ansi256 Tabs · Options b475fc070172547b
 120x40 Ansi256 Tabs · States bcc5907b0b2e79b6
 120x40 Ansi256 Menus a9a9958a3c062bbc
-120x40 Ansi256 Menus · Options f54f314418269edd
+120x40 Ansi256 Menus · Options 294b5565dfc24a78
 120x40 Ansi256 Menus · States b10250c3e4dd076f
 120x40 Ansi256 Dialogs fbab7745875fbf3a
-120x40 Ansi256 Dialogs · Options e085b060d81841ec
+120x40 Ansi256 Dialogs · Options 84c7103d6159bc0a
 120x40 Ansi256 Dialogs · States ef73bbbc1c5da48d
 120x40 Ansi256 Pickers f6d5afa56c73c362
-120x40 Ansi256 Pickers · Options f9934ab09cc1ab3d
+120x40 Ansi256 Pickers · Options 62148da41b8a5890
 120x40 Ansi256 Pickers · States f328f499720ea191
 120x40 Ansi256 Dialog kinds ad9c11168455630c
-120x40 Ansi256 Dialog kinds · Options 632fdf99561bf60d
-120x40 Ansi256 Dialog kinds · States c9db55a112f07b6b
+120x40 Ansi256 Dialog kinds · Options 865b379b2139b6f4
+120x40 Ansi256 Dialog kinds · States f56c4868e1dd2de7
 120x40 Ansi256 Popups & tooltips 586fa47f648904df
-120x40 Ansi256 Popups & tooltips · Options 666db3a50b2de246
+120x40 Ansi256 Popups & tooltips · Options f74a3e765c298fdc
 120x40 Ansi256 Popups & tooltips · States ffc49bed51446e7a
 120x40 Ansi256 File browser 063064c0690500ca
-120x40 Ansi256 File browser · Options ddf0cb9411e99306
-120x40 Ansi256 File browser · States 09155dffa2cced36
+120x40 Ansi256 File browser · Options 8ab411c587513ad7
+120x40 Ansi256 File browser · States ab51bcbf0d420aaa
 120x40 Ansi256 Progress b8f0ba54a7f88750
-120x40 Ansi256 Progress · Options a0dd2bbd1d2fe76a
+120x40 Ansi256 Progress · Options 041d16c7c49412d7
 120x40 Ansi256 Progress · States e26157dc2b2bb12d
 120x40 Ansi256 Empty & error bc19a96d725883fa
-120x40 Ansi256 Empty & error · Options e52aaffbdea9040c
+120x40 Ansi256 Empty & error · Options 32427c779d620439
 120x40 Ansi256 Empty & error · States 7f49e4b17d3070a2
 120x40 Ansi256 Meters 0e723f5ed2edbc3b
-120x40 Ansi256 Meters · Options 82beb807451c7e31
+120x40 Ansi256 Meters · Options 8e32dd447cb96b6c
 120x40 Ansi256 Meters · States 4a73ab0df55f730f
 120x40 Ansi256 Notices 2e608f10f1205f72
-120x40 Ansi256 Notices · Options ed39127e4ed44e4b
+120x40 Ansi256 Notices · Options db672958b963d7fc
 120x40 Ansi256 Notices · States cb90fa7e40e67789
 120x40 Ansi256 Panels adfe2a6911fb52b5
-120x40 Ansi256 Panels · Options c1c34c0ce5199fc6
+120x40 Ansi256 Panels · Options d5f4feeab389004f
 120x40 Ansi256 Panels · States bec2f20a2fda7ac5
 120x40 Ansi256 Scrolling 6550a3b9aa1edba4
-120x40 Ansi256 Scrolling · Options 6e68b763816bba87
+120x40 Ansi256 Scrolling · Options e50a9e879e6eaa17
 120x40 Ansi256 Scrolling · States 7af1d89b735b1e0d
 120x40 Ansi256 Splits & stacks 58b222198f8f7abb
 120x40 Ansi256 Splits & stacks · Options a94c801faa39dcf4
 120x40 Ansi256 Splits & stacks · States 6e0ed1bdaff15ab0
 120x40 Ansi256 Master-detail 946dfb6d81aca3a0
-120x40 Ansi256 Master-detail · Options 956e1574b9d6f61b
+120x40 Ansi256 Master-detail · Options 85a279946967bf2e
 120x40 Ansi256 Master-detail · States efb54a00e2447bf4
 120x40 Ansi256 Pane tree 3510d7495b78892b
 120x40 Ansi256 Pane tree · Options bfaa30127362b81d
 120x40 Ansi256 Pane tree · States 03b30a282c6600c9
 120x40 Ansi256 Code editor 50a09cf63960de6e
-120x40 Ansi256 Code editor · Options e10474acefd40618
+120x40 Ansi256 Code editor · Options e7bffa7c29e2b930
 120x40 Ansi256 Code editor · States 7c5e173e7bf86873
 120x40 Ansi256 Diff 16f92cc8bb2c014d
 120x40 Ansi256 Diff · Options 25dcaf4290004ec3
 120x40 Ansi256 Diff · States 30dd644d01551145
 120x40 Ansi256 Terminal 53a95b90ae3f897a
-120x40 Ansi256 Terminal · Options 5eb85df1a86cc810
+120x40 Ansi256 Terminal · Options 35e9d3f82e938899
 120x40 Ansi256 Terminal · States 9aa2a29da8a9d6c6
 120x40 Ansi256 Text utilities ed6296b6b14cd498
 120x40 Ansi256 Text utilities · Options 8476327322c13e43
 120x40 Ansi256 Text utilities · States 331a0c9738d61a2b
-120x40 Ansi256 Settings 0bc50bdad32768a3
-120x40 Ansi256 Settings · Options 58c260ccfbf892ef
-120x40 Ansi256 Settings · States 70e750e820cee4d2
+120x40 Ansi256 Settings c45945ffe462fd2f
+120x40 Ansi256 Settings · Options 07ea923930d67fac
+120x40 Ansi256 Settings · States a8e7936e422d52cb
 120x40 Ansi256 Task runner 3c5444bfa5f3fdb4
-120x40 Ansi256 Task runner · Options 548ddecaa97a3307
-120x40 Ansi256 Task runner · States 8da42d67f0b84804
+120x40 Ansi256 Task runner · Options 20b95920813668fe
+120x40 Ansi256 Task runner · States 706b7ae6851a340f
 120x40 Ansi256 Query workbench 9758607d06589913
-120x40 Ansi256 Query workbench · Options 2cad43cc07405ad1
-120x40 Ansi256 Query workbench · States 8e598980df0279d2
+120x40 Ansi256 Query workbench · Options fb64f0788aee3c5d
+120x40 Ansi256 Query workbench · States 9885e7a95a5fb1ee
 120x40 Ansi256 Connections 1e4de59b5f9985f6
-120x40 Ansi256 Connections · Options f523b0cc1919140e
-120x40 Ansi256 Connections · States 6ad8dd9c08e17faf
+120x40 Ansi256 Connections · Options 9ef91424bbaaf929
+120x40 Ansi256 Connections · States 091fe538aede1a66
 120x40 Ansi256 Finder f466537f13846cd0
-120x40 Ansi256 Finder · Options 11b66faf068e4727
-120x40 Ansi256 Finder · States 3fccd30f8f1e9626
-120x40 Ansi256 Disk cleanup 05fbf8f59a0ab182
-120x40 Ansi256 Disk cleanup · Options db84bc479b1b1e34
-120x40 Ansi256 Disk cleanup · States 0df2bb534dcadb5e
+120x40 Ansi256 Finder · Options dc6e3862ad56256c
+120x40 Ansi256 Finder · States cc73b77218c485aa
+120x40 Ansi256 Disk cleanup 128faec5d10d745a
+120x40 Ansi256 Disk cleanup · Options 4410876e23f7293a
+120x40 Ansi256 Disk cleanup · States 1f83ae6d89e80ae2
 120x40 Ansi256 Activity 5d26859eb8dbd937
-120x40 Ansi256 Activity · Options 0abec638750037da
+120x40 Ansi256 Activity · Options ea10c6e4235cc63e
 120x40 Ansi256 Activity · States a1e17d2385c0c169
 120x40 Ansi256 Workspaces 2d11584be26354cf
-120x40 Ansi256 Workspaces · Options e69e7226d41279bd
-120x40 Ansi256 Workspaces · States 0ddc3fb804a2b083
+120x40 Ansi256 Workspaces · Options f84e0aa9a641fec9
+120x40 Ansi256 Workspaces · States d4ba31fbbcc3d392
 120x40 Ansi256 Accounts & usage 35c79558c79b3334
-120x40 Ansi256 Accounts & usage · Options 578df1a075430efc
+120x40 Ansi256 Accounts & usage · Options 6e0c15d234bbe60f
 120x40 Ansi256 Accounts & usage · States 4448596c7700bda4
 120x40 Ansi256 Launch cockpit 445dfaa0a0425e91
-120x40 Ansi256 Launch cockpit · Options 4cf568f8ccffa22e
+120x40 Ansi256 Launch cockpit · Options 4dfba49675ebbebf
 120x40 Ansi256 Launch cockpit · States 1f1adc077b21a572
 120x40 Ansi256 Read-only report e669376f023192cc
-120x40 Ansi256 Read-only report · Options f6f42483b734023b
+120x40 Ansi256 Read-only report · Options bf043303c46caaf5
 120x40 Ansi256 Read-only report · States 7d85273da553b813
 120x40 Ansi256 Inspector · State abe0fcb092b641b7
-120x40 Ansi256 Inspector · Options 770e648e350b810f
+120x40 Ansi256 Inspector · Options f5a99cc8886da396
 120x40 Ansi16 Overview 9f30bafedfff60bd
 120x40 Ansi16 Overview · Options 0eee1eb78e5a8c2e
 120x40 Ansi16 Overview · States 9fb9f2b3edcdd24d
 120x40 Ansi16 Chrome 31f7e33c41cbe4b3
-120x40 Ansi16 Chrome · Options 09e003a2c6db51a4
+120x40 Ansi16 Chrome · Options b882cefc551d3f72
 120x40 Ansi16 Chrome · States 1049ae69664ead26
 120x40 Ansi16 Status & hints fb51a42e8b413e7f
 120x40 Ansi16 Status & hints · Options 5fb08e87b66c4d8a
 120x40 Ansi16 Status & hints · States 3ca13845551c6cf5
 120x40 Ansi16 Breadcrumbs & rails d8e2966fae587ffc
-120x40 Ansi16 Breadcrumbs & rails · Options b2a54f465678a986
+120x40 Ansi16 Breadcrumbs & rails · Options 32c089d818d204e0
 120x40 Ansi16 Breadcrumbs & rails · States 19d2add3c7120ccc
 120x40 Ansi16 Help & keys a03931783c672bab
 120x40 Ansi16 Help & keys · Options fb8073b6564b25f1
 120x40 Ansi16 Help & keys · States 2a45ef7065363ef9
 120x40 Ansi16 Quit & leave 557a9769ce96ca9a
-120x40 Ansi16 Quit & leave · Options 6057be3c6e3664bc
+120x40 Ansi16 Quit & leave · Options 57b2ce17f1329508
 120x40 Ansi16 Quit & leave · States cf9d835d793dc43d
 120x40 Ansi16 Focus & navigation 687dd64713ea391b
 120x40 Ansi16 Focus & navigation · Options fb1cf4c380abbd6b
 120x40 Ansi16 Focus & navigation · States 709ad4130c6506a7
 120x40 Ansi16 Buttons d43e09a8501bf9af
-120x40 Ansi16 Buttons · Options cccceee5745e7152
+120x40 Ansi16 Buttons · Options ba65372cc4c34084
 120x40 Ansi16 Buttons · States e8111a29d2623e02
 120x40 Ansi16 Inputs 36e3197f92241a49
-120x40 Ansi16 Inputs · Options e3b3553eca38fe29
+120x40 Ansi16 Inputs · Options 283c8396e53ccff3
 120x40 Ansi16 Inputs · States 2c55003f8bd26246
 120x40 Ansi16 Text areas 5e01a4ec1922fab3
-120x40 Ansi16 Text areas · Options 9ef48b068491e68b
+120x40 Ansi16 Text areas · Options 2eb92e8a8c79c737
 120x40 Ansi16 Text areas · States e2a536cd78fb9326
 120x40 Ansi16 Chips & selects 6228e5c4fd00e845
-120x40 Ansi16 Chips & selects · Options 16edf3f021d0e657
+120x40 Ansi16 Chips & selects · Options efc90eb9014f05cd
 120x40 Ansi16 Chips & selects · States 97757b20d998e1e0
-120x40 Ansi16 Forms 76cf323901ad6569
-120x40 Ansi16 Forms · Options 9f5f3f3a180eed34
+120x40 Ansi16 Forms 6386c90d758877b5
+120x40 Ansi16 Forms · Options 8b3951ce84a50f64
 120x40 Ansi16 Forms · States 74bed49b47020fe4
-120x40 Ansi16 Checks & radios e818530a8b09bf66
-120x40 Ansi16 Checks & radios · Options 7f6983a1044435c4
-120x40 Ansi16 Checks & radios · States 4117a40b23cd77a2
+120x40 Ansi16 Checks & radios f1dcd1149b43669a
+120x40 Ansi16 Checks & radios · Options 2f65072f3af83a8a
+120x40 Ansi16 Checks & radios · States c46b0f7548e46058
 120x40 Ansi16 Toolbars 4f3db8a0fedea813
-120x40 Ansi16 Toolbars · Options 5f74df9afb8282a3
+120x40 Ansi16 Toolbars · Options 2c9e8593b64496b7
 120x40 Ansi16 Toolbars · States 129d01e91e0716aa
-120x40 Ansi16 Basic table f529881d6e587fdf
+120x40 Ansi16 Basic table e2226c78d8ad8dc1
 120x40 Ansi16 Basic table · Options eaecbe1322e953be
-120x40 Ansi16 Basic table · States b3746fa22642b143
+120x40 Ansi16 Basic table · States ac9f08a0feadc81b
 120x40 Ansi16 Editable 66c725d3ea8e7eaf
-120x40 Ansi16 Editable · Options 6e14a1c264bbfb4e
+120x40 Ansi16 Editable · Options bda280b144ce38d2
 120x40 Ansi16 Editable · States 150955cdffd0ebf7
 120x40 Ansi16 Data grid 5a1765c285ebfc9e
-120x40 Ansi16 Data grid · Options 151819e481195c82
+120x40 Ansi16 Data grid · Options f385762a9f5eec84
 120x40 Ansi16 Data grid · States 1591e686f1c9a6c8
 120x40 Ansi16 Selection b39098ae173a8a81
-120x40 Ansi16 Selection · Options 8324764e0c9f7f20
-120x40 Ansi16 Selection · States b7db5dd0ac04363d
+120x40 Ansi16 Selection · Options 79db5bcdb6179162
+120x40 Ansi16 Selection · States ee3eaacb7a3472fb
 120x40 Ansi16 Cell editors e9ae508dc8a000b9
-120x40 Ansi16 Cell editors · Options cf4bd25929db24e5
+120x40 Ansi16 Cell editors · Options 85a1f94d49fc9fc9
 120x40 Ansi16 Cell editors · States cf457f2916780ba5
 120x40 Ansi16 Columns 033b8ef6644344c9
-120x40 Ansi16 Columns · Options 4d8a2bef1501b987
-120x40 Ansi16 Columns · States ba5c10739e2f97d2
-120x40 Ansi16 Lists 64b38111940109b2
-120x40 Ansi16 Lists · Options 0a798d522c5689e4
-120x40 Ansi16 Lists · States 892ff8bc55730dda
+120x40 Ansi16 Columns · Options fb78bd67e7f0fc95
+120x40 Ansi16 Columns · States c2383b6e75a8039c
+120x40 Ansi16 Lists a33eeaf62f25a39c
+120x40 Ansi16 Lists · Options 023e594085791dda
+120x40 Ansi16 Lists · States 7f54e7d7c8ba82a8
 120x40 Ansi16 Trees 3e5260a5fea0b71f
-120x40 Ansi16 Trees · Options 8d4a6d8a97f37b51
-120x40 Ansi16 Trees · States cb0a4d63091143ab
-120x40 Ansi16 Sidebars aa31bc55c796d03a
-120x40 Ansi16 Sidebars · Options 5b1a7421382d4f15
-120x40 Ansi16 Sidebars · States a54ede2a093d64d8
+120x40 Ansi16 Trees · Options b9fe77ed5230d587
+120x40 Ansi16 Trees · States 094e81b04f47a3ab
+120x40 Ansi16 Sidebars 73fb4df74a05e253
+120x40 Ansi16 Sidebars · Options 50da11db1f4cb6f3
+120x40 Ansi16 Sidebars · States 722d1f599c82dc3c
 120x40 Ansi16 Tabs 8bc2e6d0eca0974e
-120x40 Ansi16 Tabs · Options 9e62700f9e2aac68
+120x40 Ansi16 Tabs · Options 41cdccd2f03fbd46
 120x40 Ansi16 Tabs · States 04e0f226700a8a5c
 120x40 Ansi16 Menus 74a6acfe008bf288
-120x40 Ansi16 Menus · Options e002c9b063a3600e
+120x40 Ansi16 Menus · Options d1af0fde21bba894
 120x40 Ansi16 Menus · States 5a8845e67f1dfc8d
 120x40 Ansi16 Dialogs 9e7183dbff3000f6
-120x40 Ansi16 Dialogs · Options cd6221d415a64922
+120x40 Ansi16 Dialogs · Options a2c11e562ee2fcac
 120x40 Ansi16 Dialogs · States b09c1f054cab251d
 120x40 Ansi16 Pickers fbb66378bdcf64a7
-120x40 Ansi16 Pickers · Options 3936d090403d64a2
+120x40 Ansi16 Pickers · Options bb8df754eab11c38
 120x40 Ansi16 Pickers · States a0c57dfc6dd315a5
 120x40 Ansi16 Dialog kinds 102ff3b0c43b8fb9
-120x40 Ansi16 Dialog kinds · Options e30295d909575c1f
-120x40 Ansi16 Dialog kinds · States 63d1dfb70eea5acf
+120x40 Ansi16 Dialog kinds · Options 20f8bbc137ccfd7f
+120x40 Ansi16 Dialog kinds · States 4ab4c0cdfd104aa7
 120x40 Ansi16 Popups & tooltips b620007ddb82eff1
-120x40 Ansi16 Popups & tooltips · Options de119c03f06c8f70
+120x40 Ansi16 Popups & tooltips · Options 12ff91bc638e0614
 120x40 Ansi16 Popups & tooltips · States c0f87a3a79394a00
 120x40 Ansi16 File browser f5a6c34ebc9b2ea0
-120x40 Ansi16 File browser · Options a6c25222f1fd4d09
-120x40 Ansi16 File browser · States 41b7377ad8ca8a2b
+120x40 Ansi16 File browser · Options 9cd588ee238a7423
+120x40 Ansi16 File browser · States 566fef0c942ae3f1
 120x40 Ansi16 Progress f9edc290b5a4fb43
-120x40 Ansi16 Progress · Options 16adf087b62a112e
+120x40 Ansi16 Progress · Options d58a5cdaaade90a8
 120x40 Ansi16 Progress · States a4edf17a5bdbb924
 120x40 Ansi16 Empty & error 3f3a0decec524a5d
-120x40 Ansi16 Empty & error · Options 03cd767cca6c6338
+120x40 Ansi16 Empty & error · Options 124545bec5099c86
 120x40 Ansi16 Empty & error · States 35a2af541c0f17a4
 120x40 Ansi16 Meters 29f6eec109d132ab
-120x40 Ansi16 Meters · Options a781e8f6f9e313d3
+120x40 Ansi16 Meters · Options 01f8ffb130fbceb7
 120x40 Ansi16 Meters · States 72df772d640d21e7
 120x40 Ansi16 Notices 549b8d15358e96b4
-120x40 Ansi16 Notices · Options dc4b1ee4455e13f7
+120x40 Ansi16 Notices · Options 2512f3db4f2b085f
 120x40 Ansi16 Notices · States f3a5eb4e526b8d6d
 120x40 Ansi16 Panels bae22734f5dbd924
-120x40 Ansi16 Panels · Options f184ab2eb4417175
+120x40 Ansi16 Panels · Options 9eb5fd01bfcfa209
 120x40 Ansi16 Panels · States 50dcf201b2556d6f
 120x40 Ansi16 Scrolling 826ffaca227b5f0a
-120x40 Ansi16 Scrolling · Options 931524ed6d3daea8
+120x40 Ansi16 Scrolling · Options b776b90a651f701e
 120x40 Ansi16 Scrolling · States 84fba8427485a78b
 120x40 Ansi16 Splits & stacks f84dceec0fed9a95
 120x40 Ansi16 Splits & stacks · Options d363e4e77cb1a430
 120x40 Ansi16 Splits & stacks · States 584d5c0f34646912
 120x40 Ansi16 Master-detail a29059953c2b40b4
-120x40 Ansi16 Master-detail · Options 77fdcf6f9423c548
+120x40 Ansi16 Master-detail · Options 1255ae633ac8ef1c
 120x40 Ansi16 Master-detail · States 3f6526dfaf05bee4
 120x40 Ansi16 Pane tree 55fba9ae357001b7
 120x40 Ansi16 Pane tree · Options 4758afd139cc8bc0
 120x40 Ansi16 Pane tree · States 04ce38e4ac0d9f99
 120x40 Ansi16 Code editor 7e69b79985cc478a
-120x40 Ansi16 Code editor · Options 4a6530d9a2bb37bf
+120x40 Ansi16 Code editor · Options cdf233ad859672e5
 120x40 Ansi16 Code editor · States ef64957db2fd2749
 120x40 Ansi16 Diff 2fb8033954c157eb
 120x40 Ansi16 Diff · Options 8eceecbf24b65ebe
 120x40 Ansi16 Diff · States b1c6b74a100d02e7
 120x40 Ansi16 Terminal d26436a278b228d6
-120x40 Ansi16 Terminal · Options 0f9d77d056a648d0
+120x40 Ansi16 Terminal · Options 4a998b67ba11eb0c
 120x40 Ansi16 Terminal · States ff74a50aa33963eb
 120x40 Ansi16 Text utilities 876c6f227765901f
 120x40 Ansi16 Text utilities · Options 13d522645aa19ad6
 120x40 Ansi16 Text utilities · States dc74311593e1bb14
-120x40 Ansi16 Settings 27d2afe190b5857f
-120x40 Ansi16 Settings · Options 0cd232958fb650d8
-120x40 Ansi16 Settings · States c8672211953cbc08
+120x40 Ansi16 Settings 593b946b2c64b495
+120x40 Ansi16 Settings · Options 87975728bf36bf48
+120x40 Ansi16 Settings · States b46ab49cd3d57228
 120x40 Ansi16 Task runner c2718e6832ada1b4
-120x40 Ansi16 Task runner · Options c44f433d2c9660da
-120x40 Ansi16 Task runner · States 80cf48783fb0c85b
+120x40 Ansi16 Task runner · Options 057b0e09fbffd938
+120x40 Ansi16 Task runner · States 4d1f545d56af4ae1
 120x40 Ansi16 Query workbench aa4bd647d3451a19
-120x40 Ansi16 Query workbench · Options f0b00cb1db98eac2
-120x40 Ansi16 Query workbench · States 51744000c5bd1cff
+120x40 Ansi16 Query workbench · Options 5efe5e8a881e8bf6
+120x40 Ansi16 Query workbench · States 57d65cea098e86d1
 120x40 Ansi16 Connections c6a0d31fbe2584fa
-120x40 Ansi16 Connections · Options f2373c1a266885cc
-120x40 Ansi16 Connections · States 86afa4dc40b231c0
+120x40 Ansi16 Connections · Options e531ac1615c44cc8
+120x40 Ansi16 Connections · States a54ae44adf2cef1e
 120x40 Ansi16 Finder abd18611b45bec6f
-120x40 Ansi16 Finder · Options 0c51e1fe5c1e82af
-120x40 Ansi16 Finder · States b1347f418e2d9d44
-120x40 Ansi16 Disk cleanup e85808da73b2faa2
-120x40 Ansi16 Disk cleanup · Options 0d34af0d2f5fc43e
-120x40 Ansi16 Disk cleanup · States 33c17acaee8ed879
+120x40 Ansi16 Finder · Options ba06459f479f341b
+120x40 Ansi16 Finder · States 43a0a1889d74a0a4
+120x40 Ansi16 Disk cleanup 1edfc97d43ea5448
+120x40 Ansi16 Disk cleanup · Options 9c3bfa996ab32ee8
+120x40 Ansi16 Disk cleanup · States 52a50fe7ea170283
 120x40 Ansi16 Activity 1a97a4132cbcbf47
-120x40 Ansi16 Activity · Options 846d8c9215f59cd5
+120x40 Ansi16 Activity · Options 384c540c7d3ce7fd
 120x40 Ansi16 Activity · States 7f25df54a5dd0e34
 120x40 Ansi16 Workspaces 68ec835716d5dfc7
-120x40 Ansi16 Workspaces · Options c38add0a85478c04
-120x40 Ansi16 Workspaces · States ee38677af122b131
+120x40 Ansi16 Workspaces · Options 078b496f8648c028
+120x40 Ansi16 Workspaces · States 056029943587d37b
 120x40 Ansi16 Accounts & usage a9807513a0ab8a3f
-120x40 Ansi16 Accounts & usage · Options f1b436d25d1152fc
+120x40 Ansi16 Accounts & usage · Options 5097421fa41f7a48
 120x40 Ansi16 Accounts & usage · States 73422d80a458e608
 120x40 Ansi16 Launch cockpit 7732a63121d2eedb
-120x40 Ansi16 Launch cockpit · Options c164a24e9cd9f944
+120x40 Ansi16 Launch cockpit · Options 773daee66e4904c8
 120x40 Ansi16 Launch cockpit · States 6f747097f5cb4193
 120x40 Ansi16 Read-only report 37376d9e95a95e2c
-120x40 Ansi16 Read-only report · Options 86faaa062b9ebac9
+120x40 Ansi16 Read-only report · Options bf882d08c5674ddb
 120x40 Ansi16 Read-only report · States 1384d1e0c69e7f65
 120x40 Ansi16 Inspector · State 4dd0766a38f9cd0e
-120x40 Ansi16 Inspector · Options 946497161c51adc2
+120x40 Ansi16 Inspector · Options 9815a1ad21fd9a7e
 120x40 Mono Overview 6a373d4c32be57d5
 120x40 Mono Overview · Options 7d3225c21c417475
 120x40 Mono Overview · States 626f1baf903ede86
@@ -556,9 +556,9 @@
 120x40 Mono Trees ffa43b90212c4d87
 120x40 Mono Trees · Options b0e14540a14b8b76
 120x40 Mono Trees · States 88aded51737a3b74
-120x40 Mono Sidebars a0a71f2eb9a23ba5
+120x40 Mono Sidebars f8da0e4d5b430be4
 120x40 Mono Sidebars · Options 691a39e32b0e46ee
-120x40 Mono Sidebars · States a1b2a3c0a788a757
+120x40 Mono Sidebars · States 65221346c81b138b
 120x40 Mono Tabs 57b9310ffa5cfb00
 120x40 Mono Tabs · Options 691b275eb4737fc5
 120x40 Mono Tabs · States 4cfa3e731482b2cd
@@ -656,117 +656,117 @@
 120x40 Mono Inspector · Options 2dfc37a65608bb24
 80x24 TrueColor Overview 106373a415794203
 80x24 TrueColor Overview · Options 809faa3865fdce52
-80x24 TrueColor Overview · States d2a8aeae459fa41d
+80x24 TrueColor Overview · States 4fc94dd434a891ed
 80x24 TrueColor Chrome 849329db51aed4ed
-80x24 TrueColor Chrome · Options eb5f94ccdd658f11
+80x24 TrueColor Chrome · Options ee8acfdd6285bdb5
 80x24 TrueColor Chrome · States a55202bf42fff5c2
 80x24 TrueColor Status & hints 5a3daef37947cd61
 80x24 TrueColor Status & hints · Options 1fbb1411d3829a7f
 80x24 TrueColor Status & hints · States abe238bdb99ad512
 80x24 TrueColor Breadcrumbs & rails c3097e20ff6dae4f
-80x24 TrueColor Breadcrumbs & rails · Options 6024cd773c866f40
+80x24 TrueColor Breadcrumbs & rails · Options 3c8afa9e8466c314
 80x24 TrueColor Breadcrumbs & rails · States e61190bb548727f3
 80x24 TrueColor Help & keys 34ebca842dab651a
 80x24 TrueColor Help & keys · Options a2a48c934940f187
 80x24 TrueColor Help & keys · States 9ca8eed9e0c8fc6b
 80x24 TrueColor Quit & leave cb449a2d6002fbcc
-80x24 TrueColor Quit & leave · Options 5ce1f95a7ef8d5c4
+80x24 TrueColor Quit & leave · Options 620592211aa7189f
 80x24 TrueColor Quit & leave · States 09fb5ce9a27ac31d
 80x24 TrueColor Focus & navigation d0e4580b508620ef
 80x24 TrueColor Focus & navigation · Options 17c520d78130d386
 80x24 TrueColor Focus & navigation · States ed96dee33a8ab316
 80x24 TrueColor Buttons a14b932f1d373425
-80x24 TrueColor Buttons · Options 3e9d3729261e9ae2
+80x24 TrueColor Buttons · Options 9e7509e6ed082c49
 80x24 TrueColor Buttons · States 26cf7ee2d2ff29aa
 80x24 TrueColor Inputs 37adc89312d2824e
-80x24 TrueColor Inputs · Options 945089aac5d82e8f
+80x24 TrueColor Inputs · Options 2a15b6507b813a24
 80x24 TrueColor Inputs · States b25402db66517a97
 80x24 TrueColor Text areas 574c1c3514f54fa2
 80x24 TrueColor Text areas · Options 457997c02911c2ac
 80x24 TrueColor Text areas · States 312a006609c1f364
 80x24 TrueColor Chips & selects f415bb26c7c65842
-80x24 TrueColor Chips & selects · Options 429e4ac0ace17beb
+80x24 TrueColor Chips & selects · Options d1b6ed040d6238c3
 80x24 TrueColor Chips & selects · States 409b3a6a6ad4e524
-80x24 TrueColor Forms c3224f29896eb968
-80x24 TrueColor Forms · Options 2cb30c2c43e81614
+80x24 TrueColor Forms 00968579f7de2ac6
+80x24 TrueColor Forms · Options ac4bba055c37a08c
 80x24 TrueColor Forms · States 4f06c78c5b84dbe2
-80x24 TrueColor Checks & radios b09745cd95c6306a
-80x24 TrueColor Checks & radios · Options 4f58735a3a98c0ea
-80x24 TrueColor Checks & radios · States f579ac3a4a60e7b0
+80x24 TrueColor Checks & radios 520f63079fbe48f2
+80x24 TrueColor Checks & radios · Options 1122e07e7fc2d0b5
+80x24 TrueColor Checks & radios · States e9a1c55f09308f06
 80x24 TrueColor Toolbars 1104d3cef15c0225
-80x24 TrueColor Toolbars · Options 176b001dc19de306
+80x24 TrueColor Toolbars · Options 3881de7dd04c2ca3
 80x24 TrueColor Toolbars · States 7c1e503fcc6a6669
 80x24 TrueColor Basic table 06d6badeca20854e
 80x24 TrueColor Basic table · Options 0d9610a5a2c9d0ff
 80x24 TrueColor Basic table · States 88ca44c4bfa2e021
 80x24 TrueColor Editable 0c9653903f892b96
-80x24 TrueColor Editable · Options bd2858ec4e87fb34
+80x24 TrueColor Editable · Options 97731de23232e4e5
 80x24 TrueColor Editable · States a14db13fb9ecf2c0
 80x24 TrueColor Data grid d980d3480356f9da
-80x24 TrueColor Data grid · Options a07839d70d8b0bbd
+80x24 TrueColor Data grid · Options 75dda9eb067dd1df
 80x24 TrueColor Data grid · States 2458b1ca3ca045fb
 80x24 TrueColor Selection cd4bb600af385e9d
-80x24 TrueColor Selection · Options 361b232c0ceb9b8a
+80x24 TrueColor Selection · Options a7f8d897e150f6ae
 80x24 TrueColor Selection · States b86b1cda344010ee
 80x24 TrueColor Cell editors 3baca597e2b64c74
-80x24 TrueColor Cell editors · Options 4db11ea60c849c18
+80x24 TrueColor Cell editors · Options f8d50865e5d6148e
 80x24 TrueColor Cell editors · States 6568c4e6f4305296
 80x24 TrueColor Columns d2dec290068c84a8
-80x24 TrueColor Columns · Options 08072f70e9ddd4e8
+80x24 TrueColor Columns · Options 72cc23f25d29a23b
 80x24 TrueColor Columns · States dc22155131f3a82d
-80x24 TrueColor Lists 85be4c41499cb514
-80x24 TrueColor Lists · Options 11cdaa1da267752c
+80x24 TrueColor Lists 5b17eb5f2959b88b
+80x24 TrueColor Lists · Options 3fa878e9a68848f8
 80x24 TrueColor Lists · States 467d84aa677cf94c
 80x24 TrueColor Trees fba95922c13d50cf
-80x24 TrueColor Trees · Options 4e75e1b9a3cc6584
+80x24 TrueColor Trees · Options 46a6b64731a5d93e
 80x24 TrueColor Trees · States 256ce4870767a2fe
-80x24 TrueColor Sidebars 37d28209db42848a
-80x24 TrueColor Sidebars · Options 33eedcebf1bbd5e9
-80x24 TrueColor Sidebars · States f4e14a7bbd737797
+80x24 TrueColor Sidebars 52856a1d0a43fcb0
+80x24 TrueColor Sidebars · Options 4a8d30578d985315
+80x24 TrueColor Sidebars · States 44f9d9a17de1979b
 80x24 TrueColor Tabs a29e117fc381959c
-80x24 TrueColor Tabs · Options bc14b033020dc9b2
+80x24 TrueColor Tabs · Options 9f6e1f140478438d
 80x24 TrueColor Tabs · States 1911fcd692b2ade4
 80x24 TrueColor Menus f0c25b145cc59527
-80x24 TrueColor Menus · Options aa00c403eb3a838b
+80x24 TrueColor Menus · Options 0b0cf76f8eb6bb4a
 80x24 TrueColor Menus · States 6d6b0e7201b91aa8
 80x24 TrueColor Dialogs 5066e1d6f462f89d
-80x24 TrueColor Dialogs · Options 8a54d63116f92754
+80x24 TrueColor Dialogs · Options 3091463e3b157c6f
 80x24 TrueColor Dialogs · States 30c81371ab625218
 80x24 TrueColor Pickers aa0da0b7a4234a1c
-80x24 TrueColor Pickers · Options e31cf308f341076b
+80x24 TrueColor Pickers · Options a65dcf7ad2377b60
 80x24 TrueColor Pickers · States 1fcf4ca9c6b585bc
 80x24 TrueColor Dialog kinds 00fa55fc3e7c7403
-80x24 TrueColor Dialog kinds · Options 3bd4417337ad144a
-80x24 TrueColor Dialog kinds · States cddba4cffaf42db3
+80x24 TrueColor Dialog kinds · Options 3beb37e86b422297
+80x24 TrueColor Dialog kinds · States 7e6f8fed05d28f56
 80x24 TrueColor Popups & tooltips 463ef78c016db29d
-80x24 TrueColor Popups & tooltips · Options ae3bc56a3d0e310e
+80x24 TrueColor Popups & tooltips · Options c6205849b36a26b4
 80x24 TrueColor Popups & tooltips · States 7b1134642cc3f450
 80x24 TrueColor File browser 9e943de44b53cc64
-80x24 TrueColor File browser · Options c87d4c9fb7a8ff33
-80x24 TrueColor File browser · States 73d5c4c3359c719d
+80x24 TrueColor File browser · Options 1b82e8352516ea7c
+80x24 TrueColor File browser · States 2c14bad1fc3c9daa
 80x24 TrueColor Progress ba7197eca767af28
-80x24 TrueColor Progress · Options 590fd229582eff00
+80x24 TrueColor Progress · Options d9b63fd75ffa15ab
 80x24 TrueColor Progress · States 3b7e9caddb0efae7
 80x24 TrueColor Empty & error 0783aa2d5879ba81
-80x24 TrueColor Empty & error · Options 5872c2a81bfe412d
+80x24 TrueColor Empty & error · Options 4f1d81ed973f7a16
 80x24 TrueColor Empty & error · States 11a39b27eb2344c0
 80x24 TrueColor Meters 4a7165ab45cdcf7d
-80x24 TrueColor Meters · Options b9eccc157fdec4ef
+80x24 TrueColor Meters · Options 473eda0057f3b010
 80x24 TrueColor Meters · States f0a93af0d5ceb594
 80x24 TrueColor Notices 65f33a3b12975155
-80x24 TrueColor Notices · Options 4eb08599bf70cb34
+80x24 TrueColor Notices · Options d158bbe1aca2fd97
 80x24 TrueColor Notices · States 59d05ecc4aa9aafa
 80x24 TrueColor Panels 7aea4c038b0b5987
-80x24 TrueColor Panels · Options a822cdfe3161408d
+80x24 TrueColor Panels · Options 75688b58a81d532a
 80x24 TrueColor Panels · States d9efb7a3b6b9b9c3
 80x24 TrueColor Scrolling a479ee0273cb4c57
-80x24 TrueColor Scrolling · Options cf2ff62317fcf93c
+80x24 TrueColor Scrolling · Options 29ca67bd32c2d19b
 80x24 TrueColor Scrolling · States 13846a46acce76a3
 80x24 TrueColor Splits & stacks fc2f4d39dab42ef3
 80x24 TrueColor Splits & stacks · Options 3ae8e13c46fc529d
 80x24 TrueColor Splits & stacks · States 0dda839b0c92208b
 80x24 TrueColor Master-detail 6c4d60073a07d0d1
-80x24 TrueColor Master-detail · Options 3e90221b3bad8613
+80x24 TrueColor Master-detail · Options 4d6cc0f27a4e671e
 80x24 TrueColor Master-detail · States 3293dfc19f488bb1
 80x24 TrueColor Pane tree 005e74b239b0a837
 80x24 TrueColor Pane tree · Options 997908b7cfd1ec0b
@@ -783,154 +783,154 @@
 80x24 TrueColor Text utilities 1fd797b09811fa9c
 80x24 TrueColor Text utilities · Options 367e57c49098ae48
 80x24 TrueColor Text utilities · States 70d27976dd51035f
-80x24 TrueColor Settings 44f5bc7e4e084043
-80x24 TrueColor Settings · Options c6450f310cd561c0
+80x24 TrueColor Settings fc8927fed2211957
+80x24 TrueColor Settings · Options 4ba3f6f6b76f6343
 80x24 TrueColor Settings · States a760076fba0c56fd
 80x24 TrueColor Task runner 755258cacba5ba17
-80x24 TrueColor Task runner · Options 570aa2a470b33992
+80x24 TrueColor Task runner · Options 907e02388fb6ae7d
 80x24 TrueColor Task runner · States bd918fecfc9e77b8
 80x24 TrueColor Query workbench 0327d050f7b9b42c
-80x24 TrueColor Query workbench · Options 33a0ca1ac1e1dccd
-80x24 TrueColor Query workbench · States 16ac5bfb8780d16c
+80x24 TrueColor Query workbench · Options 2b399fdb2eda0039
+80x24 TrueColor Query workbench · States 99cc32a6be1b6ce4
 80x24 TrueColor Connections 808df98a2ff96271
-80x24 TrueColor Connections · Options 869c4e1bdb02050f
+80x24 TrueColor Connections · Options 3c683754cd0b5654
 80x24 TrueColor Connections · States c3fed2341f168e0f
 80x24 TrueColor Finder 8d2f99d359bf0358
-80x24 TrueColor Finder · Options e2aa74aff53fc105
+80x24 TrueColor Finder · Options 573429f12125c492
 80x24 TrueColor Finder · States cc7552278e2018eb
 80x24 TrueColor Disk cleanup 290e1781df16c191
-80x24 TrueColor Disk cleanup · Options 8fd00e4d53b70825
-80x24 TrueColor Disk cleanup · States ebdcef0b5ba99425
+80x24 TrueColor Disk cleanup · Options cc01305193c2c945
+80x24 TrueColor Disk cleanup · States 87ffecb8e364c932
 80x24 TrueColor Activity b54ef6b75470f3c6
-80x24 TrueColor Activity · Options 298800d55c8fac1c
+80x24 TrueColor Activity · Options e035b4d3dbd63a8c
 80x24 TrueColor Activity · States 256806f97beb5af3
 80x24 TrueColor Workspaces d414795d5abbfb41
-80x24 TrueColor Workspaces · Options 85e6bbbd97e8394d
+80x24 TrueColor Workspaces · Options 8e3254df4621fec5
 80x24 TrueColor Workspaces · States 48373a09004fff79
 80x24 TrueColor Accounts & usage ca1323d893a8fecc
-80x24 TrueColor Accounts & usage · Options 4093f014c067814d
+80x24 TrueColor Accounts & usage · Options caa3e24035322b8a
 80x24 TrueColor Accounts & usage · States 5ce610193e30ec3a
 80x24 TrueColor Launch cockpit 6a669b5cb99c2b2d
-80x24 TrueColor Launch cockpit · Options 25574bf2743a9834
+80x24 TrueColor Launch cockpit · Options c06b2c4f7a6aa883
 80x24 TrueColor Launch cockpit · States 7aff0d5e38b265c7
 80x24 TrueColor Read-only report cc6a8aa0bba27c5c
-80x24 TrueColor Read-only report · Options 166c66dbdeb43224
+80x24 TrueColor Read-only report · Options e1ab4311e3296fb8
 80x24 TrueColor Read-only report · States f6d6ea95f36888a7
 80x24 TrueColor Inspector · State c371becc4ed0485a
 80x24 TrueColor Inspector · Options 63264f0feac5a7b8
 80x24 Ansi256 Overview 16beba92f48940e1
 80x24 Ansi256 Overview · Options fb8f98b1586b7eca
-80x24 Ansi256 Overview · States 637012f80b355274
+80x24 Ansi256 Overview · States b7d5d4f8f8e4c5f8
 80x24 Ansi256 Chrome 2bc59f075abd103f
-80x24 Ansi256 Chrome · Options c9fb83cdcbb0870a
+80x24 Ansi256 Chrome · Options 9c843dcb75608548
 80x24 Ansi256 Chrome · States a214260b243cf283
 80x24 Ansi256 Status & hints 8b7b8e79636b6eee
 80x24 Ansi256 Status & hints · Options 67ab24018506a753
 80x24 Ansi256 Status & hints · States a0bf9f994cdf99ab
 80x24 Ansi256 Breadcrumbs & rails fd52d4027af6db64
-80x24 Ansi256 Breadcrumbs & rails · Options fd54f5190370e66b
+80x24 Ansi256 Breadcrumbs & rails · Options 4d446cd1b82ea82d
 80x24 Ansi256 Breadcrumbs & rails · States 7402f405163fa2f3
 80x24 Ansi256 Help & keys 565ed16b2e1fc0af
 80x24 Ansi256 Help & keys · Options e5dcb64dbedd0dd1
 80x24 Ansi256 Help & keys · States e3e85016762e11db
 80x24 Ansi256 Quit & leave f5ea6a9ef1d4ed12
-80x24 Ansi256 Quit & leave · Options 907d05cd26783214
+80x24 Ansi256 Quit & leave · Options 1935fe77968dc7b5
 80x24 Ansi256 Quit & leave · States c907cf936216d133
 80x24 Ansi256 Focus & navigation 55eccf69545f8e47
 80x24 Ansi256 Focus & navigation · Options 19980f74d428627a
 80x24 Ansi256 Focus & navigation · States 66637448220550a2
 80x24 Ansi256 Buttons 709c6574760ff1fe
-80x24 Ansi256 Buttons · Options 64907e299909f513
+80x24 Ansi256 Buttons · Options 9da3acddcf9970e2
 80x24 Ansi256 Buttons · States 42880b9090ec3ddb
 80x24 Ansi256 Inputs 30bfbf2fc9a63039
-80x24 Ansi256 Inputs · Options 26fe9284127d3603
+80x24 Ansi256 Inputs · Options 9f21ebe0a7e5feea
 80x24 Ansi256 Inputs · States 471a87e099f77b68
 80x24 Ansi256 Text areas ac1c6d11613fbc70
 80x24 Ansi256 Text areas · Options 88c0a8e7039a0f52
 80x24 Ansi256 Text areas · States b38376cbf3b0b32b
 80x24 Ansi256 Chips & selects 93b197edaf8cc483
-80x24 Ansi256 Chips & selects · Options 2c305ec0f392a4cb
+80x24 Ansi256 Chips & selects · Options 03fef585abf52f49
 80x24 Ansi256 Chips & selects · States 8de52b67f8671314
-80x24 Ansi256 Forms dfd193d5b0883158
-80x24 Ansi256 Forms · Options 3225a26988a48b7c
+80x24 Ansi256 Forms e42e3d3fc768b072
+80x24 Ansi256 Forms · Options ec478dc764a191c4
 80x24 Ansi256 Forms · States 42d07b4bc7cd8c1b
-80x24 Ansi256 Checks & radios 180132a502e0ce3e
-80x24 Ansi256 Checks & radios · Options 2c4cabb406a58560
-80x24 Ansi256 Checks & radios · States 3795ef5eb379d3e0
+80x24 Ansi256 Checks & radios c5279672ec555a1a
+80x24 Ansi256 Checks & radios · Options 7125c6a986a74cc1
+80x24 Ansi256 Checks & radios · States 8dc72d521821274e
 80x24 Ansi256 Toolbars 294e64dff2db92c2
-80x24 Ansi256 Toolbars · Options d26d59ca1089804f
+80x24 Ansi256 Toolbars · Options 37fa5319c9dbcaae
 80x24 Ansi256 Toolbars · States 4625ab023a947069
 80x24 Ansi256 Basic table 935c27815c0bd40e
 80x24 Ansi256 Basic table · Options b5c936c6a4ba45f6
 80x24 Ansi256 Basic table · States d55a342a6dc58dac
 80x24 Ansi256 Editable d663595cbd5d7a10
-80x24 Ansi256 Editable · Options 41051233b7aa1700
+80x24 Ansi256 Editable · Options fbb8e8bcb7a015a3
 80x24 Ansi256 Editable · States 123cb6ef686df1b9
 80x24 Ansi256 Data grid 21437532e4958425
-80x24 Ansi256 Data grid · Options be60969e37d52900
+80x24 Ansi256 Data grid · Options 981a6483f8ba2abc
 80x24 Ansi256 Data grid · States 2bd78dc631c51400
 80x24 Ansi256 Selection c958e5922196bf6d
-80x24 Ansi256 Selection · Options 9924e30bdc68fd25
+80x24 Ansi256 Selection · Options 05c99658a4293945
 80x24 Ansi256 Selection · States 2f309d1b94564352
 80x24 Ansi256 Cell editors 33e566d9eb6322d7
-80x24 Ansi256 Cell editors · Options f131f2fddd1a411a
+80x24 Ansi256 Cell editors · Options 555b5dcea38212cc
 80x24 Ansi256 Cell editors · States 7983352bf4984422
 80x24 Ansi256 Columns 08023b6999ab02ac
-80x24 Ansi256 Columns · Options 6562329e2a7167e0
+80x24 Ansi256 Columns · Options 0c9591bfbb7bbcf7
 80x24 Ansi256 Columns · States dbbe5b8e956927cf
-80x24 Ansi256 Lists 9ad454b3e46b38a9
-80x24 Ansi256 Lists · Options d36e963ac4febff9
+80x24 Ansi256 Lists 81f16a5786a9c870
+80x24 Ansi256 Lists · Options ddd72ea02b1a8edb
 80x24 Ansi256 Lists · States 695ea3e53f699bbd
 80x24 Ansi256 Trees 7a164e5a500472aa
-80x24 Ansi256 Trees · Options 5dcc9cd0537e031b
+80x24 Ansi256 Trees · Options 145a4ddaa95f5e9f
 80x24 Ansi256 Trees · States 2a0ae9318c40b689
-80x24 Ansi256 Sidebars aa94b6900782e39b
-80x24 Ansi256 Sidebars · Options 296c77ccb95109d3
-80x24 Ansi256 Sidebars · States 5766245e24542a92
+80x24 Ansi256 Sidebars 785694fe56c4af86
+80x24 Ansi256 Sidebars · Options 7d0896be34309eb7
+80x24 Ansi256 Sidebars · States 20fb555590bb6572
 80x24 Ansi256 Tabs 48a5bdf85645c58b
-80x24 Ansi256 Tabs · Options 2425e92a2db590e1
+80x24 Ansi256 Tabs · Options 109f5e3f0a3b95fe
 80x24 Ansi256 Tabs · States 8547d70b0663fcb1
 80x24 Ansi256 Menus 60f68776b0ce6f00
-80x24 Ansi256 Menus · Options b2dde5d3373cf0fa
+80x24 Ansi256 Menus · Options b1ccd08dcc5efe0d
 80x24 Ansi256 Menus · States 8636f27c0d7c44ef
 80x24 Ansi256 Dialogs 4256e32265b25b41
-80x24 Ansi256 Dialogs · Options 4c3e8524eba9be70
+80x24 Ansi256 Dialogs · Options edc06319e33d68d1
 80x24 Ansi256 Dialogs · States 16096ba76ac36acd
 80x24 Ansi256 Pickers b414bd3cd6b5c37b
-80x24 Ansi256 Pickers · Options 137ad3bc3ecd064f
+80x24 Ansi256 Pickers · Options 8fd9d3051f213484
 80x24 Ansi256 Pickers · States 0f02d42b67236cbc
 80x24 Ansi256 Dialog kinds 92a6c5d7027a5fb3
-80x24 Ansi256 Dialog kinds · Options 0c81d2ab24f164d2
-80x24 Ansi256 Dialog kinds · States adbcf21a115c85a3
+80x24 Ansi256 Dialog kinds · Options 146bdc4692597ecf
+80x24 Ansi256 Dialog kinds · States e120cafee62d3c1e
 80x24 Ansi256 Popups & tooltips 62205ddd7c0c532d
-80x24 Ansi256 Popups & tooltips · Options cfd20e60056e3f0b
+80x24 Ansi256 Popups & tooltips · Options 7bd149235a536e87
 80x24 Ansi256 Popups & tooltips · States 19247187404325d2
 80x24 Ansi256 File browser c5447435bad627c5
-80x24 Ansi256 File browser · Options 594efb3fcc82988c
-80x24 Ansi256 File browser · States 989289e0eccc874d
+80x24 Ansi256 File browser · Options a5dfbc90b5ea0849
+80x24 Ansi256 File browser · States 7de44a14f8353b71
 80x24 Ansi256 Progress 3eca7869f27c6b91
-80x24 Ansi256 Progress · Options 78f02699271a5bd4
+80x24 Ansi256 Progress · Options 142d309ce68f995d
 80x24 Ansi256 Progress · States 901def89c65f05ba
 80x24 Ansi256 Empty & error 809049fb66d192aa
-80x24 Ansi256 Empty & error · Options 0298586cb574ded6
+80x24 Ansi256 Empty & error · Options 5da327412b0b3cdb
 80x24 Ansi256 Empty & error · States c7484eebcec9b794
 80x24 Ansi256 Meters 4432c4c23bcaa698
-80x24 Ansi256 Meters · Options caaf73680d1baa91
+80x24 Ansi256 Meters · Options 090a42b5c3bc050a
 80x24 Ansi256 Meters · States 7930b869d4047f8f
 80x24 Ansi256 Notices 40a5ec3a0b1520d6
-80x24 Ansi256 Notices · Options d02839b539c89f15
+80x24 Ansi256 Notices · Options 13a5459934013130
 80x24 Ansi256 Notices · States dc8bd1c1d53e4ff9
 80x24 Ansi256 Panels a3218f85748e58bd
-80x24 Ansi256 Panels · Options a84f42b4c5357b6f
+80x24 Ansi256 Panels · Options c422526e7c350fa8
 80x24 Ansi256 Panels · States 1a2526613a875312
 80x24 Ansi256 Scrolling c3fd5d7913cddee1
-80x24 Ansi256 Scrolling · Options 90d0a7acd38471ec
+80x24 Ansi256 Scrolling · Options c18d107b6366da45
 80x24 Ansi256 Scrolling · States 173e79694ddc2d7d
 80x24 Ansi256 Splits & stacks 0c23ada06068b641
 80x24 Ansi256 Splits & stacks · Options d2ed82ccf1c3a561
 80x24 Ansi256 Splits & stacks · States 9a16aa42fb79fec6
 80x24 Ansi256 Master-detail 60bafabfd8539bb6
-80x24 Ansi256 Master-detail · Options ddb304294ad24a21
+80x24 Ansi256 Master-detail · Options 404d7c8e69c3fa30
 80x24 Ansi256 Master-detail · States a2e7e3560fa17077
 80x24 Ansi256 Pane tree 27cb9dc84e5d47cc
 80x24 Ansi256 Pane tree · Options 551029245c3d449a
@@ -947,38 +947,38 @@
 80x24 Ansi256 Text utilities 868b6c6c982da3dc
 80x24 Ansi256 Text utilities · Options 98ef341d7454a709
 80x24 Ansi256 Text utilities · States 100be90e240a80ff
-80x24 Ansi256 Settings d7601a79896db6eb
-80x24 Ansi256 Settings · Options 109f5a5b8a4422ec
+80x24 Ansi256 Settings 2f25ed813f2503a7
+80x24 Ansi256 Settings · Options 524c8aeea3e3f899
 80x24 Ansi256 Settings · States a0a86e3289177596
 80x24 Ansi256 Task runner 8963804a4c9acc04
-80x24 Ansi256 Task runner · Options 3fc7a7f098833ba9
+80x24 Ansi256 Task runner · Options e17290ea0931029a
 80x24 Ansi256 Task runner · States d4e4bda9bec0f583
 80x24 Ansi256 Query workbench 63f1a590faba6543
-80x24 Ansi256 Query workbench · Options 9c97737a3e84d514
-80x24 Ansi256 Query workbench · States c5fe1c63f0ec71b2
+80x24 Ansi256 Query workbench · Options 9ddd12cbd6238618
+80x24 Ansi256 Query workbench · States 52ec8dc993798e5f
 80x24 Ansi256 Connections 3b60dfb8b5bfe371
-80x24 Ansi256 Connections · Options 3647180e0f5fdeec
+80x24 Ansi256 Connections · Options 089c57a159aa3853
 80x24 Ansi256 Connections · States 82d612599d390c62
 80x24 Ansi256 Finder 38b68bb9d9d089bb
-80x24 Ansi256 Finder · Options 83b02df6f0a9fa03
+80x24 Ansi256 Finder · Options a0b48d848249ce8e
 80x24 Ansi256 Finder · States c28ff326e01073b8
 80x24 Ansi256 Disk cleanup d9119b905aefa602
-80x24 Ansi256 Disk cleanup · Options aaa6082a1fb5ea72
-80x24 Ansi256 Disk cleanup · States dbff5ca6eb5288cf
+80x24 Ansi256 Disk cleanup · Options f582e4f5e0881c32
+80x24 Ansi256 Disk cleanup · States 8403ccb55787a13a
 80x24 Ansi256 Activity 3c1411626351d3e6
-80x24 Ansi256 Activity · Options b6e1003326bc5da9
+80x24 Ansi256 Activity · Options 938d7a720c3beb45
 80x24 Ansi256 Activity · States c1f98d4cb83ed931
 80x24 Ansi256 Workspaces d0ab414c23d14cb3
-80x24 Ansi256 Workspaces · Options e7285cc24b98845a
+80x24 Ansi256 Workspaces · Options 51f196180e6f0956
 80x24 Ansi256 Workspaces · States 41148ca1f9f54cbe
 80x24 Ansi256 Accounts & usage e24443a1de20915d
-80x24 Ansi256 Accounts & usage · Options cdb9c8acd8e7b175
+80x24 Ansi256 Accounts & usage · Options a9fb959c59465414
 80x24 Ansi256 Accounts & usage · States 998d71fc2aaa9fb9
 80x24 Ansi256 Launch cockpit fbd371feeb262215
-80x24 Ansi256 Launch cockpit · Options a923cd638a4d2492
+80x24 Ansi256 Launch cockpit · Options f6020ab5bbb03c83
 80x24 Ansi256 Launch cockpit · States e777c54c6aa86d63
 80x24 Ansi256 Read-only report d36fb61a31760a04
-80x24 Ansi256 Read-only report · Options 98ac593ba4dec2d6
+80x24 Ansi256 Read-only report · Options c285a9e4e6fd6c60
 80x24 Ansi256 Read-only report · States 2472585f0fc92862
 80x24 Ansi256 Inspector · State 0141c23be15cf30f
 80x24 Ansi256 Inspector · Options edd0e9aca7c4cb84
@@ -986,115 +986,115 @@
 80x24 Ansi16 Overview · Options 7a64385f27d4136c
 80x24 Ansi16 Overview · States 8cbcbf8695536141
 80x24 Ansi16 Chrome 8de9294a3505d333
-80x24 Ansi16 Chrome · Options eb4195fb5755e833
+80x24 Ansi16 Chrome · Options f1c77ae50bb08e1d
 80x24 Ansi16 Chrome · States 188677e85dfac510
 80x24 Ansi16 Status & hints 9d527f4718b83554
 80x24 Ansi16 Status & hints · Options 0efe92db2af4d896
 80x24 Ansi16 Status & hints · States b37090c552fecb32
 80x24 Ansi16 Breadcrumbs & rails 35b20654a918ea97
-80x24 Ansi16 Breadcrumbs & rails · Options 4fd0765c756ca4ea
+80x24 Ansi16 Breadcrumbs & rails · Options 528d1d803b37265c
 80x24 Ansi16 Breadcrumbs & rails · States e9720a1f55602873
 80x24 Ansi16 Help & keys baedfd9828f7f170
 80x24 Ansi16 Help & keys · Options 34a493eb76729c3f
 80x24 Ansi16 Help & keys · States d59f9b9ba15161e7
 80x24 Ansi16 Quit & leave 065ef25751b8da40
-80x24 Ansi16 Quit & leave · Options 4a7b46c5426f0cb7
+80x24 Ansi16 Quit & leave · Options e7d1ef14d9c34067
 80x24 Ansi16 Quit & leave · States 6850107c85329799
 80x24 Ansi16 Focus & navigation 12c9430abdf01bd3
 80x24 Ansi16 Focus & navigation · Options 325ce69527383f46
 80x24 Ansi16 Focus & navigation · States 876e78244883229d
 80x24 Ansi16 Buttons c33d9b9e433d5a1f
-80x24 Ansi16 Buttons · Options 7d817d049d1c4b48
+80x24 Ansi16 Buttons · Options f41bf25622833286
 80x24 Ansi16 Buttons · States 3877541770c2e2a1
 80x24 Ansi16 Inputs 6881f0e12b222529
-80x24 Ansi16 Inputs · Options bb1eb43b35a5b477
+80x24 Ansi16 Inputs · Options 60ba68846dd6cb2b
 80x24 Ansi16 Inputs · States 0d91ffec47c0f9a2
 80x24 Ansi16 Text areas 5e4d6f5ec95323d9
 80x24 Ansi16 Text areas · Options 23bfd67edb0fd94d
 80x24 Ansi16 Text areas · States 2b90489c435197f8
 80x24 Ansi16 Chips & selects 434fa5b5df0432b4
-80x24 Ansi16 Chips & selects · Options 7877f2cddfc738ce
+80x24 Ansi16 Chips & selects · Options fccdc048aeb62928
 80x24 Ansi16 Chips & selects · States c3cdde852a4e1257
-80x24 Ansi16 Forms 787606c129edb05a
-80x24 Ansi16 Forms · Options 15dccc59532baa16
+80x24 Ansi16 Forms 2fce32b4eeeb6a82
+80x24 Ansi16 Forms · Options 2f56a5c2383f3bba
 80x24 Ansi16 Forms · States 23c2edba4597cc29
-80x24 Ansi16 Checks & radios 52c1c3ee73704279
-80x24 Ansi16 Checks & radios · Options 9a0e19e8662db01c
-80x24 Ansi16 Checks & radios · States d04d59ba7f7c2a13
+80x24 Ansi16 Checks & radios 642d7723177ca0a9
+80x24 Ansi16 Checks & radios · Options 58e5667b39abe00a
+80x24 Ansi16 Checks & radios · States 4bf9b73e70f60f4b
 80x24 Ansi16 Toolbars a89f46373475af8c
-80x24 Ansi16 Toolbars · Options 21c8d24b81a5cb13
+80x24 Ansi16 Toolbars · Options ade390dbc77400a5
 80x24 Ansi16 Toolbars · States 61d39b07414b8295
 80x24 Ansi16 Basic table 95dd5d22e7926985
 80x24 Ansi16 Basic table · Options 6e68ef78d94d7853
 80x24 Ansi16 Basic table · States 0b983cc90490b55f
 80x24 Ansi16 Editable 6ef4a0ce78687b5b
-80x24 Ansi16 Editable · Options e700ece679f11a98
+80x24 Ansi16 Editable · Options a6e2bd9a1e5f6c26
 80x24 Ansi16 Editable · States 098ac5058602ac8c
 80x24 Ansi16 Data grid b9472776ce09dbdd
-80x24 Ansi16 Data grid · Options d451a356454c92e8
+80x24 Ansi16 Data grid · Options 3107ad5d3e8215b6
 80x24 Ansi16 Data grid · States 52eb87380583c182
 80x24 Ansi16 Selection 50c093346bfe12ff
-80x24 Ansi16 Selection · Options 73f6d2941fe9c813
+80x24 Ansi16 Selection · Options 6116278271795e93
 80x24 Ansi16 Selection · States 33e160f81839577b
 80x24 Ansi16 Cell editors 0f3e9371aa541710
-80x24 Ansi16 Cell editors · Options 79f34f49e7493120
+80x24 Ansi16 Cell editors · Options 445fd140a7334a46
 80x24 Ansi16 Cell editors · States 409eaf959fab5f54
 80x24 Ansi16 Columns 76e6a1c3b6fc9d6b
-80x24 Ansi16 Columns · Options 6a7c40d467b7e69f
+80x24 Ansi16 Columns · Options 917d15a7ae758b75
 80x24 Ansi16 Columns · States 3059ef8541954147
-80x24 Ansi16 Lists c933acefe4666876
-80x24 Ansi16 Lists · Options a1a471f2c9a89447
+80x24 Ansi16 Lists c62c9ae7727b0726
+80x24 Ansi16 Lists · Options c817a1b2a4f352a1
 80x24 Ansi16 Lists · States 2169ff9389d32357
 80x24 Ansi16 Trees b8cdcab05fd87b4d
-80x24 Ansi16 Trees · Options 8121ec47913b3199
+80x24 Ansi16 Trees · Options f7623ff8b378772f
 80x24 Ansi16 Trees · States d339d7d0ee703c16
-80x24 Ansi16 Sidebars 21df9a0bb7d7157e
-80x24 Ansi16 Sidebars · Options 84d5e74c26720666
-80x24 Ansi16 Sidebars · States 2467b091f1b6bd29
+80x24 Ansi16 Sidebars 9eecb7e069a72bad
+80x24 Ansi16 Sidebars · Options 63ed086e8ca05880
+80x24 Ansi16 Sidebars · States 254c63745ee34261
 80x24 Ansi16 Tabs 066f96161055dec1
-80x24 Ansi16 Tabs · Options c6b99cc15d863470
+80x24 Ansi16 Tabs · Options e672d4698a8aa0ac
 80x24 Ansi16 Tabs · States 82428fa7068bfec0
 80x24 Ansi16 Menus 7bae13bdfc6b5de2
-80x24 Ansi16 Menus · Options db525efe0c84d264
+80x24 Ansi16 Menus · Options 558aac82ccaa1268
 80x24 Ansi16 Menus · States b801c0125380ab43
 80x24 Ansi16 Dialogs 248c01b66db608e9
-80x24 Ansi16 Dialogs · Options a933ff5d62f6566e
+80x24 Ansi16 Dialogs · Options 5d225ec7644d4cea
 80x24 Ansi16 Dialogs · States f818ee3fca2065b9
 80x24 Ansi16 Pickers 777ae19ee6c397c1
-80x24 Ansi16 Pickers · Options d00ae0434282e9fe
+80x24 Ansi16 Pickers · Options d15bd810fcc7263a
 80x24 Ansi16 Pickers · States 4947c13027e1bcde
 80x24 Ansi16 Dialog kinds 4181521d41c7b45a
-80x24 Ansi16 Dialog kinds · Options bf810f8fb4fe4efc
-80x24 Ansi16 Dialog kinds · States ab0102d1677cd6a2
+80x24 Ansi16 Dialog kinds · Options 5d7c95dbe1d7f4f4
+80x24 Ansi16 Dialog kinds · States 3f870ec03a59f7ca
 80x24 Ansi16 Popups & tooltips 8f68438ed4ab1b83
-80x24 Ansi16 Popups & tooltips · Options 8495daed4b708b24
+80x24 Ansi16 Popups & tooltips · Options 73b0e5913e47c3b2
 80x24 Ansi16 Popups & tooltips · States 419bdd22f0ac65ea
 80x24 Ansi16 File browser 5e45a501c90e9a30
-80x24 Ansi16 File browser · Options 6fbc82af793a6b3d
-80x24 Ansi16 File browser · States d1ae6d98efba9e6d
+80x24 Ansi16 File browser · Options 7f72c43c9c1cc4d9
+80x24 Ansi16 File browser · States d812618a7539d0dd
 80x24 Ansi16 Progress 69b01337af1c469b
-80x24 Ansi16 Progress · Options 659a3f63310800b2
+80x24 Ansi16 Progress · Options 4c9f12a1c9be316c
 80x24 Ansi16 Progress · States ff6b8c6baa70afad
 80x24 Ansi16 Empty & error 4ce30f4462487635
-80x24 Ansi16 Empty & error · Options c691be5c591f4d8f
+80x24 Ansi16 Empty & error · Options 57b2af8f2df390f3
 80x24 Ansi16 Empty & error · States c1a18103ae89a86e
 80x24 Ansi16 Meters ad11e522c8a08e4a
-80x24 Ansi16 Meters · Options 1890b4608346810f
+80x24 Ansi16 Meters · Options 10adcfb3f156e74b
 80x24 Ansi16 Meters · States 38d8ce60729a3afb
 80x24 Ansi16 Notices b08b4d72efbf4e68
-80x24 Ansi16 Notices · Options 233847afbf3cad94
+80x24 Ansi16 Notices · Options 69905280d76e6740
 80x24 Ansi16 Notices · States cb3aa0c2dfc294b7
 80x24 Ansi16 Panels f477e5cb9b3975e4
-80x24 Ansi16 Panels · Options 543a8a9b7c1c9b4b
+80x24 Ansi16 Panels · Options 2eefb5eedfbe0ebf
 80x24 Ansi16 Panels · States b286df70f3cb2801
 80x24 Ansi16 Scrolling 6a8d9a40235c94bc
-80x24 Ansi16 Scrolling · Options 317268a4767693f7
+80x24 Ansi16 Scrolling · Options 587a77ad83e9a923
 80x24 Ansi16 Scrolling · States ff99dcea266174f9
 80x24 Ansi16 Splits & stacks 5f1cca4632293a4d
 80x24 Ansi16 Splits & stacks · Options 153d8074d8c3a23c
 80x24 Ansi16 Splits & stacks · States e018027499be4a4e
 80x24 Ansi16 Master-detail d3bfb7e53035d98d
-80x24 Ansi16 Master-detail · Options 58acdd4e6c060f1f
+80x24 Ansi16 Master-detail · Options f969eeaf3175ab03
 80x24 Ansi16 Master-detail · States 1f681f810b9eb403
 80x24 Ansi16 Pane tree 4e6180f1bc16602a
 80x24 Ansi16 Pane tree · Options cef75c9f44fde08d
@@ -1111,38 +1111,38 @@
 80x24 Ansi16 Text utilities cadafff2ac50a303
 80x24 Ansi16 Text utilities · Options 327b016441f00c09
 80x24 Ansi16 Text utilities · States d6c07e21f9a6d7ce
-80x24 Ansi16 Settings 05cfd65ff62a4fab
-80x24 Ansi16 Settings · Options 8a10e6716b4d8d0b
+80x24 Ansi16 Settings ab83811414cd20c7
+80x24 Ansi16 Settings · Options d7d986fef6a54cbb
 80x24 Ansi16 Settings · States 66fa4f9204ea1cf3
 80x24 Ansi16 Task runner e0aa348f8b282c17
-80x24 Ansi16 Task runner · Options 2b7656c9bf0be205
+80x24 Ansi16 Task runner · Options 89637730b5a70ac5
 80x24 Ansi16 Task runner · States fad8fe8cd28df04d
 80x24 Ansi16 Query workbench 546dc45e0fbcd206
-80x24 Ansi16 Query workbench · Options 66b8c356d2ef9757
+80x24 Ansi16 Query workbench · Options ef5ed0b796e6a525
 80x24 Ansi16 Query workbench · States 826bcf7cc591e7f5
 80x24 Ansi16 Connections b1eb09f8bb174755
-80x24 Ansi16 Connections · Options b3ffb3f76fa3cf60
+80x24 Ansi16 Connections · Options cd3f07e3ce287afc
 80x24 Ansi16 Connections · States 7ce43bfe130afbb6
 80x24 Ansi16 Finder 60655b69834f43a0
-80x24 Ansi16 Finder · Options ae9a51a7212f977a
+80x24 Ansi16 Finder · Options e9adc69a93ce5744
 80x24 Ansi16 Finder · States 01e44981904cfaa9
 80x24 Ansi16 Disk cleanup c946de9f47bca31e
-80x24 Ansi16 Disk cleanup · Options 7b65fbe79327123b
-80x24 Ansi16 Disk cleanup · States c6e5359d4f642327
+80x24 Ansi16 Disk cleanup · Options 61bced0d57b6fe63
+80x24 Ansi16 Disk cleanup · States 6898d61f81d8e783
 80x24 Ansi16 Activity 88c3036654eb528a
-80x24 Ansi16 Activity · Options 8cac31890b1a6515
+80x24 Ansi16 Activity · Options 1b450d8f3dd7c77f
 80x24 Ansi16 Activity · States cac56fb1ccba3b36
 80x24 Ansi16 Workspaces 2e8b219a216a73e5
-80x24 Ansi16 Workspaces · Options 24a49e0644757aa5
+80x24 Ansi16 Workspaces · Options 5dbc6d7308b77d0b
 80x24 Ansi16 Workspaces · States cda5b4671c976200
 80x24 Ansi16 Accounts & usage 4ce5a02ca6b04a98
-80x24 Ansi16 Accounts & usage · Options e147f5af3ebe6b97
+80x24 Ansi16 Accounts & usage · Options d4baea7d8740e05b
 80x24 Ansi16 Accounts & usage · States 1f29ba6b9acb1599
 80x24 Ansi16 Launch cockpit 5994f686de236e3e
-80x24 Ansi16 Launch cockpit · Options 3fd9d7f2ece8db3a
+80x24 Ansi16 Launch cockpit · Options adf1af11423787ce
 80x24 Ansi16 Launch cockpit · States 951e08c8b0998955
 80x24 Ansi16 Read-only report 6233831ad405dbad
-80x24 Ansi16 Read-only report · Options 20a063171c2054a8
+80x24 Ansi16 Read-only report · Options 790a62c3589facbc
 80x24 Ansi16 Read-only report · States 71929e41952b60a4
 80x24 Ansi16 Inspector · State 7eeef7230afc21c9
 80x24 Ansi16 Inspector · Options 623c2d043d668e09
@@ -1212,9 +1212,9 @@
 80x24 Mono Trees 29b0df3535d6ab5f
 80x24 Mono Trees · Options 85e7d7f8f6f02f2b
 80x24 Mono Trees · States 19eb6fe4ebc5403e
-80x24 Mono Sidebars 67121f8012d686da
+80x24 Mono Sidebars cd8da0dc707fdd9f
 80x24 Mono Sidebars · Options 5c6d637311023944
-80x24 Mono Sidebars · States e65cfbcb5fca860b
+80x24 Mono Sidebars · States fbc5186191364ce3
 80x24 Mono Tabs c6148d78e2ba4f2a
 80x24 Mono Tabs · Options 7e14eb71fee3364a
 80x24 Mono Tabs · States 374364d72acc217a
@@ -1312,21 +1312,21 @@
 80x24 Mono Inspector · Options 46046941e991f820
 72x20 TrueColor Overview df02edf41150e7e9
 72x20 TrueColor Overview · Options 2d1dbc25b3713b15
-72x20 TrueColor Overview · States d07bb38fbbdc405b
+72x20 TrueColor Overview · States 8e16713a3b1e226b
 72x20 TrueColor Chrome adbc1c3b7330eef5
-72x20 TrueColor Chrome · Options 2fb05ebdc990a0cf
+72x20 TrueColor Chrome · Options c390b9fda6f30e8f
 72x20 TrueColor Chrome · States 4ab1a7ee7e555e7f
 72x20 TrueColor Status & hints 7b3fcbc3d6345776
 72x20 TrueColor Status & hints · Options 5514668af91dcc01
 72x20 TrueColor Status & hints · States 5a2de80a40d1dccc
 72x20 TrueColor Breadcrumbs & rails 89b5df93cdaabe50
-72x20 TrueColor Breadcrumbs & rails · Options 487a64d870d6a5d4
+72x20 TrueColor Breadcrumbs & rails · Options bf20cfa20cef4f98
 72x20 TrueColor Breadcrumbs & rails · States 11efef7cdc6b3ed3
 72x20 TrueColor Help & keys b4f0c844469dee13
 72x20 TrueColor Help & keys · Options e7a0262af836ea11
 72x20 TrueColor Help & keys · States 2a37247352723afc
 72x20 TrueColor Quit & leave c3a7a66bd8d1c4b7
-72x20 TrueColor Quit & leave · Options d4e16cbcc3128da0
+72x20 TrueColor Quit & leave · Options 814bcccf1c6a2993
 72x20 TrueColor Quit & leave · States ae50556a2c3a74af
 72x20 TrueColor Focus & navigation 155722aa54b9fb6d
 72x20 TrueColor Focus & navigation · Options 835d0dd16137001a
@@ -1341,46 +1341,46 @@
 72x20 TrueColor Text areas · Options 161bf086e6c77648
 72x20 TrueColor Text areas · States 8d3dfd01707e5ec3
 72x20 TrueColor Chips & selects 69af34de967af4e6
-72x20 TrueColor Chips & selects · Options 7fdc9492f7aede9f
+72x20 TrueColor Chips & selects · Options bf9a936a9f51e685
 72x20 TrueColor Chips & selects · States 83a9648fa8163547
 72x20 TrueColor Forms 94e96172eda9b896
-72x20 TrueColor Forms · Options 0e7e48ba77ee6232
+72x20 TrueColor Forms · Options 497ea675410da6aa
 72x20 TrueColor Forms · States 85573f6e2cb516e6
-72x20 TrueColor Checks & radios 014db3e40c94df19
-72x20 TrueColor Checks & radios · Options 7ebc02973452ecc5
-72x20 TrueColor Checks & radios · States 71dacf012bce6f3c
+72x20 TrueColor Checks & radios d05cdbd90470fbe1
+72x20 TrueColor Checks & radios · Options 08c81e703bab51ea
+72x20 TrueColor Checks & radios · States 2ce44b0ece1c449a
 72x20 TrueColor Toolbars 0ea365afc629bf2d
-72x20 TrueColor Toolbars · Options 63c14d840ce8a40b
+72x20 TrueColor Toolbars · Options 14289f03cc5d3bee
 72x20 TrueColor Toolbars · States 1c427bb532ba2218
 72x20 TrueColor Basic table 24ee10e45551e57e
 72x20 TrueColor Basic table · Options 7ed567b20e44785f
 72x20 TrueColor Basic table · States ba549b2219bd5bf8
 72x20 TrueColor Editable 8e59e2144acd5f41
-72x20 TrueColor Editable · Options 3fa853fd0ebe83e0
+72x20 TrueColor Editable · Options 945765de7a9557fe
 72x20 TrueColor Editable · States fbcdfa932d586ad9
 72x20 TrueColor Data grid ade11e7c1121f6a8
-72x20 TrueColor Data grid · Options a998fdfdcc8d639f
+72x20 TrueColor Data grid · Options 2246881c09f21779
 72x20 TrueColor Data grid · States 40262b848e939d9f
 72x20 TrueColor Selection 5d1d04b46f116b88
-72x20 TrueColor Selection · Options 0f0ff3221d0d9934
+72x20 TrueColor Selection · Options 4a50e5564c5c1920
 72x20 TrueColor Selection · States 3d0e703adee28b07
 72x20 TrueColor Cell editors 10135c49af530c06
 72x20 TrueColor Cell editors · Options f50b8cee1608e580
 72x20 TrueColor Cell editors · States f9dc02a2b305dd2c
 72x20 TrueColor Columns 0e5ee98a11765a38
-72x20 TrueColor Columns · Options b396cddf603c659c
+72x20 TrueColor Columns · Options 025b7c507878dea7
 72x20 TrueColor Columns · States cde810c9f2ea92ce
-72x20 TrueColor Lists 9d299dc4b5e99536
-72x20 TrueColor Lists · Options be19f231c956e82d
+72x20 TrueColor Lists 673512dd9649ce5f
+72x20 TrueColor Lists · Options f5a362875ced70e2
 72x20 TrueColor Lists · States 901fc40e0bbf6541
 72x20 TrueColor Trees 7953d6d70b7b00fe
-72x20 TrueColor Trees · Options 1b9c8e4ca6a4ac3b
+72x20 TrueColor Trees · Options 45086ced5c070746
 72x20 TrueColor Trees · States 6de97bea8d86f4be
-72x20 TrueColor Sidebars 498ca23253b6426c
-72x20 TrueColor Sidebars · Options 9ebc90d416117c14
-72x20 TrueColor Sidebars · States 779d7e6e22bfcd6b
+72x20 TrueColor Sidebars faa8b5b2f6d4613a
+72x20 TrueColor Sidebars · Options 2798306f0853a736
+72x20 TrueColor Sidebars · States b54be46e1181cfd7
 72x20 TrueColor Tabs 70a38e63f00d6d50
-72x20 TrueColor Tabs · Options f13c7612106e0299
+72x20 TrueColor Tabs · Options 85161f221965b4c2
 72x20 TrueColor Tabs · States d93c797658954d37
 72x20 TrueColor Menus 4623ba0bca52edb5
 72x20 TrueColor Menus · Options c8d066cd022d77ed
@@ -1392,37 +1392,37 @@
 72x20 TrueColor Pickers · Options 57ccc55ffdb60265
 72x20 TrueColor Pickers · States efeaa4f594343f05
 72x20 TrueColor Dialog kinds 20e2643557694173
-72x20 TrueColor Dialog kinds · Options 57aded2156c6ce54
-72x20 TrueColor Dialog kinds · States 16bfb3ab4faa28fe
+72x20 TrueColor Dialog kinds · Options ddaa96b673d7b997
+72x20 TrueColor Dialog kinds · States 1163eb4e10ae368d
 72x20 TrueColor Popups & tooltips c8082790f10b87a5
 72x20 TrueColor Popups & tooltips · Options 6ee2d19e0297f246
 72x20 TrueColor Popups & tooltips · States f11e254e82906e4a
 72x20 TrueColor File browser af256a00fd1368c9
-72x20 TrueColor File browser · Options 6dff0884cd1a2119
+72x20 TrueColor File browser · Options fa91d6d1d73397e1
 72x20 TrueColor File browser · States 3d35562338ebeeea
 72x20 TrueColor Progress 84c19f4426071535
-72x20 TrueColor Progress · Options 103072ffb0a1d959
+72x20 TrueColor Progress · Options 02dbff5b25c64e8a
 72x20 TrueColor Progress · States 4ce4774314292950
 72x20 TrueColor Empty & error 6979d62d0ee17954
-72x20 TrueColor Empty & error · Options f3dc635bfca29788
+72x20 TrueColor Empty & error · Options edfafc1ba23b7bd3
 72x20 TrueColor Empty & error · States ad9da09a4ed0253e
 72x20 TrueColor Meters 868101287c61e6c9
-72x20 TrueColor Meters · Options f6053c3a58ce1312
+72x20 TrueColor Meters · Options 8816ca056a7aed9f
 72x20 TrueColor Meters · States 236446b17c20fc3f
 72x20 TrueColor Notices a7f9d5d1082d8f1b
-72x20 TrueColor Notices · Options cb113e821667814d
+72x20 TrueColor Notices · Options 6f0aa8e56703560d
 72x20 TrueColor Notices · States d3d03708fd1a0d6e
 72x20 TrueColor Panels f4aa4573f23eabe5
 72x20 TrueColor Panels · Options 4ef90ee6edbfbc17
 72x20 TrueColor Panels · States a9b2402830b95c9d
 72x20 TrueColor Scrolling 31d0c6f6c77bed9e
-72x20 TrueColor Scrolling · Options 29e753391e595dfb
+72x20 TrueColor Scrolling · Options 3656fc8f689de690
 72x20 TrueColor Scrolling · States b67da63a44d06dd3
 72x20 TrueColor Splits & stacks 77cca1ea907b4d5f
 72x20 TrueColor Splits & stacks · Options 16b8cc091736cd5d
 72x20 TrueColor Splits & stacks · States f81c63a7184afca1
 72x20 TrueColor Master-detail bbaf2e54263c81d1
-72x20 TrueColor Master-detail · Options 3642b09a02d7f05b
+72x20 TrueColor Master-detail · Options c6dbae7ef7384134
 72x20 TrueColor Master-detail · States d0e0d1c2a730b202
 72x20 TrueColor Pane tree 216cb62d690b1c48
 72x20 TrueColor Pane tree · Options 462507ee7a68f051
@@ -1439,58 +1439,58 @@
 72x20 TrueColor Text utilities 634a2b73874218b5
 72x20 TrueColor Text utilities · Options 1259cb362cdc4c67
 72x20 TrueColor Text utilities · States be4a6bebbc4abcf4
-72x20 TrueColor Settings af25b1183d764c07
-72x20 TrueColor Settings · Options 92e4aee034aa2d1c
+72x20 TrueColor Settings 6b7e3f501c4aa6d7
+72x20 TrueColor Settings · Options 5f0437394346efd7
 72x20 TrueColor Settings · States 3705db2c62087b83
 72x20 TrueColor Task runner 71a16559c44aa94e
-72x20 TrueColor Task runner · Options 1081f4e567f5a225
+72x20 TrueColor Task runner · Options 39d365ec2497fe8a
 72x20 TrueColor Task runner · States 1e6ab147889b81bc
 72x20 TrueColor Query workbench 2f18868ca8c6a4af
-72x20 TrueColor Query workbench · Options aa05375cfd680ffb
+72x20 TrueColor Query workbench · Options 1b7f35663b60ffe3
 72x20 TrueColor Query workbench · States 2884b7ef9e479044
 72x20 TrueColor Connections 51b38cdd7fb2b937
-72x20 TrueColor Connections · Options f8ca5f3664aac37c
+72x20 TrueColor Connections · Options 189904141d460611
 72x20 TrueColor Connections · States 8cf2bbde1a79c3df
 72x20 TrueColor Finder 7b2cf05c17d8b4ed
-72x20 TrueColor Finder · Options 0f674f1bd79c53c5
+72x20 TrueColor Finder · Options 006d56fdf9d73902
 72x20 TrueColor Finder · States c713eae6be22ca75
 72x20 TrueColor Disk cleanup 51c676bde05e39f0
-72x20 TrueColor Disk cleanup · Options 823013c583d54043
+72x20 TrueColor Disk cleanup · Options 08baf1fb082c307b
 72x20 TrueColor Disk cleanup · States b3a49b5319e821d1
 72x20 TrueColor Activity 4c69f6cc975e63e8
-72x20 TrueColor Activity · Options d857e1e536efc526
+72x20 TrueColor Activity · Options 1c45573daae38fde
 72x20 TrueColor Activity · States 4f632f6f50057b7c
 72x20 TrueColor Workspaces 305507c76e659e49
-72x20 TrueColor Workspaces · Options 6473ed2c6270d6ed
+72x20 TrueColor Workspaces · Options 1685600045b2b9f5
 72x20 TrueColor Workspaces · States 659812f1c2d6b854
 72x20 TrueColor Accounts & usage 6f7ce0525492ca8b
-72x20 TrueColor Accounts & usage · Options 2d83d839971fb7e2
+72x20 TrueColor Accounts & usage · Options d0fc0cadc6e497a5
 72x20 TrueColor Accounts & usage · States 17beaf8568d8fcc5
 72x20 TrueColor Launch cockpit e65cefb3e7007ec7
-72x20 TrueColor Launch cockpit · Options 444a5b7a0788a169
+72x20 TrueColor Launch cockpit · Options 0689c4cab721de16
 72x20 TrueColor Launch cockpit · States 6eebd409d81bd750
 72x20 TrueColor Read-only report 4f0fa47ba30d35a7
-72x20 TrueColor Read-only report · Options 2c9806da5de77558
+72x20 TrueColor Read-only report · Options c1846b77215dc39c
 72x20 TrueColor Read-only report · States c9a9ba751dd09e6b
 72x20 TrueColor Inspector · State 40185256c21b3fc7
 72x20 TrueColor Inspector · Options b9590006379dfa6d
 72x20 Ansi256 Overview 03a542a44efa14d1
 72x20 Ansi256 Overview · Options 334177ae9009eb10
-72x20 Ansi256 Overview · States 4a9af399d3dc78ce
+72x20 Ansi256 Overview · States 73929725e8d0d0c2
 72x20 Ansi256 Chrome c7e54f46dcb732b4
-72x20 Ansi256 Chrome · Options 7beedfaf4d123b6e
+72x20 Ansi256 Chrome · Options 4682261aca559a14
 72x20 Ansi256 Chrome · States 4276c01ae1a09c3b
 72x20 Ansi256 Status & hints 2326c7eca22e8e04
 72x20 Ansi256 Status & hints · Options b820fe1f1ceb7873
 72x20 Ansi256 Status & hints · States 47e98279458d9f97
 72x20 Ansi256 Breadcrumbs & rails 259e6af8e01b9d26
-72x20 Ansi256 Breadcrumbs & rails · Options 33494551abc50af6
+72x20 Ansi256 Breadcrumbs & rails · Options da881aa5cc4b8d5c
 72x20 Ansi256 Breadcrumbs & rails · States 39e028180e564033
 72x20 Ansi256 Help & keys 89019f2d8ecb4393
 72x20 Ansi256 Help & keys · Options 296b8767d43bc789
 72x20 Ansi256 Help & keys · States 39c7962bf5dcd36b
 72x20 Ansi256 Quit & leave 2ef36aa9460c88d5
-72x20 Ansi256 Quit & leave · Options 86830e4c76b68763
+72x20 Ansi256 Quit & leave · Options 08e2f0f52c447588
 72x20 Ansi256 Quit & leave · States 2d33d78937605b29
 72x20 Ansi256 Focus & navigation 449ba7d8b3a5c161
 72x20 Ansi256 Focus & navigation · Options 8c94804ac9b11f07
@@ -1505,46 +1505,46 @@
 72x20 Ansi256 Text areas · Options d6ed7bc01566b119
 72x20 Ansi256 Text areas · States ef35358703b3c087
 72x20 Ansi256 Chips & selects 6b1b8331a6535008
-72x20 Ansi256 Chips & selects · Options c3461a4ff33b204b
+72x20 Ansi256 Chips & selects · Options 74915da37d34a629
 72x20 Ansi256 Chips & selects · States 6d5526af29fb082a
 72x20 Ansi256 Forms f98ca251e04e1bd4
-72x20 Ansi256 Forms · Options 03de54e4c3edee18
+72x20 Ansi256 Forms · Options 51bee189a7600260
 72x20 Ansi256 Forms · States ef3b5fb6d54d269f
-72x20 Ansi256 Checks & radios 3b02a196d8bfdcc7
-72x20 Ansi256 Checks & radios · Options 875eb3f0849f790b
-72x20 Ansi256 Checks & radios · States 0169ab9054146dc1
+72x20 Ansi256 Checks & radios f0b9594e5e6f98ef
+72x20 Ansi256 Checks & radios · Options a5447fd190831a38
+72x20 Ansi256 Checks & radios · States 6063443dedc57ca1
 72x20 Ansi256 Toolbars 189774c37e9b3d80
-72x20 Ansi256 Toolbars · Options cdf717d6da03e71b
+72x20 Ansi256 Toolbars · Options b13142be5b6556aa
 72x20 Ansi256 Toolbars · States 71432bbfa614557e
 72x20 Ansi256 Basic table e790234bd2634714
 72x20 Ansi256 Basic table · Options 004693a5e020787e
 72x20 Ansi256 Basic table · States 3b5a5d16325fce9c
 72x20 Ansi256 Editable c096026389e7bae1
-72x20 Ansi256 Editable · Options 72abb3cb3ce78001
+72x20 Ansi256 Editable · Options bfa89714956b4ecd
 72x20 Ansi256 Editable · States e1401cd378b2ffde
 72x20 Ansi256 Data grid b86fcd57f79b9ba2
-72x20 Ansi256 Data grid · Options 7ffddc5cdad4a064
+72x20 Ansi256 Data grid · Options a7699e8f7fe8277c
 72x20 Ansi256 Data grid · States 32c989fc88909e17
 72x20 Ansi256 Selection d22b16b7cc2fed39
-72x20 Ansi256 Selection · Options 06092135777263ab
+72x20 Ansi256 Selection · Options da62048d95e11acb
 72x20 Ansi256 Selection · States e3292c7c2553d2a1
 72x20 Ansi256 Cell editors 93a5259092a3d9e9
 72x20 Ansi256 Cell editors · Options ca7712e6c6ab3efd
 72x20 Ansi256 Cell editors · States 9972dd29421eb814
 72x20 Ansi256 Columns ce52ca7a0c2b0324
-72x20 Ansi256 Columns · Options 8feffdd12c53f120
+72x20 Ansi256 Columns · Options 4c61362ba093ef57
 72x20 Ansi256 Columns · States 64f17924bfa64636
-72x20 Ansi256 Lists cb4e58c54ac232c7
-72x20 Ansi256 Lists · Options 0af424f89386eeca
+72x20 Ansi256 Lists 8d365af06b3c3ddc
+72x20 Ansi256 Lists · Options 45b7601fba89955f
 72x20 Ansi256 Lists · States 872eda738076d6f9
 72x20 Ansi256 Trees 24bbd77297489bbb
-72x20 Ansi256 Trees · Options e4c2704683d4bf64
+72x20 Ansi256 Trees · Options f78917de4ab7a13b
 72x20 Ansi256 Trees · States 107700e159cd47db
-72x20 Ansi256 Sidebars 1bb1dabec05491ec
-72x20 Ansi256 Sidebars · Options 748c42c1097d01cf
-72x20 Ansi256 Sidebars · States 92b35b6ca1b4afd7
+72x20 Ansi256 Sidebars 82917eee48cceeb5
+72x20 Ansi256 Sidebars · Options e80884d8b84a7df7
+72x20 Ansi256 Sidebars · States 374d82505eae9bd7
 72x20 Ansi256 Tabs 5d5979c87ef52eec
-72x20 Ansi256 Tabs · Options 875b61c2a010b9a4
+72x20 Ansi256 Tabs · Options 827c7ddb67bc7dd5
 72x20 Ansi256 Tabs · States 4f7d55f30577fb90
 72x20 Ansi256 Menus 159ea40b3b83f01e
 72x20 Ansi256 Menus · Options fb9516d325e19a73
@@ -1556,37 +1556,37 @@
 72x20 Ansi256 Pickers · Options 3cf141ea37c66609
 72x20 Ansi256 Pickers · States 0e5fbb67d1834688
 72x20 Ansi256 Dialog kinds 3dccc155b111cd9b
-72x20 Ansi256 Dialog kinds · Options 2d3667df3bbdbccd
-72x20 Ansi256 Dialog kinds · States d7f0aff728e4ae3f
+72x20 Ansi256 Dialog kinds · Options 55786a8849e2b840
+72x20 Ansi256 Dialog kinds · States fa9feb3acf2cf196
 72x20 Ansi256 Popups & tooltips 54d6311fe2e9561d
 72x20 Ansi256 Popups & tooltips · Options b3f5318b0c444cdb
 72x20 Ansi256 Popups & tooltips · States 840fcf45edf559ec
 72x20 Ansi256 File browser 552cf898bb1fff60
-72x20 Ansi256 File browser · Options de07466cd701d7ae
+72x20 Ansi256 File browser · Options 5812fa445eb6bfde
 72x20 Ansi256 File browser · States fe90e0199bbf6a56
 72x20 Ansi256 Progress c3a23e592a47f6cc
-72x20 Ansi256 Progress · Options c88ba7559b46076f
+72x20 Ansi256 Progress · Options 066e2a2956d60fe0
 72x20 Ansi256 Progress · States ed249e3a8503d5a8
 72x20 Ansi256 Empty & error 6d9eb03c450253ab
-72x20 Ansi256 Empty & error · Options 035e110f54161fbc
+72x20 Ansi256 Empty & error · Options 8f7599832ca83b71
 72x20 Ansi256 Empty & error · States 9f2dc1aa5ce1425e
 72x20 Ansi256 Meters 3061d407dd4e6b70
-72x20 Ansi256 Meters · Options 76d6602df85b47f9
+72x20 Ansi256 Meters · Options 9868ab133297f70e
 72x20 Ansi256 Meters · States f9ff78288dbf4c96
 72x20 Ansi256 Notices 4491cad4e83e4119
-72x20 Ansi256 Notices · Options 3e72b0af56ed47c0
+72x20 Ansi256 Notices · Options 01fd5779aa50f41a
 72x20 Ansi256 Notices · States 016ffc2ccdb68ab0
 72x20 Ansi256 Panels 4406c001aaf5d207
 72x20 Ansi256 Panels · Options a93d6affb6290ca8
 72x20 Ansi256 Panels · States baa59dc34e148677
 72x20 Ansi256 Scrolling 96a3b4cb8ba5b494
-72x20 Ansi256 Scrolling · Options ce18c7aa797f46f7
+72x20 Ansi256 Scrolling · Options 98dcd1dfea8328fe
 72x20 Ansi256 Scrolling · States f61f1d713de97780
 72x20 Ansi256 Splits & stacks ba30097f75b95518
 72x20 Ansi256 Splits & stacks · Options 531397c231d5f48e
 72x20 Ansi256 Splits & stacks · States d2b95618c1d1b921
 72x20 Ansi256 Master-detail fc6928d414e0a827
-72x20 Ansi256 Master-detail · Options 43fcfdaac33c4e01
+72x20 Ansi256 Master-detail · Options f9bcb6100f2e9760
 72x20 Ansi256 Master-detail · States 682f4ca39df960fa
 72x20 Ansi256 Pane tree e8ab2dad7eaeb270
 72x20 Ansi256 Pane tree · Options b0ab87222611fa71
@@ -1603,38 +1603,38 @@
 72x20 Ansi256 Text utilities 1a464876e2b2c526
 72x20 Ansi256 Text utilities · Options a50d564b1b569ff3
 72x20 Ansi256 Text utilities · States 6a14580bc7c9f415
-72x20 Ansi256 Settings 4a5216678cc74f35
-72x20 Ansi256 Settings · Options e9320a9c83b98ef2
+72x20 Ansi256 Settings 2bd2e8bc55cc3523
+72x20 Ansi256 Settings · Options 1399348bc78904bf
 72x20 Ansi256 Settings · States e118a59ad0ff13d3
 72x20 Ansi256 Task runner 03ab97f98d15776f
-72x20 Ansi256 Task runner · Options 619bfd0af63106c4
+72x20 Ansi256 Task runner · Options ca8636afd7961a1d
 72x20 Ansi256 Task runner · States 7b76f82dec930743
 72x20 Ansi256 Query workbench 0efa4ff1ba19daeb
-72x20 Ansi256 Query workbench · Options d70f6d569efde58b
+72x20 Ansi256 Query workbench · Options 72170e6d5b1e3a0f
 72x20 Ansi256 Query workbench · States cd05d463d0766fe0
 72x20 Ansi256 Connections f04314a3694566d5
-72x20 Ansi256 Connections · Options 8f5ce37602d8a11a
+72x20 Ansi256 Connections · Options 85e2bb5193a1abf3
 72x20 Ansi256 Connections · States 8fa859e25168157b
 72x20 Ansi256 Finder 8934c06b13838ff2
-72x20 Ansi256 Finder · Options 0be2ea56151a51b9
+72x20 Ansi256 Finder · Options 41a2a513702f166c
 72x20 Ansi256 Finder · States 19fce451d89c8ffb
 72x20 Ansi256 Disk cleanup 892e6b6153707973
-72x20 Ansi256 Disk cleanup · Options a651004d838035fd
+72x20 Ansi256 Disk cleanup · Options 4db3364655b8a1d9
 72x20 Ansi256 Disk cleanup · States fbab3877172e1b2f
 72x20 Ansi256 Activity 5cb597d5b49e3955
-72x20 Ansi256 Activity · Options 73ce72e6e0886b55
+72x20 Ansi256 Activity · Options e03e590eab5de391
 72x20 Ansi256 Activity · States 24092c90e7669df0
 72x20 Ansi256 Workspaces 7393f208a8053ae9
-72x20 Ansi256 Workspaces · Options 8aa65a74b6ec61e6
+72x20 Ansi256 Workspaces · Options 13631f74c0ea8c32
 72x20 Ansi256 Workspaces · States 6312f0f6ac0e9b3f
 72x20 Ansi256 Accounts & usage 07a97888eaf4940a
-72x20 Ansi256 Accounts & usage · Options 61083c9b939f1323
+72x20 Ansi256 Accounts & usage · Options 85df16f61e6775b2
 72x20 Ansi256 Accounts & usage · States d20334bdb282afee
 72x20 Ansi256 Launch cockpit d071cd3c2dec3430
-72x20 Ansi256 Launch cockpit · Options 50cad7f523d366fc
+72x20 Ansi256 Launch cockpit · Options db9b87a440d86b0d
 72x20 Ansi256 Launch cockpit · States f8efc96411c90721
 72x20 Ansi256 Read-only report 5fe42efd8584f828
-72x20 Ansi256 Read-only report · Options 92a429a4f467814d
+72x20 Ansi256 Read-only report · Options a56c5ad88d206fef
 72x20 Ansi256 Read-only report · States d02ab326fb6c1885
 72x20 Ansi256 Inspector · State a4950edbb17b03e0
 72x20 Ansi256 Inspector · Options aced361f3315f068
@@ -1642,19 +1642,19 @@
 72x20 Ansi16 Overview · Options 521c2bac9bfde5fc
 72x20 Ansi16 Overview · States 87d7487a3135cc1d
 72x20 Ansi16 Chrome edefcbda87c17ee9
-72x20 Ansi16 Chrome · Options a7787765afc0805d
+72x20 Ansi16 Chrome · Options adb16013200ca7e3
 72x20 Ansi16 Chrome · States 7b9181ed4e34cfb7
 72x20 Ansi16 Status & hints dda7c30f2f848ade
 72x20 Ansi16 Status & hints · Options f938965081a9ccd5
 72x20 Ansi16 Status & hints · States 038f7eb3b6f53f23
 72x20 Ansi16 Breadcrumbs & rails 403a3ab251a72bc3
-72x20 Ansi16 Breadcrumbs & rails · Options e388f339c54c0db0
+72x20 Ansi16 Breadcrumbs & rails · Options 05e39324aba7681a
 72x20 Ansi16 Breadcrumbs & rails · States 72e10f56690d2e18
 72x20 Ansi16 Help & keys a7f94665aa6883c6
 72x20 Ansi16 Help & keys · Options 7bac71bee1a71714
 72x20 Ansi16 Help & keys · States 0755a253a3bed922
 72x20 Ansi16 Quit & leave 60baa710dd24155d
-72x20 Ansi16 Quit & leave · Options 497182d55fb9f489
+72x20 Ansi16 Quit & leave · Options 97c81e53c831bc89
 72x20 Ansi16 Quit & leave · States 39587d3039bbe478
 72x20 Ansi16 Focus & navigation a97fc2ac268e290d
 72x20 Ansi16 Focus & navigation · Options 0430756a3c922136
@@ -1669,46 +1669,46 @@
 72x20 Ansi16 Text areas · Options d9800d46b7b281f7
 72x20 Ansi16 Text areas · States 57d96bd47e2d2a12
 72x20 Ansi16 Chips & selects 3f67428b532d8405
-72x20 Ansi16 Chips & selects · Options e90a0f2f231f515e
+72x20 Ansi16 Chips & selects · Options 02048366f3fad642
 72x20 Ansi16 Chips & selects · States 1ae74b24967895cb
 72x20 Ansi16 Forms 7c1d9e0819e967ce
-72x20 Ansi16 Forms · Options cdc64794aee67224
+72x20 Ansi16 Forms · Options fc7cae5236cafee8
 72x20 Ansi16 Forms · States aec45e6b9370dd47
-72x20 Ansi16 Checks & radios b32df46bb5bb60aa
-72x20 Ansi16 Checks & radios · Options 49d2774df2586c15
-72x20 Ansi16 Checks & radios · States 5c0f628b8fcf64ca
+72x20 Ansi16 Checks & radios 4c3844a523cde262
+72x20 Ansi16 Checks & radios · Options b026a435219a7f39
+72x20 Ansi16 Checks & radios · States a0e1761b2c50b0c2
 72x20 Ansi16 Toolbars 41b0ef0ff779ea0f
-72x20 Ansi16 Toolbars · Options 0da4905c41753fef
+72x20 Ansi16 Toolbars · Options 0a5bf2f9e8fd3ba9
 72x20 Ansi16 Toolbars · States fb69bc0e038fdd87
 72x20 Ansi16 Basic table 1fbac98980fb6190
 72x20 Ansi16 Basic table · Options 205e458238fef11b
 72x20 Ansi16 Basic table · States ddbba33c8236d7cd
 72x20 Ansi16 Editable dfa1394ead8d6561
-72x20 Ansi16 Editable · Options 4a0b9cbb505ad9fb
+72x20 Ansi16 Editable · Options 17ac93d9a85701fd
 72x20 Ansi16 Editable · States f757b3849d500919
 72x20 Ansi16 Data grid 20ed1a00ebbb5828
-72x20 Ansi16 Data grid · Options 6069da101d92fcc8
+72x20 Ansi16 Data grid · Options e07e7a8f488694c6
 72x20 Ansi16 Data grid · States 23e98c807a0cbdff
 72x20 Ansi16 Selection 11c7df689d8db624
-72x20 Ansi16 Selection · Options 512feae68db2b129
+72x20 Ansi16 Selection · Options c8b31db6e5d4eaa9
 72x20 Ansi16 Selection · States 474a3e2220fc008c
 72x20 Ansi16 Cell editors 907e6dd8a523a772
 72x20 Ansi16 Cell editors · Options 7f53eb15e6d24f3c
 72x20 Ansi16 Cell editors · States 5333313ccc54becd
 72x20 Ansi16 Columns c58db905660e823f
-72x20 Ansi16 Columns · Options 59f8629c8d817e7f
+72x20 Ansi16 Columns · Options 62c44609f3485ad5
 72x20 Ansi16 Columns · States 74c0aa5903f8c58b
-72x20 Ansi16 Lists b20abaa8d820e83f
-72x20 Ansi16 Lists · Options 2867c9014bc0bed8
+72x20 Ansi16 Lists 857b5b1110bf9cb5
+72x20 Ansi16 Lists · Options 72654e146a1d02b6
 72x20 Ansi16 Lists · States 3cb209c4bc2912a6
 72x20 Ansi16 Trees e454fac4fb7d60b0
-72x20 Ansi16 Trees · Options 877625713d83f8d1
+72x20 Ansi16 Trees · Options 805e820be8ac7585
 72x20 Ansi16 Trees · States 9ceb1f5cedef50e4
-72x20 Ansi16 Sidebars 153f1b344cd2712b
-72x20 Ansi16 Sidebars · Options e0b01502772e05dd
-72x20 Ansi16 Sidebars · States 4c8838e7f5287b1e
+72x20 Ansi16 Sidebars cb8383afac0f2ad2
+72x20 Ansi16 Sidebars · Options 2e7eeeb597b1355d
+72x20 Ansi16 Sidebars · States 97fe3cf6b7f0da96
 72x20 Ansi16 Tabs 3295f23b26dabb01
-72x20 Ansi16 Tabs · Options ab7093768e38d99b
+72x20 Ansi16 Tabs · Options f7fe116e16839457
 72x20 Ansi16 Tabs · States f74a98b8d6bfc3a3
 72x20 Ansi16 Menus 42d789c7201b4c68
 72x20 Ansi16 Menus · Options f04a48e509a65b72
@@ -1720,37 +1720,37 @@
 72x20 Ansi16 Pickers · Options e079e92fc349107d
 72x20 Ansi16 Pickers · States 6ee2eda8edbb6784
 72x20 Ansi16 Dialog kinds c3f8f740b0647b85
-72x20 Ansi16 Dialog kinds · Options 3673eb6e608c42a9
-72x20 Ansi16 Dialog kinds · States e603e4c8d63d3dbf
+72x20 Ansi16 Dialog kinds · Options 293e15da7179e16d
+72x20 Ansi16 Dialog kinds · States 4df92e448a3300b5
 72x20 Ansi16 Popups & tooltips 675e553f60bd8e01
 72x20 Ansi16 Popups & tooltips · Options c52c021248adda44
 72x20 Ansi16 Popups & tooltips · States 417e102fa9948115
 72x20 Ansi16 File browser 5c65d546a293e25d
-72x20 Ansi16 File browser · Options 0098042dd2e10c0e
+72x20 Ansi16 File browser · Options a51eb46c3e4dfdf8
 72x20 Ansi16 File browser · States 4c192c459716f7c0
 72x20 Ansi16 Progress d5264e224389f5a2
-72x20 Ansi16 Progress · Options 2e4caa7a2168a8dd
+72x20 Ansi16 Progress · Options abbc5e0a44682bb1
 72x20 Ansi16 Progress · States ea4e05c029fd3678
 72x20 Ansi16 Empty & error 426158d9b923e8c6
-72x20 Ansi16 Empty & error · Options 3519ebc8b58aba37
+72x20 Ansi16 Empty & error · Options fa44468e094536ab
 72x20 Ansi16 Empty & error · States 09fe36d656b346da
 72x20 Ansi16 Meters 430a57fc6820743d
-72x20 Ansi16 Meters · Options 4a46531330520fd5
+72x20 Ansi16 Meters · Options 5a65a40d2d7c65f1
 72x20 Ansi16 Meters · States 4a38a83c20a5f9e5
 72x20 Ansi16 Notices 9a1cc9bc44ad42fa
-72x20 Ansi16 Notices · Options ad0558cf56b4df85
+72x20 Ansi16 Notices · Options 04269d5e56f3934b
 72x20 Ansi16 Notices · States 0bf844f57c75d60c
 72x20 Ansi16 Panels 4c6cd87fa58574f5
 72x20 Ansi16 Panels · Options 40010aa4aabd67e9
 72x20 Ansi16 Panels · States e5718a4de4d4908f
 72x20 Ansi16 Scrolling cb0d57c004a57df9
-72x20 Ansi16 Scrolling · Options 0f3de6efc6cd9a6d
+72x20 Ansi16 Scrolling · Options 2b5b2e6fa9ea9433
 72x20 Ansi16 Scrolling · States 47d888ba0db9c64c
 72x20 Ansi16 Splits & stacks d1548669408f7779
 72x20 Ansi16 Splits & stacks · Options 4c04d325e9104c47
 72x20 Ansi16 Splits & stacks · States dca10e41ec1ed030
 72x20 Ansi16 Master-detail 49eb371410283317
-72x20 Ansi16 Master-detail · Options 6b1e78b8613169fc
+72x20 Ansi16 Master-detail · Options 44f0a7e13d6bf090
 72x20 Ansi16 Master-detail · States ec268748c7f8eb40
 72x20 Ansi16 Pane tree deae3fc5e4fbf0c1
 72x20 Ansi16 Pane tree · Options da3eab429022572d
@@ -1767,38 +1767,38 @@
 72x20 Ansi16 Text utilities 6147aa4b8d7cbe57
 72x20 Ansi16 Text utilities · Options f333fe29e3baa202
 72x20 Ansi16 Text utilities · States 2983ae9faf24b3e1
-72x20 Ansi16 Settings a739ec9c23131ecb
-72x20 Ansi16 Settings · Options 89d344392f93c509
+72x20 Ansi16 Settings 1028eb811f90bd9b
+72x20 Ansi16 Settings · Options 8b5e01d824460339
 72x20 Ansi16 Settings · States c179907875b9545e
 72x20 Ansi16 Task runner 6e5476e9ca15f322
-72x20 Ansi16 Task runner · Options 310bc31287026a9c
+72x20 Ansi16 Task runner · Options ab4d256852d3c4a6
 72x20 Ansi16 Task runner · States bcaa0769aab7da94
 72x20 Ansi16 Query workbench b1ecfc0f28671c84
-72x20 Ansi16 Query workbench · Options ca9a3482b20a5a7c
+72x20 Ansi16 Query workbench · Options 0a4864420ee1e19c
 72x20 Ansi16 Query workbench · States 28f448b21fa764dc
 72x20 Ansi16 Connections 81235e4afe5f7d98
-72x20 Ansi16 Connections · Options 810844da83129c24
+72x20 Ansi16 Connections · Options fe2badcbd9e5b7aa
 72x20 Ansi16 Connections · States cc9ddb71eb977c1d
 72x20 Ansi16 Finder d37fdd39ecbd83b8
-72x20 Ansi16 Finder · Options 9128363455447448
+72x20 Ansi16 Finder · Options f0910da08e04abb2
 72x20 Ansi16 Finder · States 456498b78dfa1033
 72x20 Ansi16 Disk cleanup e2b6d7c135239629
-72x20 Ansi16 Disk cleanup · Options d3270d3c45ba13a3
+72x20 Ansi16 Disk cleanup · Options f010ff6a9a570899
 72x20 Ansi16 Disk cleanup · States f84f91b452901b25
 72x20 Ansi16 Activity 7efb4ccbaea96b17
-72x20 Ansi16 Activity · Options 0fd0d89ac5d7d331
+72x20 Ansi16 Activity · Options 546f0b993337372b
 72x20 Ansi16 Activity · States 8e3f7c0a482b595c
 72x20 Ansi16 Workspaces 26f6764db760b2af
-72x20 Ansi16 Workspaces · Options 752981072c43f491
+72x20 Ansi16 Workspaces · Options d20b2a57a6413b77
 72x20 Ansi16 Workspaces · States bf29b5e22e46bc33
 72x20 Ansi16 Accounts & usage 38858cda9b48750b
-72x20 Ansi16 Accounts & usage · Options 695eab7e4613e9cc
+72x20 Ansi16 Accounts & usage · Options 8ee85101f28a2e9a
 72x20 Ansi16 Accounts & usage · States 243dc6d322c93dd7
 72x20 Ansi16 Launch cockpit 0f0cf896e0561ffe
-72x20 Ansi16 Launch cockpit · Options 4b860176572aa3b9
+72x20 Ansi16 Launch cockpit · Options 501b6971dd85ca5f
 72x20 Ansi16 Launch cockpit · States 9b361937217b596a
 72x20 Ansi16 Read-only report 6994c589d97de3fc
-72x20 Ansi16 Read-only report · Options c48dc6de3240715c
+72x20 Ansi16 Read-only report · Options bcc0c03e97abf790
 72x20 Ansi16 Read-only report · States 3f54df01998284cc
 72x20 Ansi16 Inspector · State ec229158668681da
 72x20 Ansi16 Inspector · Options ea3ebf77f369389b
@@ -1868,9 +1868,9 @@
 72x20 Mono Trees 310488206f80d628
 72x20 Mono Trees · Options 72e7745aae8bb1d3
 72x20 Mono Trees · States 5ca7ca946c8f0f5a
-72x20 Mono Sidebars 98446e9290701677
+72x20 Mono Sidebars 132befeaa073eade
 72x20 Mono Sidebars · Options 5fe4c0ae375a8367
-72x20 Mono Sidebars · States 5c7015d7c2c88358
+72x20 Mono Sidebars · States 4ab7f316fc987600
 72x20 Mono Tabs e95e56d5e5e4a90a
 72x20 Mono Tabs · Options 42ae368dac3503ad
 72x20 Mono Tabs · States d473aa8f15395181
@@ -1968,496 +1968,496 @@
 72x20 Mono Inspector · Options 335b8b17f7d21891
 100x30 TrueColor Overview 61c57a965f052c0a
 100x30 TrueColor Overview · Options ce6e780efe43095c
-100x30 TrueColor Overview · States 0198b5e154baa43a
+100x30 TrueColor Overview · States 22bb03f875d3eeea
 100x30 TrueColor Chrome 02c16558f37b0b3e
-100x30 TrueColor Chrome · Options d5af876619fa322f
+100x30 TrueColor Chrome · Options a18e9d7ba7166ba3
 100x30 TrueColor Chrome · States 8633d6ab8b5e5ff5
 100x30 TrueColor Status & hints ca4ab40afbb0080f
 100x30 TrueColor Status & hints · Options 620773c08864d451
 100x30 TrueColor Status & hints · States 1a84682d6399c96e
 100x30 TrueColor Breadcrumbs & rails 08f41c44b23d1307
-100x30 TrueColor Breadcrumbs & rails · Options c65a0541287c5615
+100x30 TrueColor Breadcrumbs & rails · Options c0cd19936391c601
 100x30 TrueColor Breadcrumbs & rails · States 58787b75cb7c25a3
 100x30 TrueColor Help & keys 9eaa33d4cdf51a7f
 100x30 TrueColor Help & keys · Options 20f31c8f69d83919
 100x30 TrueColor Help & keys · States fce532251955600b
 100x30 TrueColor Quit & leave f81fb49e290d35bc
-100x30 TrueColor Quit & leave · Options 3687cefd33208154
+100x30 TrueColor Quit & leave · Options 85ce7edbb016ae8f
 100x30 TrueColor Quit & leave · States 9c6eca1fbf7bbf25
 100x30 TrueColor Focus & navigation c1699237b6321c76
 100x30 TrueColor Focus & navigation · Options f93690eb6451cb64
 100x30 TrueColor Focus & navigation · States ec5856948106429e
 100x30 TrueColor Buttons cf3d606e1bd0f9de
-100x30 TrueColor Buttons · Options 4aef168f3902c480
+100x30 TrueColor Buttons · Options 57fd822db1eeb2f5
 100x30 TrueColor Buttons · States b926f54609bd07c6
 100x30 TrueColor Inputs 0a825fd9921e5a82
-100x30 TrueColor Inputs · Options 12cc78b275880280
+100x30 TrueColor Inputs · Options cc0d925f2e0f0064
 100x30 TrueColor Inputs · States f1791409653a300e
 100x30 TrueColor Text areas 0048d03355328e62
-100x30 TrueColor Text areas · Options 5d16efada7f34512
+100x30 TrueColor Text areas · Options c8806875b988e291
 100x30 TrueColor Text areas · States 2cc59f11740a72d4
 100x30 TrueColor Chips & selects 344c0d2e4a40e0d4
-100x30 TrueColor Chips & selects · Options bf5f4afe49812962
+100x30 TrueColor Chips & selects · Options e50fd48bf6c859f5
 100x30 TrueColor Chips & selects · States 5eb0c4de7d0d1b86
-100x30 TrueColor Forms 929ef84a3b492dde
-100x30 TrueColor Forms · Options be7100d6fbf40ce3
+100x30 TrueColor Forms a123b85bbeee85c0
+100x30 TrueColor Forms · Options 0dfbc3dc44365f23
 100x30 TrueColor Forms · States 83fa3f0f269370b7
-100x30 TrueColor Checks & radios 51b1d39989ee9776
-100x30 TrueColor Checks & radios · Options d23ea8c91c41c73d
-100x30 TrueColor Checks & radios · States f023273465ee7b0c
+100x30 TrueColor Checks & radios dfae38cec947c339
+100x30 TrueColor Checks & radios · Options 74f1cadb81419cca
+100x30 TrueColor Checks & radios · States 6c63b925bb800502
 100x30 TrueColor Toolbars 0b80a8e9134a538e
-100x30 TrueColor Toolbars · Options 5878a11056c500d3
+100x30 TrueColor Toolbars · Options 7b305aa075423c1e
 100x30 TrueColor Toolbars · States 72c5d47f30186f80
 100x30 TrueColor Basic table c221537caffed78e
 100x30 TrueColor Basic table · Options f27842d862582357
 100x30 TrueColor Basic table · States 56ae624cc178313d
 100x30 TrueColor Editable 8ecbd15fec197ad2
-100x30 TrueColor Editable · Options f7c31f0ffb5049d7
+100x30 TrueColor Editable · Options a7c650eaa197304c
 100x30 TrueColor Editable · States 8bb92b75c23f734c
 100x30 TrueColor Data grid 3becc227907b67a4
-100x30 TrueColor Data grid · Options 6b1e11188e988ee8
+100x30 TrueColor Data grid · Options 323a82a4293cf154
 100x30 TrueColor Data grid · States c57823f3f4320823
 100x30 TrueColor Selection e28f6111b39f56d8
-100x30 TrueColor Selection · Options ed3403479f2aa64c
+100x30 TrueColor Selection · Options ee342d0c574b29c0
 100x30 TrueColor Selection · States dace92d257f0fc80
 100x30 TrueColor Cell editors 5e7e08d17bc8aaeb
-100x30 TrueColor Cell editors · Options 28b54538eb514511
+100x30 TrueColor Cell editors · Options f7dce77de47a3001
 100x30 TrueColor Cell editors · States fc76b4641ca7a3af
 100x30 TrueColor Columns d7972ece9278a23e
-100x30 TrueColor Columns · Options 9bec4190d48f47f9
-100x30 TrueColor Columns · States 5dd284c9213c7639
-100x30 TrueColor Lists 1f6d9378a669d40c
-100x30 TrueColor Lists · Options d7c6413905fbdb36
-100x30 TrueColor Lists · States fbefb19e58f27f3e
+100x30 TrueColor Columns · Options d81c144168e0ec5a
+100x30 TrueColor Columns · States 0729cef6ab2de1fb
+100x30 TrueColor Lists 3678b9e1754c6683
+100x30 TrueColor Lists · Options 4e19b54d9119aa92
+100x30 TrueColor Lists · States 2c1f95c16585618c
 100x30 TrueColor Trees 8e8a7bbd59e6c0e2
-100x30 TrueColor Trees · Options fe93d8bd2829c4f1
+100x30 TrueColor Trees · Options a34d76e1fdfbcd94
 100x30 TrueColor Trees · States ede31800b6866085
-100x30 TrueColor Sidebars 417c3943d6fbfedc
-100x30 TrueColor Sidebars · Options 2ca36e3ce078d8be
-100x30 TrueColor Sidebars · States 16233ea118885a05
+100x30 TrueColor Sidebars ab013057c3b6d53e
+100x30 TrueColor Sidebars · Options c605fd3c81627b2a
+100x30 TrueColor Sidebars · States 98452a0d157bb3db
 100x30 TrueColor Tabs 9ed52b70113fe457
-100x30 TrueColor Tabs · Options 779aa599643c6f55
+100x30 TrueColor Tabs · Options d2d3d5acac45aa44
 100x30 TrueColor Tabs · States 914e471452e082a9
 100x30 TrueColor Menus 52e9d09ba3b21ea7
-100x30 TrueColor Menus · Options 1b02dfa4957fcfe6
+100x30 TrueColor Menus · Options 97bd25df48c719a6
 100x30 TrueColor Menus · States cb130c6a951d159d
 100x30 TrueColor Dialogs 26cf2c763fb131f5
-100x30 TrueColor Dialogs · Options 0a5b7044445639df
+100x30 TrueColor Dialogs · Options 8c8e78f7e4765b5e
 100x30 TrueColor Dialogs · States f39351af176b4d85
 100x30 TrueColor Pickers 9c76a8d2efe49bcc
-100x30 TrueColor Pickers · Options dbf51ec59200a01e
+100x30 TrueColor Pickers · Options c97b349741bb843b
 100x30 TrueColor Pickers · States 59b1ba6d5bcbd798
 100x30 TrueColor Dialog kinds 4ce72bb979bbff5f
-100x30 TrueColor Dialog kinds · Options 738427d0b8f9586b
-100x30 TrueColor Dialog kinds · States ee149e7fbda79d80
+100x30 TrueColor Dialog kinds · Options 332279fe207b1728
+100x30 TrueColor Dialog kinds · States 81e4cbbb1ec9529c
 100x30 TrueColor Popups & tooltips 1d7f170f6cfa6ca8
-100x30 TrueColor Popups & tooltips · Options 46cbc023ad5cbfe0
+100x30 TrueColor Popups & tooltips · Options 9b463f2a0000d093
 100x30 TrueColor Popups & tooltips · States f4b1f30ad3bbb48d
 100x30 TrueColor File browser 3cb9cd91b25fea89
-100x30 TrueColor File browser · Options bcc751b6728a98d9
-100x30 TrueColor File browser · States 140033d92b9a0f8c
+100x30 TrueColor File browser · Options ef89b52af5d2e44a
+100x30 TrueColor File browser · States af94c852a9d0ea13
 100x30 TrueColor Progress ffd988850501facb
-100x30 TrueColor Progress · Options 4591d237a8e0653d
+100x30 TrueColor Progress · Options 409fd381181c7996
 100x30 TrueColor Progress · States 3bd9c115d8fd5b37
 100x30 TrueColor Empty & error 9438c6a0d1dfb451
-100x30 TrueColor Empty & error · Options 2d196dbc94b93e77
+100x30 TrueColor Empty & error · Options 5aa71083f6783dc4
 100x30 TrueColor Empty & error · States ddfefaa3cc9377fd
 100x30 TrueColor Meters 363b42ca20d5ff14
-100x30 TrueColor Meters · Options 2e4cd28559344c35
+100x30 TrueColor Meters · Options 7695ced924a8c71a
 100x30 TrueColor Meters · States d570c3e35c4320b3
 100x30 TrueColor Notices 98d94a1031124048
-100x30 TrueColor Notices · Options d5a3888c2b6df892
+100x30 TrueColor Notices · Options 6adec071c4a6dac9
 100x30 TrueColor Notices · States 004f82a9238a87ce
 100x30 TrueColor Panels 29b07b18adde4eae
-100x30 TrueColor Panels · Options bb1ba1d26d959ef0
+100x30 TrueColor Panels · Options 03ad6aa887151e2b
 100x30 TrueColor Panels · States 5fc1ff99a4798b21
 100x30 TrueColor Scrolling 4a3323ea65a058a0
-100x30 TrueColor Scrolling · Options e570bf832940628b
+100x30 TrueColor Scrolling · Options ce4083ad975b439f
 100x30 TrueColor Scrolling · States 31577615cb8c5cb8
 100x30 TrueColor Splits & stacks 7806599c89fa0368
 100x30 TrueColor Splits & stacks · Options 40a1a0813bc92b5b
 100x30 TrueColor Splits & stacks · States 9b25f4c3a4851405
 100x30 TrueColor Master-detail 96bc885f009adb48
-100x30 TrueColor Master-detail · Options 9baf9badb3044258
+100x30 TrueColor Master-detail · Options b4d0a6b9dc71530b
 100x30 TrueColor Master-detail · States fc361e973a827ab3
 100x30 TrueColor Pane tree a9fa4cf345b1e59a
 100x30 TrueColor Pane tree · Options d8358f05eb610983
 100x30 TrueColor Pane tree · States f386817ed4f215a9
 100x30 TrueColor Code editor 486a1eb0647cc148
-100x30 TrueColor Code editor · Options ac67b8feffce3e9d
+100x30 TrueColor Code editor · Options 2b7212f3bdf29a5f
 100x30 TrueColor Code editor · States 918d0d72e30614d3
 100x30 TrueColor Diff 9a12da0db18ed8dc
 100x30 TrueColor Diff · Options 8178c31972858f68
 100x30 TrueColor Diff · States ec350076aa5377f6
 100x30 TrueColor Terminal 5c444924b9be7a57
-100x30 TrueColor Terminal · Options 786771c59b36bd5a
+100x30 TrueColor Terminal · Options 7e3f53b8c2395921
 100x30 TrueColor Terminal · States 1691f2216aca9df2
 100x30 TrueColor Text utilities 5cded34c0801ce6a
 100x30 TrueColor Text utilities · Options 17950cf1425d24ae
 100x30 TrueColor Text utilities · States d5942ea429cb0014
-100x30 TrueColor Settings 5df3615025c1b683
-100x30 TrueColor Settings · Options ddfeae1e03259918
+100x30 TrueColor Settings 17c8db619ec76393
+100x30 TrueColor Settings · Options 02c6364243597d43
 100x30 TrueColor Settings · States 6c678d0a28b4ce14
 100x30 TrueColor Task runner c7aabd236f021eb9
-100x30 TrueColor Task runner · Options e2c1b37b4fc73ba8
+100x30 TrueColor Task runner · Options 731a79471aa7c97f
 100x30 TrueColor Task runner · States ff864317faeeca00
 100x30 TrueColor Query workbench 2c388a0e06891650
-100x30 TrueColor Query workbench · Options 93260647cbd81f57
-100x30 TrueColor Query workbench · States b09b229bd5de9dc0
+100x30 TrueColor Query workbench · Options 823e7a5a190f9e6b
+100x30 TrueColor Query workbench · States 96ce3d2ed3cab143
 100x30 TrueColor Connections f826b1e11733354d
-100x30 TrueColor Connections · Options 98a3e384d05f0cf1
-100x30 TrueColor Connections · States 96e93e8f05df4d05
+100x30 TrueColor Connections · Options 23fa2429a1e8ee2a
+100x30 TrueColor Connections · States e62206df4b065fb5
 100x30 TrueColor Finder 0710f3bb296cd37a
-100x30 TrueColor Finder · Options 63e5069e9ca659e5
-100x30 TrueColor Finder · States 9a57bfdbaa67b035
+100x30 TrueColor Finder · Options 2596368a00ce474a
+100x30 TrueColor Finder · States fd7d3164e852f4fc
 100x30 TrueColor Disk cleanup 77c91998f2ceb1c6
-100x30 TrueColor Disk cleanup · Options 18bda2735f7ab23a
-100x30 TrueColor Disk cleanup · States 5b04b56a0282089d
+100x30 TrueColor Disk cleanup · Options 05ab6d4c017d061a
+100x30 TrueColor Disk cleanup · States 2d582fd54eb2d460
 100x30 TrueColor Activity 8d3fb8fbb6db7518
-100x30 TrueColor Activity · Options e9b8957ef53898dd
+100x30 TrueColor Activity · Options 4347d54e16dd24fd
 100x30 TrueColor Activity · States 6d53ebf8fe0fe701
 100x30 TrueColor Workspaces 06589362b00821c0
-100x30 TrueColor Workspaces · Options 8fe7320e8ebd23ab
-100x30 TrueColor Workspaces · States 8571ad96ef685a9b
+100x30 TrueColor Workspaces · Options b79c6edf9b7ce86b
+100x30 TrueColor Workspaces · States 775f164927df7db3
 100x30 TrueColor Accounts & usage c40d89395ab2ba14
-100x30 TrueColor Accounts & usage · Options 11d13bb19b1bb248
+100x30 TrueColor Accounts & usage · Options ea9474ad416256bf
 100x30 TrueColor Accounts & usage · States b2000939c3b7bf84
 100x30 TrueColor Launch cockpit 0a48016921e61169
-100x30 TrueColor Launch cockpit · Options 2f8c4cf121b902e0
+100x30 TrueColor Launch cockpit · Options 94e5c271b6908577
 100x30 TrueColor Launch cockpit · States 4da810363b6a433c
 100x30 TrueColor Read-only report 0a55cdd0ae5ae09b
-100x30 TrueColor Read-only report · Options c522ed7cbcf1c5f5
+100x30 TrueColor Read-only report · Options d9c07e0e5540f159
 100x30 TrueColor Read-only report · States 6c2da075162c44f3
 100x30 TrueColor Inspector · State 9fae66bb82553a95
-100x30 TrueColor Inspector · Options 3b9b90e221d6dca0
+100x30 TrueColor Inspector · Options 2bac279d761a51f0
 100x30 Ansi256 Overview 4b9ee7853f4f05bc
 100x30 Ansi256 Overview · Options b3e6271ba0de08ed
-100x30 Ansi256 Overview · States 05b7a7bff9324549
+100x30 Ansi256 Overview · States 5ec727f568cb756d
 100x30 Ansi256 Chrome 8bedd10985a7d8fd
-100x30 Ansi256 Chrome · Options 3437da54c6f5549e
+100x30 Ansi256 Chrome · Options 4f4b9e55f714dfe4
 100x30 Ansi256 Chrome · States c39d36f2f112d630
 100x30 Ansi256 Status & hints a32aaff6fcf97c97
 100x30 Ansi256 Status & hints · Options 7be8a49d3f507b24
 100x30 Ansi256 Status & hints · States 5a0812068d2b870e
 100x30 Ansi256 Breadcrumbs & rails aa6f42845a10b2f6
-100x30 Ansi256 Breadcrumbs & rails · Options 6ae4f03f70904250
+100x30 Ansi256 Breadcrumbs & rails · Options a600b2ca5cedc9a6
 100x30 Ansi256 Breadcrumbs & rails · States 0c9fdf06e802fee1
 100x30 Ansi256 Help & keys 991e559b3d81a648
 100x30 Ansi256 Help & keys · Options 88f08d40f81afb78
 100x30 Ansi256 Help & keys · States 8c09189adfcc0790
 100x30 Ansi256 Quit & leave 3a232f1e80157b1a
-100x30 Ansi256 Quit & leave · Options bf6b0dda2036d9b4
+100x30 Ansi256 Quit & leave · Options 73d4fdab73ab2845
 100x30 Ansi256 Quit & leave · States 4cd752d32ea02c5f
 100x30 Ansi256 Focus & navigation d46afe82c089da30
 100x30 Ansi256 Focus & navigation · Options 4550a8c285b9b386
 100x30 Ansi256 Focus & navigation · States cbb45553892ae3f5
 100x30 Ansi256 Buttons dbd6431ce0b1ddf6
-100x30 Ansi256 Buttons · Options 96a5abdbbf8aa974
+100x30 Ansi256 Buttons · Options 9875676320fb5c9f
 100x30 Ansi256 Buttons · States c978805b3e7c7a13
 100x30 Ansi256 Inputs c818c0aeef116b9f
-100x30 Ansi256 Inputs · Options 6b230458bcbf7737
+100x30 Ansi256 Inputs · Options 30a1dd58a3fca5d5
 100x30 Ansi256 Inputs · States ec395ae88e82fec6
 100x30 Ansi256 Text areas 5dcc04db26f12314
-100x30 Ansi256 Text areas · Options bc92c264c169ce13
+100x30 Ansi256 Text areas · Options a3c64950f985d802
 100x30 Ansi256 Text areas · States fa97f53f46e0b98c
 100x30 Ansi256 Chips & selects feeab721c4b22ade
-100x30 Ansi256 Chips & selects · Options 8507754b7e5d46ce
+100x30 Ansi256 Chips & selects · Options 69b70e6bb31b022f
 100x30 Ansi256 Chips & selects · States 299b57be3052df0b
-100x30 Ansi256 Forms 7ebd50aafd0e2918
-100x30 Ansi256 Forms · Options f260f8c5c9462571
+100x30 Ansi256 Forms 01081bf9444d17d0
+100x30 Ansi256 Forms · Options e6464213e4b728c9
 100x30 Ansi256 Forms · States e60b3e6ad5b57182
-100x30 Ansi256 Checks & radios 30cc1deb43a5ed65
-100x30 Ansi256 Checks & radios · Options ae6f528a4832a22e
-100x30 Ansi256 Checks & radios · States b72ef20a1e3e4e5e
+100x30 Ansi256 Checks & radios 4469257f32b54188
+100x30 Ansi256 Checks & radios · Options 5804a68732103547
+100x30 Ansi256 Checks & radios · States 97bca42f4da043bc
 100x30 Ansi256 Toolbars 0a067d8ab1b4c08b
-100x30 Ansi256 Toolbars · Options 6942bb8ae936b1fa
+100x30 Ansi256 Toolbars · Options f473519d740fc781
 100x30 Ansi256 Toolbars · States 4d1a46f89c288fc3
 100x30 Ansi256 Basic table 7193a261e16e3de3
 100x30 Ansi256 Basic table · Options 34f31f225c46ad65
 100x30 Ansi256 Basic table · States b3dfba55554a0ba5
 100x30 Ansi256 Editable 92948a291c9c8a75
-100x30 Ansi256 Editable · Options ec29e999767bbf1c
+100x30 Ansi256 Editable · Options 05ffad3c032d3821
 100x30 Ansi256 Editable · States 36a9cf8b4214c5ab
 100x30 Ansi256 Data grid c45391634de6c54f
-100x30 Ansi256 Data grid · Options 8edf50ee448f81db
+100x30 Ansi256 Data grid · Options 8458e3d250b4e53f
 100x30 Ansi256 Data grid · States e6b8dd387ac34b7e
 100x30 Ansi256 Selection b48599c0f1cd78a9
-100x30 Ansi256 Selection · Options 8dd966f98517acef
+100x30 Ansi256 Selection · Options f672b9d2d8aa2ccf
 100x30 Ansi256 Selection · States 0291f853080f9e8c
 100x30 Ansi256 Cell editors 14420256195d02ec
-100x30 Ansi256 Cell editors · Options af412fbfed81e257
+100x30 Ansi256 Cell editors · Options 957ae0d3e0e65945
 100x30 Ansi256 Cell editors · States 6bca35d8d861f97b
 100x30 Ansi256 Columns a0ffb2fe72a02dda
-100x30 Ansi256 Columns · Options 187c49f7fdd8606a
-100x30 Ansi256 Columns · States e1c75057708c9e5b
-100x30 Ansi256 Lists e7acf1bdc4e99084
-100x30 Ansi256 Lists · Options aca543f40e267f06
-100x30 Ansi256 Lists · States 493ea6e68e4fd249
+100x30 Ansi256 Columns · Options 17656b473cd63a19
+100x30 Ansi256 Columns · States bbf3a9b701940b42
+100x30 Ansi256 Lists 85d487174c853a4b
+100x30 Ansi256 Lists · Options 10d99d4d36bacde0
+100x30 Ansi256 Lists · States bf121b4a29431dad
 100x30 Ansi256 Trees 5f5497f98fe23bf5
-100x30 Ansi256 Trees · Options fd6f78fac1e973ae
+100x30 Ansi256 Trees · Options f6279af24755037d
 100x30 Ansi256 Trees · States 279a78ae3243eb70
-100x30 Ansi256 Sidebars 134aef06e1a8bbc4
-100x30 Ansi256 Sidebars · Options ff9d2d93c65db324
-100x30 Ansi256 Sidebars · States b60ddc4dec99ad72
+100x30 Ansi256 Sidebars 2b3eef69bc5edd1d
+100x30 Ansi256 Sidebars · Options 987ef57f336ecbb4
+100x30 Ansi256 Sidebars · States 12dd75ea203c0fbe
 100x30 Ansi256 Tabs 7710f58d3fc8298d
-100x30 Ansi256 Tabs · Options 534954222f59a18f
+100x30 Ansi256 Tabs · Options 78d8eed0eac60656
 100x30 Ansi256 Tabs · States f42b2f41318743e8
 100x30 Ansi256 Menus 79b7c9c2cfc12894
-100x30 Ansi256 Menus · Options 1bdaaaaa807a0f8b
+100x30 Ansi256 Menus · Options 39183241cac37e69
 100x30 Ansi256 Menus · States e4f52ac165236df0
 100x30 Ansi256 Dialogs 274b3d857365f6ba
-100x30 Ansi256 Dialogs · Options 2056e7fcdd375d40
+100x30 Ansi256 Dialogs · Options d82b8e3a31acb10b
 100x30 Ansi256 Dialogs · States 2e47281db2076564
 100x30 Ansi256 Pickers 16c6ee78ab9d0d7a
-100x30 Ansi256 Pickers · Options d2fa330a65a94a9b
+100x30 Ansi256 Pickers · Options 3a18bb68f4140cd2
 100x30 Ansi256 Pickers · States f7fff1f09cbb308b
 100x30 Ansi256 Dialog kinds a33f8e86bbc8ad2c
-100x30 Ansi256 Dialog kinds · Options 0f870b50d591f0fa
-100x30 Ansi256 Dialog kinds · States e30ceee63173fca2
+100x30 Ansi256 Dialog kinds · Options c950898b87f61bfd
+100x30 Ansi256 Dialog kinds · States 158f52aef73a84d6
 100x30 Ansi256 Popups & tooltips 3faf83a845dc6890
-100x30 Ansi256 Popups & tooltips · Options b64fe592039768f1
+100x30 Ansi256 Popups & tooltips · Options 8ef2a16215f5615c
 100x30 Ansi256 Popups & tooltips · States 5d5f285281c61430
 100x30 Ansi256 File browser 19efc8d59ad9b3df
-100x30 Ansi256 File browser · Options e7cce7dbd0d3b205
-100x30 Ansi256 File browser · States 98b3400bb30b5c77
+100x30 Ansi256 File browser · Options 337599c2e67c6b48
+100x30 Ansi256 File browser · States a4d0dd4addd95f5b
 100x30 Ansi256 Progress b0747b0794edfb4d
-100x30 Ansi256 Progress · Options 160d8caed235b950
+100x30 Ansi256 Progress · Options 1be9f6582b865a89
 100x30 Ansi256 Progress · States 435f86265b1e9c84
 100x30 Ansi256 Empty & error e0ce339fc61f3c94
-100x30 Ansi256 Empty & error · Options 01f6430848496f66
+100x30 Ansi256 Empty & error · Options 3dc8b81ac51c60ab
 100x30 Ansi256 Empty & error · States 04c52cc8800cf74f
 100x30 Ansi256 Meters 9653c88c75ee434c
-100x30 Ansi256 Meters · Options 81072feecb3f80ff
+100x30 Ansi256 Meters · Options 224ca46b91610928
 100x30 Ansi256 Meters · States f56cf5a36be0fedb
 100x30 Ansi256 Notices ef971f4d11fb7906
-100x30 Ansi256 Notices · Options 86fd2669086b0ff5
+100x30 Ansi256 Notices · Options a2fec8f3e8f0b580
 100x30 Ansi256 Notices · States 533c3452ac447051
 100x30 Ansi256 Panels 3bd2168c87434328
-100x30 Ansi256 Panels · Options b611f36e37afb80d
+100x30 Ansi256 Panels · Options f0ca34ce31fc1cca
 100x30 Ansi256 Panels · States 50ac162365865a6d
 100x30 Ansi256 Scrolling 1ee379e37ce37a00
-100x30 Ansi256 Scrolling · Options c18fbfb0fc2329a5
+100x30 Ansi256 Scrolling · Options 2a0743690c523d05
 100x30 Ansi256 Scrolling · States 64bbbd35f0d060d8
 100x30 Ansi256 Splits & stacks 088758769c9544c3
 100x30 Ansi256 Splits & stacks · Options 25bb7c592fa7581c
 100x30 Ansi256 Splits & stacks · States 578b29f4e626b22f
 100x30 Ansi256 Master-detail 960597002b502792
-100x30 Ansi256 Master-detail · Options 3d3aff3c0998c383
+100x30 Ansi256 Master-detail · Options bedce46fa04f5f04
 100x30 Ansi256 Master-detail · States 64ee7b9489a4e714
 100x30 Ansi256 Pane tree 524c3c848b16d4ab
 100x30 Ansi256 Pane tree · Options 39baa34135c66ff2
 100x30 Ansi256 Pane tree · States 36f54ebf45f68004
 100x30 Ansi256 Code editor e5418a887c9457f1
-100x30 Ansi256 Code editor · Options 833df65d661019fe
+100x30 Ansi256 Code editor · Options b088f8d30b1c2162
 100x30 Ansi256 Code editor · States 2404f23fb747dc9c
 100x30 Ansi256 Diff 346fbc9693fc401a
 100x30 Ansi256 Diff · Options c8dc3cce673568b4
 100x30 Ansi256 Diff · States c26864a18f4b3bb9
 100x30 Ansi256 Terminal 5c9d6f1023688b14
-100x30 Ansi256 Terminal · Options a6b274ad010535ef
+100x30 Ansi256 Terminal · Options 30ad20f639516912
 100x30 Ansi256 Terminal · States fd7b136bd831e56c
 100x30 Ansi256 Text utilities 99b58875c140fc14
 100x30 Ansi256 Text utilities · Options 7775cd501f0c9cae
 100x30 Ansi256 Text utilities · States 76b167386e50a72b
-100x30 Ansi256 Settings 2a34773f3c5c6508
-100x30 Ansi256 Settings · Options d5b79d33c6892fe3
+100x30 Ansi256 Settings 643a29c9f148b686
+100x30 Ansi256 Settings · Options fc0cd1177a553730
 100x30 Ansi256 Settings · States a5ed23158a1b79d6
 100x30 Ansi256 Task runner f576811a71aeb8e9
-100x30 Ansi256 Task runner · Options c53c77ef24327bed
+100x30 Ansi256 Task runner · Options 3b65ba46e4daebee
 100x30 Ansi256 Task runner · States da3abba3e4132cf2
 100x30 Ansi256 Query workbench c69b169d8eb29294
-100x30 Ansi256 Query workbench · Options 87a2a532205b24fb
-100x30 Ansi256 Query workbench · States d46cb520b85f1da3
+100x30 Ansi256 Query workbench · Options ea1214f695dc289f
+100x30 Ansi256 Query workbench · States cfa35b01f2f36bd4
 100x30 Ansi256 Connections ab1ac56d770a3cbc
-100x30 Ansi256 Connections · Options 0e74e2810f5527d0
-100x30 Ansi256 Connections · States 8514a6a10ea3b0b8
+100x30 Ansi256 Connections · Options b61b59d4a3782f17
+100x30 Ansi256 Connections · States 8dafcf1c7e009ecb
 100x30 Ansi256 Finder 262b319c3f552800
-100x30 Ansi256 Finder · Options 61f0156cd8f0b137
-100x30 Ansi256 Finder · States 50a4421048ff1ee5
+100x30 Ansi256 Finder · Options 01f6e7d4c217acb2
+100x30 Ansi256 Finder · States 275060d043fb75e1
 100x30 Ansi256 Disk cleanup 31506888de37ee03
-100x30 Ansi256 Disk cleanup · Options 9401d1dc1f68d0b1
-100x30 Ansi256 Disk cleanup · States b02a4c4beee9dacd
+100x30 Ansi256 Disk cleanup · Options 0c0505168fbf2099
+100x30 Ansi256 Disk cleanup · States e36bd832d0136691
 100x30 Ansi256 Activity a36e89e1a70e415f
-100x30 Ansi256 Activity · Options dac2d090281dcfee
+100x30 Ansi256 Activity · Options 8d3ff13d0a60b98e
 100x30 Ansi256 Activity · States 36d65fe1d57b9c1c
 100x30 Ansi256 Workspaces 21f1f5278c11f3e3
-100x30 Ansi256 Workspaces · Options b50ccd8e71c2fb56
-100x30 Ansi256 Workspaces · States 13144ecd2c2470cf
+100x30 Ansi256 Workspaces · Options 4d8bc7d3c9714882
+100x30 Ansi256 Workspaces · States b4f469502165e29a
 100x30 Ansi256 Accounts & usage 80c634ac9d7624bc
-100x30 Ansi256 Accounts & usage · Options 18d9316914bb9a4c
+100x30 Ansi256 Accounts & usage · Options df771ba2816dcdbf
 100x30 Ansi256 Accounts & usage · States 5d51f5583c6fa338
 100x30 Ansi256 Launch cockpit ddd3df68fdfc803c
-100x30 Ansi256 Launch cockpit · Options 130efff4fc8c94ee
+100x30 Ansi256 Launch cockpit · Options edc2f2828ebfabcf
 100x30 Ansi256 Launch cockpit · States a44d238400458845
 100x30 Ansi256 Read-only report 65506a5b04235948
-100x30 Ansi256 Read-only report · Options d2babec8f4a87a61
+100x30 Ansi256 Read-only report · Options 6e64e1aa562ed263
 100x30 Ansi256 Read-only report · States af2e4d681854b339
 100x30 Ansi256 Inspector · State 2a687160b5d8f4c4
-100x30 Ansi256 Inspector · Options 1af6e782d40ecd0e
+100x30 Ansi256 Inspector · Options 7373ce834c3a904a
 100x30 Ansi16 Overview 7493de74409e04be
 100x30 Ansi16 Overview · Options 9980a95c35ddaff5
 100x30 Ansi16 Overview · States 284fc1e72d855b0a
 100x30 Ansi16 Chrome d59e65c47b65b9cf
-100x30 Ansi16 Chrome · Options 0a99ef77d7ccbbec
+100x30 Ansi16 Chrome · Options e50b47fae3322a0e
 100x30 Ansi16 Chrome · States 1dd25de35720ec05
 100x30 Ansi16 Status & hints 344442ce246e1414
 100x30 Ansi16 Status & hints · Options 433409808a8bf04f
 100x30 Ansi16 Status & hints · States c5b62142107e255f
 100x30 Ansi16 Breadcrumbs & rails 328e64fcc6a8679d
-100x30 Ansi16 Breadcrumbs & rails · Options b77f0d118434d90b
+100x30 Ansi16 Breadcrumbs & rails · Options 313d108885dc1d6d
 100x30 Ansi16 Breadcrumbs & rails · States 576b7b44fce2c9c1
 100x30 Ansi16 Help & keys 4f0ad3fe97f4cd82
 100x30 Ansi16 Help & keys · Options 58e03d691def8a98
 100x30 Ansi16 Help & keys · States 96d52b7ae604ebc8
 100x30 Ansi16 Quit & leave 354590de89a75e61
-100x30 Ansi16 Quit & leave · Options 2db7638b5ebbadc7
+100x30 Ansi16 Quit & leave · Options 8fed9118b333d18f
 100x30 Ansi16 Quit & leave · States dd4b78e5fa6f38be
 100x30 Ansi16 Focus & navigation afa363e56404bfc8
 100x30 Ansi16 Focus & navigation · Options 6e9a5f8afce817fa
 100x30 Ansi16 Focus & navigation · States b2de24864f9532c9
 100x30 Ansi16 Buttons 05291c804e6c4ad4
-100x30 Ansi16 Buttons · Options f03a72d53159c1c1
+100x30 Ansi16 Buttons · Options 244a526a24a7ce0d
 100x30 Ansi16 Buttons · States 8bc3260c3ebb6ebc
 100x30 Ansi16 Inputs a4c5b5096714840a
-100x30 Ansi16 Inputs · Options aa26cd24e1c32ab4
+100x30 Ansi16 Inputs · Options 2332382ae452523c
 100x30 Ansi16 Inputs · States 7cba4109c2ec91d0
 100x30 Ansi16 Text areas 60cee6de9a2be9fc
-100x30 Ansi16 Text areas · Options 22d3587ac35f04a7
+100x30 Ansi16 Text areas · Options 5177d1fd63365c49
 100x30 Ansi16 Text areas · States 9878c77282e12204
 100x30 Ansi16 Chips & selects 33492b9485be8928
-100x30 Ansi16 Chips & selects · Options f23c604b596732a7
+100x30 Ansi16 Chips & selects · Options 452f5f95ad3a9ca3
 100x30 Ansi16 Chips & selects · States 91ae14edcd7622dc
-100x30 Ansi16 Forms 648ab9901ee37678
-100x30 Ansi16 Forms · Options 88ef52e042b6ed91
+100x30 Ansi16 Forms 156702fd912a9f16
+100x30 Ansi16 Forms · Options 21a00b7f211f9515
 100x30 Ansi16 Forms · States b5f3c2df4eee337b
-100x30 Ansi16 Checks & radios faa7b3f7d67a0535
-100x30 Ansi16 Checks & radios · Options c306120bf6e27ce6
-100x30 Ansi16 Checks & radios · States 8a515279bf1b61b8
+100x30 Ansi16 Checks & radios ee7b0e5ca451b905
+100x30 Ansi16 Checks & radios · Options 2db5ab73d1c9b9dc
+100x30 Ansi16 Checks & radios · States 22eb18a56780a590
 100x30 Ansi16 Toolbars 5536fde5ae4e26dd
-100x30 Ansi16 Toolbars · Options 5454e111f53a1b3a
+100x30 Ansi16 Toolbars · Options 37658f87ddd91eb6
 100x30 Ansi16 Toolbars · States d5d4cb2fc59f3ab7
 100x30 Ansi16 Basic table 8e6a6fd687b75e1c
 100x30 Ansi16 Basic table · Options 6414df8ac3d78dd5
 100x30 Ansi16 Basic table · States bdf8ad96d97c4bc4
 100x30 Ansi16 Editable 267944846a4544ff
-100x30 Ansi16 Editable · Options c054901c2766436e
+100x30 Ansi16 Editable · Options 6ffd01e0161b9b4e
 100x30 Ansi16 Editable · States 54f0a822a958556b
 100x30 Ansi16 Data grid bf7e20dfa761847a
-100x30 Ansi16 Data grid · Options 52bc7bfa737366e4
+100x30 Ansi16 Data grid · Options 547421bb199b8f4c
 100x30 Ansi16 Data grid · States a36365d9539767cc
 100x30 Ansi16 Selection f672d60bd2a134b0
-100x30 Ansi16 Selection · Options f776301b6bc9f971
+100x30 Ansi16 Selection · Options adb021bbc52170e9
 100x30 Ansi16 Selection · States 4a1622939fbd428d
 100x30 Ansi16 Cell editors 325c7bbf9e6d7e47
-100x30 Ansi16 Cell editors · Options cfe3cfd0968d7320
+100x30 Ansi16 Cell editors · Options f030c5747fd5c55a
 100x30 Ansi16 Cell editors · States 64a090bbee1e177a
 100x30 Ansi16 Columns 8d9d20b4d0d5ab30
-100x30 Ansi16 Columns · Options 075f05256ef422a2
-100x30 Ansi16 Columns · States 5b62c75068cd9807
-100x30 Ansi16 Lists c2524d338078feff
-100x30 Ansi16 Lists · Options 382f74fb1620f962
-100x30 Ansi16 Lists · States 61549cc63c7b8fbc
+100x30 Ansi16 Columns · Options b8a442f2b9717dfe
+100x30 Ansi16 Columns · States c2095c7226014b41
+100x30 Ansi16 Lists 0014278b15831da9
+100x30 Ansi16 Lists · Options e49352d456e7527c
+100x30 Ansi16 Lists · States dff0c0dc337f484e
 100x30 Ansi16 Trees 2f8a54ef97f28135
-100x30 Ansi16 Trees · Options 68afe379ca19c252
+100x30 Ansi16 Trees · Options ed4449ee89ab498c
 100x30 Ansi16 Trees · States 78c80f5babb051e6
-100x30 Ansi16 Sidebars 21d6aa81cda246bc
-100x30 Ansi16 Sidebars · Options c142fa358c6c0403
-100x30 Ansi16 Sidebars · States 8f70ad96d36c915f
+100x30 Ansi16 Sidebars 3d894f62015ec64d
+100x30 Ansi16 Sidebars · Options 76d9b00bfb750b7d
+100x30 Ansi16 Sidebars · States 6c8958a8f8cb726d
 100x30 Ansi16 Tabs e92fbb83bee638e0
-100x30 Ansi16 Tabs · Options 664ebe8ce62a2fa8
+100x30 Ansi16 Tabs · Options e33ef377e5786f98
 100x30 Ansi16 Tabs · States 219ae04d898f368f
 100x30 Ansi16 Menus 11c16352f891e58e
-100x30 Ansi16 Menus · Options f67edbe08d8db45c
+100x30 Ansi16 Menus · Options 7d56a608a9924ea4
 100x30 Ansi16 Menus · States 16aaebf7fa777bdb
 100x30 Ansi16 Dialogs eb11d29abb6551c4
-100x30 Ansi16 Dialogs · Options 49d3bd320ed1e46e
+100x30 Ansi16 Dialogs · Options 665326c02ba9b2fa
 100x30 Ansi16 Dialogs · States a051168ed51a92f9
 100x30 Ansi16 Pickers a1265fcb0672346b
-100x30 Ansi16 Pickers · Options 9ea5941890e94fae
+100x30 Ansi16 Pickers · Options d47d9ec64999beec
 100x30 Ansi16 Pickers · States e449b9898b2cc272
 100x30 Ansi16 Dialog kinds 173bc19fcf70e61a
-100x30 Ansi16 Dialog kinds · Options ead65bfdf3da909f
-100x30 Ansi16 Dialog kinds · States 80820e0bdb5191ef
+100x30 Ansi16 Dialog kinds · Options c2f61d00cb492b9d
+100x30 Ansi16 Dialog kinds · States 6136cb9f257aad33
 100x30 Ansi16 Popups & tooltips b1c6805490b558a9
-100x30 Ansi16 Popups & tooltips · Options a0fac1641c1f58be
+100x30 Ansi16 Popups & tooltips · Options 80a02d4ea98c6746
 100x30 Ansi16 Popups & tooltips · States 3a357ebfbd3b871d
 100x30 Ansi16 File browser 2e6c9a2663a6d1b0
-100x30 Ansi16 File browser · Options d6522d351b79a0a2
-100x30 Ansi16 File browser · States edd948f5cdf60961
+100x30 Ansi16 File browser · Options dd855ecdbc862bc4
+100x30 Ansi16 File browser · States fc413d75e67d22f1
 100x30 Ansi16 Progress 1395d52a9ee9a117
-100x30 Ansi16 Progress · Options ea3876eecc81e66b
+100x30 Ansi16 Progress · Options 7c34a43b8184c9af
 100x30 Ansi16 Progress · States 8474f62e80a10fd8
 100x30 Ansi16 Empty & error afa4dcdd38312198
-100x30 Ansi16 Empty & error · Options 454a1dc3b78a1143
+100x30 Ansi16 Empty & error · Options 226929131b633faf
 100x30 Ansi16 Empty & error · States 9b6f5d345bd23922
 100x30 Ansi16 Meters 8f9c129a1c0ef879
-100x30 Ansi16 Meters · Options b59dfe5a7ec0b311
+100x30 Ansi16 Meters · Options 9b514aaf86595bc5
 100x30 Ansi16 Meters · States ef90088e65fcf11d
 100x30 Ansi16 Notices 33e5397abc09c3cb
-100x30 Ansi16 Notices · Options 12ba802d4f86fce0
+100x30 Ansi16 Notices · Options d8bc052baafea67c
 100x30 Ansi16 Notices · States c7055cbb03ca994a
 100x30 Ansi16 Panels c41a4f2d0f15bcd0
-100x30 Ansi16 Panels · Options 3781ce97ae76b0c0
+100x30 Ansi16 Panels · Options d008807cd23a428a
 100x30 Ansi16 Panels · States 050dc26d2c96df0d
 100x30 Ansi16 Scrolling 6c5bcb79ecba6767
-100x30 Ansi16 Scrolling · Options ce3b9a666e0253aa
+100x30 Ansi16 Scrolling · Options c2766661adf255e0
 100x30 Ansi16 Scrolling · States 1fe5272911af17eb
 100x30 Ansi16 Splits & stacks aaf96c840f91e592
 100x30 Ansi16 Splits & stacks · Options 7f4af70b965e08fa
 100x30 Ansi16 Splits & stacks · States 6e80cf1970615243
 100x30 Ansi16 Master-detail 577782e68131dafe
-100x30 Ansi16 Master-detail · Options 1107f93f3963bc55
+100x30 Ansi16 Master-detail · Options 130607b4552daecf
 100x30 Ansi16 Master-detail · States b21974cb36f72a2b
 100x30 Ansi16 Pane tree 56fe0edcb5094d04
 100x30 Ansi16 Pane tree · Options cb05943b83e87821
 100x30 Ansi16 Pane tree · States c4e6de651347f5e6
 100x30 Ansi16 Code editor 060a7c5d7c735f26
-100x30 Ansi16 Code editor · Options d9e85bc2534a0681
+100x30 Ansi16 Code editor · Options 2d5053490bbce78f
 100x30 Ansi16 Code editor · States 27b09d5a6d6d4e28
 100x30 Ansi16 Diff d39249796be6744a
 100x30 Ansi16 Diff · Options a44e4735ecf086f8
 100x30 Ansi16 Diff · States e6d73839f334e88c
 100x30 Ansi16 Terminal 0f58066d118abbe1
-100x30 Ansi16 Terminal · Options 79798807b612102d
+100x30 Ansi16 Terminal · Options d815981058a433a1
 100x30 Ansi16 Terminal · States 2fbade6c3176b7f9
 100x30 Ansi16 Text utilities f38b98165bf5b51b
 100x30 Ansi16 Text utilities · Options b9094ae70b15f846
 100x30 Ansi16 Text utilities · States fc69afe4c11b54f6
-100x30 Ansi16 Settings ba531db5a413982c
-100x30 Ansi16 Settings · Options 75cd17439e3cc1cb
+100x30 Ansi16 Settings e826242b9950b9a4
+100x30 Ansi16 Settings · Options b45518086f543373
 100x30 Ansi16 Settings · States 81734336303eccd7
 100x30 Ansi16 Task runner 2f2602fbd5c9210b
-100x30 Ansi16 Task runner · Options ce11e91f6fd89eb5
+100x30 Ansi16 Task runner · Options f58ee44cc3d872d5
 100x30 Ansi16 Task runner · States 3448b965ef337ca2
 100x30 Ansi16 Query workbench 0f8124edf45045d3
-100x30 Ansi16 Query workbench · Options e2aea8616e7056f9
-100x30 Ansi16 Query workbench · States 0cd4047339381371
+100x30 Ansi16 Query workbench · Options 8b56fc79805a6ae7
+100x30 Ansi16 Query workbench · States f33387a2fc47ca4d
 100x30 Ansi16 Connections f3c303e17b55672b
-100x30 Ansi16 Connections · Options 9fc36f6571f86694
-100x30 Ansi16 Connections · States 8e8b9b37b1768c33
+100x30 Ansi16 Connections · Options 3358a5964c61e968
+100x30 Ansi16 Connections · States 4c96e7a847b95179
 100x30 Ansi16 Finder c387a1b1650b97eb
-100x30 Ansi16 Finder · Options 2625c34da8134cea
-100x30 Ansi16 Finder · States 62abbb9f4b713a89
+100x30 Ansi16 Finder · Options 6a64fa72abdf3924
+100x30 Ansi16 Finder · States 9732f0a5373e1c77
 100x30 Ansi16 Disk cleanup 2044197c6aa5ed79
-100x30 Ansi16 Disk cleanup · Options bb30d7fb53fdf5c8
-100x30 Ansi16 Disk cleanup · States 0b390a1dec2b478e
+100x30 Ansi16 Disk cleanup · Options b091307f336156ac
+100x30 Ansi16 Disk cleanup · States b228a3d8b4e7ac8a
 100x30 Ansi16 Activity e353f8680635534b
-100x30 Ansi16 Activity · Options 69261a3ecdb5e5c0
+100x30 Ansi16 Activity · Options a9193df0ade69bc2
 100x30 Ansi16 Activity · States 076eeb10d03818b9
 100x30 Ansi16 Workspaces c903f2b641a4be3d
-100x30 Ansi16 Workspaces · Options 2b6a82c26f916ec5
-100x30 Ansi16 Workspaces · States 507c0186f6386bac
+100x30 Ansi16 Workspaces · Options b892a1c1df526443
+100x30 Ansi16 Workspaces · States ef63c2fc747e6f8a
 100x30 Ansi16 Accounts & usage e10ea2a74136c970
-100x30 Ansi16 Accounts & usage · Options 948ef7492b83ba40
+100x30 Ansi16 Accounts & usage · Options 3746adef4c3a549e
 100x30 Ansi16 Accounts & usage · States 8aacdaa29e9e1cfc
 100x30 Ansi16 Launch cockpit 30d50b1d1a5438e8
-100x30 Ansi16 Launch cockpit · Options 38d3dadd8914921e
+100x30 Ansi16 Launch cockpit · Options 213bcbb6183d220a
 100x30 Ansi16 Launch cockpit · States 6d8e7d13d72a3885
 100x30 Ansi16 Read-only report 227fb9e44183f063
-100x30 Ansi16 Read-only report · Options 83d5898c85178715
+100x30 Ansi16 Read-only report · Options 8262bcf40647955d
 100x30 Ansi16 Read-only report · States 553823b77efc07ff
 100x30 Ansi16 Inspector · State a74583b6f86fb9fa
-100x30 Ansi16 Inspector · Options c4528d4b86d9e46f
+100x30 Ansi16 Inspector · Options 583e6cf29d6202ca
 100x30 Mono Overview f45fe8976c5dbba4
 100x30 Mono Overview · Options a16ac3e0a98ddccc
 100x30 Mono Overview · States 0ed6ddbea15e7e43
@@ -2524,9 +2524,9 @@
 100x30 Mono Trees cbf7341e033d915c
 100x30 Mono Trees · Options e02de9db3a3eba5b
 100x30 Mono Trees · States df941074ccdc6443
-100x30 Mono Sidebars 1f02f62569d3024b
+100x30 Mono Sidebars 2ea9f13722e80a50
 100x30 Mono Sidebars · Options f10e316cf3e6d41c
-100x30 Mono Sidebars · States 37b1a7e3d91e9726
+100x30 Mono Sidebars · States b7ecd83f99ea1b06
 100x30 Mono Tabs 707995e4cf113598
 100x30 Mono Tabs · Options 1a2bf771ac5e39e5
 100x30 Mono Tabs · States 3489bb6422b301aa
@@ -2621,499 +2621,499 @@
 100x30 Mono Read-only report · Options e53eafbd698c1cfc
 100x30 Mono Read-only report · States b51156a5f492a011
 100x30 Mono Inspector · State 1337e9c9133dd630
-100x30 Mono Inspector · Options 6ed48c45406673e4
+100x30 Mono Inspector · Options 0d0e0163fed14c99
 160x50 TrueColor Overview 066d88b253361a1d
 160x50 TrueColor Overview · Options a055878c271822bf
-160x50 TrueColor Overview · States 94bc1bfda8f58d30
+160x50 TrueColor Overview · States 774ab4d561c94200
 160x50 TrueColor Chrome 4fbb21da3825f049
-160x50 TrueColor Chrome · Options 002765eb8051b951
+160x50 TrueColor Chrome · Options b7b18df4d0004d49
 160x50 TrueColor Chrome · States d77216412411a5ec
 160x50 TrueColor Status & hints 406b6ace7ddc5ef5
 160x50 TrueColor Status & hints · Options 27000eb2e1f7c402
 160x50 TrueColor Status & hints · States 567d1a9e91c3d42f
 160x50 TrueColor Breadcrumbs & rails 5070555075f34ae9
-160x50 TrueColor Breadcrumbs & rails · Options 72720239c30c7796
+160x50 TrueColor Breadcrumbs & rails · Options f448defd23c2809c
 160x50 TrueColor Breadcrumbs & rails · States a381894aa3422cc3
 160x50 TrueColor Help & keys a541946a10bfb971
 160x50 TrueColor Help & keys · Options 9f203c0b181cff40
 160x50 TrueColor Help & keys · States 8b0055c35e2b5dc0
 160x50 TrueColor Quit & leave 6562ac2308619366
-160x50 TrueColor Quit & leave · Options 377e7cc257afb9c0
+160x50 TrueColor Quit & leave · Options d6ba4c221a40ea13
 160x50 TrueColor Quit & leave · States b6b0610b32adcd87
 160x50 TrueColor Focus & navigation 688e8cc642165802
 160x50 TrueColor Focus & navigation · Options 54de01da86f81fbc
 160x50 TrueColor Focus & navigation · States 968a921568e68180
 160x50 TrueColor Buttons 71c91a0dfc68605b
-160x50 TrueColor Buttons · Options a7b9f1b610849ba3
+160x50 TrueColor Buttons · Options 02f45b3e89f224dc
 160x50 TrueColor Buttons · States e8746bd247c6fc31
 160x50 TrueColor Inputs dbad63972f4a5950
-160x50 TrueColor Inputs · Options 87a75ab1e4171d4a
+160x50 TrueColor Inputs · Options 94363bf881b51ffc
 160x50 TrueColor Inputs · States 76d88feaf9abb826
 160x50 TrueColor Text areas a5437ed387bfa04e
-160x50 TrueColor Text areas · Options c7d92995f8abd128
+160x50 TrueColor Text areas · Options 53148fa010330451
 160x50 TrueColor Text areas · States 8430ac7760b19c92
 160x50 TrueColor Chips & selects 19475a49ab0714a2
-160x50 TrueColor Chips & selects · Options bbd7f7f62362072f
+160x50 TrueColor Chips & selects · Options 2235bb72f2623e16
 160x50 TrueColor Chips & selects · States 285e5820b79fb403
-160x50 TrueColor Forms 4496066d5dec4e83
-160x50 TrueColor Forms · Options 1b753406d1f3e293
+160x50 TrueColor Forms b37c343aa2b225fd
+160x50 TrueColor Forms · Options 67946c5f7c722505
 160x50 TrueColor Forms · States a7072956cee34bdd
-160x50 TrueColor Checks & radios 86bcc19f1de9d87c
-160x50 TrueColor Checks & radios · Options 331eddafa3593f7f
-160x50 TrueColor Checks & radios · States 280974520db01f2b
+160x50 TrueColor Checks & radios 975a81b2f7d7e746
+160x50 TrueColor Checks & radios · Options b177a6446f1cc3aa
+160x50 TrueColor Checks & radios · States 1f19e9f5e246cda3
 160x50 TrueColor Toolbars 2bf660b0f7929f10
-160x50 TrueColor Toolbars · Options deb5beedb2189e71
+160x50 TrueColor Toolbars · Options c5b46756a0863536
 160x50 TrueColor Toolbars · States c8fcab50218ac199
-160x50 TrueColor Basic table 36be393b82d19659
+160x50 TrueColor Basic table 4fe99ab556585a9c
 160x50 TrueColor Basic table · Options 5599bfe059c63269
-160x50 TrueColor Basic table · States 2d343755270b3131
+160x50 TrueColor Basic table · States dabef147b04c8ce4
 160x50 TrueColor Editable 1d339a29680bfc69
-160x50 TrueColor Editable · Options f535b883e252d12f
+160x50 TrueColor Editable · Options bf22eb6ca45c652a
 160x50 TrueColor Editable · States b624be2f3dbf80d9
 160x50 TrueColor Data grid 72d7f44df346cf50
-160x50 TrueColor Data grid · Options bb5b491096cc1a3b
-160x50 TrueColor Data grid · States 534538491ad5434f
+160x50 TrueColor Data grid · Options b4ea553ce11df01d
+160x50 TrueColor Data grid · States 47fc35b1276b5792
 160x50 TrueColor Selection 9866015d38937330
-160x50 TrueColor Selection · Options cee088f7b0eb0646
-160x50 TrueColor Selection · States 4fdf9b98d6593ff0
+160x50 TrueColor Selection · Options 74a5326f0db821b4
+160x50 TrueColor Selection · States 0ee1e92926ac417f
 160x50 TrueColor Cell editors ae4b08f6d97af4df
-160x50 TrueColor Cell editors · Options 84aeb880bc09f2c0
+160x50 TrueColor Cell editors · Options 5b95a6829680cf90
 160x50 TrueColor Cell editors · States 654bc1f1a4c48085
 160x50 TrueColor Columns e751a04a56bb4bb1
-160x50 TrueColor Columns · Options 640e70fe7a03e010
-160x50 TrueColor Columns · States ddf6b7b8df46ddb5
-160x50 TrueColor Lists 0a1c55d5c2d724ce
-160x50 TrueColor Lists · Options 05ff37c6b89647ef
-160x50 TrueColor Lists · States 7fd395ff6ee65abc
+160x50 TrueColor Columns · Options 32a7e789160dd4ed
+160x50 TrueColor Columns · States 91d02b12c8241fb9
+160x50 TrueColor Lists b6f4103295c79a33
+160x50 TrueColor Lists · Options 5dfb30850f86d005
+160x50 TrueColor Lists · States 8402e83ffa8090e6
 160x50 TrueColor Trees a8f5a2546cc2bf22
-160x50 TrueColor Trees · Options d7fd47c7a863f619
-160x50 TrueColor Trees · States aa8065bb48a5b686
-160x50 TrueColor Sidebars e79be5a60fc1255e
-160x50 TrueColor Sidebars · Options e47e5c19d5ec9322
-160x50 TrueColor Sidebars · States a4509c17306e675c
+160x50 TrueColor Trees · Options fb5f9c581759f532
+160x50 TrueColor Trees · States 2a20a0d26f6c31d7
+160x50 TrueColor Sidebars 9b1ca32c5fa9a00c
+160x50 TrueColor Sidebars · Options 90bf7a4681ebfdae
+160x50 TrueColor Sidebars · States cad80c463f9b8e2a
 160x50 TrueColor Tabs 6fef64de0915e161
-160x50 TrueColor Tabs · Options e6f87d26fa529a61
+160x50 TrueColor Tabs · Options 7cdda3e568a38c83
 160x50 TrueColor Tabs · States a90f038cfa615a90
 160x50 TrueColor Menus a3062ebcf03775a6
-160x50 TrueColor Menus · Options 56fab8ce00297591
+160x50 TrueColor Menus · Options 65027e06aa1cad9e
 160x50 TrueColor Menus · States 34c728947605cb66
 160x50 TrueColor Dialogs 71a7b620e876ea7c
-160x50 TrueColor Dialogs · Options 04befdb4d20929f0
+160x50 TrueColor Dialogs · Options 046bddcb81fda780
 160x50 TrueColor Dialogs · States 04d8f21dec85344a
 160x50 TrueColor Pickers 7d3c5e381e9b28b8
-160x50 TrueColor Pickers · Options 17fc8f657b60f23d
+160x50 TrueColor Pickers · Options 839ed177256019a6
 160x50 TrueColor Pickers · States 36325a105903bf8e
 160x50 TrueColor Dialog kinds d556261e2f9fd63a
-160x50 TrueColor Dialog kinds · Options 359d13ebb3cc0624
-160x50 TrueColor Dialog kinds · States 2fb0d02906b23eb0
+160x50 TrueColor Dialog kinds · Options dfbfa92e559acc31
+160x50 TrueColor Dialog kinds · States ded35b922b57c97c
 160x50 TrueColor Popups & tooltips fee4eb851bac223d
-160x50 TrueColor Popups & tooltips · Options 39a898aee0355b16
+160x50 TrueColor Popups & tooltips · Options 48c5031e4aa3babe
 160x50 TrueColor Popups & tooltips · States e6f09084366cfb3c
 160x50 TrueColor File browser 02d6a2a2880ee23a
-160x50 TrueColor File browser · Options a836fc953334939a
-160x50 TrueColor File browser · States 54c4d52ba70a589e
+160x50 TrueColor File browser · Options 01646df8e0519811
+160x50 TrueColor File browser · States 3fab667046690fc3
 160x50 TrueColor Progress ee7617f8fd9b522f
-160x50 TrueColor Progress · Options 0452a084ae04128d
+160x50 TrueColor Progress · Options 66150323e315535e
 160x50 TrueColor Progress · States 9cdff6f5fa7010dd
 160x50 TrueColor Empty & error 79c7643202cdf546
-160x50 TrueColor Empty & error · Options b83bbd86b6dd4c09
+160x50 TrueColor Empty & error · Options b4a9a33433aab122
 160x50 TrueColor Empty & error · States 424cfa089eb4cf91
 160x50 TrueColor Meters e2023180daddfda3
-160x50 TrueColor Meters · Options 3c1c4b00807ab9d1
+160x50 TrueColor Meters · Options b8b32302370b1afc
 160x50 TrueColor Meters · States 48c3f3b931114dbd
 160x50 TrueColor Notices 599642614e164a27
-160x50 TrueColor Notices · Options 6681bfc8a06ca756
+160x50 TrueColor Notices · Options 053f3dc8d06f80d5
 160x50 TrueColor Notices · States 92b383f7427799f3
 160x50 TrueColor Panels 519065734d0defc3
-160x50 TrueColor Panels · Options a88c80246f0fe88a
+160x50 TrueColor Panels · Options 835614fccc651711
 160x50 TrueColor Panels · States a81fdbedd7d93dfd
 160x50 TrueColor Scrolling b96ae88091933c05
-160x50 TrueColor Scrolling · Options eb867024bf3101df
+160x50 TrueColor Scrolling · Options 6f7fb98c104702d3
 160x50 TrueColor Scrolling · States 385d5780988accd7
 160x50 TrueColor Splits & stacks cc1b782cc0c56392
 160x50 TrueColor Splits & stacks · Options 1a13aa71777353b8
 160x50 TrueColor Splits & stacks · States 3cfe4fe5a60e1e6f
 160x50 TrueColor Master-detail 436934c9a04bd2d4
-160x50 TrueColor Master-detail · Options 7084f463cc2e7b9e
+160x50 TrueColor Master-detail · Options f2095831ab11acd7
 160x50 TrueColor Master-detail · States b0fe4f1746c0cb7e
 160x50 TrueColor Pane tree 8a3f534244b7be46
 160x50 TrueColor Pane tree · Options c81020c521be408e
 160x50 TrueColor Pane tree · States 29b714c40c17a86e
 160x50 TrueColor Code editor 207f880880343a91
-160x50 TrueColor Code editor · Options f1679475effb1f97
+160x50 TrueColor Code editor · Options 8f2fd49c45c15551
 160x50 TrueColor Code editor · States d56e2e4db78e1d1b
 160x50 TrueColor Diff 73db93d4a1ef792c
 160x50 TrueColor Diff · Options 6df75e16cd0cf447
 160x50 TrueColor Diff · States a2bfd13c92249d40
 160x50 TrueColor Terminal bd8e498d519e4380
-160x50 TrueColor Terminal · Options a907aca44beef7ef
+160x50 TrueColor Terminal · Options 0effe1d4338a52c0
 160x50 TrueColor Terminal · States ef389076a65d5938
 160x50 TrueColor Text utilities 1f75084f2acbdb0d
 160x50 TrueColor Text utilities · Options 5184c5843f13ba23
 160x50 TrueColor Text utilities · States 25b5d2e6af80c7c2
-160x50 TrueColor Settings b199ebf3119e45ae
-160x50 TrueColor Settings · Options ed1c186caecaf232
-160x50 TrueColor Settings · States e0ed6a735cc477cb
+160x50 TrueColor Settings 2e065a33dc2a7e2a
+160x50 TrueColor Settings · Options c67f90af97594af7
+160x50 TrueColor Settings · States b84d26e7b2372dd3
 160x50 TrueColor Task runner 97a0ea01aaf20f2f
-160x50 TrueColor Task runner · Options 1c25d3fc546e1f66
-160x50 TrueColor Task runner · States e78c57fb3b8567ad
+160x50 TrueColor Task runner · Options 2b772e07da21e69f
+160x50 TrueColor Task runner · States 35cc2386ddcac9e9
 160x50 TrueColor Query workbench 095f0f5f895959fb
-160x50 TrueColor Query workbench · Options 9a0f17c0397dc465
-160x50 TrueColor Query workbench · States ece2218807c0815e
+160x50 TrueColor Query workbench · Options a8df691dfa977e93
+160x50 TrueColor Query workbench · States efc616b0e333e16d
 160x50 TrueColor Connections da7b8625f083501f
-160x50 TrueColor Connections · Options c2b95601d4608f86
-160x50 TrueColor Connections · States 147634f3ebba1fcf
+160x50 TrueColor Connections · Options c3bb0806e83318c5
+160x50 TrueColor Connections · States 2f35807b9617909f
 160x50 TrueColor Finder 217ea644aa76511b
-160x50 TrueColor Finder · Options c677c988cc3d9a37
-160x50 TrueColor Finder · States a7c7c0678db393cf
-160x50 TrueColor Disk cleanup 3def65b13c358f0f
-160x50 TrueColor Disk cleanup · Options 11c4c62d53054175
-160x50 TrueColor Disk cleanup · States 57c0b4c8b57386bc
+160x50 TrueColor Finder · Options fecfcbc7c4d33f22
+160x50 TrueColor Finder · States 7554aafa89203c5e
+160x50 TrueColor Disk cleanup 456b68413959e7dd
+160x50 TrueColor Disk cleanup · Options 41e67fd733f4b2e1
+160x50 TrueColor Disk cleanup · States 50e6328af05863e5
 160x50 TrueColor Activity b69de6a43276f5cf
-160x50 TrueColor Activity · Options 54764e69c555b8c1
+160x50 TrueColor Activity · Options 32f90d2d39778d77
 160x50 TrueColor Activity · States fb34b8809da6217c
 160x50 TrueColor Workspaces 666f556a7da7e230
-160x50 TrueColor Workspaces · Options 60baaa911300117d
-160x50 TrueColor Workspaces · States cd30561f16f934d5
+160x50 TrueColor Workspaces · Options 23ed3997dfb93a5f
+160x50 TrueColor Workspaces · States 95d3a95cb5b96d31
 160x50 TrueColor Accounts & usage a9603547c4eae1a0
-160x50 TrueColor Accounts & usage · Options 9a1a4e2a0e948634
+160x50 TrueColor Accounts & usage · Options 4b380ca43ccf7bd9
 160x50 TrueColor Accounts & usage · States 09679727a7281154
 160x50 TrueColor Launch cockpit 6cf23b00951be064
-160x50 TrueColor Launch cockpit · Options ff4086f5749feda0
+160x50 TrueColor Launch cockpit · Options 6e9a44097922489f
 160x50 TrueColor Launch cockpit · States 5d5cc4831b2083c0
 160x50 TrueColor Read-only report 9cda9350f0347e0a
-160x50 TrueColor Read-only report · Options e10ac83903028181
+160x50 TrueColor Read-only report · Options 128e28be8c7471ff
 160x50 TrueColor Read-only report · States e46fad4347e22186
 160x50 TrueColor Inspector · State 31f873e6741f2317
-160x50 TrueColor Inspector · Options 1cdb65cc95cfc408
+160x50 TrueColor Inspector · Options 63e085ba80867af8
 160x50 Ansi256 Overview 0b8300ef9a5d26ad
 160x50 Ansi256 Overview · Options cfcba3a9e30d6e1e
-160x50 Ansi256 Overview · States b87c31c9ac8d9bcf
+160x50 Ansi256 Overview · States 9c21a5536edca643
 160x50 Ansi256 Chrome e3189dd0bbbe7964
-160x50 Ansi256 Chrome · Options a4945745a37c9c0f
+160x50 Ansi256 Chrome · Options bb62640f97523105
 160x50 Ansi256 Chrome · States ed3986900b1b8d6a
 160x50 Ansi256 Status & hints 378dd42767ff949a
 160x50 Ansi256 Status & hints · Options 6666b99d70a8ccc3
 160x50 Ansi256 Status & hints · States d7d4fe36bc19db0b
 160x50 Ansi256 Breadcrumbs & rails d2a704be266537fa
-160x50 Ansi256 Breadcrumbs & rails · Options fcd97ff98b1e8c54
+160x50 Ansi256 Breadcrumbs & rails · Options 2a379ab92d0ada90
 160x50 Ansi256 Breadcrumbs & rails · States e8af7cfb0dfb3b69
 160x50 Ansi256 Help & keys cf77717d11399176
 160x50 Ansi256 Help & keys · Options 64760d5af4e6b99c
 160x50 Ansi256 Help & keys · States 333416045ee7ad6f
 160x50 Ansi256 Quit & leave 47ebabb7dcb5be47
-160x50 Ansi256 Quit & leave · Options 80974dbcef72dc05
+160x50 Ansi256 Quit & leave · Options 156f2a5ced04298c
 160x50 Ansi256 Quit & leave · States 675ac1163f1475bc
 160x50 Ansi256 Focus & navigation c5fa6ca0835bc5e5
 160x50 Ansi256 Focus & navigation · Options c0f0edec0b602c67
 160x50 Ansi256 Focus & navigation · States f2fc857be789aff3
 160x50 Ansi256 Buttons 5a14a77600debb88
-160x50 Ansi256 Buttons · Options 3ce7ea94d9977afb
+160x50 Ansi256 Buttons · Options f7baf9d261fa9d5c
 160x50 Ansi256 Buttons · States ca7bb7d863a1f0a1
 160x50 Ansi256 Inputs 9c358cede857a9a4
-160x50 Ansi256 Inputs · Options 1f50243aed3e4020
+160x50 Ansi256 Inputs · Options 31fbf9ceb98f8a96
 160x50 Ansi256 Inputs · States 474677061dedbf01
 160x50 Ansi256 Text areas 74dd708a5f068dde
-160x50 Ansi256 Text areas · Options 15de215f7fff30c1
+160x50 Ansi256 Text areas · Options a4140fe0a21d1b94
 160x50 Ansi256 Text areas · States 535ec85a747d67eb
 160x50 Ansi256 Chips & selects b3991f963e7a9ae2
-160x50 Ansi256 Chips & selects · Options 48a9ecd001c66f15
+160x50 Ansi256 Chips & selects · Options d948b66fb0be486a
 160x50 Ansi256 Chips & selects · States c33d7d9cc14e2c96
-160x50 Ansi256 Forms b17e35fb82964bc3
-160x50 Ansi256 Forms · Options 4c36247ff8467032
+160x50 Ansi256 Forms 00e2d670f39ca555
+160x50 Ansi256 Forms · Options e4d2fb348dabfacc
 160x50 Ansi256 Forms · States 6b557150d63f129a
-160x50 Ansi256 Checks & radios 7c535fb469351045
-160x50 Ansi256 Checks & radios · Options 575219ce3a74348b
-160x50 Ansi256 Checks & radios · States a5916b17269bf4df
+160x50 Ansi256 Checks & radios 9ab27c9b41ec1b19
+160x50 Ansi256 Checks & radios · Options c40f223189daf762
+160x50 Ansi256 Checks & radios · States f8f913293a41cc09
 160x50 Ansi256 Toolbars 23b0680c466ffc78
-160x50 Ansi256 Toolbars · Options 85b3ea5992797533
+160x50 Ansi256 Toolbars · Options 81ad2f25e9585ee6
 160x50 Ansi256 Toolbars · States 2f88370a3e287242
-160x50 Ansi256 Basic table db38cbc88a1b0122
+160x50 Ansi256 Basic table 348246dcc2c48dd5
 160x50 Ansi256 Basic table · Options c8090e8b1b6fa87c
-160x50 Ansi256 Basic table · States 212685d4e2c96c44
+160x50 Ansi256 Basic table · States 73f00fc5384bc6a8
 160x50 Ansi256 Editable 8bf698b48f62cf1c
-160x50 Ansi256 Editable · Options c8fe6db8967e87e1
+160x50 Ansi256 Editable · Options ad7b084ccec5a934
 160x50 Ansi256 Editable · States 4379afed0b378615
 160x50 Ansi256 Data grid 53cb7ddaaa5725e0
-160x50 Ansi256 Data grid · Options 4183017dcc73551a
-160x50 Ansi256 Data grid · States 8caccb6b5d1b2b23
+160x50 Ansi256 Data grid · Options e340a53719a5a50a
+160x50 Ansi256 Data grid · States 491880ccef4d8d8b
 160x50 Ansi256 Selection 7edd89a19ea070d2
-160x50 Ansi256 Selection · Options 92a56120db7464de
-160x50 Ansi256 Selection · States 5272fdd1216cd986
+160x50 Ansi256 Selection · Options d558412b3baa253e
+160x50 Ansi256 Selection · States 6065610a90efa27e
 160x50 Ansi256 Cell editors 7d476f8654c86ef2
-160x50 Ansi256 Cell editors · Options b5452b3dec97c506
+160x50 Ansi256 Cell editors · Options aa893ba6a0a842d6
 160x50 Ansi256 Cell editors · States 7671e6abaedde423
 160x50 Ansi256 Columns 0f81ea293fa1da38
-160x50 Ansi256 Columns · Options 8c1251d8965c7d25
-160x50 Ansi256 Columns · States d71f4ade77ad6908
-160x50 Ansi256 Lists 853b48bdd6c7f15c
-160x50 Ansi256 Lists · Options 8507ddf6097172ad
-160x50 Ansi256 Lists · States 407fa6460c0db542
+160x50 Ansi256 Columns · Options 783c50ee07699996
+160x50 Ansi256 Columns · States ea3965bdfb5f85c8
+160x50 Ansi256 Lists 20b76d3702768a53
+160x50 Ansi256 Lists · Options aa64765f7e7174f9
+160x50 Ansi256 Lists · States 668e88a5a162a716
 160x50 Ansi256 Trees c457e0eddf5baba0
-160x50 Ansi256 Trees · Options def083d76c4ee31f
-160x50 Ansi256 Trees · States e579ea84d7bdb1f6
-160x50 Ansi256 Sidebars 8c374ac11ea67f4b
-160x50 Ansi256 Sidebars · Options a54048a01eb8abe9
-160x50 Ansi256 Sidebars · States 28d7ec47a44c5728
+160x50 Ansi256 Trees · Options 5eb3617f54f04ad6
+160x50 Ansi256 Trees · States af6d6bbd074596dd
+160x50 Ansi256 Sidebars 7dc3d570218a7b5a
+160x50 Ansi256 Sidebars · Options 31dc634be73fcb89
+160x50 Ansi256 Sidebars · States 7ed9c85d941702d5
 160x50 Ansi256 Tabs ade4c3d273356596
-160x50 Ansi256 Tabs · Options f15e43a88579e25e
+160x50 Ansi256 Tabs · Options be9df33f4ff28a38
 160x50 Ansi256 Tabs · States 572f8010b766a115
 160x50 Ansi256 Menus 71574f03263d8cad
-160x50 Ansi256 Menus · Options 638837f3ca2e7ef4
+160x50 Ansi256 Menus · Options 2e13853be7b7f87f
 160x50 Ansi256 Menus · States 5ad7a667126394fb
 160x50 Ansi256 Dialogs 0f83885bc81b29af
-160x50 Ansi256 Dialogs · Options 4c40078ce0775d29
+160x50 Ansi256 Dialogs · Options 72b46ee0594420e7
 160x50 Ansi256 Dialogs · States d747a5be13e4fecb
 160x50 Ansi256 Pickers d78c45db930fdaad
-160x50 Ansi256 Pickers · Options 679371aebe0540f0
+160x50 Ansi256 Pickers · Options 78c1c025eb12076f
 160x50 Ansi256 Pickers · States c3e0f28f28b063a4
 160x50 Ansi256 Dialog kinds 28a213c4321920be
-160x50 Ansi256 Dialog kinds · Options a27dd373493e8ae4
-160x50 Ansi256 Dialog kinds · States 55056134f0cae580
+160x50 Ansi256 Dialog kinds · Options 0475c28ff465ce47
+160x50 Ansi256 Dialog kinds · States 12474662cb630890
 160x50 Ansi256 Popups & tooltips 3279c65f34194055
-160x50 Ansi256 Popups & tooltips · Options c3308c6965d20777
+160x50 Ansi256 Popups & tooltips · Options 767c2fa66ebd8117
 160x50 Ansi256 Popups & tooltips · States 84654622d14a17ff
 160x50 Ansi256 File browser c79fda05bb71713e
-160x50 Ansi256 File browser · Options 7101b9b39e429b60
-160x50 Ansi256 File browser · States 6b961859c89fe5e0
+160x50 Ansi256 File browser · Options 203cb95ed86b87c9
+160x50 Ansi256 File browser · States ed701f5352ca44bc
 160x50 Ansi256 Progress 47a64e04d4dd6f71
-160x50 Ansi256 Progress · Options 823a684523d24277
+160x50 Ansi256 Progress · Options 17f423924927db5c
 160x50 Ansi256 Progress · States c5c9d1ae5bbd24c8
 160x50 Ansi256 Empty & error a13c05a93c6a2415
-160x50 Ansi256 Empty & error · Options 9b1d839aa58fb0d9
+160x50 Ansi256 Empty & error · Options 55fded93a75c2b12
 160x50 Ansi256 Empty & error · States 4f4d4093c7aa03b5
 160x50 Ansi256 Meters 0c00a3c1127574e2
-160x50 Ansi256 Meters · Options c9a1fad2840c2caa
+160x50 Ansi256 Meters · Options eec7a5a69c167711
 160x50 Ansi256 Meters · States f15b33762d7a540e
 160x50 Ansi256 Notices e3543b7b093e9ae5
-160x50 Ansi256 Notices · Options fb7126367c015306
+160x50 Ansi256 Notices · Options d6c7869f50fba1b3
 160x50 Ansi256 Notices · States 76d26af393df27fe
 160x50 Ansi256 Panels dd1924c06e4bb54e
-160x50 Ansi256 Panels · Options 516890d3e3f14999
+160x50 Ansi256 Panels · Options f8dee26b52fcf32a
 160x50 Ansi256 Panels · States 9817f3120bc0bdd6
 160x50 Ansi256 Scrolling 3442d24d079cd87b
-160x50 Ansi256 Scrolling · Options 04da28b2aa5b7ee8
+160x50 Ansi256 Scrolling · Options 74320cb2ffcb9b30
 160x50 Ansi256 Scrolling · States a8e85d3d4a97eb0c
 160x50 Ansi256 Splits & stacks 2080b56eac3acb82
 160x50 Ansi256 Splits & stacks · Options b636f2dea9047ebf
 160x50 Ansi256 Splits & stacks · States d6a30bf63207f33b
 160x50 Ansi256 Master-detail 9702fbf5c65364dc
-160x50 Ansi256 Master-detail · Options 2fef2eac64a98242
+160x50 Ansi256 Master-detail · Options acd70f876d5ba2ad
 160x50 Ansi256 Master-detail · States dd17b144894d7719
 160x50 Ansi256 Pane tree 738a4076f285612c
 160x50 Ansi256 Pane tree · Options c235a1f0c85fb916
 160x50 Ansi256 Pane tree · States 3e30be86e1918b5a
 160x50 Ansi256 Code editor a65728f769883e85
-160x50 Ansi256 Code editor · Options da7294333ff2ba96
+160x50 Ansi256 Code editor · Options 545f08a77768fffe
 160x50 Ansi256 Code editor · States 7bc87c93b73a6c88
 160x50 Ansi256 Diff d6dc4339ec4168a4
 160x50 Ansi256 Diff · Options bcb9beef31e3a2e4
 160x50 Ansi256 Diff · States 1a501db6f29f287a
 160x50 Ansi256 Terminal 5b8299d05a723aeb
-160x50 Ansi256 Terminal · Options 435f0ab7ff903b2d
+160x50 Ansi256 Terminal · Options ed824a271dcf8f32
 160x50 Ansi256 Terminal · States ab81cfbb10f515d2
 160x50 Ansi256 Text utilities d0e5ecb8ba5110a9
 160x50 Ansi256 Text utilities · Options 207d0508d029c582
 160x50 Ansi256 Text utilities · States 972e7a2d3241ca58
-160x50 Ansi256 Settings 301ca3d01ab321ce
-160x50 Ansi256 Settings · Options 63ac3c568008781e
-160x50 Ansi256 Settings · States ecc08d297a823c4b
+160x50 Ansi256 Settings 3aaaded7dd271cfa
+160x50 Ansi256 Settings · Options 5aec68ae791f0f07
+160x50 Ansi256 Settings · States b78f938a22a394e2
 160x50 Ansi256 Task runner 73a8e4091b2e3d57
-160x50 Ansi256 Task runner · Options 747645ac1f9ff44e
-160x50 Ansi256 Task runner · States 37e898d22862f59b
+160x50 Ansi256 Task runner · Options 201cbee4b5ba7eb1
+160x50 Ansi256 Task runner · States 699563c6977ed95c
 160x50 Ansi256 Query workbench 0494098ba8badb48
-160x50 Ansi256 Query workbench · Options 3ce03b2fbcbc72ec
-160x50 Ansi256 Query workbench · States 9ca5c120054cf149
+160x50 Ansi256 Query workbench · Options 04776edc9676a134
+160x50 Ansi256 Query workbench · States 554d1dea9a2912ad
 160x50 Ansi256 Connections 2de12e5c1357fdf4
-160x50 Ansi256 Connections · Options 5303bcd2e280e2f3
-160x50 Ansi256 Connections · States 669dba8a3588da24
+160x50 Ansi256 Connections · Options ab4d80ed588d53c6
+160x50 Ansi256 Connections · States 626b5ce8091b14f5
 160x50 Ansi256 Finder a224b2fc28469358
-160x50 Ansi256 Finder · Options 8f95b66dd8da4f1a
-160x50 Ansi256 Finder · States 733d616158ce8759
-160x50 Ansi256 Disk cleanup 027700206b51c0ec
-160x50 Ansi256 Disk cleanup · Options e689c0cd591558bf
-160x50 Ansi256 Disk cleanup · States c831645f952dca8b
+160x50 Ansi256 Finder · Options 6634b0ad289ccbb3
+160x50 Ansi256 Finder · States d208cd9eec158cb5
+160x50 Ansi256 Disk cleanup 84a0e4da64501fe4
+160x50 Ansi256 Disk cleanup · Options bbf5f05db2635985
+160x50 Ansi256 Disk cleanup · States 9e08736dd206298f
 160x50 Ansi256 Activity da09edb81c9c01f2
-160x50 Ansi256 Activity · Options a977b4a27ed44d59
+160x50 Ansi256 Activity · Options a8d9e638642d9295
 160x50 Ansi256 Activity · States 6ebaca0f63ed441c
 160x50 Ansi256 Workspaces 9995113d38165750
-160x50 Ansi256 Workspaces · Options 61ecf6cf6dfcda82
-160x50 Ansi256 Workspaces · States a6d52557d8c1da5e
+160x50 Ansi256 Workspaces · Options 326ce3fa74834442
+160x50 Ansi256 Workspaces · States 328ed1ab4f7a0d11
 160x50 Ansi256 Accounts & usage 80aab487e06fa07b
-160x50 Ansi256 Accounts & usage · Options d0561aa8d5132558
+160x50 Ansi256 Accounts & usage · Options cfcd84898216e0bb
 160x50 Ansi256 Accounts & usage · States 0897e32e1c2226f0
 160x50 Ansi256 Launch cockpit 129c3a8e4fd90f7f
-160x50 Ansi256 Launch cockpit · Options 8b9f939c8f6fd9d2
+160x50 Ansi256 Launch cockpit · Options a733921ef21e8463
 160x50 Ansi256 Launch cockpit · States 217196d6399ed14e
 160x50 Ansi256 Read-only report 9e90ce4e1b7b43ea
-160x50 Ansi256 Read-only report · Options 091014ddb93d6009
+160x50 Ansi256 Read-only report · Options 38bfdf55cf77ab8b
 160x50 Ansi256 Read-only report · States 87f9960554451911
 160x50 Ansi256 Inspector · State 82798e3653b059f3
-160x50 Ansi256 Inspector · Options 25d7cdd936d7edc7
+160x50 Ansi256 Inspector · Options 6a4c31a18f6295c7
 160x50 Ansi16 Overview 3951fe12328a367e
 160x50 Ansi16 Overview · Options 973d673a37af28eb
 160x50 Ansi16 Overview · States d56309baa57103bb
 160x50 Ansi16 Chrome c43b66fe9e87015e
-160x50 Ansi16 Chrome · Options 19892c00d6b8f821
+160x50 Ansi16 Chrome · Options 376438adf1a35aeb
 160x50 Ansi16 Chrome · States 9e636b8cdaf38c0b
 160x50 Ansi16 Status & hints e1297d5ad0efb8e6
 160x50 Ansi16 Status & hints · Options eba30b5492944bab
 160x50 Ansi16 Status & hints · States 0a6c3e5b50d6f4ce
 160x50 Ansi16 Breadcrumbs & rails a124f54b5581d9f0
-160x50 Ansi16 Breadcrumbs & rails · Options 51b896a308f8f47c
+160x50 Ansi16 Breadcrumbs & rails · Options 673a68b1cb2cda76
 160x50 Ansi16 Breadcrumbs & rails · States 52a5076fc582269d
 160x50 Ansi16 Help & keys 18a8d6f5a0f32342
 160x50 Ansi16 Help & keys · Options 032a02b02ba8659c
 160x50 Ansi16 Help & keys · States c097b8b2ad809b45
 160x50 Ansi16 Quit & leave 90766caa47461ae4
-160x50 Ansi16 Quit & leave · Options 364c32b631f3a040
+160x50 Ansi16 Quit & leave · Options ac528aeff4d62b14
 160x50 Ansi16 Quit & leave · States a8c9de9cd9a940c1
 160x50 Ansi16 Focus & navigation 5e874c734aac1023
 160x50 Ansi16 Focus & navigation · Options 07629ef3432c2039
 160x50 Ansi16 Focus & navigation · States 31bdc812de477ee5
 160x50 Ansi16 Buttons 616901fa6ecf6619
-160x50 Ansi16 Buttons · Options 2480bfab53c6bd57
+160x50 Ansi16 Buttons · Options 89a13872c1e165cb
 160x50 Ansi16 Buttons · States eb7a15793a5c6101
 160x50 Ansi16 Inputs fb0674f2fc41bc21
-160x50 Ansi16 Inputs · Options 3c18dd605240c8ac
+160x50 Ansi16 Inputs · Options 0e899b3291a7564a
 160x50 Ansi16 Inputs · States 54eefbc67e9a9995
 160x50 Ansi16 Text areas e888a4cd4dd2015f
-160x50 Ansi16 Text areas · Options 2776766529c9f15a
+160x50 Ansi16 Text areas · Options 43d86526eaae08b0
 160x50 Ansi16 Text areas · States 21b5b620cfdd911b
 160x50 Ansi16 Chips & selects 0f7ad16d3caf4812
-160x50 Ansi16 Chips & selects · Options c43d4f8f5b960804
+160x50 Ansi16 Chips & selects · Options 5a6e53993143c04e
 160x50 Ansi16 Chips & selects · States 211748c2ecfa527a
-160x50 Ansi16 Forms 4374c1e59a3965aa
-160x50 Ansi16 Forms · Options e89f132ad22ad17b
+160x50 Ansi16 Forms e611ff13104fd492
+160x50 Ansi16 Forms · Options c34af8590fa6855b
 160x50 Ansi16 Forms · States 00ea6d3281c4bde8
-160x50 Ansi16 Checks & radios 8885f45bbecf1559
-160x50 Ansi16 Checks & radios · Options 3cc82dfd252120e3
-160x50 Ansi16 Checks & radios · States 4a94045cd1b89ccf
+160x50 Ansi16 Checks & radios e99c99422ebafbf5
+160x50 Ansi16 Checks & radios · Options ad334f99cc41e1f7
+160x50 Ansi16 Checks & radios · States 681bb8477c4f19b5
 160x50 Ansi16 Toolbars 3f1986bffe396174
-160x50 Ansi16 Toolbars · Options d55ac3a33a8c4a16
+160x50 Ansi16 Toolbars · Options 02625b790c7e990c
 160x50 Ansi16 Toolbars · States e05d3898f00a6a9d
-160x50 Ansi16 Basic table 629accf05ff0daa0
+160x50 Ansi16 Basic table 4c54cbcbbf39e056
 160x50 Ansi16 Basic table · Options 1e85338eccd4e4c1
-160x50 Ansi16 Basic table · States f9e86b00da6f2d28
+160x50 Ansi16 Basic table · States 45933fcfa0933d3a
 160x50 Ansi16 Editable b5514b0951b3800b
-160x50 Ansi16 Editable · Options 86007ed0329d8511
+160x50 Ansi16 Editable · Options 0d9781cd0581c3e3
 160x50 Ansi16 Editable · States 18392d80c47ce8ba
 160x50 Ansi16 Data grid 5ccba069d749e2f1
-160x50 Ansi16 Data grid · Options 66eaa6ce99a71574
-160x50 Ansi16 Data grid · States e45119ce9e17d826
+160x50 Ansi16 Data grid · Options 4519951bc93e1d14
+160x50 Ansi16 Data grid · States c7c317186112e830
 160x50 Ansi16 Selection e75e6b765a31bc1b
-160x50 Ansi16 Selection · Options 2dc5ba89d614ac53
-160x50 Ansi16 Selection · States 2e6bb99c0b4c3839
+160x50 Ansi16 Selection · Options 2edbd843113312b5
+160x50 Ansi16 Selection · States 281ce66e432b93b3
 160x50 Ansi16 Cell editors 3aa87575ae236856
-160x50 Ansi16 Cell editors · Options eb74169e86e1f16a
+160x50 Ansi16 Cell editors · Options a577b311f14e33e2
 160x50 Ansi16 Cell editors · States 71191b9c1a742c30
 160x50 Ansi16 Columns 9dee0d32cb5cc5ca
-160x50 Ansi16 Columns · Options 4fc56a133bc1c36c
-160x50 Ansi16 Columns · States fad490282bb84a7c
-160x50 Ansi16 Lists d6c397a40681983f
-160x50 Ansi16 Lists · Options 27df5aa76880ec1d
-160x50 Ansi16 Lists · States 52408924f025b8f1
+160x50 Ansi16 Columns · Options 6ef030464036dbe0
+160x50 Ansi16 Columns · States 26357472c8026046
+160x50 Ansi16 Lists e07f17a84d6b62fd
+160x50 Ansi16 Lists · Options 5a30f70100987b67
+160x50 Ansi16 Lists · States bedcb4e4fa31db53
 160x50 Ansi16 Trees 0d7a60851036be18
-160x50 Ansi16 Trees · Options 42882db2c0089f56
-160x50 Ansi16 Trees · States 98d4c5f81ac39704
-160x50 Ansi16 Sidebars 87bd7aa569e36329
-160x50 Ansi16 Sidebars · Options 1a0cb3144a7aef3c
-160x50 Ansi16 Sidebars · States d294dc1ff4d63f0b
+160x50 Ansi16 Trees · Options 4e36149ddba3a56a
+160x50 Ansi16 Trees · States 2cae1edbe67facdc
+160x50 Ansi16 Sidebars 156400bbf2fc8bc6
+160x50 Ansi16 Sidebars · Options 5dffb21d814baef2
+160x50 Ansi16 Sidebars · States f692e004a61d9224
 160x50 Ansi16 Tabs f9c6fc1e4cdd0075
-160x50 Ansi16 Tabs · Options 234e39bedc9a16c5
+160x50 Ansi16 Tabs · Options e9c246f275037bc7
 160x50 Ansi16 Tabs · States d3f6c46590ce5817
 160x50 Ansi16 Menus 2088127868ca3f8c
-160x50 Ansi16 Menus · Options f63b1a0228a75662
+160x50 Ansi16 Menus · Options 3e14dcd3ce86dae8
 160x50 Ansi16 Menus · States 859487d0be68ecc2
 160x50 Ansi16 Dialogs 3e77d89caec7c03f
-160x50 Ansi16 Dialogs · Options 46b8776a392314ad
+160x50 Ansi16 Dialogs · Options 5d1ea89fcde59345
 160x50 Ansi16 Dialogs · States 7f68ffc7c92752d3
 160x50 Ansi16 Pickers 502fa0855a58d4dc
-160x50 Ansi16 Pickers · Options b8b823d35d5c35c5
+160x50 Ansi16 Pickers · Options 3867bd7dc88aff81
 160x50 Ansi16 Pickers · States 15e834fba8b52931
 160x50 Ansi16 Dialog kinds 03bc596a9ae32f30
-160x50 Ansi16 Dialog kinds · Options 6ef9e4466eb9cf90
-160x50 Ansi16 Dialog kinds · States 8a17c03494b7ee6c
+160x50 Ansi16 Dialog kinds · Options 19796c4708097b7a
+160x50 Ansi16 Dialog kinds · States 9bc95076e3377790
 160x50 Ansi16 Popups & tooltips f36f024bc1010d7a
-160x50 Ansi16 Popups & tooltips · Options 962fbfdd4c9d53b1
+160x50 Ansi16 Popups & tooltips · Options e5a377325b27098d
 160x50 Ansi16 Popups & tooltips · States 700eef964735899c
 160x50 Ansi16 File browser 4bd4447c877b27dc
-160x50 Ansi16 File browser · Options d699fb5785c6e5ba
-160x50 Ansi16 File browser · States 9a73e3844ca8410e
+160x50 Ansi16 File browser · Options 6f8c23b4cc7ef72e
+160x50 Ansi16 File browser · States 7975011c595e55f6
 160x50 Ansi16 Progress 33d29b0fa94d965b
-160x50 Ansi16 Progress · Options ab568e8d0f3edead
+160x50 Ansi16 Progress · Options 0bd93915c45bb3a1
 160x50 Ansi16 Progress · States 66aef7cabeb94747
 160x50 Ansi16 Empty & error 209c73fc77a6c30e
-160x50 Ansi16 Empty & error · Options 199e4a8d503881c3
+160x50 Ansi16 Empty & error · Options 42b93721b9b530ef
 160x50 Ansi16 Empty & error · States 2ec6e6101b696e1b
 160x50 Ansi16 Meters 2bd5cc77942af80c
-160x50 Ansi16 Meters · Options eecee14d6e07eaa4
+160x50 Ansi16 Meters · Options ca789817f6f192a6
 160x50 Ansi16 Meters · States bc772418309889da
 160x50 Ansi16 Notices b31543ddf2883e49
-160x50 Ansi16 Notices · Options ecdb1656791a2158
+160x50 Ansi16 Notices · Options a96b938f999b76b6
 160x50 Ansi16 Notices · States 19439c54ab104fe4
 160x50 Ansi16 Panels 170c4faca6469d6a
-160x50 Ansi16 Panels · Options 5f6f738f8912529a
+160x50 Ansi16 Panels · Options 9159a96a03573e24
 160x50 Ansi16 Panels · States 1b254e30a6e13bfa
 160x50 Ansi16 Scrolling 170e4fddbf38b130
-160x50 Ansi16 Scrolling · Options a709828c14a10a7b
+160x50 Ansi16 Scrolling · Options c52cb316938cb9ed
 160x50 Ansi16 Scrolling · States e1103e3f29985f9a
 160x50 Ansi16 Splits & stacks fbdb37c97f1b8ad8
 160x50 Ansi16 Splits & stacks · Options 1fe91e1294bbae90
 160x50 Ansi16 Splits & stacks · States 621a038ee831df7e
 160x50 Ansi16 Master-detail 6cdfd1b9ca8d4220
-160x50 Ansi16 Master-detail · Options 5176d2a92be0d465
+160x50 Ansi16 Master-detail · Options a0e4c0f5e6628507
 160x50 Ansi16 Master-detail · States 3e9b578c9db50981
 160x50 Ansi16 Pane tree bd1bba2d673863c4
 160x50 Ansi16 Pane tree · Options 63cc1d183fdc85c1
 160x50 Ansi16 Pane tree · States 02e515c5248b7cb0
 160x50 Ansi16 Code editor aa44e0067d24f17d
-160x50 Ansi16 Code editor · Options 09153b1c9cb03d9b
+160x50 Ansi16 Code editor · Options 815429216b65d9eb
 160x50 Ansi16 Code editor · States c2a5fca093b501d9
 160x50 Ansi16 Diff 0f7e3b4d7d24b48a
 160x50 Ansi16 Diff · Options d5354b66b46ea69f
 160x50 Ansi16 Diff · States 47e8de77499b0616
 160x50 Ansi16 Terminal 1479a8a3dae32513
-160x50 Ansi16 Terminal · Options 512c7f8b41223802
+160x50 Ansi16 Terminal · Options ae4989cbf99cf46e
 160x50 Ansi16 Terminal · States 8fa0bc1f2b7f7885
 160x50 Ansi16 Text utilities 660c5aa44c9ba105
 160x50 Ansi16 Text utilities · Options dc86883c076db7b1
 160x50 Ansi16 Text utilities · States 5ca8b4428535ed32
-160x50 Ansi16 Settings 666070d3c2ffe351
-160x50 Ansi16 Settings · Options 227d89a8607300a7
-160x50 Ansi16 Settings · States 921ffa28c964af8b
+160x50 Ansi16 Settings 33215f1e3d8cd135
+160x50 Ansi16 Settings · Options 8c47c2f4f8be9a9d
+160x50 Ansi16 Settings · States 9e4faecbf5c1da4f
 160x50 Ansi16 Task runner c7f25b68203c35d7
-160x50 Ansi16 Task runner · Options 4fd049df92c37c05
-160x50 Ansi16 Task runner · States 905039a2670138d5
+160x50 Ansi16 Task runner · Options 080c34dd7fd164c1
+160x50 Ansi16 Task runner · States d5dd86d930f95acf
 160x50 Ansi16 Query workbench 0f2268f218cb7489
-160x50 Ansi16 Query workbench · Options 8140b144ac41aaa9
-160x50 Ansi16 Query workbench · States eed835d14d911840
+160x50 Ansi16 Query workbench · Options e26d28434e60e309
+160x50 Ansi16 Query workbench · States e5b8f0d9f2d43f04
 160x50 Ansi16 Connections 23d3b585cdf503dc
-160x50 Ansi16 Connections · Options 47f19c080fb61819
-160x50 Ansi16 Connections · States 8634072959655e3f
+160x50 Ansi16 Connections · Options a83b0a2cc0954e2f
+160x50 Ansi16 Connections · States 2618aea21b803569
 160x50 Ansi16 Finder 2859bcb58cd5d513
-160x50 Ansi16 Finder · Options 0cbd345e15343a32
-160x50 Ansi16 Finder · States 61576f8b13b9ffe9
-160x50 Ansi16 Disk cleanup 9c1d93b34d03687a
-160x50 Ansi16 Disk cleanup · Options 78c19dabb3b1bda9
-160x50 Ansi16 Disk cleanup · States 615d8f238cc92548
+160x50 Ansi16 Finder · Options 319b40886d0cf4f4
+160x50 Ansi16 Finder · States a84c26aafbbfc65b
+160x50 Ansi16 Disk cleanup b0114b3a51a68368
+160x50 Ansi16 Disk cleanup · Options aa90419cbff081c7
+160x50 Ansi16 Disk cleanup · States 3d516ae3caa7a2c4
 160x50 Ansi16 Activity da2081dc8ce9f3fb
-160x50 Ansi16 Activity · Options 3dc0a57eb3e36ca8
+160x50 Ansi16 Activity · Options e891db91ff290678
 160x50 Ansi16 Activity · States 9ff824a554d2f7f3
 160x50 Ansi16 Workspaces 9a5a74316e491c2a
-160x50 Ansi16 Workspaces · Options 751389896e546139
-160x50 Ansi16 Workspaces · States 620b435dd7ef37c6
+160x50 Ansi16 Workspaces · Options a0955960a4cdf9b9
+160x50 Ansi16 Workspaces · States 2984847468424134
 160x50 Ansi16 Accounts & usage f9753fa89cec1159
-160x50 Ansi16 Accounts & usage · Options b57b16c761df5581
+160x50 Ansi16 Accounts & usage · Options 39552382071ece83
 160x50 Ansi16 Accounts & usage · States d52b4eb709a7eded
 160x50 Ansi16 Launch cockpit cf82231177b83073
-160x50 Ansi16 Launch cockpit · Options 0175b8cda21d27f2
+160x50 Ansi16 Launch cockpit · Options 5a5d41f6d819beae
 160x50 Ansi16 Launch cockpit · States 556dc0172432612d
 160x50 Ansi16 Read-only report 7e07b80106cafab2
-160x50 Ansi16 Read-only report · Options 81af164ee3eb91cb
+160x50 Ansi16 Read-only report · Options cc3f6c6bf9621b75
 160x50 Ansi16 Read-only report · States ef68561d2cd1d217
 160x50 Ansi16 Inspector · State 5ebb1e0cfd43c009
-160x50 Ansi16 Inspector · Options e49b2d46b0c8bd6a
+160x50 Ansi16 Inspector · Options e0bfcb30f8fc5041
 160x50 Mono Overview 713d4d258b936b08
 160x50 Mono Overview · Options 9ebc98a5b2a8e134
 160x50 Mono Overview · States 3fa20cd263c34568
@@ -3180,9 +3180,9 @@
 160x50 Mono Trees 5b669e36793d15c0
 160x50 Mono Trees · Options b70c8afd8821dce5
 160x50 Mono Trees · States a229ce1e83754f10
-160x50 Mono Sidebars 7bee49a3fa6d16fa
+160x50 Mono Sidebars ae54f6b105bcf53b
 160x50 Mono Sidebars · Options 69563f448459024b
-160x50 Mono Sidebars · States f1f147c2c9023d5e
+160x50 Mono Sidebars · States 37c7cfd2534a2c51
 160x50 Mono Tabs a5683f87b1dfd89f
 160x50 Mono Tabs · Options 6afd74e3b76c92bc
 160x50 Mono Tabs · States f6da5bca039697ca
@@ -3277,4 +3277,4 @@
 160x50 Mono Read-only report · Options a7f766c47d49e64a
 160x50 Mono Read-only report · States 41476cc4bc6c6635
 160x50 Mono Inspector · State ebfe26d9daf93127
-160x50 Mono Inspector · Options 60cf509739485c55
+160x50 Mono Inspector · Options 85e324736905130c

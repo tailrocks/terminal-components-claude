@@ -891,3 +891,26 @@ fn a_short_forms_page_scrolls_its_column_to_the_focused_control() {
     assert_eq!(h.app.shell.focus.current(), Some(submit));
     assert!(h.find("Create task").is_some(), "{}", h.text());
 }
+
+/// A checked box keeps its accent ink after focus moves on (owner
+/// decision 2026-10-17, `InactiveSelection`); `neutral` and `none` give
+/// it primary ink when unfocused.
+#[test]
+fn checks_a_checked_box_keeps_its_accent_when_focus_leaves() {
+    let t = Theme::junie();
+    let mut h = Harness::new(120, 40, PageId::ChecksRadios);
+    let (x, y) = h.at("[–] Select all rows");
+    h.click(x + 5, y);
+    let ink = |h: &Harness| {
+        let cell = &h.term.backend().buffer()[(x + 1, y)];
+        assert_eq!(cell.symbol(), "✓");
+        cell.fg
+    };
+    assert_eq!(ink(&h), t.accent, "focused");
+    h.key(KeyCode::Tab);
+    assert_eq!(ink(&h), t.accent, "unfocused: still the accent");
+    h.opt("shell.inactive_selection=neutral");
+    assert_eq!(ink(&h), t.text_primary, "neutral");
+    h.opt("shell.inactive_selection=none");
+    assert_eq!(ink(&h), t.text_primary, "none");
+}

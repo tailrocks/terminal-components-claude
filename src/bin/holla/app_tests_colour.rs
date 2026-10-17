@@ -159,7 +159,12 @@ fn a_checked_cleanup_category_is_primary_until_its_list_has_focus() {
     assert_eq!(cell(&h, x + 1, y).fg, t.accent, "focused: {}", h.row(y));
     h.key(KeyCode::Tab);
     assert_ne!(h.app.shell.focus.current(), Some(list));
-    assert_eq!(cell(&h, x + 1, y).fg, t.text_primary, "{}", h.row(y));
+    assert_eq!(
+        cell(&h, x + 1, y).fg,
+        t.accent,
+        "kept (InactiveSelection::Accent): {}",
+        h.row(y)
+    );
 }
 
 #[test]
