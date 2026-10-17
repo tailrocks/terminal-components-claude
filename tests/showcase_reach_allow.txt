@@ -36,32 +36,10 @@ Columns | Playground | 80x24 | R19 squeezes instead of overflowing: no Page::mea
 Columns | Playground | 100x25 | R19 squeezes instead of overflowing: no Page::measure yet
 Columns | Playground | 106x29 | R19 squeezes instead of overflowing: no Page::measure yet
 Columns | Playground | 120x40 | R19 squeezes instead of overflowing: no Page::measure yet
-Lists | Playground | 80x24 | R20 squeezes instead of overflowing: no Page::measure yet
-Lists | Playground | 100x25 | R20 squeezes instead of overflowing: no Page::measure yet
-Lists | Playground | 106x29 | R20 squeezes instead of overflowing: no Page::measure yet
-Lists | Playground | 120x40 | R20 squeezes instead of overflowing: no Page::measure yet
-Trees | Playground | 80x24 | R21 squeezes instead of overflowing: no Page::measure yet
-Trees | Playground | 100x25 | R21 squeezes instead of overflowing: no Page::measure yet
-Trees | Playground | 106x29 | R21 squeezes instead of overflowing: no Page::measure yet
-Tabs | Playground | 80x24 | R22 squeezes instead of overflowing: no Page::measure yet
-Tabs | Playground | 100x25 | R22 squeezes instead of overflowing: no Page::measure yet
-Tabs | Playground | 106x29 | R22 squeezes instead of overflowing: no Page::measure yet
-Tabs | Playground | 120x40 | R22 squeezes instead of overflowing: no Page::measure yet
-Dialogs | Playground | 80x24 | R24 squeezes instead of overflowing: no Page::measure yet
-Dialogs | Playground | 100x25 | R24 squeezes instead of overflowing: no Page::measure yet
-Dialogs | Playground | 106x29 | R24 squeezes instead of overflowing: no Page::measure yet
-Pickers | Playground | 80x24 | R25 squeezes instead of overflowing: no Page::measure yet
-Pickers | Playground | 100x25 | R25 squeezes instead of overflowing: no Page::measure yet
-Pickers | Playground | 106x29 | R25 squeezes instead of overflowing: no Page::measure yet
-Pickers | Playground | 120x40 | R25 squeezes instead of overflowing: no Page::measure yet
-DialogKinds | Playground | 80x24 | R26 squeezes instead of overflowing: no Page::measure yet
-DialogKinds | Playground | 100x25 | R26 squeezes instead of overflowing: no Page::measure yet
-DialogKinds | Playground | 106x29 | R26 squeezes instead of overflowing: no Page::measure yet
-DialogKinds | Playground | 120x40 | R26 squeezes instead of overflowing: no Page::measure yet
-PopupsTooltips | Playground | 80x24 | R27 squeezes instead of overflowing: no Page::measure yet
-PopupsTooltips | Playground | 100x25 | R27 squeezes instead of overflowing: no Page::measure yet
-PopupsTooltips | Playground | 106x29 | R27 squeezes instead of overflowing: no Page::measure yet
-PopupsTooltips | Playground | 120x40 | R27 squeezes instead of overflowing: no Page::measure yet
+Tabs | Playground | 80x24 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
+Tabs | Playground | 100x25 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
+Tabs | Playground | 106x29 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
+Tabs | Playground | 120x40 | R22 the editor strip overflows on purpose (tabs.count=many): its tabs past the window are reached by its ‹N N› window, the wheel and its +N menu, which the reach gate does not drive
 Panels | Playground | 80x24 | R33 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 100x25 | R33 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 106x29 | R33 squeezes instead of overflowing: no Page::measure yet

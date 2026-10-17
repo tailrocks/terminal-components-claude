@@ -18,10 +18,11 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
-use ratatui::layout::{Margin, Rect};
+use ratatui::layout::{Margin, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::row_menu::{MENU_HINTS, RowMenu};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
@@ -31,10 +32,12 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::{Backdrop, RenderCtx};
+use junie_tui::ui::measure::{Measure, Tile, Tiled, tiles};
 use junie_tui::ui::modal::Frame;
 use junie_tui::ui::popup::{self, Dismiss, Overflow, Place, Placement, RefuseFeedback, VAlign};
 use junie_tui::ui::reveal::{Reveal, RevealMode, RevealState};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::ui::tooltip::{Tip, Tooltips};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::icon_button::IconButton;
@@ -314,10 +317,52 @@ impl PopupsTooltipsPage {
         ]
     }
 
+    /// The popover and tooltip cards side by side (stacked when they do
+    /// not fit), the reveal card, the policies; each never narrower than
+    /// its content. `measure` and `render_playground` share it.
+    fn tiled(&self, width: u16, screen: Rect, ctx: &RenderCtx) -> Tiled {
+        let w = |s: &str| text::width(s) as u16;
+        let pop = Panel::card(Some("Popover")).meta("click · Enter");
+        let tips = Panel::card(Some("Tooltips")).meta("rest the pointer");
+        let reveal = Panel::card(Some("Reveal")).meta(REVEAL_META);
+        let policies = Panel::card(Some("Policies")).meta(POLICIES_META);
+        let facts: Vec<Prop> = self.readout(screen).into_iter().map(Prop::wrap).collect();
+        let status = self.status.measure(Size::new(0, 1), ctx).width;
+        let tips_w = tips
+            .outer(Size::new(
+                (self.save.width() + 2 + self.new_tab.width())
+                    .max(status)
+                    .max(w(GRID_NOTE)),
+                0,
+            ))
+            .width;
+        let pop_w = pop
+            .outer(Size::new(self.open.width().max(POP_NOTE_W), 0))
+            .width;
+        let pop_h = |w: u16| {
+            let inner = pop.inner(Size::new(w, 0)).width;
+            let rows = text::wrap(POP_NOTE, inner.max(1) as usize).len() as u16;
+            pop.outer(Size::new(inner, 2 + rows)).height
+        };
+        let tips_h = |_: u16| tips.outer(Size::new(0, 5)).height;
+        let reveal_h = |_: u16| REVEAL_H;
+        let policies_h = |w: u16| sheet_height(&policies, &facts, w);
+        tiles(
+            width,
+            &[
+                &[Tile::new(pop_w, &pop_h), Tile::new(tips_w, &tips_h)],
+                &[Tile::new(reveal.outer(Size::new(44, 0)).width, &reveal_h)],
+                &[Tile::new(sheet_width(&policies, &facts), &policies_h)],
+            ],
+            (2, 1),
+        )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let rows = crate::pages::layout::rows(area, &[7, 1, 8, 1, 0]);
-        let (left, right) = crate::pages::layout::columns(rows[0], rows[0].width / 2, 2);
+        let screen = *buf.area();
+        let tiled = self.tiled(area.width, screen, ctx);
+        let (left, right) = (tiled.at(0, area), tiled.at(1, area));
 
         let panel = Panel::card(Some("Popover")).meta("click · Enter");
         let bg = panel.bg(t);
@@ -325,10 +370,8 @@ impl PopupsTooltipsPage {
         let bw = self.open.width().min(inner.width);
         self.open
             .render(Rect::new(inner.x, inner.y, bw, 1), buf, ctx, bg);
-        let note = "A menu anchored to its button: placement, fit and dismissal are options.";
-        for (i, line) in junie_tui::ui::text::wrap(note, inner.width as usize)
+        for (i, line) in junie_tui::ui::text::wrap(POP_NOTE, inner.width.max(1) as usize)
             .iter()
-            .take(inner.height.saturating_sub(2) as usize)
             .enumerate()
         {
             buf.set_string(inner.x, inner.y + 2 + i as u16, line, t.muted().bg(bg));
@@ -356,32 +399,38 @@ impl PopupsTooltipsPage {
             buf.set_string(
                 inner.x,
                 inner.y + 4,
-                junie_tui::ui::text::truncate(
-                    "Grid headers show their column type the same way (Data grid).",
-                    inner.width as usize,
-                ),
+                junie_tui::ui::text::truncate(GRID_NOTE, inner.width as usize),
                 t.muted().bg(bg),
             );
         }
         ctx.tooltips = app_tooltips;
 
-        let panel = Panel::card(Some("Reveal")).meta("cut rows · hover or the reveal key");
+        let panel = Panel::card(Some("Reveal")).meta(REVEAL_META);
         let bg = panel.bg(t);
-        let inner = panel.render(rows[2], buf, t);
+        let inner = panel.render(tiled.at(2, area), buf, t);
         let w = inner.width.min(44);
         self.paths
             .render(Rect::new(inner.x, inner.y, w, inner.height), buf, ctx, bg);
 
-        let panel = Panel::card(Some("Policies")).meta("read back from the page's builders");
+        let panel = Panel::card(Some("Policies")).meta(POLICIES_META);
         let bg = panel.bg(t);
-        let inner = panel.render(rows[4], buf, t);
-        let screen = *buf.area();
-        props::render(inner, buf, t, &self.readout(screen), bg);
+        let inner = panel.render(tiled.at(3, area), buf, t);
+        let facts: Vec<Prop> = self.readout(screen).into_iter().map(Prop::wrap).collect();
+        props::render(inner, buf, t, &facts, bg);
 
         // the open popover floats above the page, placed on the whole screen
         self.popover.render(screen, buf, ctx);
     }
 }
+
+const POP_NOTE: &str = "A menu anchored to its button: placement, fit and dismissal are options.";
+/// The popover note wraps; its card is never narrower than this.
+const POP_NOTE_W: u16 = 30;
+const GRID_NOTE: &str = "Grid headers show their column type the same way (Data grid).";
+const REVEAL_META: &str = "cut rows · hover or the reveal key";
+const POLICIES_META: &str = "read back from the page's builders";
+/// The reveal card: its rows are cut on purpose (the reveal shows them).
+const REVEAL_H: u16 = 8;
 
 /// The States grid: the modal frame the frame options build.
 fn frame_grid(o: &PageValues) -> StateGrid {
@@ -442,6 +491,12 @@ impl Page for PopupsTooltipsPage {
 
     fn blurb(&self) -> &'static str {
         "Where popups go and how they close, the modal frame, tooltips and revealing cut text"
+    }
+
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        // the popover's placement readout reads the screen
+        let screen = Rect::new(0, 0, avail.width, avail.height);
+        self.tiled(avail.width, screen, ctx).size
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

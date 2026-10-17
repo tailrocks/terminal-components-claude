@@ -1903,25 +1903,27 @@ fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
 
 #[test]
 fn a_cut_list_row_advertises_the_reveal_key_in_the_footer() {
-    // narrow enough that some file names in the lists are cut
-    let mut h = Harness::new(72, 20, PageId::Lists);
-    let footer = |h: &Harness| h.row(19);
-    h.key(tab());
+    // the reveal card's paths are cut on purpose (44 columns): the
+    // Playgrounds lay their lists out at their natural size otherwise
+    let mut h = Harness::new(120, 40, PageId::PopupsTooltips);
+    let footer = |h: &Harness| h.row(39);
+    h.app
+        .shell
+        .focus
+        .focus(WidgetId::of("popupstooltips").sub("paths"));
+    h.draw();
     let mut seen = None;
-    'lists: for _ in 0..3 {
-        for _ in 0..14 {
-            if footer(&h).contains("→ Full text") {
-                seen = Some(h.text());
-                break 'lists;
-            }
-            assert!(
-                !footer(&h).contains("Full text") || footer(&h).contains("→ Full text"),
-                "{}",
-                footer(&h)
-            );
-            h.key(KeyCode::Down);
+    for _ in 0..14 {
+        if footer(&h).contains("→ Full text") {
+            seen = Some(h.text());
+            break;
         }
-        h.key(tab());
+        assert!(
+            !footer(&h).contains("Full text") || footer(&h).contains("→ Full text"),
+            "{}",
+            footer(&h)
+        );
+        h.key(KeyCode::Up);
     }
     assert!(seen.is_some(), "some cut row is reached:\n{}", h.text());
     // the hint names what the key does now: → opens, ← collapses

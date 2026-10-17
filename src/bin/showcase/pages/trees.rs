@@ -332,19 +332,42 @@ impl TreesPage {
         }
     }
 
+    /// The connections card: every row of the tree in view.
+    fn conns_h(&self) -> u16 {
+        self.conns.rows().len() as u16 + 3
+    }
+
+    /// The tree card's row: the tree, or the selection and connections
+    /// cards beside it when they are taller.
+    fn top_h(&self) -> u16 {
+        TREE_H.max(SELECTION_H + 1 + self.conns_h())
+    }
+
+    /// The readout lines wrapped to `width`.
+    fn readout_lines(&self, width: u16) -> Vec<String> {
+        self.readout()
+            .iter()
+            .flat_map(|l| text::wrap(l, width.max(1) as usize))
+            .collect()
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(30), 2);
         let panel = Panel::card(Some("Project")).focused(ctx.interaction.focused(self.tree.id));
         let bg = panel.bg(t);
-        let card = Rect::new(l.x, l.y, l.width, l.height.min(18));
+        let card = Rect::new(l.x, l.y, l.width, l.height.min(TREE_H));
         let inner = panel.render(card, buf, t);
         self.tree.render(inner, buf, ctx, bg);
         panel.draw_meta(card, buf, t, &scrollbar::position_label(&self.tree.scroll));
 
         let panel = Panel::card(Some("Selection"));
         let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(r.x, r.y, r.width, r.height.min(10)), buf, t);
+        let inner = panel.render(
+            Rect::new(r.x, r.y, r.width, r.height.min(SELECTION_H)),
+            buf,
+            t,
+        );
         let mut y = inner.y;
         match self.tree.selected.clone() {
             Some(path) => {
@@ -396,7 +419,7 @@ impl TreesPage {
         }
 
         // the connections: toned glyphs, a toned label, a note, lazy nodes
-        let top = r.y + r.height.min(10) + 1;
+        let top = r.y + r.height.min(SELECTION_H) + 1;
         if top + 4 < r.bottom() {
             let meta = if self.loading.is_some() {
                 "loading…"
@@ -411,26 +434,31 @@ impl TreesPage {
                 r.x,
                 top,
                 r.width,
-                (card.bottom().saturating_sub(top)).max(6),
+                (card.bottom().saturating_sub(top)).max(self.conns_h()),
             );
             let inner = panel.render(card, buf, t);
             self.conns.render(inner, buf, ctx, bg);
         }
 
         // the built trees, read back
-        let mut y = card.bottom() + 1;
-        for line in self.readout() {
-            for l in text::wrap(&line, area.width as usize) {
-                if y >= area.bottom() {
-                    break;
-                }
-                buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
-                y += 1;
-            }
+        let mut y = area.y + self.top_h() + 1;
+        for l in self.readout_lines(area.width) {
+            buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
+            y += 1;
         }
         self.menu.render(area, buf, ctx);
     }
 }
+
+/// The tree card's height (the tree scrolls in it); the right column's
+/// cards end with it.
+const TREE_H: u16 = 18;
+/// The selection card's height.
+const SELECTION_H: u16 = 10;
+/// The narrowest Playground that keeps the tree beside its readouts.
+const MIN_W: u16 = 76;
+/// A tree row's cursor gutter, disclosure, glyph and card padding.
+const ROW_CHROME: u16 = 12;
 
 /// The States grid: a small tree, drawn by itself.
 fn states_grid() -> StateGrid {
@@ -479,6 +507,28 @@ impl Page for TreesPage {
     }
     fn blurb(&self) -> &'static str {
         "Indent carries hierarchy; the focus bar never moves"
+    }
+
+    /// The tree card beside the selection and connections cards (never
+    /// so narrow that they stack), then the readout, wrapped.
+    fn measure(&self, avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
+        // the connections column shows every row whole (its indent,
+        // glyph, label and meta); it gets two fifths of the page
+        let row = self
+            .conns
+            .rows()
+            .iter()
+            .map(|r| {
+                r.depth as u16 * 2
+                    + text::width(&r.label) as u16
+                    + r.meta.as_ref().map_or(0, |m| text::width(m) as u16 + 2)
+            })
+            .max()
+            .unwrap_or(0)
+            + ROW_CHROME;
+        let w = avail.width.max(MIN_W).max((row + 2) * 5 / 2 + 1);
+        let h = self.top_h() + 1 + self.readout_lines(w).len() as u16;
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

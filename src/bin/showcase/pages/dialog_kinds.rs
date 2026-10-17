@@ -17,10 +17,11 @@
 //! dismissal are the dialogs' own.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent, Report};
 use junie_tui::core::event::Outcome;
@@ -33,6 +34,7 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::layers::LayerResult;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
+use junie_tui::ui::text;
 use junie_tui::widgets::button::{Button, ButtonRow, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup};
 use junie_tui::widgets::choice_dialog::ChoiceDialog;
@@ -491,18 +493,40 @@ impl DialogKindsPage {
         ]
     }
 
+    /// Buttons per row at `width` (up to four, each with its note under
+    /// it) and the cards' heights: the buttons, Applied, Returned.
+    fn layout_at(&self, width: u16) -> (usize, [u16; 3]) {
+        let per = (width.saturating_sub(2) / 22).clamp(1, 4) as usize;
+        let lines = self.buttons.len().div_ceil(per) as u16 * 3 - 1;
+        let applied = Panel::card(Some("Applied")).meta(APPLIED_META);
+        let returned = Panel::card(Some("Returned")).meta("LayerResult");
+        let inner = returned.inner(Size::new(width, 0)).width;
+        let rows = if self.log.is_empty() {
+            text::wrap(NOTHING_YET, inner.max(1) as usize).len() as u16
+        } else {
+            self.log.len() as u16
+        };
+        (
+            per,
+            [
+                lines + 3,
+                sheet_height(&applied, &self.readout(), width),
+                returned.outer(Size::new(inner, rows)).height,
+            ],
+        )
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // as many buttons per row as fit; four in a row carry a note each
-        let per = (area.width.saturating_sub(2) / 22).clamp(1, 4) as usize;
-        let notes = per == 4;
-        let lines = self.buttons.len().div_ceil(per) as u16 + u16::from(notes);
-        let rows = crate::pages::layout::rows(area, &[lines + 3, 1, 10, 1, 0]);
+        // as many buttons per row as fit, each with its note under it
+        let (per, [buttons_h, applied_h, _]) = self.layout_at(area.width);
+        let notes = true;
+        let rows = crate::pages::layout::rows(area, &[buttons_h, 1, applied_h, 1, 0]);
         let panel = Panel::card(Some("Open a dialog")).meta("Enter · click");
         let bg = panel.bg(t);
         let inner = panel.render(rows[0], buf, t);
         for (r, chunk) in self.buttons.chunks_mut(per).enumerate() {
-            let y = inner.y + r as u16;
+            let y = inner.y + r as u16 * 3;
             if y >= inner.bottom() {
                 break;
             }
@@ -522,7 +546,7 @@ impl DialogKindsPage {
             }
         }
 
-        let panel = Panel::card(Some("Applied")).meta("read back from the built dialogs");
+        let panel = Panel::card(Some("Applied")).meta(APPLIED_META);
         let bg = panel.bg(t);
         let inner = panel.render(rows[2], buf, t);
         props::render(inner, buf, t, &self.readout(), bg);
@@ -531,20 +555,14 @@ impl DialogKindsPage {
         let bg = panel.bg(t);
         let inner = panel.render(rows[4], buf, t);
         if self.log.is_empty() {
-            buf.set_string(
-                inner.x,
-                inner.y,
-                "Nothing yet · Form(Save | Cancel | Changed | Choose | Action) · Info(Closed | Copy | Action) · Choice(Some(i) | None)",
-                t.muted().bg(bg),
-            );
+            for (i, l) in text::wrap(NOTHING_YET, inner.width.max(1) as usize)
+                .iter()
+                .enumerate()
+            {
+                buf.set_string(inner.x, inner.y + i as u16, l, t.muted().bg(bg));
+            }
         }
-        for (k, line) in self
-            .log
-            .iter()
-            .rev()
-            .take(inner.height as usize)
-            .enumerate()
-        {
+        for (k, line) in self.log.iter().rev().enumerate() {
             let st = if k == 0 { t.primary() } else { t.muted() };
             buf.set_string(
                 inner.x,
@@ -555,6 +573,9 @@ impl DialogKindsPage {
         }
     }
 }
+
+const APPLIED_META: &str = "read back from the built dialogs";
+const NOTHING_YET: &str = "Nothing yet · Form(Save | Cancel | Changed | Choose | Action) · Info(Closed | Copy | Action) · Choice(Some(i) | None)";
 
 /// The live preview under the form's fields: the URL it would connect to.
 fn preview_lines(name: &str, host: &str, driver: usize) -> Vec<(String, Tone)> {
@@ -593,6 +614,16 @@ impl Page for DialogKindsPage {
     }
     fn blurb(&self) -> &'static str {
         "Forms, info, choices and help: the purpose-built modals on one layer stack"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let applied = Panel::card(Some("Applied")).meta(APPLIED_META);
+        let w = avail
+            .width
+            .max(sheet_width(&applied, &self.readout()))
+            .max(24);
+        let (_, [a, b, c]) = self.layout_at(w);
+        Size::new(w, a + 1 + b + 1 + c)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

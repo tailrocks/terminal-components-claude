@@ -9,7 +9,7 @@
 //! they have. Hints name only keys the lists' `NavKeys` deliver.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::page_options;
@@ -28,6 +28,7 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::content::ContentState;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::{Tile, Tiled, tiles};
 use junie_tui::ui::reveal::{Reveal, RevealMode};
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text;
@@ -331,20 +332,73 @@ impl ListsPage {
         }
     }
 
+    /// The widest row of `list`: its label and its meta, after the
+    /// cursor gutter and a checkbox.
+    fn rows_width(list: &ListBox) -> u16 {
+        list.items
+            .iter()
+            .map(|i| {
+                text::width(&i.label) as u16
+                    + i.meta.as_ref().map_or(0, |m| text::width(m) as u16 + 2)
+            })
+            .max()
+            .unwrap_or(0)
+            + ROW_CHROME
+    }
+
+    fn multi_header(&self) -> String {
+        let all = junie_tui::core::keymap::hint_key(&self.multi.keymap, ListCmd::ToggleAll)
+            .unwrap_or("—");
+        format!("Space toggle · {all} all · Shift+↓ range")
+    }
+
+    /// The three list cards side by side when they fit whole (stacked
+    /// otherwise), each LIST_H rows tall: its list scrolls in it.
+    fn tiled(&self, width: u16) -> Tiled {
+        let card =
+            |title: &str, content: u16| Panel::card(Some(title)).outer(Size::new(content, 0)).width;
+        let chosen = self
+            .single
+            .items
+            .iter()
+            .map(|i| text::width(&i.label) as u16)
+            .max()
+            .unwrap_or(0)
+            + text::width("Chosen: ") as u16;
+        let h = |_: u16| LIST_H;
+        tiles(
+            width,
+            &[&[
+                Tile::new(
+                    card("Language", Self::rows_width(&self.single).max(chosen)),
+                    &h,
+                ),
+                Tile::new(
+                    card(
+                        "Files to include",
+                        Self::rows_width(&self.multi).max(text::width(&self.multi_header()) as u16),
+                    ),
+                    &h,
+                ),
+                Tile::new(card("Search results", EMPTY_W), &h),
+            ]],
+            (2, 1),
+        )
+    }
+
+    /// The readout lines wrapped to `width`.
+    fn readout_lines(&self, width: u16) -> Vec<String> {
+        self.readout()
+            .iter()
+            .flat_map(|l| text::wrap(l, width.max(1) as usize))
+            .collect()
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let third = area.width / 3;
-        let h = area.height.min(18);
-        let cols = [
-            Rect::new(area.x, area.y, third.saturating_sub(1), h),
-            Rect::new(area.x + third + 1, area.y, third.saturating_sub(1), h),
-            Rect::new(
-                area.x + 2 * third + 2,
-                area.y,
-                area.width.saturating_sub(2 * third + 2),
-                h,
-            ),
-        ];
+        let tiled = self.tiled(area.width);
+        let h = tiled.size.height;
+        let cols = [tiled.at(0, area), tiled.at(1, area), tiled.at(2, area)];
         let chosen = self
             .single
             .chosen
@@ -383,15 +437,10 @@ impl ListsPage {
             .focused(ctx.interaction.focused(self.multi.id));
         let bg = panel.bg(t);
         let inner = panel.render(cols[1], buf, t);
-        let all = junie_tui::core::keymap::hint_key(&self.multi.keymap, ListCmd::ToggleAll)
-            .unwrap_or("—");
         buf.set_string(
             inner.x,
             inner.y,
-            text::truncate(
-                &format!("Space toggle · {all} all · Shift+↓ range"),
-                inner.width as usize,
-            ),
+            text::truncate(&self.multi_header(), inner.width as usize),
             t.muted().bg(bg),
         );
         self.multi.render(
@@ -413,18 +462,20 @@ impl ListsPage {
 
         // the built lists, read back
         let mut y = area.y + h + 1;
-        for line in self.readout() {
-            for l in text::wrap(&line, area.width as usize) {
-                if y >= area.bottom() {
-                    break;
-                }
-                buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
-                y += 1;
-            }
+        for l in self.readout_lines(area.width) {
+            buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
+            y += 1;
         }
         self.menu.render(area, buf, ctx);
     }
 }
+
+/// Each list card's height: its list scrolls in it.
+const LIST_H: u16 = 18;
+/// A row's cursor gutter, checkbox and padding around its text.
+const ROW_CHROME: u16 = 8;
+/// The search results card's empty state.
+const EMPTY_W: u16 = 30;
 
 /// The States grid: a single and a multi list, drawn by themselves.
 fn states_grid() -> StateGrid {
@@ -462,6 +513,15 @@ impl Page for ListsPage {
     }
     fn blurb(&self) -> &'static str {
         "Single and multiple selection, disabled items, scrolling, empty state"
+    }
+
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let tiled = self.tiled(avail.width);
+        let w = tiled.size.width;
+        Size::new(
+            w,
+            tiled.size.height + 1 + self.readout_lines(w).len() as u16,
+        )
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
