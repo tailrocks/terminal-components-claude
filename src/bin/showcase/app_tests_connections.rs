@@ -182,11 +182,17 @@ fn at_80_by_24_the_details_are_a_drawer_over_the_list() {
     assert!(!text.contains("Engine"), "{text}");
     h.focus(page(&h).new.id);
     h.key(KeyCode::Tab);
-    assert!(page(&h).md.drawer_open(), "Tab past the list opens the details");
+    assert!(
+        page(&h).md.drawer_open(),
+        "Tab past the list opens the details"
+    );
     assert!(h.text().contains("Engine"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!page(&h).md.drawer_open(), "Esc returns to the list");
-    assert!(h.app.shell.focus.is(page(&h).tree.id), "focus back on the list");
+    assert!(
+        h.app.shell.focus.is(page(&h).tree.id),
+        "focus back on the list"
+    );
 }
 
 #[test]

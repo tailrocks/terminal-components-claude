@@ -3707,11 +3707,11 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ),
     (
         "widgets::action_row::ActionRow::align",
-        Option("buttons", "buttons.next_align"),
+        Demo("buttons", "Retry failed"),
     ),
     (
         "widgets::action_row::ActionRow::gap",
-        Option("buttons", "buttons.next_gap"),
+        Demo("buttons", "Share"),
     ),
     (
         "widgets::action_row::ActionRow::message",
