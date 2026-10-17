@@ -2036,7 +2036,7 @@ impl App {
             return self.apply_requests(reqs).or(o).or(Outcome::Changed);
         }
         if let context::Target::App = target {
-            return match app.get(i) {
+            return match app.get(0, i) {
                 Some(context::AppCommand::OpenTabs) => {
                     self.open_tab_list();
                     Outcome::Changed
