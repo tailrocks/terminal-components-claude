@@ -2,6 +2,7 @@
 //! counts, press and drag reach the editor's fields and the fields of its
 //! dialogs (interaction #16).
 
+use crate::pages::Pages;
 use junie_tui::core::event::MouseKind;
 use junie_tui::widgets::dialog::DialogBody;
 use ratatui::crossterm::event::KeyCode;
@@ -15,7 +16,7 @@ fn editor() -> H {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Down);
     h.key(KeyCode::Char('e'));
-    assert_eq!(h.app.route, Route::Editor, "{}", h.text());
+    assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
     h
 }
 
@@ -30,7 +31,7 @@ fn ctrl_q_reaches_past_an_editing_name_field() {
     h.key(KeyCode::End);
     h.type_str("-x");
     assert!(
-        h.app.screens.editor.as_ref().unwrap().name.editing,
+        h.app.router.editor().unwrap().name.editing,
         "{}",
         h.text()
     );
@@ -40,7 +41,7 @@ fn ctrl_q_reaches_past_an_editing_name_field() {
 }
 
 fn name_selection(h: &H) -> Option<String> {
-    let e = h.app.screens.editor.as_ref().expect("the editor");
+    let e = h.app.router.editor().expect("the editor");
     e.name.field.buffer.selected_text().map(str::to_owned)
 }
 
@@ -150,11 +151,11 @@ fn the_name_field_edits_on_focus_and_one_tab_moves_on() {
     );
     h.type_str("a]q[");
     assert_eq!(
-        h.app.route,
+        h.app.route(),
         Route::Editor,
         "q was typed, not a route change"
     );
-    let e = h.app.screens.editor.as_ref().expect("the editor");
+    let e = h.app.router.editor().expect("the editor");
     assert_eq!(e.name.text(), "a]q[", "the letters edited the name");
     h.key(KeyCode::Tab);
     assert_ne!(
