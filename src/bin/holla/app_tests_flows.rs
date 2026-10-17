@@ -957,10 +957,8 @@ fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
 fn the_finder_peek_never_drops_a_hint() {
     let h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
     let footer = h.last_row();
-    assert!(
-        footer.contains("Clean Docker completely —"),
-        "no peek: {footer}"
-    );
+    // the peek: the cursor row, cut to what the hints leave
+    assert!(footer.contains("   Clean Docker c"), "no peek: {footer}");
     for hint in [
         "Type Search",
         "Enter Review…",
