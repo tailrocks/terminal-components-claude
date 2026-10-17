@@ -3156,6 +3156,10 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("widgets::tabs::TabCmd::New", Demo("tabs", "n new tab")),
     ("widgets::tabs::TabCmd::Jump", Demo("tabs", "1–9 jump")),
     (
+        "widgets::tabs::TabCmd::ShowHidden",
+        Demo("tabs", "↓ hidden tabs"),
+    ),
+    (
         "widgets::tabs::TabAction",
         Demo("tabs", "TabAction::Activated · Close · New"),
     ),
