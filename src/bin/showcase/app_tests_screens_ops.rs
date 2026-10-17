@@ -212,8 +212,8 @@ const ACT: WidgetId = WidgetId::of("activity");
 #[test]
 fn activity_shows_a_live_job_not_the_stub() {
     for (w, h) in [(120, 40), (80, 24)] {
-        let h = Harness::new(w, h, PageId::Activity);
-        let text = h.text();
+        // a short terminal scrolls the page to the side cards
+        let text = Harness::new(w, h, PageId::Activity).page_text();
         assert!(!text.contains("arrives with"), "{text}");
         for needle in [
             "api dev",

@@ -14,7 +14,7 @@
 //! §7.7 row 68).
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -25,6 +25,7 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::find_ranges;
 use junie_tui::widgets::button::{Button, row_layout};
@@ -38,6 +39,8 @@ use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportAction};
 
 const ID: WidgetId = WidgetId::of("activity");
+/// The log's rows when the side column sits under it.
+const LOG_ROWS: u16 = 10;
 /// The live log.
 pub const LOG: WidgetId = ID.sub("log");
 /// The stream chips.
@@ -419,33 +422,105 @@ impl ActivityPage {
         );
         self.chips.render(rows[3], buf, ctx, t.canvas);
         let body = rows[5];
-        let wide = body.width >= 90;
-        let (out, side) = if wide {
-            let side_w = 36.min(body.width / 3);
-            (
-                Rect::new(body.x, body.y, body.width - side_w - 2, body.height),
-                Some(Rect::new(
-                    body.right() - side_w,
-                    body.y,
-                    side_w,
-                    body.height,
-                )),
-            )
+        let side = self.side_size(ctx);
+        if self.wide(body.width, side, ctx) {
+            // the side as wide as it needs, or a third of the body (at
+            // most 36 columns) when that is wider; the log takes the rest
+            let side_w = side.width.max(36.min(body.width / 3));
+            let out = Rect::new(body.x, body.y, body.width - side_w - 2, body.height);
+            self.render_log(out, buf, ctx);
+            let r = Rect::new(body.right() - side_w, body.y, side_w, body.height);
+            self.render_side(r, false, buf, ctx);
         } else {
-            // narrow: the log takes the room, the actions sit under it
-            (
-                Rect::new(body.x, body.y, body.width, body.height.saturating_sub(2)),
-                None,
-            )
-        };
-        self.render_log(out, buf, ctx);
-        match side {
-            Some(r) => self.render_side(r, buf, ctx),
-            None => {
-                ctx.focus_stop(self.rail.id);
-                let y = body.bottom().saturating_sub(1);
-                self.render_buttons(Rect::new(body.x + 1, y, body.width, 1), buf, ctx, t.canvas);
-            }
+            // narrow: the log over the steps and the run card, side by
+            // side when both fit
+            let (w, h, beside) = self.under(body.width, side);
+            let log_h = body.height.saturating_sub(h + 1).max(LOG_ROWS);
+            let out = Rect::new(body.x, body.y, body.width, log_h);
+            self.render_log(out, buf, ctx);
+            let y = out.bottom() + 1;
+            let r = Rect::new(
+                body.x,
+                y,
+                w.min(body.width),
+                body.bottom().saturating_sub(y),
+            );
+            self.render_side(r, beside, buf, ctx);
+        }
+    }
+
+    /// The log card at its natural width: every line on one row (it
+    /// wraps a longer line that arrives later, or scrolls it sideways).
+    fn log_width(&self, ctx: &RenderCtx) -> u16 {
+        Panel::framed(Some("output"))
+            .meta("scrollback ↑9999 · last 2000 kept")
+            .outer(self.view.measure(Size::ZERO, ctx))
+            .width
+    }
+
+    /// The log beside the side column when both fit `width` whole.
+    fn wide(&self, width: u16, side: Size, ctx: &RenderCtx) -> bool {
+        width >= self.log_width(ctx) + 2 + side.width
+    }
+
+    /// The Run card's facts.
+    fn run_facts(&self) -> Vec<Prop> {
+        vec![
+            Prop::new("Command", "mise run dev"),
+            Prop::new("Scope", "here · ~/work/acme"),
+            Prop::new("Host", "mbp · local"),
+            Prop::new("Exit", self.exit.map_or("—".into(), |c| c.to_string())).tone(
+                if self.run == Run::Failed {
+                    Tone::Error
+                } else {
+                    Tone::Normal
+                },
+            ),
+        ]
+    }
+
+    /// The failure notice the Run card shows after a failed run.
+    fn failure(&self) -> Option<Notice> {
+        (self.run == Run::Failed).then(|| {
+            Notice::error("api exited with code 1")
+                .detail("listen EADDRINUSE :::8080")
+                .hint("Free the port, then Restart")
+        })
+    }
+
+    /// The side column whole: the Steps card at its rail's measure over
+    /// the Run card (its facts, the failure notice wrapped to the column,
+    /// Stop and Restart side by side).
+    fn side_size(&self, ctx: &RenderCtx) -> Size {
+        let steps = Panel::card(Some("Steps"))
+            .meta("4 of 5")
+            .outer(self.rail.measure(Size::ZERO, ctx));
+        let facts = self.run_facts();
+        let run = Panel::card(Some("Run"));
+        let buttons = self.stop.width() + 2 + self.restart.width();
+        let width = steps.width.max(
+            run.outer(Size::new(props::width(&facts).max(buttons), 0))
+                .width,
+        );
+        let inner = run.inner(Size::new(width, 0)).width;
+        let mut h = props::measure(&facts, inner) + 1;
+        if let Some(n) = self.failure() {
+            h += n.height(inner) + 1;
+        }
+        let run_h = run.outer(Size::new(inner, h + 1)).height;
+        Size::new(width, steps.height + 1 + run_h)
+    }
+
+    /// The side cards under the log in `width`: the Steps and Run cards
+    /// side by side at the column's width when both fit, else stacked.
+    /// Their width, height, and whether they sit side by side.
+    fn under(&self, width: u16, side: Size) -> (u16, u16, bool) {
+        let steps_h = STAGES.len() as u16 + 3;
+        let run_h = side.height.saturating_sub(steps_h + 1);
+        if width >= side.width * 2 + 2 {
+            (side.width * 2 + 2, steps_h.max(run_h), true)
+        } else {
+            (side.width, side.height, false)
         }
     }
 
@@ -474,7 +549,8 @@ impl ActivityPage {
         self.view.render(inner, buf, ctx, bg);
     }
 
-    fn render_side(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+    /// The Steps card over the Run card, or `beside` it.
+    fn render_side(&mut self, area: Rect, beside: bool, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (done, skipped, failed) = self.rail.counts();
         let meta = if failed > 0 {
@@ -486,21 +562,27 @@ impl ActivityPage {
             .meta(&meta)
             .focused(ctx.interaction.focused(self.rail.id));
         let bg = panel.bg(t);
-        let card = Rect::new(
-            area.x,
-            area.y,
-            area.width,
-            (STAGES.len() as u16 + 3).min(area.height),
-        );
+        let steps_h = (STAGES.len() as u16 + 3).min(area.height);
+        // beside: the Run card to the right of the Steps card, as wide
+        let (card, rest) = if beside {
+            let w = area.width.saturating_sub(2) / 2;
+            (
+                Rect::new(area.x, area.y, w, steps_h),
+                Rect::new(area.x + w + 2, area.y, w, area.height),
+            )
+        } else {
+            let card = Rect::new(area.x, area.y, area.width, steps_h);
+            let rest = Rect::new(
+                area.x,
+                card.bottom() + 1,
+                area.width,
+                area.bottom().saturating_sub(card.bottom() + 1),
+            );
+            (card, rest)
+        };
         let inner = panel.render(card, buf, t);
         self.rail.render(inner, buf, ctx, bg);
 
-        let rest = Rect::new(
-            area.x,
-            card.bottom() + 1,
-            area.width,
-            area.bottom().saturating_sub(card.bottom() + 1),
-        );
         if rest.height < 4 {
             ctx.focus_stop(self.stop.id);
             ctx.focus_stop(self.restart.id);
@@ -509,24 +591,10 @@ impl ActivityPage {
         let panel = Panel::card(Some("Run"));
         let bg = panel.bg(t);
         let inner = panel.render(rest, buf, t);
-        let facts = vec![
-            Prop::new("Command", "mise run dev"),
-            Prop::new("Scope", "here · ~/work/acme"),
-            Prop::new("Host", "mbp · local"),
-            Prop::new("Exit", self.exit.map_or("—".into(), |c| c.to_string())).tone(
-                if self.run == Run::Failed {
-                    Tone::Error
-                } else {
-                    Tone::Normal
-                },
-            ),
-        ];
+        let facts = self.run_facts();
         let h = props::render(inner, buf, t, &facts, bg);
         let mut y = inner.y + h + 1;
-        if self.run == Run::Failed {
-            let n = Notice::error("api exited with code 1")
-                .detail("listen EADDRINUSE :::8080")
-                .hint("Free the port, then Restart");
+        if let Some(n) = self.failure() {
             let nh = n.height(inner.width);
             if y + nh + 2 <= inner.bottom() {
                 n.render(Rect::new(inner.x, y, inner.width, nh), buf, ctx, bg);
@@ -649,6 +717,23 @@ impl Page for ActivityPage {
     }
     fn blurb(&self) -> &'static str {
         "A live job: state clauses, stream chips, a following log and its steps"
+    }
+
+    /// The header rows over the log and the side column: side by side
+    /// when the log at its natural width (every line on one row) and the
+    /// side fit, the page's height; else the log (at least `LOG_ROWS`
+    /// rows, it scrolls the rest) over the Steps and Run cards (side by
+    /// side when both fit), as wide as the log needs.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let side = self.side_size(ctx);
+        let head = 5;
+        if self.wide(avail.width, side, ctx) {
+            return Size::new(avail.width, avail.height.max(head + side.height));
+        }
+        let width = avail.width.max(self.log_width(ctx)).max(side.width);
+        let (_, h, _) = self.under(width, side);
+        let log_h = avail.height.saturating_sub(head + h + 1).max(LOG_ROWS);
+        Size::new(width, head + log_h + 1 + h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
