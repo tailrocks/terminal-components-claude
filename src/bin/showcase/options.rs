@@ -277,9 +277,43 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Scrolling => SCROLLING,
         PageId::Diff => DIFF,
         PageId::Terminal => TERMINAL,
+        PageId::QueryWorkbench => QUERY_WORKBENCH,
         _ => &[],
     }
 }
+
+/// Query workbench (SC46): the screen's layout and the builders of its
+/// tabs, editor and status line (`pages/query_workbench.rs`, `rebuild`).
+pub static QUERY_WORKBENCH: &[Opt] = &[
+    Opt::new("queryworkbench.explorer", "Explorer", OFF_ON).default(1),
+    Opt::new(
+        "queryworkbench.explorer_width",
+        "Explorer %",
+        &["32", "24", "40"],
+    ),
+    Opt::new(
+        "queryworkbench.editor_share",
+        "Editor %",
+        &["40", "25", "60"],
+    ),
+    Opt::new("queryworkbench.allow_new", "New-tab button", OFF_ON).default(1),
+    Opt::new(
+        "queryworkbench.close_reveal",
+        "Tab close",
+        &["always", "hover"],
+    ),
+    Opt::new("queryworkbench.read_only", "Read-only editor", OFF_ON),
+    Opt::new(
+        "queryworkbench.result",
+        "Result",
+        &["run", "empty", "error", "plan"],
+    ),
+    Opt::new(
+        "queryworkbench.env",
+        "Environment",
+        &["production", "staging", "development", "local"],
+    ),
+];
 
 /// Panels (SC22): `Panel` chrome and the `ScrollPanel` knobs.
 pub static PANELS: &[Opt] = &[

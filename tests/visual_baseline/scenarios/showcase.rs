@@ -97,6 +97,14 @@ pub const SURFACES: &[Root] = &[
     // Columns (pages/columns.rs, SC11): the width solver, resizable columns
     // and the header menu; pending first approval.
     Root::new("showcase/pages/columns", Bin::Showcase, &["--page", "columns"], BOOT).sends(&["wait:Width solver"]).pending(),
+    // Query workbench (pages/query_workbench.rs, SC46): explorer, query
+    // tabs, editor over results; the sections, the error card and the
+    // plan; pending first approval.
+    Root::new("showcase/pages/queryworkbench", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["wait:Northwind Traders"]).pending(),
+    Root::new("showcase/sections/queryworkbench-options", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["tab", "2", "wait:Environment"]).pending(),
+    Root::new("showcase/sections/queryworkbench-states", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["tab", "3", "wait:Query tabs"]).pending(),
+    Root::new("showcase/flows/queryworkbench/error", Bin::Showcase, &["--page", "queryworkbench", "--opt", "queryworkbench.result=error"], BOOT).sends(&["wait:does not exist"]).pending(),
+    Root::new("showcase/flows/queryworkbench/plan", Bin::Showcase, &["--page", "queryworkbench", "--opt", "queryworkbench.result=plan"], BOOT).sends(&["wait:Index Scan"]).pending(),
     // ------------------------------------------------ planned pages (SC2) --
     // Every page of plan §7.2 is registered up front with its `--page` slug
     // and shows an EmptyState naming the step that fills it. Each step
@@ -134,7 +142,6 @@ pub const SURFACES: &[Root] = &[
     Root::new("showcase/planned/masterdetail", Bin::Showcase, &["--page", "masterdetail"], BOOT).sends(&["wait:arrives with SC38"]).pending(),
     Root::new("showcase/planned/panetree", Bin::Showcase, &["--page", "panetree"], BOOT).sends(&["wait:arrives with SC45"]).pending(),
     Root::new("showcase/pages/textutilities", Bin::Showcase, &["--page", "textutilities"], BOOT).sends(&["wait:TextBuffer"]).pending(),
-    Root::new("showcase/planned/queryworkbench", Bin::Showcase, &["--page", "queryworkbench"], BOOT).sends(&["wait:arrives with SC46"]).pending(),
     Root::new("showcase/planned/connections", Bin::Showcase, &["--page", "connections"], BOOT).sends(&["wait:arrives with SC47"]).pending(),
     Root::new("showcase/planned/finder", Bin::Showcase, &["--page", "finder"], BOOT).sends(&["wait:arrives with SC48"]).pending(),
     Root::new("showcase/planned/diskcleanup", Bin::Showcase, &["--page", "diskcleanup"], BOOT).sends(&["wait:arrives with SC49"]).pending(),
