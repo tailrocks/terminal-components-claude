@@ -4855,6 +4855,42 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("panels", "panels.focus_mark=bar"),
     ),
     (
+        "widgets::panel::CardHeading",
+        Option("panels", "shell.card_heading"),
+    ),
+    (
+        "widgets::panel::CardHeading::Plain",
+        Option("panels", "shell.card_heading=plain"),
+    ),
+    (
+        "widgets::panel::CardHeading::Rule",
+        Option("panels", "panels.heading=rule"),
+    ),
+    (
+        "widgets::panel::CardHeading::Band",
+        Option("panels", "panels.heading=band"),
+    ),
+    (
+        "widgets::panel::CardHeading::Emphasis",
+        Option("panels", "panels.heading=emphasis"),
+    ),
+    (
+        "widgets::panel::CardHeading::label",
+        Option("panels", "panels.heading=rule"),
+    ),
+    (
+        "widgets::panel::Panel::heading_style",
+        Option("panels", "panels.heading=band"),
+    ),
+    (
+        "theme::Theme::card_heading",
+        Option("panels", "shell.card_heading"),
+    ),
+    (
+        "theme::Theme::with_card_heading",
+        Option("panels", "shell.card_heading"),
+    ),
+    (
         "widgets::panel::Panel::focused",
         StateRow("panels", "focused"),
     ),
