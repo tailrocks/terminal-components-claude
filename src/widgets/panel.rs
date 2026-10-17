@@ -537,11 +537,18 @@ impl<'a> Panel<'a> {
         let mut right = x + w;
         // an empty meta draws nothing, not a blank gap in the frame
         if let Some(meta) = meta.filter(|m| !m.is_empty()) {
+            let shown = crate::ui::text::width(&meta) as u16;
             let text = if framed { format!(" {meta} ") } else { meta };
             let tw = crate::ui::text::width(&text) as u16;
             if right >= cx + tw + u16::from(cx > x) {
                 right = right.saturating_sub(tw);
                 buf.set_string(right, y, &text, self.meta_style(t, bg));
+                // a shortened meta (its short form, its first fact or a
+                // cut) reveals its full text on hover, like a cut title
+                if let Some(full) = self.meta {
+                    let cells = Rect::new(right + u16::from(framed), y, shown, 1);
+                    crate::ui::reveal::queue_cut(cells, full);
+                }
             }
         }
         if let Some((badge, kind)) = self.badge {
@@ -1766,6 +1773,41 @@ mod title_reveal_tests {
         assert_eq!(hits.hit(on_title), Some(WidgetId::of("card")));
         let (text, _) = frame(Some(id));
         assert!(text.contains(TITLE), "hover shows the full title: {text}");
+    }
+
+    #[test]
+    fn a_shortened_meta_reveals_its_full_text_on_hover() {
+        const META: &str = "395–400 of 400 · following";
+        let draw = |hover: Option<WidgetId>| {
+            let theme = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let interaction = Interaction {
+                hover,
+                ..Default::default()
+            };
+            let mut buf = Buffer::empty(Rect::new(0, 0, 70, 4));
+            {
+                let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+                Panel::card(Some("Log"))
+                    .meta(META)
+                    .render(Rect::new(0, 0, 20, 4), &mut buf, &theme);
+                ctx.flush_overlays(&mut buf);
+            }
+            let text = (0..4)
+                .map(|y| (0..70).map(|x| buf[(x, y)].symbol()).collect::<String>())
+                .collect::<Vec<_>>()
+                .join("\n");
+            (text, hits)
+        };
+        let (text, hits) = draw(None);
+        assert!(text.contains("395–400/400"), "its first fact: {text}");
+        assert!(!text.contains("following"), "the rest is dropped: {text}");
+        // the meta's cells (right-aligned before the card's padding) reveal
+        let on_meta = Position::new(14, 0);
+        let id = hits.hover_at(on_meta).expect("a hover region on the meta");
+        let (text, _) = draw(Some(id));
+        assert!(text.contains(META), "hover shows the full meta: {text}");
     }
 
     #[test]
