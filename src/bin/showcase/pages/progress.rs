@@ -4,7 +4,7 @@
 //! staleness and its two styles). Options: `crate::options::PROGRESS`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -36,6 +36,20 @@ const JOBS: [(&str, Option<f64>, ProgressStatus); 7] = [
     ("Warm caches", None, ProgressStatus::Active),
     ("Notify", Some(0.0), ProgressStatus::Active),
 ];
+
+const LIVE_META: &str = "ticks at 80 ms";
+const JOBS_TITLE: &str = "Deploy checkout-service";
+const JOBS_META: &str = "one BarLayout";
+const METERS_META: &str = "capacity, not completion";
+/// The Meters card's note, one sentence a line.
+const METERS_NOTE: [&str; 2] = [
+    "Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !.",
+    "Stale keeps its level, dashed.",
+];
+/// The widest a progress bar is drawn.
+const BAR_W: u16 = 70;
+/// The widest a meter column is drawn.
+const METER_W: u16 = 34;
 
 pub struct ProgressPage {
     template: Template,
@@ -79,22 +93,23 @@ impl ProgressPage {
         }
     }
 
+    /// The Playground's cards at their natural heights.
+    fn children() -> [StackChild; 3] {
+        [
+            StackChild::fixed(11),
+            StackChild::fixed(3 + 2 + JOBS.len() as u16),
+            StackChild::fixed(3 + METERS_NOTE.len() as u16 + 1 + 9),
+        ]
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let focus = [self.restart.id, self.pause.id]
             .iter()
             .any(|&id| ctx.interaction.has_focus(id))
             .then_some(0);
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(11),
-                StackChild::fixed(3 + 2 + JOBS.len() as u16),
-                StackChild::fixed(14),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &Self::children(), focus, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_live(r, buf, ctx),
             None => {
@@ -112,10 +127,10 @@ impl ProgressPage {
 
     fn render_live(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Live")).meta("ticks at 80 ms");
+        let panel = Panel::card(Some("Live")).meta(LIVE_META);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
-        let w = inner.width.min(70);
+        let w = inner.width.min(BAR_W);
         let status = if self.build >= 1.0 {
             ProgressStatus::Done
         } else if self.paused {
@@ -149,12 +164,12 @@ impl ProgressPage {
 
     fn render_jobs(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Deploy checkout-service")).meta("one BarLayout");
+        let panel = Panel::card(Some(JOBS_TITLE)).meta(JOBS_META);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         Tally::of(JOBS.iter().map(|j| j.2)).render(inner, buf, ctx, bg);
         let layout = self.layout();
-        let w = inner.width.min(70);
+        let w = inner.width.min(BAR_W);
         for (i, (label, ratio, status)) in JOBS.iter().enumerate() {
             let y = inner.y + 2 + i as u16;
             if y >= inner.bottom() {
@@ -171,18 +186,18 @@ impl ProgressPage {
 
     fn render_meters(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let panel = Panel::card(Some("Meters")).meta("capacity, not completion");
+        let panel = Panel::card(Some("Meters")).meta(METERS_META);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
-        buf.set_string(
-            inner.x,
-            inner.y,
-            junie_tui::ui::text::truncate(
-                "Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !. Stale keeps its level, dashed.",
-                inner.width as usize,
-            ),
-            t.muted().bg(bg),
-        );
+        for (i, note) in METERS_NOTE.iter().enumerate() {
+            buf.set_string(
+                inner.x,
+                inner.y + i as u16,
+                junie_tui::ui::text::truncate(note, inner.width as usize),
+                t.muted().bg(bg),
+            );
+        }
+        let top = inner.y + METERS_NOTE.len() as u16 + 1;
         // left: one meter per tone in the visual the options pick; right:
         // the builder options (block visual, owner thresholds, a fixed
         // level, staleness on a domain tone, the faint stale style). Red
@@ -227,7 +242,7 @@ impl ProgressPage {
         ];
         let col_w = inner.width.saturating_sub(12) / 2;
         for (i, (label, pct, tone)) in meters.iter().enumerate() {
-            let y = inner.y + 2 + i as u16;
+            let y = top + i as u16;
             if y >= inner.bottom() {
                 break;
             }
@@ -242,10 +257,15 @@ impl ProgressPage {
                 .tone(*tone)
                 .visual(visual)
                 .stale_style(self.stale_style())
-                .render(Rect::new(inner.x + 11, y, col_w.min(34), 1), buf, ctx, bg);
+                .render(
+                    Rect::new(inner.x + 11, y, col_w.min(METER_W), 1),
+                    buf,
+                    ctx,
+                    bg,
+                );
             if let Some(m) = options.get(i) {
                 let x = inner.x + 11 + col_w + 1;
-                m.render(Rect::new(x, y, col_w.min(34), 1), buf, ctx, bg);
+                m.render(Rect::new(x, y, col_w.min(METER_W), 1), buf, ctx, bg);
             }
         }
     }
@@ -296,6 +316,32 @@ impl Page for ProgressPage {
     }
     fn blurb(&self) -> &'static str {
         "Determinate, indeterminate, an aggregate tally, capacity meters"
+    }
+
+    /// The cards whole: the bars at their 70 cells, two meter columns
+    /// of 34 beside their labels, the note's widest line.
+    fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
+        let note = METERS_NOTE
+            .iter()
+            .map(|n| junie_tui::ui::text::width(n) as u16)
+            .max()
+            .unwrap_or(0);
+        let width = [
+            Panel::card(Some("Live"))
+                .meta(LIVE_META)
+                .outer(Size::new(BAR_W, 0)),
+            Panel::card(Some(JOBS_TITLE))
+                .meta(JOBS_META)
+                .outer(Size::new(BAR_W, 0)),
+            Panel::card(Some("Meters"))
+                .meta(METERS_META)
+                .outer(Size::new(note.max(12 + 2 * METER_W), 0)),
+        ]
+        .iter()
+        .map(|s| s.width)
+        .max()
+        .unwrap_or(0);
+        Size::new(width, self.sections.stack.measure(&Self::children()))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
