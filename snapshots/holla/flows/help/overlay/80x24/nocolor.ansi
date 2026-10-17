@@ -17,7 +17,7 @@
 [0m[2m    Expl│                  a page                                     ┆│        [0m
 [0m[2m [0m [0m[2m   Tas│  [0m[1;2mAliases[0m[2m         gp pull · du disk usage · test the test    ┆│        [0m
 [0m[2m    Syst│                  task here · d then u · dc docker cleanup   ┆│        [0m
-[0m[2m        │                                                       Done   │        [0m
+[0m[2m        │                                                      ▎[0m[1;2mDone [0m[2m  │        [0m
 [0m[2m    → 'h╰──────────────────────────────────────────────────────────────╯        [0m
 [0m[2m                                                                                [0m
 [0m[2m ~/work/holla   main   ↓3   • 5                                no color · 80×24 [0m

@@ -23,7 +23,7 @@
 [0m[2m          │  [0m[1;2mCtrl+↑ / Ctrl…[0m[2m scope outward         [0m[1;2mCtrl+W[0m[2m         Close tab              ┆│          [0m
 [0m[2m          │                 (parent, system) /    [0m[1;2mCtrl+G[0m[2m         Activities             ┆│          [0m
 [0m[2m          │                 inward (children)     [0m[1;2mF1 ?[0m[2m           This reference         ┆│          [0m
-[0m[2m          │                                                                       Done   │          [0m
+[0m[2m          │                                                                      ▎[0m[1;2mDone [0m[2m  │          [0m
 [0m[2m    → 'hol╰──────────────────────────────────────────────────────────────────────────────╯          [0m
 [0m[2m                                                                                                    [0m
 [0m[2m ~/work/holla   main   ↓3   • 5                                                   no color · 100×30 [0m
