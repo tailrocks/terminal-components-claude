@@ -145,6 +145,20 @@ never in view at the smallest failing size.
 | R53 | Settings | Playground | 80x24, 100x25, 106x29, 120x40 | `PRs and for invoicing off refunds storefront the` |
 | R54 | TaskRunner | Playground | 80x24, 100x25 | `Cancel Log Press Ready following libs publish shared` |
 
+Reach-b landing (2026-10-17): landed the shared pieces only: `Measure` for
+ListBox, MasterDetail, PaneTree, TreeView, Notice, Toggle, TextArea and
+CodeEditor; the reach gate's inner-scroller sweep both ways (R17, R39 done);
+the scroll_view gutter follow and the nav_list wheel pass-on. The page
+commits for R33, R35, R36, R37, R38, R49, R50, R52, R53 and R54 (each page
+at its natural size through `Page::measure`) stay open: laid out at their
+natural size they broke 22 showcase tests (code editor find and keymaps,
+settings save and quit guard, panels scrolling and pointer, splits seam,
+master-detail and pane-tree readouts, cockpit and report metas, the
+sidebar nav scrollbar), and only Panels had its captures re-approved. The
+work is kept on branch `reach-b-wip` (commits `1d0251cf3`..`dfba8d849`,
+`21a0058f4`) with a partial test update; redo each page as one commit with
+its tests and its capture re-approval.
+
 ## Priority order (owner, 2026-10-17, budget-constrained)
 
 Budget is nearly spent (weekly 89%, session 59%). Order: (1) every showcase
