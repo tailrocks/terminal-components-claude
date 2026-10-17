@@ -98,7 +98,7 @@ impl Specimen for DataGrid {
         }
         match state {
             SpecimenState::Selected => {
-                g.selected_rows.insert(g.source_row(row));
+                g.selection.set(g.source_row(row), true);
             }
             SpecimenState::Editing => {
                 if let Some(c) = g.sample_edit_col() {

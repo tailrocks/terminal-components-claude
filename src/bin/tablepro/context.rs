@@ -608,7 +608,7 @@ fn grid_items(g: &DataGrid, row: usize, col: usize, table: bool) -> (String, Wid
         plain(KeyCode::Delete),
         cell_lock
             .or((!spec.nullable).then_some("NOT NULL column"))
-            .or((!g.selected_rows.is_empty()).then_some("Rows are marked")),
+            .or((!g.selection.is_empty()).then_some("Rows are marked")),
     );
     group(&mut items);
     cmd(
