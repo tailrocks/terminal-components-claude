@@ -16,7 +16,7 @@ use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
-use crate::ui::row::{RowLook, RowUi};
+use crate::ui::row::{MarkKind, RowLook, RowUi};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone)]
@@ -632,21 +632,13 @@ impl ListBox {
             };
             let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
             let st = rp.style();
-            let marker = match (self.mode, s.selected) {
-                (SelectMode::Single, true) => t.glyphs.current,
-                (SelectMode::Multi, true) => t.glyphs.tick,
-                _ => " ",
-            };
-            let ms = if s.selected && !item.disabled {
-                st.fg(if focused || s.hovered {
-                    t.accent
-                } else {
-                    t.text_secondary
-                })
-            } else {
-                st
-            };
-            buf.set_string(row.x + 1, y, marker, ms);
+            if s.selected {
+                let kind = match self.mode {
+                    SelectMode::Single => MarkKind::Current,
+                    SelectMode::Multi => MarkKind::Tick,
+                };
+                rp.mark(ctx, buf, row.x + 1, y, kind, focused);
+            }
             let label_w = text_w.saturating_sub(2);
             let (lw, meta_w) = Self::label_width(item, text_w);
             if let Some(rows) = block {
@@ -909,6 +901,39 @@ mod reveal_tests {
             vec![ListItem::new("short"), ListItem::new(LONG)],
             SelectMode::Single,
         )
+    }
+
+    /// The chosen mark follows `Theme::chosen` like every row widget's
+    /// (`RowPaint::mark`): the accent only while the list has focus,
+    /// primary text otherwise, hovered or not. It was secondary text at
+    /// rest and the accent on hover.
+    #[test]
+    fn the_chosen_mark_is_accent_only_while_the_list_has_focus() {
+        let theme = Theme::junie();
+        let mark = |interaction: Interaction| {
+            let mut l = list();
+            l.chosen = Some(1);
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 3));
+            l.render(Rect::new(0, 0, 30, 3), &mut buf, &mut ctx, theme.canvas);
+            buf[(1, 1)].clone()
+        };
+        let rest = mark(Interaction::default());
+        assert_eq!(rest.symbol(), theme.glyphs.current);
+        assert_eq!(rest.fg, theme.text_primary);
+        let l = list();
+        let hover = mark(Interaction {
+            hover: Some(l.row_id(1)),
+            ..Default::default()
+        });
+        assert_eq!(hover.fg, theme.text_primary, "hover is not focus");
+        let focused = mark(Interaction {
+            focus: Some(l.id),
+            ..Default::default()
+        });
+        assert_eq!(focused.fg, theme.accent);
     }
 
     #[test]
