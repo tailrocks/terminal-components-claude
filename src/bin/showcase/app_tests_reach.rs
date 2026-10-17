@@ -9,7 +9,10 @@
 //! `docs/remaining-work.md` row until its page is fixed. An inner
 //! scroller that shows a scrollbar (a list, a table, a log) holds more
 //! than its window by design: what wheeling it to its end shows counts
-//! as reachable. A listed entry
+//! as reachable. Words are read by the library's one reach rule
+//! (`shell::reach::Words`, the apps' audits use it too): a word cut with
+//! `…` is reached through its reveal, and so are the items a strip
+//! collapsed into its `…`. A listed entry
 //! that passes fails as stale, so the list only shrinks.
 
 use std::collections::BTreeSet;
@@ -17,6 +20,7 @@ use std::collections::BTreeSet;
 use junie_tui::core::event::{Input, Mouse, MouseKind};
 use junie_tui::core::hit::{Axis, Bar};
 use junie_tui::runtime::Application;
+use junie_tui::shell::reach::Words;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
@@ -35,19 +39,11 @@ const REFERENCE: (u16, u16) = (220, 70);
 /// Wheel notches an inner scroller gets to reach its end.
 const INNER_NOTCHES: usize = 400;
 
-/// Words of three or more letters or digits in `area`: what a reader
+/// Words of three or more letters or digits in `area`, and the
+/// prefixes of words cut with `…` (the shared reach rule): what a reader
 /// would miss when the section cuts it off.
-fn words(buf: &Buffer, area: Rect, out: &mut BTreeSet<String>) {
-    for y in area.top()..area.bottom() {
-        let row: String = (area.left()..area.right())
-            .map(|x| buf[(x, y)].symbol())
-            .collect();
-        for w in row.split(|c: char| !c.is_alphanumeric()) {
-            if w.chars().count() >= 3 {
-                out.insert(w.to_owned());
-            }
-        }
-    }
+fn words(buf: &Buffer, area: Rect, out: &mut Words) {
+    out.add_area(buf, area);
 }
 
 struct Shot {
@@ -76,16 +72,18 @@ impl Shot {
         &mut self.app.pages[i].template_mut().unwrap().view
     }
 
-    /// Words in the section body in view.
-    fn words(&mut self, out: &mut BTreeSet<String>) {
+    /// Words in the section body in view, and what the strips in the
+    /// frame collapsed into their revealing `…`.
+    fn words(&mut self, out: &mut Words) {
         let area = self.view().last_layout().viewport;
         words(self.term.backend().buffer(), area, out);
+        out.add_overflowed();
     }
 
     /// Words in the section body at every scroll position: a window per
     /// view on each axis, and the end of each.
-    fn reachable(&mut self, inner: bool) -> BTreeSet<String> {
-        let mut out = BTreeSet::new();
+    fn reachable(&mut self, inner: bool) -> Words {
+        let mut out = Words::default();
         self.words(&mut out);
         let l = self.view().last_layout();
         let steps = |content: u16, view: u16| -> Vec<usize> {
@@ -116,7 +114,7 @@ impl Shot {
     /// into view is reachable. Wheel each such scroller in view from its
     /// bar to its end (until it stops moving, or the notch chains on to
     /// the section's view), then put the section back where it was.
-    fn inner(&mut self, out: &mut BTreeSet<String>) {
+    fn inner(&mut self, out: &mut Words) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
         let bars: Vec<Bar> = self
@@ -184,7 +182,7 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
             for (w, h) in SIZES {
                 let mut small = Shot::new(w, h, entry.id, section).unwrap();
                 let seen = small.reachable(true);
-                let missing: Vec<&String> = want.difference(&seen).collect();
+                let (missing, _cut) = want.against(&seen);
                 let key = format!("{:?} | {} | {w}x{h}", entry.id, section.label());
                 if missing.is_empty() {
                     if allowed.contains(&key) {
@@ -345,9 +343,9 @@ fn the_inspector_options_pane_scrolls_to_its_last_option() {
     assert!(l.overflows() && l.v_track.is_some(), "{l:?}");
     let shown = |term: &Terminal<TestBackend>| {
         let b = term.backend().buffer();
-        let mut s = BTreeSet::new();
+        let mut s = Words::default();
         words(b, b.area, &mut s);
-        s
+        s.whole
     };
     let word = last.split(' ').next_back().unwrap().to_owned();
     assert!(!shown(&term).contains(&word));
