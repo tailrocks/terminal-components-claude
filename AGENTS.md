@@ -153,9 +153,12 @@ components work; they are not where behaviour lives.
 - Always use subagents for the work: parallel audits by category, and
   implementation agents in isolated worktrees on disjoint files. The main
   session coordinates, reviews and integrates.
-- Never run more than 5 subagents at once. Each subagent commits and
-  pushes its work in small portions as soon as each coherent step passes
-  the gate, so no work is lost if it is stopped.
+- Never run more than 5 subagents in parallel. This is a hard ceiling at
+  every moment, and it counts helpers that subagents start. Before
+  starting one, the coordinator counts those still running; extra work
+  waits in a queue. A subagent that starts a helper uses one of the 5.
+- Each subagent commits and pushes its work in small portions as soon as
+  each coherent step passes the gate, so no work is lost if it is stopped.
 - Subagents never sit idle waiting: long commands run in the background
   while the agent keeps working, and an agent with nothing left but
   waiting ends its run and reports where to resume, rather than polling.
@@ -169,10 +172,15 @@ components work; they are not where behaviour lives.
 - Before each push: `git fetch` and rebase onto the remote branch, re-run
   the gate, then push. Never force-push shared branches.
 - Concurrent agents serialize pushes with one lock: `mkdir
-  "$(git rev-parse --git-common-dir)/push.lock"` (owner file inside), then
-  fetch, rebase, gate on the exact HEAD, push, and remove the lock directory
-  even on failure. If the lock is held, keep working and retry at the next
-  checkpoint.
+  "$(git rev-parse --git-common-dir)/push.lock"` and write an `owner` file
+  inside it (branch and date), then fetch, rebase, gate on the exact HEAD,
+  push, and always `rm -rf` the lock directory afterwards, on failure too.
+  If `mkdir` fails, the lock is held: keep working and retry at the next
+  checkpoint. Remove someone else's lock only when its owner file is older
+  than 50 minutes.
+- Never `pkill -f`, `killall` or kill processes by name: other sessions and
+  agents share the machine. Stop only processes (PIDs) and tasks you
+  started yourself.
 - Upstream PRs (velnor-new, tuiscotti): when the owner sends a link or
   says "check velnor-new" / "check tuiscotti" / "check upstream", follow
   the Upstream PR loop in `docs/upstream/README.md` and answer with one
