@@ -137,6 +137,7 @@ impl Actions for ChipCmd {
             ChipCmd::Add => "Add",
             ChipCmd::ClearAll => "Clear all",
             ChipCmd::ShowHidden => "Show hidden",
+            ChipCmd::Lead => "Switch the match mode",
         }
     }
 
