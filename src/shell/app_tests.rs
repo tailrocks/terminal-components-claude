@@ -183,6 +183,8 @@ impl Clocked {
     fn new(motion: Motion, steps: bool) -> Self {
         let mut shell = Shell::new();
         shell.motion = motion;
+        // the harness's opt-in (`JUNIE_TUI_TEST_CLOCK=1`)
+        shell.clock_steps = true;
         let mut clock = crate::clock::SimClock::new(0, 0);
         clock.running = motion != Motion::Paused;
         Self {
@@ -276,4 +278,20 @@ fn a_clock_step_request_is_an_ordinary_paste_unless_paused_and_supported() {
     let _ = Application::handle(&mut plain, Input::Paste(request.clone()));
     assert_eq!(plain.pastes, vec![request]);
     assert!(!plain.job_fired);
+}
+
+#[test]
+fn without_the_test_opt_in_a_clock_step_request_is_delivered_unchanged() {
+    let request = crate::clock::ClockStep::request(1_100);
+    let mut app = Clocked::new(Motion::Paused, true);
+    app.shell.clock_steps = false;
+    let _ = Application::handle(&mut app, Input::Paste(request.clone()));
+    assert_eq!(app.pastes, vec![request]);
+    assert!(!app.job_fired);
+    assert_eq!(app.clock.now_ms, 0);
+    // the process default: no opt-in unless the variable is set
+    assert_eq!(
+        Shell::<()>::new().clock_steps,
+        std::env::var_os(crate::clock::ClockStep::ENV).is_some_and(|v| v == "1")
+    );
 }

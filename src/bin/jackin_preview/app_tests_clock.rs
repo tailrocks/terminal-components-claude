@@ -13,7 +13,9 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 
 fn paused(scenario: Scenario) -> H {
-    let h = H::new(scenario, Motion::Paused, 40, 120, 40);
+    let mut h = H::new(scenario, Motion::Paused, 40, 120, 40);
+    // the harness's opt-in (`JUNIE_TUI_TEST_CLOCK=1`)
+    h.app.shell.clock_steps = true;
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
     h
 }
@@ -128,10 +130,27 @@ fn a_clock_step_runs_the_launch_pipeline_to_the_credential_error() {
 #[test]
 fn a_clock_step_request_is_pasted_as_text_unless_motion_is_paused() {
     let mut h = H::new(Scenario::HardCases, Motion::Reduced, 0, 120, 40);
+    h.app.shell.clock_steps = true;
     let now = h.app.world.now_ms();
     step(&mut h, 60_000);
     assert!(
         h.app.world.now_ms() < now + 60_000,
         "only a paused clock steps"
     );
+}
+
+#[test]
+fn without_the_test_opt_in_a_paused_app_pastes_the_request_unchanged() {
+    let mut h = H::new(Scenario::HardCases, Motion::Paused, 40, 120, 40);
+    h.app.shell.clock_steps = false;
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('3'));
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char('a'));
+    assert!(h.text().contains("Load role"), "{}", h.text());
+    let now = h.app.world.now_ms();
+    step(&mut h, 1_200);
+    assert_eq!(h.app.world.now_ms(), now, "the clock did not step");
+    // the picker's filter received the text as typed
+    assert!(h.text().contains("junie-tui:advance"), "{}", h.text());
 }
