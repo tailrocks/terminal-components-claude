@@ -27,5 +27,5 @@
 [0m[2m    → 'holla disk analyze --artifacts' · here · read-only                                           [0m
 [0m[2m                                                                                                    [0m
 [0m[2m ~/work/acme   main   ↑1                                           ⠋ 4 running    no color · 100×30 [0m
-          [0m[1m    [0m         [0m[1m  [0m       [0m[1m ↑↓ M[0move  [0m[1mEnter Switc[0mh  [0m[1mEsc[0m Cancel      api tests finished · exit 0 [0m
+ [0m[1m↑↓ M[0move  [0m[1mEnter [0mSwitch [0m[1m Esc [0mCancel [0m[1m         [0m                            api tests finished · exit 0 [0m
 [?25l

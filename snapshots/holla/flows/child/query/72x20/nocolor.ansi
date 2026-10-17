@@ -17,5 +17,5 @@
     → mise run //apps/frontend:test · here · mutating                   [0m
                                                                         [0m
  [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2           no color · 72×20 [0m
-            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mEsc[0m Clear  …            [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mEsc[0m Clear  …                       [0m
 [?25h[5;8H[6 q
