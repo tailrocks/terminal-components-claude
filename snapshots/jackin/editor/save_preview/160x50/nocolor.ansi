@@ -24,8 +24,8 @@
 [0m[2m                                               │  [0mWorkspace  payments-platform                                [0m[2m  │                                               [0m
 [0m[2m                                               │  [0mScope      workspace config · ~/.jackin/workspaces/payments…[0m[2m  │                                               [0m
 [0m[2m                                               │  [0mChanges    1 change                                         [0m[2m  │                                               [0m
-[0m[2m                                               │                                                                │                                               [0m
-[0m[2m                                               │  ~ keep_awake true → false                                     │                                               [0m
+[0m[2m                                               │  [0m                                                            [0m[2m  │                                               [0m
+[0m[2m                                               │  [0m~ keep_awake true → false                                   [0m[2m  │                                               [0m
 [0m[2m                                               │                                                                │                                               [0m
 [0m[2m                                               │                                              ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mave [0m[2m  │                                               [0m
 [0m[2m                                               │                                                                │                                               [0m

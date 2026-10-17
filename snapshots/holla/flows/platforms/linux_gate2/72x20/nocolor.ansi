@@ -6,9 +6,9 @@
 [0m[2m   │                                                                │   [0m
 [0m[2m  A│  [0mAction        move to Trash 1 item under ~                  [0m[2m ┃│┃  [0m
 [0m[2m  H│  [0mHost          devbox · local                                [0m[2m ┆│┆  [0m
-[0m[2m  M│  ↓ 14 more                                                     │┆  [0m
-[0m[2m   │  /home/alex/Projects/app/node_modules                          │   [0m
-[0m[2m ╭─│                                                                │─╮ [0m
+[0m[2m  M│  [0mMode          Trash · no Trash backend · every item will    [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              fail, never fall back · space returns after   [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 14 more                                                     │─╮ [0m
 [0m[2m │ │  [0m[1;2mType TRASH 1 UNDER /home/alex ON devbox to confirm          [0m[2m  │ │ [0m
 [0m[2m │ │[0m[1;2;7m▎                                                             [0m[2m  │ │ [0m
 [0m[2m │ │                                                                │ │ [0m

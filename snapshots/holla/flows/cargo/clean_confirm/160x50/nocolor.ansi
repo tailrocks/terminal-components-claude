@@ -28,8 +28,8 @@
 [0m[2m                                           │  [0mRisk          destructive                                           [0m[2m  │Enter  Show what clean would remove        [0m
 [0m[2m                                           │  [0mData          live · 2 s ago                                        [0m[2m  │       (dry run) · Pin · Alias · Why       [0m
 [0m[2m                                           │  [0mConfirmation  one explicit confirmation · not remembered            [0m[2m  │       here?                               [0m
-[0m[2m                                           │                                                                        │                                           [0m
-[0m[2m                                           │  cargo clean                                                           │                                           [0m
+[0m[2m                                           │  [0m                                                                    [0m[2m  │                                           [0m
+[0m[2m                                           │  [0mcargo clean                                                         [0m[2m  │                                           [0m
 [0m[2m                                           │                                                                        │                                           [0m
 [0m[2m                                           │                                                       ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mR[0m[2mun   │                                           [0m
 [0m[2m                                           │                                                                        │                                           [0m

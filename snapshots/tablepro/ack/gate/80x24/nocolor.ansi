@@ -10,8 +10,8 @@
 [0m[2m l │  [0mScope       matching rows in orders                                 [0m[2m  │ │ [0m
 [0m[2m o │  [0mReversible  Reversible by a compensating UPDATE                     [0m[2m  │ │ [0m
 [0m[2m r │  [0mSafe Mode   Safe Mode · type to confirm                             [0m[2m  │ │ [0m
-[0m[2m e │                                                                        │ │ [0m
-[0m[2m r │  UPDATE orders SET status = 'paid' WHERE id = 'x'                      │ │ [0m
+[0m[2m e │  [0m                                                                    [0m[2m  │ │ [0m
+[0m[2m r │  [0mUPDATE orders SET status = 'paid' WHERE id = 'x'                    [0m[2m  │ │ [0m
 [0m[2m   │                                                                        │ │ [0m
 [0m[2m   │  [0m[1;2mType orders to confirm                                              [0m[2m  │ │ [0m
 [0m[2m   │▎                                                                       │ │ [0m

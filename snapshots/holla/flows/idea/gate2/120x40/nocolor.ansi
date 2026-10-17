@@ -21,11 +21,11 @@
 [0m[2m │  01  trash /Users/│  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m  │                   │ [0m
 [0m[2m │  02  trash /Users/│  [0mPaths         ~/work/ide/.idea · ~/work/ide/a/b/c/d/e/deep.iml ·        [0m[2m  │                   │ [0m
 [0m[2m │  03  trash /Users/│  [0m              ~/work/ide/app.iml · ~/work/ide/mod/mod.iml               [0m[2m  │                   │ [0m
-[0m[2m │  04  trash /Users/│                                                                            │                   │ [0m
-[0m[2m │                   │  /Users/alex/work/ide/.idea                                                │                   │ [0m
-[0m[2m │                   │  /Users/alex/work/ide/a/b/c/d/e/deep.iml                                   │                   │ [0m
-[0m[2m │                   │  /Users/alex/work/ide/app.iml                                              │                   │ [0m
-[0m[2m │                   │  /Users/alex/work/ide/mod/mod.iml                                          │                   │ [0m
+[0m[2m │  04  trash /Users/│  [0m                                                                        [0m[2m  │                   │ [0m
+[0m[2m │                   │  [0m/Users/alex/work/ide/.idea                                              [0m[2m  │                   │ [0m
+[0m[2m │                   │  [0m/Users/alex/work/ide/a/b/c/d/e/deep.iml                                 [0m[2m  │                   │ [0m
+[0m[2m │                   │  [0m/Users/alex/work/ide/app.iml                                            [0m[2m  │                   │ [0m
+[0m[2m │                   │  [0m/Users/alex/work/ide/mod/mod.iml                                        [0m[2m  │                   │ [0m
 [0m[2m │                   │                                                                            │                   │ [0m
 [0m[2m │                   │  [0m[1;2mType TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm               [0m[2m  │                   │ [0m
 [0m[2m │                   │[0m[1;2;7m▎                                                                         [0m[2m  │                   │ [0m

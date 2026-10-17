@@ -27,8 +27,8 @@
 [0m[2m │                                       │  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m  │                                       │ [0m
 [0m[2m │                                       │  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m  │                                       │ [0m
 [0m[2m │                                       │  [0mPaths         ~/Projects/app/node_modules                               [0m[2m  │                                       │ [0m
-[0m[2m │                                       │                                                                            │                                       │ [0m
-[0m[2m │                                       │  /home/alex/Projects/app/node_modules                                      │                                       │ [0m
+[0m[2m │                                       │  [0m                                                                        [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m/home/alex/Projects/app/node_modules                                    [0m[2m  │                                       │ [0m
 [0m[2m │                                       │                                                                            │                                       │ [0m
 [0m[2m │                                       │  [0m[1;2mType TRASH 1 UNDER /home/alex ON devbox to confirm                      [0m[2m  │                                       │ [0m
 [0m[2m │                                       │[0m[1;2;7m▎                                                                         [0m[2m  │                                       │ [0m
