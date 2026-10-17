@@ -15,7 +15,7 @@
 //! S16's `RowMark`; the tree's size column for S16's `TreeView::columns`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -29,6 +29,7 @@ use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
 use junie_tui::ui::master_detail::MasterDetail;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::{bytes, plural, truncate};
 use junie_tui::widgets::button::{Button, row_layout};
@@ -416,9 +417,101 @@ impl DiskCleanupPage {
                 Prop::new("Allocated", size),
                 fresh,
                 Prop::new("Modified", "2026-09-07 08:41"),
-                Prop::new("Rule", "hardlinks counted once"),
+                Prop::new("Rule", "hardlinks counted once").wrap(),
             ],
         )
+    }
+
+    /// The reclaim card's chrome.
+    fn reclaim_panel(&self) -> Panel<'static> {
+        Panel::card(Some("Reclaim")).meta(match self.mode() {
+            Mode::DryRun => "dry run",
+            _ => "two gates",
+        })
+    }
+
+    /// The reclaim card's facts: what is selected, the mode and its gate.
+    fn reclaim_facts(&self) -> Vec<Prop> {
+        let mode = self.mode();
+        let checked = self.checked();
+        let gate = if mode == Mode::DryRun {
+            "review only · nothing changes".to_owned()
+        } else if self.opts.on("diskcleanup.typed") {
+            format!("review, then type {}", mode.phrase(checked.len()))
+        } else {
+            "review, then confirm".to_owned()
+        };
+        vec![
+            Prop::new("Selected", plural(checked.len(), "category", "categories")),
+            Prop::new(
+                "Reclaim",
+                format!("{} estimated", bytes(self.selected_bytes())),
+            ),
+            Prop::new("Mode", mode.label())
+                .tone(match mode {
+                    Mode::Permanent => Tone::Danger,
+                    _ => Tone::Secondary,
+                })
+                .wrap(),
+            Prop::new("Gate", gate).wrap(),
+        ]
+    }
+
+    /// The warning for the first category in use, skipped by the cleanup.
+    fn skipped(&self) -> Option<Notice> {
+        self.cats
+            .iter()
+            .filter_map(|&c| {
+                CATEGORIES_DATA[c]
+                    .blocked
+                    .map(|b| (CATEGORIES_DATA[c].label, b))
+            })
+            .next()
+            .map(|(label, why)| Notice::warning(format!("{label} is skipped")).detail(why))
+    }
+
+    /// The Filesystems card's meta.
+    fn fs_meta(&self) -> String {
+        if self.is_scanning() {
+            "scanning ~/work…".to_owned()
+        } else {
+            format!(
+                "scan complete · 31.8 GiB in ~/work · {} reclaimed",
+                bytes(self.reclaimed)
+            )
+        }
+    }
+
+    /// The three sections' heights with the page `width` wide: the
+    /// filesystems card, the usage tree beside its details (ten rows, or
+    /// the details card when taller), and the categories beside the
+    /// reclaim card at the width the master-detail gives it (its facts
+    /// wrap; the skipped notice and the buttons under them).
+    fn heights(&self, width: u16, fs: &MeterList) -> [u16; 3] {
+        let (kind, facts) = self.details();
+        let details = match self.usage_md.split_rects(Rect::new(0, 0, width, 1)) {
+            Some((_, detail)) => crate::pages::layout::sheet_height(
+                &Panel::card(Some("Details")).meta(&kind),
+                &facts,
+                detail.width,
+            ),
+            None => 0,
+        };
+        let usage = 10u16.max(details);
+        let list = self.cats.len() as u16 + 3;
+        let cleanup = match self.clean_md.split_rects(Rect::new(0, 0, width, 1)) {
+            Some((_, detail)) => {
+                let panel = self.reclaim_panel();
+                let inner = panel.inner(Size::new(detail.width, 0)).width;
+                let mut h = props::measure(&self.reclaim_facts(), inner) + 1;
+                if let Some(n) = self.skipped() {
+                    h += n.height(inner) + 1;
+                }
+                list.max(panel.outer(Size::new(inner, h + 1)).height)
+            }
+            None => list,
+        };
+        [fs.height() + 3, usage, cleanup]
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -438,11 +531,7 @@ impl DiskCleanupPage {
         };
         let l = self.sections.layout(
             area,
-            &[
-                StackChild::fixed(fs.height() + 3),
-                StackChild::fixed(10),
-                StackChild::fixed(13),
-            ],
+            &self.heights(area.width, &fs).map(StackChild::fixed),
             focus,
             buf,
             ctx,
@@ -475,14 +564,7 @@ impl DiskCleanupPage {
         ctx: &mut RenderCtx,
     ) {
         let t = ctx.theme;
-        let meta = if self.is_scanning() {
-            "scanning ~/work…".to_owned()
-        } else {
-            format!(
-                "scan complete · 31.8 GiB in ~/work · {} reclaimed",
-                bytes(self.reclaimed)
-            )
-        };
+        let meta = self.fs_meta();
         let panel = Panel::card(Some("Filesystems")).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
@@ -587,47 +669,13 @@ impl DiskCleanupPage {
             ctx.focus_stop(self.rescan.id);
             return;
         }
-        let mode = self.mode();
-        let panel = Panel::card(Some("Reclaim")).meta(match mode {
-            Mode::DryRun => "dry run",
-            _ => "two gates",
-        });
+        let panel = self.reclaim_panel();
         let bg = panel.bg(t);
         let inner = panel.render(r, buf, t);
-        let gate = if mode == Mode::DryRun {
-            "review only · nothing changes".to_owned()
-        } else if self.opts.on("diskcleanup.typed") {
-            format!("review, then type {}", mode.phrase(checked.len()))
-        } else {
-            "review, then confirm".to_owned()
-        };
-        let facts = vec![
-            Prop::new("Selected", plural(checked.len(), "category", "categories")),
-            Prop::new(
-                "Reclaim",
-                format!("{} estimated", bytes(self.selected_bytes())),
-            ),
-            Prop::new("Mode", mode.label())
-                .tone(match mode {
-                    Mode::Permanent => Tone::Danger,
-                    _ => Tone::Secondary,
-                })
-                .wrap(),
-            Prop::new("Gate", gate).wrap(),
-        ];
+        let facts = self.reclaim_facts();
         let h = props::render(inner, buf, t, &facts, bg);
         let mut y = inner.y + h + 1;
-        let skipped = self
-            .cats
-            .iter()
-            .filter_map(|&c| {
-                CATEGORIES_DATA[c]
-                    .blocked
-                    .map(|b| (CATEGORIES_DATA[c].label, b))
-            })
-            .next();
-        if let Some((label, why)) = skipped {
-            let n = Notice::warning(format!("{label} is skipped")).detail(why);
+        if let Some(n) = self.skipped() {
             let nh = n.height(inner.width);
             if y + nh + 2 <= inner.bottom() {
                 n.render(Rect::new(inner.x, y, inner.width, nh), buf, ctx, bg);
@@ -865,6 +913,41 @@ impl Page for DiskCleanupPage {
     }
     fn blurb(&self) -> &'static str {
         "Usage tree, filesystem meters, a cleanup checklist and a two-gate review"
+    }
+
+    /// The sections stacked at their natural heights, as wide as the
+    /// widest of: the filesystems card at its meters' measure, the usage
+    /// tree beside the cursor node's facts, and the categories beside the
+    /// reclaim card, each pair at the width its master-detail shows both
+    /// panes whole at (`MasterDetail::panes_width`), so neither
+    /// collapses into its drawer and no meta is cut.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let fs = self.filesystems();
+        let meta = self.fs_meta();
+        let fs_w = Panel::card(Some("Filesystems"))
+            .meta(&meta)
+            .outer(fs.measure(avail, ctx))
+            .width;
+        let tree = Panel::card(Some("Usage · ~/work"))
+            .meta("largest first · allocated")
+            .outer(self.tree.measure(avail, ctx))
+            .width;
+        let (kind, facts) = self.details();
+        let details =
+            crate::pages::layout::sheet_width(&Panel::card(Some("Details")).meta(&kind), &facts);
+        let cats = Panel::card(Some("Cleanup categories"))
+            .meta("10 of 10 · 99.9 GiB")
+            .outer(self.list.measure(avail, ctx))
+            .width;
+        let width = fs_w
+            .max(self.usage_md.panes_width(tree, details))
+            .max(self.clean_md.panes_width(cats, 0))
+            .max(avail.width);
+        let height = self
+            .sections
+            .stack
+            .measure(&self.heights(width, &fs).map(StackChild::fixed));
+        Size::new(width, height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

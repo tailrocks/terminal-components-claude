@@ -136,7 +136,7 @@ never in view at the smallest failing size.
 | R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 | `10312 10319 10326 10333 10340 10347 10354 10361` |
 | R43 | Connections | Playground | 80x24, 100x25 | `5432 Last SSH SSL ago bastion connections hour` |
 | R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 | `Alternatives Data Gate Host Risk Runs State Why` |
-| R45 | DiskCleanup | Playground | 80x24, 100x25, 106x29, 120x40 | `100 2000 201 2026 700 810 900 926` |
+| R45 | DiskCleanup | Playground | done: Page::measure (sections at their natural heights, each master-detail pair at `MasterDetail::panes_width`, so neither collapses and the reclaim card keeps its notice; heights at the pane widths through `MasterDetail::split_rects`; a collapse threshold set above the panes' need still shows the drawer) | — |
 | R46 | Activity | Playground | 80x24, 100x25, 106x29, 120x40 | `184 201 404 412 4821 4822 Command Exit` |
 | R47 | Workspaces | Playground | 80x24, 100x25, 106x29, 120x40 | `04d7 9b02 Accounts Claude Codex Delete Edit Environments` |
 | R48 | AccountsUsage | Playground | 80x24, 100x25, 106x29, 120x40 | `100 1Password 212 Account Cost Credential Engineering Mon` |
