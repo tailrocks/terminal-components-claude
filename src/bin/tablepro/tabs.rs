@@ -1304,11 +1304,10 @@ impl QueryTab {
             return vec![hint("Esc", "Cancel query")];
         }
         if self.completion.is_open() {
-            return vec![
-                hint("↑↓", "Move"),
-                hint("Enter", "Accept"),
-                hint("Esc", "Close"),
-            ];
+            return junie_tui::core::hints::HasHints::hints(
+                &self.completion,
+                &junie_tui::core::hints::HintCx::new(focus),
+            );
         }
         if self.editor.wants_text_input() {
             let mut h = vec![
