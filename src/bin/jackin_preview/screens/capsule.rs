@@ -231,7 +231,8 @@ impl CapsuleScreen {
         }
         let mut leaves = vec![];
         let mut seams = vec![];
-        tab.root.layout(body, &mut leaves, &mut seams, &mut vec![]);
+        tab.root
+            .layout(body, 1, &mut leaves, &mut seams, &mut vec![]);
         self.pane_rects = leaves;
         self.seams = seams;
     }
