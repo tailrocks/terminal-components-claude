@@ -267,6 +267,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Progress => PROGRESS,
         PageId::EmptyError => EMPTY_ERROR,
         PageId::Meters => METERS,
+        PageId::Sidebars => SIDEBARS,
         PageId::Notices => NOTICES,
         PageId::DiskCleanup => DISK_CLEANUP,
         PageId::Activity => ACTIVITY,
@@ -1388,6 +1389,31 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.reserve_value", "Reserve the value column", OFF_ON).default(1),
     Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
+];
+
+/// Sidebars: the `NavList`'s mode, widths, keys and badges, and the
+/// `SidebarRail` the hidden sidebar leaves (`pages/sidebars.rs`, `apply`).
+pub static SIDEBARS: &[Opt] = &[
+    Opt::new("sidebars.collapsed", "Collapsed (icons)", OFF_ON),
+    Opt::new("sidebars.width", "Open width", &["24", "20", "30"]),
+    Opt::new(
+        "sidebars.collapsed_width",
+        "Collapsed width",
+        &["6", "5", "8"],
+    )
+    .needs(&[("sidebars.collapsed", "on")]),
+    Opt::new("sidebars.keys", "Keys", &["desktop", "vim"]).default(1),
+    Opt::new("sidebars.badges", "Badges", OFF_ON).default(1),
+    Opt::new("sidebars.hidden", "Hidden (rail)", OFF_ON),
+    Opt::new("sidebars.collapsed_rail", "Rail when hidden", OFF_ON)
+        .default(1)
+        .needs(&[("sidebars.hidden", "on")]),
+    Opt::new(
+        "sidebars.rail_label",
+        "Rail label",
+        &["Navigation", "Explorer"],
+    )
+    .needs(&[("sidebars.hidden", "on")]),
 ];
 
 /// Meters (SC36): the columns every `MeterList` on the page shares, the
