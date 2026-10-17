@@ -782,13 +782,16 @@ mod widget_tests {
         let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 0);
         s.on_key(&k(KeyCode::Enter));
         s.on_key(&c('G'));
-        assert_eq!(s.cursor, 2, "the open list takes the whole table (G = End)");
+        assert_eq!(
+            s.list.cursor.index, 2,
+            "the open list takes the whole table (G = End)"
+        );
         let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 0).nav(NavKeys::NO_VIM);
         s.on_key(&k(KeyCode::Enter));
         s.on_key(&c('j'));
-        assert_eq!(s.cursor, 0);
+        assert_eq!(s.list.cursor.index, 0);
         s.on_key(&k(KeyCode::Down));
-        assert_eq!(s.cursor, 1);
+        assert_eq!(s.list.cursor.index, 1);
         let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 0);
         assert_eq!(
             s.on_key(&c('j')).0,

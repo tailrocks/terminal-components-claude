@@ -286,7 +286,7 @@ fn lists_menus_and_selects_draw_ascii() {
         let opts: Vec<&str> = opts.iter().map(String::as_str).collect();
         let mut s = Select::new(id, "Pick", &opts, 3);
         s.open = true;
-        s.max_rows = 4;
+        s.list.max_rows = 4;
         s.render(Rect::new(0, 0, 24, 2), buf, ctx, t.canvas);
     });
 }
