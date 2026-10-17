@@ -79,8 +79,6 @@ Scrolling | Playground | 80x24 | R34 squeezes instead of overflowing: no Page::m
 Scrolling | Playground | 100x25 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 106x29 | R34 squeezes instead of overflowing: no Page::measure yet
 Scrolling | Playground | 120x40 | R34 squeezes instead of overflowing: no Page::measure yet
-SplitsStacks | Playground | 80x24 | R35 squeezes instead of overflowing: no Page::measure yet
-SplitsStacks | Playground | 100x25 | R35 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 80x24 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 100x25 | R36 squeezes instead of overflowing: no Page::measure yet
 MasterDetail | Playground | 106x29 | R36 squeezes instead of overflowing: no Page::measure yet
