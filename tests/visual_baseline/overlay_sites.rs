@@ -16,7 +16,7 @@ use std::path::Path;
 use crate::determinism::{code_only, non_test};
 
 /// What opens or draws an overlay in the four apps.
-const OPENERS: [&str; 15] = [
+const OPENERS: [&str; 16] = [
     "req.menu(",
     "ModalTag::new(",
     // a layer opened on an app's `ShellLayers` (plan S5)
@@ -35,6 +35,7 @@ const OPENERS: [&str; 15] = [
     ".request(Leave::",
     // a keyboard reference (the showcase shell opens it as its modal)
     "HelpOverlay::new(",
+    "HelpOverlay::from_keymaps(",
 ];
 
 /// Lines that mention an opener without opening anything: a fallback tag,

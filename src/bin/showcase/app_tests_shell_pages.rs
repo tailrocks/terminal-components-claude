@@ -293,8 +293,10 @@ mod help_keys {
         h.click(x + 1, y);
     }
 
-    /// The shell's `?` is the library HelpOverlay: sections in columns,
-    /// Esc closes it and focus comes back.
+    /// The shell's `?` is the library HelpOverlay built from the live key
+    /// maps (K23): the shell's keys with the showcase's commands, the
+    /// sidebar tree's keys, the mouse; sections in columns, Esc closes it
+    /// and focus comes back.
     #[test]
     fn question_mark_opens_the_shell_reference() {
         let mut h = Harness::new(120, 40, PageId::Overview);
@@ -303,13 +305,13 @@ mod help_keys {
         let help = h.app.help().expect("the reference opened");
         assert_eq!(help.title, "Keyboard & mouse");
         let text = h.text();
-        for s in ["Focus", "Pages", "Sidebar", "Mouse"] {
+        for s in ["Shell", "Sidebar", "Mouse", "The Inspector", "Next page"] {
             assert!(text.contains(s), "{s}\n{text}");
         }
         // sections side by side: more than one column
         assert_eq!(
-            h.find("Focus  ").map(|p| p.1),
-            h.find("Pages  ").map(|p| p.1),
+            h.find("Shell  ").map(|p| p.1),
+            h.find("Sidebar  ").map(|p| p.1),
             "{text}"
         );
         // one focus indicator, in the topmost layer: on the Done button

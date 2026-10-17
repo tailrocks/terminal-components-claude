@@ -1569,54 +1569,29 @@ impl App {
         self.open_dialog(d);
     }
 
-    /// `?` and the header link: the shell's keys in the library
-    /// `HelpOverlay`, listed by hand until S8b generates them from the key
-    /// maps (SC33).
+    /// `?`, F1 and the header link: the library `HelpOverlay` built from
+    /// the live key maps (K23): the shell's keys (`ShellKeys`, the
+    /// showcase's commands included), the sidebar tree's own keys, and the
+    /// mouse gestures, which no key map lists.
     fn open_help(&mut self) {
-        let h = HelpOverlay::new(
-            HELP_DIALOG,
-            "Showcase",
-            vec![
-                (
-                    "Focus",
-                    vec![
-                        ("Tab", "next control"),
-                        ("Shift+Tab", "previous control"),
-                        ("↑↓←→", "move inside the control"),
-                        ("Enter Space", "activate · start editing"),
-                        ("Esc", "cancel editing · back to navigation"),
-                    ],
-                ),
-                (
-                    "Pages",
-                    vec![
-                        ("[ ]", "previous / next page"),
-                        ("0", "jump to navigation"),
-                        ("i", "the Inspector"),
-                        ("?", "this reference"),
-                        ("q Ctrl+Q", "quit"),
-                    ],
-                ),
-                (
-                    "Sidebar",
-                    vec![
-                        ("← →", "close / open a group"),
-                        ("a–z", "jump to a row by name"),
-                        ("/", "filter (Esc clears)"),
-                    ],
-                ),
-                (
-                    "Mouse",
-                    vec![
-                        ("Hover", "preview"),
-                        ("Click", "focus and activate"),
-                        ("Wheel", "scroll"),
-                        ("Drag", "a scrollbar thumb"),
-                    ],
-                ),
-            ],
-        )
-        .title("Keyboard & mouse");
+        use junie_tui::core::hints::Bindings;
+        use junie_tui::widgets::help::HelpSection;
+        let shell = self.keys.help_section("Shell", |c| {
+            Some(match c {
+                ShowCmd::Inspector => "The Inspector",
+                ShowCmd::Sidebar => "Jump to navigation",
+            })
+        });
+        let sidebar = HelpSection::new("Sidebar")
+            .bindings(&self.nav.bindings())
+            .row("/", "Filter (Esc clears)");
+        let mouse = HelpSection::new("Mouse")
+            .row("Hover", "Preview")
+            .row("Click", "Focus and activate")
+            .row("Wheel", "Scroll")
+            .row("Drag", "A scrollbar thumb");
+        let h = HelpOverlay::from_keymaps(HELP_DIALOG, "Showcase", vec![shell, sidebar, mouse])
+            .title("Keyboard & mouse");
         self.show_help(h);
     }
 
