@@ -276,18 +276,11 @@ impl Footer {
     }
 }
 
-/// Whether a hint's key is one the terminal delivers: a Cmd chord only
-/// once the kitty keyboard protocol confirmed Cmd arrives
-/// ([`crate::core::keyboard::super_delivered`]); never Shift+click or
-/// Shift+drag, which terminals keep for their own text selection while the
-/// app captures the mouse.
+/// Whether a hint's key is one the terminal delivers
+/// ([`crate::core::keyboard::label_deliverable`]): the footer, the help
+/// reference and menu shortcuts all ask it.
 pub fn deliverable(key: &str) -> bool {
-    let cmd = key.starts_with('⌘') || key.starts_with("Cmd+") || key.starts_with("Super+");
-    let shift_pointer = key.starts_with("Shift+click")
-        || key.starts_with("Shift+drag")
-        || key.starts_with("Shift-click")
-        || key.starts_with("⇧click");
-    !shift_pointer && (!cmd || crate::core::keyboard::super_delivered())
+    crate::core::keyboard::label_deliverable(key)
 }
 
 #[cfg(test)]

@@ -49,6 +49,9 @@ fn master_detail_follows_the_list_cursor() {
 
 #[test]
 fn master_detail_seam_drags_and_the_chords_resize_it() {
+    // Alt chords delivered (a Linux client, WezTerm): the hints this
+    // test reads do not depend on the host terminal (A29)
+    junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
     let before = tables_width(&h);
     let s = h.area(seam());

@@ -736,6 +736,9 @@ mod cmd_edit_tests {
 
     #[test]
     fn hints_name_cmd_only_once_delivered_else_the_preset_key() {
+        // Alt chords delivered (a Linux client, WezTerm): the hints this
+        // test reads do not depend on the host terminal (A29)
+        crate::core::keyboard::set_alt_keys(crate::core::keyboard::AltKeys::Delivered);
         let desktop = FieldKeys::Desktop.text_keymap();
         let emacs = FieldKeys::Emacs.text_keymap();
         let fallback = [

@@ -2422,6 +2422,32 @@ impl TpCmd {
     }
 }
 
+/// Run all: Alt+R, and Shift+F5 (F5 runs; Shift widens it to the whole
+/// script) where the terminal keeps Option for typing (A29).
+pub const RUN_ALL: [junie_tui::core::keymap::KeyBinding; 2] = [
+    junie_tui::core::keymap::KeyBinding::alt('r'),
+    junie_tui::core::keymap::KeyBinding::new(
+        KeyCode::F(5),
+        ratatui::crossterm::event::KeyModifiers::SHIFT,
+    ),
+];
+
+/// EXPLAIN ANALYZE: Alt+X, and pgAdmin's Shift+F7 where the terminal keeps
+/// Option for typing (A29).
+pub const EXPLAIN_ANALYZE: [junie_tui::core::keymap::KeyBinding; 2] = [
+    junie_tui::core::keymap::KeyBinding::alt('x'),
+    junie_tui::core::keymap::KeyBinding::new(
+        KeyCode::F(7),
+        ratatui::crossterm::event::KeyModifiers::SHIFT,
+    ),
+];
+
+/// The hint label of the first of `keys` the terminal delivers.
+pub fn key_label(keys: &[junie_tui::core::keymap::KeyBinding]) -> &'static str {
+    let map: Vec<_> = keys.iter().map(|&b| (b, ())).collect();
+    junie_tui::core::keymap::hint_key(&map, ()).unwrap_or("")
+}
+
 /// tablepro's shell keys: the standard set, the workbench chords before
 /// a capturing field (they act while the query editor edits, like menu
 /// key equivalents), `[`/`]` tab order, and `0` the explorer after the
@@ -2438,9 +2464,11 @@ pub fn shell_keys() -> shell::ShellKeys<TpCmd> {
         (KeyBinding::ctrl('r'), TpCmd::Run),
         (KeyBinding::ctrl('R'), TpCmd::Run),
         (KeyBinding::key(KeyCode::F(5)), TpCmd::RunOrRefresh),
-        (KeyBinding::alt('r'), TpCmd::RunAll),
+        (RUN_ALL[0], TpCmd::RunAll),
+        (RUN_ALL[1], TpCmd::RunAll),
         (KeyBinding::ctrl('x'), TpCmd::Explain),
-        (KeyBinding::alt('x'), TpCmd::ExplainAnalyze),
+        (EXPLAIN_ANALYZE[0], TpCmd::ExplainAnalyze),
+        (EXPLAIN_ANALYZE[1], TpCmd::ExplainAnalyze),
         (KeyBinding::ctrl('t'), TpCmd::NewQuery),
         (KeyBinding::ctrl('w'), TpCmd::CloseTab),
         (KeyBinding::ctrl('o'), TpCmd::Switcher),

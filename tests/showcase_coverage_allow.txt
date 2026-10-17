@@ -201,6 +201,7 @@ core::keymap::deliverable_binding_for | key labels and hints read from key maps:
 core::keymap::label_for | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
 core::keymap::select_all_bindings | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
 core::keymap::hint_key | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::keymap::intern | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
 core::hints::HintCx | widget hints by state (HasHints): the State tab shows each widget's hints | SC33
 core::hints::Binding | a widget's key rows (Bindings): the generated KeyReference lists them | SC33
 core::hints::keymap_bindings | key map rows as Bindings: the generated KeyReference lists them | SC33
@@ -624,6 +625,7 @@ widgets::input::TextInput::text | public function registered by SC-G1 (a query, 
 # widgets::keyhint
 widgets::keyhint::range | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
 widgets::keyhint::normalize_key | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
+widgets::keyhint::deliverable_line | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
 widgets::keyhint::modifier_click | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
 widgets::keyhint::Hint::is_pinned | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33
 widgets::keyhint::hint | key references generated from key maps (HelpOverlay::from_keymaps, KeyReference) and the Footer | SC33

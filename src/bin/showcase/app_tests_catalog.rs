@@ -376,7 +376,11 @@ fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer:
             cells = frame_cells(&mut app);
         }
     }
-    (cells, app.live_config())
+    let config = app.live_config();
+    // `shell.alt_keys` sets the process's Alt detection: put back the
+    // pinned one, so the next declaration renders as before (A29)
+    junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
+    (cells, config)
 }
 
 /// `Option(slug, key)` holds when every value it names, set through the
@@ -492,6 +496,8 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
 
 #[test]
 fn showcase_declarations_hold() {
+    // the demos name Alt chords: the host terminal must not decide (A29)
+    junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     fail_on(
         "src/bin/showcase/coverage.rs declares what the showcase does not show",
         &declaration_problems(SHOWN),
