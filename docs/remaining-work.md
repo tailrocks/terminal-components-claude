@@ -102,7 +102,7 @@ never in view at the smallest failing size.
 | R10 | TextAreas | Playground | **Done** (reach-a): `measure`: each area at its natural size (`TextArea: Measure`: every line whole; its rows stay set and scroll), the two cards' areas side by side when both fit, stacked otherwise; long lines make the page scroll sideways at every checked size | — |
 | R11 | Chips | Playground | **Done** (reach-a): `measure` through `tiles`: the chip bars at their natural width (`ChipBar: Measure`, unless the bar-width option sets one), the selects, the strip (`segments::width`, its note wraps), the properties beside the empty state (`EmptyState: Measure`) | — |
 | R12 | ChecksRadios | Playground | done: its rest is an inner scroller's rows (the inner-scroller rule) | — |
-| R13 | Toolbars | Playground | 80x24, 100x25, 106x29 | `Action Activated End Explain Home Keys Last Line` |
+| R13 | Toolbars | Playground | **Done** (reach-a): `measure` through `tiles`: each card never narrower than its toolbar shown whole (`Toolbar::width`) and its first line; the overflow readout and the Last facts wrap | — |
 | R14 | Tables | Playground | 80x24, 100x25, 106x29, 120x40 | `00s 01s 05s 08s 1044 1045 1046 1047` |
 | R15 | Editable | Playground | 80x24, 100x25, 106x29, 120x40 | `1050 1051 1052 1053 118 Activated Alt Basic` |
 | R16 | Grid | Playground | 80x24, 100x25, 106x29, 120x40 | `1011 1012 1013 120 150 1920 201 202` |

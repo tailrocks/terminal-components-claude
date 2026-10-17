@@ -8,9 +8,6 @@
 # and so does a listed entry that passes (delete its line when the page is
 # fixed).
 
-Toolbars | Playground | 80x24 | R13 squeezes instead of overflowing: no Page::measure yet
-Toolbars | Playground | 100x25 | R13 squeezes instead of overflowing: no Page::measure yet
-Toolbars | Playground | 106x29 | R13 squeezes instead of overflowing: no Page::measure yet
 Tables | Playground | 80x24 | R14 squeezes instead of overflowing: no Page::measure yet
 Tables | Playground | 100x25 | R14 squeezes instead of overflowing: no Page::measure yet
 Tables | Playground | 106x29 | R14 squeezes instead of overflowing: no Page::measure yet
