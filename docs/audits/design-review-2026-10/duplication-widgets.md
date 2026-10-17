@@ -119,13 +119,13 @@ Every row is consolidated into the plan ([`shared-components-plan.md`](../../arc
 | 6 Click count, activation | Fixed (S9); CodeEditor → S11 | `d821cd98e` (count); S9 commits | One `ClickPolicy`/`Activate` rule in List, Tree, Table, Grid and PropsList (CO10: screens ask it too); CodeEditor multi-click is M2 (S11). |
 | 7 Text editing outside `TextBuffer` | Open → S11 | — | `EditField` not built; picker and combo queries, table/grid cell editors still separate. |
 | 8 Validation | Open → S11 | — | `Validate`/`Validator`/`ValidateWhen` not built; three validator types remain. |
-| 9 Row painting | Open → S10 | — | `RowUi`/`RowPaint` not built. |
+| 9 Row painting | Partial (S10) | 450aab6f4..07a4fa124 | `ui::row::RowUi` paints List, Tree, Props, Steps, DataTable, DataGrid and the choice rows; the popup rows move with S12's `OptionList`. |
 | 10 Hit-id plumbing | Fixed (S1, S6) | `cbcde8d64`, `69383ed6e`, `5b9a37413` | Part-tagged hits; `rg 'fn owns\b\|fn locate\b' src` = 0. Remaining `PartMap`, `item_of`, `contains_id` are CO8 (S15). |
 | 11 Overlay dismissal API | Fixed (S5) | `4851af3e3`, `0afc08a4b`, `5ff329332`, `bcbf5fa1b` | `Overlay` on Dialog, Form, Choice, Info, Help, Picker, ContextMenu, MenuBar, Select, Completion. `ChoiceEditor` waits for S12 (S5 deviation 7). |
 | 12 Event and `Outcome` conventions | Open → S15 (`Response` Fixed in S0) | `a3e367e8f` | `Response<A>` and `XAction` naming exist; one `handle` signature (`Component`) is S15. |
 | 13 Render signatures | Open → S15 | — | `Draw`/`Measure` and removal of free render functions are S15. |
 | 14 Hint generation | Open → S8b | — | `HasHints` from key maps not built. |
 | 15 Context-menu sources | Open → S13 (`context_select` Fixed in S4) | `ffa83cf8a` | `context_select` goes through `Cursor::select`; `ContextSource` for Props, Steps, Viewport, text widgets, Picker, Chips is S13. |
-| 16 Reveal and truncation | Open → S10, A12 | — | Keyboard reveal in other widgets is K12/SI8 (S10). |
+| 16 Reveal and truncation | Partial (S10); Open → S12, A12 | "the peek line shows the focused cut value in full" | `RowPaint::label` wires the reveal; the peek line covers Table and Grid; popups with S12. |
 | 17 Empty, loading, disabled | Open → S13 | — | `ContentState` not built; List still has two empty APIs. |
 | 18 Builder naming | Open → S15 | — | `wrap_cursor`/`wrap_lines`/`scroll(ScrollConfig)` renames are S15. |

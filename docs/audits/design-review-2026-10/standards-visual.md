@@ -122,11 +122,11 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 
 | # | Status | Commit(s) / owner | Notes |
 |---|---|---|---|
-| 1 | Partial; Open → S10 | — | One accent and focus return to the opener (K9, popups restore the owner's focus, plan S5) hold. Neutral active state as text_primary + BOLD is S10 (visual). |
+| 1 | Fixed (S10) | "a selected row is bold" | One accent and focus return to the opener (K9) hold. A selected (neutral active) row is bold at every level (`StateModifiers::selected`); tabs were already bold when selected. |
 | 2 | Open → T | — | Mono hover and press modifiers (no underline on hover, REVERSED for pressed) belong to the theme track. `StateModifiers.hover_enabled` not added yet. |
 | 3 | Open → T | — | `text_faint` is still one value (`WHITE_43`, `src/theme.rs`); plane-relative values with a contrast test per plane are the theme track. |
 | 4 | Open → T | — | Panel title marker and `border_strong` on the focused panel are T; the `▎` gutter plus BOLD stays as is. |
-| 5 | Open → S10 | 0e99f5329 (delay) | Hover reveal waits 300 ms (`Reveal::delay_ms`, M25). Keyboard reveal everywhere and the peek key are S10 (K12, SI8); cut labels in Tree, List, Picker, DataTable are A12. |
+| 5 | Partial (S10) | 0e99f5329 (delay), "the peek line shows the focused cut value in full" (peek line) | Hover reveal waits 300 ms (M25). The focused cut value reads in full on the peek line with no key (SI8; List, Props, Table, Grid). A dedicated peek key and Menu/Picker/Select (S12) are open; cut labels in Tree, List, Picker, DataTable are A12. |
 | 6 | Decision (one thumb glyph) | e9b8f3631 | AGENTS.md "Visual states": the thumb keeps one glyph; colour carries rest, hover and pressed, and `StateModifiers::thumb_hover`/`thumb_pressed` carry it in mono. Supersedes the glyph-per-state correction. |
 | 7 | Open → A11 | — | The showcase tree still has a "Chrome" group (`src/bin/showcase/app.rs`); rename to "App shell", Overview alone at the top, two levels at most. |
 | 8 | Open → A11 | — | Editor choice by option count, `▾` only on the active or hovered cell, `☐/☑` for booleans. |
@@ -135,12 +135,12 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | 11 | Fixed | ae4d7eb41; S8b "Footer composes hints" | Status info expires after 5 s on the shell clock; errors persist until the next action (WCAG 2.2.1); `shell::Footer` gives an error precedence over every hint, the pinned ones included (`an_error_status_is_never_cut_for_the_hints`). |
 | 12 | Open → A11 | — | jackin still shows "Delete…" before a plain confirmation (`src/bin/jackin_preview/screens/manager.rs:801`); keycap set uses `Del`, not "Delete". |
 | 13 | Fixed | ef2f81640 | Dotted track `┆`/`┄` in `Theme::scroll_track`; see the note under #13 and hscroll.md. Thumb glyph and held colour per row 6. |
-| 14 | Open → S10, T | — | Non-colour selection cue (marker column or BOLD) is S10 (visual); success vs accent separation is the theme track. |
+| 14 | Partial: S10 fixed; Open → T | "a selected row is bold", "every chosen-value mark is RowPaint::mark" | Selected rows are bold at every level and their marks follow `Theme::chosen`; success vs accent separation is the theme track. |
 | 15 | Open → S12 | — | Disabled items reachable; reason in the hint or status row with the dimmed shortcut kept (`Item` reason, SI21/SV15). |
-| 16 | Open → S10 | — | Same 1.4.13 rules as #5 (Esc dismiss, hoverable, persistent), clamped to the screen edge with a 1-cell margin; with K12 and A12. |
+| 16 | Partial (S10) | "the peek line shows the focused cut value in full" | The peek line shows the focused cut value without a tooltip (nothing to dismiss); the tooltip rules of #5 stand. Menu/Picker/Select with S12, A12. |
 | Gap 1 | Open → T | — | `border_strong` (at least 3:1) for field and control outlines (SVg1). |
 | Gap 2 | Open → T | — | One pressed direction for every ladder (SVg2). |
-| Gap 3 | Open → S10 | — | `highlight_on_selection` token for a cursor row inside a selected range; no such token in `src/theme.rs` yet. |
+| Gap 3 | Fixed (S10) | "highlight_on_selection, the cursor inside a selected range" | `Theme::highlight_on_selection` and `Theme::cursor_in_selection`: the grid cursor inside its range; contrast test at every level. |
 | Gap 4 | Open → A11 | — | DIM (SGR 2) fallback: pair with a glyph or reason and document the fallback. |
 | Gap 5 | Open → A11 | — | Test focus and pressed BOLD against a bold-is-bright 16-colour profile. |
 | Gap 6 | Partial; Open → A22 | 18f15fd5f, acfbe62db | `Glyphs::ASCII` and `Strings::ASCII` exist (opt-in, `LevelOverrides::ASCII_MONO`). Automatic selection for `TERM=linux` or the Windows console is not implemented and no step owns it. |
