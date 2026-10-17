@@ -182,8 +182,11 @@ fn wrap_options_change_the_wrapped_block() {
 fn the_list_activates_and_copies_through_its_keymap() {
     let mut h = Harness::new(220, 80, PageId::TextUtilities);
     let (x, y) = h.find("Port  ").expect("the list");
+    // M32: one click selects the row; a double click activates it
     h.click(x, y);
     assert!(h.app.shell.focus.is(WidgetId::of("textutilities.props")));
+    assert!(!h.text().contains("Activate(Port)"), "a click only selects");
+    h.click(x, y);
     assert!(h.text().contains("last PropsAction: Activate(Port)"));
     h.key(KeyCode::Char('y'));
     assert!(h.text().contains("last PropsAction: Copy(Port)"));

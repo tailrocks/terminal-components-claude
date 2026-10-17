@@ -277,8 +277,12 @@ impl InfoDialog {
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
         if let Some(i) = self.props.row_of(id) {
             focus.focus(self.props.id);
-            let (o, _) = self.props.on_click(i);
-            if let Some(Some(v)) = self.copy_values.get(i) {
+            // a single click selects the row; it copies only when the
+            // sheet's click policy activates on one click (M32)
+            let (o, act) = self.props.on_click(i);
+            if act.is_some()
+                && let Some(Some(v)) = self.copy_values.get(i)
+            {
                 self.result = Some(InfoResult::Copy(v.clone()));
             }
             return o;
@@ -447,14 +451,16 @@ impl InfoDialog {
         use crate::core::id::Part;
         use crate::core::intent::Phase;
         use crate::core::pointer::MouseTarget;
-        if let Some(r) = self.props.route(ev) {
-            if ev.is(Phase::Click)
-                && let Some(i) = ev.index_of(Part::ROW)
-            {
+        if let Some(mut r) = self.props.route(ev) {
+            if ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                 focus.focus(self.props.id);
-                if let Some(Some(v)) = self.copy_values.get(i) {
-                    self.result = Some(InfoResult::Copy(v.clone()));
-                }
+            }
+            // a click selects a row; only its activation (a double click,
+            // the sheet's `ClickPolicy`) copies the value (M32)
+            if let Some(crate::widgets::props::PropsAction::Activate(i)) = r.take_action()
+                && let Some(Some(v)) = self.copy_values.get(i)
+            {
+                self.result = Some(InfoResult::Copy(v.clone()));
             }
             return r.erase();
         }
@@ -513,5 +519,40 @@ mod tests {
         focus.focus(d.initial_focus());
         d.on_key(&key(KeyCode::Esc), &mut focus, &ring);
         assert_eq!(d.result, Some(InfoResult::Closed));
+    }
+
+    /// M32: a click meant to select a fact never copies it; a double click
+    /// (the sheet's activation) does.
+    #[test]
+    fn a_click_selects_a_fact_and_a_double_click_copies_it() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::PointerEvent;
+        let t = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut d = InfoDialog::new(
+            WidgetId::of("info"),
+            "Instance",
+            vec![Prop::new("Image", "ubuntu:24.04").copyable()],
+        );
+        {
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 90, 30));
+            d.render(Rect::new(0, 0, 90, 30), &mut buf, &mut ctx);
+        }
+        let row = d.props.row_id(0);
+        let at = hits.area_of(row).expect("the fact row is a target");
+        let pos = Position::new(at.x + 2, at.y);
+        let mut focus = Focus::default();
+        let click =
+            |count| PointerEvent::new(&hits, Phase::Click, row, pos, count, KeyModifiers::NONE);
+        let _ = d.pointer_in(&click(1), &mut focus);
+        assert_eq!(d.result, None, "a click only selects");
+        let _ = d.pointer_in(&click(2), &mut focus);
+        assert_eq!(
+            d.result,
+            Some(InfoResult::Copy("ubuntu:24.04".into())),
+            "a double click copies"
+        );
     }
 }
