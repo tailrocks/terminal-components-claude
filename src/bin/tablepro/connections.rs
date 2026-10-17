@@ -6,7 +6,7 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 
 use junie_tui::core::event::{Key, Outcome};
-use junie_tui::core::id::{Part, WidgetId};
+use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::theme::Tone;
@@ -1037,7 +1037,7 @@ impl ConnectionsScreen {
             return (o, None);
         }
         if ev.on(self.tree.id) {
-            if ev.index_of(Part::ROW).is_some() || ev.index_of(Part::ICON).is_some() {
+            if self.tree.row_at(ev).is_some() {
                 cx.focus.focus(self.tree.id);
             }
             let (o, act) = self.tree.pointer(ev).into_parts();
