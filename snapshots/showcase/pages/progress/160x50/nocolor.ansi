@@ -32,7 +32,8 @@
                                                                                                                                                                 [0m
                             Meters                                                                                                    capacity, not completion  [0m
                                                                                                                                                                 [0m
-                            Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !. Stale keeps its level, dashed.             [0m
+                            Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !.                                            [0m
+                            Stale keeps its level, dashed.                                                                                                      [0m
                                                                                                                                                                 [0m
                             Low        ━━━━━━━━━────────────── 38% used                            [0m[1m 38% used · [0mblock                                            [0m
                             Medium     ━━━━━━━━━━━━━━━━━────── 72% used ▲                          ━━━━━━━─── 72% disk, warns at 80                             [0m
@@ -43,7 +44,6 @@
                             Refreshing ━━━━━━━━━━───────── ⠋ refreshing                                                                                         [0m
                             Error      quota read failed !                                                                                                      [0m
                             Unknown    —                                                                                                                        [0m
-                                                                                                                                                                [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
                                                                                                                                                                 [0m
