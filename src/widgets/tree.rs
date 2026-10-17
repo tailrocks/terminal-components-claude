@@ -8,6 +8,7 @@ use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, unassigned_chord};
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
+use crate::core::selection::ClickPolicy;
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 
@@ -129,7 +130,7 @@ pub enum TreeAction {
     Activate(Path),
 }
 
-/// What Enter/Space (and a row click, see [`TreeView::row_click_toggles`])
+/// What Enter/Space (and an activating row click, see [`TreeView::click`])
 /// do on a branch row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BranchAction {
@@ -172,11 +173,13 @@ pub struct TreeView {
     /// What Enter/Space do on a branch row. Default
     /// [`BranchAction::Toggle`].
     pub branch_activate: BranchAction,
-    /// A click on a branch row (not its disclosure) runs
-    /// [`Self::branch_activate`]. Off: only the disclosure toggles, as in
-    /// macOS outline views, and the click just moves the cursor. Default
-    /// `true` (today's behaviour).
-    pub row_click_toggles: bool,
+    /// When a click on a row (not its disclosure, which toggles on one
+    /// click) activates it: a leaf reports [`TreeAction::Activate`], a
+    /// branch runs [`Self::branch_activate`]. Default
+    /// [`ClickPolicy::DATA`]: one click moves the cursor, a double click
+    /// activates, as in macOS outline views and Finder (M15, SI14);
+    /// [`ClickPolicy::NAVIGATION`] activates on one click (a sidebar).
+    pub click: ClickPolicy,
     /// Columns of indentation per depth level. Default 2.
     pub indent: u16,
     /// ↑ on the first row lands on the last and ↓ on the last on the
@@ -297,7 +300,7 @@ impl TreeView {
             show_meta: true,
             trailing: Rect::ZERO,
             branch_activate: BranchAction::Toggle,
-            row_click_toggles: true,
+            click: ClickPolicy::DATA,
             indent: 2,
             wrap: false,
             rows_built: 0,
@@ -323,8 +326,9 @@ impl TreeView {
         self
     }
 
-    pub fn row_click_toggles(mut self, on: bool) -> Self {
-        self.row_click_toggles = on;
+    /// See [`Self::click`].
+    pub fn click(mut self, policy: ClickPolicy) -> Self {
+        self.click = policy;
         self
     }
 
@@ -774,20 +778,30 @@ impl TreeView {
         (out, None)
     }
 
+    /// A single click on row `i` ([`Self::on_click_row_count`]).
     pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
+        self.on_click_row_count(i, 1)
+    }
+
+    /// The `count`th click of a multi-click on row `i` (not its
+    /// disclosure): the cursor moves there, and when [`Self::click`]
+    /// activates on this click a leaf reports [`TreeAction::Activate`] and
+    /// a branch runs [`Self::branch_activate`].
+    pub fn on_click_row_count(&mut self, i: usize, count: u8) -> (Outcome, Option<TreeAction>) {
         if i >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
+        let again = self.cursor == i;
         self.scroll.pointer_move();
         self.set_cursor(i);
         if self.rows[i].note {
-            (Outcome::Consumed, None)
-        } else if self.rows[i].has_children {
-            if self.row_click_toggles {
-                self.branch(i)
-            } else {
-                (Outcome::Changed, None)
-            }
+            return (Outcome::Consumed, None);
+        }
+        if !self.click.activates(count.max(1), again) {
+            return (Outcome::Changed, None);
+        }
+        if self.rows[i].has_children {
+            self.branch(i)
         } else {
             self.selected = Some(self.rows[i].path.clone());
             (
@@ -813,6 +827,19 @@ impl TreeView {
         toggle: bool,
         mods: KeyModifiers,
     ) -> (Outcome, Option<TreeAction>) {
+        self.on_click_at(i, toggle, mods, 1)
+    }
+
+    /// [`Self::on_click_with`] for the `count`th click of a multi-click
+    /// (the pointer's click count): a row click activates per
+    /// [`Self::click`].
+    pub fn on_click_at(
+        &mut self,
+        i: usize,
+        toggle: bool,
+        mods: KeyModifiers,
+        count: u8,
+    ) -> (Outcome, Option<TreeAction>) {
         if self.alt_click_recursive
             && mods.contains(KeyModifiers::ALT)
             && self.rows.get(i).is_some_and(|r| r.has_children && !r.note)
@@ -823,7 +850,7 @@ impl TreeView {
         if toggle {
             self.on_click_toggle(i)
         } else {
-            self.on_click_row(i)
+            self.on_click_row_count(i, count)
         }
     }
 
@@ -1238,7 +1265,7 @@ impl crate::core::pointer::MouseTarget for TreeView {
             _ => None,
         };
         match hit {
-            Some((row, toggle)) => self.on_click_with(row, toggle, ev.mods()).into(),
+            Some((row, toggle)) => self.on_click_at(row, toggle, ev.mods(), ev.count()).into(),
             None => crate::core::response::Response::ignored(),
         }
     }
@@ -1321,9 +1348,32 @@ mod identity_tests {
         let (_, ev) = a.on_key(&enter);
         assert_eq!(ev, Some(TreeAction::Activate(vec![0])));
         assert_eq!(a.rows().len(), 2, "activating does not collapse");
-        let mut quiet = TreeView::new(WidgetId::of("t"), nodes).row_click_toggles(false);
-        quiet.on_click_row(0);
-        assert_eq!(quiet.rows().len(), 2, "a row click only moves the cursor");
+        // M15, SI14: one click on a row only moves the cursor, however
+        // often; a double click runs the branch action, the disclosure
+        // toggles on one click
+        let mut data = TreeView::new(WidgetId::of("t"), nodes.clone());
+        data.on_click_row(0);
+        data.on_click_row(0);
+        assert_eq!(data.rows().len(), 2, "a row click only moves the cursor");
+        data.on_click_row_count(0, 2);
+        assert_eq!(data.rows().len(), 1, "a double click toggles the branch");
+        data.on_click_toggle(0);
+        assert_eq!(data.rows().len(), 2, "the disclosure toggles on one click");
+        let mut leaf = TreeView::new(WidgetId::of("t"), nodes.clone());
+        assert_eq!(leaf.on_click_row(1).1, None, "a leaf click selects");
+        assert_eq!(
+            leaf.on_click_row_count(1, 2).1,
+            Some(TreeAction::Activate(vec![0, 0])),
+            "a leaf double click activates"
+        );
+        // a sidebar navigates on one click
+        let mut nav = TreeView::new(WidgetId::of("t"), nodes).click(ClickPolicy::NAVIGATION);
+        assert_eq!(
+            nav.on_click_row(1).1,
+            Some(TreeAction::Activate(vec![0, 0]))
+        );
+        nav.on_click_row(0);
+        assert_eq!(nav.rows().len(), 1, "a branch click toggles");
     }
     use ratatui::crossterm::event::KeyModifiers;
 

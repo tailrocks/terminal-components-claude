@@ -1042,16 +1042,12 @@ impl ConnectionsScreen {
             }
             let (o, act) = self.tree.pointer(ev).into_parts();
             self.sync_selected_from_cursor();
-            if let Some(TreeAction::Activate(path)) = act {
-                // single click selects; Enter/second click connects
-                if let Some(i) = self.connection_at_path(&path)
-                    && self.selected == Some(i)
-                    && self.tree.selected.as_ref() == Some(&path)
-                    && o == Outcome::Changed
-                    && self.state == ConnState::Idle
-                {
-                    // second click on an already-selected row: connect
-                }
+            // one click selects a connection; the tree's click policy (a
+            // double click) activates it, which connects as Enter does
+            if let Some(TreeAction::Activate(path)) = act
+                && let Some(i) = self.connection_at_path(&path)
+            {
+                self.start_connect(i);
             }
             return (o, None);
         }
