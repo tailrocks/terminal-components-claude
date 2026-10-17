@@ -27,5 +27,5 @@
 [0m[2m   │   rows 1–16 of 500 loaded · 3,811,020 total · cols 1–2 of 7                                  │ [0m
 [0m[2m   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
 [0m[2m                                                                                                    [0m
-                                                                          ✓ Connected to Production [0m
+ [0m[1mType[0m Filter  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Cancel                           ✓ Connected to Production [0m
 [?25h[13;23H[6 q
