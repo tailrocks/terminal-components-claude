@@ -438,6 +438,15 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
+    /// Register `area` as `id`'s scroll body under everything else of the
+    /// layer ([`HitRegistry::register_scroll_under`]): the wheel anywhere
+    /// in it reaches `id` unless something inside takes it first.
+    pub fn scrollable_under(&mut self, id: WidgetId, area: Rect) {
+        if !self.inert {
+            self.hits.register_scroll_under(id, area);
+        }
+    }
+
     /// Register a drag-selecting widget's scrolling body for edge
     /// autoscroll ([`HitRegistry::register_autoscroll`]).
     pub fn autoscroll(&mut self, area: Rect) {

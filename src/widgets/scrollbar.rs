@@ -421,6 +421,10 @@ impl ScrollPane {
         if content != area {
             let track = Rect::new(area.right() - 1, area.y, 1, area.height);
             self.remember(Axis::Vertical, owner, track, buf);
+            // the wheel scrolls the pane anywhere over it: over a field
+            // that does not scroll, a label or the padding beside the bar
+            // (R-apps-9)
+            ctx.scrollable_under(owner, area.intersection(*buf.area()));
         }
         content
     }
