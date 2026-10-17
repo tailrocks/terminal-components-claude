@@ -778,8 +778,8 @@ impl QueryWorkbenchPage {
         if r.height < 4 {
             return;
         }
-        self.tabs
-            .render(Rect::new(r.x, r.y, r.width, 2), buf, ctx, t.canvas);
+        let (strip, body) = Tabs::layout(r);
+        self.tabs.render(strip, buf, ctx, t.canvas);
         if self.docs.is_empty() {
             let hint = if self.tabs.allow_new {
                 "Click + or press n on the tabs to open one"
@@ -787,13 +787,7 @@ impl QueryWorkbenchPage {
                 "Open a table from the explorer"
             };
             let e = EmptyState::new("No query open").hint(hint);
-            empty::render_ctx(
-                Rect::new(r.x, r.y + 3, r.width, r.height.saturating_sub(3)),
-                buf,
-                ctx,
-                &e,
-                t.canvas,
-            );
+            empty::render_ctx(body, buf, ctx, &e, t.canvas);
             return;
         }
         let top = if r.height >= TOOLBAR_MIN {

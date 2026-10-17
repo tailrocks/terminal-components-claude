@@ -1364,6 +1364,8 @@ pub static TABS: &[Opt] = &[
     Opt::new("tabs.middle_click", "Middle-click closes", OFF_ON).default(1),
     Opt::new("tabs.overflow_menu", "Overflow +N", OFF_ON).default(1),
     Opt::new("tabs.more_button", "+N button", &["default", "tight"]),
+    Opt::new("tabs.passive", "Passive", &["off", "on", "owner-focused"]),
+    Opt::new("tabs.gap", "Body gap", &["1", "0"]),
     Opt::new("tabs.count", "Tabs", &["few", "many"]).default(1),
 ];
 

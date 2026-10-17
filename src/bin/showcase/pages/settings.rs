@@ -160,14 +160,8 @@ impl Page for SettingsPage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        self.tabs
-            .render(Rect::new(area.x, area.y, area.width, 2), buf, ctx, t.canvas);
-        let body = Rect::new(
-            area.x,
-            area.y + 3,
-            area.width,
-            area.height.saturating_sub(3),
-        );
+        let (strip, body) = Tabs::layout(area);
+        self.tabs.render(strip, buf, ctx, t.canvas);
         match self.tabs.active {
             0 => {
                 let title = if self.dirty {

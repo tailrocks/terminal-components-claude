@@ -3608,6 +3608,20 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tabs::Tabs::middle_click_closes",
         Option("tabs", "tabs.middle_click"),
     ),
+    // S17 (SC36): the passive strip and the strip/body split
+    (
+        "widgets::tabs::Tabs::passive",
+        Option("tabs", "tabs.passive"),
+    ),
+    (
+        "widgets::tabs::Tabs::passive_focused",
+        Option("tabs", "tabs.passive"),
+    ),
+    ("widgets::tabs::Tabs::layout", Demo("tabs", "Tabs::layout")),
+    (
+        "widgets::tabs::Tabs::layout_gap",
+        Option("tabs", "tabs.gap"),
+    ),
     // Menus (SC16)
     (
         "ui::context::ContextKeys",
