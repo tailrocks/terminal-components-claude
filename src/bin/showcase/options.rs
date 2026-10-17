@@ -287,6 +287,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::QueryWorkbench => QUERY_WORKBENCH,
         PageId::Connections => CONNECTIONS,
         PageId::Finder => FINDER,
+        PageId::ReadOnlyReport => READONLY_REPORT,
         _ => &[],
     }
 }
@@ -1478,6 +1479,13 @@ pub static WORKSPACES: &[Opt] = &[
     Opt::new("workspaces.typed", "Typed purge confirm", OFF_ON)
         .default(1)
         .behaviour(),
+/// Read-only report (SC56): the report's state, its meters' visual,
+/// the attention notices and whether facts copy.
+pub static READONLY_REPORT: &[Opt] = &[
+    Opt::new("readonlyreport.offline", "Offline (last-good)", OFF_ON),
+    Opt::new("readonlyreport.visual", "Meter visual", &["block", "line"]),
+    Opt::new("readonlyreport.notices", "Attention notices", OFF_ON).default(1),
+    Opt::new("readonlyreport.copyable", "Facts copy", OFF_ON).default(1),
 ];
 
 /// Empty & error (SC21): the empty state's kind, hint and actions, and
