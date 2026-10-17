@@ -238,3 +238,38 @@ All four apps run on `core::pointer::PointerRouter` and reach widgets through `M
 | 18 | Fixed | The wheel goes to the owner under the pointer (`hit_scroll` stack), inside modals too: an open select in a form or the tablepro filter editor scrolls its list; a wheel over a modal's backdrop does nothing. |
 | 12 | Fixed (routing) | `SecondaryUp` on an accepting row is a click through the router in every app; holla's and jackin's menu bars open on the press. |
 | 37, 38 | Unchanged | Already fixed by the widget pass; S6 keeps them. |
+
+## Status (T19 sync, 2026-10-17)
+
+The three status sections above (widget-level pass, navigation and dead
+ends, pointer router) and the SC17–SC20 note (fixed in S6, e57fe76e8)
+cover #1, #4–#8, #11–#14, #17–#20, #24–#30, #33–#38, #40 and SGR 66/67.
+This table adds the ranked findings no section recorded, mapped to the
+plan §4 step that owns them (none is fixed at HEAD: the plan's Step
+status records M2 as still open after S6), and the "Open from this pass"
+and "Left for later" items.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 2 | Open → S11 | — | CodeEditor drag anchor, multi-click and signed `offset_at_pos` through `PointerField` on `EditField`; plan "S6 notes" S11 says CodeEditor still anchors on the click. |
+| 3 | Open → S13 | — | Standard Edit `ContextSource` (Cut, Copy, Paste, Select All, OSC 52) on every text widget. |
+| 9 | Open → S9 | — | Grid and table edit entry by click count (`ClickPolicy`, `Activate`). |
+| 10 | Open → S9 | — | Right-click selection rule (`RowSelection::apply` in `context_select`). |
+| 15 | Open → S9 | — | Single click selects, double click activates; holla `disk.rs` toggle-on-click and tablepro's empty double-click branch are deleted there. |
+| 16 | Open → S9 | — | Shift/Cmd modifier clicks through `SelectGesture` in List and Grid. |
+| 21 | Open → S11 | — | Picker, holla finder and files queries onto `EditField` (caret on click, word select, clear button). |
+| 22 | Open → S13 | — | Default `context_items` from the widget's `KeyMap` (grid insert/delete/undo, chips toggle/clear, tree expand all). |
+| 23 | Open → S14 | — | App actions with no mouse path move onto typed menu `Cmd`s in the shell `Router`/`Chrome`. |
+| 31 | Open → S11 | — | ScrollPanel selection through `TextViewport`, Shift-click extend and triple-click line. |
+| 32 | Open → S9 | — | PropsList click selects instead of copying; Copy through a visible chip. |
+| 39 | Open → S11 | — | Visible caret in a focused read-only CodeEditor; ChoiceDialog `double_click_confirms`. |
+| Open from this pass: `+N` menu focus | Fixed | 77fd861c6 | `Interaction::focused_under`; Tabs, ChipBar and Toolbar hide their `▎` while their own menu is open. Tests: tablepro `the_open_overflow_menu_is_the_only_layer_showing_focus`, chips `the_focused_bar_under_its_open_menu_shows_no_focus`. |
+| Open from this pass: jackin tab-strip wheel | Fixed | 18647f61c | S6: jackin tab strips route through `MouseTarget` (pointer-router #14 row). |
+| Open from this pass: I-beam | Open → A3 | — | The I-beam still shows over a field's label; TextViewport and diff text declare no `PointerShape::Text`. |
+| Open from this pass: visual | Fixed | 4be166d38 | tablepro re-approved against `visual-baseline` with the splitter seams (c4847ed22) and `+N` overflow (c9c4c8475) attributed (`visual-reapproval.md`). |
+| Left for later: #13 | Open → A4 | — | holla `TextModal` (help, why, about) draws no close button. |
+| Left for later: #24 | Open → A4 | — | tablepro filter editor flashes nothing on a refused click until it moves onto `Frame` (S18). |
+| Left for later: #6 | Open → A4 | — | jackin cockpit's blocked stage explains itself only in the status line. |
+| Left for later: #5 | Open → A4 | — | A two-part crumb (`Disk › Usage`) is one link in the trail. |
+| Left for later: #4 | Open → A4 | — | `ScrollState::follow` is opt-in for render-time callers. |
+| 1 (remainder) | Open → A4 | — | The showcase draws its footer before a dialog's barrier, so a dialog's hints are not clickable there (with S8b). |

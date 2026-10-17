@@ -93,3 +93,41 @@ Because glyphs are mandatory, colour is never the only cue.
 10. Fix the Overview swatches, labels and principle copy so the doc teaches purposeful colour.
 
 Measurement script: `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/ansistat.py`. Per-frame stats: `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/stats_act.txt`. Current-code captures: `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/colour-a/target/tuiscotti/actual/`. Nothing in the repo was edited, and the `visual-baseline` tag was not touched.
+
+## Status (T19 sync, 2026-10-17)
+
+Each ranked finding was checked against
+[`colour-follow-ups.md`](colour-follow-ups.md), the commits that touch
+`src/bin/{tablepro,showcase}/app_tests_colour.rs` and the code at HEAD.
+The roles in section 1 shipped in 0610904df and 86f6aea01 with the
+decisions recorded in `colour-follow-ups.md` (error text is `#f05d5d`,
+not `#f05454`). The top 10 quick wins repeat #1–#11 and #14 and close
+with them.
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Fixed | 67ddac8a8, 0610904df | `Theme::env(EnvKind)` on the header badge; `Tone::Danger`. |
+| 2 | Fixed | 0610904df, 67ddac8a8, 8fa0e7d45 | Syntax palette; SQL `TRUE`/`FALSE`/`NULL` as `SyntaxTone::Literal`; showcase editor booleans. |
+| 3 | Fixed | 0610904df | `info` `#79b8ff` / 111 with `Tone::Info` and `link`. |
+| 4 | Fixed | 0610904df | `legible()` steps up the text ladder (faint, muted, secondary). |
+| 5 | Fixed | 67ddac8a8 | `Dialog::title_status(Warn)`, production target tone, `Button::danger`. Test `write_gate_on_production_warns_names_the_target_and_arms_a_danger_button`. |
+| 6 | Fixed | 67ddac8a8 | `Environment::kind().tone()` in tree and detail. |
+| 7 | Fixed; Fail kind unused → A10 | 67ddac8a8 | `set_status_as` with a `StatusKind`. No footer status reports a failure today, so nothing takes Fail. |
+| 8 | Fixed | 8fa0e7d45 | `Theme::status_at` per task state. Test `taskrunner_states_take_the_status_roles`. |
+| 9 | Fixed | 0610904df, e92b78fc6, 157f9206e | Doctrine copy replaced; swatches read from the theme and include success, highlight, selection and danger; no percentage labels left. Test `overview_roles_draw_statuses_environments_tones_code_and_link`. |
+| 10 | Fixed | 0610904df | Error text `#f05d5d` (decision over `#f05454`); clears 4.5:1 on card and field. |
+| 11 | Fixed | 0610904df | `text_muted` `#8a8a8a` / 245. |
+| 12 | Fixed | 5d0c4467b | Active tab rule is the accent while its page is the active layer. |
+| 13 | Fixed | a942f1081 | Grid NULL and booleans in the literal hue, JSON in the string hue. |
+| 14 | Fixed | a942f1081 | Required `*` muted, error only once invalid. |
+| 15 | Fixed | 67ddac8a8 | Run is `Button::primary`. Test `toolbar_run_is_the_primary_action`. |
+| 16 | Fixed | 67ddac8a8 | Test connection result and SSL take `Theme::status`. |
+| 17 | Fixed | 67ddac8a8 | `TreeNode::label_tone(Warning)` on the hot node. |
+| 18 | Fixed | 67ddac8a8 | `HistoryTab::slow_ms` (default 1000) with `ListItem::meta_tone`. |
+| 19 | Fixed | a942f1081 | Help keys primary bold, descriptions secondary. |
+| 20 | Fixed | 67ddac8a8 | `✓ safe` from `Theme::status(Ok)`. |
+| 21 | Fixed | 67ddac8a8 | Brand `▪` in `Tone::Active`. |
+| 22 | Fixed | 0610904df | Pins 111 / 116 / 183 / 214 / 203. |
+| 23 | Fixed | 0610904df | 16-colour text selection is reversed video. |
+| 24 | Fixed | 8fa0e7d45 | Red only as a run or glyph, never a filled block. Test `progress_page_shows_meter_levels_and_staleness_without_red_fills`. |
+| 25 | Decision (already correct; the reference pattern) | — | No change proposed. |
