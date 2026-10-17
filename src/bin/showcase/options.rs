@@ -279,6 +279,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Terminal => TERMINAL,
         PageId::QueryWorkbench => QUERY_WORKBENCH,
         PageId::Connections => CONNECTIONS,
+        PageId::Finder => FINDER,
         _ => &[],
     }
 }
@@ -334,6 +335,15 @@ pub static CONNECTIONS: &[Opt] = &[
         &["idle", "connecting", "connected", "failed"],
     ),
     Opt::new("connections.form_width", "Form width", &["60", "52", "72"]).behaviour(),
+];
+
+/// Finder (SC48): the query, the scope, the risk column and the preview
+/// layout (`pages/finder.rs`).
+pub static FINDER: &[Opt] = &[
+    Opt::new("finder.query", "Query", &["typed", "empty", "nomatch"]),
+    Opt::new("finder.scope", "Scope", &["here", "project", "everywhere"]),
+    Opt::new("finder.risk_column", "Risk column", OFF_ON).default(1),
+    Opt::new("finder.preview", "Preview", &["auto", "line"]),
 ];
 
 /// Panels (SC22): `Panel` chrome and the `ScrollPanel` knobs.
