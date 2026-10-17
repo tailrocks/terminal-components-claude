@@ -2880,6 +2880,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::action_row::ActionRow::wrap"),
     Capability::builder("widgets::detail_card::DetailCard::actions"),
     Capability::builder("widgets::detail_card::DetailCard::focused"),
+    Capability::builder("widgets::detail_card::DetailCard::fit"),
     Capability::builder("widgets::detail_card::DetailCard::max_size"),
     Capability::builder("widgets::detail_card::DetailCard::meta"),
     Capability::builder("widgets::detail_card::DetailCard::props"),
