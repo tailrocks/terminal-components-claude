@@ -11,7 +11,7 @@
  │        ▸ T organizations  │││       2 [0m[3mfalse    [0m  2024-06-19 21:20:56+00  [0m[3mNULL                  [0m                  ┆ │ [0m
  │        ▸ T customers      │││       3 [0m[3mfalse    [0m  2025-04-27 08:25:30+00  [0m[3mNULL                  [0m                  ┆ │ [0m
  │        ▸ T products       │││       4 [0m[3mfalse    [0m  2025-07-15 12:11:35+00  [0m[3mNULL                  [0m                  ┆ │ [0m
- │        ▸ T [0m[1morders       [0m  │││       5 [0m[3mfalse    [0m  2024-06-17 15:09:46+00  [0m[3mNULL                  [0m                  ┆ │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders        [0m │││       5 [0m[3mfalse    [0m  2024-06-17 15:09:46+00  [0m[3mNULL                  [0m                  ┆ │ [0m
  │        ▸ T order_items    │││       6 [0m[3mfalse    [0m  2024-06-19 21:20:56+00  [0m[3mNULL                  [0m                  ┆ │ [0m
  │        ▸ T payments       │││       7 [0m[3mfalse    [0m  2024-02-19 01:03:33+00  2025-01-19 10:39:57+00                  ┆ │ [0m
  │        ▸ T subscriptions  │││       8 [0m[3mfalse    [0m  2025-04-27 08:25:30+00  [0m[3mNULL                  [0m                  ┆ │ [0m
