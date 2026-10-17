@@ -771,7 +771,7 @@ impl Page for ActivityPage {
         if focus == Some(self.chips.id) {
             let mut v = vec![("←→", "Move"), ("Space", "Show / hide")];
             if self.chips.digit_toggles {
-                v.push(("1-4", "Toggle stream"));
+                v.push(("1–4", "Toggle stream"));
             }
             return v;
         }
