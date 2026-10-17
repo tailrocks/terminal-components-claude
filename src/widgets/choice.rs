@@ -344,6 +344,12 @@ impl Toggle {
         Outcome::Changed
     }
 
+    /// The row's natural width (plan §1.4 `Measure`): the switch, the
+    /// whole label and its state word.
+    pub fn width(&self) -> u16 {
+        crate::ui::text::width(&self.label) as u16 + 10
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         let area = Rect::new(area.x, area.y, area.width, 1.min(area.height));

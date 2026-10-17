@@ -279,6 +279,18 @@ impl TextArea {
         self.rows.saturating_add(2)
     }
 
+    /// The field's natural width (plan §1.4 `Measure`): its widest line
+    /// beside the gutter and padding, uncut, or its label when wider.
+    pub fn width(&self) -> u16 {
+        let text = self.field.buffer.text();
+        let line = text
+            .split('\n')
+            .map(|l| crate::ui::text::width(l) as u16)
+            .max()
+            .unwrap_or(0);
+        (line + 4).max(crate::ui::text::width(&self.label) as u16 + 2)
+    }
+
     pub fn begin_edit(&mut self) {
         if !self.disabled {
             if !self.editing {

@@ -11,7 +11,7 @@
 //! Options: `crate::options::LAUNCH_COCKPIT`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -28,10 +28,12 @@ use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, ButtonRow};
 use junie_tui::widgets::dialog::{Dialog, DialogResult};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::props::{Prop, PropsAction, PropsList};
+use junie_tui::widgets::props::{self, Prop, PropsAction, PropsList};
 use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Span, TextViewport, ViewportAction};
 
+/// The widest the stage rail is drawn.
+const RAIL_W: u16 = 30;
 const ID: WidgetId = WidgetId::of("launchcockpit");
 const FACTS: WidgetId = ID.sub("facts");
 const RAIL: WidgetId = ID.sub("rail");
@@ -340,17 +342,9 @@ impl LaunchCockpitPage {
         } else {
             None
         };
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(self.facts.props.len() as u16 + 3),
-                StackChild::flex(STAGES.len() as u16 + 2, STAGES.len() as u16 + 8),
-                StackChild::fixed(1),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self
+            .sections
+            .layout(area, &self.children(), focus, buf, ctx);
         match l.slot(0) {
             Some(r) => {
                 let (done, skipped, failed) = self.rail.counts();
@@ -369,7 +363,7 @@ impl LaunchCockpitPage {
         }
         match l.slot(1) {
             Some(r) => {
-                let rail_w = 30.min(r.width / 2);
+                let rail_w = RAIL_W.min(r.width / 2);
                 let left = Rect::new(r.x, r.y, rail_w, r.height);
                 let right = Rect::new(
                     r.x + rail_w + 1,
@@ -422,6 +416,15 @@ impl LaunchCockpitPage {
                 ctx.focus_stop(CANCEL);
             }
         }
+    }
+
+    /// The facts card, the rail beside the log, the action row.
+    fn children(&self) -> [StackChild; 3] {
+        [
+            StackChild::fixed(self.facts.props.len() as u16 + 3),
+            StackChild::flex(STAGES.len() as u16 + 2, STAGES.len() as u16 + 8),
+            StackChild::fixed(1),
+        ]
     }
 
     fn ask_cancel(&mut self, cx: &mut Cx) {
@@ -527,6 +530,28 @@ impl Page for LaunchCockpitPage {
     }
     fn blurb(&self) -> &'static str {
         "A launch: stage rail, build log, credentials and failure dialogs, Cancel launch"
+    }
+
+    /// Everything whole: the facts in their card, the rail at its full
+    /// width beside a log as wide (its title row whole), the actions.
+    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+        let facts = Panel::card(Some("Launch · payments-platform"))
+            .meta("11 of 11 stages · failed")
+            .outer(Size::new(props::width(&self.facts.props), 0))
+            .width;
+        let meta = self.activity(ctx.theme.glyphs.spinner_frame(0));
+        let log = Panel::framed(Some("Build log"))
+            .meta(&meta)
+            .outer(Size::ZERO)
+            .width
+            .max(RAIL_W);
+        let buttons = [self.launch.clone(), self.cancel.clone()];
+        Size::new(
+            facts
+                .max(RAIL_W + 1 + log)
+                .max(ButtonRow::new().width(&buttons, ctx.theme)),
+            self.sections.stack.measure(&self.children()),
+        )
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
