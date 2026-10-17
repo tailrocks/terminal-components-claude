@@ -765,7 +765,7 @@
 80x24 TrueColor Splits & stacks 2307b3f2f06b7bb4
 80x24 TrueColor Splits & stacks · Options 3ae8e13c46fc529d
 80x24 TrueColor Splits & stacks · States 0dda839b0c92208b
-80x24 TrueColor Master-detail 9e38747b3d141158
+80x24 TrueColor Master-detail 5be7866faddcd05b
 80x24 TrueColor Master-detail · Options 4d6cc0f27a4e671e
 80x24 TrueColor Master-detail · States 3293dfc19f488bb1
 80x24 TrueColor Pane tree b3eb9cf363911900
@@ -929,7 +929,7 @@
 80x24 Ansi256 Splits & stacks 9a8b23be93d303b6
 80x24 Ansi256 Splits & stacks · Options d2ed82ccf1c3a561
 80x24 Ansi256 Splits & stacks · States 9a16aa42fb79fec6
-80x24 Ansi256 Master-detail a4591ec8e86e6f37
+80x24 Ansi256 Master-detail 273cf017c5f46f2e
 80x24 Ansi256 Master-detail · Options 404d7c8e69c3fa30
 80x24 Ansi256 Master-detail · States a2e7e3560fa17077
 80x24 Ansi256 Pane tree c4436b18760c2dc7
@@ -1093,7 +1093,7 @@
 80x24 Ansi16 Splits & stacks 168dcf2b87fd9dc1
 80x24 Ansi16 Splits & stacks · Options 153d8074d8c3a23c
 80x24 Ansi16 Splits & stacks · States e018027499be4a4e
-80x24 Ansi16 Master-detail 5d3be2a65685fd8f
+80x24 Ansi16 Master-detail 9466a0ea544b2963
 80x24 Ansi16 Master-detail · Options f969eeaf3175ab03
 80x24 Ansi16 Master-detail · States 1f681f810b9eb403
 80x24 Ansi16 Pane tree 73fe24c7d0da5fce
@@ -1257,7 +1257,7 @@
 80x24 Mono Splits & stacks ca0583b42fbb4ced
 80x24 Mono Splits & stacks · Options e9685190ae615f3e
 80x24 Mono Splits & stacks · States a5232fc6746fe2e8
-80x24 Mono Master-detail 729eb6d9bc919e73
+80x24 Mono Master-detail b04a74183f7780bf
 80x24 Mono Master-detail · Options d40069e6bc190029
 80x24 Mono Master-detail · States 35ee07459727d3ed
 80x24 Mono Pane tree 27078430ae2f7c9e
@@ -1421,7 +1421,7 @@
 72x20 TrueColor Splits & stacks e5d3e35b77d7603a
 72x20 TrueColor Splits & stacks · Options 16b8cc091736cd5d
 72x20 TrueColor Splits & stacks · States f81c63a7184afca1
-72x20 TrueColor Master-detail b86a53ebbf613064
+72x20 TrueColor Master-detail 1422d70be5a08f68
 72x20 TrueColor Master-detail · Options c6dbae7ef7384134
 72x20 TrueColor Master-detail · States d0e0d1c2a730b202
 72x20 TrueColor Pane tree 8618c88f04036429
@@ -1585,7 +1585,7 @@
 72x20 Ansi256 Splits & stacks 3869cbdf9c9f7ed7
 72x20 Ansi256 Splits & stacks · Options 531397c231d5f48e
 72x20 Ansi256 Splits & stacks · States d2b95618c1d1b921
-72x20 Ansi256 Master-detail 2257a81b7e42f458
+72x20 Ansi256 Master-detail 72e37df32e04d8aa
 72x20 Ansi256 Master-detail · Options f9bcb6100f2e9760
 72x20 Ansi256 Master-detail · States 682f4ca39df960fa
 72x20 Ansi256 Pane tree d22227942ff0e30f
@@ -1749,7 +1749,7 @@
 72x20 Ansi16 Splits & stacks 0296fb6455007bdf
 72x20 Ansi16 Splits & stacks · Options 4c04d325e9104c47
 72x20 Ansi16 Splits & stacks · States dca10e41ec1ed030
-72x20 Ansi16 Master-detail c7a335ec4bf8c13d
+72x20 Ansi16 Master-detail f530f6598d3da4c1
 72x20 Ansi16 Master-detail · Options 44f0a7e13d6bf090
 72x20 Ansi16 Master-detail · States ec268748c7f8eb40
 72x20 Ansi16 Pane tree 38e5e2b0625940c1
@@ -1913,7 +1913,7 @@
 72x20 Mono Splits & stacks f94bca07487fe7d1
 72x20 Mono Splits & stacks · Options f5b4f5b06015c441
 72x20 Mono Splits & stacks · States 9112edae85d22fa8
-72x20 Mono Master-detail 2eea0faa16af638d
+72x20 Mono Master-detail 51f9a4680b9d2ff1
 72x20 Mono Master-detail · Options 33f00ce0156e4142
 72x20 Mono Master-detail · States ccf3ad85fa316bf2
 72x20 Mono Pane tree 273e04930d3132d5
@@ -2077,7 +2077,7 @@
 100x30 TrueColor Splits & stacks d083ccd22d18e4a1
 100x30 TrueColor Splits & stacks · Options 40a1a0813bc92b5b
 100x30 TrueColor Splits & stacks · States 9b25f4c3a4851405
-100x30 TrueColor Master-detail 378b2597bfa74709
+100x30 TrueColor Master-detail adacdc97957c3e4a
 100x30 TrueColor Master-detail · Options b4d0a6b9dc71530b
 100x30 TrueColor Master-detail · States fc361e973a827ab3
 100x30 TrueColor Pane tree 0baec35644141715
@@ -2241,7 +2241,7 @@
 100x30 Ansi256 Splits & stacks e7d394a6707ae208
 100x30 Ansi256 Splits & stacks · Options 25bb7c592fa7581c
 100x30 Ansi256 Splits & stacks · States 578b29f4e626b22f
-100x30 Ansi256 Master-detail 3f71f8a5000e2491
+100x30 Ansi256 Master-detail 4cb4550e57fb1dbb
 100x30 Ansi256 Master-detail · Options bedce46fa04f5f04
 100x30 Ansi256 Master-detail · States 64ee7b9489a4e714
 100x30 Ansi256 Pane tree 1d4b97ec0afb22d2
@@ -2405,7 +2405,7 @@
 100x30 Ansi16 Splits & stacks 124a9f5c00ec1da2
 100x30 Ansi16 Splits & stacks · Options 7f4af70b965e08fa
 100x30 Ansi16 Splits & stacks · States 6e80cf1970615243
-100x30 Ansi16 Master-detail fc5683f70f5335d4
+100x30 Ansi16 Master-detail 4ae09203d562762d
 100x30 Ansi16 Master-detail · Options 130607b4552daecf
 100x30 Ansi16 Master-detail · States b21974cb36f72a2b
 100x30 Ansi16 Pane tree 0c96524aa4d2b910
@@ -2569,7 +2569,7 @@
 100x30 Mono Splits & stacks 07b577555482b793
 100x30 Mono Splits & stacks · Options 429822d5fba71317
 100x30 Mono Splits & stacks · States 6e4634d9d0282cda
-100x30 Mono Master-detail b55f4445d1f6a6a7
+100x30 Mono Master-detail 5c241a702a7233ee
 100x30 Mono Master-detail · Options fd9f91981dcc7568
 100x30 Mono Master-detail · States ca3e6738b9bc75b6
 100x30 Mono Pane tree 8898b82bd19b5069
