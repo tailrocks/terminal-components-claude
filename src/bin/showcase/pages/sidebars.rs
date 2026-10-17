@@ -6,7 +6,7 @@
 //! and the rail.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -135,13 +135,61 @@ impl SidebarsPage {
         }
     }
 
+    /// The content card's lines: the keys, the three marks, the rules,
+    /// the last item opened.
+    fn lines(&self) -> [String; 11] {
+        let keys = if self.opts.value("sidebars.keys") == "desktop" {
+            "One focus stop. ↑↓ move the cursor, Enter opens."
+        } else {
+            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens."
+        };
+        [
+            keys,
+            "",
+            "›  current item · persists when focus leaves",
+            "▎  keyboard cursor · only while focused",
+            "░  hover · follows the pointer",
+            "",
+            "Disabled items are skipped and ignore the pointer.",
+            "Collapse keeps rows and markers, initials only.",
+            "‹ on the frame or Ctrl+B hides the sidebar behind its rail.",
+            "",
+            &format!("Last: {}", self.last),
+        ]
+        .map(str::to_owned)
+    }
+
+    /// The content card's height `width` columns wide: its lines wrapped
+    /// to the card's inner width, and the title rows.
+    fn card_height(&self, width: u16) -> u16 {
+        let current = &self.nav.items[self.nav.current].label;
+        let panel = Panel::card(Some(current));
+        let inner = panel.inner(Size::new(width, 0)).width.max(1) as usize;
+        let rows: usize = self
+            .lines()
+            .iter()
+            .map(|l| junie_tui::ui::text::wrap(l, inner).len().max(1))
+            .sum();
+        panel.outer(Size::new(0, rows as u16)).height
+    }
+
+    /// Columns left of the content card: the sidebar's frame and a gap,
+    /// or the rail it hides behind.
+    fn side_width(&self) -> u16 {
+        if self.hidden {
+            self.rail.width() + 1
+        } else {
+            self.nav.width() + 4 + 2
+        }
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let content_x = if self.hidden {
             // the hidden sidebar leaves its rail (none without one)
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
             self.rail.render_rail(col, buf, ctx, t.canvas);
-            area.x + self.rail.width() + 1
+            area.x + self.side_width()
         } else {
             let w = self.nav.width() + 4;
             let side = Rect::new(area.x, area.y, w, area.height.min(20));
@@ -172,7 +220,7 @@ impl SidebarsPage {
                 ctx,
                 bg,
             );
-            side.right() + 2
+            area.x + self.side_width()
         };
 
         let content = Rect::new(
@@ -185,29 +233,16 @@ impl SidebarsPage {
         let panel = Panel::card(Some(&current));
         let bg = panel.bg(t);
         let inner = panel.render(
-            Rect::new(content.x, content.y, content.width, content.height.min(20)),
+            Rect::new(
+                content.x,
+                content.y,
+                content.width,
+                content.height.min(self.card_height(content.width).max(20)),
+            ),
             buf,
             t,
         );
-        let last = format!("Last: {}", self.last);
-        let keys = if self.opts.value("sidebars.keys") == "desktop" {
-            "One focus stop. ↑↓ move the cursor, Enter opens."
-        } else {
-            "One focus stop. ↑↓ (or j k) move the cursor, Enter opens."
-        };
-        let lines = [
-            keys,
-            "",
-            "›  current item · persists when focus leaves",
-            "▎  keyboard cursor · only while focused",
-            "░  hover · follows the pointer",
-            "",
-            "Disabled items are skipped and ignore the pointer.",
-            "Collapse keeps rows and markers, initials only.",
-            "‹ on the frame or Ctrl+B hides the sidebar behind its rail.",
-            "",
-            last.as_str(),
-        ];
+        let lines = self.lines();
         let mut y = inner.y;
         let mut clipped = false;
         for (i, l) in lines.iter().enumerate() {
@@ -262,12 +297,24 @@ fn states_grid() -> StateGrid {
         .column("Rail", SidebarRail::new(ID.sub("states-rail"), "Nav"))
 }
 
+/// The narrowest the content card is laid out: its lines wrap to it.
+const CARD_MIN: u16 = 24;
+
 impl Page for SidebarsPage {
     fn title(&self) -> &'static str {
         "Sidebars"
     }
     fn blurb(&self) -> &'static str {
         "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons"
+    }
+
+    /// The sidebar beside the content card as wide as the room (never
+    /// under [`CARD_MIN`]), the card as tall as its lines wrapped to that
+    /// width: the text wraps instead of scrolling the page sideways, and
+    /// the nav scrolls itself when the card is shorter than its rows.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let card = avail.width.saturating_sub(self.side_width()).max(CARD_MIN);
+        Size::new(self.side_width() + card, self.card_height(card))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

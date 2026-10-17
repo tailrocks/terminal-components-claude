@@ -1544,12 +1544,15 @@ fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible
         h.row(header)
     );
 
-    let mut s = Harness::new(72, 20, PageId::Sidebars);
+    // wide and short: the content card's lines fit on few rows, so the
+    // page is shorter than the nav's rows and the nav scrolls itself (at
+    // 72 columns the wrapped card makes the page tall enough for them)
+    let mut s = Harness::new(160, 20, PageId::Sidebars);
     // the template's section strip is the page's first stop, the list next
     s.key(KeyCode::Tab);
     s.key(KeyCode::Tab);
     let nav = WidgetId::of("sidebars").sub("nav");
-    assert_eq!(s.app.shell.focus.current(), Some(nav));
+    assert_eq!(s.app.shell.focus.current(), Some(nav), "{}", s.text());
     for _ in 0..8 {
         s.key(KeyCode::Down);
     }
