@@ -320,6 +320,32 @@ wheel notches, reveal wrap cost, a full render per frame,
 | C3 | `Publish baseline` green on push (red on every push today, not part of `Required`; still so with v0.1.12). | U1 | job green on a push | `ci.md` jobs table, `Publish baseline` row |
 | C4 | **Done** (c4-a22 branch, 2026-10-17): `mise.lock` committed, produced with `mise lock --platform linux-x64,macos-arm64` (mise 2026.10.11); it locks every `mise.toml` pin and has a checksum for both platforms on every artifact tool (actionlint, shellcheck, zizmor, gh, cargo-nextest, velnor-actions; the velnor checksums equal `.velnor/release-manifest.json`). `velnor-actions generate` (0.1.12) now reports `tool_install_unverified:1 installs skip verification: rust@1.99.1(no_checksums)` instead of 6 installs; generated files unchanged, drift check and actionlint clean; xtask `mise_lock_covers_every_mise_pin` guards the lock. Residual, not fixable in this repository: mise's `core:rust` backend installs through rustup and records no checksum on any platform (also not when installed on the CI platform), so the Rust line stays until velnor treats `core:rust` as unverifiable by design (U7). Was: every `velnor-actions generate` warned `tool_install_unverified:6 installs skip verification (no mise.lock)`. | — | `generate` lists no artifact tool as unverified | `ci.md` "Tool lock"; `dependencies.md` "Tools via mise" |
 
+### 3.8 Responsive apps (owner priority 2026-10-17)
+
+Every app screen keeps all content reachable at any size
+([`audits/design-review-2026-10/responsive.md`](audits/design-review-2026-10/responsive.md)).
+The reachability gate (`src/shell/reach.rs`, `app_tests_reach.rs` per
+app) runs in the default nextest run; `tests/reach_allow.txt` holds each
+known gap with its row id here, and a fix drops its lines. Branch
+`responsive-apps`; the two-axis scroll container comes from
+`responsive-lib`.
+
+| Id | What | Depends on | Acceptance | Source |
+|---|---|---|---|---|
+| R-apps-1 | Segments and StatusBar drop whole items by priority with no `…` and no reveal (tablepro and jackin top strips, holla and jackin status bars). | — | dropped items collapse into a revealing `…` item; their allow lines gone | `responsive.md` R-apps-1 |
+| R-apps-2 | Hand-rolled master-detail drops the detail or aside below a width (tablepro connections and EXPLAIN card, jackin manager aside, editor/settings detail, usage swap; holla plan summary over the drawer). | `MasterDetail` | screens on `MasterDetail`; allow lines gone | `responsive.md` R-apps-2 |
+| R-apps-3 | Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
+| R-apps-4 | Text cut with `…` but no reveal (input placeholder and help, picker hint, PageHeader, Heading, app line lists). | — | one cut helper that registers the reveal | `responsive.md` R-apps-4 |
+| R-apps-5 | Line clamps drop text without `…` (Notice `max_lines`, tablepro safe-mode description). | — | clamps marked and revealed or scrolled | `responsive.md` R-apps-5 |
+| R-apps-6 | Fixed-size bodies drop rows with no scrollbar (`props::render`, fact sheets, detail cards, holla disk compact mode, jackin settings and cockpit). | responsive-lib (scroll container) | bodies scroll; allow lines gone | `responsive.md` R-apps-6 |
+| R-apps-7 | Button rows drop the buttons that do not fit (`button::row_layout`). | — | wrap or `…` menu | `responsive.md` R-apps-7 |
+| R-apps-8 | Cut cells reveal on hover only; Picker has no `→` reveal (WCAG keyboard gap). | — | keyboard reveal in Picker; audit drives it | `responsive.md` R-apps-8 |
+| R-apps-9 | FormDialog and InfoDialog ignore the wheel over their fields although they show a bar. | — | wheel over any child scrolls the dialog; regression test | `responsive.md` R-apps-9 |
+| R-apps-10 | Dialog with a code preview leaves its facts 0 rows at 72×20 (holla start-plan). | — | minimum facts viewport | `responsive.md` R-apps-10 |
+| R-apps-11 | Tabs behind the `+N` overflow (reachable). | — | recorded (kind b) | `responsive.md` R-apps-11 |
+| R-apps-12 | Audit limits (3-row grid sweep budget, mid-word wrap, page changed under a modal). | — | recorded (kind c) | `responsive.md` R-apps-12 |
+| R-apps-13 | Too-small screen below 72×20 in every app. | R-apps-2, R-apps-6 | each app's true minimum | `responsive.md` R-apps-13 |
+
 ## 4. Working rules (summary; AGENTS.md is authoritative)
 
 - Subagents do the work; the main session coordinates, reviews and
