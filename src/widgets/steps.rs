@@ -12,7 +12,8 @@ use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::NavKeys;
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
-use crate::ui::ctx::{RenderCtx, VisualState, fill};
+use crate::ui::ctx::{RenderCtx, VisualState};
+use crate::ui::row::{RowLook, RowUi};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum StepState {
@@ -218,14 +219,7 @@ impl StepRail {
             };
             s.focused = focused && i == self.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
-            let st = t.row(s, bg);
-            fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
             let (glyph, gstyle) = match step.state {
                 StepState::Queued | StepState::Skipped | StepState::Blocked => (" ", st),
                 StepState::Running => (
