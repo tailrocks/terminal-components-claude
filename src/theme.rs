@@ -678,7 +678,7 @@ pub struct Theme {
     pub field_keys: Option<crate::core::edit::FieldKeys>,
     /// How a card panel's heading row sets itself apart from its body, for
     /// every card that does not set its own ([`Panel::heading_style`](crate::widgets::panel::Panel::heading_style)).
-    /// Default [`CardHeading::Plain`](crate::widgets::panel::CardHeading::Plain);
+    /// Default [`CardHeading::Rule`](crate::widgets::panel::CardHeading::Rule);
     /// a framed panel ignores it. See [`Self::with_card_heading`].
     pub card_heading: crate::widgets::panel::CardHeading,
 }
@@ -756,7 +756,7 @@ impl Theme {
             strings: Strings::DEFAULT,
             edit_entry: Self::DEFAULT_EDIT_ENTRY,
             field_keys: None,
-            card_heading: crate::widgets::panel::CardHeading::Plain,
+            card_heading: crate::widgets::panel::CardHeading::Rule,
         }
     }
 
