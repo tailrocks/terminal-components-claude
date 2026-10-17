@@ -1037,7 +1037,9 @@ impl TreeView {
                 " "
             };
             let gs = if row.busy {
-                st.fg(t.accent)
+                // a graphic on the row's plane: 3:1 even on a 16-colour
+                // DarkGray hover, where the accent is 2.9:1
+                st.fg(t.legible_mark(t.accent, st.bg.unwrap_or(bg)))
             } else if row.has_children {
                 st.fg(t.text_secondary)
             } else {
@@ -1545,6 +1547,39 @@ mod scroll_tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
     use ratatui::layout::Position;
+
+    /// A1: a busy node's spinner reads on its row (3:1) at every level,
+    /// hovered too; at 16 colours a hovered row is xterm's DarkGray, where
+    /// the LightGreen spinner was 2.9:1.
+    #[test]
+    fn a_busy_nodes_spinner_reads_on_its_row_at_every_level() {
+        use crate::theme::{ColorLevel, contrast_ratio};
+        for level in ColorLevel::ALL {
+            let theme = Theme::for_level(level);
+            let mut node = TreeNode::leaf("schema");
+            node.busy = true;
+            let mut t = TreeView::new(WidgetId::of("t"), vec![node]);
+            let rid = t.row_id(0);
+            for hover in [None, Some(rid)] {
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let inter = Interaction {
+                    hover,
+                    ..Default::default()
+                };
+                let mut ctx = RenderCtx::new(&theme, inter, &mut hits, &mut ring);
+                let mut buf = Buffer::empty(Rect::new(0, 0, 30, 2));
+                t.render(Rect::new(0, 0, 30, 2), &mut buf, &mut ctx, theme.canvas);
+                let spin = theme.glyphs.spinner_frame(ctx.interaction.tick);
+                let c = (0..30u16)
+                    .map(|x| &buf[(x, 0)])
+                    .find(|c| c.symbol() == spin)
+                    .unwrap_or_else(|| panic!("{level:?}: no spinner"));
+                let r = contrast_ratio(c.fg, c.bg).unwrap();
+                assert!(r >= 3.0, "{level:?} hover {}: {r:.2}", hover.is_some());
+            }
+        }
+    }
 
     fn render(t: &mut TreeView) -> String {
         let theme = Theme::junie();
