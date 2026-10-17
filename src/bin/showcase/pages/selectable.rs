@@ -426,7 +426,7 @@ impl SelectablePage {
         let single = sel.len() == 1;
         for input in [&mut self.name, &mut self.email, &mut self.notes] {
             input.editing = false;
-            input.error = None;
+            input.field.error = None;
         }
         let text = |f: fn(&Member) -> &str| {
             if single {
@@ -435,8 +435,8 @@ impl SelectablePage {
                 String::new()
             }
         };
-        self.name.buffer.set_text(text(|m| &m.name));
-        self.email.buffer.set_text(text(|m| &m.email));
+        self.name.field.buffer.set_text(text(|m| &m.name));
+        self.email.field.buffer.set_text(text(|m| &m.email));
         let pick = |sel_w: &mut Select, v: Option<usize>| {
             sel_w.open = false;
             match v {
@@ -466,7 +466,7 @@ impl SelectablePage {
         }
         let notes = shared(sel.iter().map(|m| m.notes.clone()));
         self.notes_mixed = notes.is_none() && !sel.is_empty();
-        self.notes.buffer.set_text(notes.unwrap_or_default());
+        self.notes.field.buffer.set_text(notes.unwrap_or_default());
         self.notes.placeholder = if self.notes_mixed {
             MIXED.to_owned()
         } else {
@@ -529,7 +529,7 @@ impl SelectablePage {
             let b = self.email.validate();
             if !(a && b) {
                 cx.status("Fix the highlighted fields");
-                let first = if self.name.error.is_some() {
+                let first = if self.name.field.error.is_some() {
                     self.name.id
                 } else {
                     self.email.id
@@ -686,8 +686,8 @@ impl SelectablePage {
             let after = std::mem::replace(&mut self.table.selection, before);
             let to = std::mem::replace(&mut self.table.cursor_row, cursor);
             self.pending = Some((after, to));
-            let invalid =
-                self.loaded.len() == 1 && (self.name.error.is_some() || self.email.error.is_some());
+            let invalid = self.loaded.len() == 1
+                && (self.name.field.error.is_some() || self.email.field.error.is_some());
             let text = if invalid {
                 "Some fields need fixing before they can be saved. Changing the selection without saving drops the edits."
             } else {

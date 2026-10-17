@@ -1264,7 +1264,7 @@ impl App {
         let Some(p) = top.get::<Picker>() else {
             return;
         };
-        let (tag, owner, query) = (top.tag.clone(), top.owner, p.query.clone());
+        let (tag, owner, query) = (top.tag.clone(), top.owner, p.query.text().to_owned());
         let items = self
             .screens
             .get_mut(owner)
@@ -1387,7 +1387,7 @@ impl App {
             }
             v.push(hint("↑↓", "Move"));
             v.push(hint("Enter", "Choose"));
-            v.push(if p.searchable && !p.query.is_empty() {
+            v.push(if p.searchable && !p.query.text().is_empty() {
                 hint("Esc", "Clear")
             } else {
                 hint("Esc", "Cancel")
