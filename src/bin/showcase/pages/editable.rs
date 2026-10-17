@@ -11,6 +11,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
+use crate::pages::layout::{sheet_height, sheet_width};
 use crate::pages::tables::route_table;
 use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
@@ -286,24 +287,29 @@ impl EditablePage {
         }
     }
 
+    /// The sections at `width`: the table at every row, the legend, the
+    /// columns and the events cards with their facts wrapped.
+    fn heights(&self, width: u16) -> [u16; 4] {
+        let cols: Vec<Prop> = self.column_props().into_iter().map(Prop::wrap).collect();
+        let events = events();
+        let legend = legend();
+        [
+            (self.table.len() as u16 + 4).max(8),
+            props::measure(&legend, width),
+            sheet_height(&Panel::card(Some("Columns")), &cols, width),
+            sheet_height(&Panel::card(Some("Events")), &events, width),
+        ]
+    }
+
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let cols = self.column_props();
-        let events: Vec<Prop> = EVENTS.iter().map(|(k, w)| Prop::new(k, *w)).collect();
+        let cols: Vec<Prop> = self.column_props().into_iter().map(Prop::wrap).collect();
+        let events = events();
         let focus = ctx.interaction.has_focus(self.table.id).then_some(0);
-        let table_h = (self.table.len() as u16 + 4).max(8);
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::flex(8, table_h),
-                StackChild::fixed(4),
-                StackChild::fixed(cols.len() as u16 + 3),
-                StackChild::fixed(events.len() as u16 + 3),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let heights = self.heights(area.width);
+        let l = self
+            .sections
+            .layout(area, &heights.map(StackChild::fixed), focus, buf, ctx);
         let err = self.table.edit_error().map(str::to_owned);
         match l.slot(0) {
             Some(card) => {
@@ -323,13 +329,7 @@ impl EditablePage {
             None => ctx.focus_stop(self.table.id),
         }
         if let Some(r) = l.slot(1) {
-            let legend = vec![
-                Prop::new("reversed", "cell cursor (navigation)"),
-                Prop::new("▁", "editing cursor + accent underline"),
-                Prop::new("!", "validation error"),
-                Prop::new("▾", "Owner: pick from a list (Enter, Space, Alt+↓)"),
-            ];
-            props::render(r, buf, t, &legend, t.canvas);
+            props::render(r, buf, t, &legend(), t.canvas);
         }
         for (slot, title, items) in [(2, "Columns", cols), (3, "Events", events)] {
             if let Some(r) = l.slot(slot) {
@@ -342,12 +342,49 @@ impl EditablePage {
     }
 }
 
+/// What the table's marks mean.
+fn legend() -> Vec<Prop> {
+    vec![
+        Prop::new("reversed", "cell cursor (navigation)").wrap(),
+        Prop::new("▁", "editing cursor + accent underline").wrap(),
+        Prop::new("!", "validation error").wrap(),
+        Prop::new("▾", "Owner: pick from a list (Enter, Space, Alt+↓)").wrap(),
+    ]
+}
+
+/// The events the table reports.
+fn events() -> Vec<Prop> {
+    EVENTS
+        .iter()
+        .map(|(k, w)| Prop::new(k, *w).wrap())
+        .collect()
+}
+
 impl Page for EditablePage {
     fn title(&self) -> &'static str {
         "Editable tables"
     }
     fn blurb(&self) -> &'static str {
         "Navigation is reversed cell; editing is a cursor. They never look alike."
+    }
+
+    /// The table with every column and row whole, the facts wrapped.
+    fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
+        use junie_tui::ui::measure::Measure;
+        let cols: Vec<Prop> = self.column_props().into_iter().map(Prop::wrap).collect();
+        let w = [
+            self.table
+                .measure(ratatui::layout::Size::new(0, 0), ctx)
+                .width
+                + 4,
+            props::width(&legend()),
+            sheet_width(&Panel::card(Some("Columns")), &cols),
+            sheet_width(&Panel::card(Some("Events")), &events()),
+        ]
+        .into_iter()
+        .fold(avail.width, u16::max);
+        let h = self.heights(w).iter().sum::<u16>() + 3;
+        ratatui::layout::Size::new(w, h)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
