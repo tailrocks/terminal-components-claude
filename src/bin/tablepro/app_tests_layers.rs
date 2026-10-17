@@ -230,3 +230,53 @@ fn the_footer_names_the_open_pickers_keys() {
     let footer = h.text().lines().last().unwrap_or_default().to_owned();
     assert!(footer.contains("Esc Clear"), "{footer}");
 }
+
+/// The tab list's filter only narrows the list it opened with: a filtered
+/// row keeps its tab's glyph, detail and tag (it was rebuilt with `≡`, the
+/// tab's index as its detail and no `unsaved` tag), on screen too, and
+/// choosing it still switches to that tab.
+#[test]
+fn filtering_the_tab_list_keeps_each_rows_glyph_detail_and_tag() {
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+    h.ctrl('t');
+    h.ctrl('g');
+    assert_eq!(h.app.modal().unwrap().tag.kind, "tablist");
+    let rows = |h: &H| {
+        h.app
+            .top_as::<Picker>()
+            .unwrap()
+            .items
+            .iter()
+            .map(|it| {
+                (
+                    it.label.clone(),
+                    it.glyph.to_string(),
+                    it.detail.clone(),
+                    it.tag.as_deref().map(str::to_owned),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    let opened = rows(&h);
+    let orders = opened
+        .iter()
+        .find(|r| r.0 == "orders")
+        .cloned()
+        .unwrap_or_else(|| panic!("the orders tab is listed: {opened:?}"));
+    assert_eq!(orders.1, "T", "a table tab");
+    h.type_str("orders");
+    assert_eq!(rows(&h), vec![orders.clone()], "the filter only narrows");
+    let text = h.text();
+    let line = text
+        .lines()
+        .find(|l| l.contains(&orders.2))
+        .unwrap_or_else(|| panic!("the filtered row shows its detail\n{text}"));
+    assert!(line.contains("T orders"), "and its glyph: {line}");
+    h.key(KeyCode::Enter);
+    assert!(h.app.modal().is_none());
+    assert!(
+        matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.qualified().ends_with("orders")),
+        "choosing the filtered row switches to its tab"
+    );
+}
