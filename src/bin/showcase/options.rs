@@ -505,7 +505,7 @@ pub static CHIPS: &[Opt] = &[
     ),
     Opt::new("chipsselects.digit_toggles", "1–9 toggle streams", OFF_ON).default(1),
     // selects
-    Opt::new("chipsselects.arrows", "Select arrows", &["step", "open"]),
+    Opt::new("chipsselects.arrows", "Select arrows", &["open", "step"]),
     Opt::new(
         "chipsselects.wheel",
         "Wheel over the list",

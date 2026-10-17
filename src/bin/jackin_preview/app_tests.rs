@@ -353,7 +353,10 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     assert!(h.app.world.accounts.get("acct-anthropic-team").is_none());
     // switch to Codex and pick the throttled sandbox item instead
     h.tab_to(crate::screens::accounts::FORM.sub("provider"));
+    // ↓ opens the provider list (SI13), ↓ moves, Enter chooses
     h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
     assert!(h.text().contains("Codex · OpenAI"), "{}", h.text());
     h.tab_to(crate::screens::accounts::FORM.sub("op"));
     h.key(KeyCode::Enter);
@@ -797,7 +800,10 @@ fn complete_jackin_flow_keyboard_first() {
         for _ in 0..3 {
             h.key(KeyCode::Tab);
         }
+        // ↓ opens the source list (SI13), ↓ moves, Enter chooses
         h.key(KeyCode::Down);
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Enter);
         assert!(h.text().contains("Local agent folder"), "{}", h.text());
         h.key(KeyCode::Tab);
         h.key(KeyCode::Enter);
@@ -819,9 +825,12 @@ fn complete_jackin_flow_keyboard_first() {
         h.type_str(name);
         h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
+        // ↓ opens the provider list (SI13), ↓ moves, Enter chooses
+        h.key(KeyCode::Down);
         for _ in 0..provider_steps {
             h.key(KeyCode::Down);
         }
+        h.key(KeyCode::Enter);
         h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
         h.key(KeyCode::Enter);
@@ -856,9 +865,12 @@ fn complete_jackin_flow_keyboard_first() {
     h.type_str("Go");
     h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
-    for _ in 0..3 {
+    // the provider select: ↓ opens its list (SI13), ↓ moves, Enter
+    // chooses; Tab moves on to the source radios
+    for _ in 0..4 {
         h.key(KeyCode::Down);
     }
+    h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
