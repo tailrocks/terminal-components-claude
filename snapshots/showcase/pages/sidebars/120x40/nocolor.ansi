@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Navigation › [0m[1mSidebars[0m                                 no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, collapsed mode; text first, no icons   [0m
-                                                                                                                        [0m
+ ───────────────────────                                                                                                [0m
     Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                      [0m
   ▸ Tables                                        ‹       Tasks                                                         [0m
-  ▾ Navigation               Workspace               │                                                                  [0m
+  ▾ Navigation               Workspace               │    ────────────────────────────────────────────────────────────  [0m
       Lists                › T Tasks               3 │    One focus stop. ↑↓ (or j k) move the cursor, Enter opens.     [0m
       Trees                  R Runs                  │                                                                  [0m
  [0m[1m▎  › Sidebars          [0m     B Branches              │    ›  current item · persists when focus leaves                  [0m

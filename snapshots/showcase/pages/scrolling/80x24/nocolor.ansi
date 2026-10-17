@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m                i Inspector   ? Help  [0m
                                                                                 [0m
  [0m[1mComponents[0m      54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused c… [0m
-                                                                                [0m
+ ──────────────────                                                             [0m
     Overview         [0m[1m Playground  [0m  Options    States                           [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                              [0m
   ▸ Tables            Wrap… 1–7 of 201    Long… 1–7 of 120    Log              ┃[0m
-  ▸ Navigation                                                                 ┃[0m
+  ▸ Navigation        ────────────────    ────────────────    ───────────────  ┃[0m
   ▸ Overlays          Junie works    ┃       Row 001     ┃    [0m[2m 737.78s  in… [0m┆  ┃[0m
   ▸ Feedback          through a task ┆       Row 002     ┆     738.15s  in… ┆  ┃[0m
   ▾ Layout            the way a      ┆       Row 003     ┆     738.52s  wa… ┆  ┃[0m

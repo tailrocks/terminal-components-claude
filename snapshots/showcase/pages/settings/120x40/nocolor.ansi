@@ -1,7 +1,7 @@
  ▪ [0m[1mJunie[0m Design system  Screens › [0m[1mSettings[0m                                    no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs                         [0m
-                                                                                                                        [0m
+ ───────────────────────                                                                                                [0m
     Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                      [0m
@@ -9,7 +9,7 @@
   ▸ Navigation            ━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Overlays                                                                                                            [0m
   ▸ Feedback                General                                                                                     [0m
-  ▸ Layout                                                                                                              [0m
+  ▸ Layout                  ──────────────────────────────────────────────────────────────────────────────────────────  [0m
   ▸ Text & code               Project name *                                 Visibility                                 [0m
   ▾ Screens                   payments-gateway                              (●) Private                                 [0m
  [0m[1m▎  › Settings          [0m                                                    ( ) Internal                                [0m
