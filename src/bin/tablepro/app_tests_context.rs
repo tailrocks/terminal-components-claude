@@ -74,7 +74,7 @@ fn choose(h: &mut H, label: &str) {
         .menu
         .items
         .iter()
-        .position(|it| it.label == label)
+        .position(|it| it.item.label == label)
         .unwrap_or_else(|| panic!("no item {label}"));
     let r = area(h, m.menu.row_id(i));
     h.click(r.x + 2, r.y);
@@ -274,11 +274,14 @@ fn a_read_only_result_grid_names_why_edits_are_unavailable() {
     h.mouse(MouseKind::Secondary, cell.x + 1, cell.y);
     let m = menu(&h);
     assert!(matches!(m.target, Target::Results(0, 0)));
-    let item = |l: &str| m.menu.items.iter().find(|i| i.label == l).unwrap();
-    assert!(!item("Copy cell").disabled);
-    assert_eq!(item("Edit cell").reason.as_deref(), Some("Read-only rows"));
+    let item = |l: &str| m.menu.items.iter().find(|i| i.item.label == l).unwrap();
+    assert!(!item("Copy cell").item.disabled);
     assert_eq!(
-        item("Filter by this value").reason.as_deref(),
+        item("Edit cell").item.reason.as_deref(),
+        Some("Read-only rows")
+    );
+    assert_eq!(
+        item("Filter by this value").item.reason.as_deref(),
         Some("Table tabs only")
     );
 }
@@ -349,7 +352,7 @@ fn the_history_list_menu_runs_the_right_clicked_query() {
     let m = menu(&h);
     assert_eq!(m.target, Target::History(2));
     assert_eq!(m.owner, list);
-    let item = |l: &str| m.menu.items.iter().any(|i| i.label == l);
+    let item = |l: &str| m.menu.items.iter().any(|i| i.item.label == l);
     assert!(item("Open in new tab") && item("Copy query") && item("Show failed only"));
     choose(&mut h, "Run in new tab");
     assert!(

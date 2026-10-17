@@ -628,6 +628,7 @@ widgets::keyhint::key_of | key references generated from key maps (HelpOverlay::
 
 # widgets::menu
 widgets::menu::ContextMenu::type_ahead_timeout | a menu's type-ahead pause belongs on the Menus page, which opens the menus; its next step (SC41) adds the option | SC41
+widgets::menu::ContextMenu::wheel_mode | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::menu::MenuBar::type_ahead_timeout | the menu bar's type-ahead pause belongs on Chrome, which shows the bar; its next step (SC34) adds the option | SC34
 widgets::menu::ContextMenu::highlighted | menus: CommandMenu with key replay on Menus | SC41
 widgets::menu::MenuBar::hidden | menus: CommandMenu with key replay on Menus | SC41
@@ -1046,6 +1047,11 @@ widgets::option_list::OptionList::select | OptionList, the one popup-list body (
 widgets::option_list::OptionList::layout | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::paint_rows | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 widgets::option_list::OptionList::status | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::type_ahead_timeout | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::set_gaps | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::line_of | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::visible_lines | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
+widgets::option_list::OptionList::more_below | OptionList, the one popup-list body (S12): its knobs as Options on the Chips & selects, Pickers, Menus and Code editor pages | SC32
 
 # ui::row
 ui::row::RowLook | the row painter every list-like widget draws with; the State tab shows it with RowLook | SC33

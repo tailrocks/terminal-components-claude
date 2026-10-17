@@ -5795,7 +5795,6 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
         &[
             "more_above_id",
             "more_below_id",
-            "on_wheel",
             "hides_page_focus",
             "row_id",
             "size",

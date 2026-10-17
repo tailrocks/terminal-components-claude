@@ -624,10 +624,11 @@ impl crate::core::pointer::MouseTarget for ChipBar {
         ev: &crate::core::pointer::PointerEvent,
     ) -> crate::core::response::Response<ChipAction> {
         use crate::core::intent::Phase;
-        if let Some((Axis::Vertical, delta)) = ev.wheel()
+        // the open menu's wheel: its list's shared path
+        if let Some((axis, delta)) = ev.wheel()
             && let Some((menu, _)) = self.menu.as_mut()
         {
-            return menu.on_wheel(delta).into();
+            return crate::core::scroll::Scrollable::wheel(&mut menu.list, axis, delta).lift();
         }
         match ev.phase() {
             Some(Phase::Click) => self.on_click(ev.id).into(),
