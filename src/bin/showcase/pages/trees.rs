@@ -23,6 +23,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::keymap::{KeyBinding, NavKeys, hint_key};
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::core::scroll::TrackClick;
+use junie_tui::core::selection::ClickPolicy;
 use junie_tui::theme::Tone;
 use junie_tui::ui::context::ContextRequest;
 use junie_tui::ui::ctx::RenderCtx;
@@ -142,7 +143,10 @@ impl TreesPage {
                 "both" => BranchAction::Both,
                 _ => BranchAction::Toggle,
             })
-            .row_click_toggles(self.opt("trees.row_click") == "on")
+            .click(match self.opt("trees.click") {
+                "single" => ClickPolicy::NAVIGATION,
+                _ => ClickPolicy::DATA,
+            })
             .indent(self.opt("trees.indent").parse().unwrap_or(2))
             .divider(self.opt("trees.divider") == "on")
             .alt_click_recursive(self.opt("trees.alt_click") == "on")
@@ -229,9 +233,9 @@ impl TreesPage {
         );
         vec![
             format!(
-                "branch_activate {:?} · row_click_toggles {} · indent {} · divider {} · alt_click_recursive {} · reserve_right {} · show_meta {}",
+                "branch_activate {:?} · click {:?} · indent {} · divider {} · alt_click_recursive {} · reserve_right {} · show_meta {}",
                 t.branch_activate,
-                t.row_click_toggles,
+                t.click.activate,
                 t.indent,
                 t.divider,
                 t.alt_click_recursive,

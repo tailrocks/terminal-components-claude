@@ -132,6 +132,9 @@ fn trees(h: &Harness) -> &TreesPage {
 fn a_lazy_node_loads_its_children() {
     let mut h = Harness::new(160, 50, PageId::Trees);
     let (x, y) = h.find("orders-db").unwrap();
+    // one click selects the row; a double click opens it (M15, SI14)
+    h.click(x, y);
+    assert!(!h.text().contains("Expand(orders-db)"), "{}", h.text());
     h.click(x, y);
     assert!(h.app.shell.focus.is(CONNECTIONS));
     assert!(h.text().contains("Expand(orders-db)"), "{}", h.text());
@@ -150,6 +153,9 @@ fn tree_options_rebuild_the_trees_through_their_builders() {
     let mut h = Harness::new(160, 50, PageId::Trees);
     h.opt("trees.branch=activate");
     assert!(h.text().contains("branch_activate Activate"));
+    assert!(h.text().contains("click Double"), "{}", h.text());
+    h.opt("trees.click=single");
+    assert!(h.text().contains("click Single"));
     h.opt("trees.keymap=custom");
     assert!(h.text().contains("e TreeCmd::ExpandAll"));
     h.app.shell.focus.focus(crate::pages::trees::PROJECT);

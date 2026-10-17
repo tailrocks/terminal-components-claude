@@ -594,7 +594,9 @@ fn nav_tree() -> TreeView {
         nodes.iter().filter(|n| !n.children.is_empty()).count(),
         NAV_GROUPS.len()
     );
+    // a sidebar navigates on one click (SI14)
     TreeView::new(NAV, nodes)
+        .click(junie_tui::core::selection::ClickPolicy::NAVIGATION)
         .type_ahead(true)
         .selected_marker(Some("›"))
 }
