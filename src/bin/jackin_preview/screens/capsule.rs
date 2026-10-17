@@ -25,6 +25,7 @@ use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::{
     ContextMenu, MenuAction, MenuBar, MenuBarAction, MenuItem, Placement,
 };
+use junie_tui::widgets::meter_list::{MeterList, MeterRow};
 use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::picker::Picker;
 use junie_tui::widgets::progress::{Meter, MeterVisual, spinner_frame};
@@ -2797,7 +2798,6 @@ impl Layer<ModalResult, World> for UsageDialog {
         self.scroll.set_content(lines.len());
         self.scroll.set_viewport(body.height as usize);
         ctx.scrollable(WidgetId::of("capsule.usage"), body);
-        let narrow = inner.width < 60;
         for (k, i) in self.scroll.visible_range().enumerate() {
             let yy = body.y + k as u16;
             match &lines[i] {
@@ -2808,20 +2808,22 @@ impl Layer<ModalResult, World> for UsageDialog {
                     Style::new().fg(t.tone(*tone)).bg(bg),
                 ),
                 Line::Meter(label, pct, value, tone) => {
-                    let lw = if narrow { body.width.min(20) } else { 20 };
-                    buf.set_string(body.x, yy, truncate(label, lw as usize), t.primary().bg(bg));
-                    let mx = body.x + lw + 1;
-                    if body.width > lw + 12 {
+                    // the label column never outgrows a narrow body; the
+                    // meter fills the row and is left out below 12 cells
+                    MeterList::new(vec![MeterRow::new(
+                        label.as_str(),
                         tone.on(Meter::new(Some(*pct)))
                             .value(format!("{pct}%"))
-                            .visual(MeterVisual::Block)
-                            .render(
-                                Rect::new(mx, yy, body.right().saturating_sub(mx), 1),
-                                buf,
-                                ctx,
-                                bg,
-                            );
-                    }
+                            .visual(MeterVisual::Block),
+                    )])
+                    .label_width(20)
+                    .min_meter(12)
+                    .render(
+                        Rect::new(body.x, yy, body.width, 1),
+                        buf,
+                        ctx,
+                        bg,
+                    );
                     let _ = value;
                 }
             }

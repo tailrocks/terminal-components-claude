@@ -23,6 +23,7 @@ use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::meter_list::{MeterList, MeterRow};
 use junie_tui::widgets::panel::{Panel, PanelFocus};
 use junie_tui::widgets::progress::{Meter, MeterLevel, MeterTone, MeterVisual, spinner_frame};
 use junie_tui::widgets::scrollbar;
@@ -1843,28 +1844,11 @@ impl AccountsScreen {
                     }
                 }
                 Line::Meter(label, pct, value, tone) => {
-                    buf.set_string(
-                        body.x,
-                        y,
-                        truncate(label, (label_w - 1) as usize),
-                        t.primary().bg(bg),
-                    );
-                    let mx = body.x + label_w;
-                    let mw = meter_w.min(body.width.saturating_sub(label_w + 8));
-                    let pct_text = format!("{pct:>3}%");
-                    tone.on(Meter::new(Some(*pct)))
-                        .value(pct_text.clone())
-                        .visual(MeterVisual::Block)
-                        .render(Rect::new(mx, y, mw + 6, 1), buf, ctx, bg);
-                    let vx = mx + mw + 8;
-                    if vx < body.right() {
-                        buf.set_string(
-                            vx,
-                            y,
-                            truncate(value, body.right().saturating_sub(vx) as usize),
-                            t.muted().bg(bg),
-                        );
-                    }
+                    quota_row(label, *pct, value, *tone)
+                        .label_width(label_w - 1)
+                        .meter_width(meter_w + 6)
+                        .reserve(2)
+                        .render(Rect::new(body.x, y, body.width, 1), buf, ctx, bg);
                 }
                 Line::Blank => {}
             }
@@ -1910,17 +1894,10 @@ impl AccountsScreen {
                     y += 1;
                 }
                 Line::Meter(label, pct, value, tone) => {
-                    buf.set_string(inner.x, y, truncate(label, 12), t.primary().bg(bg));
-                    tone.on(Meter::new(Some(*pct)))
-                        .value(format!("{pct:>3}%"))
-                        .visual(MeterVisual::Block)
-                        .render(Rect::new(inner.x + 13, y, 22, 1), buf, ctx, bg);
-                    buf.set_string(
-                        inner.x + 37,
-                        y,
-                        truncate(value, inner.width.saturating_sub(37) as usize),
-                        t.muted().bg(bg),
-                    );
+                    quota_row(label, *pct, value, *tone)
+                        .label_width(12)
+                        .meter_width(22)
+                        .render(Rect::new(inner.x, y, inner.width, 1), buf, ctx, bg);
                     y += 1;
                 }
                 Line::Text(v, tone) => {
@@ -2043,6 +2020,21 @@ impl QuotaTone {
     pub fn on(self, m: Meter) -> Meter {
         m.tone(self.tone).stale(self.stale)
     }
+}
+
+/// One quota window as a [`MeterList`] row: the label, the percentage in a
+/// block meter with the window's tone, and the detail after it. Callers
+/// set the columns.
+pub(super) fn quota_row(label: &str, pct: u8, detail: &str, tone: QuotaTone) -> MeterList {
+    MeterList::new(vec![
+        MeterRow::new(
+            label,
+            tone.on(Meter::new(Some(pct)))
+                .value(format!("{pct:>3}%"))
+                .visual(MeterVisual::Block),
+        )
+        .detail(detail),
+    ])
 }
 
 /// The one quota-meter tone for every jackin screen (accounts, usage, the
