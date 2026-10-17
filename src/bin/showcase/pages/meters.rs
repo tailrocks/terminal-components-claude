@@ -7,7 +7,7 @@
 //! values, drawn stale. Options: `crate::options::METERS`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -19,6 +19,7 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::meter_list::{MeterList, MeterRow};
@@ -229,15 +230,12 @@ impl MetersPage {
         let rows = header.render(area, buf, ctx.theme);
         debug_assert_eq!(rows, header.height());
         let body = header.body(area);
-        Heading::new("Sections")
-            .meta("3 cards")
-            .tone(Tone::Muted)
-            .render(
-                Rect::new(body.x + 1, body.y, body.width.saturating_sub(2), 1),
-                buf,
-                ctx.theme,
-                ctx.theme.canvas,
-            );
+        sections_heading().render(
+            Rect::new(body.x + 1, body.y, body.width.saturating_sub(2), 1),
+            buf,
+            ctx.theme,
+            ctx.theme.canvas,
+        );
         let area = Rect::new(
             body.x,
             body.y + 2,
@@ -249,19 +247,8 @@ impl MetersPage {
             .any(|&id| ctx.interaction.has_focus(id))
             .then_some(0);
         let (quotas, disks, host) = (self.quotas(), self.disks(), self.host());
-        let l = self.sections.layout(
-            area,
-            &[
-                // a card takes its title row, a blank row and a bottom
-                // row around its body
-                StackChild::fixed(quotas.height() + 5),
-                StackChild::fixed(disks.height() + 3),
-                StackChild::fixed(host.height() + 3),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let children = Self::children(&quotas, &disks, &host);
+        let l = self.sections.layout(area, &children, focus, buf, ctx);
         match l.slot(0) {
             Some(r) => self.render_quotas(r, &quotas, buf, ctx),
             None => {
@@ -270,24 +257,32 @@ impl MetersPage {
             }
         }
         if let Some(r) = l.slot(1) {
-            card(
-                r,
-                buf,
-                ctx,
-                "Filesystems",
-                "disk 80 / 95 · reserve 4 · min 8",
-                &disks,
-            );
+            card(r, buf, ctx, DISKS_CARD.0, DISKS_CARD.1, &disks);
         }
         if let Some(r) = l.slot(2) {
-            card(
-                r,
-                buf,
-                ctx,
-                "Host",
-                "shared thresholds · detail gap 3",
-                &host,
-            );
+            card(r, buf, ctx, HOST_CARD.0, HOST_CARD.1, &host);
+        }
+    }
+
+    /// The cards at their natural heights: a card takes its title row,
+    /// a blank row and a bottom row around its body; the quotas card its
+    /// button row and a blank row too.
+    fn children(quotas: &MeterList, disks: &MeterList, host: &MeterList) -> [StackChild; 3] {
+        [
+            StackChild::fixed(quotas.height() + 5),
+            StackChild::fixed(disks.height() + 3),
+            StackChild::fixed(host.height() + 3),
+        ]
+    }
+
+    /// The quotas card's meta for the page's state.
+    fn quotas_meta(&self) -> &'static str {
+        if self.refreshing > 0 {
+            "refreshing…"
+        } else if self.opts.on("meters.offline") {
+            "offline · last-good values"
+        } else {
+            "domain tones · measured labels"
         }
     }
 
@@ -299,14 +294,7 @@ impl MetersPage {
         ctx: &mut RenderCtx,
     ) {
         let t = ctx.theme;
-        let meta = if self.refreshing > 0 {
-            "refreshing…"
-        } else if self.opts.on("meters.offline") {
-            "offline · last-good values"
-        } else {
-            "domain tones · measured labels"
-        };
-        let panel = Panel::card(Some("Plan usage")).meta(meta);
+        let panel = Panel::card(Some("Plan usage")).meta(self.quotas_meta());
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         list.render(inner, buf, ctx, bg);
@@ -334,6 +322,15 @@ impl MetersPage {
         self.opts.set("meters.offline", usize::from(on));
         self.refreshing = 0;
     }
+}
+
+/// The Filesystems and Host cards' titles and metas.
+const DISKS_CARD: (&str, &str) = ("Filesystems", "disk 80 / 95 · reserve 4 · min 8");
+const HOST_CARD: (&str, &str) = ("Host", "shared thresholds · detail gap 3");
+
+/// The heading over the cards.
+fn sections_heading() -> Heading {
+    Heading::new("Sections").meta("3 cards").tone(Tone::Muted)
 }
 
 /// A card holding one meter list.
@@ -413,6 +410,41 @@ impl Page for MetersPage {
     }
     fn blurb(&self) -> &'static str {
         "MeterList: labelled capacity meters in aligned columns, with tones and levels"
+    }
+
+    /// Everything whole: the header, the heading, each card at its meter
+    /// list's natural width (the quotas card at least its buttons); the
+    /// header's rows, a blank row, the heading, a blank row, the cards.
+    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+        let at = |m: &dyn Measure| m.measure(Size::ZERO, ctx);
+        let (quotas, disks, host) = (self.quotas(), self.disks(), self.host());
+        let header = at(&self.header());
+        let buttons = self.refresh.width() + 2 + self.offline.width();
+        let q = at(&quotas);
+        let width = [
+            header.width,
+            at(&sections_heading()).width + 2,
+            Panel::card(Some("Plan usage"))
+                .meta(self.quotas_meta())
+                .outer(Size::new(q.width.max(buttons), 0))
+                .width,
+            Panel::card(Some(DISKS_CARD.0))
+                .meta(DISKS_CARD.1)
+                .outer(at(&disks))
+                .width,
+            Panel::card(Some(HOST_CARD.0))
+                .meta(HOST_CARD.1)
+                .outer(at(&host))
+                .width,
+        ]
+        .into_iter()
+        .max()
+        .unwrap_or(0);
+        let cards = self
+            .sections
+            .stack
+            .measure(&Self::children(&quotas, &disks, &host));
+        Size::new(width, header.height + 1 + 2 + cards)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
