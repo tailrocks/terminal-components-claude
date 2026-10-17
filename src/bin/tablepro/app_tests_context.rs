@@ -125,8 +125,11 @@ fn a_right_click_on_a_grid_cell_opens_its_menu_at_the_pointer() {
     ] {
         assert!(text.contains(item), "{item} listed");
     }
+    assert!(!text.contains("No pending changes"), "not until asked");
+    let (sx, sy) = h.find("Save changes").expect("Save listed");
+    h.mouse(MouseKind::Move, sx + 1, sy);
     assert!(
-        text.contains("No pending changes"),
+        h.text().contains("No pending changes"),
         "Save is unavailable, with its reason"
     );
     // the menu's command runs the grid's own `-`

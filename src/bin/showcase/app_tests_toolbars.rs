@@ -112,8 +112,11 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
     );
     h.key(KeyCode::Enter);
     assert!(page(&h).narrow.menu_open());
-    assert!(h.text().contains("No query is running"), "the reason");
     assert!(h.text().contains("○ Wrap"), "a toggle's state");
+    // the disabled Stop is reachable and says why in the status row
+    h.key(KeyCode::Up);
+    assert!(h.text().contains("─ No query"), "the reason\n{}", h.text());
+    h.key(KeyCode::Down);
     assert_eq!(h.bars(), 0, "the toolbar under its menu shows no focus");
     // Stop is disabled: the cursor starts on Format
     h.key(KeyCode::Enter);

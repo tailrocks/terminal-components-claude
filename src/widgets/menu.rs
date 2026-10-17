@@ -71,18 +71,13 @@ impl MenuItem {
         self
     }
     /// Disable the item and say why. An unavailable command is shown as
-    /// unavailable up front instead of failing after it is chosen.
+    /// unavailable up front instead of failing after it is chosen: the
+    /// row keeps its dimmed shortcut, and the reason shows in the menu's
+    /// status row (its bottom border) while the cursor or the pointer is
+    /// on the row, so it never widens the menu (SI21/SV15).
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.item = self.item.reason(reason);
         self
-    }
-    /// The text drawn in the right column: the reason while disabled,
-    /// otherwise the shortcut.
-    fn trailing(&self) -> Option<&str> {
-        match &self.item.reason {
-            Some(r) if self.item.disabled => Some(r.as_str()),
-            _ => self.shortcut.as_deref(),
-        }
     }
     pub fn danger(mut self) -> Self {
         self.danger = true;
@@ -275,7 +270,9 @@ impl ContextMenu {
             .look(CursorStyle::Fill)
             .max_rows(u16::MAX)
             .fit(Place::MENU);
-        list.cursor = Cursor::new(cursor).wrap(true);
+        // disabled rows are reachable by the keyboard (APG, SI21): the
+        // cursor on one shows why it is unavailable; it never activates
+        list.cursor = Cursor::new(cursor).wrap(true).skip_disabled(false);
         // a menu brings a row in exactly: no context row beyond it
         list.scroll.context = 0;
         list.set_gaps(items.iter().map(|it| it.separator_after));
@@ -332,6 +329,15 @@ impl ContextMenu {
     /// `Vim`.
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.list.type_ahead = on;
+        self
+    }
+
+    /// Keyboard steps pass over disabled rows. Default off: a disabled
+    /// row is reachable, so the cursor on it can say why it is unavailable
+    /// (APG menus; SI21/SV15). Enter, a click and its shortcut never
+    /// activate it either way. Type-ahead always skips it.
+    pub fn skip_disabled(mut self, on: bool) -> Self {
+        self.list.cursor.skip_disabled = on;
         self
     }
 
@@ -418,7 +424,11 @@ impl ContextMenu {
             .items
             .iter()
             .map(|i| {
-                width(&i.item.label) as u16 + i.trailing().map(|s| width(s) as u16 + 3).unwrap_or(0)
+                width(&i.item.label) as u16
+                    + i.shortcut
+                        .as_deref()
+                        .map(|s| width(s) as u16 + 3)
+                        .unwrap_or(0)
             })
             .max()
             .unwrap_or(4);
@@ -703,11 +713,12 @@ impl ContextMenu {
                     &item.item.label,
                 );
             }
-            if let Some(sc) = item.trailing() {
+            if let Some(sc) = item.shortcut.as_deref() {
                 let sw = width(sc) as u16;
                 if sw + width(&item.item.label) as u16 + 5 <= rows.width {
                     // a shortcut reads on the cursor fill and at rest alike;
-                    // a disabled row's reason takes the row's disabled ink
+                    // a disabled row keeps it, dimmed in the row's disabled
+                    // ink
                     let scs = if item.item.disabled {
                         st
                     } else {
@@ -730,7 +741,8 @@ impl ContextMenu {
                 }
             }
         }
-        if self.list.more_below(self.items.len()) {
+        let more_below = self.list.more_below(self.items.len());
+        if more_below {
             let id = self.more_below_id();
             let yb = area.bottom().saturating_sub(1);
             buf.set_string(
@@ -740,6 +752,23 @@ impl ContextMenu {
                 marker(ctx, id),
             );
             ctx.register_part(self.id, PartRef::OVERFLOW_AFTER, marker_row(yb));
+        }
+        // the status row: a disabled row under the cursor or the pointer
+        // says why, dimmed in the bottom border, cut to fit, never widening
+        // the menu and clear of the ▼ marker (SI21/SV15)
+        if let Some(reason) = self.list.status(&self.items) {
+            let x = area.x + 2;
+            let end = area.right().saturating_sub(if more_below { 4 } else { 2 });
+            let avail = end.saturating_sub(x) as usize;
+            if avail >= 3 {
+                let text = format!(" {} ", truncate(reason, avail - 2));
+                buf.set_string(
+                    x,
+                    area.bottom().saturating_sub(1),
+                    text,
+                    Style::new().fg(t.legible(t.text_muted, bg)).bg(bg),
+                );
+            }
         }
     }
 }
@@ -1633,7 +1662,7 @@ mod tests {
     fn shortcuts_and_glyphs_can_be_built_at_runtime() {
         let modifier = String::from("Ctrl");
         let item = MenuItem::new("Save").shortcut(format!("{modifier}+S"));
-        assert_eq!(item.trailing(), Some("Ctrl+S"));
+        assert_eq!(item.shortcut.as_deref(), Some("Ctrl+S"));
         let risky = true;
         let item = MenuItem::new("Delete")
             .danger_if(risky)
@@ -1683,12 +1712,21 @@ mod tests {
         ]
     }
 
+    /// SI21/SV15: the keyboard reaches a disabled row (APG menus) but
+    /// Enter never chooses it; `skip_disabled(true)` keeps the old skip.
     #[test]
-    fn keyboard_skips_disabled_wraps_and_chooses() {
+    fn keyboard_reaches_disabled_rows_wraps_and_chooses() {
         let mut m = ContextMenu::new(WidgetId::of("m"), items());
         assert_eq!(m.list.cursor.index, 0);
         m.on_key(&key(KeyCode::Down));
-        assert_eq!(m.list.cursor.index, 2, "disabled row skipped");
+        assert_eq!(m.list.cursor.index, 1, "the disabled row is reachable");
+        assert_eq!(
+            m.on_key(&key(KeyCode::Enter)),
+            (Outcome::Consumed, None),
+            "but never chosen"
+        );
+        m.on_key(&key(KeyCode::Down));
+        assert_eq!(m.list.cursor.index, 2);
         m.on_key(&key(KeyCode::Down));
         assert_eq!(m.list.cursor.index, 3);
         m.on_key(&key(KeyCode::Down));
@@ -1699,6 +1737,9 @@ mod tests {
         assert_eq!(ev, Some(MenuAction::Chosen(3)));
         let (_, ev) = m.on_key(&key(KeyCode::Esc));
         assert_eq!(ev, Some(MenuAction::Dismissed));
+        let mut skip = ContextMenu::new(WidgetId::of("m"), items()).skip_disabled(true);
+        skip.on_key(&key(KeyCode::Down));
+        assert_eq!(skip.list.cursor.index, 2, "skipped on request");
     }
 
     #[test]
@@ -2218,31 +2259,79 @@ mod tests {
         assert!(matches!(b[(x, y)].bg, Color::Indexed(i) if i < 232));
     }
 
+    /// SI21/SV15: a disabled row keeps its dimmed shortcut; its reason
+    /// never widens the menu and shows in the status row (the bottom
+    /// border), cut to fit, while the cursor or the pointer is on the row;
+    /// Enter, a click and its shortcut never choose it.
     #[test]
-    fn an_unavailable_item_is_disabled_and_says_why() {
+    fn an_unavailable_item_keeps_its_dimmed_shortcut_and_says_why_in_the_status_row() {
         let t = Theme::junie();
-        let mut m = ContextMenu::new(
-            WidgetId::of("m"),
+        let items = |reason: bool| {
+            let stage = MenuItem::new("Stage image").shortcut("i");
             vec![
                 MenuItem::new("Open"),
-                MenuItem::new("Stage image")
-                    .shortcut("Ctrl+I")
-                    .reason("Not in this preview"),
-            ],
-        )
-        .at(Position::new(1, 1));
+                if reason {
+                    stage.reason("Not in this preview, use the full app")
+                } else {
+                    stage
+                },
+            ]
+        };
+        let mut m = ContextMenu::new(WidgetId::of("m"), items(true)).at(Position::new(1, 1));
         assert!(m.items[1].item.disabled);
+        assert_eq!(
+            m.size(),
+            ContextMenu::new(WidgetId::of("m"), items(false)).size(),
+            "the reason never widens the menu"
+        );
+        let line = |b: &Buffer, y: u16| -> String {
+            (0..b.area.width).map(|x| b[(x, y)].symbol()).collect()
+        };
         let b = paint_menu(&mut m, &t, Interaction::default());
-        let (_, y) = row_y(&b, "Stage image");
-        let row: String = (0..b.area.width).map(|x| b[(x, y)].symbol()).collect();
-        assert!(row.contains("Not in this preview"), "{row}");
-        assert!(!row.contains("Ctrl+I"), "{row}");
-        // the reason takes the row's disabled ink, not the shortcut ink
-        let (rx, ry) = row_y(&b, "Not in this preview");
-        let (lx, ly) = row_y(&b, "Stage image");
-        assert_eq!(b[(rx, ry)].fg, b[(lx, ly)].fg);
-        // the keyboard never lands on it
+        let (lx, y) = row_y(&b, "Stage image");
+        let row = line(&b, y);
+        assert!(row.ends_with(" i │") || row.contains(" i "), "{row}");
+        // the shortcut keeps the row's disabled ink
+        let sx = (lx + 11..b.area.width)
+            .find(|&x| b[(x, y)].symbol() == "i")
+            .unwrap();
+        assert_eq!(b[(sx, y)].fg, b[(lx, y)].fg);
+        let bottom = m.area.bottom() - 1;
+        assert!(
+            !shows(&b, "Not in this"),
+            "no reason while the cursor is elsewhere"
+        );
+        // the keyboard reaches it: the reason shows in the bottom border
         m.on_key(&key(KeyCode::Down));
+        assert_eq!(m.list.cursor.index, 1);
+        let b = paint_menu(&mut m, &t, Interaction::default());
+        let border = line(&b, bottom);
+        assert!(border.contains(" Not in this"), "{border}");
+        assert!(border.contains('…'), "cut to fit: {border}");
+        assert_eq!(m.area.width, m.size().0);
+        // Enter, its shortcut and a click never choose it
+        assert_eq!(m.on_key(&key(KeyCode::Enter)).1, None);
+        assert_ne!(
+            m.on_key(&key(KeyCode::Char('i'))).1,
+            Some(MenuAction::Chosen(1))
+        );
+        let mut m = ContextMenu::new(WidgetId::of("m"), items(true)).at(Position::new(1, 1));
+        let id = m.row_id(1);
+        assert_eq!(m.on_click(id), None);
+        // the pointer on it says why too, without moving the cursor there
+        let b = paint_menu(
+            &mut m,
+            &t,
+            Interaction {
+                hover: Some(id),
+                ..Default::default()
+            },
+        );
+        assert!(
+            line(&b, bottom).contains(" Not in this"),
+            "{}",
+            line(&b, bottom)
+        );
         assert_eq!(m.list.cursor.index, 0);
     }
 

@@ -6,7 +6,7 @@ use ratatui::layout::Rect;
 
 use crate::app_tests::H;
 use crate::app_tests_context::{
-    assert_at_pointer, assert_below_row, choose, menu_area, right_click, shift_f10,
+    assert_at_pointer, assert_below_row, choose, menu_area, point, right_click, shift_f10,
 };
 use crate::app_tests_parity::open;
 use crate::domain::activity::ActivityState;
@@ -59,9 +59,12 @@ fn a_plan_step_right_click_opens_its_menu_at_the_pointer_and_toggles_it() {
     assert!(!h.app.world.plans[0].steps[5].included, "excluded");
     assert_eq!(h.app.shell.focus.current(), Some(plan::OUTLINE));
 
-    // a required step offers the toggle disabled, with its reason
+    // a required step offers the toggle disabled; the pointer on it says
+    // why in the status row
     let r0 = row(&h, plan::OUTLINE.child(0));
     right_click(&mut h, r0.x + 10, r0.y);
+    assert!(!h.text().contains("Required by the plan"), "{}", h.text());
+    point(&mut h, "Exclude step");
     assert!(h.text().contains("Required by the plan"), "{}", h.text());
     choose(&mut h, "Exclude step");
     assert!(!h.app.modals.is_empty(), "a disabled row does not choose");
@@ -123,9 +126,13 @@ fn a_running_plan_step_menu_retries_a_failed_step() {
     let r3 = row(&h, plan::OUTLINE.child(3));
     right_click(&mut h, r3.x + 10, r3.y);
     assert_at_pointer(&h, plan::STEP_MENU, r3.x + 10, r3.y);
+    point(&mut h, "Retry step");
     let t = h.text();
-    assert!(t.contains("Only a failed step can be retried"), "{t}");
-    assert!(t.contains("The plan is not running"), "{t}");
+    // cut to the menu's width in its status row
+    assert!(t.contains("─ Only a failed step"), "{t}");
+    point(&mut h, "Cancel remaining");
+    let t = h.text();
+    assert!(t.contains("─ The plan is not"), "{t}");
     h.key(KeyCode::Esc);
     let r5 = row(&h, plan::OUTLINE.child(5));
     right_click(&mut h, r5.x + 10, r5.y);
@@ -169,6 +176,8 @@ fn a_disk_tree_row_right_click_opens_its_menu_at_the_pointer_and_selects_it() {
     assert_at_pointer(&h, disk::ROW_MENU, x + 2, y);
     let t = h.text();
     assert!(t.contains("Copy path") && t.contains("Rescan"), "{t}");
+    point(&mut h, "Cancel scan");
+    let t = h.text();
     assert!(t.contains("No scan is running"), "{t}");
     assert!(!disk_selected(&mut h).iter().any(|p| p.ends_with("vm.img")));
     choose(&mut h, "Select");
@@ -261,12 +270,15 @@ fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
         h.text()
     );
     assert_at_pointer(&h, activity::MENU, x, y);
+    point(&mut h, "Copy selection");
     let t = h.text();
     assert!(
         t.contains("Select text first"),
         "copy needs a selection\n{t}"
     );
-    assert!(t.contains("Still running · s stops it first"), "{t}");
+    point(&mut h, "Restart");
+    let t = h.text();
+    assert!(t.contains("─ Still running"), "{t}");
     choose(&mut h, "Stop");
     assert!(h.app.modals.is_empty());
     assert!(

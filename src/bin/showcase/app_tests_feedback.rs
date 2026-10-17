@@ -311,8 +311,11 @@ fn read_only_grid_says_why_on_an_attempted_edit() {
 fn read_only_row_actions_stay_listed_with_their_reason() {
     let mut h = Harness::new(120, 40, PageId::EmptyError);
     h.click_id(WidgetId::of("emptyerror").sub("actions"));
-    let (_, y) = h.at("Edit cell");
-    assert!(h.row(y).contains("read-only view"), "{}", h.row(y));
+    let (x, y) = h.at("Edit cell");
+    assert!(!h.text().contains("read-only view"), "{}", h.row(y));
+    // the pointer on the disabled row says why in the menu's status row
+    h.mouse(MouseKind::Move, x + 1, y);
+    assert!(h.text().contains("─ read-only vi"), "{}", h.text());
     // the cursor starts on the first enabled item; Enter chooses it
     h.key(KeyCode::Enter);
     assert_eq!(h.status(), "Copied row 1041");
