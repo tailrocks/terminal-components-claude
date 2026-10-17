@@ -32,7 +32,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Slice status:** current shared slice complete.
 
-**Matrix:** `tests/terminal_suspend.rs` (owned PTY, helper job-control parent) covers normal exit, external SIGTSTP with exact termios assertions while stopped (ICANON, ECHO, bracketed paste released, alternate screen left), resize while suspended, `fg` re-entry at the new geometry, final termios equality and bounded reaping; `runtime.rs` units cover partial startup, a failing setup, a panicking setup and idempotent leave/re-enter. Counter callbacks are not used as terminal proof; the PTY bytes and termios are.
+**Matrix:** `tests/terminal_suspend.rs` (owned PTY, helper job-control parent) covers normal exit, external SIGTSTP with exact termios assertions while stopped (ICANON, ECHO, bracketed paste released, alternate screen left), resize while suspended, `fg` re-entry at the new geometry, final termios equality and bounded reaping; `runtime.rs` units cover partial startup, a failing setup, a panicking setup and idempotent leave/re-enter. Counter callbacks are not used as terminal proof; the emulated terminal modes and frames (a tuiscotti PTY session) and the termios are.
 
 **Platform scope:** macOS host only; Linux job control remains pending external evidence (stated in F21).
 

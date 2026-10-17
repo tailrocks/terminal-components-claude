@@ -1,19 +1,30 @@
-//! F21: job-control suspension proved on an owned pseudo-terminal.
+//! F21: job-control suspension proved on a tuiscotti PTY session.
 //!
-//! The test creates a PTY and runs a minimal job-control parent on it (this
-//! test binary in helper mode): the parent is the session leader with the
-//! PTY as its controlling terminal, starts the holla preview in its own
-//! foreground process group, takes the terminal back when the job stops and
-//! hands it back on `fg`. That is the shape of a real shell without a shell's
-//! own termios bookkeeping, so the termios observed while the job is stopped
-//! is exactly what the application left behind.
+//! tuiscotti (`tuiscotti::tui`, T17) owns the pseudo-terminal and its
+//! emulator; no hand-rolled pseudo-terminal here. The session runs a minimal
+//! job-control parent (this test binary in helper mode): the parent is the
+//! session leader with the PTY as its controlling terminal, starts the holla
+//! preview in its own foreground process group, takes the terminal back when
+//! the job stops and hands it back on `fg`. That is the shape of a real
+//! shell without a shell's own termios bookkeeping, so the termios observed
+//! while the job is stopped is exactly what the application left behind.
+//!
+//! The helper reports through a marker file (its pty output is the screen
+//! the emulator draws, and markers printed there could land on the
+//! alternate screen and be overwritten). The test reads termios through the
+//! helper's terminal device, opened without becoming its controlling
+//! terminal, and reads terminal modes (1049, 1000/1002/1003/1006, 2004,
+//! 1004, 7) from tuiscotti's observation.
 //!
 //! Proved: an external `SIGTSTP` leaves a canonical, echoing, signalling
-//! terminal identical to the launch state while the process is stopped;
-//! `fg` re-enters raw mode, the alternate screen, mouse capture and
-//! bracketed paste and redraws at the geometry set while suspended; a
-//! second cycle behaves the same; a normal quit afterwards leaves the launch
-//! termios. Nothing here touches the developer's terminal.
+//! terminal identical to the launch state while the process is stopped,
+//! with the alternate screen, mouse capture, bracketed paste and focus
+//! reporting released and line wrap back on; `fg` re-enters raw mode, the
+//! alternate screen, mouse capture, bracketed paste and focus reporting and
+//! redraws exactly the frame a fresh launch draws at the geometry set while
+//! suspended; a second cycle behaves the same; a normal quit afterwards
+//! leaves the launch termios and the main screen. Nothing here touches the
+//! developer's terminal.
 //!
 //! Scope: macOS and Linux. `SIGSTOP`/`SIGKILL` cannot be intercepted and a
 //! lost output device cannot receive escapes; those cases are documented,
@@ -22,108 +33,31 @@
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
-use std::ffi::{c_int, c_ulong, c_void};
-use std::fs::File;
-use std::io::{BufRead, Read, Write};
-use std::os::fd::{AsRawFd, FromRawFd};
+use std::ffi::{CStr, c_int};
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, Write};
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::process::CommandExt;
-use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
-#[cfg(target_os = "macos")]
-mod sys {
-    use std::ffi::{c_int, c_ulong};
-    pub const SIGTSTP: c_int = 18;
-    pub const SIGCONT: c_int = 19;
-    pub const SIGTTIN: c_int = 21;
-    pub const SIGTTOU: c_int = 22;
-    pub const TIOCSCTTY: c_ulong = 0x2000_7461;
-    pub const TIOCSWINSZ: c_ulong = 0x8008_7467;
-    pub const ICANON: u64 = 0x100;
-    pub const ECHO: u64 = 0x8;
-    pub const ISIG: u64 = 0x80;
-    #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub struct Termios {
-        pub c_iflag: u64,
-        pub c_oflag: u64,
-        pub c_cflag: u64,
-        pub c_lflag: u64,
-        pub c_cc: [u8; 20],
-        pub c_ispeed: u64,
-        pub c_ospeed: u64,
-    }
-    pub fn lflag(t: &Termios) -> u64 {
-        t.c_lflag
-    }
-}
+use tuiscotti::Observation;
+use tuiscotti::tui::{CancelToken, Session, Tui};
 
-#[cfg(target_os = "linux")]
-mod sys {
-    use std::ffi::{c_int, c_ulong};
-    pub const SIGTSTP: c_int = 20;
-    pub const SIGCONT: c_int = 18;
-    pub const SIGTTIN: c_int = 21;
-    pub const SIGTTOU: c_int = 22;
-    pub const TIOCSCTTY: c_ulong = 0x540E;
-    pub const TIOCSWINSZ: c_ulong = 0x5414;
-    pub const ICANON: u64 = 0x2;
-    pub const ECHO: u64 = 0x8;
-    pub const ISIG: u64 = 0x1;
-    #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub struct Termios {
-        pub c_iflag: u32,
-        pub c_oflag: u32,
-        pub c_cflag: u32,
-        pub c_lflag: u32,
-        pub c_line: u8,
-        pub c_cc: [u8; 32],
-        pub c_ispeed: u32,
-        pub c_ospeed: u32,
-    }
-    pub fn lflag(t: &Termios) -> u64 {
-        u64::from(t.c_lflag)
-    }
-}
-
-use sys::*;
-
-#[repr(C)]
-struct Winsize {
-    ws_row: u16,
-    ws_col: u16,
-    ws_xpixel: u16,
-    ws_ypixel: u16,
-}
-
-#[cfg_attr(target_os = "linux", link(name = "util"))]
-unsafe extern "C" {
-    fn openpty(
-        amaster: *mut c_int,
-        aslave: *mut c_int,
-        name: *mut u8,
-        termp: *const c_void,
-        winp: *const c_void,
-    ) -> c_int;
-    fn tcgetattr(fd: c_int, t: *mut Termios) -> c_int;
-    fn tcsetpgrp(fd: c_int, pgrp: c_int) -> c_int;
-    fn kill(pid: c_int, sig: c_int) -> c_int;
-    fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> c_int;
-    fn setsid() -> c_int;
-    fn setpgid(pid: c_int, pgid: c_int) -> c_int;
-    fn getpgrp() -> c_int;
-    fn ioctl(fd: c_int, req: c_ulong, ...) -> c_int;
-    fn signal(sig: c_int, handler: usize) -> usize;
-}
-
-const SIG_IGN: usize = 1;
-const WNOHANG: c_int = 1;
-const WUNTRACED: c_int = 2;
 const BOUND: Duration = Duration::from_secs(10);
 const HELPER: &str = "JUNIE_TERMINAL_SUSPEND_HELPER";
 const HELPER_BIN: &str = "JUNIE_TERMINAL_SUSPEND_BIN";
+const HELPER_MARKERS: &str = "JUNIE_TERMINAL_SUSPEND_MARKERS";
+const APP_ARGS: [&str; 6] = [
+    "--scenario",
+    "first-use",
+    "--motion",
+    "paused",
+    "--frame",
+    "0",
+];
 
 fn stopped(status: c_int) -> bool {
     status & 0xff == 0x7f
@@ -137,31 +71,56 @@ fn exit_code(status: c_int) -> i32 {
     }
 }
 
+/// One marker line, appended and flushed so the test never reads half.
+fn mark(path: &Path, line: &str) {
+    let mut f = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .expect("open the marker file");
+    writeln!(f, "{line}").expect("write a marker");
+    f.flush().expect("flush a marker");
+}
+
 /// The job-control parent: session leader on the PTY, one foreground job.
-/// Prints `@@PID=`, `@@STOPPED`, `@@EXIT=` markers; `fg` on its stdin hands
-/// the terminal back to the job and continues it.
+/// Writes `TTY=`, `PID=`, `STOPPED` and `EXIT=` markers; waits for `start`
+/// on its stdin before launching the job (so the test reads the launch
+/// termios first), and `fg` hands the terminal back to the job and
+/// continues it.
 fn helper_main() -> ! {
     let bin = std::env::var(HELPER_BIN).expect("application path");
+    let markers = PathBuf::from(std::env::var(HELPER_MARKERS).expect("marker file"));
     // SAFETY: plain libc calls on the helper's own process and descriptors.
+    // tuiscotti already made it a session leader with the PTY as its
+    // controlling terminal; repeating both is harmless and keeps the helper
+    // a shell shape on its own.
     unsafe {
-        setsid();
-        ioctl(0, TIOCSCTTY, 0);
-        signal(SIGTTOU, SIG_IGN);
-        signal(SIGTTIN, SIG_IGN);
+        libc::setsid();
+        libc::ioctl(0, libc::TIOCSCTTY as _, 0);
+        libc::signal(libc::SIGTTOU, libc::SIG_IGN);
+        libc::signal(libc::SIGTTIN, libc::SIG_IGN);
+    }
+    // SAFETY: ttyname returns a static buffer or null.
+    let tty = unsafe { libc::ttyname(0) };
+    assert!(!tty.is_null(), "the helper's stdin is a terminal");
+    // SAFETY: non-null, NUL-terminated per ttyname's contract.
+    let tty = unsafe { CStr::from_ptr(tty) }
+        .to_string_lossy()
+        .into_owned();
+    mark(&markers, &format!("TTY={tty}"));
+    let stdin = std::io::stdin();
+    let mut line = String::new();
+    let _ = stdin.lock().read_line(&mut line);
+    if line.trim() != "start" {
+        mark(&markers, "EXIT=-3");
+        std::process::exit(3);
     }
     let mut cmd = Command::new(bin);
-    cmd.args([
-        "--scenario",
-        "first-use",
-        "--motion",
-        "paused",
-        "--frame",
-        "0",
-    ]);
+    cmd.args(APP_ARGS);
     // SAFETY: setpgid is async-signal-safe.
     unsafe {
         cmd.pre_exec(|| {
-            setpgid(0, 0);
+            libc::setpgid(0, 0);
             Ok(())
         });
     }
@@ -171,119 +130,94 @@ fn helper_main() -> ! {
     let pid = child.id() as c_int;
     // SAFETY: both sides set the group so the foreground hand-off is not racy.
     unsafe {
-        setpgid(pid, pid);
-        tcsetpgrp(0, pid);
+        libc::setpgid(pid, pid);
+        libc::tcsetpgrp(0, pid);
     }
-    println!("\n@@PID={pid}");
-    let stdin = std::io::stdin();
+    mark(&markers, &format!("PID={pid}"));
     loop {
         let mut status: c_int = 0;
         // SAFETY: waiting on the tracked job.
-        let rc = unsafe { waitpid(pid, &mut status, WUNTRACED) };
+        let rc = unsafe { libc::waitpid(pid, &mut status, libc::WUNTRACED) };
         if rc != pid {
-            println!("\n@@EXIT=-1");
+            mark(&markers, "EXIT=-1");
             std::process::exit(1);
         }
         if stopped(status) {
             // SAFETY: the helper takes the terminal back like a shell.
             unsafe {
-                tcsetpgrp(0, getpgrp());
+                libc::tcsetpgrp(0, libc::getpgrp());
             }
-            println!("\n@@STOPPED");
+            mark(&markers, "STOPPED");
             let mut line = String::new();
             let _ = stdin.lock().read_line(&mut line);
             if line.trim() != "fg" {
-                println!("\n@@EXIT=-2");
+                mark(&markers, "EXIT=-2");
                 std::process::exit(2);
             }
             // SAFETY: foreground back to the job, then continue it.
             unsafe {
-                tcsetpgrp(0, pid);
-                kill(pid, SIGCONT);
+                libc::tcsetpgrp(0, pid);
+                libc::kill(pid, libc::SIGCONT);
             }
             continue;
         }
-        println!("\n@@EXIT={}", exit_code(status));
+        mark(&markers, &format!("EXIT={}", exit_code(status)));
         std::process::exit(0);
     }
 }
 
-/// One owned pseudo-terminal running the helper. Every wait is bounded;
-/// the helper and its job are killed on drop.
-struct Pty {
-    master: File,
-    helper: std::process::Child,
-    output: Arc<Mutex<Vec<u8>>>,
+/// A fresh marker file path, unique per test process.
+fn marker_path() -> PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    std::env::temp_dir().join(format!(
+        "junie-terminal-suspend-{}-{nanos}.markers",
+        std::process::id()
+    ))
 }
 
-impl Pty {
+/// The helper on a tuiscotti PTY session. Every wait is bounded; the
+/// session kills the helper on drop and the marker file is removed.
+struct Job {
+    session: Session,
+    markers: PathBuf,
+}
+
+impl Job {
     fn spawn(cols: u16, rows: u16) -> Self {
-        let mut master: c_int = -1;
-        let mut slave: c_int = -1;
-        let win = Winsize {
-            ws_row: rows,
-            ws_col: cols,
-            ws_xpixel: 0,
-            ws_ypixel: 0,
-        };
-        // SAFETY: valid out-pointers; the winsize outlives the call.
-        let rc = unsafe {
-            openpty(
-                &mut master,
-                &mut slave,
-                std::ptr::null_mut(),
-                std::ptr::null(),
-                (&win as *const Winsize).cast(),
-            )
-        };
-        assert_eq!(rc, 0, "openpty failed");
-        // SAFETY: freshly created descriptors owned here.
-        let slave_in = unsafe { File::from_raw_fd(slave) };
-        let slave_out = slave_in.try_clone().unwrap();
-        let slave_err = slave_in.try_clone().unwrap();
-        let helper = Command::new(std::env::current_exe().unwrap())
+        let markers = marker_path();
+        let session = Tui::new([std::env::current_exe().unwrap()])
             .args(["--exact", "helper_entry", "--nocapture"])
+            .size(cols, rows)
             .env(HELPER, "1")
             .env(HELPER_BIN, env!("CARGO_BIN_EXE_holla"))
+            .env(HELPER_MARKERS, &markers)
             .env("TERM", "xterm-256color")
             .env_remove("NO_COLOR")
             .env_remove("HOLLA_NO_MOTION")
-            .stdin(Stdio::from(slave_in))
-            .stdout(Stdio::from(slave_out))
-            .stderr(Stdio::from(slave_err))
             .spawn()
-            .expect("spawn the job-control helper");
-        // SAFETY: master is an owned open descriptor.
-        let master = unsafe { File::from_raw_fd(master) };
-        let output = Arc::new(Mutex::new(Vec::new()));
-        let sink = Arc::clone(&output);
-        let mut reader = master.try_clone().unwrap();
-        std::thread::spawn(move || {
-            let mut buf = [0u8; 4096];
-            loop {
-                match reader.read(&mut buf) {
-                    Ok(0) | Err(_) => break,
-                    Ok(n) => sink.lock().unwrap().extend_from_slice(&buf[..n]),
-                }
-            }
-        });
-        Self {
-            master,
-            helper,
-            output,
-        }
+            .expect("spawn the job-control helper on a tuiscotti pty");
+        Self { session, markers }
     }
 
-    fn termios(&self) -> Termios {
-        // SAFETY: zeroed storage of the platform layout, filled by libc.
-        let mut t: Termios = unsafe { std::mem::zeroed() };
-        let rc = unsafe { tcgetattr(self.master.as_raw_fd(), &mut t) };
-        assert_eq!(rc, 0, "tcgetattr on the pty");
-        t
+    fn marker_lines(&self) -> Vec<String> {
+        std::fs::read_to_string(&self.markers)
+            .unwrap_or_default()
+            .lines()
+            .map(str::to_owned)
+            .collect()
     }
 
-    fn is_raw(&self) -> bool {
-        lflag(&self.termios()) & ICANON == 0
+    fn marker(&self, name: &str) -> Option<String> {
+        self.marker_lines()
+            .iter()
+            .rev()
+            .find_map(|l| l.strip_prefix(name).map(str::to_owned))
+    }
+
+    fn count(&self, line: &str) -> usize {
+        self.marker_lines().iter().filter(|l| *l == line).count()
     }
 
     fn wait_until(&self, what: &str, mut cond: impl FnMut(&Self) -> bool) {
@@ -291,69 +225,113 @@ impl Pty {
         while !cond(self) {
             assert!(
                 start.elapsed() < BOUND,
-                "timed out waiting for {what}; output so far: {:?}",
-                self.output_text()
+                "timed out waiting for {what}; markers {:?}; screen:\n{}",
+                self.marker_lines(),
+                self.observe().map(|o| text(&o)).unwrap_or_default()
             );
             std::thread::sleep(Duration::from_millis(20));
         }
     }
 
-    fn resize(&self, cols: u16, rows: u16) {
-        let win = Winsize {
-            ws_row: rows,
-            ws_col: cols,
-            ws_xpixel: 0,
-            ws_ypixel: 0,
-        };
-        // SAFETY: the pty master accepts TIOCSWINSZ with a winsize.
-        let rc = unsafe { ioctl(self.master.as_raw_fd(), TIOCSWINSZ, &win as *const Winsize) };
-        assert_eq!(rc, 0, "TIOCSWINSZ");
+    fn observe(&self) -> Option<Observation> {
+        self.session.observe_now().ok()
     }
 
-    fn send(&mut self, bytes: &[u8]) {
-        self.master.write_all(bytes).unwrap();
-        self.master.flush().unwrap();
+    /// The PTY's termios, read through the helper's terminal device opened
+    /// without becoming its controlling terminal.
+    fn termios(&self) -> libc::termios {
+        let tty = self.marker("TTY=").expect("the helper reported its tty");
+        let dev: File = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .custom_flags(libc::O_NOCTTY | libc::O_NONBLOCK)
+            .open(&tty)
+            .unwrap_or_else(|e| panic!("open {tty}: {e}"));
+        // SAFETY: zeroed storage of the platform layout, filled by libc.
+        let mut t: libc::termios = unsafe { std::mem::zeroed() };
+        let rc = unsafe { libc::tcgetattr(dev.as_raw_fd(), &mut t) };
+        assert_eq!(rc, 0, "tcgetattr on {tty}");
+        t
     }
 
-    fn output_text(&self) -> String {
-        String::from_utf8_lossy(&self.output.lock().unwrap()).into_owned()
+    fn is_raw(&self) -> bool {
+        self.termios().c_lflag & libc::ICANON == 0
     }
 
-    fn output_len(&self) -> usize {
-        self.output.lock().unwrap().len()
-    }
-
-    fn marker(&self, name: &str) -> Option<String> {
-        let text = self.output_text();
-        text.lines()
-            .rev()
-            .find_map(|l| l.trim().strip_prefix(name).map(str::to_owned))
+    fn wait_screen(&self, what: &str, cond: impl Fn(&Observation) -> bool) -> Observation {
+        self.session
+            .wait_predicate(cond, Instant::now() + BOUND, &CancelToken::new())
+            .unwrap_or_else(|e| panic!("timed out waiting for {what}: {e}"))
     }
 }
 
-impl Drop for Pty {
+impl Drop for Job {
     fn drop(&mut self) {
-        let _ = self.helper.kill();
-        let _ = self.helper.wait();
+        let _ = self.session.close();
+        let _ = std::fs::remove_file(&self.markers);
     }
 }
 
-fn count(hay: &str, needle: &str) -> usize {
-    hay.matches(needle).count()
+fn termios_bytes(t: &libc::termios) -> Vec<u8> {
+    // SAFETY: a plain-old-data C struct viewed as its bytes.
+    unsafe {
+        std::slice::from_raw_parts(
+            (t as *const libc::termios).cast::<u8>(),
+            std::mem::size_of::<libc::termios>(),
+        )
+    }
+    .to_vec()
 }
 
-/// Whether the frame drawn after the latest alternate-screen entry has been
-/// written out completely. A frame reaches the pty in several writes (the
-/// stdout buffer flushes whenever it fills), so "some bytes arrived" is not
-/// readiness: a reader polling between two writes sees half a frame. Ratatui
-/// ends every draw with exactly one cursor-visibility escape, after the last
-/// cell (`?25l` hidden, `?25h` shown), and nothing between re-entry and the
-/// draw emits one, so its presence after the re-entry marks the whole frame.
-fn frame_completed_after_reentry(text: &str) -> bool {
-    text.rfind("\x1b[?1049h").is_some_and(|at| {
-        let resumed = &text[at..];
-        resumed.contains("\x1b[?25l") || resumed.contains("\x1b[?25h")
-    })
+fn lflag(t: &libc::termios) -> libc::tcflag_t {
+    t.c_lflag
+}
+
+const SHELL_LFLAGS: libc::tcflag_t = libc::ICANON | libc::ECHO | libc::ISIG;
+
+fn text(obs: &Observation) -> String {
+    tuiscotti::render::frame_from_screen(&obs.screen, "terminal_suspend").text()
+}
+
+fn modes(obs: &Observation) -> Vec<u16> {
+    obs.state
+        .modes
+        .known()
+        .cloned()
+        .expect("the backend reports terminal modes")
+}
+
+fn has_mouse(m: &[u16]) -> bool {
+    m.iter().any(|n| [1000, 1002, 1003, 1006].contains(n))
+}
+
+/// The frame a fresh launch of the same scenario draws at `cols`x`rows`:
+/// what the resumed job must redraw, cell text for cell text.
+fn fresh_frame(cols: u16, rows: u16) -> String {
+    let session = Tui::new([env!("CARGO_BIN_EXE_holla")])
+        .args(APP_ARGS)
+        .size(cols, rows)
+        .env("TERM", "xterm-256color")
+        .env_remove("NO_COLOR")
+        .env_remove("HOLLA_NO_MOTION")
+        .spawn()
+        .expect("spawn a fresh holla");
+    session
+        .wait_predicate(
+            |o| text(o).contains("holla"),
+            Instant::now() + BOUND,
+            &CancelToken::new(),
+        )
+        .expect("a fresh first frame");
+    let obs = session
+        .wait_stable_quiet(
+            Instant::now() + BOUND,
+            Duration::from_millis(300),
+            &CancelToken::new(),
+        )
+        .expect("a settled fresh frame");
+    let _ = session.close();
+    text(&obs)
 }
 
 /// Helper mode entry: only the re-invoked child runs the job-control parent.
@@ -366,130 +344,133 @@ fn helper_entry() {
 
 #[test]
 fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
-    let mut pty = Pty::spawn(120, 40);
-    let before = pty.termios();
+    let job = Job::spawn(120, 40);
+    job.wait_until("the helper's tty", |j| j.marker("TTY=").is_some());
+    let before = job.termios();
     assert_eq!(
-        lflag(&before) & (ICANON | ECHO | ISIG),
-        ICANON | ECHO | ISIG,
+        lflag(&before) & SHELL_LFLAGS,
+        SHELL_LFLAGS,
         "a fresh pty is canonical, echoing and signalling"
     );
-    pty.wait_until("the job pid", |p| p.marker("@@PID=").is_some());
-    let pid: c_int = pty.marker("@@PID=").unwrap().trim().parse().unwrap();
-    pty.wait_until("raw mode", |p| p.is_raw());
-    pty.wait_until("first frame", |p| p.output_text().contains("holla"));
-    let drawn = pty.output_len();
+    job.session.send_text("start\n").expect("start the job");
+    job.wait_until("the job pid", |j| j.marker("PID=").is_some());
+    let pid: c_int = job.marker("PID=").unwrap().trim().parse().unwrap();
+    job.wait_until("raw mode", Job::is_raw);
+    let first = job.wait_screen("first frame", |o| {
+        text(o).contains("holla") && modes(o).contains(&1049)
+    });
+    let drawn = first.revision;
 
     for cycle in 1..=2 {
         // an external stop request: the handler defers to the event loop,
         // which restores the terminal and then stops with the default action
         // SAFETY: signalling the job whose pid the helper reported.
-        assert_eq!(unsafe { kill(pid, SIGTSTP) }, 0, "kill(SIGTSTP)");
-        pty.wait_until("the job to stop", |p| {
-            count(&p.output_text(), "@@STOPPED") == cycle
-        });
-        let stopped_state = pty.termios();
         assert_eq!(
-            lflag(&stopped_state) & (ICANON | ECHO | ISIG),
-            ICANON | ECHO | ISIG,
+            unsafe { libc::kill(pid, libc::SIGTSTP) },
+            0,
+            "kill(SIGTSTP)"
+        );
+        job.wait_until("the job to stop", |j| j.count("STOPPED") == cycle);
+        let stopped_state = job.termios();
+        assert_eq!(
+            lflag(&stopped_state) & SHELL_LFLAGS,
+            SHELL_LFLAGS,
             "cycle {cycle}: the shell gets canonical, echoing input back while the job is stopped"
         );
         assert_eq!(
-            stopped_state, before,
+            termios_bytes(&stopped_state),
+            termios_bytes(&before),
             "cycle {cycle}: exact launch termios while stopped"
         );
-        let text = pty.output_text();
-        assert_eq!(
-            count(&text, "\x1b[?1049l"),
-            cycle,
-            "cycle {cycle}: the alternate screen was left once per suspension"
-        );
+        // the job wrote its restore before it stopped; the observation
+        // after the stop carries it
+        let obs = job.observe().expect("an observation while stopped");
+        let m = modes(&obs);
         assert!(
-            text.contains("\x1b[?1000l") || text.contains("\x1b[?1006l"),
-            "mouse capture released: {text:?}"
+            !m.contains(&1049),
+            "cycle {cycle}: the alternate screen was left: {m:?}"
         );
-        assert!(text.contains("\x1b[?2004l"), "bracketed paste released");
-        assert!(
-            text.contains("\x1b[?1004l"),
-            "focus reporting released (SIg1)"
-        );
-        assert!(
-            text.contains("\x1b[?7h"),
-            "line wrap re-enabled for the shell"
-        );
+        assert!(!has_mouse(&m), "mouse capture released: {m:?}");
+        assert!(!m.contains(&2004), "bracketed paste released: {m:?}");
+        assert!(!m.contains(&1004), "focus reporting released (SIg1): {m:?}");
+        assert!(m.contains(&7), "line wrap re-enabled for the shell: {m:?}");
 
         // geometry changes while suspended; continuation must rebuild it
         let (cols, rows) = if cycle == 1 { (100, 30) } else { (80, 24) };
-        pty.resize(cols, rows);
-        let seen = pty.output_len();
-        pty.send(b"fg\n");
-        pty.wait_until("raw mode after fg", |p| p.is_raw());
-        pty.wait_until("a full redraw after fg", |p| {
-            let text = p.output_text();
-            count(&text, "\x1b[?1049h") == cycle + 1 && frame_completed_after_reentry(&text)
+        let expected = fresh_frame(cols, rows);
+        job.session
+            .resize(cols, rows)
+            .expect("resize while stopped");
+        job.session.send_text("fg\n").expect("fg");
+        job.wait_until("raw mode after fg", Job::is_raw);
+        // the redraw is the frame a fresh launch draws at the new geometry:
+        // nothing at the stale geometry, nothing half-written
+        let resumed = job.session.wait_predicate(
+            |o| modes(o).contains(&1049) && text(o) == expected,
+            Instant::now() + BOUND,
+            &CancelToken::new(),
+        );
+        let resumed = resumed.unwrap_or_else(|e| {
+            panic!(
+                "cycle {cycle}: the resumed frame is a fresh {cols}x{rows} frame: {e}\n--- expected ---\n{expected}"
+            )
         });
-        let text = pty.output_text();
-        let after = &text[seen..];
+        assert_eq!(
+            (resumed.screen.cols(), resumed.screen.rows()),
+            (cols, rows),
+            "cycle {cycle}: the emulator follows the new geometry"
+        );
+        let m = modes(&resumed);
         assert!(
-            after.contains("\x1b[?1049h"),
+            m.contains(&1049),
             "cycle {cycle}: alternate screen re-entered"
         );
+        assert!(has_mouse(&m), "mouse capture re-enabled: {m:?}");
+        assert!(m.contains(&2004), "bracketed paste re-enabled: {m:?}");
         assert!(
-            after.contains("\x1b[?1000h") || after.contains("\x1b[?1006h"),
-            "mouse capture re-enabled"
-        );
-        assert!(after.contains("\x1b[?2004h"), "bracketed paste re-enabled");
-        assert!(
-            after.contains("\x1b[?1004h"),
-            "focus reporting re-enabled (SIg1)"
+            m.contains(&1004),
+            "focus reporting re-enabled (SIg1): {m:?}"
         );
         assert!(
-            after.contains("holla"),
-            "cycle {cycle}: the frame is drawn again after continuation: {after:?}"
-        );
-        // the redraw addresses the last row of the new geometry, never the old
-        let new_last = format!("\x1b[{rows};");
-        let old_last = format!("\x1b[{};", if cycle == 1 { 40 } else { 30 });
-        assert!(
-            after.contains(&new_last),
-            "cycle {cycle}: the resumed frame addresses row {rows} of {cols}x{rows}: {after:?}"
+            text(&resumed).contains("holla"),
+            "cycle {cycle}: the frame is drawn again after continuation"
         );
         assert!(
-            !after.contains(&old_last),
-            "cycle {cycle}: nothing is drawn at the stale geometry: {after:?}"
-        );
-        assert!(
-            pty.marker("@@EXIT=").is_none(),
+            job.marker("EXIT=").is_none(),
             "cycle {cycle}: still running"
         );
     }
     assert!(
-        pty.output_len() > drawn,
+        job.session.revision() > drawn,
         "frames were drawn after the first"
     );
 
     // a normal quit from the resumed session: Ctrl+Q on a clean shell
     // (Esc never quits, keyboard audit #21)
-    pty.send(b"\x11");
-    pty.wait_until("exit", |p| p.marker("@@EXIT=").is_some());
-    assert_eq!(pty.marker("@@EXIT=").unwrap().trim(), "0", "clean exit");
-    let start = Instant::now();
-    loop {
-        if pty.helper.try_wait().unwrap().is_some() {
-            break;
-        }
-        assert!(start.elapsed() < BOUND, "helper did not exit");
-        std::thread::sleep(Duration::from_millis(20));
-    }
-    let after = pty.termios();
-    assert_eq!(after, before, "the final termios equals the launch state");
-    let text = pty.output_text();
+    job.session.send_bytes(b"\x11").expect("Ctrl+Q");
+    job.wait_until("exit", |j| j.marker("EXIT=").is_some());
+    assert_eq!(job.marker("EXIT=").unwrap().trim(), "0", "clean exit");
+    let exit = job
+        .session
+        .wait_exit(Instant::now() + BOUND, &CancelToken::new())
+        .expect("the helper exits");
+    assert!(exit.status.success(), "helper exit: {}", exit.status);
+    let after = job.termios();
     assert_eq!(
-        count(&text, "\x1b[?1049l"),
-        3,
-        "two suspensions and one exit each left the alternate screen"
+        termios_bytes(&after),
+        termios_bytes(&before),
+        "the final termios equals the launch state"
+    );
+    let m = modes(&exit.observation);
+    assert!(
+        !m.contains(&1049) && !has_mouse(&m) && !m.contains(&2004) && !m.contains(&1004),
+        "the exit left the alternate screen and released every mode: {m:?}"
     );
     // the job was the helper's child, not ours: a wait here has no child
     let mut status = 0;
     // SAFETY: probing a pid that was never this process's child.
-    assert_eq!(unsafe { waitpid(pid, &mut status, WNOHANG) }, -1);
+    assert_eq!(
+        unsafe { libc::waitpid(pid, &mut status, libc::WNOHANG) },
+        -1
+    );
 }

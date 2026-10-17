@@ -659,3 +659,43 @@ Status 2026-10-17: items 1 to 5 are done on `design/interaction-polish`
 pin now `a1ea27f`, see the Tracker). Item 6 is a separate step with its plan in
 `docs/visual-testing/tuiscotti-migration.md` ("Legacy four-file
 scenarios").
+
+## 10. Open items (recorded, not posted)
+
+Found while porting `tests/holla_pty.rs` and `tests/terminal_suspend.rs`
+to `tuiscotti::tui` (T17, `docs/remaining-work.md` V6). Not posted
+upstream; the owner decides when.
+
+### P9. No tap on the raw PTY output bytes
+
+`Session` exposes observations (cells, cursor, palette, modes) but not
+the bytes the child wrote. Two proofs were byte-level on the old
+hand-rolled `openpty` harness and are now state-level:
+
+- `terminal_suspend` counted `ESC[?1049l` to prove the alternate screen
+  is left exactly once per suspension (and three times in all after two
+  suspensions and a quit). The port asserts the tracked modes instead:
+  1049, mouse (1000/1002/1003/1006), 2004 and 1004 are off and 7 is on
+  while the job is stopped, all are back after `fg`, and all are off
+  after the quit. A doubled leave sequence is no longer caught.
+- `holla_pty` classified every SGR the process wrote over the whole run.
+  The port classifies the cells of the three frames the run settles on
+  (`Color::Rgb`, `Color::Indexed` below and from 16, `Mods`). A colour
+  written and fully overdrawn between two settled frames is no longer
+  seen.
+
+The port is otherwise stronger (the resumed frame must equal a fresh
+launch's frame at the new geometry, cell text for cell text). Request:
+an opt-in, byte-capped output log on `Session` (for example
+`Tui::record_output(max_bytes)` plus `Session::output_bytes()`), or a
+`Recording` the session fills itself, so a consumer can assert on
+escape sequences without its own PTY.
+
+### P10. No access to the PTY's termios
+
+`terminal_suspend` compares the terminal's termios while the job is
+stopped and after it exits with the launch state. `Session` has no
+`termios()` (or master fd), so the test's helper reports `ttyname(0)`
+and the test opens that device with `O_NOCTTY` to call `tcgetattr`.
+Request: `Session::termios()` (Unix) returning the line discipline
+flags, or the slave device path in `SessionMeta`.
