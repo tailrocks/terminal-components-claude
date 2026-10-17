@@ -62,7 +62,8 @@ fn the_hint_bar_is_left_aligned() {
 #[test]
 fn an_error_status_is_never_cut_for_the_hints() {
     let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 120, 40);
-    let msg = "Could not read the archive volume: permission denied by the file system";
+    // an error as wide as the row allows (holla cut it 8 cells short)
+    let msg = "Could not read the archive volume mounted at the backup path: permission denied by the file system driver, try again";
     h.app
         .shell
         .status
