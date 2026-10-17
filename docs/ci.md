@@ -39,6 +39,19 @@ replace the manifest with the new release's `release-manifest.json`, raise
 regenerate. Locally, `mise.toml` pins the same tool versions CI installs
 (Rust, cargo-nextest, actionlint, shellcheck, zizmor, gh).
 
+**Tool lock:** `mise.lock` (committed, read-only for velnor) locks every
+`mise.toml` pin with checksums for `linux-x64` (the CI runner) and
+`macos-arm64`. velnor's install audit checks each tool CI installs against
+it: a missing lock makes `generate` warn `tool_install_unverified`, a lock
+entry without the `linux-x64` platform blocks `generate`. CI itself installs
+with `mise --no-config` and does not read the lock. Whenever a `mise.toml`
+pin changes, refresh it with
+`mise lock --platform linux-x64,macos-arm64`, regenerate, and commit both;
+the xtask test `mise_lock_covers_every_mise_pin` fails on a stale lock.
+One line stays: `rust@1.99.1(no_checksums)`, because mise's `core:rust`
+backend installs through rustup and records no checksum on any platform
+(`docs/remaining-work.md` C4, U7).
+
 **Drift check:** the generated `Plan` job runs `velnor-actions generate
 --output-dir` and `diff -r --brief .github` against it. A hand edit, a stale
 regeneration, or any extra file in `.github/workflows/` fails CI.
