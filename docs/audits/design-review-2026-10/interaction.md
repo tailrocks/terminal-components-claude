@@ -105,7 +105,7 @@ as deferred.
 | 17 | Partial | 326998660 | `Select::arrows(SelectArrows::{Step, Open})`, default Step (jackin keyboard flows rely on it). Deferred: wheel scrolls the viewport, hover moves the cursor. |
 | 18 | Fixed | cec8f1474 | `ListBox::skip_disabled` (default true). |
 | 19 | Fixed | bffb93bdc | Picker query caret (←/→, Ctrl+A/E, insert/backspace at caret); `Picker::delete_is_secondary` (default true). Not backed by `TextBuffer`: the query stays a public `String` owners rewrite. |
-| 20 | Partial | 71477f758 | `Dialog::accelerators(Option<(char, char)>)` (default `Some(('y','n'))`). Deferred: `return_activates: Focused|Default`. |
+| 20 | Partial | 71477f758 | `Dialog::accelerators(Option<(char, char)>)` (default `Some(('y','n'))`). Deferred: `return_activates: Focused\|Default`. |
 | 21 | Fixed | 4efbcf819 | Clicks chain by control, cell (slop) and time; modal clicks no longer count. |
 | 22 | Fixed | 4efbcf819 | Press resets on every Down; hover refreshes after a scroll in all apps. |
 | 23 | Fixed | c4f8a7b5b | Tabs Home/End; `digit_jump`, `close_keys`, `new_key` knobs (defaults keep plain keys). |
@@ -197,3 +197,23 @@ allowed), so the owner refuses it instead of the click landing on dead
 space and ending the edit. Regression test:
 `app_tests_inputs_forms::an_escape_only_select_stays_open_on_a_click_outside`
 (escape-only with the default blur option; fails before).
+
+## Status (T19 sync, 2026-10-17)
+
+Final status for every finding the sections above leave as Partial or Deferred, or Fixed with something still open. Each row was checked against the code and tests at `942b869d7`, and the commit found with `git log -S` on the fixing symbol or in the plan's step outcomes. #2, #3, #4, #5, #7, #9, #16, #18, #21, #22 and #23 are Fixed as recorded in "Status (interaction and API pass)", "Status update (fields and focus pass)", "Status update (keymap pass)" and "round 2". The SC10 finding is fixed (S5, its own section).
+
+| # | Status | Commit(s) / owner | Notes |
+|---|---|---|---|
+| 1 | Fixed | 4efbcf819, 57bd83dec, d821cd98e, 85f6781cf, 13cea0a2c, 2fbbb0a12 | Deferred bar dispatch done in S6: `PointerRouter` + `MouseTarget` route a grabbed `Bar` to its owner (`scroll_input`); no `.on_scrollbar(` left in `src/bin`. One `ChoiceEditor::on_wheel` call remains (CO7). |
+| 6 | Open → S9, A24 | cd4515ddc | Mods, middle click, Ctrl+click secondary fixed. Shift-click range and Cmd/Ctrl-click toggle in List/Grid: S9 (M16, SIg2). Alt+click `ChosenAlt` in Picker: no owner (Alt+Enter works). |
+| 8 | Fixed | d2d6896b9, 94310233c | S6 (M18): the wheel over an open select in a form or the filter editor scrolls its list; a wheel over nothing in a modal does nothing. Tests `form_dialog.rs: a_wheel_over_an_open_select_scrolls_its_list_not_the_form`, tablepro `the_wheel_over_the_filter_editors_open_select_scrolls_its_list`. |
+| 10 | Fixed | 57bd83dec, 780e4f18a, 8e7c4f4f1, 85f6781cf, 13cea0a2c | Picker and Completion bars press and drag through `Scrollable` (S3, M17) and are routed by S6; Select has its own draggable bar (`Select::bar_id`). Tests tablepro `a_press_on_the_switcher_scrollbar_pages_its_list`, `select.rs: the_open_list_has_a_draggable_scrollbar`. |
+| 11 | Open → A23 | 80be9c76f, 8da9efa7f, 0b2379818, 222641136 | Tree, ContextMenu, DataTable and DataGrid type-select, on by default (S4: K33, K34, SI12). Left: a non-searchable Picker consumes letters with no type-ahead. Suggested owner S12 (Picker body on `OptionList`/`Cursor`). |
+| 12 | Open → S9 | cec8f1474, 40b1d089a | `ClickAction` and `row_click_toggles` exist; default stays Activate. Table `click_to_edit` (M9) and apps passing click counts (M15, `ClickPolicy`/`Activate`) are S9; CO10 tracks the per-screen `count >= 2` checks. |
+| 13 | Open → A7, S14 | see round 2 | Remaining: holla files and finder keep `Alt+Enter Alternatives…` as their menu hint (A7); the showcase has no clipboard, so no Copy item (S14 `Clipboard`, SC34 "truthful clipboard results"). |
+| 14 | Fixed | 7bf62651d, f5f60a12a, 14d6cdbc1, 777adce9a, 3825da948 | S7 (K8): `Shell::upkeep` falls back with `FocusFallback::Nearest` (default) on the same page; layers restore focus through `ShellLayers` (K9). Tests `a_vanished_control_hands_focus_to_its_nearest_neighbour` (tablepro, holla, jackin). |
+| 15 | Open → A7, CO9 | see "fields and focus pass", round 2 | Blur commit and modal dead space fixed. Left: holla acts on navigation and modals requested by a background screen only when shown (A7 with CO9, S8a). |
+| 17 | Open → S12 | 326998660, 8e7c4f4f1 | Wheel scrolls the open list (`WheelMode::Viewport`, default) and hover moves the cursor (`hover_moves_cursor`, default true): tests `the_wheel_scrolls_the_open_list_and_leaves_the_cursor`, `hovering_an_option_moves_the_cursor_so_one_row_is_lit`. Left: default `SelectArrows::Open` (SI13, S12). |
+| 19 | Fixed | bffb93bdc | Caret and forward delete work. The query is still a `String`, not `TextBuffer`; moving it onto the shared field (with Select All) is S11. |
+| 20 | Open → A7 | 71477f758 | `Dialog::accelerators` landed; `return_activates: Focused\|Default` is not done. |
+| 24 | Open → A7 | 63b9ac943 | `FocusVisible::{Always, KeyboardOnly}` on Button (default Always). Tabs opting in waits on A7, with the strip-gutter override from `focus.md` (needs a replacement cue, WCAG 2.4.7). |
