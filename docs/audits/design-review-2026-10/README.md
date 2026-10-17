@@ -31,6 +31,7 @@ raise) is collected in [`docs/remaining-work.md`](../../remaining-work.md).
 | `colour-follow-ups.md` | The resolved colour tokens the library shipped, decisions between the two colour reviews, and the colour follow-ups per app |
 | `showcase-coverage-library.md` | Showcase coverage of every library widget, variant, state and option (244-row matrix) |
 | `showcase-coverage-apps.md` | Showcase coverage of the UI patterns the apps use (92 patterns), and which are still app-local |
+| `responsive.md` | Every app screen and overlay keeps its content reachable at every size (the reachability gate, `tests/reach_allow.txt`) |
 
 The three duplication reviews are consolidated into one plan:
 [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).

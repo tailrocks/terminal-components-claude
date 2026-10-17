@@ -22,6 +22,8 @@
 //!   EDIT badge, the status line with errors over hints, click targets).
 //! - [`StatusLine`]: the transient status message and its expiry rule;
 //!   [`JobKey`] ties a progress status to the job it reports on.
+//! - [`reach`]: the reachability audit that drives an app at a size
+//!   matrix and finds content no scrollbar or reveal reaches.
 //! - [`run`]: start an [`Application`] on a terminal, after discarding
 //!   input queued before it started.
 
@@ -32,6 +34,7 @@ mod cx;
 mod footer;
 mod nav;
 mod page;
+pub mod reach;
 mod router;
 mod status;
 
