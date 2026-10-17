@@ -9,8 +9,8 @@
       Basic table                                                                                                       [0m
       Editable                 [–] Name                   Role    Status     Region  On call  Email                 …   [0m
       Data grid                [0m[2m[ ][0m Dana Whitfield         Owner   Active     EU      Yes      dana@northwind.dev     ┃  [0m
-    › [0m[1mSelection        [0m        [✓] Ari Moreno             Admin   Active     US      Yes      ari@northwind.dev      ┃  [0m
-      Cell editors             [✓] Cleo Barnes            Editor  Active     EU      —        cleo@northwind.dev     ┃  [0m
+ [0m[1m   › Selection         [0m    [0m[1m   [✓] Ari Moreno             Admin   Active     US      Yes      ari@northwind.dev      [0m┃  [0m
+      Cell editors          [0m[1m   [✓] Cleo Barnes            Editor  Active     EU      —        cleo@northwind.dev     [0m┃  [0m
       Columns               [0m[1m▎  [✓] Bo Lindqvist           Editor  Invited    EU      —        bo@northwind.dev       [0m┃  [0m
   ▸ Navigation                 [ ] Eli Nakamura           Viewer  Active     APAC    —        eli@contractor.io      ┃  [0m
   ▸ Overlays                   [ ] Fay Okafor             Editor  Active     US      Yes      fay@northwind.dev      ┆  [0m

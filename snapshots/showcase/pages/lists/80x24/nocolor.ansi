@@ -9,8 +9,8 @@
   ▾ Navigation                                                                  [0m
  [0m[1m▎  › Lists        [0m    Chosen: Rust        Space toggle …                       [0m
       Trees                                                                     [0m
-      Sidebars          › Rust      ┃       ✓ src/api/… ┃                       [0m
-      Tabs                TypeScri… ┃       ✓ src/api/… ┃                       [0m
+      Sidebars         [0m[1m › Rust      [0m┃      [0m[1m ✓ src/api/… [0m┃                       [0m
+      Tabs                TypeScri… ┃      [0m[1m ✓ src/api/… [0m┃                       [0m
       Menus               Python    ┃      [0m[2m   src/db/s… [0m┃                       [0m
   ▸ Overlays              Kotlin    ┃         tests/ch… ┃                       [0m
   ▸ Feedback              Go        ┃      [0m[2m   Cargo.lo… [0m┃      No results for…  [0m
