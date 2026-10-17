@@ -57,6 +57,13 @@ pub enum DialogResult {
     Cancelled,
 }
 
+/// Lines of a dialog's code preview shown when there is room.
+const CODE_LINES: usize = 6;
+
+/// Rows of facts a dialog with a code preview keeps for its facts on a
+/// short screen before the preview shrinks.
+const MIN_FACTS: u16 = 2;
+
 #[derive(Debug, Clone)]
 pub struct Dialog {
     pub id: WidgetId,
@@ -93,6 +100,10 @@ pub struct Dialog {
     /// Home/End, the scrollbar) and says how much is below. Default on.
     /// Off: the body is cut at the bottom, as before.
     pub body_scroll: bool,
+    /// Lines of the code preview shown this frame: [`CODE_LINES`], fewer
+    /// when the screen is so short that the facts above would get fewer
+    /// than [`MIN_FACTS`] rows (the rest is summarised as "… N more").
+    code_cap: usize,
     /// Cap on the dialog's height in rows; the body scrolls past it.
     /// `None` (default): as tall as the content, up to the bounds.
     pub max_height: Option<u16>,
@@ -383,6 +394,7 @@ impl Dialog {
             title_status: None,
             confirm_index: None,
             body_scroll: true,
+            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -426,6 +438,7 @@ impl Dialog {
             title_status: None,
             confirm_index: None,
             body_scroll: true,
+            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -470,6 +483,7 @@ impl Dialog {
             title_status: None,
             confirm_index: None,
             body_scroll: true,
+            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -555,6 +569,7 @@ impl Dialog {
             title_status: None,
             confirm_index: token.map(|_| 1),
             body_scroll: true,
+            code_cap: CODE_LINES,
             max_height: None,
             outer_margin: OUTER_MARGIN,
             placement: Placement::Center,
@@ -788,12 +803,12 @@ impl Dialog {
     /// Rows the code preview takes below the facts: at most six lines,
     /// the blank row above them and, when a line is wider than the text
     /// column `inner_w`, the horizontal bar under them.
-    fn code_rows(code: &[String], inner_w: u16, h_cfg: &HScroll) -> u16 {
+    fn code_rows(code: &[String], inner_w: u16, h_cfg: &HScroll, cap: usize) -> u16 {
         if code.is_empty() {
             0
         } else {
             let bar = h_cfg.shows_bar(&Self::code_extent(code, inner_w));
-            code.len().min(6) as u16 + 1 + u16::from(bar)
+            code.len().min(cap) as u16 + 1 + u16::from(bar)
         }
     }
 
@@ -869,8 +884,12 @@ impl Dialog {
             DialogBody::Text(_) => 0,
             DialogBody::Input(i) => i.height_for(self.field_width(width)),
             DialogBody::Facts { code, ack, .. } => {
-                Self::code_rows(code, self.inner_width(width), &self.scroll.h_cfg)
-                    + self.ack_rows(ack.as_ref(), width)
+                Self::code_rows(
+                    code,
+                    self.inner_width(width),
+                    &self.scroll.h_cfg,
+                    self.code_cap,
+                ) + self.ack_rows(ack.as_ref(), width)
             }
         }
     }
@@ -1250,6 +1269,7 @@ impl Dialog {
         self.follow_strings(ctx.theme.strings);
         let t = ctx.theme;
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
+        self.code_cap = CODE_LINES;
         self.scroll.begin(ctx.track_click);
         self.gap = t.spacing.button_gap;
         // at least one column of padding: the scrollbar lives there
@@ -1324,6 +1344,16 @@ impl Dialog {
         // the scrolling part of the body ends above the parts anchored over
         // the actions; the row right below it is a blank separator, where
         // "↓ N more" goes while there is more below
+        // a short screen shrinks the code preview before the facts: they
+        // keep MIN_FACTS rows to scroll through (R-apps-10)
+        let room = actions_y.saturating_sub(1).saturating_sub(body_y);
+        let facts = matches!(&self.body, DialogBody::Facts { facts, .. } if !facts.is_empty());
+        while facts
+            && self.code_cap > 1
+            && room.saturating_sub(1 + self.fixed_rows(width)) < MIN_FACTS
+        {
+            self.code_cap -= 1;
+        }
         let fixed = self.fixed_rows(width);
         let scroll_bottom = actions_y.saturating_sub(1 + fixed).max(body_y);
         let viewport = scroll_bottom - body_y;
@@ -1371,7 +1401,7 @@ impl Dialog {
                 let mut y = scroll_bottom;
                 if !code.is_empty() {
                     y += 1;
-                    let max = code.len().min(6);
+                    let max = code.len().min(self.code_cap);
                     // preformatted lines never wrap: a wider one scrolls
                     // sideways, cut with … on the side it continues past
                     let extent = Self::code_extent(code, inner.width);
