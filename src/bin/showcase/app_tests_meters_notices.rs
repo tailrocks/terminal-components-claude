@@ -125,3 +125,98 @@ fn meters_states_grid_shows_every_content_state() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
+
+// ----------------------------------------------------------------- Notices
+
+#[test]
+fn notices_page_shows_every_kind_not_the_stub() {
+    for (w, h) in [(120, 40), (80, 24)] {
+        let h = Harness::new(w, h, PageId::Notices);
+        let text = h.text();
+        assert!(!text.contains("arrives with"), "{text}");
+        for needle in ["! Authentication failed", "Test connection"] {
+            assert!(text.contains(needle), "{w}: {needle}: {text}");
+        }
+    }
+    let h = Harness::new(120, 40, PageId::Notices);
+    let text = h.text();
+    for needle in [
+        "syntax error at or near",
+        "! Port must be a number",
+        "3 rows changed outside this session",
+        "Read-only replica",
+        "Saved 12 rows in 84 ms",
+    ] {
+        assert!(text.contains(needle), "{needle}: {text}");
+    }
+    // the error mark is bold in the error tone; the detail is indented
+    let (x, y) = h.at("! Authentication failed");
+    let t = Theme::junie();
+    assert_eq!(h.cell(x, y).fg, t.error);
+    assert!(
+        h.cell(x, y)
+            .modifier
+            .contains(ratatui::style::Modifier::BOLD)
+    );
+    assert!(h.row(y + 1).contains("FATAL"), "{}", h.row(y + 1));
+    assert_eq!(h.at("FATAL").0, x + 2);
+}
+
+#[test]
+fn notices_options_drive_the_notice_builders() {
+    let mut h = Harness::new(120, 40, PageId::Notices);
+    assert!(h.text().contains("Enter on the result tab"));
+    h.opt("notices.hint=off");
+    assert!(!h.text().contains("Enter on the result tab"));
+    assert!(h.text().contains("LINE 1"));
+    h.opt("notices.detail=off");
+    assert!(!h.text().contains("LINE 1"));
+    h.opt("notices.detail=on");
+    // narrow: the detail wraps and its cut is marked …
+    h.opt("notices.width=narrow");
+    let (_, y) = h.at("LINE 1");
+    assert!(h.row(y + 1).trim_end().ends_with('…'), "{}", h.row(y + 1));
+    h.opt("notices.mark_cut=off");
+    assert!(!h.row(y + 1).trim_end().ends_with('…'), "{}", h.row(y + 1));
+    h.opt("notices.max_lines=1");
+    assert!(!h.row(y + 1).contains("created_at"), "{}", h.row(y + 1));
+    h.opt("notices.detail_tone=muted");
+    let (x, y) = h.at("LINE 1");
+    assert_eq!(h.cell(x, y).fg, Theme::junie().text_muted);
+    h.opt("notices.kind=warning");
+    let (x, y) = h.at("syntax error");
+    assert_eq!(h.cell(x, y).fg, Theme::junie().warning);
+}
+
+#[test]
+fn test_connection_walks_the_outcomes() {
+    let mut h = Harness::new(120, 40, PageId::Notices);
+    h.click_id(WidgetId::of("notices").sub("test"));
+    assert!(
+        h.text().contains("Could not reach the host"),
+        "{}",
+        h.text()
+    );
+    h.focus(WidgetId::of("notices").sub("test"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("✓ Connected in 182 ms"), "{}", h.text());
+    assert_eq!(h.status(), "Connected in 182 ms");
+}
+
+#[test]
+fn notices_states_grid_shows_kinds_and_the_cut() {
+    let mut h = Harness::new(120, 40, PageId::Notices);
+    h.section(Section::States);
+    let text = h.text();
+    for label in [
+        "With detail",
+        "With hint",
+        "rest",
+        "error",
+        "overflow",
+        "narrow",
+        "…",
+    ] {
+        assert!(text.contains(label), "{label}: {text}");
+    }
+}
