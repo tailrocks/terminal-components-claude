@@ -8,7 +8,7 @@
 //! the required field, the optional field and the description.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -21,6 +21,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
@@ -60,6 +61,11 @@ enum Submit {
     Done,
 }
 
+/// The card's rows when the page has room for them.
+const CARD_H: u16 = 24;
+/// The note under a toggle the organization manages.
+const MANAGED: &str = "Managed by your organization";
+
 /// The form's parts in the one-column layout, top to bottom.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Part {
@@ -73,6 +79,16 @@ enum Part {
 }
 
 impl Part {
+    /// The section heading the part starts in the one-column layout.
+    fn heading(self) -> Option<&'static str> {
+        match self {
+            Self::Name => Some("Task"),
+            Self::Reviewer => Some("Review"),
+            Self::Mode => Some("Options"),
+            _ => None,
+        }
+    }
+
     const ALL: [Self; 7] = [
         Self::Name,
         Self::Description,
@@ -256,14 +272,21 @@ impl FormsPage {
         let t = ctx.theme;
         let panel = Panel::card(Some("New task")).meta("Ctrl+S Submit");
         let bg = panel.bg(t);
+        // Two columns when every control fits whole with the action row
+        // reserved; otherwise one column that scrolls part by part.
+        let two = panel.inner(area.as_size()).width >= self.two_column_width(ctx);
+        let rows = if two {
+            CARD_H.max(self.two_column_height() + 2)
+        } else {
+            CARD_H.max(self.column_height())
+        };
+        let card = panel.outer(Size::new(0, rows)).height;
         let inner = panel.render(
-            Rect::new(area.x, area.y, area.width, area.height.min(24)),
+            Rect::new(area.x, area.y, area.width, area.height.min(card)),
             buf,
             t,
         );
-        // Two columns when every control fits with the action row
-        // reserved; otherwise one column that scrolls part by part.
-        if inner.height < 11 || inner.width < 40 {
+        if !two || inner.height < 11 {
             self.render_column(inner, buf, ctx, bg);
             return;
         }
@@ -339,24 +362,73 @@ impl FormsPage {
             buf.set_string(
                 area.x + 2,
                 area.y + 2,
-                junie_tui::ui::text::truncate(
-                    "Managed by your organization",
-                    area.width.saturating_sub(2) as usize,
-                ),
+                junie_tui::ui::text::truncate(MANAGED, area.width.saturating_sub(2) as usize),
                 t.faint().bg(bg),
             );
         }
     }
 
     fn part_height(&self, part: Part) -> u16 {
-        match part {
-            Part::Name | Part::Reviewer => TextInput::HEIGHT,
-            Part::Description => self.description.height(),
-            Part::Mode => self.mode.height(),
-            Part::Checks => 2,
-            Part::Toggles => 2 + u16::from(self.notify.disabled),
-            Part::Actions => 1,
-        }
+        u16::from(part.heading().is_some())
+            + match part {
+                Part::Name | Part::Reviewer => TextInput::HEIGHT,
+                Part::Description => self.desc_height(),
+                Part::Mode => self.mode.height(),
+                Part::Checks => 2,
+                Part::Toggles => 2 + u16::from(self.notify.disabled),
+                Part::Actions => 1,
+            }
+    }
+
+    /// The description's height at the option's rows.
+    fn desc_height(&self) -> u16 {
+        self.desc_rows() + self.description.height() - self.description.rows
+    }
+
+    /// The narrowest each column shows its controls whole at: the task
+    /// column (the fields at their measure, the description at its min
+    /// width: its lines scroll sideways), the options column (the radio
+    /// group, the checks, the toggles and the managed note), and the
+    /// action row.
+    fn column_widths(&self, ctx: &RenderCtx) -> (u16, u16, u16) {
+        let field = |f: &TextInput| f.measure(Size::ZERO, ctx).width;
+        let left = field(&self.name)
+            .max(field(&self.reviewer))
+            .max(self.description.min_width(Size::ZERO, ctx));
+        let right = self
+            .mode
+            .width()
+            .max(self.run_tests.width())
+            .max(self.open_pr.width())
+            .max(self.auto_approve.width())
+            .max(self.notify.width())
+            .max(2 + junie_tui::ui::text::width(MANAGED) as u16);
+        let actions = self.submit.width() + 2 + self.reset.width();
+        (left, right, actions)
+    }
+
+    /// The card's inner width the two columns need: both at their
+    /// widths (the left takes half less two, a gap of four), the action
+    /// row whole.
+    fn two_column_width(&self, ctx: &RenderCtx) -> u16 {
+        let (l, r, a) = self.column_widths(ctx);
+        (2 * l.max(r) + 5).max(a).max(44)
+    }
+
+    /// The one column's rows: every part with its heading.
+    fn column_height(&self) -> u16 {
+        let parts: Vec<StackChild> = Part::ALL
+            .iter()
+            .map(|p| StackChild::fixed(self.part_height(*p)))
+            .collect();
+        self.sections.stack.measure(&parts)
+    }
+
+    /// The two columns' rows, headings included, without the action row.
+    fn two_column_height(&self) -> u16 {
+        let left = 1 + TextInput::HEIGHT + self.desc_height() + 2 + TextInput::HEIGHT;
+        let right = 1 + self.mode.height() + 1 + 2 + 1 + 2 + u16::from(self.notify.disabled);
+        left.max(right)
     }
 
     fn part_ids(&self, part: Part) -> Vec<WidgetId> {
@@ -380,7 +452,7 @@ impl FormsPage {
         ctx: &mut RenderCtx,
         bg: ratatui::style::Color,
     ) {
-        self.description.rows = 1;
+        self.description.rows = self.desc_rows();
         let children: Vec<StackChild> = Part::ALL
             .iter()
             .map(|p| StackChild::fixed(self.part_height(*p)))
@@ -392,7 +464,7 @@ impl FormsPage {
         });
         let l = self.sections.layout(area, &children, focus, buf, ctx);
         for (i, part) in Part::ALL.into_iter().enumerate() {
-            let Some(r) = l.slot(i) else {
+            let Some(mut r) = l.slot(i) else {
                 // a part out of view keeps its focus stops
                 for id in self.part_ids(part) {
                     if !(id == self.notify.id && self.notify.disabled) {
@@ -401,6 +473,10 @@ impl FormsPage {
                 }
                 continue;
             };
+            if let Some(h) = part.heading() {
+                buf.set_string(r.x, r.y, h, ctx.theme.faint().bg(bg));
+                r = Rect::new(r.x, r.y + 1, r.width, r.height.saturating_sub(1));
+            }
             match part {
                 Part::Name => self.name.render(r, buf, ctx, bg),
                 Part::Description => self.description.render(r, buf, ctx, bg),
@@ -521,6 +597,25 @@ impl Page for FormsPage {
     }
     fn blurb(&self) -> &'static str {
         "Sections, required fields, validation, submission"
+    }
+
+    /// The card at its natural size: two columns when they fit the room
+    /// whole (as tall as the taller column over the action row, at least
+    /// the card's usual 24 rows when there is room), else one column of
+    /// parts with their headings, as wide as the widest control.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let panel = Panel::card(Some("New task")).meta("Ctrl+S Submit");
+        let inner = panel.inner(Size::new(avail.width, 0)).width;
+        let two = self.two_column_width(ctx);
+        if inner >= two {
+            let h = panel
+                .outer(Size::new(0, self.two_column_height() + 2))
+                .height;
+            return Size::new(avail.width, h.max(avail.height.min(CARD_H)));
+        }
+        let (l, r, a) = self.column_widths(ctx);
+        let card = panel.outer(Size::new(l.max(r).max(a), self.column_height()));
+        Size::new(avail.width.max(card.width), card.height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
