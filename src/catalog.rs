@@ -1001,6 +1001,8 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::ty("ui::master_detail::MasterDetail"),
     Capability::builder("ui::master_detail::MasterDetail::collapse_below"),
     Capability::function("ui::master_detail::MasterDetail::natural_width"),
+    Capability::function("ui::master_detail::MasterDetail::panes_width"),
+    Capability::function("ui::master_detail::MasterDetail::split_rects"),
     Capability::builder("ui::master_detail::MasterDetail::detail_share"),
     Capability::builder("ui::master_detail::MasterDetail::resizable"),
     Capability::builder("ui::master_detail::MasterDetail::master_share"),
