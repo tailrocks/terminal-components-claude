@@ -550,3 +550,34 @@ fn a_paste_goes_to_the_top_layer_else_the_page() {
     h.shell.too_small = true;
     assert_eq!(paste(&mut h), (Outcome::Consumed, vec![]));
 }
+
+/// K23: the shell's keys as a help section come from the live
+/// `ShellKeys`: one row per action, its keys together, the quit keys of
+/// `QuitKeys`, an app command by its label.
+#[test]
+fn the_help_section_lists_the_live_shell_keys() {
+    let keys = ShellKeys::<u8>::new().bind(KeyBinding::ctrl('r'), ShellAction::App(1));
+    let s = keys.help_section("Shell", |c| (c == 1).then_some("Run"));
+    let row = |action: &str| {
+        s.rows
+            .iter()
+            .find(|(_, a)| a == action)
+            .map(|(k, _)| k.clone())
+    };
+    assert_eq!(row("This reference").as_deref(), Some("F1 ?"));
+    assert_eq!(row("Run").as_deref(), Some("Ctrl+R"));
+    assert_eq!(row("Quit").as_deref(), Some("Ctrl+Q q"));
+    assert_eq!(row("Next page").as_deref(), Some("Ctrl+PgDn"));
+    // BackTab with or without the Shift flag is one key: Shift+Tab
+    assert_eq!(row("Previous control").as_deref(), Some("Shift+Tab"));
+    let unbound = ShellKeys::<u8>::new().unbind(KeyBinding::char('?'));
+    let s = unbound.help_section("Shell", |_| None);
+    assert_eq!(
+        s.rows
+            .iter()
+            .find(|(_, a)| a == "This reference")
+            .map(|(k, _)| k.as_str()),
+        Some("F1"),
+        "an unbound key is not listed"
+    );
+}
