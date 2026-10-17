@@ -28,9 +28,6 @@ Connections | Playground | 100x25 | R43 squeezes instead of overflowing: no Page
 Finder | Playground | 80x24 | R44 squeezes instead of overflowing: no Page::measure yet
 Finder | Playground | 100x25 | R44 squeezes instead of overflowing: no Page::measure yet
 Finder | Playground | 106x29 | R44 squeezes instead of overflowing: no Page::measure yet
-Workspaces | Playground | 80x24 | R47 squeezes instead of overflowing: no Page::measure yet
-Workspaces | Playground | 100x25 | R47 squeezes instead of overflowing: no Page::measure yet
-Workspaces | Playground | 106x29 | R47 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 80x24 | R48 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 100x25 | R48 squeezes instead of overflowing: no Page::measure yet
 AccountsUsage | Playground | 106x29 | R48 squeezes instead of overflowing: no Page::measure yet

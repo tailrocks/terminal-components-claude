@@ -10,7 +10,7 @@
 //! `crate::options::WORKSPACES`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -23,6 +23,7 @@ use junie_tui::theme::{StatusKind, Tone};
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitDir};
 use junie_tui::ui::master_detail::{MasterDetail, Mode};
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::{plural, truncate};
 use junie_tui::widgets::button::{Button, row_layout};
@@ -213,6 +214,19 @@ fn ws_meta(ws: &Workspace) -> String {
     }
 }
 
+/// The detail card's inner width from which the roster sits beside the
+/// facts.
+const BESIDE: u16 = 84;
+/// The narrowest roster the detail card asks for: its rows cut and
+/// reveal the rest.
+const ROSTER_MIN: u16 = 40;
+
+/// The facts' share of the detail card's inner width with the roster
+/// beside them.
+fn facts_width(inner: u16) -> u16 {
+    inner * 11 / 20
+}
+
 pub fn page() -> Box<dyn Page> {
     Box::new(WorkspacesPage::new())
 }
@@ -360,14 +374,15 @@ impl WorkspacesPage {
         let ws = &self.data[wi];
         vec![
             Prop::new("Working dir", ws.dir).copyable(),
-            Prop::new("Mounts", ws.mounts),
-            Prop::new("Roles", ws.roles),
+            Prop::new("Mounts", ws.mounts).wrap(),
+            Prop::new("Roles", ws.roles).wrap(),
             Prop::new("Environments", ws.envs),
-            Prop::new("Accounts", ws.accounts),
+            Prop::new("Accounts", ws.accounts).wrap(),
             Prop::new(
                 "Policies",
                 "git pull enabled · keep awake on · dirty exit ask",
-            ),
+            )
+            .wrap(),
             Prop::new(
                 "Instances",
                 format!(
@@ -377,6 +392,42 @@ impl WorkspacesPage {
                 ),
             ),
         ]
+    }
+
+    /// Whether the detail card shows the instance roster.
+    fn roster_on(&self) -> bool {
+        self.opts.value("workspaces.roster") != "off"
+    }
+
+    /// The detail card's chrome for workspace `wi`.
+    fn detail_panel(&self, wi: usize) -> (Panel<'static>, String) {
+        let ws = &self.data[wi];
+        (
+            Panel::framed(Some(ws.name)),
+            format!("saved workspace · {}", ws_meta(ws)),
+        )
+    }
+
+    /// The detail card's height `width` wide: its facts (wrapping), the
+    /// roster's heading and rows beside or under them, a blank row and
+    /// the actions.
+    fn detail_height(&self, wi: usize, width: u16) -> u16 {
+        let (panel, _) = self.detail_panel(wi);
+        let inner = panel.inner(Size::new(width, 0)).width;
+        let facts = self.facts(wi);
+        let roster = if self.roster_on() {
+            self.roster.items.len() as u16 + 1
+        } else {
+            0
+        };
+        let body = if roster > 0 && inner >= BESIDE {
+            props::measure(&facts, facts_width(inner)).max(roster)
+        } else if roster > 0 {
+            props::measure(&facts, inner) + 1 + roster
+        } else {
+            props::measure(&facts, inner)
+        };
+        panel.outer(Size::new(inner, body + 2)).height
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -472,9 +523,9 @@ impl WorkspacesPage {
             .focused(ctx.interaction.focused(DETAIL));
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
-        let roster_on = self.opts.value("workspaces.roster") != "off";
+        let roster_on = self.roster_on();
         // wide: the roster beside the facts; narrow: under them
-        let beside = roster_on && inner.width >= 84;
+        let beside = roster_on && inner.width >= BESIDE;
         let body = Rect::new(
             inner.x,
             inner.y,
@@ -484,7 +535,7 @@ impl WorkspacesPage {
         let (facts, roster) = if !roster_on {
             (body, Rect::ZERO)
         } else if beside {
-            let fw = inner.width * 11 / 20;
+            let fw = facts_width(inner.width);
             (
                 Rect::new(body.x, body.y, fw, body.height),
                 Rect::new(body.x + fw + 2, body.y, body.width - fw - 2, body.height),
@@ -703,6 +754,53 @@ impl Page for WorkspacesPage {
     }
     fn blurb(&self) -> &'static str {
         "A workspace tree beside its detail card and instance roster; narrow, a drawer"
+    }
+
+    /// The header over the tree beside the detail card at the width the
+    /// master-detail shows both whole at (`MasterDetail::panes_width`:
+    /// the tree at its measure, the card as wide as its facts' longest
+    /// word, its actions or `ROSTER_MIN` for the roster, which cuts and
+    /// reveals its own rows), as tall as the tree or the card there.
+    fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
+        let total: usize = self.data.iter().map(running).sum();
+        let meta = format!("{total} running");
+        let tree = Panel::framed(Some("Workspaces"))
+            .meta(&meta)
+            .outer(self.tree.measure(avail, ctx));
+        let Some(wi) = self.current() else {
+            return Size::new(avail.width.max(tree.width), 2 + tree.height);
+        };
+        let buttons = self.launch.width()
+            + self.edit.width()
+            + self.prewarm.width()
+            + self.delete.width()
+            + 3 * 2;
+        let roster = if self.roster_on() { ROSTER_MIN } else { 0 };
+        let (panel, card_meta) = self.detail_panel(wi);
+        let detail = panel
+            .meta(&card_meta)
+            .outer(Size::new(
+                props::width(&self.facts(wi)).max(buttons).max(roster),
+                0,
+            ))
+            .width;
+        let panes = self.md.panes_width(tree.width, detail);
+        let width = if avail.width < self.md.collapse_below && panes < self.md.collapse_below {
+            // collapsed below a threshold set above the panes' need: one
+            // pane at a time (the tree, or the detail's drawer)
+            avail.width.max(tree.width).max(detail)
+        } else {
+            avail.width.max(panes)
+        };
+        let height = match self.md.split_rects(Rect::new(0, 0, width, 1)) {
+            Some((_, d)) => tree.height.max(self.detail_height(wi, d.width)),
+            // the drawer, or the tree over its summary row
+            None if self.md.collapsed_mode(&ctx.interaction) == Mode::Drawer => {
+                self.detail_height(wi, width)
+            }
+            None => tree.height + 2,
+        };
+        Size::new(width, 2 + height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
