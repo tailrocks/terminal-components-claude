@@ -6,13 +6,13 @@
 [0m[2m   │                                                                        │   [0m
 [0m[2m  A│  [0mAction        move to Trash 1 item under ~                          [0m[2m ┃│┃  [0m
 [0m[2m  H│  [0mHost          devbox · local                                        [0m[2m ┃│┃  [0m
-[0m[2m  M│  [0mMode          Trash · no Trash backend · every item will fail, never[0m[2m ┆│┃  [0m
-[0m[2m   │  [0m              fall back · space returns after the Trash is emptied  [0m[2m ┆│┆  [0m
+[0m[2m  M│  [0mMode          Trash · no Trash backend · every item will fail, never[0m[2m ┃│┃  [0m
+[0m[2m   │  [0m              fall back · space returns after the Trash is emptied  [0m[2m ┃│┆  [0m
 [0m[2m  E│  [0mEstimate      124.0 KiB allocated · APFS clones may overcount ·     [0m[2m ┆│┆  [0m
 [0m[2m   │  [0m              purgeable space excluded · not a free-space guarantee [0m[2m ┆│┆  [0m
-[0m[2m  D│  ↓ 8 more                                                              │┆  [0m
-[0m[2m   │  /home/alex/Projects/app/node_modules                                  │   [0m
-[0m[2m ╭─│                                                                        │─╮ [0m
+[0m[2m  D│  [0mDenied        none · every path passed the lexical, protected-root, [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              user-data and symlink rules                           [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 8 more                                                              │─╮ [0m
 [0m[2m │ │  [0m[1;2mType TRASH 1 UNDER /home/alex ON devbox to confirm                  [0m[2m  │ │ [0m
 [0m[2m │ │[0m[1;2;7m▎                                                                     [0m[2m  │ │ [0m
 [0m[2m │ │                                                                        │ │ [0m

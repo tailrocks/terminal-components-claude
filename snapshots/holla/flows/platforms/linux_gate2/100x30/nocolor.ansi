@@ -15,10 +15,10 @@
 [0m[2m  Revision │  [0mRevision      c4d729e20ca0805b · any change to paths, mode or dry run   [0m[2m ┃│        ┃  [0m
 [0m[2m  Threat mo│  [0m              voids this review                                         [0m[2m ┃│ rename ┃  [0m
 [0m[2m           │  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m ┃│        ┃  [0m
-[0m[2m  Paths    │  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m ┆│        ┆  [0m
-[0m[2m  Recoverab│  ↓ 1 more                                                                  │        ┆  [0m
-[0m[2m           │  /home/alex/Projects/app/node_modules                                      │           [0m
-[0m[2m ╭─ Sequenc│                                                                            │ copies ─╮ [0m
+[0m[2m  Paths    │  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m ┃│        ┆  [0m
+[0m[2m  Recoverab│  [0mPaths         ~/Projects/app/node_modules                               [0m[2m ┃│        ┆  [0m
+[0m[2m           │  [0m                                                                        [0m[2m ┆│           [0m
+[0m[2m ╭─ Sequenc│  ↓ 1 more                                                                  │ copies ─╮ [0m
 [0m[2m │  01  tra│  [0m[1;2mType TRASH 1 UNDER /home/alex ON devbox to confirm                      [0m[2m  │         │ [0m
 [0m[2m │         │[0m[1;2;7m▎                                                                         [0m[2m  │         │ [0m
 [0m[2m │         │                                                                            │         │ [0m

@@ -10,12 +10,12 @@
 [0m[2m   │  [0mHost          mbp · local                                           [0m[2m ┃│   [0m
 [0m[2m   │  [0mIn            ~/work/engine                                         [0m[2m ┃│   [0m
 [0m[2m   │  [0mScope         here                                                  [0m[2m ┃│   [0m
-[0m[2m   │  [0mChanges       900.0 MiB freed by cargo itself · permanent · next    [0m[2m ┆│   [0m
-[0m[2m   │  [0m              build recompiles everything · shared target:          [0m[2m ┆│   [0m
+[0m[2m   │  [0mChanges       900.0 MiB freed by cargo itself · permanent · next    [0m[2m ┃│   [0m
+[0m[2m   │  [0m              build recompiles everything · shared target:          [0m[2m ┃│   [0m
 [0m[2m   │  [0m              /Users/alex/work/engine-wt loses its artifacts too    [0m[2m ┆│   [0m
+[0m[2m   │  [0mRisk          destructive                                           [0m[2m ┆│   [0m
+[0m[2m   │  [0mData          live · 2 s ago                                        [0m[2m ┆│   [0m
 [0m[2m   │  ↓ 3 more                                                              │   [0m
-[0m[2m   │  cargo clean                                                           │   [0m
-[0m[2m   │                                                                        │   [0m
 [0m[2m   │                                                       ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mR[0m[2mun   │   [0m
 [0m[2m   │                                                                        │   [0m
 [0m[2m   ╰────────────────────────────────────────────────────────────────────────╯   [0m

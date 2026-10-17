@@ -5,13 +5,13 @@
 [0m[2m  U│  [0m[1;2mStart upgrade everything?[0m[2m                                     │   [0m
 [0m[2m  u│                                                                │   [0m
 [0m[2m   │  [0mPlan       Upgrade everything · upgrade Debian packages and [0m[2m ┃│   [0m
-[0m[2m   │  [0m           global mise tools on devbox                      [0m[2m ┆│   [0m
+[0m[2m   │  [0m           global mise tools on devbox                      [0m[2m ┃│   [0m
 [0m[2m [0m [0m[2m[│  [0mHost       devbox                                           [0m[2m ┆│ ┆ [0m
-[0m[2m [0m [0m[2m[│  ↓ 5 more                                                      │ ┃ [0m
-[0m[2m [0m [0m[2m[│  cat /etc/os-release                                           │ ┃ [0m
-[0m[2m [0m [0m[2m[│  sudo -n true                                                  │ ┃ [0m
-[0m[2m [0m [0m[2m[│  fuser /var/lib/dpkg/lock-frontend … 11 more                   │ ┆ [0m
-[0m[2m   │                                                                │   [0m
+[0m[2m [0m [0m[2m[│  [0mSteps      7 included · 1 excluded · ~16 s                  [0m[2m ┆│ ┃ [0m
+[0m[2m [0m [0m[2m[│  [0mPrivilege  sudo · cached for this session                   [0m[2m ┆│ ┃ [0m
+[0m[2m [0m [0m[2m[│  [0mDebian     14 upgradable · 2 security                       [0m[2m ┆│ ┃ [0m
+[0m[2m [0m [0m[2m[│  [0mmise       4 outdated global tools · go excluded            [0m[2m ┆│ ┆ [0m
+[0m[2m   │  ↓ 16 more                                                     │   [0m
 [0m[2m   │                                        ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mtart plan [0m[2m  │…  [0m
 [0m[2m   │                                                                │   [0m
 [0m[2m   ╰──────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m───────────╯   [0m

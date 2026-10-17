@@ -5,8 +5,8 @@
 [0m[2m  R│  [0m[1;2mStop and remove all containers · gate 2 of 2[0m[2m                  │…  [0m
 [0m[2m   │                                                                │   [0m
 [0m[2m  A│  [0mAction   stop the running containers, then remove every     [0m[2m ┃│┃  [0m
-[0m[2m   │  ↓ 9 more                                                      │┆  [0m
-[0m[2m   │  docker stop acme-db-1 acme-redis-1 acme-api-1 a… … 1 more     │┆  [0m
+[0m[2m   │  [0m         captured container on mbp (running and stopped) ·  [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m         images and volumes stay · rm runs only after stop  [0m[2m ┆│┆  [0m
 [0m[2m   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │   [0m
 [0m[2m ╭─│                                                                │─╮ [0m
 [0m[2m │ │  [0m[1;2mType REMOVE ALL CONTAINERS ON mbp to confirm                [0m[2m  │ │ [0m

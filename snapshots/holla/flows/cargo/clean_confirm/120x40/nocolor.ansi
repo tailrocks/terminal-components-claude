@@ -23,8 +23,8 @@
 [0m[2m                       │  [0mRisk          destructive                                           [0m[2m  │f · permanent ·        [0m
 [0m[2m                       │  [0mData          live · 2 s ago                                        [0m[2m  │build recompiles       [0m
 [0m[2m                       │  [0mConfirmation  one explicit confirmation · not remembered            [0m[2m  │thing · shared         [0m
-[0m[2m                       │                                                                        │t:                     [0m
-[0m[2m                       │  cargo clean                                                           │s/alex/work/engine-    [0m
+[0m[2m                       │  [0m                                                                    [0m[2m  │t:                     [0m
+[0m[2m                       │  [0mcargo clean                                                         [0m[2m  │s/alex/work/engine-    [0m
 [0m[2m                       │                                                                        │ses its artifacts      [0m
 [0m[2m                       │                                                       ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mR[0m[2mun   │                       [0m
 [0m[2m                       │                                                                        │uctive                 [0m

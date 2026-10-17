@@ -6,16 +6,16 @@
 [0m[2m  u│                                                                        │   [0m
 [0m[2m   │  [0mPlan       Upgrade everything · upgrade Debian packages and global  [0m[2m ┃│   [0m
 [0m[2m   │  [0m           mise tools on devbox                                     [0m[2m ┃│   [0m
-[0m[2m [0m [0m[2m[│  [0mHost       devbox                                                   [0m[2m ┆│   [0m
-[0m[2m [0m [0m[2m[│  [0mSteps      7 included · 1 excluded · ~16 s                          [0m[2m ┆│   [0m
-[0m[2m [0m [0m[2m[│  ↓ 4 more                                                              │   [0m
-[0m[2m [0m [0m[2m[│  cat /etc/os-release                                                   │   [0m
-[0m[2m [0m [0m[2m[│  sudo -n true                                                          │   [0m
-[0m[2m [0m [0m[2m[│  fuser /var/lib/dpkg/lock-frontend                                     │   [0m
-[0m[2m [0m [0m[2m[│  df -h /                                                               │   [0m
-[0m[2m [0m [0m[2m[│  test -f /var/run/reboot-required                                      │…  [0m
-[0m[2m   │  sudo apt-get update … 8 more                                          │   [0m
-[0m[2m   │                                                                        │   [0m
+[0m[2m [0m [0m[2m[│  [0mHost       devbox                                                   [0m[2m ┃│   [0m
+[0m[2m [0m [0m[2m[│  [0mSteps      7 included · 1 excluded · ~16 s                          [0m[2m ┃│   [0m
+[0m[2m [0m [0m[2m[│  [0mPrivilege  sudo · cached for this session                           [0m[2m ┃│   [0m
+[0m[2m [0m [0m[2m[│  [0mDebian     14 upgradable · 2 security                               [0m[2m ┆│   [0m
+[0m[2m [0m [0m[2m[│  [0mmise       4 outdated global tools · go excluded                    [0m[2m ┆│   [0m
+[0m[2m [0m [0m[2m[│  [0mReboot     required after the kernel upgrade                        [0m[2m ┆│   [0m
+[0m[2m [0m [0m[2m[│  [0m                                                                    [0m[2m ┆│   [0m
+[0m[2m [0m [0m[2m[│  [0mcat /etc/os-release                                                 [0m[2m ┆│…  [0m
+[0m[2m   │  [0msudo -n true                                                        [0m[2m ┆│   [0m
+[0m[2m   │  ↓ 12 more                                                             │   [0m
 [0m[2m   │                                                ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mtart plan [0m[2m  │   [0m
 [0m[2m   │                                                                        │   [0m
 [0m[2m   ╰──────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m───────────╯   [0m

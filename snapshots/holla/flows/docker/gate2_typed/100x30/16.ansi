@@ -9,14 +9,14 @@
 [0m[2;38;5;7;48;5;0m  In       │  [0m[38;5;7;48;5;0mSteps[0m[48;5;0m              [0m[38;5;15;48;5;0m7 included[0m[48;5;0m                                           [0m[2;38;5;7;48;5;0m ┃│           [0m
 [0m[2;38;5;7;48;5;0m  Steps    │  [0m[38;5;7;48;5;0mDocker accounting[0m[48;5;0m  [0m[38;5;15;48;5;0m12 containers (5 running) · 41 images 9.8 GB · 7[0m[48;5;0m     [0m[2;38;5;7;48;5;0m ┃│           [0m
 [0m[2;38;5;7;48;5;0m  Docker ac│  [0m[48;5;0m                   [0m[38;5;15;48;5;0mvolumes 4.1 GB · build cache 6.1 GB[0m[48;5;0m                  [0m[2;38;5;7;48;5;0m ┃│ild cache  [0m
-[0m[2;38;5;7;48;5;0m           │  [0m[38;5;7;48;5;0mReclaimable[0m[48;5;0m        [0m[38;5;15;48;5;0m~18.4 GB[0m[48;5;0m                                             [0m[2;38;5;7;48;5;0m [0m[2;38;5;8;48;5;0m┆[0m[2;38;5;7;48;5;0m│           [0m
-[0m[2;38;5;7;48;5;0m  Reclaimab│  ↓ 1 more                                                                  │           [0m
-[0m[2;38;5;7;48;5;0m  Recoverab│  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │           [0m
-[0m[2;38;5;7;48;5;0m  Not touch│  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…  │           [0m
-[0m[2;38;5;7;48;5;0m  Privilege│  docker image prune -a --force                                             │           [0m
-[0m[2;38;5;7;48;5;0m  Uncertain│  docker network prune --force                                              │hem        [0m
-[0m[2;38;5;7;48;5;0m  Provenanc│  docker volume prune -a --force                                            │           [0m
-[0m[2;38;5;7;48;5;0m  Gate     │  docker builder prune -a --force … 2 more                                  │           [0m
+[0m[2;38;5;7;48;5;0m           │  [0m[38;5;7;48;5;0mReclaimable[0m[48;5;0m        [0m[38;5;15;48;5;0m~18.4 GB[0m[48;5;0m                                             [0m[2;38;5;7;48;5;0m ┃│           [0m
+[0m[2;38;5;7;48;5;0m  Reclaimab│  [0m[38;5;7;48;5;0mRecoverable[0m[48;5;0m        [0m[38;5;15;48;5;0mno · images, containers and volumes are permanent[0m[48;5;0m    [0m[2;38;5;7;48;5;0m ┃│           [0m
+[0m[2;38;5;7;48;5;0m  Recoverab│  [0m[48;5;0m                                                                        [0m[2;38;5;7;48;5;0m ┃│           [0m
+[0m[2;38;5;7;48;5;0m  Not touch│  [0m[38;5;7;48;5;0mdocker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…[0m[2;38;5;7;48;5;0m ┃│           [0m
+[0m[2;38;5;7;48;5;0m  Privilege│  [0m[38;5;7;48;5;0mdocker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…[0m[2;38;5;7;48;5;0m ┃│           [0m
+[0m[2;38;5;7;48;5;0m  Uncertain│  [0m[38;5;7;48;5;0mdocker image prune -a --force[0m[48;5;0m                                           [0m[2;38;5;7;48;5;0m [0m[2;38;5;8;48;5;0m┆[0m[2;38;5;7;48;5;0m│hem        [0m
+[0m[2;38;5;7;48;5;0m  Provenanc│  [0m[38;5;7;48;5;0mdocker network prune --force[0m[48;5;0m                                            [0m[2;38;5;7;48;5;0m [0m[2;38;5;8;48;5;0m┆[0m[2;38;5;7;48;5;0m│           [0m
+[0m[2;38;5;7;48;5;0m  Gate     │  [0m[38;5;7;48;5;0mdocker volume prune -a --force[0m[48;5;0m                                          [0m[2;38;5;7;48;5;0m [0m[2;38;5;8;48;5;0m┆[0m[2;38;5;7;48;5;0m│           [0m
 [0m[2;38;5;7;48;5;0m           │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m[2;38;5;8;48;5;0m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[0m[2;38;5;7;48;5;0m  │           [0m
 [0m[2;38;5;7;48;5;0m ╭─ Sequenc│                                                                            │ copies ─╮ [0m
 [0m[2;38;5;7;48;5;0m │  01  doc│  [0m[1;2;38;5;15;48;5;0mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm          [0m[2;38;5;7;48;5;0m  │       ┃ │ [0m

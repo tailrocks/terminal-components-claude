@@ -13,8 +13,8 @@
 [0m[2m e │  [0m [0m[2m    │  [0mTransaction  All statements run in one transaction; a failure rolls     [0m[2m  │       ┆ │ [0m
 [0m[2m r │  [0m [0m[2m    │  [0m             everything back.                                           [0m[2m  │       ┆ │ [0m
 [0m[2m   │  [0m [0m[2m    │  [0mSafe Mode    Safe Mode · type to confirm                                [0m[2m  │       ┆ │ [0m
-[0m[2m   │  [0m [0m[2m    │                                                                            │       ┆ │ [0m
-[0m[2m   │  [0m [0m[2m    │  UPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m    │  [0m                                                                        [0m[2m  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m    │  [0mUPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…[0m[2m  │       ┆ │ [0m
 [0m[2m   │  [0m [0m[2m    │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │       ┆ │ [0m
 [0m[2m   │  [0m [0m[2m   1│                                                                            │       ┆ │ [0m
 [0m[2m   │  [0m [0m[2m   1│  [0m[1;2mType orders to confirm                                                  [0m[2m  │       ┆ │ [0m

@@ -6,9 +6,9 @@
 [0m[2m   │                                                                │   [0m
 [0m[2m  A│  [0mAction        move to Trash 4 items under ~/work/ide        [0m[2m ┃│┃  [0m
 [0m[2m  H│  [0mHost          mbp · local                                   [0m[2m ┆│┆  [0m
-[0m[2m  M│  ↓ 15 more                                                     │┆  [0m
-[0m[2m   │  /Users/alex/work/ide/.idea … 3 more                           │   [0m
-[0m[2m ╭─│                                                                │─╮ [0m
+[0m[2m  M│  [0mMode          Trash · native macOS Trash · space returns    [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              after the Trash is emptied                    [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 18 more                                                     │─╮ [0m
 [0m[2m │ │  [0m[1;2mType TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm   [0m[2m  │ │ [0m
 [0m[2m │ │[0m[1;2;7m▎                                                             [0m[2m  │ │ [0m
 [0m[2m │ │                                                                │ │ [0m

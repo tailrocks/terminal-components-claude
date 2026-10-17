@@ -18,8 +18,8 @@
 [0m[2m │ [0m [0m[2m    ▸ Views        │  [0mScope       matching rows in orders                                 [0m[2m  │                     │ [0m
 [0m[2m │ [0m [0m[2m    ▸ Functions    │  [0mReversible  Reversible by a compensating UPDATE                     [0m[2m  │                     │ [0m
 [0m[2m │ [0m [0m[2m    ▸ Sequences    │  [0mSafe Mode   Safe Mode · type to confirm                             [0m[2m  │                     │ [0m
-[0m[2m │ [0m [0m[2m  ▸ S analytics    │                                                                        │                     │ [0m
-[0m[2m │ [0m [0m[2m  ▸ S audit        │  UPDATE orders SET status = 'paid' WHERE id = 'x'                      │                     │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S analytics    │  [0m                                                                    [0m[2m  │                     │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S audit        │  [0mUPDATE orders SET status = 'paid' WHERE id = 'x'                    [0m[2m  │                     │ [0m
 [0m[2m │                     │                                                                        │                     │ [0m
 [0m[2m │                     │  [0m[1;2mType orders to confirm                                              [0m[2m  │                     │ [0m
 [0m[2m │                     │▎                                                                       │                     │ [0m

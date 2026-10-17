@@ -24,9 +24,9 @@
 [0m[2m │                                       │  [0mChanges  6 containers removed · writable layers lost                    [0m[2m  │                                       │ [0m
 [0m[2m │                                       │  [0mRisk     destructive                                                    [0m[2m  │                                       │ [0m
 [0m[2m │                                       │  [0mData     live · 2 s ago                                                 [0m[2m  │                                       │ [0m
-[0m[2m │                                       │                                                                            │                                       │ [0m
-[0m[2m │                                       │  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…  │                                       │ [0m
-[0m[2m │                                       │  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…  │                                       │ [0m
+[0m[2m │                                       │  [0m                                                                        [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mdocker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…[0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mdocker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…[0m[2m  │                                       │ [0m
 [0m[2m │                                       │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄  │                                       │ [0m
 [0m[2m │                                       │                                                                            │                                       │ [0m
 [0m[2m │                                       │  [0m[1;2mType REMOVE ALL CONTAINERS ON mbp to confirm                            [0m[2m  │                                       │ [0m

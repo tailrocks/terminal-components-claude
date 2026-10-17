@@ -24,9 +24,9 @@
 [0m[2m │                                       │  [0mChanges  payments restarts · brief outage on prod-eu-1                  [0m[2m  │                                       │ [0m
 [0m[2m │                                       │  [0mRisk     privileged                                                     [0m[2m  │                                       │ [0m
 [0m[2m │                                       │  [0mData     live · 0 s ago                                                 [0m[2m  │                                       │ [0m
-[0m[2m │                                       │                                                                            │                                       │ [0m
-[0m[2m │                                       │  sudo systemctl restart payments                                           │                                       │ [0m
-[0m[2m │                                       │  systemctl status payments                                                 │                                       │ [0m
+[0m[2m │                                       │  [0m                                                                        [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0msudo systemctl restart payments                                         [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0msystemctl status payments                                               [0m[2m  │                                       │ [0m
 [0m[2m │                                       │                                                                            │                                       │ [0m
 [0m[2m │                                       │  [0m[1;2mType RESTART PAYMENTS ON prod-eu-1 to confirm                           [0m[2m  │                                       │ [0m
 [0m[2m │                                       │[0m[1;2;7m▎ [0m[1;2;4;7mRESTART PAYMENTS ON prod-eu-1[0m[1;2;7m                                           [0m[2m  │                                       │ [0m
