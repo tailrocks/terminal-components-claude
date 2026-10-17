@@ -101,7 +101,7 @@ below is the dependency each step must wait for.
 | S16 | `Column::marker`, `RowMark`, `ListItem::{header, status}`, `TreeNode::{meta_tone, trailing, label_tone}`, `TreeView::columns`; S16a library, S16b holla rows, S16c jackin rows and trees, S16d tablepro EXPLAIN tree-table | 69 screen list-key arms; CO11; CO1 (page key maps, then one router guard); page help sections from `Page::bindings` (plan "S8b deviations" 2) | S10, S13 | per-app captures pixel-equal; the jackin tree hit test | SC35 |
 | S17 | `PageHeader`, `Heading`, `ActionRow`, `DetailCard`, `NavList` (moved), `Notice`, `MeterList`, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | M34; CO12 | S8b, S10 | captures unchanged | SC36 |
 | S18 | `FormPanel`, `FormField::pair`; tablepro connections form and filter editor, showcase forms | K6 | S11, S17 | form journeys | SC37 |
-| S19 | `MasterDetail` (14 sites, `SPLIT_MIN`) | M20, K18 | S17 | narrow-tier captures | SC38 |
+| S19 | `MasterDetail` (14 sites, `SPLIT_MIN`). Library part done with SC38 (`ui::master_detail`, `SplitKeys`, K18); app sites still hand-roll it (migration open) | M20, K18 | S17 | narrow-tier captures | SC38 |
 | S20 | `EditorShell` (jackin settings and editor) | K4 (leave guard) | S14, S18 | editor journeys | SC39 |
 | S21 | `FilterTree`, `FilterList` | — | S11, S16 | filter journeys | SC40 |
 | S22 | `CommandMenu`, `ContextAnchor::row`, `FileBrowser` + `FileSource`, `StepLine`/`Wizard`, `FindState` + `line_numbers`; showcase `pages/row_menu.rs` (`RowMenu<T>`) and its 7 users; jackin `modals.rs:30-526`; 12 wall-clock spinner sites; jackin dead code | `showcase-pages-navigation.md` SC16 1 | S5, S11, S13 | jackin and holla journeys | SC41 |
@@ -163,7 +163,7 @@ SC33 38, SC38 7, SC32 4. Besides, 684 functions are covered via their owner
 | SC35 | Row and tree extensions demo | S16 | — | §7.5 |
 | SC36 | `PageHeader`, `ActionRow`, `DetailCard`, library `NavList` (and `SidebarRail` on the Sidebars page, SC5 1), `Notice`, `MeterList` page, `Tabs::{layout, passive}`, `TextInput::readout`, `Item` builder | S17 | — | §7.5; `showcase-pages-navigation.md` SC5 1 |
 | SC37 | `FormPanel`, filter editor through `FormDialog` | S18 | — | §7.5 |
-| SC38 | Master-detail page (and the narrow drawer, SC5 2), `SplitKeys` | S19 | — | §7.5; `showcase-pages-navigation.md` SC5 2 |
+| SC38 | **Done.** Master-detail page on the library `MasterDetail` (wide split with a draggable seam, narrow summary, drawer, hidden pane as a focus stop) and `SplitKeys`; plan "SC38 outcome". Open: `SplitKeys` on Splits & stacks (its panes take no focus). | S19 | — | §7.5; `showcase-pages-navigation.md` SC5 2 |
 | SC39 | `EditorShell` on Settings | S20 | — | §7.5 |
 | SC40 | `FilterTree`/`FilterList` | S21 | — | §7.5 |
 | SC41 | `CommandMenu`, File browser page, `StepLine`/`Wizard`, `TextViewport::find`, `ContextMenu::type_ahead_timeout` | S22 | 1 | §7.5 |

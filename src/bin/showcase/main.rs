@@ -32,6 +32,8 @@ mod app_tests_layout;
 #[cfg(test)]
 mod app_tests_lists_trees;
 #[cfg(test)]
+mod app_tests_master_detail;
+#[cfg(test)]
 mod app_tests_menus;
 #[cfg(test)]
 mod app_tests_mouse;
