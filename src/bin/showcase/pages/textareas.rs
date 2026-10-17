@@ -212,15 +212,15 @@ impl TextAreasPage {
     /// share it: the cards' rects, and each card's areas in its content.
     fn tiled(&self, width: u16, ctx: &RenderCtx) -> (Tiled, [Tiled; 2]) {
         let any = Size::new(0, 0);
-        // each area at its natural height, at most AREA_W wide: a long
-        // line scrolls sideways inside its area (that is the demo), it does
-        // not widen the page
+        // each area at its natural height and its min width: a long line
+        // scrolls sideways inside its area (that is the demo), it does not
+        // widen the page
         let sizes: Vec<Size> = self
             .areas
             .iter()
             .map(|a| {
                 let s = a.measure(any, ctx);
-                Size::new(s.width.min(AREA_W), s.height)
+                Size::new(a.min_width(any, ctx), s.height)
             })
             .collect();
         let inner = |k: usize, w: u16| {
@@ -331,9 +331,6 @@ impl TextAreasPage {
         }
     }
 }
-
-/// The widest an area is laid out at; longer lines scroll in it.
-const AREA_W: u16 = 44;
 
 /// The States grid: a text area in every state it has, drawn by `TextArea`
 /// itself ([`junie_tui::ui::specimen`]).
