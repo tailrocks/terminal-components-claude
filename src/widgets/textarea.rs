@@ -22,6 +22,23 @@ use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, past
 use crate::widgets::input::InputAction;
 use crate::widgets::scrollbar;
 
+/// The area with its label whole and every line of its text in view
+/// without sideways scrolling: the longest line, the caret's cell after
+/// it, the gutter and padding; [`TextArea::height`] rows (its rows are set,
+/// a longer text scrolls down in them).
+impl crate::ui::measure::Measure for TextArea {
+    fn measure(
+        &self,
+        _avail: ratatui::layout::Size,
+        _ctx: &crate::ui::ctx::RenderCtx,
+    ) -> ratatui::layout::Size {
+        let text = self.field.buffer.text();
+        let longest = text.split('\n').map(width).max().unwrap_or(0) as u16;
+        let label = width(&self.label) as u16 + 2;
+        ratatui::layout::Size::new((longest + 5).max(label), self.height())
+    }
+}
+
 /// Multi-line editor. Focus starts editing per its [`EditEntry`] like
 /// [`TextInput`](super::input::TextInput) (default
 /// [`EditEntry::Immediate`]: the caret shows the moment Tab lands here).
@@ -960,6 +977,53 @@ impl EditMenuHost for TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Drawn at its measured width the area shows every line whole: no
+    /// sideways scroll, nothing cut.
+    #[test]
+    fn measure_shows_every_line_whole() {
+        use crate::core::focus::FocusRing;
+        use crate::core::hit::HitRegistry;
+        use crate::ui::measure::Measure;
+        let t = crate::theme::Theme::junie();
+        let a = TextArea::new(WidgetId::of("notes"), "Notes", 3)
+            .value("Read src/api/billing.rs first.\nKeep the public API stable.");
+        let (mut hits, mut ring) = (HitRegistry::default(), FocusRing::default());
+        let size = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            a.measure(ratatui::layout::Size::new(5, 5), &ctx)
+        };
+        assert_eq!(size.height, a.height());
+        let mut a = a;
+        let area = Rect::new(0, 0, size.width, size.height);
+        let mut buf = Buffer::empty(area);
+        let mut ctx = RenderCtx::new(
+            &t,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        a.render(area, &mut buf, &mut ctx, t.canvas);
+        let text: String = (0..size.height)
+            .map(|y| {
+                (0..size.width)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        for line in [
+            "Read src/api/billing.rs first.",
+            "Keep the public API stable.",
+        ] {
+            assert!(text.contains(line), "{text}");
+        }
+    }
 
     /// An editing text area consumes only the keys it uses: unbound
     /// chords (Ctrl+Q, Ctrl+N, Ctrl+PageDown) pass on to the container;
