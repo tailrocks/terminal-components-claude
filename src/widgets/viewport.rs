@@ -39,7 +39,9 @@ use crate::core::scroll::{HScroll, ScrollPane, ScrollState, Scrollable, TrackCli
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::width;
+use crate::widgets::field_common::PointerSelect;
 use crate::widgets::scrollbar;
+use crate::widgets::text_select::{self, TextSelect};
 
 /// One styled run. Tone maps through `Theme::tone`; bold/italic/underline
 /// are the only modifiers.
@@ -463,8 +465,10 @@ struct VisualRow {
     end: usize,
 }
 
-/// A position anchored to a line identity rather than an index.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A position anchored to a line identity rather than an index. Identities
+/// are handed out in line order (lines are only appended, replaced at the
+/// tail or evicted from the head), so `(id, col)` orders as the text reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Anchor {
     id: u64,
     col: usize,
@@ -488,11 +492,9 @@ pub struct TextViewport {
     max_lines: Option<usize>,
     next_id: u64,
     revision: u64,
-    selection: Option<(Anchor, Anchor)>,
-    drag_anchor: Option<Anchor>,
-    /// Where the last drag extended the selection: the release there (a
-    /// click on the same control) keeps it.
-    dragged: Option<Position>,
+    /// The selection and the pointer gesture in progress (the model
+    /// [`crate::widgets::panel::ScrollPanel`] shares).
+    select: TextSelect<Anchor>,
     /// Keyboard browse caret for selection extension.
     browse: Option<Anchor>,
     marks: Vec<Mark>,
@@ -522,6 +524,11 @@ pub struct TextViewport {
     /// The viewport's own action keys (default
     /// [`ViewportCmd::default_keymap`]).
     pub keymap: KeyMap<ViewportCmd>,
+    /// What a drag, a double and a triple click select (the text fields'
+    /// policy). Default [`PointerSelect::DEFAULT`] (macOS): a drag selects,
+    /// a double click a word (a drag from it extends by words), a triple
+    /// click the line; Shift with a press extends the selection.
+    pub pointer_select: PointerSelect,
 }
 
 /// A [`TextViewport`] action a key can be bound to.
@@ -578,9 +585,8 @@ impl TextViewport {
             max_lines: None,
             next_id: 1,
             revision: 0,
-            selection: None,
-            drag_anchor: None,
-            dragged: None,
+            select: TextSelect::default(),
+            pointer_select: PointerSelect::DEFAULT,
             browse: None,
             marks: vec![],
             visual: vec![],
@@ -602,6 +608,12 @@ impl TextViewport {
     /// Override the app-wide horizontal scrolling policy.
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
+        self
+    }
+
+    /// See [`Self::pointer_select`].
+    pub fn pointer_select(mut self, policy: PointerSelect) -> Self {
+        self.pointer_select = policy;
         self
     }
 
@@ -807,31 +819,38 @@ impl TextViewport {
         let gone = |id: u64| evicted.contains(&id);
         // a selection whose ends are both evicted disappears; a partially
         // surviving range clips to the first retained line start
-        if let Some((a, b)) = self.selection {
+        if let Some((a, b)) = self.select.sel {
             let (lo, hi) = if (a.id, a.col) <= (b.id, b.col) {
                 (a, b)
             } else {
                 (b, a)
             };
             if gone(hi.id) {
-                self.selection = None;
+                self.select.sel = None;
             } else if gone(lo.id) {
                 let first = self.lines.first().map(|l| l.id).unwrap_or(hi.id);
                 let clipped = Anchor { id: first, col: 0 };
-                self.selection = Some(if a.id == lo.id {
+                self.select.sel = Some(if a.id == lo.id {
                     (clipped, b)
                 } else {
                     (a, clipped)
                 });
-                if self.selection.is_some_and(|(x, y)| x == y) {
-                    self.selection = None;
+                if self.select.sel.is_some_and(|(x, y)| x == y) {
+                    self.select.sel = None;
                 }
             }
         }
-        if self.drag_anchor.is_some_and(|d| gone(d.id)) {
+        if self
+            .select
+            .word
+            .is_some_and(|(a, b)| gone(a.id) || gone(b.id))
+        {
+            self.select.word = None;
+        }
+        if self.select.press.is_some_and(|d| gone(d.id)) {
             // the press began on a line that no longer exists: the drag
             // continues from the first retained line, never a random one
-            self.drag_anchor = self.lines.first().map(|l| Anchor { id: l.id, col: 0 });
+            self.select.press = self.lines.first().map(|l| Anchor { id: l.id, col: 0 });
         }
         if self.browse.is_some_and(|b| gone(b.id)) {
             self.browse = None;
@@ -863,8 +882,9 @@ impl TextViewport {
             fresh.push(lg);
         }
         self.lines = fresh;
-        self.selection = None;
-        self.drag_anchor = None;
+        self.select.sel = None;
+        self.select.press = None;
+        self.select.word = None;
         self.browse = None;
         self.caret = None;
         self.reading = None;
@@ -919,13 +939,21 @@ impl TextViewport {
     fn reconcile_removed_tail(&mut self, evicted: &[u64], new_len: usize) {
         let gone = |id: u64| evicted.contains(&id);
         if self
-            .selection
+            .select
+            .sel
             .is_some_and(|(a, b)| gone(a.id) || gone(b.id))
         {
-            self.selection = None;
+            self.select.sel = None;
         }
-        if self.drag_anchor.is_some_and(|d| gone(d.id)) {
-            self.drag_anchor = None;
+        if self
+            .select
+            .word
+            .is_some_and(|(a, b)| gone(a.id) || gone(b.id))
+        {
+            self.select.word = None;
+        }
+        if self.select.press.is_some_and(|d| gone(d.id)) {
+            self.select.press = None;
         }
         if self.browse.is_some_and(|b| gone(b.id)) {
             self.browse = None;
@@ -941,8 +969,9 @@ impl TextViewport {
 
     pub fn clear(&mut self) {
         self.lines.clear();
-        self.selection = None;
-        self.drag_anchor = None;
+        self.select.sel = None;
+        self.select.press = None;
+        self.select.word = None;
         self.browse = None;
         self.caret = None;
         self.reading = None;
@@ -1065,7 +1094,7 @@ impl TextViewport {
 
     fn clip_selection(&mut self) {
         // clip a selection whose columns overflow a replaced line
-        if let Some((a, b)) = self.selection {
+        if let Some((a, b)) = self.select.sel {
             let clip = |x: Anchor, lines: &[Logical]| -> Anchor {
                 match lines.iter().find(|l| l.id == x.id) {
                     Some(l) => Anchor {
@@ -1077,7 +1106,7 @@ impl TextViewport {
             };
             let na = clip(a, &self.lines);
             let nb = clip(b, &self.lines);
-            self.selection = if na == nb { None } else { Some((na, nb)) };
+            self.select.sel = if na == nb { None } else { Some((na, nb)) };
         }
         if !self.follow {
             self.restore_reading();
@@ -1238,7 +1267,7 @@ impl TextViewport {
 
     /// True after a press anchored a selection and before it was cleared.
     pub fn has_anchor(&self) -> bool {
-        self.drag_anchor.is_some()
+        self.select.press.is_some()
     }
 
     pub fn has_selection(&self) -> bool {
@@ -1246,7 +1275,7 @@ impl TextViewport {
     }
 
     pub fn selection(&self) -> Option<(CellPos, CellPos)> {
-        let (a, b) = self.selection?;
+        let (a, b) = self.select.sel?;
         let a = self.resolve(a)?;
         let b = self.resolve(b)?;
         if a == b {
@@ -1272,22 +1301,17 @@ impl TextViewport {
                 col: last.col_of(last.cells.len()),
             },
         );
-        if self.selection == Some(all) {
+        if self.select.sel == Some(all) {
             return Outcome::Consumed;
         }
-        self.selection = Some(all);
+        self.select.set(all.0, all.1);
         self.browse = Some(all.1);
-        self.drag_anchor = None;
         Outcome::Changed
     }
 
     pub fn clear_selection(&mut self) -> Outcome {
         self.browse = None;
-        if self.selection.take().is_some() {
-            Outcome::Changed
-        } else {
-            Outcome::Ignored
-        }
+        self.select.clear()
     }
 
     pub fn is_at_tail(&self) -> bool {
@@ -1379,46 +1403,19 @@ impl TextViewport {
         Some(out)
     }
 
+    /// A cell of a word ([`text_select::is_word`]); controls never are.
     fn is_word(c: &Cell) -> bool {
-        c.kind == CellKind::Text
-            && c.g
-                .chars()
-                .all(|ch| ch.is_alphanumeric() || ch == '_' || ch == '-' || ch == '/' || ch == '.')
+        c.kind == CellKind::Text && text_select::is_word(&c.g)
     }
 
     fn word_bounds(&self, line: usize, ci: usize) -> Option<(usize, usize)> {
-        let cs = &self.lines.get(line)?.cells;
-        if cs.is_empty() {
-            return None;
-        }
-        let ci = ci.min(cs.len() - 1);
-        if !Self::is_word(&cs[ci]) {
-            return None;
-        }
-        let mut s = ci;
-        while s > 0 && Self::is_word(&cs[s - 1]) {
-            s -= 1;
-        }
-        let mut e = ci + 1;
-        while e < cs.len() && Self::is_word(&cs[e]) {
-            e += 1;
-        }
-        Some((s, e))
+        text_select::word_bounds(&self.lines.get(line)?.cells, ci, Self::is_word)
     }
 
-    /// Double-click: select the word under the pointer.
-    pub fn select_word_at(&mut self, pos: Position) -> Outcome {
-        let Some(p) = self.pos_at(pos) else {
-            return Outcome::Ignored;
-        };
+    /// The word at a logical position, as anchors.
+    fn word_at(&self, p: CellPos) -> Option<(Anchor, Anchor)> {
         let ci = self.cell_at(p.line, p.col);
-        let Some((s, e)) = self.word_bounds(p.line, ci) else {
-            return if self.lines.get(p.line).is_some_and(|l| l.cells.is_empty()) {
-                Outcome::Ignored
-            } else {
-                Outcome::Consumed
-            };
-        };
+        let (s, e) = self.word_bounds(p.line, ci)?;
         let a = CellPos {
             line: p.line,
             col: self.col_of(p.line, s),
@@ -1427,36 +1424,102 @@ impl TextViewport {
             line: p.line,
             col: self.col_of(p.line, e),
         };
-        self.selection = self.anchor_at(a).zip(self.anchor_at(b));
-        self.drag_anchor = None;
-        self.browse = self.anchor_at(b);
+        self.anchor_at(a).zip(self.anchor_at(b))
+    }
+
+    /// The logical line at a position (a wrapped paragraph whole), as
+    /// anchors.
+    fn line_at(&self, p: CellPos) -> Option<(Anchor, Anchor)> {
+        let l = self.lines.get(p.line)?;
+        (!l.cells.is_empty()).then_some((
+            Anchor { id: l.id, col: 0 },
+            Anchor {
+                id: l.id,
+                col: l.total_width(),
+            },
+        ))
+    }
+
+    /// The browse caret follows the selection head.
+    fn follow_head(&mut self) {
+        if let Some((_, head)) = self.select.sel {
+            self.browse = Some(head);
+        }
+    }
+
+    /// Double-click: select the word under the pointer.
+    pub fn select_word_at(&mut self, pos: Position) -> Outcome {
+        let Some(p) = self.pos_at(pos) else {
+            return Outcome::Ignored;
+        };
+        let Some((a, b)) = self.word_at(p) else {
+            return if self.lines.get(p.line).is_some_and(|l| l.cells.is_empty()) {
+                Outcome::Ignored
+            } else {
+                Outcome::Consumed
+            };
+        };
+        self.select.set(a, b);
+        self.browse = Some(b);
         Outcome::Changed
     }
 
-    /// Mouse down: anchor a drag; no selection yet.
+    /// Mouse down: anchor a drag; no selection yet. Apps that deliver the
+    /// release of a drag here keep the dragged selection. A plain
+    /// [`Self::on_press_with`].
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         // the release that ends a drag keeps the dragged selection (apps
         // deliver it as a click on the control the press started on)
-        if self.dragged.take() == Some(pos) && self.selection.is_some() {
+        if self.select.dragged.take() == Some(pos) && self.select.sel.is_some() {
             return Outcome::Consumed;
         }
-        let had = self.selection.is_some();
-        self.selection = None;
+        self.on_press_with(pos, 1, ratatui::crossterm::event::KeyModifiers::NONE)
+    }
+
+    /// Mouse down with its multi-click `count` and modifiers, per
+    /// [`Self::pointer_select`]: anchors a drag; Shift extends the
+    /// selection from its anchor; the second press of a double click
+    /// selects the word (a drag from it extends by words) and a third
+    /// the line.
+    pub fn on_press_with(
+        &mut self,
+        pos: Position,
+        count: u8,
+        mods: ratatui::crossterm::event::KeyModifiers,
+    ) -> Outcome {
+        let p = self.pos_at(pos);
+        let at = p.and_then(|p| self.anchor_at(p));
+        let word = p.and_then(|p| self.word_at(p));
+        let line = p.and_then(|p| self.line_at(p));
         self.browse = None;
-        self.drag_anchor = self.pos_at(pos).and_then(|p| self.anchor_at(p));
-        if had {
-            Outcome::Changed
-        } else {
-            Outcome::Consumed
-        }
+        let o = self
+            .select
+            .press(self.pointer_select, at, count, mods, word, line);
+        self.follow_head();
+        o
+    }
+
+    /// A completed click with its multi-click `count`, per
+    /// [`Self::pointer_select`]: a double click selects the word under
+    /// it, a triple click the line; the release that ends a drag or a
+    /// Shift press keeps the selection.
+    pub fn on_click_with(&mut self, pos: Position, count: u8) -> Outcome {
+        let p = self.pos_at(pos);
+        let word = p.and_then(|p| self.word_at(p));
+        let line = p.and_then(|p| self.line_at(p));
+        let o = self
+            .select
+            .click(self.pointer_select, pos, count, word, line);
+        self.follow_head();
+        o
     }
 
     /// Drag: extend the selection from the anchor; auto-scroll at the
     /// edges (vertically by a row, sideways by a step).
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
-        let Some(anchor) = self.drag_anchor else {
+        if self.select.press.is_none() {
             return Outcome::Ignored;
-        };
+        }
         let text = self.text_rect();
         // one row or column per cell the pointer is past the edge, so a
         // held drag (replayed by the edge autoscroll tick) speeds up with
@@ -1486,13 +1549,16 @@ impl TextViewport {
             pos.x.clamp(self.area.x, text_right.saturating_sub(1)),
             pos.y.clamp(text.y, text.bottom().saturating_sub(1)),
         );
-        let Some(head) = self.pos_at(clamped).and_then(|p| self.anchor_at(p)) else {
-            return Outcome::Consumed;
+        let p = self.pos_at(clamped);
+        let head = p.and_then(|p| self.anchor_at(p));
+        let word = if self.select.by_word() {
+            p.and_then(|p| self.word_at(p))
+        } else {
+            None
         };
-        self.selection = Some((anchor, head));
-        self.browse = Some(head);
-        self.dragged = Some(pos);
-        Outcome::Changed
+        let o = self.select.drag(self.pointer_select, head, pos, word);
+        self.follow_head();
+        o
     }
 
     // ------------------------------------------------- keyboard selection
@@ -1638,7 +1704,7 @@ impl TextViewport {
             return Outcome::Consumed;
         };
         let to = self.move_caret(from, code, word);
-        let anchor = match self.selection {
+        let anchor = match self.select.sel {
             Some((a, _)) => a,
             None => match self.anchor_at(from) {
                 Some(a) => a,
@@ -1648,9 +1714,9 @@ impl TextViewport {
         let Some(head) = self.anchor_at(to) else {
             return Outcome::Consumed;
         };
-        self.selection = Some((anchor, head));
+        self.select.sel = Some((anchor, head));
         self.browse = Some(head);
-        self.drag_anchor = None;
+        self.select.press = None;
         // the caret stays on screen; selection pauses follow
         if let Some(vi) = self.visual.iter().position(|v| {
             v.line == to.line
@@ -1867,7 +1933,7 @@ impl TextViewport {
         // else the producer caret while following
         let cursor_pos = if focused {
             match self.browse.and_then(|b| self.resolve(b)) {
-                Some(b) if self.selection.is_some() => Some(b),
+                Some(b) if self.select.sel.is_some() => Some(b),
                 _ if self.follow && self.caret_visible => self.caret,
                 _ => None,
             }
@@ -1964,10 +2030,11 @@ impl Scrollable for TextViewport {
 }
 
 /// The viewport's pointer gestures, as the apps route them: a wheel or a
-/// bar press scrolls it; a press anchors a selection
-/// ([`TextViewport::on_click`]) and a drag extends it
-/// ([`TextViewport::on_drag`]); the click that completes the press is
-/// consumed (it keeps the dragged selection).
+/// bar press scrolls it; a press anchors a selection, or extends it with
+/// Shift ([`TextViewport::on_press_with`]), and a drag extends it
+/// ([`TextViewport::on_drag`]); the click that completes the press keeps
+/// a dragged selection, and a double or triple click selects the word or
+/// the line ([`TextViewport::on_click_with`]).
 impl crate::core::pointer::MouseTarget for TextViewport {
     type Action = ();
 
@@ -1985,11 +2052,11 @@ impl crate::core::pointer::MouseTarget for TextViewport {
             return r;
         }
         match ev.phase() {
-            Some(Phase::Press) => self.on_click(ev.pos()).into(),
+            Some(Phase::Press) => self.on_press_with(ev.pos(), ev.count(), ev.mods()).into(),
             Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
-            // a double click selects the word under it (macOS text)
-            Some(Phase::Click) if ev.count() >= 2 => self.select_word_at(ev.pos()).into(),
-            Some(Phase::Click) => Response::consumed(),
+            // a double click selects the word under it, a triple click
+            // the line (macOS text)
+            Some(Phase::Click) => self.on_click_with(ev.pos(), ev.count()).into(),
             _ => Response::ignored(),
         }
     }
@@ -2233,7 +2300,7 @@ mod tests {
         );
         acc.follow = false;
         render(&mut acc, 10, 1);
-        acc.selection = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 2 }));
+        acc.select.sel = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 2 }));
         assert_eq!(acc.selected_text().as_deref(), Some("a\u{301}X"));
         // the cluster takes the style of the span holding its first byte
         assert_eq!(acc.lines[0].cells[0].style.tone, Tone::Normal);
@@ -2290,14 +2357,14 @@ mod tests {
             v.pos_at(Position::new(3, 0)),
             Some(CellPos { line: 0, col: 3 })
         );
-        v.selection = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 30 }));
+        v.select.sel = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 30 }));
         assert_eq!(
             v.selected_text().as_deref(),
             Some("A\tB\u{1b}[0m\u{7}C\r"),
             "copy returns the source bytes"
         );
         // selecting inside a tab pad selects the whole tab
-        v.selection = Some((Anchor { id: 1, col: 2 }, Anchor { id: 1, col: 4 }));
+        v.select.sel = Some((Anchor { id: 1, col: 2 }, Anchor { id: 1, col: 4 }));
         assert_eq!(v.selected_text().as_deref(), Some("\t"));
     }
 
@@ -2475,7 +2542,7 @@ mod tests {
         v.replace_last(vec![Span::plain("NEW")]);
         let b = render(&mut v, 10, 1);
         assert_eq!(row(&b, 0), "NEW", "same byte length edit is rendered");
-        v.selection = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 3 }));
+        v.select.sel = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 3 }));
         assert_eq!(v.selected_text().as_deref(), Some("NEW"));
         v.set_lines(vec![vec![Span::plain("x")], vec![Span::plain("y")]]);
         assert!(v.selection().is_none(), "replacement resets identity");
@@ -2979,5 +3046,83 @@ mod cmd_copy_tests {
         crate::core::keyboard::set_super_delivered(true);
         let label = KeyBinding::cmd('c').label();
         assert_eq!(hint_key(&v.keymap, ViewportCmd::Copy), Some(label.as_str()));
+    }
+
+    /// M31: through the pointer route, Shift with a press extends the
+    /// selection from its anchor, a triple click selects the line and a
+    /// double click the word; `pointer_select` turns them off.
+    #[test]
+    fn shift_click_extends_and_a_triple_click_selects_the_line() {
+        use ratatui::crossterm::event::KeyModifiers;
+        let lines = |n: usize| -> Vec<Line> {
+            (0..n)
+                .map(|i| vec![Span::plain(format!("line {i} alpha beta"))])
+                .collect()
+        };
+        use crate::core::intent::Phase;
+        use crate::core::pointer::{MouseTarget, PointerEvent};
+        let draw = |v: &mut TextViewport| {
+            let t = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 4));
+            v.render(Rect::new(0, 0, 30, 4), &mut buf, &mut ctx, t.canvas);
+            drop(ctx);
+            hits
+        };
+        let id = WidgetId::of("v");
+        let mut v = TextViewport::with_lines(id, lines(3));
+        v.set_follow(false);
+        let hits = draw(&mut v);
+        let send = |v: &mut TextViewport, phase, x, y, count, mods| {
+            let ev = PointerEvent::new(&hits, phase, id, Position::new(x, y), count, mods);
+            let _ = v.pointer(&ev);
+        };
+        let none = KeyModifiers::NONE;
+        let shift = KeyModifiers::SHIFT;
+        // "line 0 alpha beta": a drag from "alpha" to "be"
+        send(&mut v, Phase::Press, 7, 0, 1, none);
+        send(&mut v, Phase::Drag, 15, 0, 1, none);
+        send(&mut v, Phase::Click, 15, 0, 1, none);
+        assert_eq!(v.selected_text().as_deref(), Some("alpha be"));
+        // Shift+press on the next line extends from the anchor ("alpha")
+        send(&mut v, Phase::Press, 4, 1, 1, shift);
+        send(&mut v, Phase::Click, 4, 1, 1, shift);
+        assert_eq!(
+            v.selected_text().as_deref(),
+            Some("alpha beta\nline"),
+            "Shift-click extends from the anchor"
+        );
+        // and before the anchor it extends backwards from the same anchor
+        send(&mut v, Phase::Press, 2, 0, 1, shift);
+        send(&mut v, Phase::Click, 2, 0, 1, shift);
+        assert_eq!(v.selected_text().as_deref(), Some("ne 0"));
+        // a triple click selects the line
+        for count in 1..=3 {
+            send(&mut v, Phase::Press, 9, 2, count, none);
+            send(&mut v, Phase::Click, 9, 2, count, none);
+        }
+        assert_eq!(v.selected_text().as_deref(), Some("line 2 alpha beta"));
+        // a double click the word
+        send(&mut v, Phase::Press, 14, 1, 1, none);
+        send(&mut v, Phase::Click, 14, 1, 1, none);
+        send(&mut v, Phase::Press, 14, 1, 2, none);
+        send(&mut v, Phase::Click, 14, 1, 2, none);
+        assert_eq!(v.selected_text().as_deref(), Some("beta"));
+        // a single click clears
+        send(&mut v, Phase::Press, 1, 1, 1, none);
+        send(&mut v, Phase::Click, 1, 1, 1, none);
+        assert_eq!(v.selected_text(), None);
+
+        // the policy turns the triple click off
+        let mut v = TextViewport::with_lines(id, lines(3))
+            .pointer_select(crate::widgets::field_common::PointerSelect::DEFAULT.line(false));
+        draw(&mut v);
+        for count in 1..=3 {
+            send(&mut v, Phase::Press, 9, 2, count, none);
+            send(&mut v, Phase::Click, 9, 2, count, none);
+        }
+        assert_eq!(v.selected_text(), None);
     }
 }
