@@ -16,7 +16,7 @@ use junie_tui::theme::{CursorStyle, Theme, Tone};
 use junie_tui::ui::columns::{self, Col};
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::ui::master_detail::MasterDetail;
-use junie_tui::ui::text::{fit, truncate, truncate_middle, width, wrap};
+use junie_tui::ui::text::{fit, truncate, truncate_middle, wider_than, width, wrap};
 use junie_tui::widgets::edit::EditField;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::field_common::EditAction;
@@ -973,8 +973,13 @@ impl FinderPage {
                         buf.set_string(row.x + 1, y, "›", st.fg(t.row_ink(&cr, t.text_secondary)));
                     }
                     let mut x = row.x + 3;
-                    // label with matched characters bold
+                    // label with matched characters bold; a cut label or
+                    // reason reveals in full on hover, and the cursor row's
+                    // on the peek line (R-apps-8)
+                    let label_cell = Rect::new(x, y, label_w, 1);
+                    let mut cut = wider_than(&it.label, label_w as usize);
                     let label = truncate(&it.label, label_w as usize);
+                    junie_tui::ui::reveal::queue_cut(label_cell, &it.label);
                     let mut lx = x;
                     for (bi, ch) in label.char_indices() {
                         let mut cs = st;
@@ -1022,6 +1027,13 @@ impl FinderPage {
                             },
                         ));
                         buf.set_string(x, y, truncate_sep(&reason, reason_w as usize), rs);
+                        junie_tui::ui::reveal::queue_cut(Rect::new(x, y, reason_w, 1), &reason);
+                        cut |= wider_than(&reason, reason_w as usize);
+                        if cut && s.selected {
+                            junie_tui::ui::reveal::peek(ctx, &format!("{} — {reason}", it.label));
+                        }
+                    } else if cut && s.selected {
+                        junie_tui::ui::reveal::peek(ctx, &it.label);
                     }
                     // only the safety classes take room in the row, as a
                     // plain word: risk changes the gate, not the loudness (D-7)

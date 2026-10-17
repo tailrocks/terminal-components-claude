@@ -26,7 +26,7 @@ use crate::ui::edit_menu::{
     point_field,
 };
 use crate::ui::popup::{Placement, place_with};
-use crate::ui::text::{truncate, width};
+use crate::ui::text::{truncate, wider_than, width};
 use crate::widgets::edit::EditField;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::option_list::{Item, OptionList};
@@ -877,6 +877,7 @@ impl Picker {
                         );
                     }
                 }
+                let mut detail_cut = false;
                 if !it.detail.is_empty() {
                     let dx = row.x + 3 + label_col + 2;
                     let room = (detail_col as usize).min(rx.saturating_sub(dx + 1) as usize);
@@ -888,6 +889,7 @@ impl Picker {
                             st.fg(r.ink(ctx, t.text_muted))
                                 .remove_modifier(Modifier::BOLD),
                         );
+                        detail_cut = wider_than(&it.detail, room);
                         if !it.disabled && !label_cut {
                             crate::ui::reveal::truncated(
                                 ctx,
@@ -897,7 +899,21 @@ impl Picker {
                                 &it.detail,
                             );
                         }
+                    } else {
+                        // no room for the detail at all: it is dropped
+                        detail_cut = true;
                     }
+                }
+                // the keyboard path to a cut row (R-apps-8): the query field
+                // keeps `→` for its caret, so the cursor row's full text
+                // shows on the footer's peek line, like a table's cursor cell
+                if focused && !it.disabled && (label_cut || detail_cut) {
+                    let full = if it.detail.is_empty() {
+                        it.label.clone()
+                    } else {
+                        format!("{} — {}", it.label, it.detail)
+                    };
+                    crate::ui::reveal::peek(ctx, &full);
                 }
             });
         hint_row(buf);
@@ -1497,6 +1513,33 @@ mod tests {
         assert!(draw(&mut p, Some(r0)).contains(label));
         let r1 = p.row_id(1);
         assert!(draw(&mut p, Some(r1)).contains(detail));
+    }
+
+    /// R-apps-8: a cut cursor row reads in full from the keyboard: the
+    /// query field keeps `→`, so the row shows on the footer's peek line.
+    #[test]
+    fn the_cut_cursor_row_shows_in_full_on_the_peek_line() {
+        let label = "a picker label long enough to be cut by the label column";
+        let detail = "and a detail that is also far too long for what is left of the row";
+        let mut p = picker(2);
+        p.items[0].label = label.into();
+        p.items[0].detail = detail.into();
+        let peek = |p: &mut Picker| {
+            let theme = Theme::junie();
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 100, 24));
+            p.draw(Rect::new(0, 0, 100, 24), &mut buf, &mut ctx);
+            ctx.peek.take()
+        };
+        assert_eq!(peek(&mut p), Some(format!("{label} — {detail}")));
+        // a row that fits publishes nothing
+        p.on_key(&Key {
+            code: KeyCode::Down,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        });
+        assert_eq!(peek(&mut p), None);
     }
 
     #[test]
