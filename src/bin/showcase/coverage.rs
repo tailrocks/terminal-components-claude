@@ -4030,6 +4030,14 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("panels", "panels.keymap"),
     ),
     (
+        "widgets::panel::PanelCmd::Copy",
+        Option("panels", "panels.keymap"),
+    ),
+    (
+        "widgets::panel::PanelCmd::SelectAll",
+        Option("panels", "panels.keymap"),
+    ),
+    (
         "widgets::panel::ScrollPanel::nav",
         Option("panels", "panels.nav"),
     ),
