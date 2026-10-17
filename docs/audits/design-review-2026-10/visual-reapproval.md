@@ -321,9 +321,36 @@ Findings (2026-10-17, found while writing the rows):
 
 | # | Finding | Owner |
 |---|---|---|
-| F1 | jackin capsule: Ctrl+B i (Container info) panics on `capsule-multi`: `screens/capsule.rs` `open_container_info` slices `run_id.replace('-', "")[..8]`, and that run id has 7 characters left ("end byte index 8 is out of bounds for string of length 7"). The row `jackin/overlays/capsule_info` reproduces it. | Open → A25 |
-| F2 | jackin editor: the role-load error dialog (`finish_role_load`, layer `roleerr`) is unreachable. `start_role_load` fails only for an untrusted `data-eng`, but it runs only for a trusted role or right after the trust gate marks the role trusted. | Open → A26 |
+| F1 | jackin capsule: Ctrl+B i (Container info) panics on `capsule-multi`: `screens/capsule.rs` `open_container_info` slices `run_id.replace('-', "")[..8]`, and that run id has 7 characters left ("end byte index 8 is out of bounds for string of length 7"). The row `jackin/overlays/capsule_info` reproduces it. | Fixed → A25 (dd13d9c2a) |
+| F2 | jackin editor: the role-load error dialog (`finish_role_load`, layer `roleerr`) is unreachable. `start_role_load` fails only for an untrusted `data-eng`, but it runs only for a trusted role or right after the trust gate marks the role trusted. | Decision: reachable, kept → A26 (6098669b2) |
 | F3 | jackin: three layers open only from a virtual-time job, which needs `--motion reduced`, and the reduced frame never settles (no quiet window within 15 s): the editor's and global settings' save failure (`finish_save`, hard-cases `save_fails_once`) and the cockpit's credential error (`step`, hard-cases with 1Password locked, launch Codex). Their sites stay listed gaps in `overlay_sites` until a determinism seam runs scheduled jobs under `--motion paused`. | Open → V12 |
+
+F1 and F2 resolution (2026-10-17):
+
+- **F1 (A25), fixed in dd13d9c2a.** Every fixed byte slice of a display
+  id now goes through the new `ui::text::clip(s, max)` (leading cells, no
+  ellipsis, whole graphemes, never panics on short text) or a prefix
+  trim: capsule Container ID, cockpit run stamp, manager image tag, the
+  jackin fixture run ids and holla's config digest. The remaining range
+  slices in `src/` take their bounds from `find`, `char_indices` or a
+  checked boundary. Test:
+  `app_tests_chrome::container_info_opens_on_a_short_run_id_without_panicking`
+  (fails on the parent with the panic). Container info now reads
+  `3f9crun7f3ae21a`. `jackin/overlays/capsule_info` captures; it stays
+  pending (not re-approved in this pass).
+- **F2 (A26), decision: reachable, kept (6098669b2).** In the real
+  product a trusted Role's load still fails (fetch, I/O, manifest
+  parse), and the dialog's "trust stays granted · retry from the Roles
+  tab" is written for that case, so the path stays. The fixture gained
+  `RoleEntry::fetch_error` (what the simulated registry answers; the
+  name check in `start_role_load` is gone); `hard-cases` gives the
+  trusted local `writer` a manifest parse error. Enter on a trusted row
+  with a load error now retries the load instead of asking for trust
+  again, as the dialog says. Test:
+  `app_tests_coverage::a_trusted_role_that_fails_to_load_reports_the_error_and_retries`
+  (fails on the parent: the load succeeds). The load completes on a
+  1,100 ms virtual-time job, so the site joins the F3 class: its
+  `overlay_sites` gap now names F3 until V12's paused-motion seam.
 
 ## Status (T19 sync, 2026-10-17)
 
