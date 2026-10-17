@@ -3,7 +3,7 @@
 //! §1.8). This module grows step by step; today it holds the leaf pieces:
 //!
 //! - [`Shell`] and [`App`]: the state every app keeps and the trait that
-//!   gives an app [`Application`]: the render prologue and epilogue, focus
+//!   gives an app [`Application`](crate::runtime::Application): the render prologue and epilogue, focus
 //!   upkeep ([`PageKey`]) and the blur fan-out.
 //! - [`Cx`] and [`Request`]: the event context a page handles input in and
 //!   what it asks of the shell, with the background-request policy
@@ -22,7 +22,7 @@
 //!   EDIT badge, the status line with errors over hints, click targets).
 //! - [`StatusLine`]: the transient status message and its expiry rule;
 //!   [`JobKey`] ties a progress status to the job it reports on.
-//! - [`run`]: start an [`Application`] on a terminal, after discarding
+//! - [`run`]: start an [`App`] on a terminal, after discarding
 //!   input queued before it started.
 
 mod app;
@@ -49,12 +49,13 @@ pub use page::{
 pub use router::{KeyHost, KeyRouter, ShellAction, ShellKeys};
 pub use status::{JobKey, StatusLine};
 
-use crate::runtime::Application;
-
 /// Run `app` until it asks to quit. Input already queued when the process
 /// starts (key presses typed into the launching shell) is discarded first,
 /// so it cannot act on the first screen or skip an opening sequence.
-pub fn run(app: &mut impl Application) -> std::io::Result<()> {
+/// Every field's Copy and Cut reach the system clipboard through the
+/// app's [`Shell::clipboard`] ([`Clipboard::install`]).
+pub fn run<A: App>(app: &mut A) -> std::io::Result<()> {
+    app.shell().clipboard.install();
     if let Some(delay) = start_delay() {
         std::thread::sleep(delay);
     }

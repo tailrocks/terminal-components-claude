@@ -155,9 +155,6 @@ impl App {
         world.clock.running = motion != Motion::Paused;
         let mut shell = Shell::new();
         shell.motion = motion;
-        // the preview's clipboard is the simulated world's: a copy is
-        // reported truthfully and never written to the real terminal
-        shell.clipboard = shell::Clipboard::new().write(false);
         let mut app = Self {
             theme,
             scenario,

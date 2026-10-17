@@ -374,6 +374,43 @@ fn ctrl_c_over_the_activity_selection_copies_instead_of_quitting() {
     assert!(!activity_view(&mut h).has_selection());
 }
 
+/// S14 follow-up: a plain copy goes through the shell's clipboard
+/// (`Shell::copy_at`) on the terminal `world.platform` describes: it
+/// writes OSC 52 and says how much was copied, and on a terminal without
+/// OSC 52 it says "Not copied" instead of always claiming success.
+#[test]
+fn a_plain_copy_reports_what_the_terminal_did() {
+    use junie_tui::core::event::MouseKind;
+    use junie_tui::shell::clipboard::{osc52, take_output};
+    let mut h = activities();
+    h.alt(KeyCode::Char('1'));
+    let v = row(&h, activity::VIEW);
+    h.mouse(MouseKind::Down, v.x + 2, v.y);
+    h.mouse(MouseKind::Drag, v.x + 6, v.y + 1);
+    h.mouse(MouseKind::Up, v.x + 6, v.y + 1);
+    let selected = activity_view(&mut h).selected_text().expect("a selection");
+    take_output();
+    h.ctrl(KeyCode::Char('c'));
+    let chars = selected.chars().count();
+    assert!(
+        h.text().contains(&format!("Copied {chars} characters")),
+        "{}",
+        h.text()
+    );
+    assert_eq!(take_output(), [osc52(&selected)]);
+
+    h.app.world.platform.osc52 = false;
+    h.ctrl(KeyCode::Char('c'));
+    assert!(
+        h.text()
+            .contains("Not copied · this terminal does not accept OSC 52"),
+        "{}",
+        h.text()
+    );
+    assert!(take_output().is_empty(), "nothing is written");
+    assert!(!h.app.shell.quit);
+}
+
 #[test]
 fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
     let mut h = activities();

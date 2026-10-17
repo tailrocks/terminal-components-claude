@@ -182,6 +182,11 @@ impl App {
         }
         let mut shell = Shell::new();
         shell.motion = motion;
+        // the clipboard of the terminal the world describes
+        shell.clipboard = shell
+            .clipboard
+            .osc52(world.platform.osc52)
+            .limit(world.platform.osc52_limit);
         let mut app = Self {
             theme,
             scenario,
@@ -715,7 +720,7 @@ impl App {
                 if cmd.is_empty() {
                     self.set_status("Nothing to copy here", Tone::Secondary);
                 } else {
-                    self.copy(cmd);
+                    self.copy(cmd, None);
                 }
             }
             HollaCmd::CloseTab => self.go(Go::CloseTab),
@@ -1505,7 +1510,7 @@ impl App {
         }
         if ev.id == STATUS_PATH {
             let p = self.world.location.cwd.clone();
-            self.copy(p);
+            self.copy(p, None);
             return Some(Outcome::Changed);
         }
         if ev.id == STATUS_GIT {
@@ -1534,7 +1539,7 @@ impl App {
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(g) => self.go(g),
                 Request::Back => self.go(Go::Pop),
-                Request::Copy(s, _) => self.copy(s),
+                Request::Copy(s, what) => self.copy(s, what),
                 // holla pages do not ask for these
                 Request::Close
                 | Request::Top(_)
@@ -1545,11 +1550,23 @@ impl App {
         out
     }
 
-    fn copy(&mut self, s: String) {
-        let shown = truncate(&s.replace('\n', " · "), 48);
+    /// Copy `s` through the shell's clipboard ([`shell::Shell::copy_at`]):
+    /// the status says what really happened on the terminal of
+    /// `world.platform` ("Not copied · …" when it refuses), never a fixed
+    /// "Copied" line.
+    fn copy(&mut self, s: String, what: Option<String>) {
+        self.sync_clipboard();
+        let now = self.world.clock.now();
+        self.shell.copy_at(&s, what.as_deref(), now);
         self.world.clipboard = Some(s);
         self.clipboard_gen += 1;
-        self.set_status(&format!("Copied {shown}"), Tone::Secondary);
+    }
+
+    /// The shell's clipboard follows the simulated terminal's OSC 52
+    /// support and limit (`world.platform`).
+    fn sync_clipboard(&mut self) {
+        let p = &self.world.platform;
+        self.shell.clipboard = self.shell.clipboard.osc52(p.osc52).limit(p.osc52_limit);
     }
 
     pub fn go(&mut self, g: Go) {
@@ -2579,13 +2596,8 @@ impl App {
     /// the actual destination and never claims success the terminal
     /// cannot deliver (I-F11).
     pub fn copy_osc52(&mut self, value: String) {
-        let p = &self.world.platform;
-        // a simulated terminal: the result is read, nothing is written
-        let clipboard = shell::Clipboard::new()
-            .osc52(p.osc52)
-            .limit(p.osc52_limit)
-            .write(false);
-        let copied = clipboard.copy(&value);
+        self.sync_clipboard();
+        let copied = self.shell.clipboard.copy(&value);
         match copied {
             shell::Copied::Copied { .. } => {
                 let shown = truncate(&value.replace('\n', " · "), 40);
@@ -2780,7 +2792,7 @@ impl App {
                     .find_item(id)
                     .map(|i| i.commands.join("\n"))
                     .unwrap_or_default();
-                self.copy(cmd);
+                self.copy(cmd, None);
             }
             AltCmd::Insert => {
                 let cmd = self
