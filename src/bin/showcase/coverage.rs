@@ -4159,9 +4159,18 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Option("lists", "lists.content"),
     ),
     ("ui::content::ContentState", StateRow("lists", "loading")),
-    ("ui::content::ContentState::Ready", StateRow("lists", "rest")),
-    ("ui::content::ContentState::Loading", StateRow("lists", "loading")),
-    ("ui::content::ContentState::Error", StateRow("lists", "error")),
+    (
+        "ui::content::ContentState::Ready",
+        StateRow("lists", "rest"),
+    ),
+    (
+        "ui::content::ContentState::Loading",
+        StateRow("lists", "loading"),
+    ),
+    (
+        "ui::content::ContentState::Error",
+        StateRow("lists", "error"),
+    ),
     ("ui::list_core::ListCore", StateRow("lists", "rest")),
     (
         "widgets::list::ListBox::track_click",

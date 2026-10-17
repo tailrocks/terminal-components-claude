@@ -327,7 +327,9 @@ impl ListBox {
         let (lw, _) = Self::label_width(item, text_w);
         let rid = self.row_id(self.core.cursor);
         let label = item.label.clone();
-        self.core.reveal.inline(ctx, rid, lw as u16, &label, true, room)
+        self.core
+            .reveal
+            .inline(ctx, rid, lw as u16, &label, true, room)
     }
 
     /// See [`Self::empty`].
@@ -427,7 +429,8 @@ impl ListBox {
             return match action {
                 ListCmd::ToggleAll => {
                     let items = &self.items;
-                    self.core.selection
+                    self.core
+                        .selection
                         .toggle_all(0..items.len(), |i| !items[i].disabled);
                     Outcome::Changed
                 }
@@ -562,7 +565,8 @@ impl ListBox {
             expanded = self.inline_rows(ctx, text_w, area.height);
             if let Some(rows) = &expanded {
                 let extra = rows.len().saturating_sub(1);
-                self.core.scroll
+                self.core
+                    .scroll
                     .set_viewport((area.height as usize).saturating_sub(extra).max(1));
                 self.core.scroll.ensure_visible(self.core.cursor);
                 if self.core.scroll.overflows() != has_sb {
@@ -887,8 +891,7 @@ mod reveal_tests {
             let mut ring = FocusRing::default();
             let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
             {
-                let mut ctx =
-                    RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
                 l.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, theme.canvas);
             }
             let s: String = (0..6)
@@ -901,7 +904,10 @@ mod reveal_tests {
         assert!(draw(&mut l).0, "rows: a focus stop");
         l.content = ContentState::loading("Loading files");
         let (stop, s, _) = draw(&mut l);
-        assert!(!stop && s.contains("Loading files") && !s.contains("short"), "{s}");
+        assert!(
+            !stop && s.contains("Loading files") && !s.contains("short"),
+            "{s}"
+        );
         let retry = WidgetId::of("retry");
         l.content = ContentState::error(
             EmptyState::new("Could not list files")

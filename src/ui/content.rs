@@ -72,7 +72,11 @@ pub fn draw_line(area: Rect, buf: &mut Buffer, t: &Theme, text: &str, bg: Color)
     }
     let msg = crate::ui::text::truncate(text, area.width as usize);
     let y = area.y + area.height / 2;
-    let x = area.x + area.width.saturating_sub(crate::ui::text::width(&msg) as u16) / 2;
+    let x = area.x
+        + area
+            .width
+            .saturating_sub(crate::ui::text::width(&msg) as u16)
+            / 2;
     buf.set_string(x, y, &msg, t.muted().bg(bg));
 }
 

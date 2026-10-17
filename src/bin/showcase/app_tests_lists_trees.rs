@@ -45,7 +45,10 @@ fn tab_passes_the_empty_list() {
         h.key(KeyCode::Tab);
         seen.push(h.app.shell.focus.current());
     }
-    assert!(seen.contains(&Some(SINGLE)), "Tab cycles the page: {seen:?}");
+    assert!(
+        seen.contains(&Some(SINGLE)),
+        "Tab cycles the page: {seen:?}"
+    );
     assert!(!seen.contains(&Some(EMPTY)), "the empty list is skipped");
 }
 

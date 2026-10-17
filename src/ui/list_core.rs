@@ -215,21 +215,29 @@ mod tests {
     fn content_replaces_the_rows_and_names_its_state() {
         let mut core = ListCore::new(0);
         let (drew, s, _) = draw(&core, 3);
-        assert!(!drew && s.trim().is_empty(), "ready with rows: the rows draw");
+        assert!(
+            !drew && s.trim().is_empty(),
+            "ready with rows: the rows draw"
+        );
         let (drew, s, _) = draw(&core, 0);
         assert!(drew && s.contains("Nothing"), "ready, no rows: {s}");
         core.empty = Some(EmptyState::new("No tasks").hint("Add one"));
         assert!(draw(&core, 0).1.contains("Add one"));
         core.content = ContentState::loading("Fetching rows");
         let (drew, s, _) = draw(&core, 3);
-        assert!(drew && s.contains("Fetching rows"), "loading hides rows: {s}");
+        assert!(
+            drew && s.contains("Fetching rows"),
+            "loading hides rows: {s}"
+        );
         let retry = WidgetId::of("retry");
         core.content = ContentState::error(
-            EmptyState::new("Could not load")
-                .actions(vec![EmptyAction::primary(retry, "Retry")]),
+            EmptyState::new("Could not load").actions(vec![EmptyAction::primary(retry, "Retry")]),
         );
         let (drew, s, hits) = draw(&core, 3);
-        assert!(drew && s.contains("! Could not load") && s.contains("Retry"), "{s}");
+        assert!(
+            drew && s.contains("! Could not load") && s.contains("Retry"),
+            "{s}"
+        );
         assert!(
             hits.regions().iter().any(|r| r.id == retry),
             "the Retry button takes the pointer"
@@ -264,7 +272,10 @@ mod tests {
         assert_eq!(core.cursor, 0, "the widget applies the move");
         assert_eq!(moved(&mut core, KeyCode::Char('g')), Some(Moved::To(2)));
         core.cursor = 2;
-        assert_eq!(moved(&mut core, KeyCode::Down).and_then(Moved::index), Some(2));
+        assert_eq!(
+            moved(&mut core, KeyCode::Down).and_then(Moved::index),
+            Some(2)
+        );
         core.wrap = true;
         assert_eq!(moved(&mut core, KeyCode::Down), Some(Moved::To(0)));
         assert_eq!(moved(&mut core, KeyCode::Enter), None);
