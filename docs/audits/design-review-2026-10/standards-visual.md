@@ -143,7 +143,7 @@ Each row was checked against the code at `942b869d7`, the plan's §4 table, its 
 | Gap 3 | Open → S10 | — | `highlight_on_selection` token for a cursor row inside a selected range; no such token in `src/theme.rs` yet. |
 | Gap 4 | Open → A11 | — | DIM (SGR 2) fallback: pair with a glyph or reason and document the fallback. |
 | Gap 5 | Open → A11 | — | Test focus and pressed BOLD against a bold-is-bright 16-colour profile. |
-| Gap 6 | Partial; Open → A22 | 18f15fd5f, acfbe62db | `Glyphs::ASCII` and `Strings::ASCII` exist (opt-in, `LevelOverrides::ASCII_MONO`). Automatic selection for `TERM=linux` or the Windows console is not implemented and no step owns it. |
+| Gap 6 | Fixed | 18f15fd5f, acfbe62db, da7d3550f | `Glyphs::ASCII` and `Strings::ASCII`, selected automatically by `theme::Charset` for `TERM=linux`, VT-class terminals and the legacy Windows console (`CommonArgs::theme`); `--glyphs` and `JUNIE_TUI_GLYPHS` override (A22). |
 | Gap 7 | Open → T | — | Honour `COLORFGBG` or a `follow_terminal` option at the 16-colour level (SVg7). |
 | Gap 8 | Partial; Open → S22 | 45968977b | `Motion::{Full, Reduced, Paused}` and `NO_MOTION` in every app (S2). The 12 wall-clock spinner sites still animate under reduced motion; S22 moves them to `ctx.interaction.tick`. |
 | Gap 9 | Fixed | 126c4183c, ab64d7535, 30cce2a55 | `ScrollState::context` defaults to 1; pointer moves reveal exactly. See the note under gap 9. |
