@@ -5,7 +5,7 @@
 //! and the environment list.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Constraint, Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -363,6 +363,39 @@ impl Page for SettingsPage {
     }
     fn blurb(&self) -> &'static str {
         "Composed: tabs, form, editable table, list, dialogs"
+    }
+
+    /// The General card's two columns whole (the description uncut, the
+    /// toggles with their state words, the visibility choices), each
+    /// column as wide as the wider needs; the tab's rows under the strip.
+    fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
+        let w = |s: &str| junie_tui::ui::text::width(s) as u16;
+        let left = self.description.width();
+        let right = self
+            .auto_merge
+            .width()
+            .max(self.protect.width())
+            .max(w(&self.visibility.label) + 2)
+            .max(
+                self.visibility
+                    .options
+                    .iter()
+                    .map(|o| w(o) + 6)
+                    .max()
+                    .unwrap_or(0),
+            );
+        // `columns(inner, inner / 2 - 2, 4)` gives each side inner / 2 - 2
+        let inner = 2 * (left.max(right) + 2);
+        let width = Panel::card(Some("General · unsaved"))
+            .outer(Size::new(inner, 0))
+            .width;
+        let top = Tabs::STRIP_H + 1;
+        let height = match self.tabs.active {
+            0 => top + 16,
+            1 => top + (self.members.len() as u16 + 1).max(2) + 5,
+            _ => avail.height,
+        };
+        Size::new(width, height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
