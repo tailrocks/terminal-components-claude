@@ -4,18 +4,18 @@
 [0m[2m ━━│                                                                │── [0m
 [0m[2m  R│  [0m[1;2mTrash 4 items · gate 2 of 2[0m[2m                                   │…  [0m
 [0m[2m   │                                                                │   [0m
-[0m[2m  A│                                                                │   [0m
-[0m[2m  H│  /Users/alex/work/ide/.idea                                    │   [0m
-[0m[2m  M│  /Users/alex/work/ide/a/b/c/d/e/deep.iml                       │   [0m
-[0m[2m   │  /Users/alex/work/ide/app.iml                                  │   [0m
-[0m[2m  E│  /Users/alex/work/ide/mod/mod.iml                              │   [0m
-[0m[2m   │                                                                │   [0m
+[0m[2m  A│  [0mAction        move to Trash 4 items under ~/work/ide        [0m[2m ┃│   [0m
+[0m[2m  H│  [0mHost          mbp · local                                   [0m[2m ┆│   [0m
+[0m[2m  M│  ↓ 15 more                                                     │   [0m
+[0m[2m   │  /Users/alex/work/ide/.idea … 3 more                           │   [0m
+[0m[2m  E│                                                                │   [0m
 [0m[2m   │  [0m[1;2mType TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm   [0m[2m  │   [0m
-[0m[2m ╭─│[0m[1;2;7m▎                                                             [0m[2m  │─╮ [0m
+[0m[2m   │[0m[1;2;7m▎                                                             [0m[2m  │   [0m
+[0m[2m ╭─│                                                                │─╮ [0m
 [0m[2m ╰─│                                            Cancel    Execute   │─╯ [0m
 [0m[2m   │                                                                │   [0m
 [0m[2m   ╰─────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
 [0m[2m                                                                        [0m
 [0m[2m ~/work/ide            review · gate 1 of 2            no color · 72×20 [0m
  [0m[1m EDIT [0m  [0m[1mEsc[0m Cancel [0m[1m …   [0m           [0m[1m   [0m       [0m[1m   [0m                       [0m
-[?25h[14;7H[6 q
+[?25h[13;7H[6 q
