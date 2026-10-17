@@ -12,9 +12,15 @@ fn an_unsaved_settings_section_marks_its_tab_until_saved() {
     let mut h = Harness::on(120, 40, PageId::Settings);
     let dirty = junie_tui::theme::Theme::junie().glyphs.dirty;
     assert!(!h.text().contains(&format!("General {dirty}")));
-    for _ in 0..5 {
+    // the section strip, the screen's tabs, name, description, visibility,
+    // then the auto-merge toggle
+    for _ in 0..6 {
         h.key(KeyCode::Tab);
     }
+    assert_eq!(
+        h.app.shell.focus.current(),
+        Some(junie_tui::core::id::WidgetId::of("settings").sub("automerge"))
+    );
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("General · unsaved"), "{}", h.text());
     assert!(
@@ -40,6 +46,54 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     let (x, y) = h.find("Stop and leave").expect("the stop button");
     h.click(x + 1, y);
     assert!(h.app.shell.quit, "Stop and leave quits");
+}
+
+/// Settings on the template: its options open a section, rebuild the
+/// members table and the environment list through their builders, drop the
+/// dirty mark and the save confirmation; States draws the section tabs,
+/// the members table and the environment list.
+#[test]
+fn the_settings_options_and_states() {
+    use crate::pages::template::Section;
+    let mut h = Harness::on(120, 40, PageId::Settings);
+    h.opt("settings.tab=members");
+    assert!(h.text().contains("Mira Okafor"), "{}", h.text());
+    h.opt("settings.tab=environment");
+    assert!(h.text().contains("DATABASE_URL"));
+    // multi select: Space checks the cursor row
+    let env = junie_tui::core::id::WidgetId::of("settings").sub("env");
+    h.focus(env);
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("1 selected"), "{}", h.text());
+    // single select: the list is rebuilt through its builder, no checks
+    h.opt("settings.env_select=single");
+    h.focus(env);
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("0 selected"), "{}", h.text());
+    // without the confirmation, Ctrl+S on a dirty form saves at once
+    let mut h = Harness::on(120, 40, PageId::Settings);
+    h.opt("settings.save_confirm=off");
+    h.opt("settings.tab_dirty=off");
+    for _ in 0..6 {
+        h.key(KeyCode::Tab);
+    }
+    h.key(KeyCode::Char(' '));
+    let dirty = junie_tui::theme::Theme::junie().glyphs.dirty;
+    assert!(h.text().contains("General · unsaved"));
+    assert!(
+        !h.text().contains(&format!("General {dirty}")),
+        "no dirty mark on the tab"
+    );
+    let save = junie_tui::core::id::WidgetId::of("settings").sub("save");
+    h.focus(save);
+    h.key(KeyCode::Enter);
+    assert!(!h.text().contains("Save settings?"), "no confirmation");
+    assert!(!h.text().contains("General · unsaved"), "saved");
+    h.section(Section::States);
+    let text = h.text();
+    for col in ["Section tabs", "Members", "Environment"] {
+        assert!(text.contains(col), "{col}\n{text}");
+    }
 }
 
 /// The Task runner on the template: its options rebuild the tree and the

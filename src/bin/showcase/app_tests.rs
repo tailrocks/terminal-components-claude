@@ -834,7 +834,8 @@ fn quit_keys() {
 #[test]
 fn settings_screen_remove_member_flow() {
     let mut h = Harness::new(120, 40, PageId::Settings);
-    h.key(tab());
+    h.key(tab()); // the template's section strip
+    h.key(tab()); // the screen's own tabs
     h.key(KeyCode::Right); // Members tab
     assert!(h.text().contains("Mira Okafor"));
     h.key(tab()); // table
@@ -1934,7 +1935,8 @@ fn a_cut_list_row_advertises_the_reveal_key_in_the_footer() {
 fn a_focused_tab_strip_takes_home_and_end() {
     // interaction #23: Home/End go to the first and last tab
     let mut h = Harness::new(120, 40, PageId::Settings);
-    h.key(tab());
+    h.key(tab()); // the template's section strip
+    h.key(tab()); // the screen's own tab strip
     h.key(KeyCode::End);
     assert!(h.text().contains("Environment") && !h.text().contains("Mira Okafor"));
     h.key(KeyCode::Home);
