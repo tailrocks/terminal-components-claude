@@ -95,6 +95,20 @@ impl crate::ui::measure::Measure for Tabs {
         let new = if self.allow_new { 4 } else { 0 };
         ratatui::layout::Size::new(tabs + new, 2)
     }
+
+    /// The strip shows a window of its tabs with `‹N N›` counts and a
+    /// `+N` menu of the rest: it is whole at any width that holds its
+    /// widest tab and those controls.
+    fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
+        let widest = self
+            .items
+            .iter()
+            .map(|it| self.tab_width(it))
+            .max()
+            .unwrap_or(0);
+        let more = 3 + self.items.len().to_string().len() as u16;
+        widest + 1 + 8 + more + if self.allow_new { 4 } else { 0 }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1142,7 +1156,17 @@ mod tests {
             );
             tabs.measure(ratatui::layout::Size::new(1, 1), &ctx).width
         };
-        for (width, hidden) in [(w, false), (w - 1, true)] {
+        let min = {
+            let ctx = RenderCtx::new(
+                &t,
+                crate::ui::ctx::Interaction::default(),
+                &mut hits,
+                &mut ring,
+            );
+            tabs.min_width(ratatui::layout::Size::new(1, 1), &ctx)
+        };
+        assert!(min < w, "the window and +N menu take the rest");
+        for (width, hidden) in [(w, false), (w - 1, true), (min, true)] {
             let mut ctx = RenderCtx::new(
                 &t,
                 crate::ui::ctx::Interaction::default(),

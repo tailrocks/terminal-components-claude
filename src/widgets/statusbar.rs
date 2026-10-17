@@ -164,7 +164,18 @@ impl crate::ui::measure::Measure for StatusBar {
         let w = ws.iter().sum::<u16>() + present.saturating_sub(1) * GAP + 2 * EDGE;
         ratatui::layout::Size::new(w, 1)
     }
+
+    /// The bar drops what does not fit into its revealing `…` item and
+    /// truncates its strongest left item: it is whole at any width that
+    /// keeps a few cells of that item.
+    fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
+        FLEX_MIN
+    }
 }
+
+/// The narrowest a status bar or a strip is laid out at: it collapses the
+/// rest into its `…`.
+const FLEX_MIN: u16 = 24;
 
 /// The hover region a cut, non-clickable status segment registers so its
 /// full text can be revealed.
@@ -550,6 +561,14 @@ mod tests {
         assert_eq!(p.len(), 6);
         assert!(p.iter().all(|x| !x.text.ends_with('…')), "{p:?}");
         assert_eq!(b.layout(Rect::new(0, 0, w - 1, 1)).len(), 5);
+        // its min width: narrower, the rest collapsing into its `…`
+        let min = b.min_width(ratatui::layout::Size::new(10, 1), &ctx);
+        assert!(min < w);
+        let p = b.layout(Rect::new(0, 0, min, 1));
+        assert!(
+            p.iter().any(|x| x.group == Group::Left && x.index == 0),
+            "{p:?}"
+        );
     }
 
     #[test]
