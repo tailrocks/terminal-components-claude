@@ -20,6 +20,7 @@ use junie_tui::widgets::button::Button;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
+use junie_tui::widgets::page_header::{Heading, PageHeader};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{ProgressStatus, render_bar, spinner_frame};
 use junie_tui::widgets::props::{self, Prop};
@@ -33,8 +34,8 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::plan::{Plan, PlanPhase, StepState};
 use crate::screens::{
-    Cx, Go, ModalResult, Screen, StatusBits, heading, open_context, row_anchor, scroll_drag,
-    scroll_press, ticks_label,
+    Cx, Go, ModalResult, Screen, StatusBits, open_context, row_anchor, scroll_drag, scroll_press,
+    ticks_label,
 };
 use crate::sim::world::World;
 use junie_tui::ui::layer::LayerTag;
@@ -861,14 +862,6 @@ impl ShellPage<Holla> for PlanReviewPage {
         };
         self.cursor = self.cursor.min(p.steps.len().saturating_sub(1));
         // title row
-        buf.set_string(area.x + 1, area.y, &p.title, t.title());
-        let sub = format!(" · {}", p.host);
-        buf.set_string(
-            area.x + 1 + width(&p.title) as u16,
-            area.y,
-            &sub,
-            t.secondary(),
-        );
         let summary = format!(
             "{} · {} included · {} excluded · ~{}",
             plural(p.steps.len(), "step", "steps"),
@@ -876,21 +869,11 @@ impl ShellPage<Holla> for PlanReviewPage {
             p.steps.len() - p.included_count(),
             ticks_label(p.estimate_ticks())
         );
-        let sw = width(&summary) as u16;
-        if sw + width(&p.title) as u16 + width(&sub) as u16 + 4 < area.width {
-            buf.set_string(
-                area.right().saturating_sub(sw + 1),
-                area.y,
-                &summary,
-                t.muted(),
-            );
-        }
-        buf.set_string(
-            area.x + 1,
-            area.y + 1,
-            truncate(&p.intent, area.width.saturating_sub(2) as usize),
-            t.muted(),
-        );
+        PageHeader::new(&p.title)
+            .status(&format!(" · {}", p.host), Tone::Secondary)
+            .right(&summary)
+            .subtitle(&p.intent, Tone::Muted)
+            .render(area, buf, t);
         let split = area.width >= junie_tui::ui::master_detail::SPLIT_MIN;
         let buttons_y = area.bottom().saturating_sub(1);
         let cons = consequences(&p);
@@ -921,12 +904,14 @@ impl ShellPage<Holla> for PlanReviewPage {
             (body, None)
         };
         // column headings
-        heading(
+        Heading::new("step").render(
+            Rect::new(
+                outline_area.x + 8,
+                outline_area.y,
+                outline_area.width.saturating_sub(8),
+                1,
+            ),
             buf,
-            outline_area.x + 8,
-            outline_area.y,
-            outline_area.width.saturating_sub(8),
-            "step",
             t,
             t.canvas,
         );
@@ -1658,12 +1643,14 @@ impl ShellPage<Holla> for PlanTab {
             let inner = panel.render(out_area, buf, t);
             self.view.render(inner, buf, ctx, t.canvas);
         } else if split {
-            heading(
+            Heading::new("step").render(
+                Rect::new(
+                    rail_area.x + 7,
+                    rail_area.y,
+                    rail_area.width.saturating_sub(7),
+                    1,
+                ),
                 buf,
-                rail_area.x + 7,
-                rail_area.y,
-                rail_area.width.saturating_sub(7),
-                "step",
                 t,
                 t.canvas,
             );

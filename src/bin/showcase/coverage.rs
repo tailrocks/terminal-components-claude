@@ -3700,6 +3700,56 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::shape::CaretShape::Terminal",
         Option("overview", "shell.caret_shape=terminal"),
     ),
+    // PageHeader and Heading (S17, SC36): the Meters page's header
+    (
+        "widgets::page_header::PageHeader",
+        Demo("meters", "Usage and capacity"),
+    ),
+    (
+        "widgets::page_header::PageHeader::status",
+        Option("meters", "meters.offline"),
+    ),
+    (
+        "widgets::page_header::PageHeader::right",
+        Demo("meters", "refreshes every 2 s"),
+    ),
+    (
+        "widgets::page_header::PageHeader::right_gap",
+        Demo("meters", "refreshes every 2 s"),
+    ),
+    (
+        "widgets::page_header::PageHeader::subtitle",
+        Demo("meters", "Plan quotas, filesystems and host load"),
+    ),
+    (
+        "widgets::page_header::PageHeader::inset",
+        Demo("meters", "Usage and capacity · live"),
+    ),
+    (
+        "widgets::page_header::PageHeader::height",
+        Demo("meters", "in aligned columns"),
+    ),
+    (
+        "widgets::page_header::PageHeader::body",
+        Demo("meters", "Sections"),
+    ),
+    (
+        "widgets::page_header::PageHeader::render",
+        Demo("meters", "Usage and capacity"),
+    ),
+    ("widgets::page_header::Heading", Demo("meters", "Sections")),
+    (
+        "widgets::page_header::Heading::meta",
+        Demo("meters", "3 cards"),
+    ),
+    (
+        "widgets::page_header::Heading::tone",
+        Demo("meters", "Sections"),
+    ),
+    (
+        "widgets::page_header::Heading::render",
+        Demo("meters", "Sections"),
+    ),
     // NavList (S17, SC36): the Sidebars page's list
     ("widgets::nav_list::NavList", Demo("sidebars", "Workspace")),
     (

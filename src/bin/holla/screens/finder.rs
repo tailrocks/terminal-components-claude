@@ -21,6 +21,7 @@ use junie_tui::widgets::edit::EditField;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::field_common::EditAction;
 use junie_tui::widgets::keyhint::{Hint, hint};
+use junie_tui::widgets::page_header::Heading;
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
@@ -32,9 +33,7 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::action::{Confirmation, Freshness, Item, Kind, Launch, Risk};
 use crate::domain::context::Scope;
 use crate::domain::ranking::{Ranked, search};
-use crate::screens::{
-    Cx, Go, Page, Screen, StatusBits, heading, risk_tone, scroll_drag, scroll_press,
-};
+use crate::screens::{Cx, Go, Page, Screen, StatusBits, risk_tone, scroll_drag, scroll_press};
 use crate::sim::world::World;
 use junie_tui::ui::text::{plural, truncate_sep};
 
@@ -902,7 +901,12 @@ impl FinderPage {
             let row = Rect::new(area.x, y, row_w, 1);
             match &self.rows[i] {
                 Row::Blank => {}
-                Row::Heading(h) => heading(buf, area.x + 3, y, row_w.saturating_sub(3), h, t, bg),
+                Row::Heading(h) => Heading::new(h).render(
+                    Rect::new(area.x + 3, y, row_w.saturating_sub(3), 1),
+                    buf,
+                    t,
+                    bg,
+                ),
                 Row::Explore(cells) => {
                     let rid = FINDER.child(i);
                     let mut s = ctx.state(rid);

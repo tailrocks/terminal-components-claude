@@ -6,6 +6,7 @@
 
 use crate::screens::Holla;
 use junie_tui::shell::Page as ShellPage;
+use junie_tui::widgets::page_header::{Heading, PageHeader};
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -33,7 +34,7 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::catalog::{InsightCategory, insight_candidates, observe_process};
 use crate::domain::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
 use crate::screens::{
-    Cx, Go, ModalResult, Page, Screen, StatusBits, heading, open_context, row_anchor, row_choice,
+    Cx, Go, ModalResult, Page, Screen, StatusBits, open_context, row_anchor, row_choice,
     scroll_drag, scroll_press,
 };
 use crate::sim::world::World;
@@ -611,7 +612,12 @@ impl CleanupPage {
             let row = Rect::new(area.x, y, row_w, 1);
             match &self.rows[i] {
                 Row::Blank => {}
-                Row::Heading(h) => heading(buf, area.x + 3, y, row_w.saturating_sub(3), h, t, bg),
+                Row::Heading(h) => Heading::new(h).render(
+                    Rect::new(area.x + 3, y, row_w.saturating_sub(3), 1),
+                    buf,
+                    t,
+                    bg,
+                ),
                 Row::Note(n) => buf.set_string(
                     area.x + 5,
                     y,
@@ -1263,7 +1269,6 @@ impl ShellPage<Holla> for CleanupPage {
                 None => "Cleanup review".into(),
             },
         };
-        buf.set_string(area.x + 1, area.y, &title, t.title());
         let total: u64 = self.cats.iter().map(InsightCategory::bytes).sum();
         let line = format!(
             "{} · {} · {} selected ({}) · {}{}",
@@ -1277,22 +1282,16 @@ impl ShellPage<Holla> for CleanupPage {
             },
             if self.dry_run { " · dry run" } else { "" }
         );
-        buf.set_string(
-            area.x + 1,
-            area.y + 1,
-            truncate(&line, area.width.saturating_sub(2) as usize),
+        let header = PageHeader::new(&title).subtitle(
+            &line,
             if self.mode == Mode::Permanent && !self.dry_run {
-                Style::new().fg(t.error)
+                Tone::Error
             } else {
-                t.muted()
+                Tone::Muted
             },
         );
-        let body = Rect::new(
-            area.x,
-            area.y + 3,
-            area.width,
-            area.height.saturating_sub(3),
-        );
+        header.render(area, buf, t);
+        let body = header.body(area);
         let l = self.md.layout(body, buf, ctx, ctx.theme.canvas);
         if !l.master.is_empty() {
             self.render_list(l.master, buf, ctx, w);

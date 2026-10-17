@@ -6,6 +6,7 @@
 
 use crate::screens::Holla;
 use junie_tui::shell::Page as ShellPage;
+use junie_tui::widgets::page_header::Heading;
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Key, Outcome};
@@ -40,7 +41,7 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
 use crate::domain::stack::Spotlight;
 use crate::screens::{
-    Cx, Go, ModalResult, Page, Screen, StatusBits, heading, open_context, row_anchor, scroll_drag,
+    Cx, Go, ModalResult, Page, Screen, StatusBits, open_context, row_anchor, scroll_drag,
     scroll_press,
 };
 use crate::sim::fs::ScanNode;
@@ -1635,12 +1636,9 @@ impl ShellPage<Holla> for DiskPage {
         }
         let mut body_y = area.y + 3;
         if self.view == View::Tree && !self.compact && !w.disk.filesystems.is_empty() {
-            heading(
+            Heading::new("Filesystems").render(
+                Rect::new(area.x + 3, body_y, area.width.saturating_sub(3), 1),
                 buf,
-                area.x + 3,
-                body_y,
-                area.width.saturating_sub(3),
-                "Filesystems",
                 t,
                 t.canvas,
             );
@@ -1690,20 +1688,18 @@ impl ShellPage<Holla> for DiskPage {
         let render_main =
             |me: &mut Self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx| match me.view {
                 View::Tree => {
-                    heading(
+                    Heading::new(&format!(
+                        "largest first · {} · {}",
+                        if me.sort == Sort::Allocated {
+                            "allocated"
+                        } else {
+                            "apparent"
+                        },
+                        if me.fold { "noise folded" } else { "unfolded" }
+                    ))
+                    .render(
+                        Rect::new(r.x + 3, r.y, r.width.saturating_sub(3), 1),
                         buf,
-                        r.x + 3,
-                        r.y,
-                        r.width.saturating_sub(3),
-                        &format!(
-                            "largest first · {} · {}",
-                            if me.sort == Sort::Allocated {
-                                "allocated"
-                            } else {
-                                "apparent"
-                            },
-                            if me.fold { "noise folded" } else { "unfolded" }
-                        ),
                         ctx.theme,
                         ctx.theme.canvas,
                     );
