@@ -16,7 +16,7 @@ use crate::core::event::{Key, Outcome};
 use crate::core::hints::{HasHints, HintCx, nav_hints};
 use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
-use crate::core::list::{Cursor, Navigable, RowSource};
+use crate::core::list::{Cursor, KeyStep, Navigable, RowSource};
 use crate::theme::CursorStyle;
 use crate::ui::columns::{self, Col};
 use crate::ui::ctx::{Backdrop, RenderCtx, fill};
@@ -61,7 +61,8 @@ pub struct Picker {
     /// The query ([`OptionList::query`]) is the shared [`EditField`], so
     /// it edits, selects (Select All, a double click on a word, a drag)
     /// and undoes like every text field; `None` makes a fixed-choice
-    /// picker. Owners read [`Self::query`] and replace it with
+    /// picker whose letters type-select ([`OptionList::type_ahead`],
+    /// A23). Owners read [`Self::query`] and replace it with
     /// [`Self::set_query`].
     pub list: OptionList,
     /// The rectangle an anchored [`OptionList::placement`] opens next to.
@@ -206,7 +207,7 @@ impl Picker {
     }
 
     /// Show the query field (on by default); off makes a fixed-choice
-    /// picker.
+    /// picker whose letters type-select.
     pub fn searchable(mut self, on: bool) -> Self {
         self.set_searchable(on);
         self
@@ -442,6 +443,26 @@ impl Picker {
         // a searchable picker types its letters, and its Home/End and ←/→
         // edit the query; the list keeps ↑/↓ and paging
         let typing = self.is_searchable();
+        // A23: a plain picker type-selects (WAI-ARIA listbox, macOS
+        // lists): a printable key moves to the next row starting with
+        // what was typed, through the list
+        if !typing
+            && self.list.type_ahead
+            && matches!(
+                KeyStep::of(key, &self.list.nav, true),
+                Some(KeyStep::Type(_))
+            )
+        {
+            let moved = self.list.key(key, &self.items[..]);
+            if moved.index().is_some() {
+                let o = if moved.moved() {
+                    Outcome::Changed
+                } else {
+                    Outcome::Consumed
+                };
+                return (o, None);
+            }
+        }
         let nav = self.list.nav.action(key).filter(|n| {
             !(typing
                 && (matches!(key.code, KeyCode::Char(_))
@@ -1575,5 +1596,45 @@ mod tests {
         assert_eq!(by_cursor.list.cursor.index, 9);
         render(&mut by_cursor);
         assert!(by_cursor.list.scroll.visible_range().contains(&9));
+    }
+
+    /// A23: a picker without a query type-selects (WAI-ARIA listbox,
+    /// macOS lists): a printable key moves to the next row starting with
+    /// what was typed, through its list; a searchable picker types the
+    /// letter into its query instead.
+    #[test]
+    fn a_picker_without_a_query_type_selects() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        crate::core::list::NavProfile::Desktop.install();
+        let mut p = Picker::new(WidgetId::of("p"), "Level").searchable(false);
+        p.set_items(
+            ["Off", "Alert", "Safe", "Silent", "Read only"]
+                .into_iter()
+                .map(Item::new)
+                .collect(),
+        );
+        assert_eq!(
+            p.on_key(&k(KeyCode::Char('s'), M::NONE)),
+            (Outcome::Changed, None)
+        );
+        assert_eq!(p.list.cursor.index, 2, "s jumps to Safe");
+        p.on_key(&k(KeyCode::Char('i'), M::NONE));
+        assert_eq!(p.list.cursor.index, 3, "si narrows to Silent");
+        assert_eq!(
+            p.on_key(&k(KeyCode::Char('z'), M::NONE)).1,
+            None,
+            "a miss chooses nothing"
+        );
+        assert_eq!(p.list.cursor.index, 3, "a miss keeps the cursor");
+        // the knob: type-ahead off leaves the letters unused
+        let mut off = Picker::new(WidgetId::of("p"), "Level").searchable(false);
+        off.list.type_ahead = false;
+        off.set_items(vec![Item::new("Off"), Item::new("Safe")]);
+        off.on_key(&k(KeyCode::Char('s'), M::NONE));
+        assert_eq!(off.list.cursor.index, 0);
+        // a searchable picker's letters are its query's
+        let mut q = picker(3);
+        q.on_key(&k(KeyCode::Char('i'), M::NONE));
+        assert_eq!((q.query(), q.list.cursor.index), ("i", 0));
     }
 }
