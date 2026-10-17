@@ -153,7 +153,11 @@ fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
             _ => Some('n'),
         });
     }
+    // passive: the strip leaves the Tab order and the wheel to its owner
+    // (a dialog's tab bar); "owner focused" draws the owner's `▎`
     t.digit_jump(o.on("tabs.digit_jump"))
+        .passive(o.get("tabs.passive") >= 1)
+        .passive_focused(o.get("tabs.passive") == 2)
 }
 
 pub struct TabsPage {
@@ -309,14 +313,21 @@ impl TabsPage {
         }
 
         // nested strips: table › section › sub-tab
-        let nest = Panel::card(Some("Nested strips")).meta("orders › section › sub-tab · 1–6 jump");
+        let nest = Panel::card(Some("Nested strips")).meta("Tabs::layout · 1–6 jump");
         let nbg = nest.bg(t);
         let inner = nest.render(rows[4], buf, t);
-        let r = crate::pages::layout::rows(inner, &[2, 1, 2, 1, 1]);
-        self.outer.render(r[0], buf, ctx, nbg);
+        // each strip's body sits under it through `Tabs::layout` (one
+        // blank row) or `Tabs::layout_gap` (the gap option)
+        let split = |r: Rect| match self.opts.get("tabs.gap") {
+            0 => Tabs::layout(r),
+            _ => Tabs::layout_gap(r, 0),
+        };
+        let (strip, body) = split(inner);
+        self.outer.render(strip, buf, ctx, nbg);
+        let (strip, body) = split(body);
         let crumb = match self.outer.active {
             1 => {
-                self.sub.render(r[2], buf, ctx, nbg);
+                self.sub.render(strip, buf, ctx, nbg);
                 format!(
                     "orders › Structure › {}",
                     self.sub.items[self.sub.active].label
@@ -324,7 +335,7 @@ impl TabsPage {
             }
             i => format!("orders › {}", self.outer.items[i].label),
         };
-        buf.set_string(r[4].x, r[4].y, crumb, t.muted().bg(nbg));
+        buf.set_string(body.x, body.y, crumb, t.muted().bg(nbg));
     }
 
     /// The strip whose id is `id` (the focused one); the sub strip only
@@ -344,6 +355,14 @@ impl TabsPage {
 
 /// The strip's keys, read from its key map.
 fn keys_readout(t: &Tabs) -> String {
+    if t.passive {
+        // the owner holds the keys: the strip only clicks
+        return if t.passive_focused {
+            "passive · the owner holds the keys and shows focus".into()
+        } else {
+            "passive · the owner holds the keys".into()
+        };
+    }
     let mut parts = vec![
         if t.nav.vim {
             "←→ h l move"
