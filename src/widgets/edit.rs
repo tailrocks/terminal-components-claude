@@ -327,19 +327,40 @@ impl EditField {
     }
 
     /// The edit action `key` means under the preset and the text keys.
+    /// Ctrl+C over a selection copies under every preset unless the text
+    /// keys bind it to something else (copy-first, SI17: the Emacs preset
+    /// leaves Ctrl+C unbound, and the shell no longer quits over a
+    /// selection, so the field takes it).
     pub fn action(&self, key: &Key) -> EditAction {
+        if self.copy_first(key) {
+            return EditAction::Copy;
+        }
         match &self.text_keymap {
             Some(map) => edit_key_in(key, self.multiline, self.keys, map),
             None => edit_key_in(key, self.multiline, self.keys, &self.keys.text_keymap()),
         }
     }
 
-    /// The text command `key` is bound to, if any.
+    /// The text command `key` is bound to, if any; Ctrl+C over a
+    /// selection is Copy when nothing else binds it ([`Self::action`]).
     pub fn text_cmd(&self, key: &Key) -> Option<TextCmd> {
+        if self.copy_first(key) {
+            return Some(TextCmd::Copy);
+        }
+        self.bound_cmd(key)
+    }
+
+    fn bound_cmd(&self, key: &Key) -> Option<TextCmd> {
         match &self.text_keymap {
             Some(map) => crate::core::keymap::lookup(map, key),
             None => crate::core::keymap::lookup(&self.keys.text_keymap(), key),
         }
+    }
+
+    /// Ctrl+C over a selection, unbound by the text keys: Copy
+    /// (copy-first, SI17).
+    fn copy_first(&self, key: &Key) -> bool {
+        key.ctrl_char('c') && self.buffer.has_selection() && self.bound_cmd(key).is_none()
     }
 
     /// Handle a key: typing, caret moves, Select All, the clipboard keys,

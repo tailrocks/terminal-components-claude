@@ -10,11 +10,27 @@ use super::id::WidgetId;
 pub struct FocusRing {
     order: Vec<WidgetId>,
     barrier: Option<usize>,
+    /// Controls that hold a selection Ctrl+C copies (SI17).
+    selections: Vec<WidgetId>,
 }
 
 impl FocusRing {
     pub fn register(&mut self, id: WidgetId) {
         self.order.push(id);
+    }
+
+    /// `id` holds a selection its copy command copies this frame, so
+    /// Ctrl+C over it copies instead of quitting (copy-first, SI17;
+    /// [`crate::ui::leave::QuitKeys`]).
+    pub fn mark_selection(&mut self, id: WidgetId) {
+        if !self.selections.contains(&id) {
+            self.selections.push(id);
+        }
+    }
+
+    /// `id` held a selection when it was drawn ([`Self::mark_selection`]).
+    pub fn has_selection(&self, id: WidgetId) -> bool {
+        self.selections.contains(&id)
     }
 
     /// How many entries were registered so far: where a group that
