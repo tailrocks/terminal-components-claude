@@ -711,6 +711,54 @@ impl TreeView {
         self.flatten();
     }
 
+    /// Every branch with children is open.
+    fn all_expanded(&self) -> bool {
+        fn walk(
+            nodes: &[TreeNode],
+            path: &mut Path,
+            exp: &std::collections::HashSet<Path>,
+        ) -> bool {
+            nodes.iter().enumerate().all(|(i, n)| {
+                path.push(i);
+                let ok =
+                    n.children.is_empty() || (exp.contains(path) && walk(&n.children, path, exp));
+                path.pop();
+                ok
+            })
+        }
+        walk(&self.nodes, &mut Vec::new(), &self.expanded)
+    }
+
+    /// The tree's default context menu (M22), from its key map
+    /// ([`crate::ui::context::command_items`]): Expand all, Collapse all,
+    /// each with the key the map binds to it. A command with nothing to do
+    /// stays with its reason (every branch already open or closed). Open
+    /// it at a [`ContextRequest`] from the tree's [`ContextSource`] and run
+    /// the chosen command with [`Self::run`].
+    ///
+    /// [`ContextRequest`]: crate::ui::context::ContextRequest
+    /// [`ContextSource`]: crate::ui::context::ContextSource
+    pub fn context_items(&self) -> Vec<(TreeCmd, crate::widgets::menu::MenuItem)> {
+        use crate::ui::context::{ContextCmd, command_items};
+        let cmds = [
+            ContextCmd::new(TreeCmd::ExpandAll)
+                .unless(self.all_expanded().then_some("Every branch is open")),
+            ContextCmd::new(TreeCmd::CollapseAll)
+                .unless(self.expanded.is_empty().then_some("Every branch is closed")),
+        ];
+        command_items(&self.keymap, &cmds)
+    }
+
+    /// Run `cmd` exactly as its key does (a chosen [`Self::context_items`]
+    /// row, a toolbar button).
+    pub fn run(&mut self, cmd: TreeCmd) -> (Outcome, Option<TreeAction>) {
+        match cmd {
+            TreeCmd::ExpandAll => self.expand_all(),
+            TreeCmd::CollapseAll => self.collapse_all(),
+        }
+        (Outcome::Changed, None)
+    }
+
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
@@ -720,11 +768,7 @@ impl TreeView {
             return (Outcome::Ignored, None);
         }
         if let Some(action) = lookup(&self.keymap, key) {
-            match action {
-                TreeCmd::ExpandAll => self.expand_all(),
-                TreeCmd::CollapseAll => self.collapse_all(),
-            }
-            return (Outcome::Changed, None);
+            return self.run(action);
         }
         let rows = &self.rows[..];
         let nav = match self.core.key_step(key, rows) {
@@ -1942,5 +1986,83 @@ mod scroll_tests {
         t.on_click_toggle(0);
         t.on_click_with(0, true, KeyModifiers::ALT);
         assert_eq!(t.rows().len(), 2);
+    }
+
+    /// M22: a right click on a row offers Expand all and Collapse all,
+    /// named by the tree's key map; one with nothing to do says why, and a
+    /// chosen row runs exactly as its key does.
+    #[test]
+    fn a_right_click_offers_expand_and_collapse_all_from_the_key_map() {
+        use crate::core::intent::Phase;
+        use crate::core::pointer::PointerEvent;
+        use crate::ui::context::ContextConfig;
+        use crate::widgets::menu::MenuAction;
+        use ratatui::crossterm::event::KeyModifiers;
+        let theme = Theme::junie();
+        let nodes = vec![
+            TreeNode::dir("a", vec![TreeNode::dir("a1", vec![TreeNode::leaf("x")])]),
+            TreeNode::dir("b", vec![TreeNode::leaf("b1")]),
+        ];
+        let mut t = TreeView::new(WidgetId::of("t"), nodes);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        {
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 30, 8));
+            t.render(Rect::new(0, 0, 30, 8), &mut buf, &mut ctx, theme.canvas);
+        }
+        let pos = Position::new(4, 1);
+        let ev = PointerEvent::new(
+            &hits,
+            Phase::Secondary,
+            hits.hit(pos).expect("a row"),
+            pos,
+            1,
+            KeyModifiers::NONE,
+        );
+        let req = ContextConfig::DEFAULT
+            .on_secondary(&mut t, &ev)
+            .expect("a row has a menu");
+        assert_eq!(t.cursor, 1, "the menu is about the clicked row");
+        let row = |t: &TreeView, c: TreeCmd| {
+            let items = t.context_items();
+            let (_, i) = items.into_iter().find(|(x, _)| *x == c).expect("listed");
+            (
+                i.item.label.clone(),
+                i.shortcut.clone(),
+                i.item.reason.clone(),
+            )
+        };
+        assert_eq!(
+            row(&t, TreeCmd::ExpandAll),
+            ("Expand all".into(), Some("*".into()), None)
+        );
+        assert_eq!(
+            row(&t, TreeCmd::CollapseAll),
+            ("Collapse all".into(), Some("-".into()), None)
+        );
+        // choose Expand all through the menu
+        let items = t.context_items();
+        let mut menu = req.menu(
+            WidgetId::of("t.menu"),
+            items.iter().map(|(_, i)| i.clone()).collect(),
+        );
+        assert_eq!(menu.on_click(menu.row_id(0)), Some(MenuAction::Chosen(0)));
+        t.run(items[0].0);
+        assert_eq!(t.rows().len(), 5, "every branch open");
+        assert_eq!(
+            row(&t, TreeCmd::ExpandAll).2.as_deref(),
+            Some("Every branch is open")
+        );
+        t.run(TreeCmd::CollapseAll);
+        assert_eq!(t.rows().len(), 2);
+        assert_eq!(
+            row(&t, TreeCmd::CollapseAll).2.as_deref(),
+            Some("Every branch is closed")
+        );
+        // a remapped key shows its own chord
+        t.keymap = vec![(KeyBinding::char('e'), TreeCmd::ExpandAll)];
+        assert_eq!(row(&t, TreeCmd::ExpandAll).1.as_deref(), Some("e"));
+        assert_eq!(row(&t, TreeCmd::CollapseAll).1, None);
     }
 }

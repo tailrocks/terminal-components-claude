@@ -1123,6 +1123,8 @@ widgets::list::ListBox::skip_when_empty | focus-stop policy (K37): no visible st
 widgets::tree::TreeView::content | the Trees States grid shows its Loading and Error rows; a page option per widget comes with the State tab | SC34
 widgets::tree::TreeView::empty | an empty tree's placeholder; the Trees playground has no empty tree yet | SC34
 widgets::tree::TreeView::skip_when_empty | focus-stop policy (K37): no visible state until Tab passes the empty tree | SC34
+widgets::tree::TreeView::context_items | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
+widgets::tree::TreeView::run | default context_items from the widget key map (S13 M22), shown with the row menus of the Chips and Grid pages | SC34
 widgets::props::PropsList::content | the Text utilities States grid shows its Loading and Error rows; a page option comes with the State tab | SC34
 widgets::props::PropsList::empty | an empty sheet's placeholder; no page shows an empty sheet yet | SC34
 widgets::props::PropsList::skip_when_empty | focus-stop policy (K37): no visible state until Tab passes the empty sheet | SC34
