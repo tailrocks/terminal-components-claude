@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Screens › [0m[1mTask runner[0m                                                                         no color · 160×50   i Inspector   ? Help  [0m
                                                                                                                                                                 [0m
  [0m[1mComponents[0m           54  [0m[1mTask runner[0m  Composed: tree, live progress, following log, busy states                                                                [0m
-                                                                                                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
     Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                                                              [0m
   ▸ Tables                  Targets                         Pipeline                                                                               0 of 6 done  [0m
-  ▸ Navigation                                                                                                                                                  [0m
+  ▸ Navigation              ──────────────────────────      ──────────────────────────────────────────────────────────────────────────────────────────────────  [0m
   ▸ Overlays                 ▾ payments-gateway             ○ compile  …  queued                                                                                [0m
   ▸ Feedback                   ▾ build                      ○ lint     …  queued                                                                                [0m
   ▸ Layout                         compile                  ○ typecheck…  queued                                                                                [0m
@@ -18,7 +18,7 @@
       Connections                  e2e                                                                                                                          [0m
       Finder                   ▾ deploy                                                                                                                         [0m
       Disk cleanup                 ◇ staging                Log                                                                                    · following  [0m
-      Activity                     ◆ production                                                                                                                 [0m
+      Activity                     ◆ production             ──────────────────────────────────────────────────────────────────────────────────────────────────  [0m
       Workspaces             ▾ shared-libs                  Ready. Press r or Run to start the pipeline.                                                        [0m
       Accounts & usage           compile                                                                                                                        [0m
       Launch cockpit             publish                                                                                                                        [0m

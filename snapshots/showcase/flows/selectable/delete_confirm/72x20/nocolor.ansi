@@ -1,12 +1,12 @@
 [0m[2m ▪ Junie Design system  Tables › Selection        i Inspector   ? Help  [0m
 [0m[2m                                                                        [0m
 [0m[2m Components      54  Selectable table  Select rows, edit one or many t… [0m
-[0m[2m                                                                        [0m
+[0m[2m ──────────────────                                                     [0m
 [0m[2m [0m [0m[2m  Overview      ┃   Playground    Options    States                   [0m
 [0m[2m [0m [0m[2m▸ App s╭──────────────────────────────────────────────── × ─╮─────────[0m
 [0m[2m [0m [0m[2m▸ Input│                                                    │         [0m
 [0m[2m [0m [0m[2m▾ Table│  [0m[1;2mDelete 2 members?[0m[2m                                 │of 12   ┃[0m
-[0m[2m [0m [0m[2m    Bas│                                                    │        ┃[0m
+[0m[2m [0m [0m[2m    Bas│                                                    │─────   ┃[0m
 [0m[2m [0m [0m[2m    Edi│  They lose access to the workspace right away.     │   …    ┃[0m
 [0m[2m [0m [0m[2m    Dat│  This can't [0mb[0m[2me undone.                             │    ┃   ┃[0m
 [0m[2m [0m [0m[2m  › Sel│             [0m [0m[2m                                      │    ┆   ┃[0m

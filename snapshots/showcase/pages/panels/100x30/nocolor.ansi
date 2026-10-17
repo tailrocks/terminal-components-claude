@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mPanels[0m                   no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
  [0m[1mComponents[0m      54  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed t… [0m
-                                                                                                    [0m
+ ──────────────────                                                                                 [0m
     Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                  [0m
   ▸ Tables             Titled card              surface   ┃  ╭─ Framed · split pane     1–8 of 29 ─╮[0m
-  ▸ Navigation                                            ┃  │  Junie works through a task the   ┃ │[0m
+  ▸ Navigation         ────────────────────────────────   ┃  │  Junie works through a task the   ┃ │[0m
   ▸ Overlays           A card is a filled surface. Its    ┃  │  way a careful engineer would: it ┃ │[0m
   ▸ Feedback           title sits in the top-left and     ┃  │  reads the relevant code, forms a ┆ │[0m
   ▾ Layout             metadata on the right. It never    ┃  │  plan, makes focused changes,     ┆ │[0m
@@ -17,7 +17,7 @@
       Pane tree        Untitled card. Same surface,       ┃  ╰─────────────────────────────────────╯[0m
   ▸ Text & code        content starts at the padding      ┃                                         [0m
   ▸ Screens            edge.                              ┃    Card · scrollable         1–6 of 60  [0m
-                                                          ┃                                         [0m
+                                                          ┃    ───────────────────────────────────  [0m
                                                           ┃       0.00s  info   Resolving works… ┃  [0m
                                                           ┆       0.37s  info   Fetching crates… ┆  [0m
                                                           ┆       0.74s  info   Compiling proc-… ┆  [0m

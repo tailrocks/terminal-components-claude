@@ -1,12 +1,12 @@
 [0m[2m ▪ Junie Design system  Tables › Selection                no color · 100×30   i Inspector   ? Help  [0m
 [0m[2m                                                                                                    [0m
 [0m[2m Components      54  Selectable table  Select rows, edit one or many together, delete with a confi… [0m
-[0m[2m                                                                                                    [0m
+[0m[2m ──────────────────                                                                                 [0m
 [0m[2m [0m [0m[2m  Overview          Playground    Options    States                               the live widget [0m
 [0m[2m [0m [0m[2m▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
 [0m[2m [0m [0m[2m▸ Inputs & forms                                                                                  [0m
 [0m[2m [0m [0m[2m▾ Tables             Members                                            2 selected · 2–4 of 12   ┃[0m
-[0m[2m [0m [0m[2m    Basic table                                                                                  ┃[0m
+[0m[2m [0m [0m[2m    Basic table      ─────────────────────────────────────────────────────────────────────────   ┃[0m
 [0m[2m [0m [0m[2m    Editable            [–] Name                         Role    Status     Region  On call …    ┃[0m
 [0m[2m [0m [0m[2m    Data grid        [0m╭[0m[2m──────────────────────────────────────────────── × ─╮ US      Yes      ┃   ┃[0m
 [0m[2m [0m [0m[2m  › Selection        [0m│[0m[2m                                                    │ EU      —        ┆   ┃[0m

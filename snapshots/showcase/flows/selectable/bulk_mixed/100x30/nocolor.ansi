@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mSelection[0m                no color · 100×30   i Inspector   ? Help  [0m
                                                                                                     [0m
  Components      54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confi… [0m
-                                                                                                    [0m
+ ──────────────────                                                                                 [0m
     Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
   ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                  [0m
   ▾ Tables             [0m[1mMembers[0m                                            3 selected · 3–5 of 12   ┃[0m
-      Basic table                                                                                  ┃[0m
+      Basic table      ─────────────────────────────────────────────────────────────────────────   ┃[0m
       Editable            [–] Name                         Role    Status     Region  On call …    ┃[0m
       Data grid        [0m[1m   [✓] Cleo Barnes                  Editor  Active     EU      —        [0m┃   ┃[0m
  [0m[1m   › Selection    [0m    [0m[1m▎  [✓] Bo Lindqvist                 Editor  Invited    EU      —        [0m┆   ┃[0m

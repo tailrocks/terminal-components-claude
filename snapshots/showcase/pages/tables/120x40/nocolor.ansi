@@ -1,12 +1,12 @@
  ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mBasic table[0m                                  no color · 120×40   i Inspector   ? Help  [0m
                                                                                                                         [0m
  [0m[1mComponents[0m           54  [0m[1mTables[0m  Sort by header, hover rows, select with Enter, overflow scrolls                       [0m
-                                                                                                                        [0m
+ ───────────────────────                                                                                                [0m
     Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
   ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
   ▸ Inputs & forms                                                                                                      [0m
   ▾ Tables                  Tasks                                                                                      ┃[0m
- [0m[1m▎  › Basic table       [0m                                                                                               ┃[0m
+ [0m[1m▎  › Basic table       [0m    ────────────────────────────────────────────────────────────────────────────────────────── ┃[0m
       Editable                 ID     Task                                 Owner    Status     Branch                  ┃[0m
       Data grid                #1040  Add rate limiting to auth endpoints  mira     Done       feat/rate-limit         ┃[0m
       Selection                #1041  Migrate sessions table to UUID keys  jonas    ▸ Running  chore/uuid-sessions     ┃[0m
@@ -31,7 +31,7 @@
                                                                                                                        ┆[0m
                                                                                                                        ┆[0m
                             Reviewers                                                                              2 s ┆[0m
-                                                                                                                       ┆[0m
+                            ────────────────────────────────────────────────────────────────────────────────────────── ┆[0m
                                [–] Reviewer                                                                       Team ┆[0m
                             [0m[1m   [✓] mira                                                                           plat[0m ┆[0m
                                [ ] jonas                                                                          paym ┆[0m
