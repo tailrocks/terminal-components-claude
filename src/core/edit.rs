@@ -225,6 +225,25 @@ pub enum TextCmd {
 }
 
 impl Actions for TextCmd {
+    fn label(self) -> &'static str {
+        match self {
+            TextCmd::SelectAll => "Select all",
+            TextCmd::Copy => "Copy",
+            TextCmd::Cut => "Cut",
+            TextCmd::Paste => "Paste",
+            TextCmd::Undo => "Undo",
+            TextCmd::Redo => "Redo",
+            TextCmd::LineStart => "Line start",
+            TextCmd::LineEnd => "Line end",
+            TextCmd::DocStart => "Start of text",
+            TextCmd::DocEnd => "End of text",
+            TextCmd::SelectToLineStart => "Select to line start",
+            TextCmd::SelectToLineEnd => "Select to line end",
+            TextCmd::SelectToDocStart => "Select to start",
+            TextCmd::SelectToDocEnd => "Select to end",
+        }
+    }
+
     /// The client platform's preset ([`FieldKeys::default`]).
     fn default_keymap() -> KeyMap<Self> {
         FieldKeys::default().text_keymap()

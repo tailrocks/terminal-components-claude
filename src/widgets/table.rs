@@ -264,6 +264,13 @@ pub enum TableCmd {
 }
 
 impl Actions for TableCmd {
+    fn label(self) -> &'static str {
+        match self {
+            TableCmd::SortByColumn => "Sort",
+            TableCmd::SelectAll => "Select all",
+        }
+    }
+
     fn default_keymap() -> KeyMap<Self> {
         let mut map = vec![(KeyBinding::char('s'), TableCmd::SortByColumn)];
         map.extend(select_all_bindings(TableCmd::SelectAll));
