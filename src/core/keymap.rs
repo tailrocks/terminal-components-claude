@@ -1127,7 +1127,8 @@ mod widget_tests {
     #[test]
     fn picker_and_completion_nav() {
         crate::core::list::NavProfile::Vim.install();
-        use crate::widgets::completion::{Completion, CompletionItem};
+        use crate::widgets::completion::Completion;
+        use crate::widgets::option_list::Item;
         use crate::widgets::picker::{Picker, PickerItem};
         let items = || {
             (0..5)
@@ -1152,13 +1153,7 @@ mod widget_tests {
         p.on_key(&c('j'));
         assert_eq!(p.cursor, 0);
 
-        let item = |l: &str| CompletionItem {
-            label: l.to_owned(),
-            glyph: "T".into(),
-            detail: String::new(),
-            insert: l.to_owned(),
-            matched: vec![],
-        };
+        let item = |l: &str| Item::new(l).glyph("T");
         let mut comp = Completion::new(WidgetId::of("c"));
         comp.open(
             vec![item("a"), item("b"), item("c")],
@@ -1176,7 +1171,7 @@ mod widget_tests {
             "so does End"
         );
         comp.on_key(&k(KeyCode::Down));
-        assert_eq!(comp.cursor, 1);
+        assert_eq!(comp.list.cursor.index, 1);
         let mut comp = Completion::new(WidgetId::of("c")).nav(NavKeys::DEFAULT);
         comp.open(
             vec![item("a"), item("b"), item("c")],
@@ -1184,7 +1179,7 @@ mod widget_tests {
             0,
         );
         comp.on_key(&k(KeyCode::End));
-        assert_eq!(comp.cursor, 2, "an app can hand it Home/End");
+        assert_eq!(comp.list.cursor.index, 2, "an app can hand it Home/End");
     }
 
     #[test]

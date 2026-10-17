@@ -20,7 +20,7 @@ use junie_tui::ui::text::{DurationStyle, duration};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::chips::{Chip, ChipBar, ChipCmd};
 use junie_tui::widgets::code::{CodeEditor, Diagnostic, EditorAction, Severity};
-use junie_tui::widgets::completion::{Completion, CompletionAction, CompletionItem};
+use junie_tui::widgets::completion::{Completion, CompletionAction};
 use junie_tui::widgets::empty::EmptyState;
 use junie_tui::widgets::grid::{
     CellKind, CellValue, ColumnSpec, DataGrid, GridAction, GridCmd, GridRows, RowTotal,
@@ -28,6 +28,7 @@ use junie_tui::widgets::grid::{
 use junie_tui::widgets::input::TextInput;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
+use junie_tui::widgets::option_list::Item;
 use junie_tui::widgets::panel::{Panel, ScrollPanel};
 use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::scrollbar;
@@ -1266,14 +1267,14 @@ impl QueryTab {
             .cursor_cell()
             .map(|c| Rect::new(c.x.saturating_sub(replace as u16), c.y, 1, 1))
             .unwrap_or(Rect::ZERO);
-        let items: Vec<CompletionItem> = items
+        let items: Vec<Item> = items
             .into_iter()
-            .map(|c| CompletionItem {
-                label: c.label.clone(),
-                glyph: c.kind.glyph().into(),
-                detail: c.detail,
-                insert: c.insert,
-                matched: c.matched,
+            .map(|c| {
+                Item::new(c.label.clone())
+                    .glyph(c.kind.glyph())
+                    .detail(c.detail)
+                    .insert(c.insert)
+                    .matched(c.matched)
             })
             .collect();
         if items.is_empty() {
@@ -1284,18 +1285,9 @@ impl QueryTab {
     }
 
     fn accept_completion(&mut self, i: usize) {
-        let Some(item) = self.completion.items.get(i).cloned() else {
-            return;
-        };
-        let replace = self.completion.replace_len;
-        let cur = self.editor.cursor_offset();
-        self.editor.field.buffer.remove_range(cur - replace..cur);
-        self.editor.field.buffer.insert_str(&item.insert);
-        if item.insert.ends_with('(') {
-            // functions: cursor inside the parens
-            self.editor.field.buffer.insert_char(')');
-            self.editor.field.buffer.move_left(false);
-        }
+        // the prefix gives way to the insertion; a function gets its parens
+        // with the cursor inside
+        self.completion.apply(i, &mut self.editor.field.buffer);
         self.completion.close();
     }
 
