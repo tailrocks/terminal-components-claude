@@ -125,3 +125,17 @@ fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
     h.click(h.app.shell.size.0 - 3, h.app.shell.size.1 / 2);
     assert!(!h.app.host_menu.is_open(), "a click away closed the menu");
 }
+
+/// K11: the host menu bar is a focus stop that handles its own keys, as
+/// holla's does: with focus on it (Tab reaches it), Enter opens its first
+/// menu and Esc hands focus back. Before, its keys went to the page and
+/// nothing happened.
+#[test]
+fn the_focused_host_menu_bar_opens_with_enter() {
+    let mut h = manager();
+    h.app.shell.focus.focus(WidgetId::of("host.menu"));
+    h.key(KeyCode::Enter);
+    assert!(h.app.host_menu.is_open(), "Enter opened File\n{}", h.text());
+    h.key(KeyCode::Esc);
+    assert!(!h.app.host_menu.is_open());
+}
