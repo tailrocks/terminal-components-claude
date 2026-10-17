@@ -2616,6 +2616,54 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Demo("progress", "Migrate schema ━"),
     ),
     (
+        "widgets::meter_list::MeterList",
+        Demo("meters", "Session (5 h)"),
+    ),
+    (
+        "widgets::meter_list::MeterRow",
+        Demo("meters", "Extra credits"),
+    ),
+    (
+        "widgets::meter_list::MeterRow::detail",
+        Option("meters", "meters.detail"),
+    ),
+    (
+        "widgets::meter_list::MeterList::label_width",
+        Option("meters", "meters.label_width"),
+    ),
+    (
+        "widgets::meter_list::MeterList::label_gap",
+        Option("meters", "meters.label_gap"),
+    ),
+    (
+        "widgets::meter_list::MeterList::meter_width",
+        Option("meters", "meters.meter_width"),
+    ),
+    (
+        "widgets::meter_list::MeterList::detail_tone",
+        Option("meters", "meters.detail_tone"),
+    ),
+    (
+        "widgets::meter_list::MeterList::label_tone",
+        Demo("meters", "/System/Volumes/Data"),
+    ),
+    (
+        "widgets::meter_list::MeterList::pad_label",
+        Demo("meters", "/Volumes/Scratch"),
+    ),
+    (
+        "widgets::meter_list::MeterList::reserve",
+        Demo("meters", "reserve 4"),
+    ),
+    (
+        "widgets::meter_list::MeterList::min_meter",
+        Demo("meters", "min 8"),
+    ),
+    (
+        "widgets::meter_list::MeterList::detail_gap",
+        Demo("meters", "detail gap 3"),
+    ),
+    (
         "widgets::progress::Meter",
         Demo("progress", "Capacity meters are never green"),
     ),
@@ -5106,6 +5154,11 @@ impl ViaRole {
 /// catalog, a bare name of another type, a path that is a method, and a
 /// function that is also declared directly or allowlisted.
 pub static VIA: &[(&str, ViaRole, &[&str])] = &[
+    (
+        "widgets::meter_list::MeterList",
+        Protocol,
+        &["height", "label_column", "meter_column", "render"],
+    ),
     ("core::edit::FieldKeys", Plumbing, &["text_keymap"]),
     ("core::edit::FocusSelect", Plumbing, &["apply"]),
     (

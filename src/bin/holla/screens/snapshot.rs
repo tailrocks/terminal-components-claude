@@ -18,6 +18,7 @@ use junie_tui::ui::text::{truncate, width};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::menu::MenuItem;
+use junie_tui::widgets::meter_list::{MeterList, MeterRow};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::progress::{Meter, MeterTone, MeterVisual};
 use junie_tui::widgets::props::{self, Prop};
@@ -1443,21 +1444,31 @@ impl ShellPage<Holla> for SnapshotPage {
         }
         let mut y = area.y + 2;
         // meters (system, postgres)
-        for (label, pct) in &self.meters {
-            buf.set_string(area.x + 1, y, label, t.muted());
-            let mx = area.x + 14;
-            Meter::new(Some(*pct))
-                .value(format!("{pct}%"))
-                .tone(MeterTone::Normal)
-                .visual(MeterVisual::Block)
-                .render(
-                    Rect::new(mx, y, 34.min(area.width.saturating_sub(16)), 1),
-                    buf,
-                    ctx,
-                    t.canvas,
-                );
-            y += 1;
-        }
+        let meters = MeterList::new(
+            self.meters
+                .iter()
+                .map(|(label, pct)| {
+                    MeterRow::new(
+                        label.clone(),
+                        Meter::new(Some(*pct))
+                            .value(format!("{pct}%"))
+                            .tone(MeterTone::Normal)
+                            .visual(MeterVisual::Block),
+                    )
+                })
+                .collect(),
+        )
+        .label_width(12)
+        .label_tone(Tone::Muted)
+        .meter_width(34)
+        .reserve(2);
+        meters.render(
+            Rect::new(area.x + 1, y, area.width.saturating_sub(1), meters.height()),
+            buf,
+            ctx,
+            t.canvas,
+        );
+        y += meters.height();
         if !self.meters.is_empty() {
             y += 1;
         }

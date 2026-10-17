@@ -88,7 +88,9 @@
 120x40 TrueColor Empty & error 4dcec7b5f50640af
 120x40 TrueColor Empty & error · Options e797da0df0fb222e
 120x40 TrueColor Empty & error · States f69c6f58d290d592
-120x40 TrueColor Meters a8cc472016fd1139
+120x40 TrueColor Meters 072f36b2654093ce
+120x40 TrueColor Meters · Options ec247489cb032098
+120x40 TrueColor Meters · States 7b0fe05b459bb3c6
 120x40 TrueColor Notices c03d0fb09e19865f
 120x40 TrueColor Panels 792a6aad94f66d22
 120x40 TrueColor Panels · Options 0fd87fc052d0f268
@@ -216,7 +218,9 @@
 120x40 Ansi256 Empty & error bc19a96d725883fa
 120x40 Ansi256 Empty & error · Options e52aaffbdea9040c
 120x40 Ansi256 Empty & error · States 528a20238d62f8cc
-120x40 Ansi256 Meters ca9a66382920dabb
+120x40 Ansi256 Meters 44b97bf43f5b2cb3
+120x40 Ansi256 Meters · Options 82beb807451c7e31
+120x40 Ansi256 Meters · States 4a73ab0df55f730f
 120x40 Ansi256 Notices a95576cd362f9e02
 120x40 Ansi256 Panels adfccb604f56e4a2
 120x40 Ansi256 Panels · Options 34f7d8c1ac385cb7
@@ -344,7 +348,9 @@
 120x40 Ansi16 Empty & error 3f3a0decec524a5d
 120x40 Ansi16 Empty & error · Options 03cd767cca6c6338
 120x40 Ansi16 Empty & error · States 567c385ce67d2229
-120x40 Ansi16 Meters 7ba59b11b43589de
+120x40 Ansi16 Meters 97ca24801594c4d6
+120x40 Ansi16 Meters · Options a781e8f6f9e313d3
+120x40 Ansi16 Meters · States 72df772d640d21e7
 120x40 Ansi16 Notices 340c4aa89fe8e66a
 120x40 Ansi16 Panels c58df64b3f3803a2
 120x40 Ansi16 Panels · Options 47e3d6683ab81d2c
@@ -472,7 +478,9 @@
 120x40 Mono Empty & error 486ba535a731d928
 120x40 Mono Empty & error · Options d8d1d47760c0b5b9
 120x40 Mono Empty & error · States 6d9aa668f5a7852e
-120x40 Mono Meters 62268c568d879c7f
+120x40 Mono Meters 465f2954b9315020
+120x40 Mono Meters · Options a193276b72b66bbe
+120x40 Mono Meters · States 132cd78fbe7dc611
 120x40 Mono Notices 0c7ce39f18a15d59
 120x40 Mono Panels 1a5ebe9eb67fae7b
 120x40 Mono Panels · Options 3a22ed7049efc21b
@@ -600,7 +608,9 @@
 80x24 TrueColor Empty & error b5d7acaeaadf1d4b
 80x24 TrueColor Empty & error · Options 5872c2a81bfe412d
 80x24 TrueColor Empty & error · States f1b8546829cec4a2
-80x24 TrueColor Meters fce19be7a2d57ab4
+80x24 TrueColor Meters cec273d460df7f0e
+80x24 TrueColor Meters · Options b9eccc157fdec4ef
+80x24 TrueColor Meters · States e94a5cec143ca6c7
 80x24 TrueColor Notices b1a704c4c0fde300
 80x24 TrueColor Panels 1912760bc1b923a6
 80x24 TrueColor Panels · Options 377a0588ee0b560d
@@ -728,7 +738,9 @@
 80x24 Ansi256 Empty & error 59a49e52dbf274fd
 80x24 Ansi256 Empty & error · Options 0298586cb574ded6
 80x24 Ansi256 Empty & error · States 252462decdc46e35
-80x24 Ansi256 Meters 435ea811989911b4
+80x24 Ansi256 Meters 68bc277cf3c3413c
+80x24 Ansi256 Meters · Options caaf73680d1baa91
+80x24 Ansi256 Meters · States 7ae0060477e59633
 80x24 Ansi256 Notices 2d0e9c1112003331
 80x24 Ansi256 Panels f8f7030a6390a68d
 80x24 Ansi256 Panels · Options 372f76936125af1d
@@ -856,7 +868,9 @@
 80x24 Ansi16 Empty & error fac1ef6360176d5d
 80x24 Ansi16 Empty & error · Options c691be5c591f4d8f
 80x24 Ansi16 Empty & error · States f4f779afe8f4ecef
-80x24 Ansi16 Meters 4afc604b39af8c9d
+80x24 Ansi16 Meters 84ef2ab6dd0412af
+80x24 Ansi16 Meters · Options 1890b4608346810f
+80x24 Ansi16 Meters · States e97dfc48e9efd6eb
 80x24 Ansi16 Notices 43d4e29cdeafdd0d
 80x24 Ansi16 Panels 8b7f2b57862f9985
 80x24 Ansi16 Panels · Options e722312dfd6a3406
@@ -984,7 +998,9 @@
 80x24 Mono Empty & error 7874073de8fca1c3
 80x24 Mono Empty & error · Options 81027e8ea85cbb6d
 80x24 Mono Empty & error · States ee3aefcc40d13a67
-80x24 Mono Meters 134dad2082b343d3
+80x24 Mono Meters 120de9c7142ba6b0
+80x24 Mono Meters · Options b8f458b2916e7325
+80x24 Mono Meters · States 3bf09057ddbd8e7b
 80x24 Mono Notices 50cba9cda05b0a47
 80x24 Mono Panels 9f399ab498ca14e5
 80x24 Mono Panels · Options c96524fe36fc3494
@@ -1112,7 +1128,9 @@
 72x20 TrueColor Empty & error 12049218449ec12b
 72x20 TrueColor Empty & error · Options f3dc635bfca29788
 72x20 TrueColor Empty & error · States 840716f6af526942
-72x20 TrueColor Meters 388a7960dd66fcbc
+72x20 TrueColor Meters 08a637a752083d16
+72x20 TrueColor Meters · Options cd7ba6e59c27e681
+72x20 TrueColor Meters · States 0f716aca4c4c4642
 72x20 TrueColor Notices c649b192751f0748
 72x20 TrueColor Panels 9b20f78c8da8a75a
 72x20 TrueColor Panels · Options a82f56fc296ac5b6
@@ -1240,7 +1258,9 @@
 72x20 Ansi256 Empty & error 41841edf472b94fd
 72x20 Ansi256 Empty & error · Options 035e110f54161fbc
 72x20 Ansi256 Empty & error · States 50b6a0bf582edb03
-72x20 Ansi256 Meters b0c9c4288184e7b4
+72x20 Ansi256 Meters fa73a27b0055215a
+72x20 Ansi256 Meters · Options 3cf2a29f03a8f034
+72x20 Ansi256 Meters · States e24558335b62c52d
 72x20 Ansi256 Notices 72acfde6b381b1f1
 72x20 Ansi256 Panels 4175337efe86e7e9
 72x20 Ansi256 Panels · Options d91c6e46c3cedd4a
@@ -1368,7 +1388,9 @@
 72x20 Ansi16 Empty & error 8722501664e014e2
 72x20 Ansi16 Empty & error · Options 3519ebc8b58aba37
 72x20 Ansi16 Empty & error · States 3425bdd10287258b
-72x20 Ansi16 Meters e89e04b7c54bdab5
+72x20 Ansi16 Meters 42109479d2375366
+72x20 Ansi16 Meters · Options f098764993af05fd
+72x20 Ansi16 Meters · States 5def878d8335b8cc
 72x20 Ansi16 Notices 742f84d891a7713d
 72x20 Ansi16 Panels f0b79ee1d0225255
 72x20 Ansi16 Panels · Options 158d6c2877fd920e
@@ -1496,7 +1518,9 @@
 72x20 Mono Empty & error 6cb7cea763f509fc
 72x20 Mono Empty & error · Options 78f8d61ff9e5991d
 72x20 Mono Empty & error · States e38dcff99a95779b
-72x20 Mono Meters ae337a4e18abe72b
+72x20 Mono Meters 094cd180b2605f41
+72x20 Mono Meters · Options db9f6a3b4f8e6423
+72x20 Mono Meters · States 16e98f89735c9199
 72x20 Mono Notices bc919eebae40da17
 72x20 Mono Panels 0503688b3ce4d09d
 72x20 Mono Panels · Options 8d86acf691515e08
@@ -1624,7 +1648,9 @@
 100x30 TrueColor Empty & error 40674d4698358f59
 100x30 TrueColor Empty & error · Options 2d196dbc94b93e77
 100x30 TrueColor Empty & error · States 241bb6bc02230a59
-100x30 TrueColor Meters c0eafe78bb3c7da2
+100x30 TrueColor Meters f2241aeb008a7298
+100x30 TrueColor Meters · Options 2e4cd28559344c35
+100x30 TrueColor Meters · States d570c3e35c4320b3
 100x30 TrueColor Notices dbea27a3d37f19ae
 100x30 TrueColor Panels 3ad849ac805401b4
 100x30 TrueColor Panels · Options 9ab276dfd0cf09ca
@@ -1752,7 +1778,9 @@
 100x30 Ansi256 Empty & error eb260293d8ea3638
 100x30 Ansi256 Empty & error · Options 01f6430848496f66
 100x30 Ansi256 Empty & error · States 4430cd7a27ced17d
-100x30 Ansi256 Meters 037ca85433a0c208
+100x30 Ansi256 Meters 59e8d8424aa84be4
+100x30 Ansi256 Meters · Options 81072feecb3f80ff
+100x30 Ansi256 Meters · States f56cf5a36be0fedb
 100x30 Ansi256 Notices 271645a9421d274d
 100x30 Ansi256 Panels 92ac6f117292f4a4
 100x30 Ansi256 Panels · Options 0d274575be474eee
@@ -1880,7 +1908,9 @@
 100x30 Ansi16 Empty & error acd43251555b58c3
 100x30 Ansi16 Empty & error · Options 454a1dc3b78a1143
 100x30 Ansi16 Empty & error · States ab55404c9b54d9f0
-100x30 Ansi16 Meters 0f1eab2b337e2255
+100x30 Ansi16 Meters 85285e841eee5a0e
+100x30 Ansi16 Meters · Options b59dfe5a7ec0b311
+100x30 Ansi16 Meters · States ef90088e65fcf11d
 100x30 Ansi16 Notices dc54f70506ab57b9
 100x30 Ansi16 Panels 4cf29b00179e6ea7
 100x30 Ansi16 Panels · Options c7cc2fef41775e1d
@@ -2008,7 +2038,9 @@
 100x30 Mono Empty & error 002b698bcfdd9f9e
 100x30 Mono Empty & error · Options a32aecf28d583cfc
 100x30 Mono Empty & error · States 8993eef4687ad051
-100x30 Mono Meters 672834da2cc6a280
+100x30 Mono Meters 708c9f51197eb56f
+100x30 Mono Meters · Options e530a4df6aaf7668
+100x30 Mono Meters · States 2880039b4a74505f
 100x30 Mono Notices dc3957d83f426986
 100x30 Mono Panels 577e632d02a53fb5
 100x30 Mono Panels · Options f67e5b90d7bc8076
@@ -2136,7 +2168,9 @@
 160x50 TrueColor Empty & error 79c7643202cdf546
 160x50 TrueColor Empty & error · Options b83bbd86b6dd4c09
 160x50 TrueColor Empty & error · States 424cfa089eb4cf91
-160x50 TrueColor Meters a1d2bec7807d59aa
+160x50 TrueColor Meters b0e2290fed499b5b
+160x50 TrueColor Meters · Options 3c1c4b00807ab9d1
+160x50 TrueColor Meters · States 48c3f3b931114dbd
 160x50 TrueColor Notices a50bd7aa50effe5a
 160x50 TrueColor Panels 519065734d0defc3
 160x50 TrueColor Panels · Options 180368090e8cc869
@@ -2264,7 +2298,9 @@
 160x50 Ansi256 Empty & error a13c05a93c6a2415
 160x50 Ansi256 Empty & error · Options 9b1d839aa58fb0d9
 160x50 Ansi256 Empty & error · States 4f4d4093c7aa03b5
-160x50 Ansi256 Meters 9f14364c110d9a00
+160x50 Ansi256 Meters cb0e84175ce772b2
+160x50 Ansi256 Meters · Options c9a1fad2840c2caa
+160x50 Ansi256 Meters · States f15b33762d7a540e
 160x50 Ansi256 Notices 9d9642c62162c849
 160x50 Ansi256 Panels dd1924c06e4bb54e
 160x50 Ansi256 Panels · Options b74db72fd8d1f170
@@ -2392,7 +2428,9 @@
 160x50 Ansi16 Empty & error 209c73fc77a6c30e
 160x50 Ansi16 Empty & error · Options 199e4a8d503881c3
 160x50 Ansi16 Empty & error · States 2ec6e6101b696e1b
-160x50 Ansi16 Meters 4a55b8728ff3c0c9
+160x50 Ansi16 Meters 89d2b3aa94fe1505
+160x50 Ansi16 Meters · Options eecee14d6e07eaa4
+160x50 Ansi16 Meters · States bc772418309889da
 160x50 Ansi16 Notices 7de70169394a5c07
 160x50 Ansi16 Panels 170c4faca6469d6a
 160x50 Ansi16 Panels · Options c6048125abf448f1
@@ -2520,7 +2558,9 @@
 160x50 Mono Empty & error c18dca1b5172ec99
 160x50 Mono Empty & error · Options 8c3747c125458392
 160x50 Mono Empty & error · States b4c73546630ce1de
-160x50 Mono Meters b3ba2e5c1d49184c
+160x50 Mono Meters 1c9d1b09a5e70b7b
+160x50 Mono Meters · Options cf8b669a676cbcd1
+160x50 Mono Meters · States fa8c797c63b6f312
 160x50 Mono Notices f1d8475bb3a4bb90
 160x50 Mono Panels 48dd6125c73ceaed
 160x50 Mono Panels · Options b6a53774af157e02
