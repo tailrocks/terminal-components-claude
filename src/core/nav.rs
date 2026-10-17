@@ -71,10 +71,14 @@ mod tests {
         tabs.on_key(&k(KeyCode::Left));
         assert_eq!(tabs.active, 2);
 
-        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 2);
+        // a closed select that steps its value (SelectArrows::Step)
+        let step = crate::widgets::select::SelectArrows::Step;
+        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 2).arrows(step);
         s.on_key(&k(KeyCode::Down));
         assert_eq!(s.selected, 2);
-        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 2).wrap(true);
+        let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 2)
+            .arrows(step)
+            .wrap(true);
         s.on_key(&k(KeyCode::Down));
         assert_eq!(s.selected, 0);
 
