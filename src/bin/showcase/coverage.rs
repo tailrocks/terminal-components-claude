@@ -1974,6 +1974,23 @@ pub static SHOWN: &[(&str, Shown)] = &[
         Demo("forms", "Auto-approve changes"),
     ),
     ("widgets::choice::RadioGroup", Demo("forms", "(●) Balanced")),
+    // Forms on the template (Priority 0): its option table
+    (
+        "widgets::input::TextInput::validate_when",
+        Option("forms", "forms.validate_when"),
+    ),
+    (
+        "widgets::input::TextInput::required",
+        Option("forms", "forms.required"),
+    ),
+    (
+        "widgets::textarea::TextArea::blur_action",
+        Option("forms", "forms.blur"),
+    ),
+    (
+        "widgets::choice::Toggle::disabled",
+        Option("forms", "forms.managed"),
+    ),
     (
         "widgets::choice::Checkbox",
         Demo("forms", "[✓] Run tests before opening a PR"),
