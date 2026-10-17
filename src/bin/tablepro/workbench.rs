@@ -576,6 +576,34 @@ impl Workbench {
             .sum()
     }
 
+    /// Query tabs whose text is not saved.
+    pub fn unsaved_queries(&self) -> usize {
+        self.tabs
+            .iter()
+            .filter(|t| matches!(t, WorkTab::Query(q) if q.dirty()))
+            .count()
+    }
+
+    /// What closing the workbench would lose, in words ("2 pending row
+    /// changes and 1 unsaved query"); `None` when nothing.
+    pub fn losses(&self) -> Option<String> {
+        let (pending, queries) = (self.pending_total(), self.unsaved_queries());
+        let mut parts = vec![];
+        if pending > 0 {
+            parts.push(format!(
+                "{pending} pending row change{}",
+                if pending == 1 { "" } else { "s" }
+            ));
+        }
+        if queries > 0 {
+            parts.push(format!(
+                "{queries} unsaved quer{}",
+                if queries == 1 { "y" } else { "ies" }
+            ));
+        }
+        (!parts.is_empty()).then(|| parts.join(" and "))
+    }
+
     pub fn running(&self) -> Option<u32> {
         self.tabs.iter().find_map(|t| match t {
             WorkTab::Query(q) => q.running.as_ref().map(|r| r.started_ticks * 80),
