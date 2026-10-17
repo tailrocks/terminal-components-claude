@@ -14,6 +14,7 @@ use crate::core::id::{ItemKey, Part, PartRef, WidgetId};
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::ui::ctx::RenderCtx;
+use crate::ui::row::{RowLook, RowUi};
 
 // Buffer string writes clip to the whole buffer, not the widget rectangle.
 // Keep every optional row segment bounded before deriving its coordinates.
@@ -119,14 +120,7 @@ impl Checkbox {
         if self.disabled {
             s.hovered = false;
         }
-        let st = t.row(s, bg);
-        crate::ui::ctx::fill(buf, area, st);
-        buf.set_string(
-            area.x,
-            area.y,
-            t.gutter_symbol(s),
-            t.gutter(s, st.bg.unwrap_or(bg), false),
-        );
+        let st = RowUi::paint(ctx, buf, area, s, RowLook::Bar, bg).style();
         let g = &t.glyphs;
         let mark = match (area.width < 4, self.checked, self.mixed) {
             (true, _, true) => g.dash,
@@ -273,14 +267,7 @@ impl RadioGroup {
             let mut s = ctx.child_state(self.id, self.option_id(i), i == self.cursor);
             s.focused = focused && i == self.cursor;
             s.disabled = self.disabled;
-            let st = t.row(s, bg);
-            crate::ui::ctx::fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
             let on = i == self.selected;
             let g = &t.glyphs;
             let mark = match (row.width < 4, on) {
@@ -370,14 +357,7 @@ impl Toggle {
         if self.disabled {
             s.hovered = false;
         }
-        let st = t.row(s, bg);
-        crate::ui::ctx::fill(buf, area, st);
-        buf.set_string(
-            area.x,
-            area.y,
-            t.gutter_symbol(s),
-            t.gutter(s, st.bg.unwrap_or(bg), false),
-        );
+        let st = RowUi::paint(ctx, buf, area, s, RowLook::Bar, bg).style();
         let g = &t.glyphs;
         let (sw, ss) = if self.disabled {
             (if self.on { g.toggle_on } else { g.toggle_off }, st)
