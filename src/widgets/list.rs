@@ -16,6 +16,7 @@ use crate::core::selection::{ClickPolicy, RowSelection, SelectGesture};
 use crate::theme::Tone;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::reveal::{Reveal, RevealLine, RevealState};
+use crate::ui::row::{RowLook, RowUi};
 use crate::widgets::scrollbar;
 
 #[derive(Debug, Clone)]
@@ -629,16 +630,8 @@ impl ListBox {
                 SelectMode::Single => self.chosen == Some(li),
                 SelectMode::Multi => self.selection.contains(li),
             };
-            let st = t.row(s, bg);
-            fill(buf, row, st);
-            for gy in row.y..row.bottom() {
-                buf.set_string(
-                    row.x,
-                    gy,
-                    t.gutter_symbol(s),
-                    t.gutter(s, st.bg.unwrap_or(bg), false),
-                );
-            }
+            let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
+            let st = rp.style();
             let marker = match (self.mode, s.selected) {
                 (SelectMode::Single, true) => t.glyphs.current,
                 (SelectMode::Multi, true) => t.glyphs.tick,
@@ -665,11 +658,8 @@ impl ListBox {
                     buf.set_string(row.x + 3, y + k as u16, text, ls);
                 }
             } else {
-                buf.set_string(row.x + 3, y, crate::ui::text::fit(&item.label, lw), st);
-                if !item.disabled {
-                    let label = Rect::new(row.x + 3, y, lw as u16, 1);
-                    self.reveal.cell(ctx, rid, label, &item.label, s.focused);
-                }
+                let label = Rect::new(row.x + 3, y, lw as u16, 1);
+                rp.label(ctx, buf, &mut self.reveal, rid, label, &item.label, st);
             }
             if let Some(m) = &item.meta
                 && meta_w > 0

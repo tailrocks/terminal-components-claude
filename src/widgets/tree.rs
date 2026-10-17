@@ -10,7 +10,8 @@ use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::scroll::{ScrollPane, Scrollable};
 use crate::core::selection::ClickPolicy;
 use crate::theme::Tone;
-use crate::ui::ctx::{RenderCtx, fill};
+use crate::ui::ctx::RenderCtx;
+use crate::ui::row::{RowLook, RowUi};
 
 /// A node in a tree: label, optional trailing metadata, children.
 #[derive(Debug, Clone)]
@@ -1006,14 +1007,7 @@ impl TreeView {
             }
             s.focused = focused && ri == self.cursor;
             s.selected = self.selected.as_ref() == Some(&row.path);
-            let st = t.row(s, bg);
-            fill(buf, full, st);
-            buf.set_string(
-                rect.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
+            let st = RowUi::paint(ctx, buf, full, s, RowLook::Bar, bg).style();
             let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
             // the row is a target even when its indent leaves no room for
