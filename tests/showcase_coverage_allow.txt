@@ -901,6 +901,8 @@ theme::Theme::close_glyph | public function registered by SC-G1 (a query, label,
 theme::Theme::close_plate | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::danger_plate | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::cell_cursor | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
+theme::Theme::cursor_in_selection | the grid cursor inside a range selection (S10, SVg3): SC58 shows the theme roles on its page | SC58
+theme::Theme::highlight_on_selection | the fill of the grid cursor inside a range selection (S10, SVg3): SC58 shows the theme roles on its page | SC58
 theme::Theme::rule_on | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::match_current | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
 theme::Theme::selection | public function registered by SC-G1 (a query, label, theme role or render helper): SC58 shows it on its page | SC58
