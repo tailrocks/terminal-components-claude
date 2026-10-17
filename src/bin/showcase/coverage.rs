@@ -689,6 +689,27 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "theme::HintBarStyle",
         Demo("statushints", "HintBarStyle · align Start"),
     ),
+    // the shell pieces on Status & hints (SC30)
+    (
+        "theme::Theme::centred_hints",
+        Demo("statushints", "Theme::centred_hints"),
+    ),
+    (
+        "widgets::too_small::TooSmall",
+        Demo("statushints", "│ Terminal too small │"),
+    ),
+    (
+        "widgets::too_small::TooSmall::min",
+        Option("statushints", "statushints.too_small_min"),
+    ),
+    (
+        "widgets::too_small::TooSmall::quit_hint",
+        Option("statushints", "statushints.quit_hint"),
+    ),
+    (
+        "widgets::too_small::TooSmall::brand_style",
+        Option("statushints", "statushints.brand"),
+    ),
     (
         "widgets::menu::MenuBarAction",
         Demo("chrome", "last MenuBarAction: —"),

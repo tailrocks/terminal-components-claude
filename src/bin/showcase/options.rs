@@ -809,6 +809,18 @@ static STATUS_HINTS: &[Opt] = &[
     ),
     Opt::new("statushints.badge", "EDIT badge", OFF_ON),
     Opt::new("statushints.hidden", "Hidden files shown", OFF_ON),
+    // the too-small screen's builders (SC30)
+    Opt::new(
+        "statushints.too_small_min",
+        "Too small below",
+        &["72x20", "100x30"],
+    ),
+    Opt::new(
+        "statushints.quit_hint",
+        "Too-small quit hint",
+        &["default", "custom"],
+    ),
+    Opt::new("statushints.brand", "Too-small brand", &["title", "accent"]),
 ];
 
 /// Text utilities (SC26): the helpers' width and styles, and the
