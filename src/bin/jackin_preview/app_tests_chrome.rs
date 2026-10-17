@@ -339,3 +339,18 @@ fn legacy_ctrl_4_from_the_terminal_opens_the_palette() {
     h.draw();
     assert!(h.text().contains("Command palette"), "{}", h.text());
 }
+
+/// A25: `Ctrl+B i` on `capsule-multi` opened Container info by byte-slicing
+/// `run-7f3a` (seven characters once the dash goes) to eight bytes and
+/// panicked. The short id now comes from `ui::text::clip`.
+#[test]
+fn container_info_opens_on_a_short_run_id_without_panicking() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    assert_eq!(h.app.route, Route::Capsule);
+    h.ctrl('b');
+    h.key(KeyCode::Char('i'));
+    let t = h.text();
+    assert!(t.contains("Debug info"), "{t}");
+    assert!(t.contains("3f9crun7f3ae21a"), "short container id: {t}");
+    assert!(t.contains("run-7f3a-4f11"), "invocation id: {t}");
+}

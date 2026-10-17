@@ -1074,6 +1074,7 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::text::width"),
     Capability::function("ui::text::wider_than"),
     Capability::function("ui::text::width_capped"),
+    Capability::function("ui::text::clip"),
     Capability::function("ui::text::truncate"),
     Capability::function("ui::text::slice_cells"),
     Capability::function("ui::text::truncate_middle"),

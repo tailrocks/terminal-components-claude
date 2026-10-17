@@ -110,7 +110,7 @@
 120x40 TrueColor Terminal 5f3ffd260a424d7d
 120x40 TrueColor Terminal · Options 0380abf5c73e4d1b
 120x40 TrueColor Terminal · States 96c308978a2d85e2
-120x40 TrueColor Text utilities 74cf12728f602e6d
+120x40 TrueColor Text utilities f2fe8129ad7d6429
 120x40 TrueColor Text utilities · Options ba9d82ef54fcaac4
 120x40 TrueColor Text utilities · States 47a3c29be1d2185c
 120x40 TrueColor Settings ef598501c7b97fe0
@@ -238,7 +238,7 @@
 120x40 Ansi256 Terminal 53a95b90ae3f897a
 120x40 Ansi256 Terminal · Options 5eb85df1a86cc810
 120x40 Ansi256 Terminal · States 169699db11e35d09
-120x40 Ansi256 Text utilities 455c9007286ecaa7
+120x40 Ansi256 Text utilities ed6296b6b14cd498
 120x40 Ansi256 Text utilities · Options 8476327322c13e43
 120x40 Ansi256 Text utilities · States 05c65d6675d36dd0
 120x40 Ansi256 Settings bc0108445be69e64
@@ -366,7 +366,7 @@
 120x40 Ansi16 Terminal 0a37f6debc7c388e
 120x40 Ansi16 Terminal · Options 6b2482cc145e9e26
 120x40 Ansi16 Terminal · States cdd659ec2c6594fb
-120x40 Ansi16 Text utilities 51a90955c5d2341a
+120x40 Ansi16 Text utilities 58e7ad5d834514ef
 120x40 Ansi16 Text utilities · Options 660f0c6195e4ce3c
 120x40 Ansi16 Text utilities · States cbda4fb503890a20
 120x40 Ansi16 Settings c3d9b8441a4fea61
@@ -494,7 +494,7 @@
 120x40 Mono Terminal 00ecb3fed1c118ad
 120x40 Mono Terminal · Options 09a5f0533dca0d43
 120x40 Mono Terminal · States 95c98d273727f8f2
-120x40 Mono Text utilities 91a1b00b314db958
+120x40 Mono Text utilities 6c6fbe8079b8cfe5
 120x40 Mono Text utilities · Options de3c76174a0f9383
 120x40 Mono Text utilities · States 265f7f649d555971
 120x40 Mono Settings 5bf727ead41bee88
@@ -622,7 +622,7 @@
 80x24 TrueColor Terminal ff4968b2d8b50be9
 80x24 TrueColor Terminal · Options f920497f4e96f607
 80x24 TrueColor Terminal · States b54f54acec5fa3b3
-80x24 TrueColor Text utilities c53ed4e3fe385a3c
+80x24 TrueColor Text utilities 1fd797b09811fa9c
 80x24 TrueColor Text utilities · Options 5ab1b172301fe828
 80x24 TrueColor Text utilities · States e19ade457a9a4392
 80x24 TrueColor Settings 6c77605fc529ac06
@@ -750,7 +750,7 @@
 80x24 Ansi256 Terminal c9376ff41d15fe93
 80x24 Ansi256 Terminal · Options 0690f9e8a8599f4b
 80x24 Ansi256 Terminal · States 2850e89c11c1c3ce
-80x24 Ansi256 Text utilities a0f0908c73410f14
+80x24 Ansi256 Text utilities 868b6c6c982da3dc
 80x24 Ansi256 Text utilities · Options 049d84e54dc17229
 80x24 Ansi256 Text utilities · States 1db565db06a63454
 80x24 Ansi256 Settings 23d23d0de0d0a6f0
@@ -878,7 +878,7 @@
 80x24 Ansi16 Terminal 2cd82754c45b376e
 80x24 Ansi16 Terminal · Options 53a1cc3abcce3395
 80x24 Ansi16 Terminal · States 7e2e3cbc2d3818c7
-80x24 Ansi16 Text utilities eb2ffc1484a255b9
+80x24 Ansi16 Text utilities aa4d8de6f4bddd35
 80x24 Ansi16 Text utilities · Options 2ea09623501bc009
 80x24 Ansi16 Text utilities · States 2bf3ace8a51d8948
 80x24 Ansi16 Settings 46d658571f8db594
@@ -1006,7 +1006,7 @@
 80x24 Mono Terminal fa7f34406c666ba2
 80x24 Mono Terminal · Options f8734edfd051dedf
 80x24 Mono Terminal · States 4419835dd6023d0d
-80x24 Mono Text utilities 93b27fbb72decdfe
+80x24 Mono Text utilities 17c0128d10a69136
 80x24 Mono Text utilities · Options 0e1a3a70baf086eb
 80x24 Mono Text utilities · States 16f171dab429543a
 80x24 Mono Settings e8abbcce24f04a04
@@ -1646,7 +1646,7 @@
 100x30 TrueColor Terminal 5c444924b9be7a57
 100x30 TrueColor Terminal · Options 786771c59b36bd5a
 100x30 TrueColor Terminal · States fc541fc68dafdef6
-100x30 TrueColor Text utilities ebce088d0d49d385
+100x30 TrueColor Text utilities 5cded34c0801ce6a
 100x30 TrueColor Text utilities · Options 17950cf1425d24ae
 100x30 TrueColor Text utilities · States 90bea62ef91605ed
 100x30 TrueColor Settings 41eea47e8911434e
@@ -1774,7 +1774,7 @@
 100x30 Ansi256 Terminal 5c9d6f1023688b14
 100x30 Ansi256 Terminal · Options a6b274ad010535ef
 100x30 Ansi256 Terminal · States 8617fce2d506f88a
-100x30 Ansi256 Text utilities 1e1b00070b3a8f6f
+100x30 Ansi256 Text utilities 99b58875c140fc14
 100x30 Ansi256 Text utilities · Options 7775cd501f0c9cae
 100x30 Ansi256 Text utilities · States 46a31a107b2f8057
 100x30 Ansi256 Settings 4e2ef12e28fd982a
@@ -1902,7 +1902,7 @@
 100x30 Ansi16 Terminal 173e325f39d6e243
 100x30 Ansi16 Terminal · Options eb18cc41d0cfed65
 100x30 Ansi16 Terminal · States b0503f9528885169
-100x30 Ansi16 Text utilities bc83da20458765f4
+100x30 Ansi16 Text utilities b9c92851dd1d1e23
 100x30 Ansi16 Text utilities · Options 971cb0cc6f8e48c8
 100x30 Ansi16 Text utilities · States 04ac08767e8150d6
 100x30 Ansi16 Settings 1fd667b872d67b2a
@@ -2030,7 +2030,7 @@
 100x30 Mono Terminal a8da11c591f6327c
 100x30 Mono Terminal · Options 131f25d9965438d6
 100x30 Mono Terminal · States e7152ec060478254
-100x30 Mono Text utilities 557f29c5767ff1aa
+100x30 Mono Text utilities f7079b8fd8189085
 100x30 Mono Text utilities · Options 7a60c141542c3411
 100x30 Mono Text utilities · States f3230a208f1f824b
 100x30 Mono Settings e94daec9748c7a0f
@@ -2158,7 +2158,7 @@
 160x50 TrueColor Terminal bd8e498d519e4380
 160x50 TrueColor Terminal · Options a907aca44beef7ef
 160x50 TrueColor Terminal · States ef389076a65d5938
-160x50 TrueColor Text utilities 0d2db94749545f5f
+160x50 TrueColor Text utilities 1f75084f2acbdb0d
 160x50 TrueColor Text utilities · Options 5184c5843f13ba23
 160x50 TrueColor Text utilities · States d1cba7f1a7aa12dc
 160x50 TrueColor Settings 679e7f76ab52b77a
@@ -2286,7 +2286,7 @@
 160x50 Ansi256 Terminal 5b8299d05a723aeb
 160x50 Ansi256 Terminal · Options 435f0ab7ff903b2d
 160x50 Ansi256 Terminal · States ab81cfbb10f515d2
-160x50 Ansi256 Text utilities 51a1fd7f0fcb8a2b
+160x50 Ansi256 Text utilities d0e5ecb8ba5110a9
 160x50 Ansi256 Text utilities · Options 207d0508d029c582
 160x50 Ansi256 Text utilities · States ebca1e05ad5de966
 160x50 Ansi256 Settings 81b21bd99453a2d9
@@ -2414,7 +2414,7 @@
 160x50 Ansi16 Terminal 47a97ed95a66851b
 160x50 Ansi16 Terminal · Options c893a1f972f0aba8
 160x50 Ansi16 Terminal · States df424e90fa36e7f5
-160x50 Ansi16 Text utilities b0ccda07a090a6df
+160x50 Ansi16 Text utilities 11dbae2b8d76d9e3
 160x50 Ansi16 Text utilities · Options 653764eb7c9130d1
 160x50 Ansi16 Text utilities · States ff072137c51a992e
 160x50 Ansi16 Settings 48fa8b42ab1a34cf
@@ -2542,7 +2542,7 @@
 160x50 Mono Terminal 9ba5dc7d4f783d2e
 160x50 Mono Terminal · Options f1b7e50326eb773f
 160x50 Mono Terminal · States ee0327fd6cec9ac1
-160x50 Mono Text utilities 4d328bbaf8f87a5f
+160x50 Mono Text utilities ac00cc3aa0edd163
 160x50 Mono Text utilities · Options d4034617a73e666c
 160x50 Mono Text utilities · States 1a2fbfaad5a8a7b1
 160x50 Mono Settings d9cd4267b5b3923a
