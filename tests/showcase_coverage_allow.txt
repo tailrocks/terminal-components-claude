@@ -1189,7 +1189,6 @@ widgets::edit::EditField::press | EditField, Validate, ValidateWhen, FieldError 
 widgets::edit::EditField::drag | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::click | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::pressed | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
-widgets::input::TextInput::validate_when | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::apply_as | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::draw_glyphs | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32
 widgets::edit::EditField::draw_line | EditField, Validate, ValidateWhen, FieldError as Options on the Inputs and Dialog pages | SC32

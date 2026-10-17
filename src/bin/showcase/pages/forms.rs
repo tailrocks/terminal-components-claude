@@ -1,15 +1,30 @@
+//! Forms (Inputs & forms): a "New task" form composed of library fields:
+//! required and optional `TextInput`s with validators, a `TextArea`, a
+//! `RadioGroup`, `Checkbox`es, `Toggle`s (one managed, so disabled) and a
+//! primary and subtle `Button`; Ctrl+S submits, an invalid submit focuses
+//! the first field in error, a valid one shows the busy button and then
+//! the result. Two columns when there is room; on a short page one column
+//! that scrolls part by part. Options: `crate::options::FORMS`; States:
+//! the required field, the optional field and the description.
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
+use crate::app::PageId;
+use crate::options::{PageValues, page_options};
+use crate::pages::template::{Section, Template};
 use crate::pages::{Cx, Hint, Page, PageEvent};
 use junie_tui::core::event::Outcome;
-use junie_tui::core::focus::forward_blur;
+use junie_tui::core::focus::{BlurAction, forward_blur};
 use junie_tui::core::id::WidgetId;
 use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::{MouseTarget, PointerEvent};
 use junie_tui::ui::ctx::RenderCtx;
+use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
+use junie_tui::widgets::edit::ValidateWhen;
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::textarea::TextArea;
@@ -27,9 +42,10 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-fn name(s: &str) -> Option<String> {
+/// The task name's check: empty is an error only while it is required.
+fn name(s: &str, required: bool) -> Option<String> {
     if s.trim().is_empty() {
-        Some("Required".into())
+        required.then(|| "Required".into())
     } else if s.len() < 4 {
         Some("At least 4 characters".into())
     } else {
@@ -44,7 +60,33 @@ enum Submit {
     Done,
 }
 
+/// The form's parts in the one-column layout, top to bottom.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Part {
+    Name,
+    Description,
+    Reviewer,
+    Mode,
+    Checks,
+    Toggles,
+    Actions,
+}
+
+impl Part {
+    const ALL: [Self; 7] = [
+        Self::Name,
+        Self::Description,
+        Self::Reviewer,
+        Self::Mode,
+        Self::Checks,
+        Self::Toggles,
+        Self::Actions,
+    ];
+}
+
 pub struct FormsPage {
+    template: Template,
+    opts: PageValues,
     name: TextInput,
     description: TextArea,
     mode: RadioGroup,
@@ -57,32 +99,82 @@ pub struct FormsPage {
     reset: Button,
     state: Submit,
     attempted: bool,
+    /// The one-column layout's scroll, on a short page.
+    sections: crate::pages::layout::Sections,
 }
 
 impl FormsPage {
     pub fn new() -> Self {
-        Self {
-            name: TextInput::new(ID.sub("name"), "Task name")
-                .required(true)
-                .validator(name)
-                .placeholder("Short imperative summary"),
-            description: TextArea::new(ID.sub("desc"), "Description", 4)
-                .placeholder("What should Junie do, and what does done look like?")
-                .help("Optional · Markdown"),
+        let opts = PageValues::new(page_options(PageId::Forms));
+        let mut page = Self {
+            template: Template::new(ID, states_grid()),
+            opts,
+            name: TextInput::new(ID.sub("name"), "Task name"),
+            description: TextArea::new(ID.sub("desc"), "Description", 4),
             mode: RadioGroup::new(ID.sub("mode"), "Mode", &["Fast", "Balanced", "Thorough"], 1),
             run_tests: Checkbox::new(ID.sub("tests"), "Run tests before opening a PR", true),
             open_pr: Checkbox::new(ID.sub("pr"), "Open a pull request when done", false),
             auto_approve: Toggle::new(ID.sub("auto"), "Auto-approve changes", false),
-            notify: Toggle::new(ID.sub("notify"), "Notify on completion", true).disabled(true),
-            reviewer: TextInput::new(ID.sub("reviewer"), "Reviewer")
-                .validator(email)
-                .placeholder("name@company.com")
-                .help("Optional"),
+            notify: Toggle::new(ID.sub("notify"), "Notify on completion", true),
+            reviewer: TextInput::new(ID.sub("reviewer"), "Reviewer"),
             submit: Button::primary(ID.sub("submit"), "Create task"),
             reset: Button::subtle(ID.sub("reset"), "Reset"),
             state: Submit::Idle,
             attempted: false,
-        }
+            sections: {
+                let mut s = crate::pages::layout::Sections::new(ID.sub("parts"));
+                s.stack = s.stack.gap(0);
+                s
+            },
+        };
+        page.apply();
+        page
+    }
+
+    /// Rebuild the fields from the options through their builders,
+    /// keeping what was typed.
+    fn apply(&mut self) {
+        let o = &self.opts;
+        let when = match o.value("forms.validate_when") {
+            "commit" => ValidateWhen::Commit,
+            "live" => ValidateWhen::Live,
+            _ => ValidateWhen::AfterError,
+        };
+        let blur = match o.value("forms.blur") {
+            "cancel" => BlurAction::Cancel,
+            "keep" => BlurAction::Keep,
+            _ => BlurAction::Commit,
+        };
+        let required = o.on("forms.required");
+        let help = |h: &'static str| if o.on("forms.help") { h } else { "" };
+        let hint = |p: &'static str| if o.on("forms.placeholders") { p } else { "" };
+        let rows = o.number("forms.desc_rows").unwrap_or(4);
+        self.name = TextInput::new(ID.sub("name"), "Task name")
+            .required(required)
+            .validator(move |s| name(s, required))
+            .validate_when(when)
+            .blur_action(blur)
+            .placeholder(hint("Short imperative summary"))
+            .value(self.name.text());
+        self.description = TextArea::new(ID.sub("desc"), "Description", rows)
+            .placeholder(hint("What should Junie do, and what does done look like?"))
+            .help(help("Optional · Markdown"))
+            .blur_action(blur)
+            .value(self.description.field.text());
+        self.reviewer = TextInput::new(ID.sub("reviewer"), "Reviewer")
+            .validator(email)
+            .validate_when(when)
+            .blur_action(blur)
+            .placeholder(hint("name@company.com"))
+            .help(help("Optional"))
+            .value(self.reviewer.text());
+        self.notify = Toggle::new(ID.sub("notify"), "Notify on completion", self.notify.on)
+            .disabled(o.on("forms.managed"));
+    }
+
+    /// The description's rows from the option (one on a short page).
+    fn desc_rows(&self) -> u16 {
+        self.opts.number("forms.desc_rows").unwrap_or(4)
     }
 
     fn validate(&mut self) -> bool {
@@ -114,9 +206,216 @@ impl FormsPage {
     }
 
     fn do_reset(&mut self, cx: &mut Cx) {
+        let opts = self.opts.clone();
         *self = Self::new();
+        self.opts = opts;
+        self.apply();
         cx.focus.focus(self.name.id);
         cx.status("Form reset");
+    }
+
+    /// The submit result beside the actions, if any.
+    fn message(
+        &self,
+        t: &junie_tui::theme::Theme,
+    ) -> Option<(&'static str, ratatui::style::Style)> {
+        match self.state {
+            Submit::Idle
+                if self.attempted
+                    && (self.name.field.error.is_some() || self.reviewer.field.error.is_some()) =>
+            {
+                Some(("Fix the highlighted fields", t.error_fg()))
+            }
+            Submit::Busy(_) => Some(("Creating task…", t.secondary())),
+            Submit::Done => Some(("Task created ✓", t.accent_fg())),
+            _ => None,
+        }
+    }
+
+    fn render_actions(
+        &mut self,
+        row: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        let t = ctx.theme;
+        let widths = [self.submit.width(), self.reset.width()];
+        let rects = row_layout(row, &widths, 2);
+        self.submit.render(rects[0], buf, ctx, bg);
+        self.reset.render(rects[1], buf, ctx, bg);
+        if let Some((m, st)) = self.message(t) {
+            let x = rects[1].right() + 3;
+            if x + junie_tui::ui::text::width(m) as u16 <= row.right() {
+                buf.set_string(x, row.y, m, st.bg(bg));
+            }
+        }
+    }
+
+    fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = ctx.theme;
+        let panel = Panel::card(Some("New task")).meta("Ctrl+S Submit");
+        let bg = panel.bg(t);
+        let inner = panel.render(
+            Rect::new(area.x, area.y, area.width, area.height.min(24)),
+            buf,
+            t,
+        );
+        // Two columns when every control fits with the action row
+        // reserved; otherwise one column that scrolls part by part.
+        if inner.height < 11 || inner.width < 40 {
+            self.render_column(inner, buf, ctx, bg);
+            return;
+        }
+        let compact = inner.height < 17;
+        self.description.rows = if compact { 1 } else { self.desc_rows() };
+        let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
+        let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
+
+        // left: task section
+        let mut y = l.y;
+        if !compact {
+            buf.set_string(l.x, y, "Task", t.faint().bg(bg));
+            y += 1;
+        }
+        self.name
+            .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
+        y += TextInput::HEIGHT;
+        // the description takes the rows the reviewer leaves it
+        let room = (l.bottom().saturating_sub(y))
+            .saturating_sub(TextInput::HEIGHT + 2 * u16::from(!compact));
+        self.description.rows = self.description.rows.min(room.saturating_sub(2).max(1));
+        self.description.render(
+            Rect::new(l.x, y, l.width, self.description.height()),
+            buf,
+            ctx,
+            bg,
+        );
+        y += self.description.height();
+        if !compact {
+            y += 1;
+            buf.set_string(l.x, y, "Review", t.faint().bg(bg));
+            y += 1;
+        }
+        self.reviewer
+            .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
+
+        // right: options section
+        let mut y = r.y;
+        if !compact {
+            buf.set_string(r.x, y, "Options", t.faint().bg(bg));
+            y += 1;
+        }
+        self.mode
+            .render(Rect::new(r.x, y, r.width, self.mode.height()), buf, ctx, bg);
+        y += self.mode.height() + u16::from(!compact);
+        self.run_tests
+            .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
+        y += 1;
+        self.open_pr
+            .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
+        y += 1 + u16::from(!compact);
+        self.render_toggles(Rect::new(r.x, y, r.width, 3), buf, ctx, bg);
+
+        // actions
+        let ay = inner.bottom().saturating_sub(1);
+        self.render_actions(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
+    }
+
+    /// The toggles and, under a managed one, who manages it.
+    fn render_toggles(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        let t = ctx.theme;
+        self.auto_approve
+            .render(Rect::new(area.x, area.y, area.width, 1), buf, ctx, bg);
+        self.notify
+            .render(Rect::new(area.x, area.y + 1, area.width, 1), buf, ctx, bg);
+        if self.notify.disabled && area.height > 2 {
+            buf.set_string(
+                area.x + 2,
+                area.y + 2,
+                junie_tui::ui::text::truncate(
+                    "Managed by your organization",
+                    area.width.saturating_sub(2) as usize,
+                ),
+                t.faint().bg(bg),
+            );
+        }
+    }
+
+    fn part_height(&self, part: Part) -> u16 {
+        match part {
+            Part::Name | Part::Reviewer => TextInput::HEIGHT,
+            Part::Description => self.description.height(),
+            Part::Mode => self.mode.height(),
+            Part::Checks => 2,
+            Part::Toggles => 2 + u16::from(self.notify.disabled),
+            Part::Actions => 1,
+        }
+    }
+
+    fn part_ids(&self, part: Part) -> Vec<WidgetId> {
+        match part {
+            Part::Name => vec![self.name.id],
+            Part::Description => vec![self.description.id],
+            Part::Reviewer => vec![self.reviewer.id],
+            Part::Mode => vec![self.mode.id],
+            Part::Checks => vec![self.run_tests.id, self.open_pr.id],
+            Part::Toggles => vec![self.auto_approve.id, self.notify.id],
+            Part::Actions => vec![self.submit.id, self.reset.id],
+        }
+    }
+
+    /// One column on a short page: each part a stack child, so the page
+    /// scrolls by whole parts and focus brings its part into view.
+    fn render_column(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        ctx: &mut RenderCtx,
+        bg: ratatui::style::Color,
+    ) {
+        self.description.rows = 1;
+        let children: Vec<StackChild> = Part::ALL
+            .iter()
+            .map(|p| StackChild::fixed(self.part_height(*p)))
+            .collect();
+        let focus = Part::ALL.iter().position(|p| {
+            self.part_ids(*p)
+                .iter()
+                .any(|&id| ctx.interaction.has_focus(id))
+        });
+        let l = self.sections.layout(area, &children, focus, buf, ctx);
+        for (i, part) in Part::ALL.into_iter().enumerate() {
+            let Some(r) = l.slot(i) else {
+                // a part out of view keeps its focus stops
+                for id in self.part_ids(part) {
+                    if !(id == self.notify.id && self.notify.disabled) {
+                        ctx.focus_stop(id);
+                    }
+                }
+                continue;
+            };
+            match part {
+                Part::Name => self.name.render(r, buf, ctx, bg),
+                Part::Description => self.description.render(r, buf, ctx, bg),
+                Part::Reviewer => self.reviewer.render(r, buf, ctx, bg),
+                Part::Mode => self.mode.render(r, buf, ctx, bg),
+                Part::Checks => {
+                    self.run_tests
+                        .render(Rect::new(r.x, r.y, r.width, 1), buf, ctx, bg);
+                    self.open_pr
+                        .render(Rect::new(r.x, r.y + 1, r.width, 1), buf, ctx, bg);
+                }
+                Part::Toggles => self.render_toggles(r, buf, ctx, bg),
+                Part::Actions => self.render_actions(r, buf, ctx, bg),
+            }
+        }
     }
 }
 
@@ -174,8 +473,46 @@ impl FormsPage {
                 Outcome::Ignored
             };
         }
-        Outcome::Ignored
+        // the one-column layout's own scroll
+        self.sections
+            .handle(&PageEvent::Pointer(*ev))
+            .unwrap_or(Outcome::Ignored)
     }
+}
+
+/// The States grid: the required task name, the optional reviewer with its
+/// help line, and the description.
+fn states_grid() -> StateGrid {
+    use SpecimenState::*;
+    StateGrid::new(ID.sub("states"))
+        .label_width(14)
+        .column_width(26)
+        .narrow_width(16)
+        .rows(&[
+            Rest, Hover, Focused, Editing, Error, Disabled, Empty, Narrow,
+        ])
+        .column(
+            "Required field",
+            TextInput::new(ID.sub("states-name"), "Task name")
+                .required(true)
+                .validator(|s| name(s, true))
+                .placeholder("Short imperative summary")
+                .value("Fix the login flow"),
+        )
+        .column(
+            "Optional field",
+            TextInput::new(ID.sub("states-reviewer"), "Reviewer")
+                .validator(email)
+                .placeholder("name@company.com")
+                .help("Optional")
+                .value("ana@company.com"),
+        )
+        .column(
+            "Description",
+            TextArea::new(ID.sub("states-desc"), "Description", 2)
+                .placeholder("What should Junie do?")
+                .value("Reproduce the bug, fix it,\nadd a regression test."),
+        )
 }
 
 impl Page for FormsPage {
@@ -187,131 +524,55 @@ impl Page for FormsPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        let t = ctx.theme;
-        let panel = Panel::card(Some("New task")).meta("Ctrl+S Submit");
-        let bg = panel.bg(t);
-        let inner = panel.render(
-            Rect::new(area.x, area.y, area.width, area.height.min(24)),
-            buf,
-            t,
-        );
-        // Reserve the action row before laying out fields. At the minimum
-        // terminal size, retain every control and let the text area's own
-        // viewport scroll its content instead of painting over the footer.
-        if inner.height < 11 || inner.width < 40 {
-            return;
-        }
-        let compact = inner.height < 17;
-        self.description.rows = if compact { 1 } else { 4 };
-        let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
-        let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
-
-        // left: task section
-        let mut y = l.y;
-        if !compact {
-            buf.set_string(l.x, y, "Task", t.faint().bg(bg));
-            y += 1;
-        }
-        self.name
-            .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
-        y += TextInput::HEIGHT;
-        self.description.render(
-            Rect::new(l.x, y, l.width, self.description.height()),
-            buf,
-            ctx,
-            bg,
-        );
-        y += self.description.height();
-        if !compact {
-            y += 1;
-            buf.set_string(l.x, y, "Review", t.faint().bg(bg));
-            y += 1;
-        }
-        self.reviewer
-            .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
-
-        // right: options section
-        let mut y = r.y;
-        if !compact {
-            buf.set_string(r.x, y, "Options", t.faint().bg(bg));
-            y += 1;
-        }
-        self.mode
-            .render(Rect::new(r.x, y, r.width, self.mode.height()), buf, ctx, bg);
-        y += self.mode.height() + u16::from(!compact);
-        self.run_tests
-            .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
-        y += 1;
-        self.open_pr
-            .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
-        y += 1 + u16::from(!compact);
-        self.auto_approve
-            .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
-        y += 1;
-        self.notify
-            .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
-        y += 1;
-        buf.set_string(
-            r.x + 2,
-            y,
-            junie_tui::ui::text::truncate(
-                "Managed by your organization",
-                r.width.saturating_sub(2) as usize,
-            ),
-            t.faint().bg(bg),
-        );
-
-        // actions
-        let ay = inner.bottom().saturating_sub(1);
-        let widths = [self.submit.width(), self.reset.width()];
-        let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);
-        self.submit.render(rects[0], buf, ctx, bg);
-        self.reset.render(rects[1], buf, ctx, bg);
-        let msg = match self.state {
-            Submit::Idle
-                if self.attempted
-                    && (self.name.field.error.is_some() || self.reviewer.field.error.is_some()) =>
-            {
-                Some(("Fix the highlighted fields", t.error_fg()))
-            }
-            Submit::Busy(_) => Some(("Creating task…", t.secondary())),
-            Submit::Done => Some(("Task created ✓", t.accent_fg())),
-            _ => None,
-        };
-        if let Some((m, st)) = msg {
-            let x = rects[1].right() + 3;
-            if x + m.len() as u16 <= inner.right() {
-                buf.set_string(x, ay, m, st.bg(bg));
-            }
+        let body = self.template.render(area, buf, ctx);
+        match self.template.section() {
+            Section::Playground => self.render_playground(body, buf, ctx),
+            Section::Options => self.template.render_options(body, buf, ctx),
+            Section::States => self.template.render_states(body, buf, ctx),
         }
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        if let PageEvent::Blur(ch) = ev {
+        if let PageEvent::Blur(ch) = ev
+            && (ch.from == self.name.id
+                || ch.from == self.reviewer.id
+                || ch.from == self.description.id)
+        {
             return forward_blur(
                 *ch,
                 &mut [&mut self.name, &mut self.reviewer, &mut self.description],
             );
         }
-        match ev {
-            PageEvent::Tick => {
-                if let Submit::Busy(ticks) = self.state {
-                    if ticks > 1 {
-                        self.state = Submit::Busy(ticks - 1);
-                    } else {
-                        self.state = Submit::Done;
-                        self.submit.busy = false;
-                        cx.status("Task created ✓");
-                    }
-                    return Outcome::Changed;
+        if let PageEvent::Tick = ev {
+            if let Submit::Busy(ticks) = self.state {
+                if ticks > 1 {
+                    self.state = Submit::Busy(ticks - 1);
+                } else {
+                    self.state = Submit::Done;
+                    self.submit.busy = false;
+                    cx.status("Task created ✓");
                 }
-                Outcome::Ignored
+                return Outcome::Changed;
             }
+            return Outcome::Ignored;
+        }
+        // Ctrl+S submits wherever focus is on the Playground (the strip
+        // included)
+        if let PageEvent::Key(key) = ev
+            && key.ctrl_char('s')
+            && self.template.section() == Section::Playground
+        {
+            self.do_submit(cx);
+            return Outcome::Changed;
+        }
+        if let Some(o) = self.template.handle(ev, cx) {
+            return o;
+        }
+        if self.template.section() != Section::Playground {
+            return Outcome::Ignored;
+        }
+        match ev {
             PageEvent::Key(key) => {
-                if key.ctrl_char('s') {
-                    self.do_submit(cx);
-                    return Outcome::Changed;
-                }
                 let Some(f) = cx.focus.current() else {
                     return Outcome::Ignored;
                 };
@@ -402,6 +663,9 @@ impl Page for FormsPage {
         if self.editing() {
             return vec![("Enter", "Apply"), ("Esc", "Cancel"), ("Tab", "Next field")];
         }
+        if let Some(h) = self.template.hints(focus) {
+            return h;
+        }
         match focus {
             Some(f) if f == self.mode.id => vec![("↑↓", "Choose"), ("Ctrl+S", "Submit")],
             Some(f)
@@ -418,6 +682,28 @@ impl Page for FormsPage {
             ],
         }
     }
+
+    fn option_value(&self, key: &str) -> Option<usize> {
+        self.opts.get(key)
+    }
+
+    fn set_option(&mut self, key: &str, value: usize) {
+        if self.opts.set(key, value) {
+            self.apply();
+        }
+    }
+
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
+    fn template(&self) -> Option<&Template> {
+        Some(&self.template)
+    }
+
+    fn template_mut(&mut self) -> Option<&mut Template> {
+        Some(&mut self.template)
+    }
 }
 
 #[cfg(test)]
@@ -427,10 +713,13 @@ mod tests {
     use junie_tui::theme::{ColorLevel, Theme};
     use junie_tui::ui::ctx::Interaction;
 
+    /// The Playground keeps every control inside the page at every size:
+    /// two columns when they fit, one scrolling column below that (the
+    /// controls out of view keep their focus stops).
     #[test]
     fn form_keeps_all_controls_inside_small_normal_and_wide_page() {
         for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
-            for (width, height) in [(47, 14), (51, 14), (59, 18), (94, 24), (134, 24)] {
+            for (width, height) in [(47, 14), (51, 14), (59, 18), (94, 24), (134, 24), (47, 11)] {
                 let mut page = FormsPage::new();
                 let area = Rect::new(3, 2, width, height);
                 let mut buf = Buffer::empty(Rect::new(0, 0, width + 6, height + 4));
@@ -442,13 +731,22 @@ mod tests {
                 let mut ring = FocusRing::default();
                 let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
                 page.render(area, &mut buf, &mut ctx);
-                assert_eq!(ring.reachable().len(), 9);
+                // the section strip, then the nine controls
+                assert_eq!(ring.reachable().len(), 10, "{width}×{height}");
                 for id in ring.reachable() {
+                    if *id == page.template.tabs.id {
+                        continue;
+                    }
                     let control = if *id == page.mode.id {
-                        assert_eq!(page.mode.areas.len(), 3);
+                        if page.mode.areas.len() != 3 {
+                            continue; // out of view on a short page
+                        }
                         page.mode.areas[2]
                     } else {
-                        hits.area_of(*id).unwrap()
+                        match hits.area_of(*id) {
+                            Some(a) => a,
+                            None => continue, // out of view on a short page
+                        }
                     };
                     assert_eq!(
                         area.intersection(control),
@@ -457,7 +755,6 @@ mod tests {
                     );
                 }
                 assert!(!ring.contains(page.notify.id));
-                assert!(page.reviewer.area.bottom() < page.submit.area.y);
                 for y in 0..buf.area.height {
                     for x in 0..buf.area.width {
                         if !area.contains((x, y).into()) {
