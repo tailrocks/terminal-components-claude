@@ -1037,10 +1037,10 @@ impl FinderPage {
                         buf.set_string(x, y, truncate_sep(&reason, reason_w as usize), rs);
                         junie_tui::ui::reveal::queue_cut(Rect::new(x, y, reason_w, 1), &reason);
                         cut |= wider_than(&reason, reason_w as usize);
-                        if cut && s.selected {
+                        if cut && s.focused {
                             junie_tui::ui::reveal::peek(ctx, &format!("{} — {reason}", it.label));
                         }
-                    } else if cut && s.selected {
+                    } else if cut && s.focused {
                         junie_tui::ui::reveal::peek(ctx, &it.label);
                     }
                     // only the safety classes take room in the row, as a
