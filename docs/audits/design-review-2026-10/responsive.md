@@ -66,15 +66,14 @@ drive (hover, `→`, an overflow menu); **c** audit limitation.
 | R-apps-6 | a | Fixed-size bodies drop rows with no scrollbar. | `widgets/props.rs:182,199` (`props::render`), tablepro `tabs.rs:2706,1820,1846`; holla fact sheets `review.rs:488`, disk compact mode `disk.rs:1546`; jackin detail `manager.rs:1265`, the settings Agents footnote, cockpit credentials | The shared two-axis scroll container (branch `responsive-lib`) around page bodies; `PropsList` scrolls. |
 | R-apps-7 | a | Button rows drop the buttons that do not fit. | `widgets/button.rs:262` (`row_layout`): tablepro history "Copy"; holla `activity.rs:924` | `ButtonRow` wraps or moves the rest into a `…` menu. |
 | R-apps-8 | b | Cut cells reveal on hover (or `→`) only; the audit drives neither. Picker has no keyboard reveal (WCAG gap). | `widgets/picker.rs:859`; Tree, Props and List rows (holla finder, jackin manager, launch picker) | Picker registers `RevealState::cell` for `→`; the audit could drive the reveal key. |
-| R-apps-9 | a | A dialog shows a scrollbar but a wheel over its fields is ignored (`ev.wheel() && !ev.on(self.id)`). | `widgets/form_dialog.rs:1056`, `widgets/info_dialog.rs:497` (jackin account, env and mount forms, cockpit failure) | The wheel reaches the dialog from any child region (`scroll_stack`). |
+| R-apps-9 | a | **Fixed.** A dialog showed a scrollbar but a wheel over its fields was ignored, and FormDialog scrolled its focused field back into view every frame, undoing the wheel. | `widgets/form_dialog.rs`, `widgets/info_dialog.rs` (jackin account, env and mount forms, cockpit failure); the help overlay's padding beside its bar | `ScrollPane::draw_with_fade` registers the body under its children (`register_scroll_under`); FormDialog follows focus only when it moves. |
 | R-apps-10 | a | Dialog clipped: the anchored code preview leaves the facts 0 rows. | `widgets/dialog.rs:1325-1329` (holla start-plan 72×20) | Shrink the code preview first; keep a minimum facts viewport. |
 | R-apps-11 | b | Tabs past the strip sit behind the `+N` overflow menu. | `widgets/tabs.rs:119` (holla activity) | — (reachable; the audit does not open the menu). |
 | R-apps-12 | c | Audit limits: a 3-row grid at 72×20 the probe cannot sweep in budget; a path wrapped mid-word; a page under a modal that the open step changes. | tablepro result-rows, holla finder-children, jackin cockpit-failure | — |
 | R-apps-13 | a | The too-small screen shows below 72×20 for every app, also where a scroll container could hold the layout. | `widgets/too_small.rs` (72×20) | Lower each app's minimum to its true one once its bodies scroll. |
 
-Also seen, not missing words: the wheel is dead in the padding column
-beside an overlay's scrollbar (help overlay: `ctx.scrollable` covers only
-`inner`, `widgets/help.rs:341`); tablepro conn-failed at 120×40 draws the
+Also seen, not missing words (the help overlay's dead padding column
+beside its bar is fixed with R-apps-9): tablepro conn-failed at 120×40 draws the
 error notice over the button row (`connections.rs:1401`); the DDL card's
 position label is computed before render (`tabs.rs:854`).
 
@@ -108,24 +107,21 @@ holds the exact words.
 | holla top-files | 1 4 | 1 4 | 4 | 4 |  |  |
 | holla trust | 1 6 | 1 6 |  |  |  |  |
 | holla upgrade-plan | 2 4 |  |  | 2 4 |  |  |
-| jackin account-form | 9 | 9 | 9 | 9 |  |  |
 | jackin accounts | 1 8 | 1 | 1 |  |  |  |
 | jackin capsule | 1 6 | 1 6 | 1 6 | 1 6 | 1 6 | 1 6 |
 | jackin capsule-zoom | 1 6 | 1 6 | 1 6 | 1 6 | 1 | 1 |
 | jackin cockpit | 1 4 6 | 1 4 6 | 1 4 6 | 1 4 6 | 4 6 | 4 6 |
-| jackin cockpit-failure | 9 12 | 9 12 | 9 12 |  |  |  |
+| jackin cockpit-failure | 12 | 12 | 12 |  |  |  |
 | jackin editor | 1 | 1 | 1 | 1 |  |  |
 | jackin editor-accounts | 1 4 | 1 4 | 1 | 1 |  |  |
 | jackin editor-env | 1 2 | 1 2 | 1 2 | 1 2 | 2 |  |
 | jackin editor-mounts | 1 3 | 1 3 | 1 3 | 1 |  |  |
 | jackin editor-roles | 1 4 | 1 4 | 1 | 1 |  |  |
-| jackin env-form | 9 |  |  |  |  |  |
 | jackin launch-picker | 8 | 8 |  |  |  |  |
 | jackin manager | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 |
 | jackin manager-detail | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 |
 | jackin manager-expanded | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 | 1 2 8 |
 | jackin manager-hard | 1 2 6 8 | 1 2 6 8 | 1 2 6 8 | 1 2 6 8 | 1 2 6 8 | 2 6 8 |
-| jackin mount-form | 9 |  |  |  |  |  |
 | jackin prelude | 1 | 1 |  |  |  |  |
 | jackin prelude-source | 1 | 1 |  |  |  |  |
 | jackin settings | 1 4 | 1 4 |  |  |  |  |

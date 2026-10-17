@@ -223,6 +223,10 @@ pub struct FormDialog {
     pub error: Option<String>,
     /// The fields' scroll and the bar ([`Scrollable`]).
     pub scroll: ScrollPane,
+    /// The focus the view last scrolled to: the view follows focus only
+    /// when it moves, so the wheel can still scroll away from the focused
+    /// field (R-apps-9).
+    kept: Option<WidgetId>,
     pub area: Rect,
     pub events: Vec<FormAction>,
     pub dirty: bool,
@@ -268,6 +272,7 @@ impl FormDialog {
             width: 66,
             error: None,
             scroll: ScrollPane::default(),
+            kept: None,
             area: Rect::ZERO,
             events: vec![],
             dirty: false,
@@ -805,11 +810,13 @@ impl FormDialog {
         let body_h = inner.height.saturating_sub(3 + err);
         self.scroll.set_content(content as usize);
         self.scroll.set_viewport(body_h as usize);
-        // keep the focused field visible
+        // bring the focused field into view when focus moves to it
         let cur = ctx.interaction.focus;
+        let moved = cur != self.kept;
+        self.kept = cur;
         let mut y_off = 0u16;
         for f in self.fields.iter().filter(|f| f.visible) {
-            if f.focus_id().is_some() && f.focus_id() == cur {
+            if moved && f.focus_id().is_some() && f.focus_id() == cur {
                 let top = y_off as usize;
                 let bottom = (y_off + f.height()) as usize;
                 if top < self.scroll.offset {
