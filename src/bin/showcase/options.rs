@@ -269,6 +269,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Meters => METERS,
         PageId::Notices => NOTICES,
         PageId::SplitsStacks => SPLITS_STACKS,
+        PageId::MasterDetail => MASTER_DETAIL,
         PageId::BreadcrumbsRails => BREADCRUMBS_RAILS,
         PageId::Editor => CODE_EDITOR,
         PageId::HelpKeys => HELP_KEYS,
@@ -1405,6 +1406,33 @@ pub static SPLITS_STACKS: &[Opt] = &[
         "Stack track click",
         &["page", "jump"],
     ),
+];
+
+/// Master-detail (SC38): the `MasterDetail` builders, its `SplitKeys`, and
+/// the demo frame's width (so the collapsed layout shows on a wide
+/// terminal).
+pub static MASTER_DETAIL: &[Opt] = &[
+    Opt::new("masterdetail.width", "Demo width", &["fill", "100", "72"]),
+    Opt::new(
+        "masterdetail.collapse",
+        "Collapses below",
+        &["80", "108", "140"],
+    ),
+    Opt::new("masterdetail.size", "Detail size", &["resizable", "share"]),
+    Opt::new(
+        "masterdetail.summary",
+        "Narrow summary rows",
+        &["1", "0", "3"],
+    )
+    .needs(&[("masterdetail.width", "72")]),
+    Opt::new("masterdetail.esc_returns", "Esc returns to list", OFF_ON).default(1),
+    Opt::new(
+        "masterdetail.keys",
+        "Resize keys",
+        &["default", "custom", "none"],
+    ),
+    Opt::new("masterdetail.step", "Resize step", &["2", "1", "5"]),
+    Opt::new("masterdetail.gap", "Gap between panes", &["2", "1", "4"]),
 ];
 
 /// Code editor (SC24): every `CodeEditor` knob, then the completion

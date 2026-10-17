@@ -490,6 +490,103 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter::double_click",
         Option("splitsstacks", "splitsstacks.double_click"),
     ),
+    // SC38: Master-detail
+    (
+        "ui::layout::SplitCmd",
+        Option("masterdetail", "masterdetail.keys"),
+    ),
+    (
+        "ui::layout::SplitCmd::Left",
+        Option("masterdetail", "masterdetail.keys=custom"),
+    ),
+    (
+        "ui::layout::SplitCmd::Right",
+        Option("masterdetail", "masterdetail.keys=custom"),
+    ),
+    (
+        "ui::layout::SplitKeys",
+        Option("masterdetail", "masterdetail.keys"),
+    ),
+    (
+        "ui::layout::SplitKeys::keymap",
+        Option("masterdetail", "masterdetail.keys"),
+    ),
+    (
+        "ui::layout::SplitKeys::step",
+        Option("masterdetail", "masterdetail.step"),
+    ),
+    (
+        "ui::master_detail::DetailSize",
+        Option("masterdetail", "masterdetail.size"),
+    ),
+    (
+        "ui::master_detail::DetailSize::Share",
+        Option("masterdetail", "masterdetail.size=share"),
+    ),
+    (
+        "ui::master_detail::DetailSize::Resizable",
+        Option("masterdetail", "masterdetail.size=resizable"),
+    ),
+    (
+        "ui::master_detail::Mode",
+        Option("masterdetail", "masterdetail.width"),
+    ),
+    (
+        "ui::master_detail::Mode::Split",
+        Option("masterdetail", "masterdetail.width=fill"),
+    ),
+    (
+        "ui::master_detail::Mode::Master",
+        Option("masterdetail", "masterdetail.width=72"),
+    ),
+    (
+        "ui::master_detail::Mode::Drawer",
+        Demo("masterdetail", "Show details"),
+    ),
+    (
+        "ui::master_detail::MdLayout",
+        Demo("masterdetail", "╭─ Tables"),
+    ),
+    (
+        "ui::master_detail::MasterDetail",
+        StateRow("masterdetail", "narrow"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::collapse_below",
+        Option("masterdetail", "masterdetail.collapse"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::detail_share",
+        Option("masterdetail", "masterdetail.size=share"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::resizable",
+        Option("masterdetail", "masterdetail.size=resizable"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::seam",
+        Demo("masterdetail", "╭─ orders"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::keys",
+        Option("masterdetail", "masterdetail.keys"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::gap",
+        Option("masterdetail", "masterdetail.gap"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::summary_rows",
+        Option("masterdetail", "masterdetail.summary"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::esc_returns",
+        Option("masterdetail", "masterdetail.esc_returns"),
+    ),
+    (
+        "ui::master_detail::MasterDetail::detail_owns",
+        Demo("masterdetail", "Open table"),
+    ),
     // SC21: Progress, Empty & error
     (
         "widgets::progress::BarLayout",
@@ -5509,6 +5606,35 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     ("ui::context::ContextKeys", Plumbing, &["matches"]),
     ("ui::context::ContextRequest", Plumbing, &["menu"]),
     ("ui::layout::Split", Protocol, &["layout", "handle"]),
+    ("ui::layout::Split", Protocol, &["vertical", "horizontal"]),
+    (
+        "ui::layout::Split",
+        Operation,
+        &["reset", "toggle_max", "grow", "drag_to", "nudge"],
+    ),
+    (
+        "ui::layout::SplitKeys",
+        Protocol,
+        &["delta", "apply", "hint"],
+    ),
+    (
+        "ui::master_detail::MasterDetail",
+        Protocol,
+        &[
+            "layout",
+            "finish",
+            "on_key",
+            "on_pointer",
+            "hints",
+            "in_detail",
+            "last",
+        ],
+    ),
+    (
+        "ui::master_detail::MasterDetail",
+        Operation,
+        &["toggle_drawer", "close_drawer", "drawer_open", "menu_item"],
+    ),
     ("ui::layout::Stack", Protocol, &["measure", "layout"]),
     ("ui::layout::StackScroll", Operation, &["reset"]),
     (
