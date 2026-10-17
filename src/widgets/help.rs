@@ -8,6 +8,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use crate::core::event::{Key, Outcome};
+use crate::core::hints::{HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup};
 use crate::core::scroll::{ScrollPane, Scrollable};
@@ -16,6 +17,7 @@ use crate::ui::modal::Frame;
 use crate::ui::popup::Placement;
 use crate::ui::text::{truncate, width};
 use crate::widgets::button::Button;
+use crate::widgets::keyhint::Hint;
 use crate::widgets::scrollbar;
 
 /// A [`HelpOverlay`] action a key can be bound to. Esc (per the
@@ -84,6 +86,20 @@ impl std::fmt::Debug for HelpOverlay {
             .field("sections", &self.sections.len())
             .field("closed", &self.closed)
             .finish_non_exhaustive()
+    }
+}
+
+/// The footer while the reference is on top: how it scrolls and Esc.
+impl HasHints for HelpOverlay {
+    fn hints(&self, _: &HintCx) -> Vec<Hint> {
+        let mut v = vec![];
+        if let Some(k) = self.nav.move_hint(false) {
+            v.push(Hint::new(k, self.strings.hint_scroll));
+        }
+        if self.dismiss.escape {
+            v.push(Hint::new("Esc", self.strings.hint_close));
+        }
+        v
     }
 }
 

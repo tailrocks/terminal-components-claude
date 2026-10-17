@@ -50,3 +50,4 @@ pub mod toolbar;
 pub mod tree;
 pub mod viewport;
 mod viewport_specimen;
+pub mod widget_hints;

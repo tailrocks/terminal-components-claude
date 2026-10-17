@@ -201,6 +201,11 @@ core::keymap::deliverable_binding_for | key labels and hints read from key maps:
 core::keymap::label_for | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
 core::keymap::select_all_bindings | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
 core::keymap::hint_key | key labels and hints read from key maps: the generated KeyReference and Footer show them | SC33
+core::hints::HintCx | widget hints by state (HasHints): the State tab shows each widget's hints | SC33
+core::hints::Binding | a widget's key rows (Bindings): the generated KeyReference lists them | SC33
+core::hints::keymap_bindings | key map rows as Bindings: the generated KeyReference lists them | SC33
+core::hints::nav_hints | navigation hints from a widget's NavKeys (CO3): the State tab shows them under Desktop and Vim | SC33
+widgets::picker::Picker::choose_hint | the footer's Enter action of a picker: the Pickers page names it | SC33
 
 # core::pointer
 core::pointer::SecondaryRoute | State tab readout of the library dispatcher: shown once the showcase shell runs on Shell (S7/S8a) and produces it | SC34
