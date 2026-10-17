@@ -1,6 +1,8 @@
 # Reachability gate (src/shell/reach.rs; app_tests_reach.rs of each app).
 # One line per (app, scenario, size) whose content is not all reachable:
 # <app> <scenario> <W>x<H> <missing word>... # <finding id> <reason>
+# <case>@macos or <case>@other: a line for one client platform only
+# (JUNIE_TUI_CLIENT_PLATFORM; its key hints change what fits).
 # Findings: docs/audits/design-review-2026-10/responsive.md. A fix drops
 # its lines (the gate fails while a fixed line is still here).
 holla activity 72x20 btm child logs tests worker # R-apps-4 R-apps-11
@@ -37,7 +39,8 @@ holla files 106x29 missing # R-apps-3
 holla files 120x40 missing symlink # R-apps-3
 holla files 160x50 missing # R-apps-3
 holla finder 72x20 last toml # R-apps-8
-holla finder 120x40 toml # R-apps-12
+holla finder@macos 120x40 toml # R-apps-12 (the macOS hints leave a path wrapped mid-word)
+holla finder-children@other 160x50 toml # R-apps-12 (the other-platform hints leave a path wrapped mid-word)
 holla finder-children 72x20 truecolor under # R-apps-1 R-apps-8 R-apps-12
 holla finder-children 80x24 under # R-apps-8 R-apps-12
 holla finder-children 120x40 under # R-apps-8 R-apps-12
@@ -240,3 +243,4 @@ tablepro workbench 72x20 help truecolor # R-apps-1
 tablepro workbench 80x24 truecolor # R-apps-1
 tablepro workbench 106x29 312 # R-apps-3
 tablepro workbench 120x40 312 # R-apps-3
+tablepro open-quickly@other 72x20 Close # R-apps-4

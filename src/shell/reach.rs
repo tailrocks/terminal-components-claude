@@ -488,6 +488,22 @@ fn gate(app: &str, found: &[(String, Reach)], allow: &str) -> Result<(), String>
         let (Some(scenario), Some(size)) = (it.next(), it.next()) else {
             continue;
         };
+        // `<case>@macos` / `<case>@other`: a line for one client platform
+        // (its hints, and so what fits, differ), over a plain line
+        let (scenario, only) = match scenario.split_once('@') {
+            Some((name, plat)) => (name, Some(plat)),
+            None => (scenario, None),
+        };
+        let here = match crate::core::event::ClientPlatform::current() {
+            crate::core::event::ClientPlatform::MacOs => "macos",
+            crate::core::event::ClientPlatform::Other => "other",
+        };
+        if only.is_some_and(|p| p != here) {
+            continue;
+        }
+        if only.is_none() && allowed.contains_key(&(scenario.to_string(), size.to_string())) {
+            continue;
+        }
         // a gate over some rows checks only their lines
         let shown = |r: &Reach| format!("{}x{}", r.size.0, r.size.1) == size;
         if !found.iter().any(|(s, r)| s == scenario && shown(r)) {
