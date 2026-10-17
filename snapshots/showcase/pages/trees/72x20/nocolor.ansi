@@ -11,9 +11,9 @@
  [0m[1m▎  › Trees       [0m┃       ▸ api                                      ┆  [0m
       Sidebars    ┃                                                     [0m
       Tabs        ┃    Selection                                        [0m
-      Menus       ┃  branch_activate Toggle · row_click_toggles true ·  [0m
-  ▸ Overlays      ┃  indent 2 · divider false · alt_click_recursive true[0m
-  ▸ Feedback      ┆  · reserve_right 0 · show_meta true                 [0m
+      Menus       ┃  branch_activate Toggle · click Double · indent 2 · [0m
+  ▸ Overlays      ┃  divider false · alt_click_recursive true ·         [0m
+  ▸ Feedback      ┆  reserve_right 0 · show_meta true                   [0m
  [0m[2m ▸ Layout        [0m┆  nav default · wrap false · type-ahead on ·         [0m
                      track_click Page · selected_marker None · *        [0m
                                                                         [0m
