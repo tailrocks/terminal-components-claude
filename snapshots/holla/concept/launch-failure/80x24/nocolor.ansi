@@ -20,6 +20,6 @@
                                                                                 [0m
   Next   Find the process on port 5173    Retry frontend dev                    [0m
                                                                                 [0m
- [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2          ! exit 1 · 1 s            [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1   • 2          ! exit 1 · 1 s          … [0m
  [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  …          [0m[1m![0m frontend dev failed · exit 1 [0m
 [?25l
