@@ -270,6 +270,7 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
         PageId::Notices => NOTICES,
         PageId::DiskCleanup => DISK_CLEANUP,
         PageId::Activity => ACTIVITY,
+        PageId::Workspaces => WORKSPACES,
         PageId::SplitsStacks => SPLITS_STACKS,
         PageId::MasterDetail => MASTER_DETAIL,
         PageId::PaneTree => PANE_TREE,
@@ -1457,6 +1458,24 @@ pub static ACTIVITY: &[Opt] = &[
     Opt::new("activity.retention", "Retained lines", &["2000", "20"]),
     Opt::new("activity.find", "Find", &["off", "error", "job"]),
     Opt::new("activity.digit_toggles", "Digits toggle streams", OFF_ON)
+        .default(1)
+        .behaviour(),
+];
+
+/// Workspaces (SC52): the master-detail's collapse width, seam and Esc,
+/// the roster, and the purge's typed confirmation.
+pub static WORKSPACES: &[Opt] = &[
+    Opt::new(
+        "workspaces.collapse_below",
+        "Collapse below",
+        &["80", "108", "150"],
+    ),
+    Opt::new("workspaces.size", "Detail size", &["resizable", "share"]),
+    Opt::new("workspaces.roster", "Instance roster", &["auto", "off"]),
+    Opt::new("workspaces.esc_returns", "Esc returns to the tree", OFF_ON)
+        .default(1)
+        .behaviour(),
+    Opt::new("workspaces.typed", "Typed purge confirm", OFF_ON)
         .default(1)
         .behaviour(),
 ];

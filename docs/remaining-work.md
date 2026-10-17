@@ -20,7 +20,7 @@ apps' hand-rolled copies move onto it. Agents edit their own rows here.
 | Screens › Finder | `finder` | SC48 | p0 screens agent | Open |
 | Screens › Disk cleanup | `diskcleanup` | SC49 | p0-screens-b | **Done** (gaps P0-G1, P0-G2 below) |
 | Screens › Activity | `activity` | SC51 | p0-screens-b | **Done** (gap P0-G4 below) |
-| Screens › Workspaces | `workspaces` | SC52 | p0-screens-b | Open |
+| Screens › Workspaces | `workspaces` | SC52 | p0-screens-b | **Done** (gap P0-G5 below) |
 | Screens › Accounts & usage | `accountsusage` | SC53 | p0 screens agent | Open |
 | Screens › Launch cockpit | `launchcockpit` | SC55 | p0 screens agent | Open |
 | Screens › Read-only report | `readonlyreport` | SC56 | p0 screens agent | Open |
@@ -34,6 +34,7 @@ Gaps the Priority 0 Screens pages record instead of drawing locally
 | P0-G2 | Disk cleanup | The usage tree's size and share column: sizes ride in `TreeNode::meta`, so they are right-aligned text, not a measured column. | S16 (`TreeView::columns`) |
 | P0-G3 | Disk cleanup | Closed: the usage \| details and categories \| reclaim pairs are `MasterDetail`s (S19 landed), each collapsing into a summary and a drawer (`diskcleanup.collapse_below`). | — |
 | P0-G4 | Activity | Typing a find query and stepping through its matches (`/`, `n`/`N`, the `n of m` meta): the page shows a fixed query's marks through `TextViewport::set_marks` (option `activity.find`); holla's find code is still app-local. Attach/detach and stdin input mode stay app-level (plan §7.7 row 68). | S22 (`FindState`) |
+| P0-G5 | Workspaces | jackin's third column at 150+ columns (Running, Preserved and Daemon cards beside the detail) and its tree's selection strip: the page shows the roster inside the detail card (beside the facts when the card is 84+ wide, under them otherwise). A roster column beside a `MasterDetail` is a `PaneTree`/`MasterDetail` composition the library has no builder for yet. | S19 follow-up (a third pane), S26 |
 
 Status: 2026-10-17, derived from the repository at `42f0b372e`
 (`origin/design/interaction-polish`). This is the one list of everything
