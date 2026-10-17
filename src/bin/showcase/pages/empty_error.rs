@@ -5,7 +5,7 @@
 //! Options: `crate::options::EMPTY_ERROR`.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -18,6 +18,7 @@ use junie_tui::core::intent::Phase;
 use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::StackChild;
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::popup::Placement;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
@@ -33,6 +34,26 @@ use junie_tui::widgets::scrollbar;
 const ID: WidgetId = WidgetId::of("emptyerror");
 const NEW: WidgetId = WidgetId::of("emptyerror").sub("new");
 const IMPORT: WidgetId = WidgetId::of("emptyerror").sub("import");
+
+/// The Playground's rows: the two empty cards, connections, the grid.
+const CHILDREN: [StackChild; 3] = [
+    StackChild::fixed(8),
+    StackChild::fixed(10),
+    StackChild::fixed(9),
+];
+/// The widest the read-only grid is drawn.
+const GRID_W: u16 = 60;
+const GRID_NOTE: &str = "Enter or a typed key on a cell says why it cannot change";
+
+/// The saved-queries list's empty state.
+fn saved_empty() -> EmptyState {
+    EmptyState::new("No saved queries").hint("Queries you save appear here")
+}
+
+/// The search results' empty state: no hint, no action.
+fn search_empty() -> EmptyState {
+    EmptyState::new("Nothing matches “ordrs”")
+}
 
 pub fn page() -> Box<dyn Page> {
     Box::new(EmptyErrorPage::new())
@@ -75,8 +96,7 @@ impl EmptyErrorPage {
             template: Template::new(ID, states_grid()),
             opts: PageValues::new(page_options(PageId::EmptyError)),
             state: EmptyState::default(),
-            list: ListBox::new(ID.sub("list"), vec![], SelectMode::Single)
-                .empty(EmptyState::new("No saved queries").hint("Queries you save appear here")),
+            list: ListBox::new(ID.sub("list"), vec![], SelectMode::Single).empty(saved_empty()),
             grid,
             actions: Button::secondary(ID.sub("actions"), "Row actions ▾"),
             menu: RowMenu::default(),
@@ -145,17 +165,7 @@ impl EmptyErrorPage {
         } else {
             None
         };
-        let l = self.sections.layout(
-            area,
-            &[
-                StackChild::fixed(8),
-                StackChild::fixed(10),
-                StackChild::fixed(9),
-            ],
-            focus,
-            buf,
-            ctx,
-        );
+        let l = self.sections.layout(area, &CHILDREN, focus, buf, ctx);
         let t = ctx.theme;
         let (left, right) = match l.slot(0) {
             Some(r) => crate::pages::layout::columns(r, r.width / 2, 2),
@@ -169,13 +179,7 @@ impl EmptyErrorPage {
             let panel = Panel::card(Some("Search results")).meta("no hint, no action");
             let bg = panel.bg(t);
             let inner = panel.render(right, buf, t);
-            empty::render(
-                inner,
-                buf,
-                t,
-                &EmptyState::new("Nothing matches “ordrs”"),
-                bg,
-            );
+            empty::render(inner, buf, t, &search_empty(), bg);
         } else {
             ctx.focus_stop(self.list.id);
         }
@@ -197,13 +201,13 @@ impl EmptyErrorPage {
                 let grid = Rect::new(
                     inner.x,
                     inner.y,
-                    inner.width.saturating_sub(bw + 2).min(60),
+                    inner.width.saturating_sub(bw + 2).min(GRID_W),
                     inner.height.saturating_sub(1),
                 );
                 self.grid.render(grid, buf, ctx, bg);
                 self.actions
                     .render(Rect::new(grid.right() + 2, inner.y, bw, 1), buf, ctx, bg);
-                let note = "Enter or a typed key on a cell says why it cannot change";
+                let note = GRID_NOTE;
                 buf.set_string(
                     inner.x,
                     inner.bottom().saturating_sub(1),
@@ -282,6 +286,40 @@ impl Page for EmptyErrorPage {
     }
     fn blurb(&self) -> &'static str {
         "Empty and failed states with a way out, and read-only surfaces that say why"
+    }
+
+    /// Every card whole: the two empty cards side by side at the wider
+    /// one's size, the connections state, the grid with its button and
+    /// note; the cards' stacked heights.
+    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+        let at = |e: &EmptyState| e.measure(Size::ZERO, ctx);
+        let half = Panel::card(Some("Saved queries"))
+            .meta("ListBox::empty")
+            .outer(at(&saved_empty()))
+            .width
+            .max(
+                Panel::card(Some("Search results"))
+                    .meta("no hint, no action")
+                    .outer(at(&search_empty()))
+                    .width,
+            );
+        let grid =
+            (GRID_W + 2 + self.actions.width()).max(junie_tui::ui::text::width(GRID_NOTE) as u16);
+        let width = [
+            half * 2 + 4,
+            Panel::card(Some("Connections"))
+                .meta("EmptyState::actions")
+                .outer(at(&self.state))
+                .width,
+            Panel::card(Some("Orders"))
+                .meta("orders_view · read-only")
+                .outer(Size::new(grid, 0))
+                .width,
+        ]
+        .into_iter()
+        .max()
+        .unwrap_or(0);
+        Size::new(width, self.sections.stack.measure(&CHILDREN))
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

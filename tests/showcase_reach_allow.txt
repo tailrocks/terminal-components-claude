@@ -106,7 +106,6 @@ PopupsTooltips | Playground | 80x24 | R27 squeezes instead of overflowing: no Pa
 PopupsTooltips | Playground | 100x25 | R27 squeezes instead of overflowing: no Page::measure yet
 PopupsTooltips | Playground | 106x29 | R27 squeezes instead of overflowing: no Page::measure yet
 PopupsTooltips | Playground | 120x40 | R27 squeezes instead of overflowing: no Page::measure yet
-EmptyError | Playground | 80x24 | R30 squeezes instead of overflowing: no Page::measure yet
 Meters | Playground | 80x24 | R31 squeezes instead of overflowing: no Page::measure yet
 Notices | Playground | 80x24 | R32 squeezes instead of overflowing: no Page::measure yet
 Panels | Playground | 80x24 | R33 squeezes instead of overflowing: no Page::measure yet
