@@ -154,9 +154,9 @@ fn disk_tree() -> H {
 }
 
 fn disk_selected(h: &mut H) -> Vec<String> {
-    h.app.tabs[0]
-        .stack
-        .last_mut()
+    h.app
+        .router
+        .top_of_mut(0)
         .and_then(|s| s.as_disk())
         .map(|d| d.selected.iter().cloned().collect())
         .expect("the disk page")
@@ -220,7 +220,7 @@ fn a_disk_overview_row_menu_analyzes_the_row() {
     h.ticks(10);
     open(&mut h, "Disk overview");
     assert!(h.text().contains("Here › Disk › Overview"), "{}", h.text());
-    let depth = h.app.tabs[0].stack.len();
+    let depth = h.app.router.tab(0).len();
     shift_f10(&mut h);
     assert_eq!(
         h.app.shell.focus.current(),
@@ -232,7 +232,7 @@ fn a_disk_overview_row_menu_analyzes_the_row() {
     choose(&mut h, "Analyze");
     assert!(h.app.modals.is_empty());
     assert!(
-        h.app.tabs[0].stack.len() > depth,
+        h.app.router.tab(0).len() > depth,
         "Analyze opened the scan\n{}",
         h.text()
     );
@@ -291,10 +291,10 @@ fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
 
 /// The activity tab's output viewport.
 fn activity_view(h: &mut H) -> &junie_tui::widgets::viewport::TextViewport {
-    let i = h.app.active;
-    h.app.tabs[i]
-        .stack
-        .last_mut()
+    let i = h.app.active();
+    h.app
+        .router
+        .top_of_mut(i)
         .and_then(|s| s.as_activity())
         .map(|a| a.view())
         .expect("an activity tab")

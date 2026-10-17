@@ -130,8 +130,13 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
     let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
     assert!(h.app.tabs.len() > 2, "several tabs");
     let bg = 1;
-    assert_ne!(h.app.active, bg);
-    h.app.tabs[bg].stack.push(Box::new(BlurReporter));
+    assert_ne!(h.app.active(), bg);
+    // the background tab's top page: pushed while it is shown, then the
+    // shown tab again
+    let shown = h.app.active();
+    h.app.router.select(bg);
+    h.app.router.push(Box::new(BlurReporter));
+    h.app.router.select(shown);
     // the background field loses focus: its blur hook reports
     h.app.shell.focus.focus(REPORTED);
     h.app
@@ -147,7 +152,7 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
     );
     // activating the tab delivers it
     h.alt(KeyCode::Char('1'));
-    assert_eq!(h.app.active, bg);
+    assert_eq!(h.app.active(), bg);
     assert!(h.text().contains("Background field saved"), "{}", h.text());
 }
 
