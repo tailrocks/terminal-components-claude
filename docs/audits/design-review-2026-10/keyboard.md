@@ -514,7 +514,7 @@ owner.
 | 35 | Open → S8b | — | A hint ("Working…" from `Button::hints`): S8b's `HasHints`. Not routing. |
 | 36 | Fixed (S11) | "the finder query is the shared text field" | The finder query is an `EditField` under the finder's HP02 key map (Ctrl+A select all, Ctrl+Z/Ctrl+Y undo/redo, Ctrl+W stays with the shell); its own undo stacks and select-all flag are gone. The one-row presentation is `EditField::draw_line` (the finder keeps its middle-truncated look, so no capture moves). |
 | 37 | Open → S13 | — | `skip_when_empty` is a focus-stop policy of the list cores (`ListCore`, S13), not routing. |
-| 38 | Open → S10/S12 | — | Status-bar `focusable` (chrome rows, S10) and a ChipBar lead-toggle key (`ChipCmd`, S12 with the option widgets). Not routing. |
+| 38 | Part fixed (S12); open → S10 | S12 "the chip bar lead has a key" | S12 half: `ChipCmd::Lead` (default `m`, only while the bar has a `lead`; the key passes on otherwise) emits `ChipAction::Lead`, the same as a click on the lead (`the_lead_key_runs_the_lead_like_a_click`). Left for S10: the status-bar `focusable` option (chrome rows). Not routing. |
 | 39 | Open → S8b | — | Follows from derived hints (#10, #23). |
 
 Hash fills for rows above that read "see branch log" or a commit title:

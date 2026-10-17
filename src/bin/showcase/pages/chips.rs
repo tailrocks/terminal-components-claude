@@ -119,11 +119,13 @@ impl ChipsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("chipsselects.chip_keymap") {
-            // Delete only removes; `n` adds; Shift+Delete clears
+            // Delete only removes; `n` adds; Shift+Delete clears; `*`
+            // runs the lead
             "custom" => vec![
                 (KeyBinding::key(KeyCode::Delete), ChipCmd::Remove),
                 (KeyBinding::char('n'), ChipCmd::Add),
                 (KeyBinding::key(KeyCode::Delete).shift(), ChipCmd::ClearAll),
+                (KeyBinding::char('*'), ChipCmd::Lead),
             ],
             _ => <ChipCmd as junie_tui::core::keymap::Actions>::default_keymap(),
         };
