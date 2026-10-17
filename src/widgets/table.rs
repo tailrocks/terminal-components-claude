@@ -15,7 +15,7 @@ use crate::core::keymap::{Actions, KeyBinding, KeyMap, Nav, NavKeys, lookup, sel
 use crate::core::list::{Cursor, KeyStep, Moved, Navigable, RowSource};
 use crate::core::response::Response;
 use crate::core::scroll::{HScroll, ScrollPane, Scrollable};
-use crate::core::selection::{RowSelection, SelectionMode, TriState};
+use crate::core::selection::{RowSelection, SelectGesture, SelectionMode, TriState};
 use crate::core::text::TextBuffer;
 use crate::ui::columns::{ColumnSizing, HeaderAction, HeaderLabels};
 use crate::ui::ctx::{RenderCtx, fill};
@@ -437,24 +437,19 @@ impl DataTable {
 
     /// Ctrl or Cmd toggles a row: the default [`Self::toggle_mods`] off
     /// macOS.
-    pub const TOGGLE_CTRL_CMD: KeyModifiers = KeyModifiers::CONTROL.union(KeyModifiers::SUPER);
+    /// ([`SelectGesture::TOGGLE_CTRL_CMD`]).
+    pub const TOGGLE_CTRL_CMD: KeyModifiers = SelectGesture::TOGGLE_CTRL_CMD;
     /// Option (Alt) or Cmd toggles a row: the default [`Self::toggle_mods`]
-    /// on macOS, where Ctrl+click is a secondary click and Cmd rarely
-    /// reaches a terminal app. iTerm2 and Terminal.app can keep
-    /// Option+click (cursor moves, block selection), so it is a fallback
-    /// beside Space and the checkbox column, not the only way.
-    pub const TOGGLE_OPTION_CMD: KeyModifiers = KeyModifiers::ALT.union(KeyModifiers::SUPER);
-    /// Ctrl, Cmd or Alt (Option) toggles a row.
-    pub const TOGGLE_WITH_ALT: KeyModifiers = Self::TOGGLE_CTRL_CMD.union(KeyModifiers::ALT);
+    /// on macOS ([`SelectGesture::TOGGLE_OPTION_CMD`]).
+    pub const TOGGLE_OPTION_CMD: KeyModifiers = SelectGesture::TOGGLE_OPTION_CMD;
+    /// Ctrl, Cmd or Alt (Option) toggles a row
+    /// ([`SelectGesture::TOGGLE_WITH_ALT`]).
+    pub const TOGGLE_WITH_ALT: KeyModifiers = SelectGesture::TOGGLE_WITH_ALT;
 
-    /// The default toggle-click modifiers on `platform`:
-    /// [`Self::TOGGLE_OPTION_CMD`] on macOS, [`Self::TOGGLE_CTRL_CMD`]
-    /// elsewhere.
+    /// The default toggle-click modifiers on `platform`
+    /// ([`SelectGesture::toggle_mods_for`]).
     pub const fn toggle_mods_for(platform: ClientPlatform) -> KeyModifiers {
-        match platform {
-            ClientPlatform::MacOs => Self::TOGGLE_OPTION_CMD,
-            ClientPlatform::Other => Self::TOGGLE_CTRL_CMD,
-        }
+        SelectGesture::toggle_mods_for(platform)
     }
 
     /// Modifiers that make a click toggle a row (default
