@@ -122,7 +122,7 @@ pub const SITES: &[Site] = &[
     rows("jackin_preview/screens/config.rs::open_role_picker", &["jackin/overlays/config_role_picker"]),
     rows("jackin_preview/screens/config.rs::open_scope_picker", &["jackin/overlays/config_scope_picker"]),
     rows("jackin_preview/screens/editor.rs::accounts_key", &["jackin/overlays/editor_accounts_filter"]),
-    gap("jackin_preview/screens/editor.rs::finish_role_load", "the role-load error dialog is unreachable (a load starts only for a trusted role, so it never fails): visual-reapproval.md \"Overlay coverage (V4)\" F2"),
+    gap("jackin_preview/screens/editor.rs::finish_role_load", "opens only from a virtual-time job (a trusted role whose load fails, hard-cases `writer`), which never fires under paused motion: visual-reapproval.md \"Overlay coverage (V4)\" F2, F3"),
     gap("jackin_preview/screens/editor.rs::finish_save", "opens only from a virtual-time job under reduced motion, whose frame never settles: visual-reapproval.md \"Overlay coverage (V4)\" F3"),
     rows("jackin_preview/screens/editor.rs::leave", &["jackin/editor/quit_guard"]),
     rows("jackin_preview/screens/editor.rs::open_preview", &["jackin/editor/save_preview"]),
