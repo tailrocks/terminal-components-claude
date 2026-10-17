@@ -10,7 +10,7 @@
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Rect, Size};
 
 use crate::app::PageId;
 use crate::options::{PageValues, page_options};
@@ -24,12 +24,13 @@ use junie_tui::core::pointer::MouseTarget;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Split, SplitCmd, SplitDir, SplitKeys, StackChild};
 use junie_tui::ui::master_detail::{MasterDetail, Mode};
+use junie_tui::ui::measure::Measure;
 use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::ui::text::{thousands, truncate};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::list::{ListBox, ListItem, SelectMode};
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::props::{Prop, PropsList};
+use junie_tui::widgets::props::{self, Prop, PropsList};
 use junie_tui::widgets::splitter::Splitter;
 
 const ID: WidgetId = WidgetId::of("masterdetail");
@@ -353,6 +354,40 @@ impl Page for MasterDetailPage {
     }
     fn blurb(&self) -> &'static str {
         "MasterDetail: wide split with a resizable seam, narrow summary and drawer"
+    }
+
+    /// With the demo filling the body: as wide as both panes need side by
+    /// side (the list's labels and row counts, the widest table's facts,
+    /// the title rows), so the layout never collapses for want of room. A
+    /// fixed demo width is its own (72 shows the collapse on purpose).
+    fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
+        let height = self.sections.stack.measure(&[StackChild::flex(10, 24)]);
+        if let Some(w) = self.opts.number("masterdetail.width") {
+            return Size::new(w, height);
+        }
+        let list = self.list.measure(Size::ZERO, ctx);
+        let master = Panel::framed(Some("Tables")).meta("10").outer(list).width;
+        let detail = TABLES
+            .iter()
+            .map(|t| {
+                let facts = facts(t);
+                let content = Size::new(
+                    props::width(&facts).max(self.open.width() + 1),
+                    facts.len() as u16 + 2,
+                );
+                Panel::framed(Some(t.name))
+                    .meta("facts")
+                    .outer(content)
+                    .width
+            })
+            .max()
+            .unwrap_or(0);
+        let mode = format!("999 cols · collapses below {}", self.md.collapse_below);
+        let frame = Panel::card(Some("Database browser"))
+            .meta(&mode)
+            .outer(Size::new(self.md.natural_width(master, detail), 0))
+            .width;
+        Size::new(frame, height)
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
