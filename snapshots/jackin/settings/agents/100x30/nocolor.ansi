@@ -13,9 +13,9 @@
        OpenCode      sync         ★ OpenCode · Go subscription                                      [0m
        Grok Build    api key      ★ Grok · Team                                                     [0m
                                                                                                     [0m
-    sync mirrors the host login · api key and oauth token take material from the registry accou…    [0m
+    sync mirrors the host login · api key and oauth token take material from the registry           [0m
+    account                                                                                         [0m
     ignore starts the agent without credentials and removes it from session pickers                 [0m
-                                                                                                    [0m
                                                                                                     [0m
                                                                                                     [0m
                                                                                                     [0m
