@@ -3700,6 +3700,39 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::shape::CaretShape::Terminal",
         Option("overview", "shell.caret_shape=terminal"),
     ),
+    // ActionRow (S17, SC36): the Buttons page's Next row
+    (
+        "widgets::action_row::ActionRow",
+        Demo("buttons", "Open logs"),
+    ),
+    (
+        "widgets::action_row::ActionRow::align",
+        Option("buttons", "buttons.next_align"),
+    ),
+    (
+        "widgets::action_row::ActionRow::gap",
+        Option("buttons", "buttons.next_gap"),
+    ),
+    (
+        "widgets::action_row::ActionRow::message",
+        Option("buttons", "buttons.next_message"),
+    ),
+    (
+        "widgets::action_row::ActionRow::wrap",
+        Option("buttons", "buttons.row_wrap"),
+    ),
+    (
+        "widgets::action_row::ActionRow::layout",
+        Demo("buttons", "Copy run ID"),
+    ),
+    (
+        "widgets::action_row::ActionRow::render",
+        Demo("buttons", "2 not available yet"),
+    ),
+    (
+        "widgets::action_row::ActionRow::step",
+        Demo("buttons", "Retry failed"),
+    ),
     // PageHeader and Heading (S17, SC36): the Meters page's header
     (
         "widgets::page_header::PageHeader",

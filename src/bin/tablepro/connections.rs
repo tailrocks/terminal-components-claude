@@ -13,14 +13,16 @@ use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layout::{Stack, StackChild, StackScroll};
 use junie_tui::ui::leave::{KeyContext, Leave, LeaveGuard, Resolved, Stakes, letters_allowed};
-use junie_tui::widgets::button::{Button, row_layout};
+use junie_tui::widgets::action_row::ActionRow;
+use junie_tui::widgets::button::Button;
 use junie_tui::widgets::choice::{Checkbox, RadioGroup, Toggle};
+use junie_tui::widgets::detail_card::DetailCard;
 use junie_tui::widgets::field_common::{PointerField, route_click, route_drag, route_press};
 use junie_tui::widgets::input::{InputAction, TextInput};
 use junie_tui::widgets::keyhint::{Hint, hint};
 use junie_tui::widgets::notice::Notice;
 use junie_tui::widgets::panel::Panel;
-use junie_tui::widgets::props::{self, Prop};
+use junie_tui::widgets::props::Prop;
 use junie_tui::widgets::select::Select;
 use junie_tui::widgets::tabs::Tabs;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
@@ -1288,20 +1290,13 @@ impl ConnectionsScreen {
         }
         // detail card
         let Some(c) = self.selected_connection().cloned() else {
-            junie_tui::widgets::empty::render(
-                r,
-                buf,
-                t,
-                &junie_tui::widgets::empty::EmptyState::new("Select a connection")
+            DetailCard::empty(
+                junie_tui::widgets::empty::EmptyState::new("Select a connection")
                     .hint("↑↓ moves, Ctrl+N creates one"),
-                t.canvas,
-            );
+            )
+            .render(r, buf, ctx, t.canvas, &mut []);
             return;
         };
-        let card_h = 17.min(r.height);
-        let panel = Panel::card(Some(&c.name));
-        let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(r.x, r.y, r.width.min(70), card_h), buf, t);
         // SSL on is a passed check: the library's ok glyph and tone
         let ssl = if c.ssl {
             let ok = junie_tui::theme::StatusKind::Ok;
@@ -1362,20 +1357,34 @@ impl ConnectionsScreen {
                 .wrap(),
             );
         }
-        let used = props::render(
-            Rect::new(
-                inner.x,
-                inner.y,
-                inner.width,
-                inner.height.saturating_sub(3),
-            ),
-            buf,
-            t,
-            &facts,
-            bg,
-        );
-        // state line
-        let sy = inner.y + used + 1;
+        let connecting =
+            matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
+        let failed = matches!(&self.state, ConnState::Failed { name, .. } if *name == c.name);
+        self.connect_btn.busy = connecting;
+        self.connect_btn.label = if failed {
+            "Reconnect".into()
+        } else {
+            "Connect".into()
+        };
+        // the facts, the state line under them and the actions on the
+        // card's last row
+        let l = DetailCard::new(&c.name)
+            .props(facts)
+            .max_size(Some(70), Some(17))
+            .render(
+                r,
+                buf,
+                ctx,
+                t.canvas,
+                &mut [
+                    &mut self.connect_btn,
+                    &mut self.edit_btn,
+                    &mut self.dup_btn,
+                    &mut self.del_btn,
+                ],
+            );
+        let (inner, bg) = (l.slot, l.bg);
+        let sy = l.slot.y;
         match &self.state {
             ConnState::Connecting { ticks, name } if *name == c.name => {
                 let phase = match ticks {
@@ -1407,28 +1416,6 @@ impl ConnectionsScreen {
             }
             _ => {}
         }
-        // actions
-        let ay = inner.bottom().saturating_sub(1);
-        let connecting =
-            matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
-        let failed = matches!(&self.state, ConnState::Failed { name, .. } if *name == c.name);
-        self.connect_btn.busy = connecting;
-        self.connect_btn.label = if failed {
-            "Reconnect".into()
-        } else {
-            "Connect".into()
-        };
-        let widths = [
-            self.connect_btn.width(),
-            self.edit_btn.width(),
-            self.dup_btn.width(),
-            self.del_btn.width(),
-        ];
-        let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);
-        self.connect_btn.render(rects[0], buf, ctx, bg);
-        self.edit_btn.render(rects[1], buf, ctx, bg);
-        self.dup_btn.render(rects[2], buf, ctx, bg);
-        self.del_btn.render(rects[3], buf, ctx, bg);
     }
 
     fn render_form(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -1630,17 +1617,18 @@ impl ConnectionsScreen {
         // footer: test + actions
         let ay = inner.bottom().saturating_sub(1);
         form.test_btn.busy = matches!(self.state, ConnState::Testing { .. });
-        let widths = [
-            form.test_btn.width(),
-            form.cancel_btn.width(),
-            form.save_btn.width(),
-            form.save_connect_btn.width(),
-        ];
-        let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);
-        form.test_btn.render(rects[0], buf, ctx, bg);
-        form.cancel_btn.render(rects[1], buf, ctx, bg);
-        form.save_btn.render(rects[2], buf, ctx, bg);
-        form.save_connect_btn.render(rects[3], buf, ctx, bg);
+        let rects = ActionRow::new().render(
+            Rect::new(inner.x, ay, inner.width, 1),
+            buf,
+            ctx,
+            bg,
+            &mut [
+                &mut form.test_btn,
+                &mut form.cancel_btn,
+                &mut form.save_btn,
+                &mut form.save_connect_btn,
+            ],
+        );
         if let ConnState::Tested(res) = &self.state {
             let (kind, m) = match res {
                 Ok(m) => (junie_tui::theme::StatusKind::Ok, m),
