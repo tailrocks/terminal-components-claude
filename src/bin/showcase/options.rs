@@ -249,12 +249,14 @@ pub static SHELL: &[Opt] = &[
     )
     .behaviour(),
     // appearance, last so the controls above keep their rows: every
-    // card's heading row (`Theme::with_card_heading`)
+    // card's heading row (`Theme::with_card_heading`); `rule` is the
+    // library default (`Theme::card_heading`)
     Opt::new(
         "shell.card_heading",
         "Card heading",
         &["plain", "rule", "band", "emphasis"],
-    ),
+    )
+    .default(1),
 ];
 
 /// A page's own option table. Each page step (SC3 onward) adds its page's

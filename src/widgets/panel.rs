@@ -56,13 +56,14 @@ pub enum PanelFocus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum CardHeading {
     /// The title in secondary ink (primary and bold while focus is
-    /// inside), the meta faint, on the card's own surface. The default.
-    #[default]
+    /// inside), the meta faint, on the card's own surface, with the row
+    /// under it left blank.
     Plain,
     /// A faint rule ([`Glyphs::h_divider`](crate::theme::Glyphs::h_divider),
     /// `-` in ASCII) across the blank row the card already keeps under its
     /// title, as an inspector section's separator. Its shape carries it in
-    /// monochrome.
+    /// monochrome. The default.
+    #[default]
     Rule,
     /// The heading row on the plane one step up
     /// ([`Plane::up`](crate::theme::Plane::up)), its inks kept legible on
@@ -2059,20 +2060,24 @@ mod heading_tests {
     }
 
     #[test]
-    fn plain_is_the_default_and_the_theme_and_the_panel_choose_it() {
+    fn rule_is_the_default_and_the_theme_and_the_panel_choose_it() {
+        assert_eq!(CardHeading::default(), CardHeading::Rule);
         for level in LEVELS {
             let t = Theme::for_level(level);
+            assert_eq!(t.card_heading, CardHeading::Rule, "{level:?}");
             for focused in [false, true] {
-                let (plain, _) = card(&t, None, focused);
-                let (own, _) = card(&t, Some(CardHeading::Plain), focused);
-                assert_eq!(plain, own, "{level:?}: Plain is the default");
+                let (rule, _) = card(&t, None, focused);
+                let (own, _) = card(&t, Some(CardHeading::Rule), focused);
+                assert_eq!(rule, own, "{level:?}: Rule is the default");
                 // the theme sets the style for every card...
-                let rule = t.with_card_heading(CardHeading::Rule);
-                let (themed, _) = card(&rule, None, focused);
-                assert_ne!(themed, plain, "{level:?}: the theme's style applies");
+                let plain_theme = t.with_card_heading(CardHeading::Plain);
+                let (themed, _) = card(&plain_theme, None, focused);
+                assert_ne!(themed, rule, "{level:?}: the theme's style applies");
+                let (plain, _) = card(&t, Some(CardHeading::Plain), focused);
+                assert_eq!(themed, plain, "{level:?}: Plain stays available");
                 // ...and a card's own style wins over it
-                let (back, _) = card(&rule, Some(CardHeading::Plain), focused);
-                assert_eq!(back, plain, "{level:?}: the panel's style wins");
+                let (back, _) = card(&plain_theme, Some(CardHeading::Rule), focused);
+                assert_eq!(back, rule, "{level:?}: the panel's style wins");
             }
         }
     }

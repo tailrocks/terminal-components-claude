@@ -375,7 +375,7 @@ fn states_grid(heading: Option<CardHeading>) -> StateGrid {
         None => Panel::card(Some(title)),
     };
     let label = match heading {
-        Some(h) if h != CardHeading::Plain => format!("Card · {}", h.label()),
+        Some(h) => format!("Card · {}", h.label()),
         _ => "Card".to_owned(),
     };
     StateGrid::new(id)
