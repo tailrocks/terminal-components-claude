@@ -7,6 +7,7 @@ Use these pages for current project direction and work:
 - [Component contracts](../COMPONENT_ARCHITECTURE.md): current public API locations and requirements awaiting consumer or behavior verification.
 - [Plan](plan.md): open architecture, application, visual, and conformance work.
 - [Development](development.md): toolchain, run commands, workspace checks, and generated visibility records.
+- [Dependencies](dependencies.md): current tool pins, upgrade policy, upstream constraints, and frozen historical tool inputs.
 - [Quick start](guides/quickstart.md): current in-workspace facade example; verify APIs against source before depending on them externally.
 - [Safety rationales](../SAFETY.md): retained explanations linked to their original source context.
 - [Engineering coordination](../COORDINATION.md): ownership and evidence handoff for parallel changes.

@@ -1076,9 +1076,9 @@ fn trust_record_schema_requires_the_bound_write_policy_digest() {
 #[test]
 fn schema_validator_is_exact_and_has_no_default_reference_resolution() {
     let manifest = include_str!("../Cargo.toml");
-    assert!(manifest.contains("jsonschema = { version = \"=0.58.6\", default-features = false }"));
+    assert!(manifest.contains("jsonschema = { version = \"=0.59.0\", default-features = false }"));
     let lock = include_str!("../Cargo.lock");
-    assert!(lock.contains("name = \"jsonschema\"\nversion = \"0.58.6\""));
+    assert!(lock.contains("name = \"jsonschema\"\nversion = \"0.59.0\""));
 }
 
 fn valid_receipt() -> serde_json::Value {

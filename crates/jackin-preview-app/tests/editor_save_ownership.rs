@@ -34,7 +34,7 @@ fn loaded_third_workspace_owns_target_and_nine_hundred_ms_payload() {
         world.complete_editor_save(ticket.operation),
         SaveResult::Ignored
     ));
-    assert!(world.tick(899).is_empty());
+    assert_eq!(world.tick(899), [] as [Msg; 0]);
     assert!(!world.saved);
     assert_eq!(
         world.tick(1),
@@ -88,7 +88,7 @@ fn changed_preview_and_duplicate_admission_never_replace_payload() {
     let mut editor = loaded(&world, 0);
     editor.pending.name.push('!');
     assert_eq!(editor.begin_save(&mut world), Err(SaveError::ChangedReview));
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     assert!(editor.open_preview());
     editor.begin_save(&mut world).unwrap();
     assert_eq!(editor.begin_save(&mut world), Err(SaveError::Busy));

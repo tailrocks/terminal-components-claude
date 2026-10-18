@@ -623,12 +623,16 @@ fn compare_frames(oracle_path: &Path, candidate_path: &Path) -> Result<bool, Fai
     let oracle_text = fs::read_to_string(oracle_path).map_err(|_| FailureCode::Integrity)?;
     let candidate_text = fs::read_to_string(candidate_path).map_err(|_| FailureCode::Integrity)?;
 
-    if parse_json_strict(&candidate_text).is_err() {
-        return Err(FailureCode::FrameInvalid);
-    }
-    if parse_json_strict(&oracle_text).is_err() {
-        return Err(FailureCode::Integrity);
-    }
+    let mut candidate_value =
+        parse_json_strict(&candidate_text).map_err(|_| FailureCode::FrameInvalid)?;
+    let mut oracle_value = parse_json_strict(&oracle_text).map_err(|_| FailureCode::Integrity)?;
+
+    strip_added_frame_fields(&mut candidate_value);
+    strip_added_frame_fields(&mut oracle_value);
+
+    let oracle_text = serde_json::to_string(&oracle_value).map_err(|_| FailureCode::Integrity)?;
+    let candidate_text =
+        serde_json::to_string(&candidate_value).map_err(|_| FailureCode::FrameInvalid)?;
 
     let oracle = Frame::from_json(&oracle_text).map_err(|_| FailureCode::FrameInvalid)?;
     let candidate = Frame::from_json(&candidate_text).map_err(|_| FailureCode::FrameInvalid)?;
@@ -637,6 +641,21 @@ fn compare_frames(oracle_path: &Path, candidate_path: &Path) -> Result<bool, Fai
         .diff_cells(&candidate)
         .map_err(|_| FailureCode::FrameInvalid)?;
     Ok(diffs.is_empty())
+}
+
+fn strip_added_frame_fields(value: &mut Value) {
+    let Some(cells) = value.get_mut("cells").and_then(Value::as_array_mut) else {
+        return;
+    };
+    for cell in cells {
+        let Some(cell) = cell.as_object_mut() else {
+            continue;
+        };
+        cell.remove("underline_color");
+        if let Some(mods) = cell.get_mut("mods").and_then(Value::as_object_mut) {
+            mods.remove("underline_style");
+        }
+    }
 }
 
 fn compare_states(
@@ -781,4 +800,157 @@ fn write_report(path: &Path, report: &ComparisonReport) -> io::Result<()> {
     }
     let json = serde_json::to_string(report).map_err(io::Error::other)?;
     fs::write(path, format!("{json}\n"))
+}
+
+#[cfg(test)]
+mod frame_compatibility_tests {
+    use super::{FailureCode, compare_frames};
+    use serde_json::{Value, json};
+    use std::fs;
+
+    fn frame() -> Value {
+        json!({
+            "version": 3,
+            "cols": 1,
+            "rows": 1,
+            "cells": [{
+                "x": 0,
+                "y": 0,
+                "symbol": "x",
+                "width": 1,
+                "continuation": false,
+                "fg": "Default",
+                "bg": "Default",
+                "mods": {
+                    "hidden": false,
+                    "blink": false,
+                    "bold": false,
+                    "dim": false,
+                    "italic": false,
+                    "underline": false,
+                    "strikethrough": false,
+                    "reverse": false
+                }
+            }],
+            "cursor": {"x": 0, "y": 0, "visible": false, "style": "Block", "blinking": false},
+            "provenance": {
+                "tool": "test",
+                "tool_version": "1",
+                "profile": "test",
+                "source": "test",
+                "argv": [],
+                "created_unix": 0
+            }
+        })
+    }
+
+    fn compare(oracle: &Value, candidate: &Value) -> Result<bool, FailureCode> {
+        compare_texts(
+            &serde_json::to_vec(oracle).unwrap(),
+            &serde_json::to_vec(candidate).unwrap(),
+        )
+    }
+
+    fn compare_texts(oracle: &[u8], candidate: &[u8]) -> Result<bool, FailureCode> {
+        let directory = tempfile::tempdir().unwrap();
+        let oracle_path = directory.path().join("oracle.json");
+        let candidate_path = directory.path().join("candidate.json");
+        fs::write(&oracle_path, oracle).unwrap();
+        fs::write(&candidate_path, candidate).unwrap();
+        compare_frames(&oracle_path, &candidate_path)
+    }
+
+    #[test]
+    fn ignores_new_underline_fields_including_malformed_values() {
+        let oracle = frame();
+        let mut candidate = frame();
+        candidate["cells"][0]["underline_color"] = json!(["invalid"]);
+        candidate["cells"][0]["mods"]["underline_style"] = json!(17);
+        assert_eq!(compare(&oracle, &candidate), Ok(true));
+    }
+
+    #[test]
+    fn retains_boolean_underline_differences() {
+        let oracle = frame();
+        let mut candidate = frame();
+        candidate["cells"][0]["mods"]["underline"] = json!(true);
+        assert_eq!(compare(&oracle, &candidate), Ok(false));
+    }
+
+    #[test]
+    fn retains_required_field_and_cursor_validation() {
+        let oracle = frame();
+        let mut missing_required = frame();
+        missing_required["cells"][0]["mods"]
+            .as_object_mut()
+            .unwrap()
+            .remove("bold");
+        assert_eq!(
+            compare(&oracle, &missing_required),
+            Err(FailureCode::FrameInvalid)
+        );
+
+        let mut invalid_cursor = frame();
+        invalid_cursor["cursor"]["visible"] = json!(true);
+        invalid_cursor["cursor"]["x"] = json!(1);
+        assert_eq!(
+            compare(&oracle, &invalid_cursor),
+            Err(FailureCode::FrameInvalid)
+        );
+    }
+
+    #[test]
+    fn retains_trailing_json_rejection_for_both_frames() {
+        let valid = serde_json::to_vec(&frame()).unwrap();
+        let mut trailing = valid.clone();
+        trailing.extend_from_slice(b" {} ");
+        assert_eq!(
+            compare_texts(&valid, &trailing),
+            Err(FailureCode::FrameInvalid)
+        );
+        assert_eq!(
+            compare_texts(&trailing, &valid),
+            Err(FailureCode::Integrity)
+        );
+    }
+
+    #[test]
+    fn rejects_nested_duplicate_keys_in_candidate_and_oracle() {
+        let valid = serde_json::to_vec(&frame()).unwrap();
+        let cases = [
+            (
+                b"\"bold\":false".as_slice(),
+                b"\"bold\":false,\"bold\":true".as_slice(),
+            ),
+            (
+                b"\"symbol\":\"x\"".as_slice(),
+                b"\"symbol\":\"x\",\"symbol\":\"y\"".as_slice(),
+            ),
+            (
+                b"\"cursor\":{\"blinking\":false,\"style\":\"Block\",\"visible\":false,\"x\":0"
+                    .as_slice(),
+                b"\"cursor\":{\"blinking\":false,\"style\":\"Block\",\"visible\":false,\"x\":0,\"x\":1"
+                    .as_slice(),
+            ),
+        ];
+        for (needle, replacement) in cases {
+            let mut duplicate = valid.clone();
+            let position = duplicate
+                .windows(needle.len())
+                .position(|window| window == needle)
+                .unwrap();
+            duplicate.splice(
+                position..position + needle.len(),
+                replacement.iter().copied(),
+            );
+            assert_eq!(
+                compare_texts(&valid, &duplicate),
+                Err(FailureCode::FrameInvalid)
+            );
+            assert_eq!(
+                compare_texts(&duplicate, &valid),
+                Err(FailureCode::Integrity)
+            );
+        }
+    }
 }

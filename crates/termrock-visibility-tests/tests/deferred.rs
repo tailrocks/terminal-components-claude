@@ -40,7 +40,6 @@ use std::thread;
 use std::time::Duration;
 
 use serde_json::{Map, Value, json};
-use sha2::{Digest, Sha256};
 use termrock_visibility_tests::{
     CliOutput, TempRepo, Tool, fixture_env, install_fixture_aliases, run_cli,
 };
@@ -793,7 +792,7 @@ fn receipt_separates_accepted_and_current_queue_revisions() {
     assert_eq!(claim["queue_revision"], CURRENT_QUEUE_REVISION);
     assert_eq!(claim["claim_token"], CLAIM_TOKEN);
     let pin_bytes = fs::read(&fixture.claim_pin_path).expect("read caller-pinned claim");
-    let expected_pin_hash = format!("{:x}", Sha256::digest(&pin_bytes));
+    let expected_pin_hash = termrock_visibility_tests::sha256_hex(&pin_bytes);
     assert_eq!(claim["claim_pin_sha256"], expected_pin_hash);
     assert_eq!(
         observed.receipt["subject"]["accepted_base_is_ancestor"],
