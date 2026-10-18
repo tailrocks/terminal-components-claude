@@ -1,5 +1,3 @@
-//! Frozen context index loading and binding checks for `verify`.
-
 use std::fs;
 use std::path::{Path, PathBuf};
 

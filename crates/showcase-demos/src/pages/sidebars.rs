@@ -1,5 +1,3 @@
-//! Nested sidebar navigation and content ownership.
-
 use termrock::{
     Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
     Surface, Ui, Variant,
@@ -11,12 +9,10 @@ const NAV: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.nav")
 const SIDE_PANEL: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.panel");
 const CONTENT_PANEL: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.content");
 
-/// The one side-panel constructor (§13), shared by update and draw.
 fn side_panel() -> Panel<'static> {
     Panel::new(SIDE_PANEL)
 }
 
-/// The one content-card constructor (§13), keyed by the selected section.
 fn content_panel(title: &'static str) -> Panel<'static> {
     Panel::new(CONTENT_PANEL).title(title)
 }
@@ -144,7 +140,6 @@ fn sidebar(
         .row(item_row)
 }
 
-/// The sidebar cursor is independent from the shell's page navigation.
 #[derive(Debug, Default)]
 pub struct SidebarsPage {
     state: NavListState,
@@ -181,7 +176,7 @@ impl Page for SidebarsPage {
         }
         let mut response = result.erase();
         response |= collapse.erase();
-        // Both phases build the same two cards (§13).
+
         let _ = side_panel();
         let _ = content_panel(self.selected);
         response.into()

@@ -1,5 +1,3 @@
-//! Dialog, Menu/ContextMenu/MenuBar, Select, Picker/CommandPalette/PickerChain, Completion and HelpOverlay.
-
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as action;
 pub(crate) use termrock_core as event;

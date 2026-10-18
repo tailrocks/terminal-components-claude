@@ -1,9 +1,3 @@
-//! Keymaps, bindings and hints (`COMPONENT_ARCHITECTURE.md` §13.1, §21 item 10).
-//!
-//! Components declare bindings from small `const` tables selected by state;
-//! an application overrides and adds product chords through [`KeyMap`] in
-//! two explicit phases. Hints are derived from the same tables.
-
 use std::any::TypeId;
 use std::borrow::Cow;
 
@@ -15,50 +9,38 @@ use crate::response::StateFlags;
 
 pub use termrock_core::keys::KeyPhase;
 
-/// The state a binding table is selected for. `Copy`, so a table is chosen
-/// by `match` in a `const fn`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct BindingState {
-    /// The live flags.
     pub flags: StateFlags,
 }
 
-/// One chord → command binding in a component's table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Binding<C: 'static> {
-    /// Stable identity used by component-scoped overrides and dispatch.
     pub action: ActionKey,
-    /// The default chord. `None` declares a latent action that can be bound by
-    /// the application's [`KeyMap`].
+
     pub chord: Option<Chord>,
-    /// The const-constructible command; `update` maps it to the emitted
-    /// action with the live key.
+
     pub cmd: C,
-    /// The hint label.
+
     pub label: &'static str,
-    /// Hint priority; higher survives width pressure longer.
+
     pub priority: u8,
-    /// Whether the hint bar shows it.
+
     pub visible: bool,
 }
 
 impl<C: Copy + 'static> Binding<C> {
-    /// Find the command identified by `action` in `table`.
     pub fn command(table: &[Binding<C>], action: ActionKey) -> Option<C> {
         table.iter().find(|b| b.action == action).map(|b| b.cmd)
     }
 }
 
-/// A component's binding tables, one per state.
 pub trait Bindings {
-    /// The command type (`Next`, `Prev`, `Activate`, …).
     type Cmd: Copy + 'static;
 
-    /// The table for `st`.
     fn bindings(&self, st: BindingState) -> &'static [Binding<Self::Cmd>];
 }
 
-/// Bindings on the same effective chord within one table are a conflict.
 pub fn binding_conflicts<C: Copy + 'static>(
     owner: Id,
     phase: KeyPhase,
@@ -106,7 +88,6 @@ struct ComponentEntry {
     chord: Option<Chord>,
 }
 
-/// The application's chord layer: add, remove and remap per phase.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct KeyMap {
     entries: Vec<Entry>,
@@ -115,46 +96,36 @@ pub struct KeyMap {
 }
 
 impl KeyMap {
-    /// The empty map.
     pub const EMPTY: KeyMap = KeyMap {
         entries: Vec::new(),
         components: Vec::new(),
         typing: Vec::new(),
     };
 
-    /// A `'static` reference to the empty map, for `App::keymap` defaults.
     pub const EMPTY_REF: &'static KeyMap = &KeyMap::EMPTY;
 
-    /// The id reported as the owner of a key map binding in diagnostics.
     pub const OWNER: Id = Id::root("tui.keymap");
 
-    /// An empty, growable map.
     pub const fn new() -> Self {
         Self::EMPTY
     }
 
-    /// Bind `chord` to `key` in `phase`.
     #[must_use]
     pub fn bind(mut self, phase: KeyPhase, chord: Chord, key: ActionKey) -> Self {
         self.add(phase, chord, key);
         self
     }
 
-    /// Bind in place.
     pub fn add(&mut self, phase: KeyPhase, chord: Chord, key: ActionKey) {
         self.entries.push(Entry { phase, chord, key });
     }
 
-    /// Bind a product command before an admitted editor receives typing.
-    /// This override applies only while `owner` is the effective typing owner;
-    /// it cannot bypass a modal barrier or an absent/disabled editor.
     #[must_use]
     pub fn bind_before_typing(mut self, owner: Id, chord: Chord, command: ActionKey) -> Self {
         self.add_before_typing(owner, chord, command);
         self
     }
 
-    /// Add an owner-scoped before-typing command in place.
     pub fn add_before_typing(&mut self, owner: Id, chord: Chord, command: ActionKey) {
         self.typing.push(TypingCapture {
             owner,
@@ -163,7 +134,6 @@ impl KeyMap {
         });
     }
 
-    /// Remove an owner-scoped command when its product context stops applying.
     pub fn remove_before_typing(&mut self, owner: Id, chord: Chord) {
         self.typing
             .retain(|entry| entry.owner != owner || entry.chord != chord);
@@ -176,13 +146,11 @@ impl KeyMap {
             .map(|entry| entry.key)
     }
 
-    /// Remove every binding of `chord` in `phase`.
     pub fn remove(&mut self, phase: KeyPhase, chord: Chord) {
         self.entries
             .retain(|e| !(e.phase == phase && e.chord == chord));
     }
 
-    /// Move every binding of `from` in `phase` onto `to`.
     pub fn remap(&mut self, phase: KeyPhase, from: Chord, to: Chord) {
         for e in &mut self.entries {
             if e.phase == phase && e.chord == from {
@@ -191,20 +159,16 @@ impl KeyMap {
         }
     }
 
-    /// Bind a component action, including an action whose default chord is
-    /// latent.
     #[must_use]
     pub fn bind_component(mut self, owner: Id, action: ActionKey, chord: Chord) -> Self {
         self.remap_component(owner, action, chord);
         self
     }
 
-    /// Replace the effective chord for one component action.
     pub fn remap_component(&mut self, owner: Id, action: ActionKey, chord: Chord) {
         self.set_component(owner, action, Some(chord));
     }
 
-    /// Suppress one component action's default chord and hint.
     pub fn remove_component(&mut self, owner: Id, action: ActionKey) {
         self.set_component(owner, action, None);
     }
@@ -277,8 +241,6 @@ impl KeyMap {
         out
     }
 
-    /// The action bound to `key` in `phase`, if any. In the capture phase a
-    /// bare `Char` chord is skipped while `swallows_typing` (§3.3 step 2).
     pub fn lookup(&self, phase: KeyPhase, key: &Key, swallows_typing: bool) -> Option<ActionKey> {
         self.entries
             .iter()
@@ -288,12 +250,10 @@ impl KeyMap {
             .map(|e| e.key)
     }
 
-    /// Whether the map has no bindings.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty() && self.components.is_empty() && self.typing.is_empty()
     }
 
-    /// Two bindings of the same effective chord in the same phase.
     pub fn conflicts(&self) -> Vec<Diagnostic> {
         let mut out = Vec::new();
         for (i, a) in self.entries.iter().enumerate() {
@@ -330,23 +290,19 @@ impl KeyMap {
     }
 }
 
-/// Stable identity of one monomorphic component binding table.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BindingTableId {
-    /// A monomorphic static component table.
     Static {
-        /// Concrete command type.
         command_type: TypeId,
-        /// Static slice address.
+
         address: usize,
-        /// Static descriptor count.
+
         len: usize,
     },
-    /// A structurally compared dynamic descriptor snapshot.
+
     Dynamic {
-        /// Monotonic structural revision.
         revision: u64,
-        /// Combined static and dynamic descriptor count.
+
         len: usize,
     },
 }
@@ -385,7 +341,6 @@ pub(crate) struct PublishedBindings {
     len: usize,
 }
 
-/// Reusable frame publication of the focused component's erased bindings.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct BindingRegistry {
     tables: Vec<PublishedBindings>,
@@ -686,29 +641,20 @@ impl FocusedHints {
     }
 }
 
-/// Display casing for a shortcut's character, independent of its routing identity.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ChordCase {
-    /// Preserve the character supplied by the effective binding.
     #[default]
     Preserve,
-    /// Capitalize ASCII letters for display; leave other characters unchanged.
+
     UppercaseAscii,
 }
 
-/// The keycap displayed by a hint, distinct from any input routing binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HintKey {
-    /// Format a real keyboard chord using the canonical chord renderer.
     Chord(Chord),
-    /// Format a physical chord with an explicit display-only casing policy.
-    ChordWithCase {
-        /// The unchanged physical chord.
-        chord: Chord,
-        /// Character casing used only for measurement and painting.
-        case: ChordCase,
-    },
-    /// A descriptive affordance such as `Type`; declares no routing chord.
+
+    ChordWithCase { chord: Chord, case: ChordCase },
+
     Label(&'static str),
 }
 
@@ -721,32 +667,27 @@ impl HintKey {
     }
 }
 
-/// One hint in the hint bar. Displaying a hint never registers a binding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hint {
-    /// The keycap shown.
     pub key: HintKey,
-    /// The label shown.
+
     pub label: &'static str,
-    /// Higher survives width pressure longer.
+
     pub priority: u8,
 }
 
-/// A layer of hints contributed by a screen, a layer or a component.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct HintLayer {
-    /// The hints, in display order.
     pub hints: Vec<Hint>,
-    /// An optional badge at the start.
+
     pub badge: Option<&'static str>,
-    /// An optional status message.
+
     pub status: Option<Cow<'static, str>>,
-    /// Centre the row instead of left-aligning it.
+
     pub centered: bool,
 }
 
 impl HintLayer {
-    /// No hints.
     pub const fn empty() -> Self {
         HintLayer {
             hints: Vec::new(),
@@ -756,15 +697,12 @@ impl HintLayer {
         }
     }
 
-    /// Whether this layer contributes no visible content.
     pub fn is_empty(&self) -> bool {
         self.hints.is_empty()
             && self.badge.is_none()
             && self.status.as_deref().is_none_or(str::is_empty)
     }
 
-    /// Derive hints from a binding table: visible bindings only, sorted by
-    /// priority descending, ties by declaration order.
     pub fn from_bindings<C: Copy + 'static>(table: &[Binding<C>]) -> Self {
         let mut hints: Vec<Hint> = table
             .iter()
@@ -1135,10 +1073,6 @@ mod tests {
         assert!(!hints.contains_chord(chord));
     }
 
-    /// TASK-010 W-010-10: matching, every scoped conflict check and
-    /// focused-hint deduplication share one effective equivalence. `SHIFT`
-    /// folds only for the same exact `Char`; case and non-character
-    /// modifiers stay distinct while structural `Eq` still sees them apart.
     #[test]
     fn table_conflicts_use_effective_chord_identity() {
         #[derive(Clone, Copy)]
@@ -1198,8 +1132,6 @@ mod tests {
         );
     }
 
-    /// TASK-010 W-010-10: component-scope conflict detection uses the same
-    /// effective equivalence, including remapped effective chords.
     #[test]
     fn component_conflicts_use_effective_chord_identity() {
         const VISIBLE: ActionKey = ActionKey::custom("test.effective.visible");
@@ -1270,8 +1202,6 @@ mod tests {
         assert_eq!(remapped.component_conflicts(owner, &table).len(), 1);
     }
 
-    /// TASK-010 W-010-10: ordinary and typing-scope `KeyMap` conflicts use
-    /// the same effective equivalence.
     #[test]
     fn keymap_conflicts_use_effective_chord_identity() {
         let owner = Id::root("effective-scopes");
@@ -1311,8 +1241,6 @@ mod tests {
         }
     }
 
-    /// TASK-010 W-010-10: focused-hint deduplication uses the same effective
-    /// equivalence as matching and conflict detection.
     #[test]
     fn focused_hints_deduplicate_effective_chords() {
         const FIRST: ActionKey = ActionKey::custom("test.effective.hint.first");

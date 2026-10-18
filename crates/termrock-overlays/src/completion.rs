@@ -1,5 +1,3 @@
-//! Non-modal completion popover and editor coordination.
-
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
@@ -21,31 +19,20 @@ use termrock_runtime::empty::EmptyState;
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-/// Completion events.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CompletionAction {
-    /// Cursor moved.
     Moved,
-    /// A semantic item was accepted.
     Accepted(ItemKey),
-    /// The popover was dismissed.
     Dismissed,
 }
 
-/// Const completion commands.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CompletionCmd {
-    /// Previous suggestion.
     Up,
-    /// Next suggestion.
     Down,
-    /// Previous page.
     PageUp,
-    /// Next page.
     PageDown,
-    /// Accept the current suggestion.
     Accept,
-    /// Dismiss suggestions.
     Dismiss,
 }
 
@@ -134,7 +121,6 @@ const BINDINGS: &[Binding<CompletionCmd>] = &[
     ),
 ];
 
-/// Durable cursor, scrolling, anchoring and replacement state.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CompletionState {
     core: CollectionCore,
@@ -145,21 +131,17 @@ pub struct CompletionState {
 }
 
 impl CompletionState {
-    /// Whether suggestions are open.
     pub const fn is_open(&self) -> bool {
         self.open
     }
-    /// Current key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-    /// Bytes before the editor cursor replaced on acceptance.
     pub const fn replace_len(&self) -> usize {
         self.replace_len
     }
 }
 
-/// Controller for the editor-to-popover lifecycle.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CompletionController {
     editor_id: Id,
@@ -167,7 +149,6 @@ pub struct CompletionController {
 }
 
 impl CompletionController {
-    /// Bind one editor owner to its completion popover.
     pub const fn new(editor_id: Id, popup_id: Id) -> Self {
         Self {
             editor_id,
@@ -175,7 +156,6 @@ impl CompletionController {
         }
     }
 
-    /// Open or refresh suggestions at the editor cursor anchor.
     pub fn request<T: AsItem>(
         &self,
         cx: &mut Cx<'_>,
@@ -212,18 +192,12 @@ impl CompletionController {
         }
     }
 
-    /// Close suggestions after editor motion or commit.
     pub fn dismiss(&self, cx: &mut Cx<'_>, state: &mut CompletionState) {
         state.open = false;
         state.owner = None;
         cx.close_layer(self.popup_id, None);
     }
 
-    /// Dismiss suggestions after the editor moves independently.
-    ///
-    /// The editor owns its buffer and emits its own action, so this hook is
-    /// called by the composition that observes an editor-motion action.  It
-    /// returns whether an open completion was actually dismissed.
     pub fn dismiss_on_editor_motion(&self, cx: &mut Cx<'_>, state: &mut CompletionState) -> bool {
         if !state.open {
             return false;
@@ -232,13 +206,6 @@ impl CompletionController {
         true
     }
 
-    /// Splice and dismiss one accepted semantic item as one lifecycle step.
-    ///
-    /// The replacement length belongs to [`CompletionState`], so callers
-    /// cannot accidentally splice one range and dismiss a different request.
-    /// Dismissal is performed even when the buffer rejects an empty insertion;
-    /// the semantic item was still accepted and the popup must not remain
-    /// live after that decision.
     pub fn accept(
         &self,
         cx: &mut Cx<'_>,
@@ -251,7 +218,6 @@ impl CompletionController {
         inserted
     }
 
-    /// Splice one semantic item's insertion text into an editor buffer.
     fn splice(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
         let end = buffer.cursor_offset();
         let start = end.saturating_sub(replace_len);
@@ -260,56 +226,6 @@ impl CompletionController {
     }
 }
 
-/// A semantic completion popover. The owner editor keeps focus.
-///
-/// ## Construction
-/// `Completion::new(popup_id)`; pair it with
-/// `CompletionController::new(editor_id, popup_id)`. Items arrive per phase
-/// and implement [`AsItem`].
-///
-/// ## Ownership
-/// Caller owns items and [`CompletionState`]; [`CompletionController`] owns editor/popover coordination.
-///
-/// ## Configuration
-/// `.row`, `.empty`, `.max_rows`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::COMPLETION`, `DEFAULT`.
-///
-/// ## States
-/// Cursor and disabled row states are semantic; the editor retains runtime focus.
-///
-/// ## Actions
-/// [`CompletionAction::Accepted`] carries the semantic key; no display index escapes.
-///
-/// ## Focus
-/// Registers no focus stop. While open, bindings are published for the
-/// focused editor id stored by [`CompletionController`].
-///
-/// ## Keyboard
-/// [`Completion::update_for`] reads editor-addressed arrows/Ctrl+N/P/page
-/// keys, Tab/Enter, and Esc while layer events remain popup-addressed.
-///
-/// ## Mouse
-/// Row click accepts; wheel and scrollbar preserve cursor independence.
-///
-/// ## Layout
-/// Anchored popover, `24..48` columns, up to eight rows by default.
-///
-/// ## Parts
-/// `CONTAINER`, `BORDER`, `GUTTER`, `ICON`, `ROW`, `LABEL`, `META`, `TRACK`, `THUMB`, `EMPTY`.
-///
-/// ## Overrides
-/// Standard patch, per-part patch and single-part slot overrides.
-///
-/// ## Identity
-/// [`AsItem`] is mandatory; insertion text is independent from visible label.
-///
-/// ## Testing
-/// `CompletionCase`; insertion fallback and distinct insertion are unit-tested.
-///
-/// ## Invariants
-/// Drawing never moves the cursor or ensures it visible; only cursor motion does.
 pub struct Completion<'a, T, R = ItemRow> {
     id: Id,
     row: R,
@@ -331,7 +247,6 @@ impl<T, R> core::fmt::Debug for Completion<'_, T, R> {
 }
 
 impl<T> Completion<'_, T, ItemRow> {
-    /// Construct a semantic completion popover.
     pub const fn new(id: Id) -> Self {
         Self {
             id,
@@ -347,7 +262,6 @@ impl<T> Completion<'_, T, ItemRow> {
 }
 
 impl<'a, T, R> Completion<'a, T, R> {
-    /// Styled parts.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -360,11 +274,9 @@ impl<'a, T, R> Completion<'a, T, R> {
         Part::THUMB,
         Part::EMPTY,
     ];
-    /// Component id.
     pub const fn id(&self) -> Id {
         self.id
     }
-    /// Replace row painting.
     pub fn row<R2: RowFn<T>>(self, row: R2) -> Completion<'a, T, R2> {
         Completion {
             id: self.id,
@@ -377,33 +289,28 @@ impl<'a, T, R> Completion<'a, T, R> {
             _item: PhantomData,
         }
     }
-    /// Empty state.
     #[must_use]
     pub const fn empty(mut self, empty: EmptyState<'a>) -> Self {
         self.empty = Some(empty);
         self
     }
-    /// Maximum visible rows.
     #[must_use]
     pub const fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = if rows == 0 { 1 } else { rows };
         self
     }
-    /// Patch every part.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self.ov = self.ov.global(patch);
         self
     }
-    /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
         self.ov = self.ov.part(parts);
         self
     }
-    /// Replace one part painter.
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
@@ -501,8 +408,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             {
                 acc.action(CompletionAction::Dismissed);
             }
-            // Text and paste intents remain available to the editor so it can
-            // refresh completion items after a content change.
+
             _ => {}
         }
     }
@@ -515,7 +421,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         pressed_part == Some(PartRef::item(Part::ROW, key))
     }
 
-    /// Requested popover size.
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let width = items
             .iter()
@@ -536,10 +441,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         LayerSize::Fixed(width, rows.saturating_add(2))
     }
 
-    /// Update navigation and activation for the editor that retains focus.
-    ///
-    /// Binding intents are read from `owner`; layer and pointer intents remain
-    /// addressed to this completion's popover id.
     pub fn update_for(
         &self,
         owner: Id,
@@ -608,7 +509,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         acc.finish(self.id)
     }
 
-    /// Draw into the resolved popover area supplied by the owner's layer closure.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletionState, items: &[T]) -> Rect {
         ui.with_surface(crate::theme::Surface::Popover, |ui| {
             if state.open

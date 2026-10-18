@@ -1,5 +1,3 @@
-//! Focused deterministic integration coverage for the Jackin Preview shell.
-
 use jackin_preview_app::{
     ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, Motion, Route, RunId, Scenario,
 };
@@ -224,7 +222,7 @@ fn paused_frames_freeze_the_virtual_clock() {
     let before = harness.app().world.now_ms();
     harness.ticks(20);
     assert_eq!(harness.app().world.now_ms(), before);
-    // Non-cinematic --frame does not seek the reference world clock.
+
     assert_eq!(harness.app().frame(), 0);
 }
 

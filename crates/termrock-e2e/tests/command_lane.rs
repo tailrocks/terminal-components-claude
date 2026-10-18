@@ -1,20 +1,4 @@
 mod command {
-//! Native command selectors and the shared RUN-01 through RUN-07 executor for this
-//! `termrock-e2e` integration-test module, adapted
-//! from static-reviewed source SHA-256
-//! `216c5def328d7335052c9ae1d405b4c3f2da7a3eecd586d79dff6cb8a2321077`.
-//! This integration copy has not been compiled or executed.
-//!
-//! The executor uses pinned `termpane::session::PtySession` for a single
-//! combined-output PTY stream, child status, and owned cleanup, and calls
-//! Tuiscotti's public replay/render/export path for capture. It does not
-//! claim parent-terminal restoration: only the child PTY's live mode/cursor
-//! observations are available here.
-//!
-//! Integration dependencies on Unix: `termpane = { version = "=0.1.0",
-//! features = ["pty"] }` and `nix = { version = "=0.31.3", default-features =
-//! false, features = ["process", "signal"] }`. `termpane` brings the pinned
-//! `portable-pty 0.9.0` transport; no copied terminal painter is introduced.
 
 use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
@@ -77,16 +61,10 @@ pub enum InvocationKind {
 pub struct InvocationPlan {
     pub command_id: &'static str,
     pub kind: InvocationKind,
-    /// Exact argv after PATH resolution. The root-command argv stays the
-    /// transcript command; the executable diagnostic has its own argv.
     pub argv: Vec<String>,
-    /// Resolved from the frozen source manifest by the caller, never from a
-    /// current checkout, branch name, or test working directory.
     pub cwd: PathBuf,
     pub size: (u16, u16),
     pub input: Vec<InputEvent>,
-    /// Same role-independent app-level values for both subjects. The exact
-    /// Cargo command remains in `argv` and is never rewritten by these values.
     pub case_environment: BTreeMap<String, String>,
     pub max_concurrent_ptys: u8,
     pub cargo_build_jobs: u8,
@@ -115,8 +93,6 @@ pub enum InputEvent {
         checkpoint: &'static str,
         contains: &'static [&'static str],
         absent: &'static [&'static str],
-        /// Earlier checkpoints whose positive predicates must pass before
-        /// this checkpoint's negative predicates are meaningful.
         requires: &'static [&'static str],
     },
     Press(&'static str),
@@ -142,8 +118,6 @@ pub struct CommandRow {
     pub status: Status,
     pub reference: Option<InvocationReceipt>,
     pub candidate: Option<InvocationReceipt>,
-    /// Invocation-specific direct binary runs are separate diagnostics and
-    /// never overwrite the exact Cargo-command result.
     pub direct_executable_diagnostics: Vec<InvocationReceipt>,
 }
 
@@ -176,8 +150,6 @@ pub const COMMANDS: [(&str, &str, &[&str]); 7] = [
     ("RUN-07", "cargo run --release --bin holla -- --scenario remote-host", &["cargo", "run", "--release", "--bin", "holla", "--", "--scenario", "remote-host"]),
 ];
 
-/// A command selector carries exact Cargo argv and a separate direct-binary
-/// diagnostic argv. Program and executor readiness are tracked separately.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub enum CommandExecutionReadiness {
     SupportedByCurrentExecutor,
@@ -211,9 +183,6 @@ pub struct CommandProgram {
     pub source_citations: &'static [&'static str],
 }
 
-/// These immutable input/assertion programs are shared by reference,
-/// candidate, and the separate direct-executable diagnostic. Each command
-/// remains byte-for-byte the exact root invocation recorded in COMMANDS.
 pub const RUN01_INPUT: &[InputEvent] = &[
     InputEvent::WaitFor {
         checkpoint: "00-overview",
@@ -275,8 +244,8 @@ pub const RUN03_INPUT: &[InputEvent] = &[
         absent: &["Key reference"],
         requires: &["01-help"],
     },
-    // Holla source maps Ctrl+C to immediate quit. The event is a request; it
-    // cannot itself prove the child exited or the parent terminal was restored.
+
+
     InputEvent::Press("ctrl-c"),
 ];
 
@@ -603,9 +572,6 @@ pub fn run03_plans(subject: &FrozenCommandSubject) -> Result<[InvocationPlan; 2]
     command_plans("RUN-03", subject)
 }
 
-/// Select one exact root command without translating its argv. The returned
-/// direct argv is a separate diagnostic and never replaces the Cargo result.
-/// Every command has one source-backed shared input program.
 pub fn native_command_selection(
     command_id: &str,
     subject: &FrozenCommandSubject,
@@ -689,8 +655,6 @@ pub fn native_command_selection(
     })
 }
 
-/// Build paired plans from a command's reviewed shared program and controlled
-/// case environment. Both subjects receive identical input bytes.
 pub fn command_plans(
     command_id: &str,
     subject: &FrozenCommandSubject,
@@ -743,8 +707,6 @@ pub fn command_row_index(command_id: &str) -> Result<usize, String> {
         .ok_or_else(|| format!("unknown native command ID {command_id:?}"))
 }
 
-/// Initialize receipt slots for one selected command. Unselected rows stay
-/// NOT_RUN, and the selected row gets only its own binary's direct diagnostic.
 pub fn initial_command_receipt(
     subjects: &[FrozenCommandSubject],
     command_id: &str,
@@ -771,8 +733,8 @@ pub fn initial_command_receipt(
     Ok(receipt)
 }
 
-// Concrete executor code follows the receipt/schema helpers above. It stays
-// Unix-only because the pinned PTY and raw replay APIs are Unix-only.
+
+
 
 #[cfg(unix)]
 pub mod executor {
@@ -841,8 +803,6 @@ pub mod executor {
         fn store(&mut self, relative_path: &str, bytes: &[u8]) -> Result<ArtifactRef, String>;
     }
 
-    /// New files only; the artifact root must already be an existing external
-    /// directory and must not be inside either frozen source root.
     pub struct DirectoryArtifactSink {
         root: PathBuf,
     }
@@ -916,18 +876,13 @@ pub mod executor {
     #[derive(Clone, Debug, Deserialize)]
     #[serde(deny_unknown_fields)]
     pub struct ExecutionEnvelope {
-        /// Child variables only. `SpawnParams::env_clear` ensures nothing
-        /// else is inherited; the backend's required `SHELL` is overridden.
         pub variables: BTreeMap<String, String>,
-        /// The exact files resolved through `PATH`; both hashes are recorded.
         pub cargo_path: PathBuf,
         pub cargo_sha256: String,
         pub rustc_path: PathBuf,
         pub rustc_sha256: String,
-    /// Where the exact `cargo run` writes `target/release/<selected-bin>`.
         pub target_dir: PathBuf,
         pub artifact_root: PathBuf,
-        /// Must equal two; the team Cargo slot is externally reserved.
         pub cargo_jobs: u8,
     }
 
@@ -1180,10 +1135,10 @@ pub mod executor {
                 || line.contains("rustc-wrapper")
                 || line.contains("rustdoc-wrapper")
                 || line.contains("replace-with")
-                // Fail closed on every TOML spelling, including dotted keys and
-                // inline tables. This can reject a harmless string value that
-                // mentions rustflags, which is acceptable for this controlled
-                // Cargo-config envelope.
+
+
+
+
                 || line.contains("rustflags")
                 || line.starts_with("target-dir")
                 || line.starts_with("target =")
@@ -1356,9 +1311,9 @@ pub mod executor {
 
     impl CommandPty for TermpanePty {
         fn sample(&mut self) -> Result<LiveSample, String> {
-            // The live grid and byte log are requested until their byte counts
-            // agree. This prevents replaying bytes newer than the captured
-            // live observation (or comparing against an older screen).
+
+
+
             for _ in 0..8 {
                 let observation = self.session.observe().map_err(|error| format!("PTY observe: {error}"))?;
                 let output = self.session.output_log().map_err(|error| format!("PTY output log: {error}"))?;
@@ -1845,10 +1800,10 @@ pub struct RestorationReceipt {
                     if body == marker {
                         return Err("expected executable Running marker appeared before the release Finished boundary".into());
                     }
-                    // Cargo runs build scripts before its final Finished line.
-                    // Their child commands also produce Running lines; ignore
-                    // those pre-build-completion lines, while rejecting an
-                    // early line that claims this exact selected executable.
+
+
+
+
                     offset += line.len();
                     continue;
                 }
@@ -2495,9 +2450,9 @@ pub struct RestorationReceipt {
     fn pair_environment_matches(reference: &EnvironmentReceipt, candidate: &EnvironmentReceipt) -> bool {
         let mut reference_inputs = reference.variable_hashes.clone();
         let mut candidate_inputs = candidate.variable_hashes.clone();
-        // Target directories are build outputs and may be isolated per source
-        // subject. All inherited process inputs and app-owned values stay the
-        // same for the pair.
+
+
+
         reference_inputs.remove("CARGO_TARGET_DIR");
         candidate_inputs.remove("CARGO_TARGET_DIR");
         reference_inputs == candidate_inputs
@@ -2709,9 +2664,6 @@ pub struct RestorationReceipt {
         execute_command_pair("RUN-03", subjects, environments, factory, recorder, sink)
     }
 
-    /// Dispatch by stable RUN ID. Every row uses the same generic PTY runner,
-    /// the command-specific source-backed program, and the independently
-    /// resolved executable for each frozen subject.
     pub fn dispatch_native_command_pair(
         command_id: &str,
         subjects: &[FrozenCommandSubject],
@@ -2847,8 +2799,8 @@ pub struct RestorationReceipt {
 
         impl FakePty {
             fn new(samples: Vec<LiveSample>, exit: Result<ExitRecord, String>, close_result: Result<(), String>) -> (Self, Arc<AtomicBool>) {
-                // The real PTY output log is append-only; keep that property in
-                // the fake while allowing each sample to expose a new grid.
+
+
                 let mut accumulated = Vec::new();
                 let mut cumulative = Vec::with_capacity(samples.len());
                 for (index, mut sample) in samples.into_iter().enumerate() {

@@ -1,4 +1,3 @@
-//! Active placeholders change paint only; canonical editing and cursor stay shared.
 use ratatui_core::layout::Rect;
 use termrock_fields::{TextInput, TextInputState};
 use termrock_runtime::{App, Cx, Id, KeyCode, Response, Ui, UpdateCause};

@@ -1,5 +1,3 @@
-//! tc-proof-host entrypoint.
-
 #![allow(
     missing_docs,
     unreachable_pub,

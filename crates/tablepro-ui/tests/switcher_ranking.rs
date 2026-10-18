@@ -1,6 +1,3 @@
-//! Switcher ranking test carried from the monolith `model::tests`, which
-//! needs the application shell that now lives in `tablepro-ui`.
-
 #[test]
 fn switcher_ranks_tables_first_and_prefix_first() -> Result<(), String> {
     let mut app = tablepro_ui::TableProApp::default();

@@ -1,4 +1,3 @@
-//! Exact coalesced simulation feedback, independent of elapsed input scheduling.
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -497,7 +496,6 @@ fn harness_constructor_selects_simulation_epoch_before_bootstrap() {
     );
 }
 
-/// Run explicitly under a PTY; the parent waits for READY before observing idle.
 #[test]
 #[ignore = "real PTY fixture; external readiness-driven driver supplies q"]
 #[cfg(feature = "crossterm")]

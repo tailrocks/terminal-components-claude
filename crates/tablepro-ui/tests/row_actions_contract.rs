@@ -1,4 +1,3 @@
-//! Actual focused-grid row operations preserve keyed ownership and typed values.
 use tablepro_ui::{Tab, TableProApp, Value};
 use termrock::{ColumnKey, GlyphRole, GridModel, ItemKey, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
