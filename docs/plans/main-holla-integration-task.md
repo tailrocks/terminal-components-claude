@@ -1,3 +1,27 @@
+# main holla integration task
+
+## Status
+
+Plan retained. Unfinished acceptance requirements remain planned until current evidence proves closure; old paths and completion labels require reconciliation.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `f164cfb71a70ee932d3e654bd5d2b6bfd832be21` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 
 Finish the architectural refactoring of https://github.com/donbeave/terminal-components-claude, repair the broken main-branch implementation, restore the complete accepted TUI experience from holla, migrate the Holla application to the refactored public API, and integrate the verified result into main.
 

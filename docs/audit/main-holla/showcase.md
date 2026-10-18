@@ -1,5 +1,27 @@
 # Showcase contract audit
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `c5edc6af7bccd6cfebd615add5d08bdf006258aa` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Pinned reference: `794b095c196562d38f1b6f7ce379c128af2a023d`. Implementation base: `c12cad8728755cd2d03eefdd8e02891143fca86d`. Read-only source investigation. No binary execution, screenshot inspection, behavioral pass, independent review, or visual parity claimed. Initial main compile failure is owned by integrator. All findings below are source-proven unless explicitly marked proposed.
 
 ## Scope inventory

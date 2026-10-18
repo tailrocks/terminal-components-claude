@@ -1,5 +1,27 @@
 # Historical image regeneration
 
+## Status
+
+Documentation retained; current source validity requires reconciliation.
+
+## Authority
+
+Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). This document's historical claims do not establish current readiness.
+
+## Current evidence
+
+Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
+
+## Remaining work
+
+Keep useful requirements and instructions; update claims after checking current source and branch authority.
+
+## Verification
+
+Verify current claims against current source and the accepted `design/interaction-polish` reference.
+
+---
+
 These are regenerated renderings of the 499 preserved historical ANSI captures,
 not recovered original PNG/HTML files or pinned-Holla acceptance snapshots.
 The application/renderer source is `d5e7075f436f0e437c7d12cf3d1e638e763b26f6`;

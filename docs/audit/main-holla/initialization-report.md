@@ -1,5 +1,27 @@
 # Slice A — explicit bootstrap, no update from painting
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `c1848af25c02fc7cab3d9061567a94de5df36da9` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Base89090d6. Candidate branch codex/runtime-initialize, isolated worktree terminal-components-initialize. Scope: runtime initialization/live session, testing Harness/Scene documentation, initialization integration suite, and69 explicit initialization setup migrations in existing behavioral tests/helpers.203 Runtime constructor leads classified in caller-migration.json; pure Stub/slot/reference projections deliberately remain uninitialized. No blanket constructor rewrite. No manifests, exports, theme, application production, baseline or xtask edits.
 
 ## Implemented guarantee

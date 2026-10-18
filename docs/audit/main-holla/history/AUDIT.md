@@ -1,5 +1,27 @@
 # Historical obligation audit — completed document semantics
 
+## Status
+
+Historical evidence record. Findings and conclusions apply to the source revision stated within; unresolved compatible requirements remain planned.
+
+## Authority
+
+Current project direction: [architecture](../../../architecture.md), [design](../../../design.md), [status](../../../status.md), and [plan](../../../plan.md). This document's historical claims do not establish current readiness.
+
+## Current evidence
+
+Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
+
+## Remaining work
+
+Recheck open findings against current source; carry unresolved compatible acceptance criteria into the canonical plan.
+
+## Verification
+
+Verify current claims against current source and the accepted `design/interaction-polish` reference.
+
+---
+
 Pinned source: c12cad8728755cd2d03eefdd8e02891143fca86d. Scope is both contract paths reachable from this commit, not Holla-only history (another owner).
 
 ## Exhaustiveness

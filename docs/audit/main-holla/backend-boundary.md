@@ -1,5 +1,27 @@
 # Backend-free input boundary
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `e3954c6d3ff12fd7d8db2320282173f818f8ea01` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Base: 761f6d5. Branch: codex/backend-free-input. This slice implements the user-authorized experimental API amendment: backend-free core/testing consumers use framework-owned KeyCode, MediaKeyCode, ModifierKeyCode and KeyModifiers. Matching variant names remain; these types are no longer raw crossterm aliases. Crossterm normalization and bidirectional conversions exist only with the optional crossterm feature. Default library features retain the terminal adapter; workspace dependencies disable implicit defaults and terminal apps explicitly opt in.
 
 Root cause: compile-only no-default checking could pass while an unconditional backend dependency and public aliases retained the backend. The gate now resolves and runs two standalone one-member workspaces, traverses their actual dependency closures, requires core/testing subjects, and rejects backend crates. Fixture lockfiles prevent accidental unlocked dependency drift. Synthetic graph mutations and an actual temporarily injected crossterm feature demonstrate rejection (backend-mutation.log); the fixture was restored before final verification.

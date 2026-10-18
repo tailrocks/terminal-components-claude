@@ -1,5 +1,27 @@
 # Component/theme contract audit
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `9f265a2a64c24a4d5fe8acae02cc0702fdf743b7` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Read-only source audit. Main base c12cad8728755cd2d03eefdd8e02891143fca86d; Holla reference 794b095c196562d38f1b6f7ce379c128af2a023d. No candidate source changed. No builds, tests, visual inspection or live interactions executed by this audit. JSON inventory records source-discovered test names, not executed test coverage. Full historical obligation authority remains the history worker's responsibility; the user attachment supersedes holla-first/tree-replacement and historical model restrictions.
 
 ## Source-proven shared gaps

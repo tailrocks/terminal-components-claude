@@ -1,5 +1,27 @@
 # Coverage integrity audit
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../../architecture.md), [design](../../../../design.md), [status](../../../../status.md), and [plan](../../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `00ca9dd3a86e19ed029c6aab2d546b24ce3d2b0a` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Read-only integrity audit of completed source-history evidence. No semantic rereview or implementation proof claimed. Only this file written. Current files inspected after assignment; early/API artifacts had arrived meanwhile.
 
 ## Result

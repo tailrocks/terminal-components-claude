@@ -1,5 +1,27 @@
 # Independent corrected Holla memory review
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `581d2aedebd80f3ab7f8da9586b6b93b3557957d` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 ACCEPT final committed memory scope at1b1d23f3aaea179a481de8def6cffc9ec3eaa596. Reviewed exact three-file correction on clean detached source; no source edits, owner uncommitted accounting changes or intermediate package-wiring commit accepted here.
 
 Both prior findings closed. Alias seed/set/lookup/visible paths now share trim+Unicode lowercase identity. Exact prior Ä/ä probe now rejects a second command owner, with lookup/query resolving the same first command. Added whitespace, Å/å, É/é and Unicode lowercase expansion İ/i+combining-dot coverage; replacement removes previous ownership. No alternate raw alias mutation path is public.

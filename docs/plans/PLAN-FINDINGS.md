@@ -1,5 +1,27 @@
 # Cross-cutting findings from the Slice 6 and Slice 7 plans
 
+## Status
+
+Plan retained. Unfinished acceptance requirements remain planned until current evidence proves closure; old paths and completion labels require reconciliation.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `26c11a0ba039f3a190b5a355d463500e38010470` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Both plans were produced read-only against the tree. Each item below is a **measured discrepancy** between a recorded number or claim and what the source actually says. They are listed separately from the plans because several affect work already in flight.
 
 ## Counts in `COMPONENT_ARCHITECTURE.md` §16.4 that are wrong

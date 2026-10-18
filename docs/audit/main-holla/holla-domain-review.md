@@ -1,5 +1,27 @@
 # Independent Holla domain migration review
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `b599923747e8dbf39d73f00880526409fa1faa2b` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 ACCEPT committed source scope at1781b54fbe5d50de23c0f6f06667d659b2d942fe, including e39c16e pure port and2d7a236 bounded seek. Review used a clean detached worktree; owner uncommitted accounting/risk-memory work was not read. No app/runtime/source edits made. This accepts domain API wiring, not app visual parity or completion of excluded obligations H-S14/15 and H-S12/18.
 
 Plan declaration validation: unique nonempty IDs, earlier-only dependency indices, legal pending/excluded/policy states, required-step exclusion refusal. Immutable plan/step access removes postvalidation graph corruption. Linear iterative run/exclusion propagation cannot recurse through cycles. Failed/excluded/policy-skipped dependencies cannot authorize their dependents; independent branches continue.

@@ -1,5 +1,27 @@
 # Architecture Research — Component Model, Theme, Composition, Package Boundary
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `a0c7d7700837b7bdea4e50ee63aadd211a139755` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Scope: read-only research for `COMPONENT_ARCHITECTURE.md`. **Facts** are cited `file:line`. **Inference / Recommendation** sections are judgment and are labelled.
 
 ---

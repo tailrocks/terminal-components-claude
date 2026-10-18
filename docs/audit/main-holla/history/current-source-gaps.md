@@ -1,5 +1,27 @@
 # Current-source corroboration
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../architecture.md), [design](../../../design.md), [status](../../../status.md), and [plan](../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `379374b40771865a61f8d9b3e25a6e0c2a484a7c` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Read-only source inspection; no runtime reproduction claimed.
 
 - xtask/src/main.rs SHA256 a306865782095880b7d9d471693b024b7b4ddfad896737372062cfb1f002bf31

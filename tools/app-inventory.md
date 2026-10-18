@@ -1,5 +1,27 @@
 # Current application inventory
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../docs/architecture.md), [design](../docs/design.md), [status](../docs/status.md), and [plan](../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `0dccdb9086eed1de3fe634bb8cc5b0d711d61b8d` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 `app-inventory.json` schema1 is consumed by the strict borrowed Rust types in
 `xtask/src/app_inventory.rs`. Unknown/duplicate fields, missing keys, unsupported
 capabilities and shortened required obligations fail validation. It owns current

@@ -1,5 +1,27 @@
 # Late history semantic audit — patch indices 35–53
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../../architecture.md), [design](../../../../design.md), [status](../../../../status.md), and [plan](../../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `9578421723fcf8c5ccc387e18a2274edc455d1ea` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Read-only source audit. Owned output: this directory only. No builds, source changes, runtime reproductions, snapshot approvals, or implementation-completion claims.
 
 ## Coverage and method

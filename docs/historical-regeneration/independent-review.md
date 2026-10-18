@@ -1,5 +1,27 @@
 # Independent historical renderer review
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `a86cc074980f8247cece04b3c6c9edf6ff364460` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 ACCEPT installation of the exact 499 HTML and 499 PNG outputs into the required missing historical baseline paths. This decision covers generator commit c051c8fa61c2fd67eb06e122dd91fd2553c8c810 and source provenance commit 040a2726c6f8d48590bc5b787afae2a0839096a0. It grants no approval to application acceptance snapshots or a Holla acceptance namespace. No source or baseline files were changed by this reviewer.
 
 ## Hash binding and exhaustive checks

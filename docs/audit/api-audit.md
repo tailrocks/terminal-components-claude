@@ -1,5 +1,27 @@
 # Historical API Audit — reusable layer (`src/core`, `src/ui`, `src/theme.rs`, `src/runtime.rs`, `src/widgets/*`)
 
+## Status
+
+Historical evidence record. Findings and conclusions apply to the source revision stated within; unresolved compatible requirements remain planned.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). This document's historical claims do not establish current readiness.
+
+## Current evidence
+
+Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
+
+## Remaining work
+
+Recheck open findings against current source; carry unresolved compatible acceptance criteria into the canonical plan.
+
+## Verification
+
+Verify current claims against current source and the accepted `design/interaction-polish` reference.
+
+---
+
 > Historical snapshot. This audit records the pre-migration reusable layer and
 > preserves its findings and citations. The `src/...` paths below are historical
 > evidence, not a current inventory. Current reusable code is under `crates/tui/`;

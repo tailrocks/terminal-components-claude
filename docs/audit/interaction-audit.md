@@ -1,5 +1,27 @@
 # Interaction, Overlay and Identity Architecture Audit
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `193c27c8182266a090f7ae534e5f024c59f624ce` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Scope: `src/core/{event,focus,hit,id,scroll,text}.rs`, `src/runtime.rs`, `src/ui/{ctx,layout,popup,text}.rs`, `src/widgets/{dialog,menu,picker,select,completion,scrollbar,viewport,splitter,tabs,list,tree,button,input}.rs`, and the three applications.
 Authorities: `REFACTORING_GOAL.md` §§11–14, 17; `DESIGN.md` (Scrolling and clipping, Focus model, Interaction grammar, Elevation & Depth, Component catalogue, Agent implementation guardrails).
 

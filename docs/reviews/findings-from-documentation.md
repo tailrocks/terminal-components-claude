@@ -1,5 +1,27 @@
 # Findings from writing the §24 guides
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `e05247bc1860f03c5bfca707cc60c45b8cb0f866` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Produced while writing `docs/guides/**`. Every item was **measured** — the agent built a throwaway crate outside the repo that depends on `crates/tui` under the final `junie_tui` name and compiled all 38 snippets — not inferred from reading. Each needs a decision or a fix.
 
 ## F1 — undeclared custom families get no mono fallbacks (defect)

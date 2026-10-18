@@ -1,69 +1,25 @@
-# Lane C status
+# Lane C: Jackin status
 
-## Current state
+## Status
 
-The fresh Jackin review is recorded in
-`docs/reviews/laneC-app-tick.md`. It proposes decisions for Slice 7 questions
-Q1, Q2, and Q4 and records the next domain-first `RunId` package. No production
-or test source was changed by Lane C.
+Historical planning lane. Jackin code now exists in split crates; the broader crate migration remains incomplete and not ready. This page records candidate acceptance requirements, not an active lane assignment.
 
-Fresh source measurements found 67 legacy Jackin test functions, 36 visual
-digest cases, and 23 methods on the legacy `Screen` trait. The test inventory is
-28 application/chrome tests, 35 in-module tests, three performance tests, and
-one visual-baseline test. All remain migration obligations.
+## Authority
 
-## Proposed decisions
+Current direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Product behavior follows `design/interaction-polish`; reusable APIs and package boundaries follow the split architecture represented by `main`.
 
-Q1 replaces `Screen::strip_right` with a pure draw-time projection into
-`StatusItem` values. It does not use a `Jx` cache, does not widen `HintLayer`,
-and does not add a seventh `Screen` method. Temporary formatted text remains
-alive through the `StatusBar::draw` call; priorities, semantic tones, and stable
-action keys are preserved.
+## Current evidence
 
-Q2 adds a runtime-owned update cause with distinct Bootstrap, Event, Tick, and
-Settle states. Bootstrap runs exactly once before the first draw or event and is
-shared by terminal and headless execution. Timed repaint requests become real,
-earliest-wins deadlines that survive unrelated input. Tick is visible only on
-the first update pass for one timer delivery. Jackin, not the runtime, converts
-that cause into a domain delta through `Route::tick_ms`; a runtime/theme or wall
-clock must never replace it.
+Jackin Preview currently spans `crates/jackin-preview`, `crates/jackin-preview-app`, `crates/jackin-preview-domain`, `crates/jackin-preview-host-ui`, `crates/jackin-preview-presentation`, `crates/jackin-preview-sim`, and `crates/jackin-preview-capsule-ui`. `RunId` exists in `crates/jackin-preview-domain/src/instance.rs`. The old `apps/jackin-preview` and Slice 5/7 sequencing claims are historical.
 
-Q4 makes `dim_layer(area, 0)` an identity operation and defines semantic
-Success/Warning/Danger/Info fading as Muted, Faint, Ghost, then erased. The
-current implementation maps all non-ladder roles to Muted even at zero and
-never erases, so a library correction and direct tests are required before the
-rain migration.
+The former review proposed pure status projection, runtime update causes and repaint deadlines, route-owned product time, semantic dimming, and total run identifiers. Current source contains runtime update causes, repaint scheduling, semantic dimming, and a `RunId` type. Presence alone does not prove the detailed interaction, color, timing, or acceptance contracts. See [historical review](../reviews/laneC-app-tick.md).
 
-The review lists eleven exact acceptance tests across runtime, dimming, and
-Jackin. Existing deterministic frame, rain, tick-count, timestamp, outro, and
-all 36 digest assertions remain required.
+## Remaining work
 
-## Next package
+- Compare Jackin behavior, UI, and colors against `design/interaction-polish`.
+- Verify the proposed timing, status, identity, and dimming contracts against current code and tests.
+- Verify current visual and functional parity before claiming completion.
 
-After Slice 5 moves the application, Lane C starts with the `RunId` package in
-`apps/jackin-preview`. The package replaces the free-form run-id strings in
-both `Instance` and `LaunchRun`, routes both producers through one constructor,
-adds a total fixed-width token and `Instance::container_uid`, and removes all
-three unsafe derivations:
+## Verification
 
-- Capsule's `replace('-', "")[..8]`
-- Cockpit's timestamp `[..12]`
-- Manager's `&i.run_id[4..8]`
-
-Four exact tests cover total token generation, every fixture/scenario,
-Cockpit-generated ids, Capsule container information, and Manager inspection.
-The package is not complete until a source check finds no direct byte slice of
-`run_id` in the moved application.
-
-## Blockers
-
-1. Lane A must accept and record Q1, Q2, and Q4 in the architecture and ledger.
-2. Lane A must implement and verify the runtime cause/deadline/bootstrap work
-   and the `dim_layer` semantic correction under `crates/**`.
-3. Slice 4 must finish. Slice 5 must then perform the crate rename and create
-   `apps/jackin-preview`; Lane C does not own the current legacy path and will
-   not pre-empt the ordered move.
-
-Until those blockers clear, Slice 7 application work has not started. The next
-authorized Lane C action is the post-Slice-5 `RunId` package, followed by the
-shell migration using the accepted tick and status contracts.
+Inspect current crate manifests, public APIs, app routes, focused tests, and design-branch behavior. Old inventory counts and green runs are historical evidence only.

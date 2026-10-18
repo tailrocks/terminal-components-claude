@@ -1,5 +1,27 @@
 # Normative amendments: fully reviewed patch ranges 22–34 and 54–67
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../architecture.md), [design](../../../design.md), [status](../../../status.md), and [plan](../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `8259ca9c9d6b13a32820efb83587fc101802609c` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 These 27 parent-relative patches were reviewed through every added/deleted line with hunk headers, 215,628 characters in ten contiguous bounded reads. Necessary full context was also read for the earlier gate records. `snapshot-reconstruction.json` proves exact parent+patch reconstruction for all 68 history edges; unchanged snapshot text is inherited, not claimed repeatedly reread. This report complements earlier/later agent ranges.
 
 ## Revision dispositions

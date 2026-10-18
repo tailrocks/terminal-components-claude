@@ -1,5 +1,27 @@
 # Migration from the old experimental API
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `9e24804ba7bf5c500d804bda20daa6f609164488` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 This maps the pre-refactor root source tree (`src/core/`, `src/ui/`,
 `src/widgets/`) onto the current component library in `crates/tui`, whose
 package and Rust path are `junie-tui` / `junie_tui` in this workspace. The old

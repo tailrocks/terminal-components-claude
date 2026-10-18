@@ -1,5 +1,27 @@
 # Early semantic history audit — indices 0–6
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../../architecture.md), [design](../../../../design.md), [status](../../../../status.md), and [plan](../../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `b4fcfdfd380b2eb86596129e6c81adb19e0a57f8` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Scope: reversed `tree-audit.json.patches`, inclusive indices 0–6, pinned MAIN_BASE `c12cad8728755cd2d03eefdd8e02891143fca86d`. Read-only source audit. External artifacts only. Indices 7–8 delegated by parent to history_api; their exact byte-application checks here do not claim semantic review.
 
 ## Method and precise coverage

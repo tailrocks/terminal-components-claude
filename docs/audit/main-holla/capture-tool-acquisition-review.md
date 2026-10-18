@@ -1,5 +1,27 @@
 # Qualified capture package integration review
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `3cd9b006b6aafe7607f39d95074ed6f7ab5db89a` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Root reviewed worker `263be4f9828d9f734e0ad2dfda9a06b90d1c28e4`, integrated as
 `16e4e7a`. This approves the portable acquisition package and its explicit tool
 limits, not application snapshots or parity.

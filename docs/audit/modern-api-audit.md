@@ -1,5 +1,27 @@
 # Modern-API and Practices Audit — Binding Guidance
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `249c491a4e3017e301801e5744f24fc202fafe23` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Scope.** Crate/feature choice for the new workspace, current-code API drift against ratatui 0.30.2 / crossterm 0.29.0 / unicode-width 0.2.2, Rust 2024 + MSRV-1.88 practice, the `smallvec`/`bitflags` question, the MSRV question, and a binding rule set + architecture check for builders.
 
 **Method.** Every `[F]` claim below is read from the unpacked registry sources under

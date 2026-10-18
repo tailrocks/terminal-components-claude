@@ -1,5 +1,27 @@
 # Authoring a component
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `bf8894d8d92caa9a357d84b340a0da69f655c632` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 This guide is for writing a **new component** — one that participates in
 theme resolution, focus, hover, press, event dispatch, hit testing, cursor
 output, scrolling and overlays exactly like a library component, from a

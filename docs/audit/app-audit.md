@@ -1,8 +1,30 @@
-I could not use grep/glob (only `Read` was available), so counts below are stated as lower bounds with an explicit coverage table. Here is the audit, ready to save verbatim to `docs/audit/app-audit.md`.
+# Historical Application Migration Audit — showcase · tablepro · jackin-preview
+
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `2d7b8831135ae7dc308fcf0f01be52c2c7d9afc6` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
 
 ---
 
-# Historical Application Migration Audit — showcase · tablepro · jackin-preview
+I could not use grep/glob (only `Read` was available), so counts below are stated as lower bounds with an explicit coverage table. Here is the audit, ready to save verbatim to `docs/audit/app-audit.md`.
+
+---
 
 Historical baseline revision: `d5e7075` (clean tree). Historical package layout:
 single crate `junie-tui` (`Cargo.toml:1-25`), edition 2024, MSRV 1.88, deps

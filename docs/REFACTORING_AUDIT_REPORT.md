@@ -1,14 +1,36 @@
+# Historical refactor audit
+
+## Status
+
+Archived audit; detailed findings and evidence retained for their original snapshot. Its conclusion does not establish current readiness.
+
+## Authority
+
+Use [status](status.md), [architecture](architecture.md), [design](design.md), and [plan](plan.md) for current project direction.
+
+## Current evidence
+
+This audit's test output and source references were collected at its stated revision. Its assertion that the architecture migration was substantially present described that snapshot only. The current refactor is incomplete and not ready; compilation alone would not prove product behavior or parity.
+
+## Remaining work
+
+Recheck useful findings against current `main` and compare product behavior with `design/interaction-polish`. Preserve unclosed tasks in the canonical plan.
+
+## Verification
+
+Historical commands below are not current verification.
+
+---
+
 # Current refactor audit — UI/TUI restoration required
 
 Date: 2026-09-05
 Repository tip audited: `54a7aa1`
 Historical source: `d5e7075` (`cc14dd6` UI/source state)
 
-## Result
+## Historical result
 
-The architecture migration is substantially present. Historical UI/TUI parity
-is not present or proven. The current work must restore the old experience
-through the new architecture; it must not continue redesigning the products.
+At the audited revision, the report described substantial architecture migration and missing historical UI/TUI parity. That assessment does not establish the current architecture is correct or the migration is ready. The active product authority is `design/interaction-polish`, not the older baseline used by this report.
 
 ## Proven current state
 

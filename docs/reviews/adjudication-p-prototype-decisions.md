@@ -1,5 +1,27 @@
 # Adjudication P — prototype decisions returned by the Slice 2/3 builder
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `eb1c92f83b58b0d0a2d6108994a05f3fa8c56966` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Status:** proposed. Read-only review at `HEAD 8ec40c1`. Source files cited by `file:line`.
 **Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source (`COMPONENT_ARCHITECTURE.md:5`).
 Facts marked **[F]** were read from the tree in this pass. Everything else is inference or decision. Two of the six premises handed to me are **wrong as stated** (P3, and half of P6); both corrections are load-bearing, so they are recorded before the decisions.

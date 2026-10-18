@@ -1,5 +1,27 @@
 # Adjudication K — `Form` API and the `Grid::update` bound
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `478535e9a6b2a13d49383e826a57960d5aee5f6f` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Status:** proposed. Resolves the two items left open at `COMPONENT_ARCHITECTURE.md:3677-3681` ("Not applied — requires a fresh `read-only analyst` decision"). Nothing here reopens Adjudications A–J.
 
 **Convention:** **[F]** = collected fact with a citation. Everything else is decision or inference.
