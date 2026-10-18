@@ -6,6 +6,7 @@ A Rust terminal UI component library with deterministic demonstration applicatio
 
 - [Architecture](docs/architecture.md): crate boundaries and reusable API direction.
 - [Development](docs/development.md): verified workspace commands and code-comment rule.
+- [Dependencies](docs/dependencies.md): current dependency/tool pins, upgrade policy, and pinned historical tooling.
 - [Component contracts](COMPONENT_ARCHITECTURE.md): current API locations and acceptance requirements.
 - [Plan](docs/plan.md): remaining product and migration work.
 - [Design reference](docs/design.md): product authority and comparison standard.
