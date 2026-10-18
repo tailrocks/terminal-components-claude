@@ -1,5 +1,7 @@
 # Termrock status
 
+This page is a recorded visibility report, not current project guidance. Its selected comparison source pair is candidate [1d797d41c8141fcbdc3f69d7f11eb8875ab54712](https://github.com/tailrocks/terminal-components-claude/commit/1d797d41c8141fcbdc3f69d7f11eb8875ab54712) and reference [b274dd57f4dd078ade6e424d546d83efbd2e8526](https://github.com/tailrocks/terminal-components-claude/commit/b274dd57f4dd078ade6e424d546d83efbd2e8526), recorded at 2026-10-08T23:25:02Z. Each evidence row remains bound to its explicitly named source, test set, command, and observation time; historical observations do not describe later branch tips or imply current readiness. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).
+
 | Conclusion | State | Evidence |
 | --- | --- | --- |
 | Visibility / Complete | NOT_RUN | The shared suite, paired results, and publication checks have not been accepted as a complete current run. |
@@ -9,6 +11,8 @@
 | Evidence freshness | NOT_RUN | No validated paired run receipt is available for the measured source pair. |
 
 ## Required commands
+
+### Recorded command requirements
 
 The table reports each metric separately for the reference and candidate. The Ready column is separate from Build, Launch, First frame, Interaction, Exit, Restoration, Visual, and Ownership.
 Reference ownership is NOT_APPLICABLE because the reference is not required to use the candidate Termrock architecture.
@@ -23,7 +27,7 @@ Reference ownership is NOT_APPLICABLE because the reference is not required to u
 | RUN-06 | cargo run --release --bin jackin-preview -- --scenario accounts-mixed | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |
 | RUN-07 | cargo run --release --bin holla -- --scenario remote-host | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |
 
-The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. No validated paired run receipt is available, so this report cannot show a product pass. Product requirements remain in [CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md) and [checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json).
+The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. No validated paired run receipt is available, so this report cannot show a product pass. Product requirements remain in [CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md) and [checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json); these are the requirements used for the recorded measurements.
 
 ## Recorded source pair
 
@@ -148,7 +152,7 @@ These workflow runs belong to their exact report publication commits. Neither ru
 
 Tool versions recorded at 2026-10-08T06:22:51Z: Python 3.9.6, Rust 1.98.1, and cargo-nextest 0.9.146 through mise on Darwin arm64. This records installed tools only; it does not show that a product check ran.
 
-## Applications
+## Recorded application measurements
 
 Visual, interaction, API, and ownership remain separate. API and ownership are candidate-only obligations.
 
@@ -221,7 +225,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
 
 No compatible previous complete required-set run is recorded, so trend changes are not measured.
 
-## Next work
+## Recorded next work at the accepted queue snapshot
 
 Highest open priority: **P0**, from accepted queue revision 56.
 
