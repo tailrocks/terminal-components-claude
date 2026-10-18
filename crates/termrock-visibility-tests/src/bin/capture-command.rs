@@ -16,8 +16,6 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::Duration;
 
 #[cfg(unix)]
-use sha2::{Digest, Sha256};
-#[cfg(unix)]
 use termrock_visibility_tests::run_command_with_cancellation;
 
 #[cfg(unix)]
@@ -467,7 +465,7 @@ fn write_new_file(path: &Path, bytes: &[u8]) -> io::Result<()> {
 
 #[cfg(unix)]
 fn hex_sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    termrock_visibility_tests::sha256_hex(bytes)
 }
 
 #[cfg(unix)]

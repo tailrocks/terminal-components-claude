@@ -55,12 +55,12 @@ fn stop_is_delayed_and_completion_is_exactly_once() {
     let before = world.instance(&id).unwrap().clone();
     let r = review(&mut actions, Action::Stop, target.clone(), &mut world);
     assert_eq!(world.instance(&id), Some(&before));
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     actions.confirm(r, "", &mut world);
     let op = operation(&world);
     assert_eq!(actions.busy(&target), Some("stopping…"));
     assert!(matches!(actions.complete(&mut world, op), Effect::None));
-    assert!(world.tick(1799).is_empty());
+    assert_eq!(world.tick(1799).as_slice(), &[]);
     assert_eq!(world.instance(&id).unwrap().status, InstanceStatus::Running);
     assert_eq!(world.tick(1), vec![Msg::ManagerOperation { operation: op }]);
     assert!(matches!(
@@ -91,11 +91,11 @@ fn purge_requires_exact_ack_and_retains_record_after_delay() {
     let r = review(&mut actions, Action::Purge, target.clone(), &mut world);
     let ack = r.acknowledgement().unwrap().to_owned();
     actions.confirm(r, &format!(" {ack}"), &mut world);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     let r = review(&mut actions, Action::Purge, target, &mut world);
     actions.confirm(r, &ack, &mut world);
     let op = operation(&world);
-    assert!(world.tick(2199).is_empty());
+    assert_eq!(world.tick(2199).as_slice(), &[]);
     world.tick(1);
     actions.complete(&mut world, op);
     assert_eq!(world.instance(&id).unwrap().status, InstanceStatus::Purged);
@@ -123,7 +123,7 @@ fn replaced_removed_or_changed_review_target_cannot_mutate() {
         let instances = world.instances.clone();
         actions.confirm(r, "", &mut world);
         assert_eq!(world.instances, instances);
-        assert!(world.jobs.is_empty());
+        assert_eq!(world.jobs.as_slice(), &[]);
     }
 }
 
@@ -203,7 +203,7 @@ fn prewarm_has_single_authoritative_busy_state_and_source_delay() {
     assert_eq!(world.jobs.len(), 1);
     assert_eq!(actions.busy(&target), Some("prewarming…"));
     let op = operation(&world);
-    assert!(world.tick(2399).is_empty());
+    assert_eq!(world.tick(2399).as_slice(), &[]);
     world.tick(1);
     assert!(
         matches!(actions.complete(&mut world, op), Effect::Status(text) if text.contains(&world.workspace(id).unwrap().name))
@@ -293,7 +293,7 @@ fn inspection_is_readonly_and_action_inventory_tracks_lifecycle() {
         panic!()
     };
     assert_eq!(world.instances, instances);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     assert_eq!(facts.len(), 8);
     assert_eq!(
         facts
@@ -371,7 +371,7 @@ fn refresh_observes_first_failure_after_five_seconds_and_keeps_stale_latch() {
     assert_eq!(world.daemon_health, DaemonHealth::Healthy);
     world.tick(4999);
     assert!(!actions.refresh(&mut world));
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     world.tick(1);
     assert!(actions.refresh(&mut world));
     assert_eq!(world.daemon_health, DaemonHealth::Stale);
@@ -379,7 +379,7 @@ fn refresh_observes_first_failure_after_five_seconds_and_keeps_stale_latch() {
     assert!(!actions.refresh(&mut world));
     world.tick(5000);
     assert!(actions.refresh(&mut world));
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     for instance in &world.instances {
         if instance.status.is_live() {
             assert_eq!(instance.last_seen_secs, world.now_secs());
@@ -389,7 +389,7 @@ fn refresh_observes_first_failure_after_five_seconds_and_keeps_stale_latch() {
     world.tick(5000);
     assert!(actions.refresh(&mut world));
     assert_eq!(world.daemon_health, DaemonHealth::Stale);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
 }
 
 #[test]
@@ -402,7 +402,7 @@ fn successful_refresh_preserves_health_and_updates_only_live_seen_times() {
     world.tick(5000);
     assert!(actions.refresh(&mut world));
     assert_eq!(world.daemon_health, DaemonHealth::Healthy);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     for (old, new) in before.iter().zip(&world.instances) {
         assert_eq!(
             new.last_seen_secs,
@@ -467,7 +467,7 @@ fn workspace_context_changes_invalidate_instance_review_and_session_picker() {
     };
     world.workspace_mut(workspace).unwrap().name.push('!');
     actions.confirm(r, &ack, &mut world);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     assert!(matches!(
         actions.session(session, SessionChoice::Shell, &mut world),
         Effect::Status(_)
@@ -547,7 +547,7 @@ fn every_nonrunning_reconnect_outcome_is_source_bound_and_nonmutating() {
             None => assert!(matches!(effect, Effect::None)),
         }
         assert_eq!(world.instances, before);
-        assert!(world.jobs.is_empty());
+        assert_eq!(world.jobs.as_slice(), &[]);
     }
 }
 
@@ -614,7 +614,7 @@ fn cancelling_review_has_no_effect_and_purge_tones_preserve_risk_contract() {
         FactTone::Warning
     );
     drop(r);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
     assert_eq!(world.instances, before);
     assert!(actions.busy(&Target::Instance(id)).is_none());
 }
@@ -634,7 +634,7 @@ fn cloned_review_cannot_replay_after_stop_then_restore() {
     actions.request(Action::Reconnect, target, &mut world);
     assert_eq!(world.instance(&id).unwrap().status, InstanceStatus::Running);
     actions.confirm(replay, "", &mut world);
-    assert!(world.jobs.is_empty());
+    assert_eq!(world.jobs.as_slice(), &[]);
 }
 
 #[test]

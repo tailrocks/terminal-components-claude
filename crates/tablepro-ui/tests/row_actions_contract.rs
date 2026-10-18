@@ -149,8 +149,8 @@ fn row_keys_type_normally_during_inline_edit_and_readonly_results_refuse_actions
     assert_eq!(readonly.app().result().row_count(), 1);
     assert_eq!(readonly.app().result().pending_total(), 0);
     assert!(readonly.find("Discard unsaved changes?").is_none());
-    assert!(h.diagnostics().is_empty());
-    assert!(readonly.diagnostics().is_empty());
+    assert_eq!(h.diagnostics(), []);
+    assert_eq!(readonly.diagnostics(), []);
 }
 
 #[test]

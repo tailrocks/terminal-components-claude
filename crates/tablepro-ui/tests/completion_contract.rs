@@ -24,10 +24,9 @@ fn alias_member_uses_the_statement_at_cursor_including_future_from() {
             .any(|item| item.label == "total_amount")
     );
     let source = "SELECT * FROM orders o; SELECT o.";
-    assert!(
-        completion_batch(source, source.len(), &catalog)
-            .items
-            .is_empty()
+    assert_eq!(
+        completion_batch(source, source.len(), &catalog).items,
+        [] as [tablepro_ui::Completion; 0]
     );
 }
 

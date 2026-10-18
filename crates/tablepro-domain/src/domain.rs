@@ -814,7 +814,7 @@ mod tests {
         pending.clear();
         assert_eq!(pending.value(0, 0), Some(&Value::Int(9)));
         assert_eq!(pending.value(1, 0), Some(&Value::Int(7)));
-        assert!(pending.dirty_rows().is_empty());
+        assert_eq!(pending.dirty_rows(), Vec::<usize>::new());
     }
 
     #[test]
