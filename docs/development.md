@@ -1,59 +1,26 @@
-# Development and verification
+# Development
 
-## Prerequisites
+## Workspace commands
 
-Use the repository pins in `rust-toolchain.toml` and `mise.toml` (Rust 1.99.1 with `clippy` and `rustfmt`; Cargo MSRV declaration 1.99; `cargo-nextest` 0.9.148). The [dependency guide](dependencies.md) records the current pins and compatibility holds. Install the pinned tools and fetch the locked crate dependencies before working offline:
+Install the checked-out workspace's pinned developer tools with `mise install`, then use its declared Rust toolchain. Use `cargo nextest` for tests, as required by the design-reference and WIP instructions. Before running a gate, inspect `AGENTS.md`, `Cargo.toml`, `rust-toolchain.toml`, and CI configuration because package layout and profiles differ.
 
-```sh
-mise install
-cargo fetch --locked
-cargo nextest --version
-mise exec -- mbx --help
-```
+| Workspace | Location | Test command policy |
+|---|---|---|
+| `main` | Workspace packages, with default members for facade/apps/conformance | `cargo run -p showcase`, `cargo run -p tablepro`, `cargo run -p holla`, `cargo run -p jackin-preview`; `cargo check --workspace --all-targets`; `cargo nextest run --workspace`; `cargo fmt --all -- --check`; `cargo clippy --workspace --all-targets -- -D warnings`. |
+| `design/interaction-polish` and six `wip/*` branches | `junie-tui` package with `xtask` workspace member | `cargo run -p junie-tui --bin showcase` (substitute `tablepro`, `holla`, or `jackin-preview`); `cargo check --workspace --all-targets`; `cargo nextest run --workspace`; `cargo fmt --all -- --check`; `cargo clippy --workspace --all-targets -- -D warnings`. Follow branch-specific instructions for visual and repository-specific gates. |
 
-`mbx` is installed as an explicit CLI; mise does not automatically wrap other commands with it.
+The commands above are starting points verified against the package manifests. Format, check, lint, and test the affected workspace using its configured commands. Run focused tests first, then required integration and visual gates. Record exact command, branch, revision, and result. A passing local command is evidence only for that command and revision; old visual and nextest results are not current verification.
 
-## Run the applications
+## Rust comments
 
-The root package is `junie-tui`; its library crate is `junie_tui`. Launch the showcase or a simulated preview with:
+Keep Rust comments only for a safety invariant, legally required notice, or non-obvious behavior constraint that cannot be recovered from code or tests and is necessary to maintain correctness. Do not replace removed prose with `#[doc = "..."]`. Preserve structural compiler attributes such as `#[doc(hidden)]` and actual runtime metadata such as `#[arg(help = "...")]`. Existing Clap derive documentation consumed as CLI help metadata is retained where removing it would change user-visible help; that narrow use does not make general API documentation in source the policy. Frozen Rust fixtures whose exact bytes are validation inputs remain unchanged. Put contracts, API guidance, examples, and design rationale in maintained Markdown.
 
-```sh
-cargo run --release
-cargo run --release --bin tablepro
-cargo run --release --bin jackin-preview
-cargo run --release --bin holla
-```
+## Safety evidence
 
-These previews are deterministic and do not perform real external side effects.
+Any unsafe operation requires its applicable invariant to be understandable at the operation and its callers. `pre_exec` runs in a post-fork child context and must use only operations permitted there; the PTY helper's `setpgid` setup and parent-side race handling require review. Nextest process isolation does not prove that a test process has no threads or environment readers. Zero-initializing `termios` before `tcgetattr` does not prove libc initializes padding, nor by itself justify reading every byte. Do not claim these concerns are resolved without a specific review and evidence.
 
-## Code checks
+## Documentation replacement limits
 
-Run the workspace checks after Rust changes:
+The previous Markdown tree was consumed by hash/freeze/task validators, generated component documentation and freshness checks, visibility scripts expecting status/queue files, and qualified-capture README pins. Those consumers have not been migrated as part of this documentation rewrite. Treat affected gates as incompatible until their formats, generators, and proof protocols are intentionally updated. Do not regenerate hashes or change validator inputs merely to make a gate appear green.
 
-```sh
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-cargo nextest run --all-targets
-```
-
-Use `cargo nextest`, not `cargo test`. For UI changes, run `cargo xtask visual check-touched` and the relevant tier from [the visual testing guide](visual-testing/README.md). Inspect actual, expected, and diff artifacts before changing an approval; use the guide's isolated-commit procedure.
-
-## Rust source commentary
-
-Rust source comments are limited to details needed for a safety invariant, a required legal notice, or a behavior constraint that cannot be recovered from code or tests and is necessary to maintain the implementation. Put API contracts, examples, general rationale, and contributor guidance in Markdown. Do not replace removed Rustdoc prose with `#[doc = "..."]` attributes. Keep structural compiler attributes such as `#[doc(hidden)]` and real runtime metadata such as `#[arg(help = "...")]`; they are not documentation substitutes. Keep safety explanations beside the relevant operation when needed, with the broader safety contract in [SAFETY.md](../SAFETY.md).
-
-## Generated component reference
-
-`src/docs.rs` generates `docs/components/` and defines its freshness test. Check without rewriting generated output:
-
-```sh
-cargo nextest run --lib -E 'test(=docs::tests::docs_components_fresh)'
-```
-
-Regenerate deliberately with `cargo xtask docs components`. The generation command rewrites files; it is not a check mode. Never edit generated component pages by hand.
-
-## Task contracts and visual tooling
-
-`xtask` consumes `docs/visual-testing/README.md` and `docs/visual-testing/plan.md`; keep their commands, scenario rules, and approval protocol usable. Each task package in `refactoring-tasks/` defines its own checks in `verify.toml` and its evidence/acceptance contract in its README. The `trusted/` trees are pinned proof inputs; changing them requires an intentional task/proof migration.
-
-This WIP is `wip/reach-pages-a`. Its successful build or test results apply only to the exercised revision and scope; they do not prove that the `main` crate split is ready or that this implementation matches all behavior on `design/interaction-polish`.
+Removing source prose can expose documentation-lint failures in unchanged Clippy configuration, and comment deletion can leave formatting differences. These checks remain useful diagnostics, but this documentation-only change does not alter lint settings or executable Rust tokens to silence them. Resolve the policy or formatting contract in a separately scoped change; do not restore redundant source documentation merely to conceal the mismatch.
