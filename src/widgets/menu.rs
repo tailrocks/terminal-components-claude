@@ -1325,10 +1325,8 @@ impl crate::core::pointer::MouseTarget for ContextMenu {
     ) -> crate::core::response::Response<MenuAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        if ev.wheel().is_some() {
-            if self.list.on_backdrop(ev) {
-                return Response::ignored();
-            }
+        if ev.wheel().is_some() && self.list.on_backdrop(ev) {
+            return Response::ignored();
         }
         if let Some(r) = crate::core::pointer::scroll_input(&mut self.list, ev) {
             return r.lift();

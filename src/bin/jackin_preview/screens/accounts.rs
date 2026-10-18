@@ -2615,7 +2615,7 @@ impl Page<Jackin> for AccountsScreen {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         self.build_rows(w);
         let t = ctx.theme;
-        if w.accounts.accounts.is_empty() && self.filter.is_none() {}
+        let _ = w.accounts.accounts.is_empty() && self.filter.is_none();
         self.md.detail_owns = self.actions.iter().map(|b| b.id).collect();
         let l = self.md.layout(area, buf, ctx, t.canvas);
         if !l.master.is_empty() {

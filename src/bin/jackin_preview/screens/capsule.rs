@@ -1615,10 +1615,9 @@ impl CapsuleScreen {
                 && term.follow
                 && term.caret_visible
                 && let Some(c) = term.caret
+                && let Some(p) = term.screen_pos(c)
             {
-                if let Some(p) = term.screen_pos(c) {
-                    ctx.set_cursor(p);
-                }
+                ctx.set_cursor(p);
             }
             let _ = saved_focus;
 
