@@ -16,7 +16,7 @@ path = "src/bin/admit_expected_generation.rs"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.11"
-tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", branch = "main", features = ["pty"] }
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad", features = ["pty"] }
 
 [build-dependencies]
 sha2 = "0.11"

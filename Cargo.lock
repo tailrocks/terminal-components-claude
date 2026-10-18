@@ -4010,7 +4010,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tuiscotti"
 version = "0.2.0"
-source = "git+https://github.com/tailrocks/tuiscotti?branch=main#a1ea27f757d75d07b05499276cd932e9f8e067ad"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f757d75d07b05499276cd932e9f8e067ad"
 dependencies = [
  "tuiscotti-core",
  "tuiscotti-insta",
@@ -4021,7 +4021,7 @@ dependencies = [
 [[package]]
 name = "tuiscotti-core"
 version = "0.2.0"
-source = "git+https://github.com/tailrocks/tuiscotti?branch=main#a1ea27f757d75d07b05499276cd932e9f8e067ad"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f757d75d07b05499276cd932e9f8e067ad"
 dependencies = [
  "ratatui",
  "serde",
@@ -4032,7 +4032,7 @@ dependencies = [
 [[package]]
 name = "tuiscotti-insta"
 version = "0.2.0"
-source = "git+https://github.com/tailrocks/tuiscotti?branch=main#a1ea27f757d75d07b05499276cd932e9f8e067ad"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f757d75d07b05499276cd932e9f8e067ad"
 dependencies = [
  "image",
  "insta",
@@ -4045,7 +4045,7 @@ dependencies = [
 [[package]]
 name = "tuiscotti-render"
 version = "0.2.0"
-source = "git+https://github.com/tailrocks/tuiscotti?branch=main#a1ea27f757d75d07b05499276cd932e9f8e067ad"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f757d75d07b05499276cd932e9f8e067ad"
 dependencies = [
  "base64 0.23.1",
  "image",
@@ -4062,7 +4062,7 @@ dependencies = [
 [[package]]
 name = "tuiscotti-runtime"
 version = "0.2.0"
-source = "git+https://github.com/tailrocks/tuiscotti?branch=main#a1ea27f757d75d07b05499276cd932e9f8e067ad"
+source = "git+https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f757d75d07b05499276cd932e9f8e067ad"
 dependencies = [
  "base64 0.23.1",
  "fs2",
