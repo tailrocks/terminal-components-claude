@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Progress                                                                       truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Progress  Determinate, indeterminate, compact activity, terminal states
+▎  Overview
+                            Live                                                                                                                ticks at 80 ms
+   Components
+▎  Buttons                  Building    ━━━────────────────────────────────────────────────   5%
+▎  Inputs
+▎  Text areas               Resolving   ─━━━━━━━━─────────────────────────────────────────────────
+▎  Forms
+▎  Lists                    ⠏ Waiting for the test runner
+▎  Trees                    ⠏ 3 of 12 files
+▎  Tables
+▎  Editable tables          ▎Restart   ▎Pause
+▎  Panels
+▎  Sidebars
+▎  Dialogs
+▎› Progress                 States                                                                                                                      static
+▎  Scrolling
+▎  Terminal                 Queued      ───────────────────────────────────────────────────   0%
+▎  Code editor              Halfway     ━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────  50%
+▎  Data grid                Completed   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓
+▎  Chips & selects          Failed      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────  64% !
+▎  Pickers                  Paused      ━━━━━━━━━━━━━━━────────────────────────────────────  30% ‖
+▎  Chrome
+                            Narrow bars keep the percentage and drop the label:
+   Screens                  ━━━────  42%
+▎  Settings
+▎  Task runner              Capacity meters are never green: low ≤ 59 % white, medium ≤ 84 % warning, high error. Line and block visuals.
+                            Low        ━━━━━━━━━────────────── 38% used                             38% used
+                            Medium     ━━━━━━━━━━━━━━━━━────── 72% used                             72% used
+                            High       ━━━━━━━━━━━━━━━━━━━━━── 91% used                             91% used
+                            Warning    ━━━━━━━━━━━━━━━━━━━──── 82% used ▲                           82% used                        ▲
+                            Exhausted  ━━━━━━━━━━━━━━━━━━━━━━ 100% used !                           100% used                       !
+                            Stale      ━━━━━━━━━━━━─────────── 54% used                             54% used
+                            Refreshing ━━━━━━━━━━───────── ⠏ refreshing                             ⠏ refreshing
+                            Error      quota read failed !                                         quota read failed !
+                            Unknown    —                                                           —
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

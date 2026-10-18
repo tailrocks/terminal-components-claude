@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Pickers                                                                        16 colors · 160×50   i Inspector   ? Help
+
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
+   Overview
+                            Open a picker
+   Components
+   Buttons                   Open quickly    Switch tab    Choose a level
+   Inputs
+   Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate action · Tabs: Delete closes a row · Level: n…
+   Forms
+   Lists                                ╭──────────────────────────────────────────────────────────────────────────────╮
+   Trees                                │ Open quickly                                                 All · Tab scope │
+   Tables                   Result      │ ▎ Files and tasks…                                                           │
+   Editable tables                      │                                                                              │
+   Panels                   Chosen      │ ▎F Cargo.toml                         Cargo.toml                     Files ┃ │
+   Sidebars                 Detail      │  F README.md                          README.md                            ┃ │
+   Dialogs                  Level       │  F architecture.md                    docs/architecture.md                 ┃ │
+   Progress                 Open tabs   │  F auth.rs                            src/api/auth.rs                      ┃ │
+   Scrolling                Pickers open│  F auth_flow.rs                       tests/auth_flow.rs                   │ │
+   Terminal                             │  F billing.rs                         src/api/billing.rs                   │ │
+   Code editor                          │  F checkout.rs                        tests/checkout.rs                    │ │
+   Diff                                 │  F config.rs                          src/config.rs                        │ │
+   Data grid                            │  F dispatch.rs                        src/api/webhooks/dispatch.rs         │ │
+   Chips & selects                      │  F lib.rs                             src/lib.rs                           │ │
+ › Pickers                              │  F mailer.rs                          src/workers/mailer.rs                │ │
+   Chrome                               │  F main.rs                            src/main.rs                          │ │
+                                        │  F migrations.rs                      src/db/migrations.rs                 │ │
+   Screens                              │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close     │
+   Settings                             ╰──────────────────────────────────────────────────────────────────────────────╯
+   Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Esc Close  Tab Next

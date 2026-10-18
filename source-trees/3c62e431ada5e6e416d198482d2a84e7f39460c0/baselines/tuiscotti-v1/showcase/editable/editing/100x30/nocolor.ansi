@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Editable tables     no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mEditable tables[0m  Navigation is reversed cell; editing is a cursor. They never… [0m
+   Buttons                                                                                          [0m
+   Inputs             ▎[0m[1mTasks[0m                                                               0 edits  [0m
+   Text areas                                                                                       [0m
+   Forms                  ID     Task                                        Owner     Status    …  [0m
+   Lists               [0m[1m▎  #1040  [0m[1;4mAdd rate limiting to auth endpoints[0m[1m         mira      Done       [0m  [0m
+   Trees                  #1041  Migrate sessions table to UUID keys         jonas     ▸ Running    [0m
+   Tables                 #1042  Fix flaky checkout integration test         ana       Failed       [0m
+ › Editable tables        #1043  Write release notes for 3.2                 mira      Queued       [0m
+   Panels                 #1044  Replace deprecated Vue mixins               kai       Done         [0m
+   Sidebars               #1045  Upgrade Postgres driver to 0.9              jonas     Paused       [0m
+   Dialogs                #1046  Extract billing service module              sofia     Done         [0m
+   Progress               #1047  Add OpenTelemetry tracing spans             kai       ▸ Running    [0m
+   Scrolling              #1048  Remove legacy feature flags                 ana       Queued       [0m
+   Terminal               #1049  Generate API client from OpenAPI            sofia     Done         [0m
+   Code editor            #1050  Harden CSP headers                          mira      Done         [0m
+   Diff                   #1051  Speed up cold start of worker               jonas     Failed       [0m
+   Data grid              #1052  Localize onboarding emails                  kai       Queued       [0m
+   Chips & selects        #1053  Add pagination to audit log                 ana       Done         [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+   Settings          reversed  cell cursor (navigation)                                             [0m
+   Task runner       ▁         editing cursor + accent underline                                    [0m
+                     !         validation error                                                     [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Commit  [0m[1mEsc[0m Cancel  [0m[1mTab[0m Next cell                                                    [0m

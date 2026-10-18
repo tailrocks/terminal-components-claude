@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m        ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────── 14 cols ─╮ [0m
+ │  [0m[1m Data  [0m  Structure                                                        │ [0m
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │ [0m
+ │                                                                            │ [0m
+ │   ‹4    status       total_amount  currency    shipping_address       7›   │ [0m
+ │  [0m[1m▎  [0m  1[0m[1m [0m[1;4m…ivered[0m[1m             25.90  USD         {"line1": "104 Calle …    [0m┃ │ [0m
+ │       2 pending           1617.64  USD         {"line1": "87 Nevsky …    │ │ [0m
+ │       3 pending           2236.65  EUR         {"line1": "78 Via Rom…    │ │ [0m
+ │       4 pending           2376.57  EUR         {"line1": "152 Market…    │ │ [0m
+ │       5 refunded          2067.52  USD         {"line1": "179 Market…    │ │ [0m
+ │       6 shipped            675.78  GBP         {"line1": "152 Calle …    │ │ [0m
+ │       7 delivered         2397.83  GBP         {"line1": "3 Rue de R…    │ │ [0m
+ │       8 refunded          1677.55  EUR         [0m[3mNULL                  [0m    │ │ [0m
+ │       9 pending            550.69  USD         {"line1": "196 Market…    │ │ [0m
+ │      10 pending            290.26  EUR         {"line1": "164 Nevsky…    │ │ [0m
+ │  [0m[2m    11 cancelled         1050.75  USD         {"line1": "100 Queen …    [0m│ │ [0m
+ │   rows 1–11 of 500 loaded · 1,203,338 total · cols 5–7 of 14               │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Commit  [0m[1mEsc[0m Cancel  [0m[1mTab[0m Next cell        Connected to Production [0m

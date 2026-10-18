@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help
+
+ ╭─ Accounts ───────── 12 · 4 ▲ · 4 ! ─╮ │  Claude · Archived contractor laptop profile — do not use for production …
+ │ ▎   Overview                        │ │
+ │ ▎ ▾ Claude                      !   │ │  Provider      Anthropic / Claude
+ │ ▎   ★ Personal        ╭─ New account ───────────────────────────────────── form · unsaved ─╮
+ │ ▎     Archived contrac│   Display name *                                                   │
+ │ ▎     Work            │ ▎ Spare                                                            │
+ │ ▎ ▾ Codex             │                                                                    │
+ │ ▎   ★ Primary         │                                                                    │
+ │ ▎     Experiments     │   Purpose label  optional                                          │ctor-2025-archive
+ │ ▎ ▾ Amp               │ ▎ personal · work · experiments                                    │
+ │ ▎     discovered      │                                                                    │ce only · registered
+ │ ▎ ▾ Grok              │                                                                    │
+ │ ▎   ★ Team            │   Provider                                                         │
+ │ ▎ ▾ Z.AI              │ ▎ Claude Code · Anthropic / Claude                             ▾   │
+ │ ▎     discovered      │                                                                    │
+ │ ▎ ▾ Kimi              │                                                                    │t · refreshed 30 d ago
+ │ ▎     discovered      │   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │
+ │ ▎ ▾ MiniMax           │                                                                    │
+ │ ▎     discovered      │   Credential source                                                │ess · material
+ │ ▎ ▾ OpenCode          │ ▎( ) 1Password item / field  (recommended)                         │
+ │ ▎   ★ Go subscription │ ▎( ) Local agent folder                                            │ithout a public handle
+ │ ▎     ci-bot · discove│ ▎(●) Plain-text API key                                            │
+ │ ▎   Unsupported       │                                                                    │
+ │ ▎   + Add account…    │   Anthropic API key  optional                                      │
+ │                       │ ▎ paste the key · shown masked                                     │
+ │                       │   Typed once; only a fingerprint and a four-character tail are s…  │
+ │                       │                                                                    │
+ │                       │                                                                    │
+ │                       │                                                                    │
+ │                       │                                                                    │
+ │                       │                                                                    │
+ │                       │             ▎Enter plain text instead  ▎Validate  ▎Cancel  ▎Save   │
+ │                       ╰────────────────────────────────────────────────────────────────────╯
+ │                                     │ │
+ │                                     │ │ ▎Refresh   ▎Validate   ▎Edit…   ▎Set default   ▎Enable   ▎Remove…
+ ╰─────────────────────────────────────╯ │
+
+                                    Tab Next field  Enter Edit / Save  Esc Cancel              Cancelled · account kept

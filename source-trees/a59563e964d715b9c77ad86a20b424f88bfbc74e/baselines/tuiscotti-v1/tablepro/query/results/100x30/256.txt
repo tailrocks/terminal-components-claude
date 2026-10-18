@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe        256 colors · 100×30  ? help
+
+  ≡ Query 1 ×                                                                                   +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Query 1 ────────────────────────────────────────────────────────────────────────────── 15 ms ─╮
+ │  ▎›  1 SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25         │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                               ln 1/1 · col 80  │
+ │                                                                                                │
+ │   SELECT orders (25) ×                                                                         │
+ │  ━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────── │
+ │   25 rows · 15 ms                                                                              │
+ │        ⚷ id                                    order_number  customer_id                  12›  │
+ │      1 bba32f83-d1e6-4565-a7ae-d0b12a21cafa           11929  876489a7-0437-49e0…1305c64e→    ┃ │
+ │      2 60378d74-6f01-46f7-ae88-8f2eea08cd3f           10031  29133d87-5162-4dbe…a93fd6f8→    ┃ │
+ │      3 8921a282-bdb7-4103-b693-48555b0c030f           10707  b333d0bf-5348-43fc…4e32d4e3→    ┃ │
+ │      4 74e50de9-9222-43fe-bad5-a39a7fba640e           11074  875fd6f3-1571-4229…8e1820f6→    ┃ │
+ │      5 8adf0d72-6440-4fd4-b9e6-80dae5616d78           10451  b157c6a4-86f8-4061…21139cd8→    │ │
+ │      6 61290a28-641d-484d-ab23-8bf4b5fefe8b           11819  d984cc3b-3307-4845…98fd3887→    │ │
+ │      7 4b396492-0ab3-49a3-96a8-2fcb4600f92a           10620  0062dba8-e4b6-4566…a58ca5df→    │ │
+ │      8 66812cb0-0dcf-4f3f-9e1c-7f587734f4f6           11900  93ec788f-bbe9-4c8b…fd47069c→    │ │
+ │      9 04f5fa38-4ecc-4efc-bd5b-216c73d9452a           11831  fb4414ca-d4ed-4a61…81bcf9ca→    │ │
+ │     10 4a16daa0-8a2c-47eb-808a-397d27763e50           11835  80e45fec-2cfe-4d11…80c4ed56→    │ │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Edit  Ctrl+R Run  Alt+R Run all  Ctrl+X Explain  / Find  Tab Next    Connected to Production

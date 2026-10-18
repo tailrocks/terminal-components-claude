@@ -1,0 +1,24 @@
+<<<<<<< 81a8bf15cd3042f80649e2b48fed479829518dbd
+min_version = "2026.9.2"
+
+[tools]
+rust = { version = "1.98.1", mr_boxington = true }
+mr-boxington = "1.22.0"
+=======
+[tools]
+rust = "1.98.1"
+"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.146"
+
+
+[tasks.test-all]
+description = "Run all non-ignored tests via cargo nextest"
+run = "cargo nextest run --locked"
+
+[tasks.verify-conformance]
+description = "Verify typed case registry and manifest agreement"
+run = "cargo nextest run --test conformance --locked"
+
+[tasks.verify-tuiscotti]
+description = "Verify Tuiscotti toolkit qualification and negative mutation gates"
+run = "cargo nextest run --test tuiscotti_qualification --locked"
+>>>>>>> 0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f

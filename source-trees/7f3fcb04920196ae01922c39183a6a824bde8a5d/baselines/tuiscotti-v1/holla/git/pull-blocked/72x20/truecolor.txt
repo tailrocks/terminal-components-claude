@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help            svc · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Pull                                                 scope ‹ here ›
+
+    Results · 3
+  › Pull              git  parent  blocked · 1 modified
+    Pull with merge   git  parent  history has diverged
+    Pull with rebase  git  parent  history has diverged
+
+
+
+
+
+
+    → git -C /Users/alex/work/svc pull · parent · mutating
+
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1           truecolor · 72×20
+ Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  …

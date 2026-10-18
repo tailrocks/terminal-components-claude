@@ -1,0 +1,4 @@
+{"type":"suite","event":"started","test_count":1,"nextest":{"crate":"termrock-visibility-tests","test_binary":"status","kind":"test"}}
+{"type":"test","event":"started","name":"termrock-visibility-tests::status$status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2"}
+{"type":"test","event":"ok","name":"termrock-visibility-tests::status$status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2","exec_time":5.022666917}
+{"type":"suite","event":"ok","passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":52,"exec_time":5.022666917,"nextest":{"crate":"termrock-visibility-tests","test_binary":"status","kind":"test"}}

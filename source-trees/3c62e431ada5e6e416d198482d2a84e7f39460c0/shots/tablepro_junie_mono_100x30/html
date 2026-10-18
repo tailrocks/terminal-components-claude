@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>capture</title>
+<style>
+html,body{margin:0;background:#1a1a1a}
+pre{margin:16px;display:inline-block;font-family:"JetBrainsMono Nerd Font Mono","JetBrains Mono",Menlo,monospace;font-size:14px;line-height:18px;white-space:pre;background:#000000}
+span{display:inline-block;height:18px;vertical-align:top}
+</style></head><body><pre><span style="color:#d0d0d0;background:#000000"> ▪  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">TablePro</span><span style="color:#d0d0d0;background:#000000">  Connections  6 saved                                        no color · 100×30  ? help </span>
+<span style="color:#d0d0d0;background:#000000">                                                                                                    </span>
+<span style="color:#d0d0d0;background:#000000"> ╭─ Connections ──────────── 6 ─╮    Local PostgreSQL                                               </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎ Filter connections         │    Engine       PostgreSQL                                        </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎▾ Personal                </span><span style="color:#d0d0d0;background:#000000;font-weight:700"> </span><span style="color:#d0d0d0;background:#000000"> │    Host         localhost:5432                                    </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎    · Local PostgreSQL  pg  │    Database     acme_dev                                          </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎▾ Acme                      │    User         postgres                                          </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎    · Development       pg  │    Environment  local                                             </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎    ◇ Staging           pg  │    Safe Mode    Silent · Writes run without asking.               </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎    ◆ Analytics      mysql  │                 Destructive statements still confirm.             </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎    ◆ Production        pg  │    SSL / SSH    off / off                                         </span>
+<span style="color:#d0d0d0;background:#000000"> │ ▎    · Scratch       sqlite  │    Last used    2 minutes ago                                     </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │    ▎Connect   ▎Edit   ▎Duplicate   ▎Delete…                       </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> │                              │                                                                   </span>
+<span style="color:#d0d0d0;background:#000000"> ╰──────────────────────────────╯                                                                   </span>
+<span style="color:#d0d0d0;background:#000000">                                                                                                    </span>
+<span style="color:#d0d0d0;background:#000000"> </span><span style="color:#d0d0d0;background:#000000;font-weight:700">↑ ↓</span><span style="color:#d0d0d0;background:#000000"> Move  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Enter</span><span style="color:#d0d0d0;background:#000000"> Connect  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">/</span><span style="color:#d0d0d0;background:#000000"> Filter  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Ctrl+N</span><span style="color:#d0d0d0;background:#000000"> New  </span><span style="color:#d0d0d0;background:#000000;font-weight:700">Tab</span><span style="color:#d0d0d0;background:#000000"> Next                                            </span></pre></body></html>

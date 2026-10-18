@@ -1,0 +1,103 @@
+{
+  "index": 4,
+  "label": "workflow_generator_source_tag_and_stable_branch_cases",
+  "package": "velnor-actions-workflow-generator",
+  "expected_tests": 11,
+  "test_ids": [
+    "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+    "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+    "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+    "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+    "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+    "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+    "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+    "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+    "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+    "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+    "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication"
+  ],
+  "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+  "argv": [
+    "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "--offline",
+    "-p",
+    "velnor-actions-workflow-generator",
+    "--build-jobs",
+    "2",
+    "--test-threads",
+    "1",
+    "--no-tests",
+    "fail",
+    "--user-config-file",
+    "none",
+    "--ignore-default-filter",
+    "--retries",
+    "0",
+    "--no-fail-fast",
+    "--color",
+    "never",
+    "-E",
+    "test(=generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit) | test(=generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed) | test(=generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required) | test(=generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file) | test(=generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification) | test(=generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci) | test(=generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt) | test(=generator_release::tests::stable_branch_publisher_uses_manual_dispatch) | test(=impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected) | test(=impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets) | test(=impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication)"
+  ],
+  "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+  "started_utc": "2026-10-10T01:00:31.443Z",
+  "pid": 75892,
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "interrupted": false,
+  "terminal_reason": null,
+  "launch_error": null,
+  "exit_event_received": true,
+  "close_event_received": true,
+  "kill_signals": [
+    {
+      "signal": "SIGKILL",
+      "sent": false,
+      "error": "kill ESRCH",
+      "reason": "final_group_cleanup"
+    }
+  ],
+  "output_capture": {
+    "gate_cap_bytes": 4194304,
+    "stored_gate_bytes": 31745,
+    "observed_gate_bytes": 31745,
+    "stored_command_bytes": 3889,
+    "observed_command_bytes": 3889,
+    "limit_exceeded": false,
+    "write_error": null
+  },
+  "finished_utc": "2026-10-10T01:00:42.016Z",
+  "post_kill_close_grace_expired": false,
+  "summary_lines": [
+    "Summary [   6.383s] 10 tests run: 10 passed, 32 skipped"
+  ],
+  "measured_counts": {
+    "executed": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "passed_test_ids": [
+    "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+    "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+    "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+    "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+    "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+    "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+    "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+    "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+    "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+    "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication"
+  ],
+  "counts_exact": false,
+  "output": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-4.log",
+    "bytes": 3889,
+    "sha256": "b637a5c0f6d555d69c8be4dcbe7f62b76680252b68561c8fe9f9fc8483c52690",
+    "complete": true
+  },
+  "status": "completed"
+}

@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Data grid           no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          Data grid  Typed cells, a pending-change queue, paging and local sort          [0m
+   Buttons                                                                                          [0m
+   Inputs              customers             rows 1–18 of 40 loaded · ~4,812 total · cols 1–4 of 8  [0m
+   Text areas                                                                                       [0m
+   Forms                     ⚷ id       customer                   plan          seats        4›    [0m
+   Lists                 • 1 1001       Northwind Traders          enterprise      600           ┃  [0m
+   Trees         ╭────────────────────────────────────────────────────────────────╮ 12           ┃  [0m
+   Tables        │                                                                │ 12           ┃  [0m
+   Editable table│  [0m[1mPending changes[0m                                               │  1           ┃  [0m
+   Panels        │                                                                │ 40           ┃  [0m
+   Sidebars      │  Statements  2                                                 │  5           ┃  [0m
+   Dialogs       │  Rows        2 changed · 0 inserted · 0 deleted                │150           ┃  [0m
+   Progress      │  Target      customers                                         │ 25           │  [0m
+   Scrolling     │                                                                │  3           │  [0m
+   Terminal      │  UPDATE customers SET seats = 600 WHERE id = 1001;             │ 80           │  [0m
+   Code editor   │  UPDATE customers SET seats = 12 WHERE id = 1002;              │ 12           │  [0m
+   Diff          │                                                                │  1           │  [0m
+ › Data grid     │                                           ▎[0m[1mCancel [0m  [0m[1mCopy SQL [0m  │ 40           │  [0m
+   Chips & select│                                                                │  5           │  [0m
+   Pickers       ╰────────────────────────────────────────────────────────────────╯150           │  [0m
+   Chrome                 16 1016       Humongous Insurance        free             25           │  [0m
+   Settings               17 1017       Northwind Traders 2        enterprise        3           │  [0m
+   Task runner            18 1018       Blue Yonder Airlines 2     team             80           │  [0m
+                                                                                                    [0m
+                        • 2 pending · 2 updates                     Preview SQL   Discard   Save    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                                    2 pending [0m

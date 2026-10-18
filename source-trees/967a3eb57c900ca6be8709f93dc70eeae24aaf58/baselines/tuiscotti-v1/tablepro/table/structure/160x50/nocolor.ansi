@@ -1,0 +1,50 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m                                                                     no color · 160×50  ? help [0m
+                                                                                                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                                                                                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ───────────────── public ─╮ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                                     │ │   Data   [0m[1m Structure  [0m                                                                                              │ [0m
+ │   Filter objects                    │ │  ────────━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod                      │ │                                                                                                                    │ [0m
+ │    ▾ S public                       │ │  [0m[1m Columns  [0m  Indexes    Foreign keys    Constraints    Triggers    DDL                                             │ [0m
+ │      ▾ Tables                    7  │ │  ━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────── │ [0m
+ │        ▸ T organizations     1.2 k  │ │                                                                                                                    │ [0m
+ │        ▸ T customers        48.9 k  │ │     Name                                                Type            Nullable  Default                 Key      │ [0m
+ │        ▸ T products            312  │ │  [0m[1m▎  id                                                  uuid            no        gen_random_uuid()       PK      [0m │ [0m
+ │        ▸ T orders            1.2 M  │ │     order_number                                        integer         no        nextval('orders_numbe…           │ [0m
+ │        ▸ T order_items       3.8 M  │ │     customer_id                                         uuid            no        —                       FK       │ [0m
+ │        ▸ T payments          1.2 M  │ │     organization_id                                     uuid            no        —                       FK       │ [0m
+ │        ▸ T subscriptions     1.1 k  │ │     status                                              text            no        'pending'                        │ [0m
+ │      ▸ Views                     2  │ │     total_amount                                        numeric(12,2)   no        —                                │ [0m
+ │      ▸ Functions                 1  │ │     currency                                            text            no        'USD'                            │ [0m
+ │      ▸ Sequences                 1  │ │     shipping_address                                    jsonb           yes       —                                │ [0m
+ │    ▸ S analytics                    │ │     notes                                               text            yes       —                                │ [0m
+ │    ▸ S audit                        │ │     shipped_at                                          timestamptz     yes       —                                │ [0m
+ │                                     │ │     delivered_at                                        date            yes       —                                │ [0m
+ │                                     │ │     is_gift                                             boolean         no        false                            │ [0m
+ │                                     │ │     created_at                                          timestamptz     no        now()                            │ [0m
+ │                                     │ │     updated_at                                          timestamptz     yes       —                                │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │   14 columns · read from the catalog · changes are queued until Save                                               │ [0m
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mCtrl+D[0m Structure  [0m[1mTab[0m Next                                                                                                   Connected to Production [0m

@@ -1,0 +1,225 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling syn v3.0.5
+   Compiling bitflags v2.13.1
+   Compiling rustversion v1.0.23
+   Compiling syn v2.0.119
+   Compiling once_cell v1.21.4
+   Compiling bytemuck_derive v1.12.1
+   Compiling errno v0.3.14
+   Compiling log v0.4.34
+   Compiling simd-adler32 v0.3.10
+   Compiling zerocopy v0.8.59
+   Compiling version_check v0.9.5
+   Compiling crossbeam-utils v0.8.23
+   Compiling either v1.18.0
+   Compiling ahash v0.8.12
+   Compiling bytemuck v1.25.2
+   Compiling itoa v1.0.18
+   Compiling signal-hook v0.3.18
+   Compiling smallvec v1.16.0
+   Compiling autocfg v1.5.1
+   Compiling adler2 v2.0.1
+   Compiling zmij v1.0.23
+   Compiling crc32fast v1.5.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling parking_lot_core v0.9.12
+   Compiling darling_core v0.24.1
+   Compiling num-traits v0.2.19
+   Compiling signal-hook-registry v1.4.8
+   Compiling castaway v0.2.4
+   Compiling static_assertions v1.1.0
+   Compiling rustix v0.38.44
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling scopeguard v1.2.0
+   Compiling crossbeam-deque v0.8.8
+   Compiling lock_api v0.4.14
+   Compiling hybrid-array v0.4.14
+   Compiling darling_macro v0.24.1
+   Compiling miniz_oxide v0.9.1
+   Compiling mio v1.2.3
+   Compiling paste v1.0.15
+   Compiling cfg_aliases v0.1.1
+   Compiling memchr v2.8.3
+   Compiling instability v0.3.13
+   Compiling rayon-core v1.13.0
+   Compiling heck v0.5.0
+   Compiling allocator-api2 v0.2.21
+   Compiling thiserror v1.0.69
+   Compiling hashbrown v0.14.5
+   Compiling strum_macros v0.26.4
+   Compiling nix v0.28.0
+   Compiling signal-hook-mio v0.2.5
+   Compiling flate2 v1.1.10
+   Compiling parking_lot v0.12.5
+   Compiling darling v0.24.1
+   Compiling miniz_oxide v0.8.9
+   Compiling font-types v0.12.5
+   Compiling itertools v0.13.0
+   Compiling fdeflate v0.3.7
+   Compiling thiserror-impl v1.0.69
+   Compiling pxfm v0.1.30
+   Compiling serde_json v1.0.151
+   Compiling unicode-width v0.1.14
+   Compiling weezl v0.1.12
+   Compiling unicode-width v0.2.0
+   Compiling color_quant v1.1.0
+   Compiling serde v1.0.229
+   Compiling ryu v1.0.23
+   Compiling unicode-segmentation v1.13.3
+   Compiling thiserror v2.0.20
+   Compiling indoc v2.0.7
+   Compiling cfg_aliases v0.2.2
+   Compiling anyhow v1.0.104
+   Compiling nix v0.31.3
+   Compiling moxcms v0.8.1
+   Compiling unicode-truncate v1.1.0
+   Compiling compact_str v0.8.2
+   Compiling gif v0.14.2
+   Compiling png v0.18.1
+   Compiling read-fonts v0.41.0
+   Compiling crossterm v0.28.1
+   Compiling strum v0.26.3
+   Compiling lru v0.12.4
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling thiserror-impl v2.0.20
+   Compiling serde_derive v1.0.229
+   Compiling const-oid v0.10.2
+   Compiling byteorder-lite v0.1.0
+   Compiling cassowary v0.3.0
+   Compiling ratatui v0.29.0
+   Compiling image v0.25.10
+   Compiling digest v0.11.3
+   Compiling skrifa v0.44.0
+   Compiling rayon v1.12.0
+   Compiling filedescriptor v0.8.3
+   Compiling itertools v0.14.0
+   Compiling serial2 v0.2.38
+   Compiling cpufeatures v0.3.1
+   Compiling shell-words v1.1.1
+   Compiling yazi v0.2.1
+   Compiling arrayvec v0.7.8
+   Compiling zeno v0.3.3
+   Compiling downcast-rs v1.2.1
+   Compiling portable-pty v0.9.0
+   Compiling swash v0.2.10
+   Compiling vte v0.15.0
+   Compiling image-compare v0.5.0
+   Compiling sha2 v0.11.0
+   Compiling tuiscotti-core v0.2.0 (/private/tmp/termrock-vis19-observation-adapter-impl-r1-20261010/crates/tuiscotti-core)
+   Compiling compact_str v0.10.0
+   Compiling base64 v0.23.1
+   Compiling tuiscotti-render v0.2.0 (/private/tmp/termrock-vis19-observation-adapter-impl-r1-20261010/crates/tuiscotti-render)
+   Compiling termpane v0.1.0
+   Compiling fs2 v0.4.3
+   Compiling tuiscotti-runtime v0.2.0 (/private/tmp/termrock-vis19-observation-adapter-impl-r1-20261010/crates/tuiscotti-runtime)
+warning: unused import: `projection::project_cursor`
+  --> crates/tuiscotti-runtime/src/tui/mod.rs:68:16
+   |
+68 | pub(crate) use projection::project_cursor;
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:92:25
+   |
+92 |     InvalidDimensions { cols: u16, rows: u16 },
+   |                         ^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:92:36
+   |
+92 |     InvalidDimensions { cols: u16, rows: u16 },
+   |                                    ^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:95:9
+   |
+95 |         snapshot_cols: u16,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:96:9
+   |
+96 |         snapshot_rows: u16,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:97:9
+   |
+97 |         cols: u16,
+   |         ^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/tuiscotti-runtime/src/tui/projection.rs:98:9
+   |
+98 |         rows: u16,
+   |         ^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:101:20
+    |
+101 |     CellRowCount { expected: usize, actual: usize },
+    |                    ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:101:37
+    |
+101 |     CellRowCount { expected: usize, actual: usize },
+    |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:104:9
+    |
+104 |         row: usize,
+    |         ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:105:9
+    |
+105 |         expected: usize,
+    |         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:106:9
+    |
+106 |         actual: usize,
+    |         ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:109:20
+    |
+109 |     RowWrapCount { expected: usize, actual: usize },
+    |                    ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:109:37
+    |
+109 |     RowWrapCount { expected: usize, actual: usize },
+    |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:112:9
+    |
+112 |         snapshot: (u16, u16),
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/tuiscotti-runtime/src/tui/projection.rs:113:9
+    |
+113 |         cursor: (u16, u16),
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: `tuiscotti-runtime` (lib test) generated 15 warnings (15 duplicates)
+warning: `tuiscotti-runtime` (lib) generated 16 warnings (run `cargo fix --lib -p tuiscotti-runtime` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 10s

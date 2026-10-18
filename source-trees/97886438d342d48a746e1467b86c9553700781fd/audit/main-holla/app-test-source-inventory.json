@@ -1,0 +1,1026 @@
+{
+  "main": {
+    "tablepro": {
+      "apps/tablepro/tests/perf.rs": {
+        "tests": [
+          "frame_tablepro_grid_500x12_120x40",
+          "key_tablepro_grid_cursor",
+          "key_tablepro_grid_sort_local",
+          "grid_100k_local_sort",
+          "mouse_click_grid_cell",
+          "wheel_tablepro_grid",
+          "grid_500x12_load",
+          "debug_and_release_alloc_counts_match",
+          "frame_tablepro_connection_form_120x40",
+          "frame_tablepro_query_editor_2k_lines",
+          "perf_tablepro_baseline"
+        ],
+        "enums": {}
+      },
+      "apps/tablepro/tests/app_tests.rs": {
+        "tests": [
+          "connections_screen_lists_and_connects_with_keyboard",
+          "failed_connection_shows_error_and_retry",
+          "explorer_opens_table_and_grid_navigates",
+          "sort_and_filter_on_table_tab",
+          "structure_view_toggle",
+          "editor_completion_and_execution",
+          "execution_error_marks_editor_and_result",
+          "cancel_running_query",
+          "explain_opens_plan_tree",
+          "safety_gate_intercepts_dangerous_statement_on_production",
+          "safety_gate_typed_token_executes",
+          "read_only_connection_refuses_writes",
+          "silent_level_runs_scoped_writes_but_confirms_destructive",
+          "quick_switcher_opens_table",
+          "history_tab_reopens_query",
+          "tab_strip_overflow_and_tab_list",
+          "pending_edits_preview_and_save",
+          "safe_mode_picker_changes_level_and_strip",
+          "mouse_opens_table_and_switches_tabs",
+          "every_screen_renders_at_representative_sizes",
+          "visual_surface_fixture_materializes_the_real_route",
+          "narrow_terminals_turn_the_explorer_into_a_drawer",
+          "keyboard_flow_full_journey",
+          "mouse_flow_full_journey",
+          "connection_form_keyboard_and_mouse_reach_every_field",
+          "connection_form_focuses_the_first_invalid_field",
+          "connection_password_is_masked_and_absent_from_the_frame",
+          "resize_across_every_supported_size",
+          "focus_is_restored_after_every_overlay_closes",
+          "no_diagnostics_are_emitted_during_the_journey",
+          "acceptance_flow_keyboard_only",
+          "acceptance_flow_mouse",
+          "pending_edits_keep_original_keys",
+          "preview_uses_application_grid_adapter",
+          "history_search_is_multi_term_and"
+        ],
+        "enums": {}
+      },
+      "apps/tablepro/tests/visual.rs": {
+        "tests": [
+          "tablepro_visual_baseline"
+        ],
+        "enums": {}
+      },
+      "apps/tablepro/src/connections.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/tablepro/src/lib.rs": {
+        "tests": [
+          "grid_adapter_keeps_every_pending_change_capability",
+          "pending_clear_discards_values_and_inserted_rows",
+          "view_grid_is_read_only_with_a_reason",
+          "result_grid_sorts_locally_and_refuses_edits",
+          "query_safety_gate_preserves_safe_mode_policy"
+        ],
+        "enums": {}
+      },
+      "apps/tablepro/src/tabs.rs": {
+        "tests": [],
+        "enums": {
+          "TableMode": "/// Data grid mode.\n    Data,\n    /// Structure grid mode.\n    Structure,",
+          "Tab": "/// Table data or structure tab.\n    Table(TableTab),\n    /// SQL query tab.\n    Query(QueryTab),\n    /// Query history tab.\n    History(HistoryTab),"
+        }
+      },
+      "apps/tablepro/src/domain.rs": {
+        "tests": [
+          "pending_update_uses_original_key_and_escapes_text",
+          "grid_adapter_marks_dirty_cells_and_parses_typed_edits",
+          "sort_preserves_logical_row_keys"
+        ],
+        "enums": {}
+      },
+      "apps/tablepro/src/filter_editor.rs": {
+        "tests": [],
+        "enums": {
+          "FilterOp": "/// Equal.\n    Eq,\n    /// Not equal.\n    Ne,\n    /// Substring.\n    Contains,\n    /// Negated substring.\n    NotContains,\n    /// Prefix.\n    StartsWith,\n    /// Suffix.\n    EndsWith,\n    /// Greater than.\n    Gt,\n    /// Greater than or equal.\n    Ge,\n    /// Less than.\n    Lt,\n    /// Less than or equal.\n    Le,\n    /// NULL.\n    IsNull,\n    /// Not NULL.\n    IsNotNull,\n    /// Empty text.\n    IsEmpty,\n    /// Non-empty text.\n    IsNotEmpty,\n    /// Membership.\n    In,\n    /// Negated membership.\n    NotIn,\n    /// Inclusive range.\n    Between,\n    /// Wildcard pattern.\n    Regex,"
+        }
+      },
+      "apps/tablepro/src/db.rs": {
+        "tests": [],
+        "enums": {
+          "Engine": "Postgres,\n    MySql,\n    Sqlite,",
+          "SafeMode": "/// Default: writes and reads run; only dangerous statements ask.\n    Silent,\n    /// Writes ask for confirmation.\n    Alert,\n    /// Every statement asks for confirmation.\n    AlertFull,\n    /// Writes ask and require authentication (Touch ID on macOS).\n    Safe,\n    /// Every statement asks and requires authentication.\n    SafeFull,\n    /// Writes are refused.\n    ReadOnly,",
+          "Environment": "Local,\n    Development,\n    Staging,\n    Production,",
+          "ConnectOutcome": "Ok,\n    AuthFailed,\n    Unreachable,",
+          "ColType": "/// UUID-like identifier.\n    Uuid,\n    /// Text value.\n    Text,\n    /// Signed integer.\n    Int,\n    /// Decimal number.\n    Numeric,\n    /// Boolean value.\n    Bool,\n    /// Timestamp value.\n    Timestamp,\n    /// Calendar date.\n    Date,\n    /// JSON value.\n    Json,\n    /// Enumerated text value.\n    Enum,",
+          "ObjectKind": "Table,\n    View,\n    Function,\n    Sequence,",
+          "Value": "/// SQL NULL.\n    Null,\n    /// Text value.\n    Text(String),\n    /// Signed integer.\n    Int(i64),\n    /// Decimal value.\n    Num(f64),\n    /// Boolean value.\n    Bool(bool),\n    /// JSON text.\n    Json(String),"
+        }
+      },
+      "apps/tablepro/src/sql.rs": {
+        "tests": [
+          "splits_and_finds_statement_at_cursor",
+          "parses_select_with_predicates_order_limit",
+          "classifies_like_tablepro",
+          "runs_filtered_sorted_select",
+          "errors_are_specific",
+          "explain_builds_tree"
+        ],
+        "enums": {
+          "TokKind": "Keyword,\n    Ident,\n    Number,\n    String,\n    Operator,\n    Punct,\n    Comment,\n    Whitespace,",
+          "Cmp": "/// Equality.\n    Eq,\n    /// Inequality.\n    Ne,\n    /// Greater-than comparison.\n    Gt,\n    /// Greater-than-or-equal comparison.\n    Ge,\n    /// Less-than comparison.\n    Lt,\n    /// Less-than-or-equal comparison.\n    Le,\n    /// SQL `LIKE` comparison.\n    Like,\n    /// SQL `IS NULL` comparison.\n    IsNull,\n    /// SQL `IS NOT NULL` comparison.\n    IsNotNull,\n    /// SQL `IN` comparison.\n    In(Vec<String>),",
+          "Statement": "/// A row-selecting query.\n    Select(Select),\n    /// An update statement.\n    Update {\n        /// Target relation.\n        table: String,\n        /// Whether a predicate is present.\n        has_where: bool,",
+          "Tier": "Safe,\n    Write,\n    Destructive,",
+          "Decision": "/// Execute the statement immediately.\n    Run,\n    /// Ask first. `deliberate` = Safe Mode levels: the terminal substitute\n    /// for Touch ID is typing the target name.\n    Confirm {\n        /// Whether the caller must provide a deliberate acknowledgement.\n        deliberate: bool,"
+        }
+      },
+      "apps/tablepro/src/grid_model.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/tablepro/src/main.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/tablepro/src/app.rs": {
+        "tests": [],
+        "enums": {
+          "Screen": "/// Connection list and initial landing screen.\n    Connections,\n    /// Connected database workbench.\n    Workbench,",
+          "Surface": "/// Connection list.\n    Connections,\n    /// Failed connection state.\n    ConnectionsFailed,\n    /// Default workbench.\n    WorkbenchDefault,\n    /// Explorer focus.\n    ExplorerFocused,\n    /// Table data grid.\n    TableGrid,\n    /// Inline cell editing.\n    GridCellEditing,\n    /// Pending-change bar.\n    PendingChangeBar,\n    /// Structure view.\n    StructureView,\n    /// Query editor.\n    QueryEditing,\n    /// Completion popup state.\n    CompletionPopup,\n    /// Successful results.\n    ResultsGrid,\n    /// Error results.\n    ErrorResult,\n    /// Explain plan.\n    ExplainPlan,\n    /// History tab.\n    HistoryTab,\n    /// Quick switcher.\n    QuickSwitcher,\n    /// Tab-list picker.\n    TabListPicker,\n    /// Safe-mode picker.\n    SafeModePicker,\n    /// Filter editor.\n    FilterEditor,\n    /// Safety acknowledgement dialog.\n    SafetyDialogTypedAck,\n    /// Help dialog.\n    HelpDialog,\n    /// Maximised tab.\n    MaximisedTab,",
+          "ConnectionNode": "Group {\n        name: String,",
+          "ExplorerNode": "Database {\n        name: String,",
+          "QueryOutcome": "/// Query returned rows.\n    Executed {\n        /// Number of returned rows.\n        rows: usize,\n        /// Whether the result supports cell edits.\n        editable: bool,"
+        }
+      },
+      "apps/tablepro/src/workbench.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/tablepro/src/model.rs": {
+        "tests": [
+          "history_search_is_multi_term_and",
+          "completion_is_context_aware",
+          "switcher_ranks_tables_first_and_prefix_first"
+        ],
+        "enums": {
+          "HistorySource": "/// Editor execution.\n    Editor,\n    /// Explain-plan execution.\n    Explain,\n    /// Table browsing.\n    Browsing,\n    /// Row edits.\n    RowEdits,\n    /// Structure inspection.\n    Structure,",
+          "CompletionKind": "/// SQL keyword.\n    Keyword,\n    /// Relation name.\n    Table,\n    /// Column name.\n    Column,\n    /// SQL function.\n    Function,",
+          "Clause": "/// Beginning of a statement.\n    Statement,\n    /// After a relation-introducing clause.\n    Relation,\n    /// After a projection or predicate clause.\n    Column,\n    /// General expression context.\n    Expression,",
+          "SwitchTarget": "/// Relation.\n    Table,\n    /// Query history entry.\n    Query,\n    /// Connection.\n    Connection,"
+        }
+      }
+    },
+    "jackin": {
+      "apps/jackin-preview/tests/support.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/tests/preview.rs": {
+        "tests": [
+          "first_use_flow_enters_the_manager",
+          "product_routes_and_account_picker_render_through_the_facade",
+          "nested_overlay_picker_inside_dialog",
+          "launch_simulation_is_deterministic_and_run_id_is_typed",
+          "resize_preserves_focus_and_does_not_create_diagnostics",
+          "scenarios_and_references_are_stable_without_secret_material",
+          "pinned_frames_keep_each_ritual_route_reachable",
+          "paused_frames_freeze_the_virtual_clock",
+          "container_uid_is_total_for_every_fixture_scenario",
+          "every_named_scenario_renders_a_deterministic_frame"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/tests/perf.rs": {
+        "tests": [
+          "jackin_perf_baseline_has_required_rows_and_no_deleted_clone",
+          "frame_jackin_manager_100rows_120x40",
+          "frame_jackin_capsule_4panes_120x40",
+          "key_jackin_manager_move"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/tests/app_tests.rs": {
+        "tests": [
+          "first_use_plays_intro_then_manager_and_no_replay_when_returning",
+          "reduced_motion_and_paused_frames_are_deterministic",
+          "manager_navigation_expand_and_detail_focus",
+          "launch_runs_all_stages_and_hands_off_to_the_capsule",
+          "launch_failure_returns_to_the_construct_when_another_instance_runs",
+          "detach_reconnect_and_final_exit_plays_one_outro",
+          "still_inside_feedback_when_other_instances_remain",
+          "too_small_state_and_resize_recover",
+          "accounts_register_with_a_1password_reference_and_never_render_the_secret",
+          "one_password_picker_uses_active_items_and_stable_stage_two_keys",
+          "form_dialog_secret_never_reaches_the_screen_as_a_string",
+          "accounts_plain_key_is_masked_everywhere_and_remove_asks_first",
+          "usage_overlay_is_read_only_and_hands_off_to_accounts",
+          "prelude_creates_a_pending_workspace_and_opens_the_editor",
+          "prelude_refuses_a_duplicate_name_and_cancels_cleanly",
+          "editor_edits_count_once_preview_then_saves_and_returns",
+          "editor_env_plain_value_stays_masked",
+          "form_dialog_toggles_visibility_and_keeps_drafts",
+          "editor_env_rejects_invalid_key_before_staging",
+          "settings_trust_toggle_and_failed_save_keep_edits",
+          "hard_cases_refresh_keeps_last_good_and_help_opens_everywhere",
+          "complete_jackin_flow_keyboard_first",
+          "complete_flow_keyboard_first",
+          "editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on",
+          "manager_launch_picker_hides_agents_without_an_account",
+          "environments_stay_readable_with_a_hundred_roles",
+          "cockpit_resolves_every_effective_account_for_the_container"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/tests/visual.rs": {
+        "tests": [
+          "jackin_visual_baseline"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/tests/app_tests_chrome.rs": {
+        "tests": [
+          "capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line",
+          "menu_bar_opens_switches_and_runs_an_action",
+          "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+          "hint_bar_stays_on_the_last_row_across_layers",
+          "inspect_changes_opens_from_the_view_menu_in_both_modes",
+          "command_palette_scrolls_with_the_wheel_and_keeps_the_selection"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/clock.rs": {
+        "tests": [
+          "durations_use_two_units",
+          "clock_is_pure_over_ticks"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/lib.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/rain.rs": {
+        "tests": [
+          "intro_timeline_follows_original_pacing",
+          "outro_skips_and_caption_wording_stay_stable",
+          "starfield_is_deterministic"
+        ],
+        "enums": {
+          "Tone": "/// One of the five foreground ladder levels, ghost through primary.\n    Ladder(u8),\n    /// Accent trace.\n    Accent,",
+          "IntroPhase": "/// Entry phrases and the knock sequence.\n    Phrases,\n    /// Warp transition into the Construct.\n    Warp,\n    /// Entry ritual is complete.\n    Done,",
+          "OutroPhase": "/// Warp transition out of the Construct.\n    Warp,\n    /// Exit caption is being held.\n    Caption,\n    /// Exit ritual is complete.\n    Done,",
+          "HandoffStage": "/// Dim the cockpit by the given ladder step.\n    CockpitDim(u8),\n    /// Paint only the shared canvas during the transition.\n    Canvas,\n    /// Dim the capsule by the given ladder step.\n    CapsuleDim(u8),\n    /// Capsule is fully revealed.\n    Capsule,"
+        }
+      },
+      "apps/jackin-preview/src/main.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/scenario.rs": {
+        "tests": [
+          "names_round_trip"
+        ],
+        "enums": {
+          "Scenario": "/// Zero instances, no saved Workspaces, no accounts: intro then an\n    /// empty manager.\n    FirstUse,\n    /// An instance is already running: no intro, populated manager.\n    Returning,\n    /// Several providers, several accounts, mixed health.\n    AccountsMixed,\n    /// Straight into an active launch cockpit.\n    LaunchRunning,\n    /// A launch that fails at a stage.\n    LaunchFailure,\n    /// Attached Capsule with several tabs and nested panes.\n    CapsuleMulti,\n    /// Attached to the last running instance; exiting plays the outro.\n    OutroLast,\n    /// Long labels, missing daemon data, discovery failure, many rows.\n    HardCases,",
+          "Motion": "/// Tick-driven rituals and atmosphere.\n    #[default]\n    Full,\n    /// One static meaningful boundary frame, then an immediate transition.\n    Reduced,\n    /// Ticks never advance; `--frame` selects the exact frame shown.\n    Paused,"
+        }
+      },
+      "apps/jackin-preview/src/arbiter.rs": {
+        "tests": [
+          "empty_construct_plays_once_and_join_skips",
+          "foreign_claim_suppresses_duplicate_intro",
+          "exit_token_has_one_consumer_and_fails_closed",
+          "missing_entry_time_omits_elapsed"
+        ],
+        "enums": {
+          "DiscoveryError": "/// The daemon index could not be read.\n    IndexUnreadable,",
+          "EntryDecision": "/// Zero running instances and no other claim: play the intro.\n    PlayIntro,\n    /// The Construct is active with `running` instances: join without replay.\n    JoinActive { running: usize",
+          "ExitDecision": "/// This client consumed the exit token: play the rich outro.\n    Outro { elapsed_secs: Option<u64>"
+        }
+      },
+      "apps/jackin-preview/src/app.rs": {
+        "tests": [
+          "default_starts_in_returning_manager",
+          "route_construction_is_deterministic",
+          "end_is_a_capture_command_for_workspace_creation"
+        ],
+        "enums": {
+          "Route": "/// First-use entry ritual.\n    Intro,\n    /// Workspace and running-instance manager.\n    Manager,\n    /// New-workspace prelude.\n    Prelude,\n    /// Workspace configuration editor.\n    Editor,\n    /// Account and usage center.\n    Accounts,\n    /// Usage summary.\n    Usage,\n    /// Application settings.\n    Settings,\n    /// Compatibility launch route.\n    Launch,\n    /// Active launch cockpit.\n    Cockpit,\n    /// Cockpit-to-Capsule handoff.\n    Handoff,\n    /// Running Capsule view.\n    Capsule,\n    /// Exit ritual.\n    Outro,",
+          "PickerMode": "Launch,\n    OnePassword,\n    Capsule,",
+          "CapsuleAction": "NewTab,\n    Split(SplitDir),"
+        }
+      },
+      "apps/jackin-preview/src/screens/capsule.rs": {
+        "tests": [
+          "prefix_detach_is_routed_once_and_restores_pane_focus",
+          "exit_cursor_is_clamped_and_commit_dismisses_the_layer",
+          "exit_confirmation_blocks_prefix_and_menu_focus_restores_on_dismiss"
+        ],
+        "enums": {
+          "CapsuleLayer": "/// Normal pane interaction.\n    #[default]\n    Normal,\n    /// Waiting for the second key of the `Ctrl+B` prefix chord.\n    Prefix,\n    /// Application menu is open and owns focus.\n    AppMenu,\n    /// Exit choices are open and own focus.\n    ExitConfirmation,",
+          "CapsuleFocus": "/// The active pane owns focus.\n    #[default]\n    Pane,\n    /// The tab strip owns focus.\n    Tabs,\n    /// The application menu owns focus.\n    AppMenu,\n    /// The exit-choice control owns focus.\n    ExitChoice,",
+          "PrefixCommand": "/// Open a new tab.\n    NewTab,\n    /// Select the next tab.\n    NextTab,\n    /// Select the previous tab.\n    PreviousTab,\n    /// Close the focused pane.\n    ClosePane,\n    /// Close the active tab.\n    CloseTab,\n    /// Split below the focused pane.\n    SplitBelow,\n    /// Split right of the focused pane.\n    SplitRight,\n    /// Toggle pane zoom.\n    Zoom,\n    /// Focus the pane on the left.\n    FocusLeft,\n    /// Focus the pane below.\n    FocusDown,\n    /// Focus the pane above.\n    FocusUp,\n    /// Focus the pane on the right.\n    FocusRight,\n    /// Detach to the workspace manager.\n    Detach,\n    /// Open usage for the active Capsule.\n    Usage,\n    /// Open typed container identity details.\n    ContainerInfo,\n    /// Open the active tab's rename control.\n    RenameTab,\n    /// Open the active tab context menu.\n    TabMenu,\n    /// Open the command palette.\n    Palette,\n    /// Request a redraw.\n    Redraw,\n    /// Select a numbered tab; zero is the conventional tenth tab.\n    SelectTab(u8),\n    /// Clear the focused pane.\n    ClearPane,",
+          "ExitDecision": "/// Leave the current instance running and return to the manager.\n    StayInside,\n    /// Exit while preserving dirty state for reconnect/restore.\n    KeepChanges,\n    /// Exit and discard dirty state.\n    DiscardChanges,\n    /// Close the confirmation without exiting.\n    Cancel,"
+        }
+      },
+      "apps/jackin-preview/src/screens/accounts.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/screens/cockpit.rs": {
+        "tests": [
+          "account_line_deduplicates_and_never_invents_material",
+          "handoff_starts_at_frame_zero_and_advances_only_when_called"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/screens/manager.rs": {
+        "tests": [
+          "tree_selection_keeps_stable_row_identity",
+          "launch_candidates_omit_unconfigured_agents",
+          "launch_candidates_preserve_ready_account_selection"
+        ],
+        "enums": {
+          "ManagerRowKey": "/// The unsaved current directory row.\n    #[default]\n    CurrentDirectory,\n    /// A saved workspace row.\n    Workspace(WorkspaceId),\n    /// A persisted instance child row.\n    Instance(String),\n    /// The create-workspace action row.\n    NewWorkspace,"
+        }
+      },
+      "apps/jackin-preview/src/screens/op_flow.rs": {
+        "tests": [
+          "flow_advances_and_rewinds_without_losing_prior_selection",
+          "errors_are_safe_and_retryable",
+          "stale_collection_clears_the_stage_and_dependent_choices",
+          "stale_account_clears_the_entire_dependent_chain",
+          "moving_back_to_a_stage_drops_dependent_choices_before_reentering_it"
+        ],
+        "enums": {
+          "OpFlowStage": "/// Account selection stage.\n    Account,\n    /// Vault selection stage.\n    Vault,\n    /// Item selection stage.\n    Item,\n    /// Field selection stage.\n    Field,",
+          "OpFlowStatus": "/// The current stage is ready for input.\n    Ready,\n    /// A stage request is in progress.\n    Loading {\n        /// Human-readable loading label.\n        label: String,",
+          "OpFlowAction": "/// Move to a new stage with a stable provider id.\n    Entered {\n        /// Stage entered by the flow.\n        stage: OpFlowStage,\n        /// Stable provider identifier selected at that stage.\n        id: String,"
+        }
+      },
+      "apps/jackin-preview/src/screens/usage.rs": {
+        "tests": [
+          "usage_detail_is_read_only_and_requires_selection",
+          "usage_tabs_wrap_without_mutating_selection"
+        ],
+        "enums": {
+          "Tab": "/// Account health overview.\n    #[default]\n    Overview,\n    /// Registration details.\n    Registration,\n    /// Provider quota.\n    Quota,"
+        }
+      },
+      "apps/jackin-preview/src/screens/mod.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/screens/editor.rs": {
+        "tests": [
+          "debug_and_clone_redact_transient_environment_value",
+          "clearing_environment_form_zeroizes_transient_input",
+          "tab_aliases_and_navigation_share_one_order",
+          "pending_workspace_round_trips_role_and_environment_state",
+          "account_toggle_and_preference_are_policy_safe",
+          "environment_staging_rejects_invalid_and_duplicate_keys"
+        ],
+        "enums": {
+          "Tab": "/// General workspace properties.\n    #[default]\n    General,\n    /// Mounts.\n    Mounts,\n    /// Roles.\n    Roles,\n    /// Environment variables.\n    Environments,\n    /// Account policy.\n    Accounts,"
+        }
+      },
+      "apps/jackin-preview/src/screens/prelude.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/screens/settings.rs": {
+        "tests": [
+          "failed_save_keeps_dirty_draft_and_retry_commits",
+          "a_new_edit_clears_old_error_and_restarts_attempts"
+        ],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/screens/inspect.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/screens/file_browser.rs": {
+        "tests": [
+          "selection_reconciles_after_item_removal",
+          "disabled_entries_are_visible_but_not_choosable"
+        ],
+        "enums": {
+          "FileBrowserAction": "/// Accept the selected entry.\n    Choose(String),\n    /// Switch between local path and URL resolution.\n    ToggleUrlMode,\n    /// Refresh the source inventory.\n    Refresh,\n    /// Close without changing the draft.\n    Cancel,"
+        }
+      },
+      "apps/jackin-preview/src/sim/onepassword.rs": {
+        "tests": [
+          "secret_debug_redacts_material",
+          "resolves_only_inside_the_closure"
+        ],
+        "enums": {
+          "KeyOutcome": "/// The key is accepted by the provider.\n    Valid,\n    /// The key is rejected or rotated.\n    Rejected,\n    /// The provider throttled the key.\n    RateLimited,\n    /// The provider is unavailable.\n    Unavailable,",
+          "SecretClass": "/// No material was present.\n    Empty,\n    /// The material did not match a recognized fixture shape.\n    Unrecognised,\n    /// Material tagged for a provider and outcome.\n    Key {\n        /// Provider family encoded by the fixture.\n        provider: Provider,\n        /// Synthetic validation outcome.\n        outcome: KeyOutcome,",
+          "OpSession": "/// The session can read available accounts.\n    SignedIn,\n    /// Every operation is rejected as locked.\n    Locked,",
+          "OpAccountState": "/// The account can be queried.\n    Available,\n    /// The account requires an unlock.\n    Locked,\n    /// The account requires authorization.\n    AuthorizationRequired,",
+          "VaultAccess": "/// Items can be read and changed by the fixture.\n    ReadWrite,\n    /// Items can be read but not changed.\n    ReadOnly,\n    /// The vault is visible but cannot be read.\n    Denied,",
+          "FieldKind": "/// Credential-like concealed value.\n    Concealed,\n    /// Ordinary text value.\n    Text,\n    /// URL value stored beside a credential.\n    Url,",
+          "OpError": "/// The overall session is locked.\n    Locked,\n    /// The account needs an authorization flow.\n    AuthorizationRequired {\n        /// Account requiring authorization.\n        account: String,"
+        }
+      },
+      "apps/jackin-preview/src/sim/provider.rs": {
+        "tests": [],
+        "enums": {
+          "CheckRow": "/// The check succeeded.\n    Ok(String),\n    /// The check failed.\n    Failed(String),\n    /// The check was not attempted.\n    Skipped(String),",
+          "FolderProbe": "/// No fixture folder matched the requested path.\n    Missing,\n    /// The fixture folder exists but cannot be read.\n    Unreadable,\n    /// Folder exists, holds no credential file.\n    NoCredential,\n    /// Credential file exists but does not parse.\n    Malformed,\n    /// A recognized credential was found.\n    Found(DetectedKind),"
+        }
+      },
+      "apps/jackin-preview/src/sim/changes.rs": {
+        "tests": [
+          "deterministic_and_realistic",
+          "duplicate_paths_collapse_but_touched_paths_win",
+          "fixture_lines_never_contain_secret_shapes"
+        ],
+        "enums": {
+          "DiffLineKind": "/// Present on both sides.\n    Context,\n    /// Present only on the new side.\n    Add,\n    /// Present only on the old side.\n    Remove,",
+          "DiffStatus": "/// A newly created file.\n    Added,\n    /// An existing file changed in place.\n    Modified,\n    /// A file was removed.\n    Deleted,\n    /// A file changed path.\n    Renamed {\n        /// The old path.\n        from: String,"
+        }
+      },
+      "apps/jackin-preview/src/sim/world.rs": {
+        "tests": [
+          "scenarios_seed_stable_world_shapes",
+          "jobs_follow_virtual_time_and_pause"
+        ],
+        "enums": {
+          "Msg": "/// A workspace save completed.\n    WorkspaceSaved {\n        /// Workspace identifier that was saved.\n        id: WorkspaceId,\n        /// Whether the save succeeded.\n        ok: bool,"
+        }
+      },
+      "apps/jackin-preview/src/sim/mod.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/sim/pty.rs": {
+        "tests": [
+          "split_close_and_nearest_are_deterministic",
+          "process_boot_and_input_never_depend_on_wall_clock"
+        ],
+        "enums": {
+          "SplitDir": "/// First pane on the left.\n    Horizontal,\n    /// First pane on top.\n    Vertical,",
+          "Maximized": "/// Neither side.\n    None,\n    /// The first side fills the container.\n    First,\n    /// The second side fills the container.\n    Second,",
+          "PaneNode": "/// One leaf pane.\n    Leaf(PaneId),\n    /// A recursively split pair.\n    Split {\n        /// Split direction.\n        dir: SplitDir,\n        /// Ratio and minima.\n        split: Split,\n        /// First child.\n        first: Box<PaneNode>,\n        /// Second child.\n        second: Box<PaneNode>,",
+          "Direction": "/// Move left.\n    Left,\n    /// Move right.\n    Right,\n    /// Move up.\n    Up,\n    /// Move down.\n    Down,",
+          "Tone": "/// Primary text.\n    Normal,\n    /// Muted text.\n    Muted,\n    /// Secondary text.\n    Secondary,\n    /// Success text.\n    Success,\n    /// Error text.\n    Error,\n    /// Warning text.\n    Warning,",
+          "Step": "/// Emit a line after a virtual delay.\n    Emit(i64, Line),\n    /// Change the public agent state.\n    State(AgentState),\n    /// Mark a repository-relative path touched.\n    Touch(&'static str),\n    /// Wait for operator input.\n    Await,"
+        }
+      },
+      "apps/jackin-preview/src/sim/launch.rs": {
+        "tests": [
+          "clean_plan_walks_all_eleven_stages_in_order",
+          "failure_and_blocked_plans_stop_the_frontier",
+          "network_failure_tick_matches_the_stage_frontier",
+          "credential_error_holds_until_retry"
+        ],
+        "enums": {
+          "Stage": "/// Resolve the launch identity.\n    Identity,\n    /// Load and validate the role manifest.\n    Role,\n    /// Resolve the selected credential source.\n    Credentials,\n    /// Prepare the Construct image.\n    Construct,\n    /// Install the selected agent binaries.\n    AgentBinaries,\n    /// Build the derived image.\n    DerivedImage,\n    /// Mount the selected workspace.\n    Workspace,\n    /// Attach the runtime network.\n    Network,\n    /// Start the sidecar service.\n    Sidecar,\n    /// Wait for the Capsule daemon.\n    Capsule,\n    /// Open the final hardline connection.\n    Hardline,",
+          "LaunchPlan": "/// Every stage succeeds; Agent Binaries is skipped (cached).\n    Clean,\n    /// Fails at Network after the build produced output.\n    FailNetwork,\n    /// Credentials stage hits a locked 1Password reference (recoverable).\n    CredentialsLocked,\n    /// Sidecar is Blocked: a modeled-only fixture with no runtime producer.\n    BlockedSidecar,",
+          "LaunchEvent": "/// A stage changed state.\n    StageChanged(Stage, StepState),\n    /// Status text for the active stage.\n    Activity(String),\n    /// One line from the derived-image build log.\n    BuildLine(String),\n    /// The container became available before later stages run.\n    ContainerReady(String),\n    /// Credential resolution completed.\n    CredentialsResolved {\n        /// Credential source description.\n        origin: String,\n        /// Validation result description.\n        validation: String,"
+        }
+      },
+      "apps/jackin-preview/src/domain/onepassword.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/domain/instance.rs": {
+        "tests": [
+          "hidden_statuses_and_actions"
+        ],
+        "enums": {
+          "InstanceStatus": "/// The container and daemon are running.\n    Running,\n    /// The final session exited successfully.\n    CleanExited,\n    /// The daemon stopped unexpectedly.\n    Crashed,\n    /// The stopped instance retains uncommitted changes.\n    PreservedDirty,\n    /// The stopped instance retains unpushed commits.\n    PreservedUnpushed,\n    /// The instance has a restorable Capsule layout.\n    RestoreAvailable,\n    /// A newer instance replaced this one.\n    Superseded,\n    /// The instance and its records were removed.\n    Purged,\n    /// Setup failed before the Capsule was ready.\n    FailedSetup,",
+          "ManifestError": "/// The session manifest could not be read.\n    ReadError,",
+          "SessionStatus": "/// The session is still active.\n    Active,\n    /// The session exited with the given process code.\n    Exited(i32),\n    /// The session ended without a normal exit code.\n    Crashed,",
+          "DaemonSnapshot": "/// No daemon socket answered.\n    Unavailable,\n    /// Daemon reports no tabs.\n    NoTabs,\n    /// Daemon reports one or more live tabs.\n    Tabs(Vec<TabSnapshot>),",
+          "AgentState": "/// The agent is idle.\n    Idle,\n    /// The agent is working.\n    Working,\n    /// The agent completed its current work.\n    Done,\n    /// The agent is waiting on an issue or decision.\n    Blocked,\n    /// The agent state could not be determined.\n    Unknown,"
+        }
+      },
+      "apps/jackin-preview/src/domain/usage.rs": {
+        "tests": [
+          "quota_status_thresholds",
+          "empty_registry_is_empty_health"
+        ],
+        "enums": {
+          "Freshness": "/// Usage data is current.\n    Current,\n    /// Usage data is retained from an earlier successful refresh.\n    Stale,\n    /// A refresh is currently in progress.\n    Refreshing,\n    /// The latest refresh failed.\n    Failed,",
+          "QuotaStatus": "/// Usage is below the warning threshold.\n    Available,\n    /// The provider has not started tracking this window.\n    NotStarted,\n    /// Usage has reached the warning threshold.\n    Warning,\n    /// Usage has reached or exceeded the limit.\n    Exhausted,\n    /// The provider does not expose this quota.\n    Unsupported,\n    /// The quota cannot currently be retrieved.\n    Unavailable,\n    /// Retrieving the quota produced an error.\n    Error,",
+          "WindowCategory": "/// Short-lived session quota.\n    Session,\n    /// Quota covering a longer period, such as a week or month.\n    LongRange,\n    /// Quota scoped to a model.\n    Model,\n    /// Quota that does not fit another category.\n    Other,",
+          "WindowUnit": "/// A percentage of the quota used.\n    Percent,\n    /// A token count.\n    Tokens,\n    /// A credit count.\n    Credits,\n    /// A U.S. dollar amount.\n    Usd,",
+          "HealthWord": "/// No accounts are present.\n    Empty,\n    /// All enabled accounts are blocked or failed.\n    Blocked,\n    /// Usage data has a material failure, staleness, or exhaustion.\n    Degraded,\n    /// Usage data is usable but needs attention.\n    Attention,\n    /// No account-level issue was found.\n    Healthy,"
+        }
+      },
+      "apps/jackin-preview/src/domain/mod.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "apps/jackin-preview/src/domain/account.rs": {
+        "tests": [
+          "masking_helpers",
+          "one_default_per_provider"
+        ],
+        "enums": {
+          "AccountOrigin": "/// Created in the Center; editable, removable.\n    Registered,\n    /// Found by simulated host discovery; read-only.\n    Discovered,",
+          "CredentialSource": "/// Reference to credential metadata stored in 1Password.\n    OnePassword(OpReference),\n    /// Credential or profile material found in a local folder.\n    LocalFolder {\n        /// Folder path containing the detected material.\n        path: String,\n        /// Kind of material detected in the folder.\n        detected: DetectedKind,",
+          "DetectedKind": "/// Claude OAuth profile data.\n    ClaudeOAuthProfile,\n    /// Claude API key environment variable.\n    ClaudeApiKeyEnv,\n    /// Codex `auth.json` data.\n    CodexAuthJson,\n    /// Grok `auth.json` data.\n    GrokAuthJson,\n    /// OpenCode Go `auth.json` data.\n    OpenCodeGoAuthJson,\n    /// Amp `secrets.json` data.\n    AmpSecrets,\n    /// Z.AI API key environment variable.\n    ZaiApiKeyEnv,\n    /// Kimi API key environment variable.\n    KimiApiKeyEnv,\n    /// MiniMax token environment variable.\n    MinimaxTokenEnv,\n    /// Material whose provider-specific kind is not recognised.\n    Unknown,",
+          "IdentitySubject": "/// A provider- or service-specific display handle.\n    Handle(String),",
+          "Provenance": "/// Data came from a configured credential source.\n    ConfiguredSource,\n    /// Data came from live host discovery.\n    LiveHost,",
+          "Confidence": "/// The provider verified the account and its data.\n    Authoritative,\n    /// The value was inferred or estimated.\n    Estimated,\n    /// Presence was detected without identity or quota verification.\n    PresenceOnly,\n    /// No confidence has been established.\n    None,",
+          "Lifecycle": "/// Credentials and provider data are usable.\n    Available,\n    /// The agent has not yet been initialized.\n    AgentUninitialized,\n    /// Interactive login is required.\n    NeedsLogin,\n    /// A secret is required before use.\n    NeedsSecret,\n    /// The provider or source is not supported.\n    Unsupported,\n    /// The provider or source is currently unavailable.\n    Unavailable,\n    /// A validation or provider error occurred.\n    Error,",
+          "ValidationLevel": "/// Credential material was found.\n    MaterialDiscovered,\n    /// Provider identity was authenticated.\n    IdentityAuthenticated,\n    /// Provider quota data was read successfully.\n    QuotaReadable,",
+          "ValidationState": "/// No validation has been attempted.\n    NeverValidated,\n    /// Validation is in progress, identified by its start tick.\n    Validating {\n        /// Tick at which validation started.\n        started_tick: u64,",
+          "IssueCode": "/// The provider does not expose quota data for this source.\n    QuotaUnsupported,\n    /// A configured credential folder is missing.\n    FolderMissing,\n    /// A configured credential folder cannot be read.\n    FolderUnreadable,\n    /// A detected folder belongs to another provider.\n    FolderWrongProvider,\n    /// A required credential file is missing.\n    CredentialFileMissing,\n    /// Credential file contents are malformed.\n    CredentialMalformed,\n    /// The supplied API key is empty.\n    ApiKeyEmpty,\n    /// The supplied API key is invalid.\n    ApiKeyInvalid,\n    /// 1Password is locked.\n    OpLocked,\n    /// 1Password authorization is required.\n    OpAuthorizationRequired,\n    /// 1Password denied access.\n    OpPermissionDenied,\n    /// The referenced 1Password item is missing.\n    OpItemMissing,\n    /// The referenced 1Password field is missing.\n    OpFieldMissing,\n    /// The 1Password item belongs to another provider.\n    OpProviderMismatch,\n    /// The provider rejected the credential.\n    Unauthorized,\n    /// The provider asked the caller to retry later.\n    RateLimited,\n    /// The provider is temporarily unavailable.\n    ProviderUnavailable,\n    /// Previously valid usage data is stale.\n    Stale,\n    /// The account identity could not be resolved.\n    IdentityUnresolved,",
+          "Recoverability": "/// Retrying may resolve the issue without user action.\n    Retryable,\n    /// The operator must change credentials or configuration.\n    ActionRequired,\n    /// The requested capability is not supported.\n    Unsupported,",
+          "DuplicateProbe": "/// Match a local-folder source by provider and path.\n    Folder {\n        /// Provider expected for the folder.\n        provider: Provider,\n        /// Folder path to match.\n        path: String,"
+        }
+      },
+      "apps/jackin-preview/src/domain/fixtures.rs": {
+        "tests": [
+          "account_precedence_is_explicit_and_deterministic",
+          "references_and_debug_never_contain_fixture_material",
+          "run_id_is_not_an_arbitrary_display_string"
+        ],
+        "enums": {
+          "PrecedenceLevel": "/// Account selected explicitly for the session.\n    Session,\n    /// Account selected by the session's role.\n    Role,\n    /// Account selected by the workspace.\n    Workspace,\n    /// Provider-wide default account.\n    Global,\n    /// Current account discovered on the host.\n    Discovered,"
+        }
+      },
+      "apps/jackin-preview/src/domain/workspace.rs": {
+        "tests": [
+          "masking_never_reveals_the_value",
+          "plain_environment_debug_is_redacted",
+          "change_count_tracks_fields_and_rows"
+        ],
+        "enums": {
+          "Effective": "/// The registry's provider default, inherited because it is not disabled here.\n    InheritedDefault,\n    /// Explicitly enabled in this Workspace.\n    Enabled,",
+          "Usability": "/// The account can back a session.\n    Ready,\n    /// Switched off in the registry (kept in the policy so it comes back when re-enabled).\n    Disabled(String),\n    /// The account requires an interactive login.\n    NeedsLogin,\n    /// The account cannot be used for the requested operation.\n    Invalid(String),",
+          "DirtyExitPolicy": "/// Ask before leaving with changes.\n    Ask,\n    /// Keep changes when leaving.\n    Keep,\n    /// Discard changes when leaving.\n    Discard,",
+          "MountSource": "/// Host filesystem path.\n    Host(String),\n    /// Git repository URL.\n    Git(String),",
+          "Isolation": "/// Share the source directory directly.\n    Shared,\n    /// Use a linked worktree.\n    Worktree,\n    /// Use a full clone.\n    Clone,",
+          "MountKind": "/// A regular directory mount.\n    Directory,\n    /// A repository mount.\n    Repository,",
+          "MountScope": "/// Global settings mount.\n    Global,\n    /// Workspace-local mount.\n    Workspace,\n    /// Role-local mount.\n    Role(RoleName),",
+          "AllowedRoles": "/// All roles are allowed.\n    #[default]\n    All,\n    /// Only the listed roles are allowed.\n    Custom(Vec<RoleName>),",
+          "RoleSource": "/// Git-backed role source.\n    Git {\n        /// Repository URL.\n        url: String,\n        /// Branch or revision to load.\n        branch: String,",
+          "EnvValue": "/// Plain text; rendered masked by default.\n    Plain(String),\n    /// 1Password item/field reference, resolved on demand (`[op]`).\n    OnePassword(super::onepassword::OpReference),\n    /// Forward a host environment variable by name.\n    HostEnv(String),"
+        }
+      },
+      "apps/jackin-preview/src/domain/agent.rs": {
+        "tests": [
+          "axes_are_linked_but_distinct"
+        ],
+        "enums": {
+          "Agent": "/// Anthropic's Claude Code runtime.\n    ClaudeCode,\n    /// OpenAI's Codex runtime.\n    Codex,\n    /// Amp's coding-agent runtime.\n    Amp,\n    /// Moonshot's Kimi Code runtime.\n    KimiCode,\n    /// OpenCode runtime.\n    OpenCode,\n    /// xAI's Grok Build runtime.\n    GrokBuild,",
+          "Provider": "/// Anthropic's provider adapter.\n    Anthropic,\n    /// OpenAI's provider adapter.\n    OpenAi,\n    /// Amp's provider adapter.\n    Amp,\n    /// xAI's provider adapter.\n    XAi,\n    /// OpenCode's provider adapter.\n    OpenCode,\n    /// Moonshot's provider adapter.\n    Moonshot,\n    /// Z.AI's provider adapter.\n    Zai,\n    /// MiniMax's provider adapter.\n    MiniMax,",
+          "UsageSurface": "/// Claude usage surface.\n    Claude,\n    /// Codex usage surface.\n    Codex,\n    /// Amp usage surface.\n    Amp,\n    /// Grok usage surface.\n    Grok,\n    /// Z.AI usage surface.\n    Zai,\n    /// Kimi usage surface.\n    Kimi,\n    /// MiniMax usage surface.\n    Minimax,\n    /// OpenCode usage surface.\n    OpenCode,\n    /// Placeholder for providers without a supported usage projection.\n    Unsupported,",
+          "AuthMode": "/// Forward the host agent's own credentials/profile.\n    Sync,\n    /// Forward a plain API key.\n    ApiKey,\n    /// Forward an OAuth token.\n    OAuthToken,\n    /// Do not forward anything.\n    Ignore,"
+        }
+      }
+    }
+  },
+  "holla": {
+    "tablepro": {
+      "src/bin/tablepro/connections.rs": {
+        "tests": [],
+        "enums": {
+          "ConnState": "Idle,\n    Connecting {\n        ticks: u32,\n        name: String,",
+          "ConnEvent": "Connected(usize),"
+        }
+      },
+      "src/bin/tablepro/tabs.rs": {
+        "tests": [],
+        "enums": {
+          "FilterOp": "Eq,\n    Ne,\n    Contains,\n    NotContains,\n    StartsWith,\n    EndsWith,\n    Gt,\n    Ge,\n    Lt,\n    Le,\n    IsNull,\n    IsNotNull,\n    IsEmpty,\n    IsNotEmpty,\n    In,\n    NotIn,\n    Between,\n    Regex,",
+          "TableMode": "Data,\n    Structure,",
+          "ResultBody": "Rows(DataGrid),\n    Affected {\n        rows: usize,\n        verb: String,"
+        }
+      },
+      "src/bin/tablepro/db.rs": {
+        "tests": [],
+        "enums": {
+          "Engine": "Postgres,\n    MySql,\n    Sqlite,",
+          "SafeMode": "/// Default: writes and reads run; only dangerous statements ask.\n    Silent,\n    /// Writes ask for confirmation.\n    Alert,\n    /// Every statement asks for confirmation.\n    AlertFull,\n    /// Writes ask and require authentication (Touch ID on macOS).\n    Safe,\n    /// Every statement asks and requires authentication.\n    SafeFull,\n    /// Writes are refused.\n    ReadOnly,",
+          "Environment": "Local,\n    Development,\n    Staging,\n    Production,",
+          "ConnectOutcome": "Ok,\n    AuthFailed,\n    Unreachable,",
+          "ColType": "Uuid,\n    Text,\n    Int,\n    Numeric,\n    Bool,\n    Timestamp,\n    Date,\n    Json,\n    Enum,",
+          "ObjectKind": "Table,\n    View,\n    Function,\n    Sequence,",
+          "Value": "Null,\n    Text(String),\n    Int(i64),\n    Num(f64),\n    Bool(bool),\n    Json(String),"
+        }
+      },
+      "src/bin/tablepro/app_tests.rs": {
+        "tests": [
+          "connections_screen_lists_and_connects_with_keyboard",
+          "failed_connection_shows_error_and_retry",
+          "explorer_opens_table_and_grid_navigates",
+          "sort_and_filter_on_table_tab",
+          "structure_view_toggle",
+          "editor_completion_and_execution",
+          "execution_error_marks_editor_and_result",
+          "cancel_running_query",
+          "explain_opens_plan_tree",
+          "safety_gate_intercepts_dangerous_statement_on_production",
+          "safety_gate_typed_token_executes",
+          "read_only_connection_refuses_writes",
+          "silent_level_runs_scoped_writes_but_confirms_destructive",
+          "quick_switcher_opens_table",
+          "history_tab_reopens_query",
+          "tab_strip_overflow_and_tab_list",
+          "pending_edits_preview_and_save",
+          "safe_mode_picker_changes_level_and_strip",
+          "mouse_opens_table_and_switches_tabs",
+          "every_screen_renders_at_representative_sizes",
+          "narrow_terminals_turn_the_explorer_into_a_drawer",
+          "acceptance_flow_keyboard_only",
+          "acceptance_flow_mouse"
+        ],
+        "enums": {}
+      },
+      "src/bin/tablepro/sql.rs": {
+        "tests": [
+          "splits_and_finds_statement_at_cursor",
+          "parses_select_with_predicates_order_limit",
+          "classifies_like_tablepro",
+          "runs_filtered_sorted_select",
+          "errors_are_specific",
+          "explain_builds_tree"
+        ],
+        "enums": {
+          "TokKind": "Keyword,\n    Ident,\n    Number,\n    String,\n    Operator,\n    Punct,\n    Comment,\n    Whitespace,",
+          "Cmp": "Eq,\n    Ne,\n    Gt,\n    Ge,\n    Lt,\n    Le,\n    Like,\n    IsNull,\n    IsNotNull,\n    In(Vec<String>),",
+          "Statement": "Select(Select),\n    Update {\n        table: String,\n        has_where: bool,",
+          "Tier": "Safe,\n    Write,\n    Destructive,",
+          "Decision": "Run,\n    /// Ask first. `deliberate` = Safe Mode levels: the terminal substitute\n    /// for Touch ID is typing the target name.\n    Confirm {\n        deliberate: bool,"
+        }
+      },
+      "src/bin/tablepro/main.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "src/bin/tablepro/app.rs": {
+        "tests": [],
+        "enums": {
+          "Request": "OpenDialog(Box<Dialog>),\n    Status(String),\n    EditFilter(Option<usize>),\n    FilterOnCell(usize, CellValue),\n    ConfirmDiscard,\n    CommitPending,\n    PreviewSql,\n    OpenQuery(String, bool),\n    OpenTableFiltered(String, String, String),\n    OpenViewer(String, CellValue),\n    ConfirmCloseTab(usize),",
+          "Screen": "Connections,\n    Workbench,",
+          "PickerKind": "Switcher,\n    TabList,\n    SafeMode,",
+          "Modal": "Dialog(Dialog),\n    Picker(PickerKind, Picker, Option<SwitcherIndex>),\n    Filter(FilterEditor),",
+          "FilterOutcome": "Keep(Outcome),\n    Apply,\n    Cancel,"
+        }
+      },
+      "src/bin/tablepro/workbench.rs": {
+        "tests": [],
+        "enums": {
+          "WorkTab": "Table(TableTab),\n    Query(QueryTab),\n    History(HistoryTab),"
+        }
+      },
+      "src/bin/tablepro/model.rs": {
+        "tests": [
+          "preview_sql_orders_updates_inserts_deletes",
+          "history_search_is_multi_term_and",
+          "completion_is_context_aware",
+          "switcher_ranks_tables_first_and_prefix_first"
+        ],
+        "enums": {
+          "HistorySource": "Editor,\n    Explain,\n    Browsing,\n    RowEdits,\n    Structure,",
+          "CompletionKind": "Keyword,\n    Table,\n    View,\n    Column,\n    Function,\n    Schema,\n    Alias,",
+          "Clause": "Start,\n    SelectList,\n    From,\n    Where,\n    OrderBy,\n    /// After `alias.` or `table.`\n    Member,",
+          "SwitchTarget": "Table { schema: String, name: String"
+        }
+      }
+    },
+    "jackin": {
+      "src/bin/jackin_preview/clock.rs": {
+        "tests": [
+          "durations_use_two_units",
+          "clock_is_pure_over_ticks"
+        ],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/rain.rs": {
+        "tests": [
+          "intro_timeline_follows_the_original_pacing",
+          "outro_skips_and_captions_like_the_original",
+          "starfield_is_deterministic_and_restrained"
+        ],
+        "enums": {
+          "Tone": "/// 4 primary \u00b7 3 secondary \u00b7 2 muted \u00b7 1 faint \u00b7 0 ghost.\n    Ladder(u8),\n    Accent,",
+          "IntroPhase": "Phrases,\n    Warp,\n    Done,",
+          "OutroPhase": "Warp,\n    Caption,\n    Done,",
+          "HandoffStage": "CockpitDim(u8),\n    Canvas,\n    CapsuleDim(u8),\n    Capsule,"
+        }
+      },
+      "src/bin/jackin_preview/app_tests.rs": {
+        "tests": [
+          "first_use_plays_intro_then_manager_and_no_replay_when_returning",
+          "reduced_motion_and_paused_frames_are_deterministic",
+          "manager_navigation_expand_and_detail_focus",
+          "launch_runs_all_stages_and_hands_off_to_the_capsule",
+          "launch_failure_returns_to_the_construct_when_another_instance_runs",
+          "detach_reconnect_and_final_exit_plays_one_outro",
+          "still_inside_feedback_when_other_instances_remain",
+          "too_small_state_and_resize_recover",
+          "accounts_register_with_a_1password_reference_and_never_render_the_secret",
+          "accounts_plain_key_is_masked_everywhere_and_remove_asks_first",
+          "usage_overlay_is_read_only_and_hands_off_to_accounts",
+          "prelude_creates_a_pending_workspace_and_opens_the_editor",
+          "prelude_refuses_a_duplicate_name_and_cancels_cleanly",
+          "editor_edits_count_once_preview_then_saves_and_returns",
+          "editor_env_plain_value_stays_masked_and_can_be_shown",
+          "settings_trust_toggle_and_failed_save_keep_edits",
+          "hard_cases_refresh_keeps_last_good_and_help_opens_everywhere",
+          "complete_jackin_flow_keyboard_first",
+          "editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on",
+          "manager_launch_picker_hides_agents_without_an_account",
+          "environments_stay_readable_with_a_hundred_roles",
+          "cockpit_resolves_every_effective_account_for_the_container"
+        ],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/main.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/scenario.rs": {
+        "tests": [
+          "names_round_trip"
+        ],
+        "enums": {
+          "Scenario": "/// Zero instances, no saved Workspaces, no accounts: intro then an\n    /// empty manager.\n    FirstUse,\n    /// An instance is already running: no intro, populated manager.\n    Returning,\n    /// Several providers, several accounts, mixed health.\n    AccountsMixed,\n    /// Straight into an active launch cockpit.\n    LaunchRunning,\n    /// A launch that fails at a stage.\n    LaunchFailure,\n    /// Attached Capsule with several tabs and nested panes.\n    CapsuleMulti,\n    /// Attached to the last running instance; exiting plays the outro.\n    OutroLast,\n    /// Long labels, missing daemon data, discovery failure, many rows.\n    HardCases,",
+          "Motion": "/// Tick-driven rituals and atmosphere.\n    #[default]\n    Full,\n    /// One static meaningful boundary frame, then an immediate transition.\n    Reduced,\n    /// Ticks never advance; `--frame` selects the exact frame shown.\n    Paused,"
+        }
+      },
+      "src/bin/jackin_preview/arbiter.rs": {
+        "tests": [
+          "empty_construct_plays_once_and_join_skips",
+          "foreign_claim_suppresses_duplicate_intro",
+          "exit_token_has_one_consumer_and_fails_closed",
+          "missing_entry_time_omits_elapsed"
+        ],
+        "enums": {
+          "DiscoveryError": "/// The daemon index could not be read.\n    IndexUnreadable,",
+          "EntryDecision": "/// Zero running instances and no other claim: play the intro.\n    PlayIntro,\n    /// The Construct is active with `running` instances: join without replay.\n    JoinActive { running: usize",
+          "ExitDecision": "/// This client consumed the exit token: play the rich outro.\n    Outro { elapsed_secs: Option<u64>"
+        }
+      },
+      "src/bin/jackin_preview/app.rs": {
+        "tests": [],
+        "enums": {
+          "Route": "Intro,\n    Manager,\n    Prelude,\n    Editor,\n    Settings,\n    Accounts,\n    Usage,\n    Cockpit,\n    Handoff,\n    Capsule,\n    Outro,"
+        }
+      },
+      "src/bin/jackin_preview/app_tests_chrome.rs": {
+        "tests": [
+          "capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line",
+          "menu_bar_opens_switches_and_runs_an_action",
+          "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+          "hint_bar_stays_on_the_last_row_across_layers",
+          "inspect_changes_opens_from_the_view_menu_in_both_modes",
+          "command_palette_scrolls_with_the_wheel_and_keeps_the_selection"
+        ],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/screens/config.rs": {
+        "tests": [],
+        "enums": {
+          "Scope": "Workspace,\n    Global,",
+          "Tab": "Mounts,\n    Environments,",
+          "Change": "None,\n    Added,\n    Modified,\n    Removed,",
+          "RowKey": "Mount(String),\n    RemovedMount(String),\n    AddMount,\n    Section(Option<RoleName>),\n    Env(Option<RoleName>, String),\n    AddEnv(Option<RoleName>),\n    /// `Role overrides \u00b7 N configured` summary header.\n    RoleSummary,\n    /// `+ Add role override\u2026` \u2014 opens the searchable Role picker.\n    AddRoleOverride,",
+          "Editing": "Mount {\n        original: Option<String>,"
+        }
+      },
+      "src/bin/jackin_preview/screens/capsule.rs": {
+        "tests": [],
+        "enums": {
+          "Mode": "Normal,\n    PrefixAwait,\n    Select,\n    Drag,\n    Dialog,",
+          "Intent": "NewTab,\n    Split(SplitDir, bool),",
+          "Line": "Text(String, Tone),\n            Meter(String, u8, String, MeterTone),"
+        }
+      },
+      "src/bin/jackin_preview/screens/accounts.rs": {
+        "tests": [],
+        "enums": {
+          "Sel": "Overview,\n    Provider(UsageSurface),\n    Account(AccountId),\n    Add,",
+          "Line": "Prop(String, String, Tone),\n    Text(String, Tone),\n    Heading(String, String),\n    Meter(String, u8, String, MeterTone),\n    Blank,"
+        }
+      },
+      "src/bin/jackin_preview/screens/cockpit.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/screens/manager.rs": {
+        "tests": [],
+        "enums": {
+          "RowKey": "CurrentDir,\n    Workspace(WorkspaceId),\n    Instance(String),\n    NewWorkspace,",
+          "DetailRow": "Pane { tab: usize, pane: u64, text: String"
+        }
+      },
+      "src/bin/jackin_preview/screens/usage.rs": {
+        "tests": [],
+        "enums": {
+          "Row": "Overview,\n    Heading(UsageSurface),\n    Account(AccountId),"
+        }
+      },
+      "src/bin/jackin_preview/screens/mod.rs": {
+        "tests": [],
+        "enums": {
+          "Modal": "Dialog(Dialog),\n    Picker(Picker),\n    Browser(FileBrowser),\n    Choice(ChoiceDialog),\n    Form(FormDialog),\n    Op(OpFlow),\n    Info(InfoDialog),\n    Help(HelpOverlay),\n    Custom(Box<dyn CustomModal>),",
+          "ModalResult": "/// `action` is the pressed button index (None = cancelled); `text` the\n    /// prompt's value.\n    Dialog {\n        action: Option<usize>,\n        text: Option<String>,",
+          "Go": "Manager,\n    Settings,\n    Accounts {\n        select: Option<AccountId>,",
+          "Request": "Status(String),\n    Error(String),\n    Open(Box<Modal>, ModalTag),\n    Close,\n    Go(Go),\n    Copy(String),\n    /// Open the key reference for the current screen.\n    Help,\n    /// Mutate the form that is the top modal (after a nested picker).\n    WithForm(Box<dyn FnOnce(&mut FormDialog)>),"
+        }
+      },
+      "src/bin/jackin_preview/screens/editor.rs": {
+        "tests": [],
+        "enums": {
+          "EdTab": "General,\n    Mounts,\n    Roles,\n    Environments,\n    Accounts,",
+          "AcctRow": "Provider(Provider),\n    Account(AccountId),",
+          "RoleRow": "Role(String),\n    Load,"
+        }
+      },
+      "src/bin/jackin_preview/screens/modals.rs": {
+        "tests": [],
+        "enums": {
+          "BrowserResult": "Chosen { path: String, readonly: bool",
+          "FieldValue": "Text(String),\n    Choice(usize),\n    Bool(bool),",
+          "FieldKindW": "Input(TextInput),\n    Select(Select),\n    Check(Checkbox),\n    Radio(RadioGroup),\n    /// Read-only value with a `Choose\u2026` button that the owner handles.\n    Chooser {\n        label: String,\n        value: String,\n        detail: Option<String>,\n        button: Button,",
+          "FormEvent": "Changed(String),\n    /// A chooser button fired.\n    Choose(String),\n    /// A named action button fired (`validate`, `plain`, \u2026).\n    Action(String),\n    Save,\n    Cancel,",
+          "OpStep": "Account,\n    Vault,\n    Item,\n    Field,",
+          "InfoResult": "Closed,\n    Copy(String),\n    /// Extra action button index fired.\n    Action(usize),"
+        }
+      },
+      "src/bin/jackin_preview/screens/prelude.rs": {
+        "tests": [],
+        "enums": {
+          "Step": "Source,\n    Destination,\n    Edit,\n    Workdir,\n    Name,",
+          "Source": "Host { path: String, readonly: bool"
+        }
+      },
+      "src/bin/jackin_preview/screens/settings.rs": {
+        "tests": [],
+        "enums": {
+          "StTab": "General,\n    Mounts,\n    Environments,\n    Agents,\n    Trust,"
+        }
+      },
+      "src/bin/jackin_preview/screens/inspect.rs": {
+        "tests": [
+          "compact_opens_a_file_and_returns_to_the_list",
+          "advanced_tree_drives_the_diff_and_modes_toggle",
+          "narrow_terminal_stacks_the_advanced_layout"
+        ],
+        "enums": {
+          "InspectMode": "Compact,\n    Advanced,",
+          "Region": "Tree,\n    Diff,"
+        }
+      },
+      "src/bin/jackin_preview/sim/onepassword.rs": {
+        "tests": [
+          "resolves_only_inside_the_closure"
+        ],
+        "enums": {
+          "KeyOutcome": "Valid,\n    Rejected,\n    RateLimited,\n    Unavailable,",
+          "SecretClass": "Empty,\n    Unrecognised,\n    Key {\n        provider: Provider,\n        outcome: KeyOutcome,",
+          "OpSession": "SignedIn,\n    Locked,",
+          "OpAccountState": "Available,\n    Locked,\n    AuthorizationRequired,",
+          "VaultAccess": "ReadWrite,\n    ReadOnly,\n    Denied,",
+          "FieldKind": "Concealed,\n    Text,\n    Url,",
+          "OpError": "Locked,\n    AuthorizationRequired { account: String"
+        }
+      },
+      "src/bin/jackin_preview/sim/provider.rs": {
+        "tests": [],
+        "enums": {
+          "CheckRow": "Ok(String),\n    Failed(String),\n    Skipped(String),",
+          "FolderProbe": "Missing,\n    Unreadable,\n    /// Folder exists, holds no credential file.\n    NoCredential,\n    /// Credential file exists but does not parse.\n    Malformed,\n    Found(DetectedKind),"
+        }
+      },
+      "src/bin/jackin_preview/sim/changes.rs": {
+        "tests": [
+          "deterministic_and_realistic",
+          "fewer_uncommitted_than_touched_keeps_every_touched_file",
+          "no_secret_shaped_content"
+        ],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/sim/world.rs": {
+        "tests": [
+          "masks_private_paths"
+        ],
+        "enums": {
+          "Msg": "/// Config write finished.\n    WorkspaceSaved {\n        id: WorkspaceId,\n        ok: bool,",
+          "DaemonHealth": "Healthy,\n    Stale,"
+        }
+      },
+      "src/bin/jackin_preview/sim/mod.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/sim/pty.rs": {
+        "tests": [
+          "split_close_and_nearest",
+          "agent_process_emits_boots_and_replies"
+        ],
+        "enums": {
+          "PaneNode": "Leaf(PaneId),\n    Split {\n        dir: SplitDir,\n        split: Split,\n        first: Box<PaneNode>,\n        second: Box<PaneNode>,",
+          "Direction": "Left,\n    Right,\n    Up,\n    Down,",
+          "Step": "/// Emit a line after `delay` virtual ms.\n    Emit(i64, Line),\n    State(AgentState),\n    /// Touch a file: marks the repo dirty.\n    Touch(&'static str),\n    /// Wait for operator input.\n    Await,"
+        }
+      },
+      "src/bin/jackin_preview/sim/launch.rs": {
+        "tests": [
+          "clean_plan_walks_all_eleven_stages_in_order",
+          "failure_and_blocked_plans_stop_the_frontier",
+          "credential_error_holds_until_retry"
+        ],
+        "enums": {
+          "Stage": "Identity,\n    Role,\n    Credentials,\n    Construct,\n    AgentBinaries,\n    DerivedImage,\n    Workspace,\n    Network,\n    Sidecar,\n    Capsule,\n    Hardline,",
+          "LaunchPlan": "/// Every stage succeeds; Agent Binaries is skipped (cached).\n    Clean,\n    /// Fails at Network after the build produced output.\n    FailNetwork,\n    /// Credentials stage hits a locked 1Password reference (recoverable).\n    CredentialsLocked,\n    /// Sidecar is Blocked: a modeled-only fixture with no runtime producer.\n    BlockedSidecar,",
+          "LaunchEvent": "StageChanged(Stage, StepState),\n    Activity(String),\n    BuildLine(String),\n    ContainerReady(String),\n    CredentialsResolved {\n        origin: String,\n        validation: String,"
+        }
+      },
+      "src/bin/jackin_preview/domain/onepassword.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/domain/instance.rs": {
+        "tests": [
+          "hidden_statuses_and_actions"
+        ],
+        "enums": {
+          "InstanceStatus": "Running,\n    CleanExited,\n    Crashed,\n    PreservedDirty,\n    PreservedUnpushed,\n    RestoreAvailable,\n    Superseded,\n    Purged,\n    FailedSetup,",
+          "ManifestError": "ReadError,",
+          "SessionStatus": "Active,\n    Exited(i32),\n    Crashed,",
+          "DaemonSnapshot": "/// No daemon socket answered.\n    Unavailable,\n    /// Daemon reports no tabs.\n    NoTabs,\n    Tabs(Vec<TabSnapshot>),",
+          "AgentState": "Idle,\n    Working,\n    Done,\n    Blocked,\n    Unknown,"
+        }
+      },
+      "src/bin/jackin_preview/domain/usage.rs": {
+        "tests": [
+          "quota_status_thresholds",
+          "empty_registry_is_empty_health"
+        ],
+        "enums": {
+          "Freshness": "Current,\n    Stale,\n    Refreshing,\n    Failed,",
+          "QuotaStatus": "Available,\n    NotStarted,\n    Warning,\n    Exhausted,\n    Unsupported,\n    Unavailable,\n    Error,",
+          "WindowCategory": "Session,\n    LongRange,\n    Model,\n    Other,",
+          "WindowUnit": "Percent,\n    Tokens,\n    Credits,\n    Usd,",
+          "HealthWord": "Empty,\n    Blocked,\n    Degraded,\n    Attention,\n    Healthy,"
+        }
+      },
+      "src/bin/jackin_preview/domain/mod.rs": {
+        "tests": [],
+        "enums": {}
+      },
+      "src/bin/jackin_preview/domain/account.rs": {
+        "tests": [
+          "masking_helpers",
+          "one_default_per_provider"
+        ],
+        "enums": {
+          "AccountOrigin": "/// Created in the Center; editable, removable.\n    Registered,\n    /// Found by simulated host discovery; read-only.\n    Discovered,",
+          "CredentialSource": "OnePassword(OpReference),\n    LocalFolder {\n        path: String,\n        detected: DetectedKind,",
+          "DetectedKind": "ClaudeOAuthProfile,\n    ClaudeApiKeyEnv,\n    CodexAuthJson,\n    GrokAuthJson,\n    OpenCodeGoAuthJson,\n    AmpSecrets,\n    ZaiApiKeyEnv,\n    KimiApiKeyEnv,\n    MinimaxTokenEnv,\n    Unknown,",
+          "IdentitySubject": "Handle(String),",
+          "Provenance": "ConfiguredSource,\n    LiveHost,",
+          "Confidence": "Authoritative,\n    Estimated,\n    PresenceOnly,\n    None,",
+          "Lifecycle": "Available,\n    AgentUninitialized,\n    NeedsLogin,\n    NeedsSecret,\n    Unsupported,\n    Unavailable,\n    Error,",
+          "ValidationLevel": "MaterialDiscovered,\n    IdentityAuthenticated,\n    QuotaReadable,",
+          "ValidationState": "NeverValidated,\n    Validating { started_tick: u64",
+          "IssueCode": "QuotaUnsupported,\n    FolderMissing,\n    FolderUnreadable,\n    FolderWrongProvider,\n    CredentialFileMissing,\n    CredentialMalformed,\n    ApiKeyEmpty,\n    ApiKeyInvalid,\n    OpLocked,\n    OpAuthorizationRequired,\n    OpPermissionDenied,\n    OpItemMissing,\n    OpFieldMissing,\n    OpProviderMismatch,\n    Unauthorized,\n    RateLimited,\n    ProviderUnavailable,\n    Stale,\n    IdentityUnresolved,",
+          "Recoverability": "Retryable,\n    ActionRequired,\n    Unsupported,",
+          "DuplicateProbe": "Folder {\n        provider: Provider,\n        path: String,"
+        }
+      },
+      "src/bin/jackin_preview/domain/fixtures.rs": {
+        "tests": [
+          "precedence_order_and_why",
+          "workspace_policy_builds_a_deterministic_effective_set",
+          "offered_agents_skip_the_unconfigured_and_block_the_unusable",
+          "every_scenario_builds"
+        ],
+        "enums": {
+          "PrecedenceLevel": "Session,\n    Role,\n    Workspace,\n    ProviderDefault,\n    Discovered,\n    None,"
+        }
+      },
+      "src/bin/jackin_preview/domain/workspace.rs": {
+        "tests": [
+          "masking_never_reveals_the_value",
+          "change_count_tracks_fields_and_rows"
+        ],
+        "enums": {
+          "Effective": "/// The registry's provider default, inherited because it is not disabled here.\n    InheritedDefault,\n    /// Explicitly enabled in this Workspace.\n    Enabled,",
+          "Usability": "Ready,\n    /// Switched off in the registry (kept in the policy so it comes back when re-enabled).\n    Disabled(String),\n    NeedsLogin,\n    Invalid(String),",
+          "DirtyExitPolicy": "Ask,\n    Keep,\n    Discard,",
+          "MountSource": "Host(String),\n    Git(String),",
+          "Isolation": "Shared,\n    Worktree,\n    Clone,",
+          "MountKind": "Directory,\n    Repository,",
+          "MountScope": "Global,\n    Workspace,\n    Role(RoleName),",
+          "AllowedRoles": "#[default]\n    All,\n    Custom(Vec<RoleName>),",
+          "RoleSource": "Git { url: String, branch: String",
+          "EnvValue": "/// Plain text; rendered masked by default.\n    Plain(String),\n    /// 1Password item/field reference, resolved on demand (`[op]`).\n    OnePassword(super::onepassword::OpReference),\n    /// Forward a host environment variable by name.\n    HostEnv(String),"
+        }
+      },
+      "src/bin/jackin_preview/domain/agent.rs": {
+        "tests": [
+          "axes_are_linked_but_distinct"
+        ],
+        "enums": {
+          "Agent": "ClaudeCode,\n    Codex,\n    Amp,\n    KimiCode,\n    OpenCode,\n    GrokBuild,",
+          "Provider": "Anthropic,\n    OpenAi,\n    Amp,\n    XAi,\n    OpenCode,\n    Moonshot,\n    Zai,\n    MiniMax,",
+          "UsageSurface": "Claude,\n    Codex,\n    Amp,\n    Grok,\n    Zai,\n    Kimi,\n    Minimax,\n    OpenCode,\n    Unsupported,",
+          "AuthMode": "/// Forward the host agent's own credentials/profile.\n    Sync,\n    ApiKey,\n    OAuthToken,\n    /// Do not forward anything.\n    Ignore,"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "schema": "termrock-vis01-product-phase-design-review/v1",
+  "status": "READY_FOR_IMPLEMENTATION_WITH_VALIDATION_GUARDS",
+  "reviewed_at_utc": "2026-10-10T00:03:11.010Z",
+  "design_path": "/private/tmp/termrock-vis01-product-phases-design-r1-20261010/design.json",
+  "design_sha256": "06f3d0b48409ddfc6b3751ddf18de3a65584a6f5b0b18bd485fb4eb5373b8adf",
+  "source_base": {
+    "commit": "57d505f343bf35e5041471f4cbab476cb92d67da",
+    "status_py_blob": "7399a413e3662e5a5d73ece6b34beea7a99cd17f",
+    "status_rs_blob": "9c26cb72283478f379ee3dc2cbe51d8925327d84",
+    "planned_paths": [
+      "tools/visibility/status.py",
+      "crates/termrock-visibility-tests/tests/status.rs"
+    ]
+  },
+  "evidence": {
+    "archive_manifest_path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r4/MANIFEST.json",
+    "archive_manifest_sha256": "PENDING_PUBLICATION",
+    "pair_path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r4/raw/run03/pair-evidence.json",
+    "pair_bytes": 106804,
+    "pair_sha256": "edbf0997737ab83136509c2d963e87b25dcb337c9f22041fe03433cd1ead4d6b",
+    "outer_schema": "termrock-e2e/run03-pair-evidence-v1",
+    "nested_receipt_schema": "termrock-spec/visibility-command-lane-v1",
+    "exact_command": "cargo run --release --bin holla",
+    "row_id": "RUN-03",
+    "row_status": "FAIL",
+    "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+    "candidate_layers": {
+      "build": "PASS",
+      "launch": "PASS",
+      "first_frame": "PASS",
+      "interaction": "FAIL",
+      "exit": "PASS",
+      "restoration": "BLOCKED",
+      "visual": "BLOCKED",
+      "ownership": "BLOCKED",
+      "cleanup": "PASS"
+    },
+    "reference_layers": {
+      "build": "PASS",
+      "launch": "PASS",
+      "first_frame": "PASS",
+      "interaction": "FAIL",
+      "exit": "BLOCKED",
+      "restoration": "BLOCKED",
+      "visual": "BLOCKED",
+      "ownership": "NOT_APPLICABLE",
+      "cleanup": "BLOCKED"
+    }
+  },
+  "verdict": {
+    "scope": "Design only; final R4 archive manifest is pending and must not be fabricated or bound into source facts yet.",
+    "safety": "The separate bounded reader, exact manifest-member hash/size binding, fixed historical source pair, strict command/role/argv/layer validation, and unchanged current readiness boundary form a sound design.",
+    "current_vs_historical": "Preserve top-level current Command/Ready as NOT_RUN. Historical derived required readiness is independent and interaction FAIL yields NOT_READY. Pair evidence has an overall FAIL status and contains no readiness field.",
+    "table": "Render only the existing eight dimensions (Build, Launch, First frame, Interaction, Exit, Restoration, Visual, Ownership); validate cleanup but do not render it as an added product phase.",
+    "compatibility": "Absent optional product_phase_observations must preserve checked-in STATUS bytes exactly.",
+    "required_implementation_guards": [
+      "Require both the outer pair schema termrock-e2e/run03-pair-evidence-v1 and nested receipt.schema termrock-spec/visibility-command-lane-v1; the archived object uses both.",
+      "Require exactly one RUN-03 row and reject duplicate matches; add a dedicated duplicate-row negative fixture.",
+      "Make the fixed required-phase set and the FAIL/BLOCKED-to-NOT_READY predicate explicit in implementation/tests; do not let NOT_APPLICABLE ownership imply readiness.",
+      "Keep the old status-source-archive-20261009 reader unchanged; enforce component-wise no-follow reads and bounded manifest/member/aggregate sizes for the new reports/** reader.",
+      "Continue to defer source-facts pinning until the reviewed archive publication provides the final manifest hash and byte count."
+    ]
+  },
+  "tests_expected": [
+    "optional-field absence preserves exact report bytes",
+    "historical RUN-03 row renders with fixed source pair and phase states",
+    "missing/tampered/unlisted/escaping archive member rejected",
+    "wrong source pair or command rejected",
+    "missing/extra/unknown/invalid layer data rejected",
+    "duplicate RUN-03 row rejected",
+    "historical interaction failure yields NOT_READY without changing current NOT_RUN readiness"
+  ],
+  "limits": [
+    "No source facts, code, canonical files, Cargo, or tests changed/run.",
+    "This is not archive publication, execution approval, or product qualification."
+  ]
+}

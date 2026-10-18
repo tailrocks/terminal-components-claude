@@ -1,0 +1,62 @@
+{
+  "schema": "termrock.vis01.attempt-history-r7-source-freeze/v2",
+  "allowed_paths": [
+    "tools/visibility/status.py",
+    "tools/visibility/README.md",
+    "crates/termrock-visibility-tests/tests/status.rs"
+  ],
+  "base_commit": "6b00cb1c5cd10ab2e82014c306a603e92ea5e694",
+  "base_tree": "f10bd01e2d1b38b8e5f50f397fa070a348149cfe",
+  "parent_source_freeze_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-20261010/source-freeze.json",
+  "parent_source_freeze_sha256": "e1e3edfa5022808f85d17a389c2d76d3cbcc8b47d617124b978d7d008a46e363",
+  "parent_review_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-source-review-ci-parity.json",
+  "parent_review_sha256": "f649d16f270ebe533285f195665e2d614fc920c1090de2671900497063adc591",
+  "change_summary": "Rebind the reviewed R7 three-path source candidate to published archive base 6b00cb1c5cd10ab2e82014c306a603e92ea5e694; its three base blobs are byte-identical to 271aad. Preserve the q59 report fixture and four assertion corrections without changing semantic requirements.",
+  "files": [
+    {
+      "path": "tools/visibility/status.py",
+      "base_sha256": "3821039f926a312e46712ab2b2f1af32e6ee928862185e7ea8f7fe66e6d34cef",
+      "sha256": "857b9958ec588fcb18aa1f5263a156cd1c6e24192a4cf56d8a99d0af7520732e",
+      "bytes": 256771,
+      "reviewed_parent_sha256": null
+    },
+    {
+      "path": "tools/visibility/README.md",
+      "base_sha256": "230b92557572a1c75eb6f714e00e94ac06b550ae64900fe801c860552853940e",
+      "sha256": "13dd245e8bbb7031bf231eaed4ce953cc80c2220945aac6b7b0f7bdec570fdac",
+      "bytes": 18499,
+      "reviewed_parent_sha256": null
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "base_sha256": "e09256ea95055a3b9c33ea12b05f572661bc84bf3ff41c105e016bd279932d3b",
+      "sha256": "620688b19abfd82ab5521410268bf4d1eabfc647fd23ce71444017845f3ab7e0",
+      "bytes": 161786,
+      "reviewed_parent_sha256": null
+    }
+  ],
+  "carried_forward_reviewed_paths": [
+    {
+      "path": "tools/visibility/status.py",
+      "sha256": "857b9958ec588fcb18aa1f5263a156cd1c6e24192a4cf56d8a99d0af7520732e",
+      "prior_source_review": "/private/tmp/termrock-vis01-attempt-history-nextest-r2-review-ci-parity.json",
+      "prior_source_review_sha256": "8a0ade1ff4326972d1600b972c4bd59db72631eaeac060714f3fdd84186fe361"
+    },
+    {
+      "path": "tools/visibility/README.md",
+      "sha256": "13dd245e8bbb7031bf231eaed4ce953cc80c2220945aac6b7b0f7bdec570fdac",
+      "prior_source_freeze": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-freeze.json",
+      "prior_source_freeze_sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317"
+    }
+  ],
+  "preserved_prior_failed_attempt": {
+    "receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/output/final-receipt.json",
+    "receipt_sha256": "4522aabb897d6ff5dc5d1b0f74ea065b797896f54dcff22c405ba9431357d573",
+    "result": "FAILED_49_OF_53; 4 test failures; runner artifacts unverified"
+  },
+  "source_delta_patch_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/source-delta.patch",
+  "source_delta_patch_sha256": "fae067aad40df25fed3f635b58cbad22e7a38d0fb2633b004a9d7afec983e9aa",
+  "source_delta_patch_bytes": 42907,
+  "cargo_or_nextest_executed": false,
+  "tests_executed": false
+}

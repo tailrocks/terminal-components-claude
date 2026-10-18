@@ -1,0 +1,43 @@
+{
+  "schema": "termrock-vis08-actual-reconstruction-independent-review/v1",
+  "verdict": "READY_FOR_RESULT_RECONSTRUCTION_ONLY",
+  "packet": "/private/tmp/termrock-vis08-reviewer-handoff-r1-actual-review-r1-20261010",
+  "packet_inputs": {
+    "actual_result_reconstruction_json_sha256": "735c6826e46aa982f7f5ccd86ea4a509e9d1444b689b2ef530af726cb69dedeb",
+    "reconstruct_script_sha256": "4449859255c2fdf07cec8e8ea4a03e8abef1268c3a4f36379e140eaa0df8e2a2",
+    "readme_sha256": "95595a4296c4b3c0f7691a896edc6620506bfc0d6b00d93e52001d87ab0b5038",
+    "sha256sums_file_sha256": "ea3db785bfb49efa1f71202be4e693a7b433d6580a42146b3cb3eb3cda120906",
+    "sha256sums_check": "PASS: all 3 listed files"
+  },
+  "original_execution_evidence": {
+    "receipt_sha256": "6fda5fb42e6f448cd91de3dd0e06cdc1d27da92c8e97b9586bab16254bec54ae",
+    "stderr_sha256": "a169de5454a597609083bf911b6a679d9d6d4ec6ad80c9c96ad887aee2cc7f58",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process_events_sha256": "28cb62e3cafe4d33bdf667e942a194fb4c78fc38845e9ef5583f57b1662149a1",
+    "source_manifest_sha256": "932922019498601c68fa1a5372737d66f0dd8ffe46689b19109074a3918a8fe0",
+    "runner_sha256": "e23557ba54f1813ca5c3967f5fb60fc73a96f73cd39d414ef98f950109ec0409",
+    "source_closure_sha256": "f85405e511dcdca33358a544ce3a16911153e9d5115acbc7b60fd10b2b281da9",
+    "all_9_source_file_hashes_rechecked": true,
+    "six_exact_pass_lines_verified": [
+      "reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer",
+      "reviewer_handoff_rejects_a_stale_review_subject_without_writes",
+      "reviewer_handoff_rejects_lower_priority_work_without_writes",
+      "reviewer_handoff_rejects_reused_reason_without_writes",
+      "reviewer_handoff_rejects_review_state_without_writes",
+      "reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes"
+    ],
+    "summary_exact": "Summary [ 286.354s ] 6 tests run: 6 passed (1 slow), 77 skipped",
+    "child_exit_code": 0,
+    "wrapper_exit_code": 125,
+    "wrapper_success_predicate": false,
+    "original_false_predicate_preserved": true
+  },
+  "review": {
+    "result": "The reconstruction is consistent with the pinned raw execution evidence. It reports the six exact selected PASS lines and the raw Nextest summary while preserving the original wrapper failure and false success predicate.",
+    "limits": [
+      "Read-only review; no reconstruction script execution, Cargo, Nextest, tests, CLI, or queue/source mutation.",
+      "Evidence is for six focused black-box Rust tests over a hash-pinned assembled input closure, not a full q65 Git tree or a live VIS-08 handoff.",
+      "The child test process exit 0 does not erase the original wrapper exit 125 or turn the wrapper predicate true."
+    ]
+  }
+}

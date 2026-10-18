@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 11977660833248605570,
+  "legacy_name": "holla/parity/brew-services/72x20/truecolor",
+  "name": "holla/finder/parity-brew-services/72x20/truecolor",
+  "non_empty_cells": 356,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local
+
+  Here › Files › Find
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ readme                                                                                         ~ · 29 of 29 indexed
+    3 results · home scope
+
+ ▎  README.md                   ~/Documents                         ╭─ ~/Documents/README.md ──────────── 7 B of 7 B ─╮
+    README.md                   ~/work/app                          │      1 readme                                   │
+    README.md                   ~/work/notes                        │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    │                                                 │
+                                                                    ╰─────────────────────────────────────────────────╯
+
+ ~/work/notes                                 29 indexed · 3 results                                 truecolor · 120×40
+                      Type Search  ↑↓ Move  Enter Actions  Delete Clear  Tab Preview  Esc Clear

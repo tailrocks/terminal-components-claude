@@ -1,0 +1,5 @@
+parity dry-run: 499 recipes mapped; showcase=208 tablepro=108 jackin=183
+parity dry-run: 7014 replay input events parsed
+parity dry-run: current replay evidence is required at parity/evidence.tsv; no output approved
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask parity --dry-run`

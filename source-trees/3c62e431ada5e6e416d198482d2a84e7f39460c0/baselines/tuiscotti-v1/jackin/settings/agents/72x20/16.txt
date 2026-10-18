@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help                Settings › global › Agents
+
+
+   General    Mounts    Environments    Agents    Trust
+  ─────────────────────────────────────━━━━━━━━━──────────────────────
+
+    Agent runtime mode       accounts are registered in Accounts (c)
+       Agent         Mode         Registry default
+  ▎›   Claude Code   sync         ★ Claude · Personal
+       Codex         api key      ★ Codex · Primary
+       Amp           sync         discovered · ~/.config/amp/secrets…
+       Kimi Code     ignore       no credentials handed to the conta…
+       OpenCode      sync         ★ OpenCode · Go subscription
+       Grok Build    api key      ★ Grok · Team
+
+
+
+                                                  Cancel     Save…
+
+        Space Cycle mode  d Reset to sync  c Manage accounts  …

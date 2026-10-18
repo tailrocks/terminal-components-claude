@@ -1,0 +1,20 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m       [0m
+                                                                        [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                       +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────── [0m
+ ╭─[0m[1m public › orders [0m──────────────────────────────────────── 14 cols ─╮ [0m
+ │  [0m[1m Data  [0m  Structure                                                │ [0m
+ │  ━━━━━━━────────────────────────────────────────────────────────── │ [0m
+ │                                                                    │ [0m
+ │   match all ▾   status = 'pending' ×    + Add filter               │ [0m
+ │                                                                    │ [0m
+ │   ‹4    status ∇     total_amount  currency    shipping_addr… 7›   │ [0m
+ │  [0m[1m▎  [0m  1[0m[1m pending           1617.64  USD         {"line1": "87…    [0m┃ │ [0m
+ │       2 pending           2236.65  EUR         {"line1": "78…    │ │ [0m
+ │       3 pending           2376.57  EUR         {"line1": "15…    │ │ [0m
+ │       4 pending            550.69  USD         {"line1": "19…    │ │ [0m
+ │  [0m[2m     5 pending            290.26  EUR         {"line1": "16…    [0m│ │ [0m
+ │   filtered (1) · rows 1–5 of 335 loaded · ~201,559 total           │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  …         1 filter applied [0m

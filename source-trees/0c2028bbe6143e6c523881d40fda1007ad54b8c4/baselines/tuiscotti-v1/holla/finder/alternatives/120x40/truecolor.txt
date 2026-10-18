@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Inspect 12 GB of genera… disk · here
+  › Inspect 12 GB of generat…  disk      here  12 GB generated artifacts
+    Pul╭────────────────────────────────────────╮anch is 3 commits behind        Does       1 rebuildable candidate
+    Rev│  Inspect 12 GB of generated artifacts  │modified · 1 untracked                     below this folder · 0
+    Run│  Open                            Enter │files changed since the la…                stale enough to start
+    Who│  Copy command                        y │sessions blocked for 4 min                 selected
+       │  Insert into shell                     │                                Runs       'holla disk anal…ifacts'
+    Rec│ ────────────────────────────────────── │                                In         ~/work/holla
+    not│  Pin here                              │                                Host       mbp · local
+       │  Set alias…                            │                                Scope      here
+    Exp│  Hide here                             │                                Why        12 GB generated
+     Ta│  Reset ranking                         │em                                         artifacts
+    Sys│ ────────────────────────────────────── │ailable on this host            Changes    none · read-only
+       │  Why is this here?                     │                                Risk       read-only
+       ╰────────────────────────────────────────╯                                Data       live · 3 s ago
+                                                                                 Gate       opens a review · the
+                                                                                            deletion is gated there
+                                                                                            (typed phrase)
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40
+                                           ↑↓ Move  Enter Choose  Esc Close

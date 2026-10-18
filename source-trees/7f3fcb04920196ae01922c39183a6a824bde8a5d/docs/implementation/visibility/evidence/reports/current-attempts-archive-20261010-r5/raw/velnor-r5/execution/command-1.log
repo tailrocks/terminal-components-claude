@@ -1,0 +1,37 @@
+   Compiling unicode-ident v1.0.26
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling syn v3.0.6
+   Compiling serde v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling serde_derive v1.0.229
+   Compiling memchr v2.8.3
+   Compiling serde_json v1.0.151
+   Compiling thiserror v2.0.21
+   Compiling velnor-actions-contract v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract)
+   Compiling velnor-actions-contract-release v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract-release)
+   Compiling velnor-actions-contract-config v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract-config)
+   Compiling velnor-actions-contract-planning v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract-planning)
+   Compiling velnor-actions-contract-workflow v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/core/velnor-actions-contract-workflow)
+warning: missing documentation for a function
+   --> crates/core/velnor-actions-contract-workflow/src/workflow/artifact_build/reconcile.rs:198:1
+    |
+198 | / pub fn validate_downloaded_outputs(
+199 | |     result: &[super::ArtifactBuildFile],
+200 | |     expected: &[velnor_actions_contract_config::ArtifactBuildOutput],
+201 | |     downloaded: &[super::DownloadedArtifactOutput],
+202 | | ) -> Result<(), ContractError> {
+    | |______________________________^
+    |
+    = note: requested on the command line with `-W missing-docs`
+
+warning: `velnor-actions-contract-workflow` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 28.15s
+────────────
+ Nextest run ID 543f88f7-4cf5-40dd-98ad-b6eb073da50d with nextest profile: default
+    Starting 2 tests across 2 binaries (88 tests skipped)
+        PASS [   0.011s] (1/2) velnor-actions-contract-config::velnor_contract_config impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component
+        PASS [   0.014s] (2/2) velnor-actions-contract-config::velnor_contract_config impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false
+────────────
+     Summary [   0.026s] 2 tests run: 2 passed, 88 skipped

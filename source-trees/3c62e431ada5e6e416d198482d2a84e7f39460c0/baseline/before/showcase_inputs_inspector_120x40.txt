@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Inputs                            truecolor · 120×40   i Inspector · on   ? Help
+
+   Foundations            Inputs  Focus is a bar; editing is a cursor. Enter to edit, …     State
+▎  Overview
+                            Playground     Enter Edit · Esc Cancel · Tab Commit + next      mode        NAV
+   Components                                                                               focus       28·10 43×1
+▎  Buttons                    Project name *                 Branch  optional               hover       suppressed
+▎› Inputs                   ▎ payments-gateway-v2          ▎ feat/…                         pressed     —
+▎  Text areas                 Used as the working dire…      Leave empty to work on a…      mouse       —
+▎  Forms                      Owner email *                  API token  optional            last key    i
+▎  Lists                    ▎ mira@example           !     ▎ jb_live_••••••••••••           focus ring  6 stops
+▎  Trees                      Enter a valid email addr…      Managed by the organizat…      hit regions 31
+▎  Tables                     Search files  optional         API key  optional              tick        2
+▎  Editable tables          ▎ Type a path or symbol…       ▎ •••••••••••••••••••••••…       colors      truecolor
+▎  Panels                     Selection: Shift+← →  · …      Masked while typing; the…
+▎  Sidebars
+▎  Dialogs
+▎  Progress
+▎  Scrolling
+▎  Terminal
+▎  Code editor
+▎  Data grid
+▎  Chips & selects          State reference                                     static
+▎  Pickers
+▎  Chrome                   default         ▎ payments-gateway
+                            placeholder     ▎ (feat/…)
+   Screens                  hover           ▎ payments-gateway
+▎  Settings                 focused         ▎ payments-gateway
+▎  Task runner              editing         ▎ payments-gateway
+                            error           ▎ mira@example                  !
+                            error + focus   ▎ mira@example                  !
+                            disabled        ▎ jb_live_••••
+
+
+
+
+
+
+
+ Enter Edit  Tab Next                                                                                Project name saved

@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/parity-run-receipt-v1",
+  "title": "Termrock shared PTY run receipt",
+  "type": "object",
+  "required": ["schema", "run_id", "source_pair", "suite", "expected_generation", "trust", "write_policy", "checks", "artifacts"],
+  "properties": {
+    "schema": {"const": "termrock-spec/parity-run-receipt-v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "source_pair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {"$ref": "#/$defs/subject_identity"},
+      "contains": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {"role": {"const": "reference"}}
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "suite": {
+      "type": "object",
+      "required": ["revision", "digest", "compiled_digest", "case_set_digest", "profile_digest", "test_binary_digest", "dependency_lock_sha256", "platform"],
+      "properties": {
+        "revision": {"type": "string", "minLength": 1},
+        "digest": {"$ref": "#/$defs/sha256"},
+        "compiled_digest": {"$ref": "#/$defs/sha256"},
+        "case_set_digest": {"$ref": "#/$defs/sha256"},
+        "profile_digest": {"$ref": "#/$defs/sha256"},
+        "test_binary_digest": {"$ref": "#/$defs/sha256"},
+        "dependency_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "platform": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "expected_generation": {"$ref": "#/$defs/expected_generation"},
+    "trust": {
+      "type": "object",
+      "required": ["status", "record_path", "record_sha256", "receipt_sha256", "write_policy_sha256", "reason"],
+      "properties": {
+        "status": {"enum": ["accepted", "unverified"]},
+        "record_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute canonical filesystem path supplied by the caller; it locates the record but does not authorize it."
+        },
+        "record_sha256": {"$ref": "#/$defs/sha256"},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "write_policy_sha256": {"$ref": "#/$defs/sha256"},
+        "reason": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "write_policy": {"$ref": "#/$defs/write_policy"},
+    "checks": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/check"}
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/artifact"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "source_commit": {"type": "string", "pattern": "^[a-fA-F0-9]{40}$"},
+    "protected_root": {
+      "type": "object",
+      "required": ["kind", "role", "path"],
+      "properties": {
+        "kind": {"enum": ["subject_source", "subject_artifact", "oracle", "suite_checkout", "expected_generation", "trust_record", "trust_record_parent", "test_binary_parent", "subject_executable_parent", "generation_admission_evidence", "generation_admission_evidence_parent", "oracle_capture_artifacts", "tag_source_snapshot", "tag_build_artifacts", "tag_validator_helper", "tag_validator_helper_parent"]},
+        "role": {"oneOf": [{"enum": ["reference", "candidate"]}, {"type": "null"}]},
+        "path": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "actual_output_root": {
+      "type": "object",
+      "required": ["role", "path"],
+      "properties": {
+        "role": {"enum": ["reference", "candidate"]},
+        "path": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "write_policy": {
+      "type": "object",
+      "required": ["schema", "write_root", "receipt_path", "protected_roots", "actual_output_roots", "sha256"],
+      "properties": {
+        "schema": {"const": "termrock-spec/parity-write-policy-v1"},
+        "write_root": {"type": "string", "minLength": 1},
+        "receipt_path": {"type": "string", "minLength": 1},
+        "protected_roots": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/protected_root"}},
+        "actual_output_roots": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"$ref": "#/$defs/actual_output_root"},
+          "contains": {"properties": {"role": {"const": "reference"}}, "required": ["role"]},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "mise_config": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["present", "path", "sha256"],
+          "properties": {
+            "present": {"const": true},
+            "path": {"type": "string", "minLength": 1},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["present", "path", "sha256"],
+          "properties": {
+            "present": {"const": false},
+            "path": {"type": "null"},
+            "sha256": {"type": "null"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "build_facts": {
+      "type": "object",
+      "required": ["package_id", "target_name", "features", "default_features", "target_triple", "toolchain", "profile"],
+      "properties": {
+        "package_id": {"type": "string", "minLength": 1},
+        "target_name": {"type": "string", "minLength": 1},
+        "features": {"type": "array", "items": {"type": "string"}},
+        "default_features": {"type": "boolean"},
+        "target_triple": {"type": "string", "minLength": 1},
+        "toolchain": {"type": "string", "minLength": 1},
+        "profile": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "build_inputs": {
+      "type": "object",
+      "required": ["manifest_sha256", "lock_sha256", "mise_config", "cargo_version", "rustc_version", "host_triple", "executed_argv"],
+      "properties": {
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "lock_sha256": {"$ref": "#/$defs/sha256"},
+        "mise_config": {"$ref": "#/$defs/mise_config"},
+        "cargo_version": {"type": "string", "minLength": 1},
+        "rustc_version": {"type": "string", "minLength": 1},
+        "host_triple": {"type": "string", "minLength": 1},
+        "executed_argv": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "builder_receipt": {
+      "type": "object",
+      "required": ["schema", "source_commit", "package_id", "target_name", "requested_features", "default_features", "target_triple", "toolchain", "profile", "manifest_sha256", "lock_sha256", "mise_config", "cargo_version", "rustc_version", "host_triple", "executed_argv", "executable_path", "executable_sha256", "sha256"],
+      "properties": {
+        "schema": {"const": "termrock-spec/parity-subject-build-receipt-v1"},
+        "source_commit": {"$ref": "#/$defs/source_commit"},
+        "package_id": {"type": "string", "minLength": 1},
+        "target_name": {"type": "string", "minLength": 1},
+        "requested_features": {"type": "array", "items": {"type": "string"}},
+        "default_features": {"type": "boolean"},
+        "target_triple": {"type": "string", "minLength": 1},
+        "toolchain": {"type": "string", "minLength": 1},
+        "profile": {"type": "string", "minLength": 1},
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "lock_sha256": {"$ref": "#/$defs/sha256"},
+        "mise_config": {"$ref": "#/$defs/mise_config"},
+        "cargo_version": {"type": "string", "minLength": 1},
+        "rustc_version": {"type": "string", "minLength": 1},
+        "host_triple": {"type": "string", "minLength": 1},
+        "executed_argv": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "executable_path": {"type": "string", "minLength": 1},
+        "executable_sha256": {"$ref": "#/$defs/sha256"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "executable_receipt": {
+      "type": "object",
+      "required": ["path", "expected_sha256", "actual_sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "actual_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      },
+      "additionalProperties": false
+    },
+    "subject_identity": {
+      "type": "object",
+      "required": ["role", "source_commit", "build", "build_inputs", "builder_receipt", "builder_receipt_sha256", "executable", "actual_output_root"],
+      "properties": {
+        "role": {"enum": ["reference", "candidate"]},
+        "source_commit": {"$ref": "#/$defs/source_commit"},
+        "build": {"$ref": "#/$defs/build_facts"},
+        "build_inputs": {"$ref": "#/$defs/build_inputs"},
+        "builder_receipt": {"$ref": "#/$defs/builder_receipt"},
+        "builder_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "executable": {"$ref": "#/$defs/executable_receipt"},
+        "actual_output_root": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "expected_generation": {
+      "type": "object",
+      "required": ["id", "expected_sha256", "actual_sha256", "state", "admission_receipt_sha256", "root"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "expected_sha256": {"$ref": "#/$defs/sha256"},
+        "actual_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "state": {"enum": ["HASH_MATCH", "ADMITTED", "BLOCKED_MISSING_OR_INVALID"]},
+        "admission_receipt_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "root": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]}
+      },
+      "additionalProperties": false
+    },
+    "check": {
+      "type": "object",
+      "required": ["id", "subject_role", "case_id", "checkpoint_id", "dimension", "status", "reason", "evidence"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "subject_role": {"enum": ["reference", "candidate"]},
+        "case_id": {"type": "string", "minLength": 1},
+        "checkpoint_id": {"type": "string", "minLength": 1},
+        "dimension": {"enum": ["build", "launch", "first_frame", "interaction", "exit_restoration", "visual"]},
+        "status": {"enum": ["PASS", "FAIL", "ERROR", "BLOCKED", "NOT_RUN", "STALE", "NOT_APPLICABLE"]},
+        "reason": {"type": "string"},
+        "evidence": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["subject_role", "case_id", "checkpoint_id", "format", "path", "sha256", "bytes"],
+      "properties": {
+        "subject_role": {"enum": ["reference", "candidate"]},
+        "case_id": {"type": "string", "minLength": 1},
+        "checkpoint_id": {"type": "string", "minLength": 1},
+        "format": {"enum": ["frame_json", "ansi", "html", "png", "ascii", "txt", "ascii_loss_json", "png_fidelity_json", "observations_json", "manifest_json"]},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  }
+}

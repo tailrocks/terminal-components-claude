@@ -1,0 +1,50 @@
+{
+  "schema": "termrock-vis04-deferred-harness-controls-static-preflight/v1",
+  "result": "PASS_STATIC_PREFLIGHT_NO_CARGO",
+  "checked_at_utc": "2026-10-09T05:09:29.789Z",
+  "source_manifest_sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60",
+  "runplan_sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8",
+  "runner_sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd",
+  "launch_script_sha256": "15f734ab5678701f7a3dbe4fb466b9be18d4846e4f9e77b03e0539a4950df4df",
+  "test_names_sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369",
+  "copied_source_count": 14,
+  "fixture_source_sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4",
+  "harness_controls_selected": 29,
+  "harness_controls_ignored": 0,
+  "actual_run_receipt_schema": "termrock-vis04-deferred-harness-controls-run-receipt/v1",
+  "cargo_cache": {
+    "manifest_sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71",
+    "lock_sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+    "locked_packages": 32,
+    "archive_files_verified": 32,
+    "sparse_index_files_verified": 32,
+    "config_sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3",
+    "closure_sha256": "21867ab3cfc05a00da02bc9e7f1cfd1533ef0be465e0a897b39e3ff893ee26b4"
+  },
+  "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+  "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6",
+  "candidate_product_metadata": {
+    "rows": 23,
+    "case_references": 25,
+    "normal": 22,
+    "ignored_ids": [
+      "BD-21"
+    ],
+    "all_rows_status": "NOT_RUN"
+  },
+  "rust": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "cargo_nextest": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+  "nextest_run_help_options_verified": true,
+  "launch": {
+    "offline": true,
+    "inherits_parent_environment": false,
+    "timeout_ms": 600000,
+    "term_grace_ms": 5000,
+    "post_kill_grace_ms": 1000,
+    "combined_log_cap_bytes": 16777216,
+    "process_group": true
+  },
+  "cargo_or_test_execution": "NOT_RUN",
+  "repository_mutations": false,
+  "source_mutations": false
+}

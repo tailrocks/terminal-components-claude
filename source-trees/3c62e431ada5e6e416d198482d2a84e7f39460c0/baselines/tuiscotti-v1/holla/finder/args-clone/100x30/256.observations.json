@@ -1,0 +1,22 @@
+{
+  "cell_count": 3000,
+  "cols": 100,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 9336919376063643757,
+  "legacy_name": "holla/flows/args/clone/100x30/256",
+  "name": "holla/finder/args-clone/100x30/256",
+  "non_empty_cells": 464,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 30
+}

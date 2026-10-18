@@ -1,0 +1,37 @@
+{
+  "schema": "termrock-vis06-r15-r7-actual-result-review-v1",
+  "verdict": "RAW_TEST_PASS_WRAPPER_INCOMPLETE",
+  "review_scope": "read-only review of the exact R7 runner result, raw Nextest stderr, and already-bound runner/preflight/source evidence; no rerun",
+  "inputs": {
+    "runner_result_path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/runner-result.json",
+    "runner_result_sha256": "6f5b2e275dc2896c6e1511a625106612a302e391cae65bdb492bb1df8fc9d3f0",
+    "runner_sha256": "08767121038bd4ac8df7c15cebf8fbf1015199fd14ad64b279d1086906382151",
+    "preflight_sha256": "22b7f3fd51cb984d6931482408333ffaf3134462f24645b4db0832c556b8330b",
+    "raw_stderr_path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/logs/nextest.stderr.raw",
+    "raw_stderr_sha256": "6b77ee59d82c8367d5e1e6545bbdeaf7502c6e4460d314cf30852440156cf4c7"
+  },
+  "observed": {
+    "child_exit_code": 0,
+    "signal": null,
+    "timed_out": false,
+    "nextest_run_id": "3ab8b110-d6f0-47f0-9104-7ecf1b922711",
+    "selected_test": "verifies_existing_r11_tag_linker_stage_output_read_only",
+    "raw_terminal_rows": 2,
+    "terminal_rows_identical": true,
+    "test_passed": 1,
+    "test_failed": 0,
+    "filtered_out": 17,
+    "summary": "1 test run: 1 passed, 17 skipped",
+    "admission_status": "NOT_RUN",
+    "application_launch_performed": false,
+    "source_evidence_tools_unchanged": true,
+    "gate_valid": false,
+    "postflight_errors": ["exact selected Nextest terminal row missing or invalid"]
+  },
+  "assessment": {
+    "actual_test_outcome": "PASS",
+    "wrapper_outcome": "FAIL_OR_INCOMPLETE because the validator rejects the two identical terminal rows (the progress row and post-summary echo)",
+    "cache_caveat": "The receipt separately records global Cargo cache metadata changing; historical cache qualification is NOT_CLAIMED. This does not change the raw one-test PASS classification.",
+    "scope_limit": "This is one read-only verifier case only; it does not qualify a product build or establish broader release evidence."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "termrock-root-reader-v2-commit/v1",
+  "commit": "00ba7397bd935797ca3954cd270e3d649a0b6185",
+  "parent": "f6d26bf2f0e5ba5594b9c80c5e512dce4213e545",
+  "tree": "c46659dac09cf09755143a01860f6162fbb3dfb5",
+  "imported_loose_objects": [
+    "24ef584a714e06e497c9fa7f2c3bcf6617d09b4d",
+    "735d35075dd3513f8dcc33d57da5b0b6f37e84aa",
+    "c46659dac09cf09755143a01860f6162fbb3dfb5",
+    "d799bcdba1b8ddff37e0bf64f7710ce61cc4e4eb",
+    "d811bbc785083cc6396172fc088eff346b21d605"
+  ],
+  "review_sha256": "27ea5920945f274e63d1a7a83e6ebccef0ec268b63cfc54ca73a391e271108ea",
+  "time": "2026-10-10T00:56:17.530Z",
+  "canonical_mutated": false
+}

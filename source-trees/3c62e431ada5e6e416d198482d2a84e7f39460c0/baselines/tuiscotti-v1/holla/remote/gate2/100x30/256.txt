@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                  payments · service checkout  ◆ prod-eu-1 · production
+
+  Here › Review
+ ━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────
+  Review · ╭────────────────────────────────────────────────────────────────────────────╮berately
+           │                                                                            │
+  Action   │  Restart payments · gate 2 of 2                                            │are
+           │                                                                            │
+  Host     │  Action   systemctl restart payments on prod-eu-1 · production ·           │
+  In       │           in-flight requests are dropped                                   │
+  Scope    │  Host     prod-eu-1 · production                                           │
+  Changes  │  In       prod-eu-1 · host-wide                                            │
+  Risk     │  Scope    on prod-eu-1                                                     │
+  Data     │  Changes  payments restarts · brief outage on prod-eu-1                    │
+  Recoverab│  Risk     privileged                                                       │
+  Provenanc│  Data     live · 0 s ago                                                   │
+  Gate     │                                                                            │
+           │  sudo systemctl restart payments                                           │
+ ╭─ Sequenc│  systemctl status payments                                                 │ copies ─╮
+ │  01  sud│                                                                            │         │
+ │  02  sys│   Type RESTART PAYMENTS ON prod-eu-1 to confirm                            │         │
+ │         │ ▎                                                                          │         │
+ │         │                                                                            │         │
+ │         │                                                                            │         │
+ ╰─────────│                                                         Cancel   Execute   │─────────╯
+           │                                                                            │
+           ╰────────────────────────────────────────────────────────────────────────────╯ontinue…
+
+ /srv/payments   detached @ v2.14.3            review · gate 1 of 2             256 colors · 100×30
+                              ← → Choose  Enter Confirm  Esc Cancel

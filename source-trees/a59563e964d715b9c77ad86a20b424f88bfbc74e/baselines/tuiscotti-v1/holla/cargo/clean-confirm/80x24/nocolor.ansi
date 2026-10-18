@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                 engine · Rust project  mbp · local [0m
+   ╭────────────────────────────────────────────────────────────────────────╮   [0m
+  H│                                                                        │   [0m
+ ━━│  [0m[1mcargo clean · 900.0 MiB[0m                                               │── [0m
+   │                                                                        │›  [0m
+   │  Action        remove the resolved target directory                    │   [0m
+   │                ~/work/engine/target · 2 files · tool-native permanent  │   [0m
+  ›│                removal, not Trash · rebuilt by the next build          │e  [0m
+   │  Host          mbp · local                                             │   [0m
+   │  In            ~/work/engine                                           │   [0m
+   │  Scope         here                                                    │   [0m
+   │  Changes       900.0 MiB freed by cargo itself · permanent · next      │   [0m
+   │                build recompiles everything · shared target:            │   [0m
+   │                /Users/alex/work/engine-wt loses its artifacts too      │   [0m
+   │  Risk          destructive                                             │   [0m
+   │  Data          live · 2 s ago                                          │   [0m
+   │  Confirmation  one explicit confirmation · not remembered              │   [0m
+   │                                                                        │   [0m
+   │  cargo clean                                                           │   [0m
+   │                                                                        │   [0m
+   │                                                        ▎[0m[1mCancel [0m  Run   │   [0m
+   │                                                                        │   [0m
+ ~/╰────────────────────────────────────────────────────────────────────────╯24 [0m
+     [0m[1m    [0m         [0m[1m  ← →[0m Cho[0m[1mose  Enter[0m Confi[0m[1mrm  Esc C[0mancel  [0m[1m   [0m                  [0m

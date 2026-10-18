@@ -1,0 +1,313 @@
+{
+  "schema": "termrock-vis13-derived-status-attempt-records/v1",
+  "source_archive": {
+    "commit": "6b00cb1c5cd10ab2e82014c306a603e92ea5e694",
+    "tree": "f10bd01e2d1b38b8e5f50f397fa070a348149cfe",
+    "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2",
+    "manifest_sha256": "ea9aafa1a4e77c017f70ff64e6348d79a9107242922e22c29bc8109c185e1267"
+  },
+  "destination": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2",
+  "record_count": 2,
+  "files": [
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/vis01-status-r5.json",
+      "bytes": 816,
+      "sha256": "478fba68983637b9da2bff7e6a86b444848b10d2e239c41fde9d63557df984e3",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/vis01-status-r6.json",
+      "bytes": 805,
+      "sha256": "d2ef4f00f2fee636b34c01a6123a589962be9893ccc5529a68b9c67e44e7f530",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/execution-attempt-history.json",
+      "bytes": 11579,
+      "sha256": "3e79d7f131940f334052cc7c7c5922be1dfd1aba0f884203ded122b2afb2f290",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/README.md",
+      "bytes": 2321,
+      "sha256": "2ad1ae3b8abbb913654cf9beaa0613690fc3c9d5436f4ed9427ec2e4dc470e50",
+      "mode": "100644"
+    }
+  ],
+  "records": [
+    {
+      "attempt_id": "vis01-status-r5",
+      "record_path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/vis01-status-r5.json",
+      "record_sha256": "478fba68983637b9da2bff7e6a86b444848b10d2e239c41fde9d63557df984e3",
+      "record_bytes": 816,
+      "source_binding": {
+        "kind": "tool_source",
+        "commit_sha": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+        "tree_sha": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+        "source_sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212"
+      },
+      "raw_receipt": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/final-receipt.json",
+        "sha256": "08575a8a092c18c7656332c07ff8db212d8a0f45e48887b6999498598708b01e",
+        "bytes": 353948
+      },
+      "source_freeze": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-freeze.json",
+        "sha256": "b60026ab91d39961027c435a274108d3f837671b7394724c2f3f9cbac8d29fc1",
+        "bytes": 2050
+      },
+      "source_manifest": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-manifest.json",
+        "sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212",
+        "bytes": 36148
+      },
+      "source_delta_patch": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-delta.patch",
+        "sha256": "d3651b036a9201ebb4a1bc76577a771dd14c7926b44222eb7d5dbce889bc966c",
+        "bytes": 2853
+      },
+      "review": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/reviews/runner-static-review.json",
+        "sha256": "f903c8d467e0cc098d2aa5753df598847980ea9aa6f350c4db9d409cd96b091f",
+        "review_scope": "static runner/preflight only; not an actual-result review"
+      },
+      "source_evidence": [
+        {
+          "role": "run_receipt",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/final-receipt.json",
+          "sha256": "08575a8a092c18c7656332c07ff8db212d8a0f45e48887b6999498598708b01e",
+          "bytes": 353948,
+          "format": "json"
+        },
+        {
+          "role": "source_freeze",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-freeze.json",
+          "sha256": "b60026ab91d39961027c435a274108d3f837671b7394724c2f3f9cbac8d29fc1",
+          "bytes": 2050,
+          "format": "json"
+        },
+        {
+          "role": "source_manifest",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-manifest.json",
+          "sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212",
+          "bytes": 36148,
+          "format": "json"
+        },
+        {
+          "role": "source_delta_patch",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-delta.patch",
+          "sha256": "d3651b036a9201ebb4a1bc76577a771dd14c7926b44222eb7d5dbce889bc966c",
+          "bytes": 2853,
+          "format": "bytes"
+        },
+        {
+          "role": "preflight",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/preflight/runner-preflight.json",
+          "sha256": "b4c0db84c5272ba3886eb8e8cc2437fe8ef4a3b09ff21f0ee704f0104fce2ff3",
+          "bytes": 2097,
+          "format": "json"
+        },
+        {
+          "role": "runner",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/runner.cjs",
+          "sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25",
+          "bytes": 41863,
+          "format": "utf8"
+        },
+        {
+          "role": "test_inventory",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/test-names.json",
+          "sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb",
+          "bytes": 5645,
+          "format": "json"
+        },
+        {
+          "role": "nextest_stdout",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/nextest.stdout.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "format": "utf8"
+        },
+        {
+          "role": "nextest_stderr",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/nextest.stderr.log",
+          "sha256": "07409034892fcf3587974cb439bb49e4009a6950b9c22d933b6c2fe0fc2fe092",
+          "bytes": 2401,
+          "format": "utf8"
+        },
+        {
+          "role": "process_events",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/process-events.jsonl",
+          "sha256": "b207af6879c2d9f5913e21f88455961f59e8b77fd02889fdc7688b572894bb52",
+          "bytes": 1116,
+          "format": "utf8"
+        },
+        {
+          "role": "source_before",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/source-before.json",
+          "sha256": "dbf8cdb3d4fd1679d6fe5285858113ddd128812f2d6bc6b7f1240561734dab51",
+          "bytes": 32987,
+          "format": "json"
+        },
+        {
+          "role": "source_after",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/source-after.json",
+          "sha256": "dbf8cdb3d4fd1679d6fe5285858113ddd128812f2d6bc6b7f1240561734dab51",
+          "bytes": 32987,
+          "format": "json"
+        },
+        {
+          "role": "runner_static_review",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/reviews/runner-static-review.json",
+          "sha256": "f903c8d467e0cc098d2aa5753df598847980ea9aa6f350c4db9d409cd96b091f",
+          "bytes": 3441,
+          "format": "json"
+        }
+      ]
+    },
+    {
+      "attempt_id": "vis01-status-r6",
+      "record_path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/vis01-status-r6.json",
+      "record_sha256": "d2ef4f00f2fee636b34c01a6123a589962be9893ccc5529a68b9c67e44e7f530",
+      "record_bytes": 805,
+      "source_binding": {
+        "kind": "tool_source",
+        "commit_sha": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+        "tree_sha": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+        "source_sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43"
+      },
+      "raw_receipt": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/final-receipt.json",
+        "sha256": "4522aabb897d6ff5dc5d1b0f74ea065b797896f54dcff22c405ba9431357d573",
+        "bytes": 412058
+      },
+      "source_freeze": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-freeze.json",
+        "sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317",
+        "bytes": 1657
+      },
+      "source_manifest": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-manifest.json",
+        "sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43",
+        "bytes": 36292
+      },
+      "source_delta_patch": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-delta.patch",
+        "sha256": "a1c16313df97770a1bb4220302ec5daece5ee80f1633a2d495deb1c72ce65732",
+        "bytes": 923
+      },
+      "review": {
+        "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/partial-failure-diagnosis.json",
+        "sha256": "08a183c01578e173bd21f7a0b6da750b0e13941f4ff816ce3548a721aac6f026",
+        "review_scope": "diagnoses two of four R6 failures only; does not reassess the other two"
+      },
+      "source_evidence": [
+        {
+          "role": "run_receipt",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/final-receipt.json",
+          "sha256": "4522aabb897d6ff5dc5d1b0f74ea065b797896f54dcff22c405ba9431357d573",
+          "bytes": 412058,
+          "format": "json"
+        },
+        {
+          "role": "source_freeze",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-freeze.json",
+          "sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317",
+          "bytes": 1657,
+          "format": "json"
+        },
+        {
+          "role": "source_manifest",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-manifest.json",
+          "sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43",
+          "bytes": 36292,
+          "format": "json"
+        },
+        {
+          "role": "source_delta_patch",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-delta.patch",
+          "sha256": "a1c16313df97770a1bb4220302ec5daece5ee80f1633a2d495deb1c72ce65732",
+          "bytes": 923,
+          "format": "bytes"
+        },
+        {
+          "role": "preflight",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/preflight/runner-preflight.json",
+          "sha256": "3f595a520eac402a0220c514cbe0228a1745afee1bca89456d01cca884feaf23",
+          "bytes": 2097,
+          "format": "json"
+        },
+        {
+          "role": "runner",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/runner.cjs",
+          "sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25",
+          "bytes": 41863,
+          "format": "utf8"
+        },
+        {
+          "role": "test_inventory",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/test-names.json",
+          "sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb",
+          "bytes": 5645,
+          "format": "json"
+        },
+        {
+          "role": "nextest_stdout",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/nextest.stdout.jsonl",
+          "sha256": "692a96c2fa230236055811329f83bc104b5be879f464081b8830f3a18eddb3fb",
+          "bytes": 308160,
+          "format": "utf8"
+        },
+        {
+          "role": "nextest_stderr",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/nextest.stderr.log",
+          "sha256": "a360bde5cb88834b1b70ea872edd486def96e06b38782965a4b744e19ab66601",
+          "bytes": 600978,
+          "format": "utf8"
+        },
+        {
+          "role": "process_events",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/process-events.jsonl",
+          "sha256": "e284ec013b8b1d983930d1559873b4a9c2321e71ade46bd59659eb3d350a0e45",
+          "bytes": 1116,
+          "format": "utf8"
+        },
+        {
+          "role": "source_before",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/source-before.json",
+          "sha256": "a568c235d4afb379474fd5c16760dc2d66dc343131ffaf91d97c0b7ed958691d",
+          "bytes": 32987,
+          "format": "json"
+        },
+        {
+          "role": "source_after",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/source-after.json",
+          "sha256": "a568c235d4afb379474fd5c16760dc2d66dc343131ffaf91d97c0b7ed958691d",
+          "bytes": 32987,
+          "format": "json"
+        },
+        {
+          "role": "runner_static_review",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/runner-static-review.json",
+          "sha256": "0c79c631ce51be012a4e2a28157764b9737d21fac536bdc6d3fa509bb63a2abf",
+          "bytes": 5368,
+          "format": "json"
+        },
+        {
+          "role": "source_review",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/source-review.json",
+          "sha256": "f649d16f270ebe533285f195665e2d614fc920c1090de2671900497063adc591",
+          "bytes": 2249,
+          "format": "json"
+        },
+        {
+          "role": "partial_failure_diagnosis",
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/partial-failure-diagnosis.json",
+          "sha256": "08a183c01578e173bd21f7a0b6da750b0e13941f4ff816ce3548a721aac6f026",
+          "bytes": 4568,
+          "format": "json"
+        }
+      ]
+    }
+  ]
+}

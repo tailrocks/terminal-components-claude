@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                 work · project collection  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+ [0m[1m Here › Disk › Usage  [0m                                                                             [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mDisk usage · ~/work[0m                                                                               [0m
+  scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)                           [0m
+                                                                                                    [0m
+    Filesystems                                                                                     [0m
+    /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB                                 [0m
+    /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB                               [0m
+                                                                                                    [0m
+    largest first · allocated · noise folded                                                        [0m
+ [0m[1m▎▾ [0m◐[0m[1m work                                                                         31.8 GiB · 100% [0m [0m
+    ▸ ◐ backend                                                                    12.7 GiB ·  40%  [0m
+    ▸ ◐ frontend                                                                    8.8 GiB ·  28%  [0m
+    ▸   dumps                                                                       6.3 GiB ·  20%  [0m
+    ▸ ◐ android                                                                     4.0 GiB ·  13%  [0m
+    ▸   backend-wt                                                                 24.0 KiB ·   0%  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m~/work[0m                3 selected · 24.2 GiB                / ━━━━━━━━━━─ 91%     no color · 100×30 [0m
+    [0m[1m↑↓[0m Move  [0m[1m← →[0m Fold / open  [0m[1mSpace[0m Select  [0m[1ms[0m Sort  [0m[1mf[0m Fold noise  [0m[1md[0m Delete…  [0m[1mc[0m Artifact plan  …     [0m

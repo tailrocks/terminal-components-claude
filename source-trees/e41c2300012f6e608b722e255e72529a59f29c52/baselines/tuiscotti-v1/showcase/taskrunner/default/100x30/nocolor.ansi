@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Task runner            no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mTask runner[0m  Composed: tree, live progress, following log, busy states         [0m
+   Buttons                                                                                          [0m
+   Inputs              Targets                         Pipeline                        0 of 6 done  [0m
+   Text areas                                                                                       [0m
+   Forms                ▾ payments-gateway             compile       queued                         [0m
+   Lists                  ▾ build                      lint          queued                         [0m
+   Trees                      compile                  typecheck     queued                         [0m
+   Tables                     lint                     unit          queued                         [0m
+   Editable tables            typecheck                integration   queued                         [0m
+   Panels                 ▾ test                       e2e           queued                         [0m
+   Sidebars                   unit                                                                  [0m
+   Dialogs                    integration               [0m[1mRun pipeline [0m   [0m[2mCancel [0m                     [0m
+   Progress                   e2e                                                                   [0m
+   Scrolling              ▾ deploy                                                                  [0m
+   Terminal                   staging                  Log                             · following  [0m
+   Code editor                production                                                            [0m
+   Diff                 ▾ shared-libs                  Ready. Press r or Run to start the pipel…    [0m
+   Data grid                compile                                                                 [0m
+   Chips & selects          publish                                                                 [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+   Settings                                                                                         [0m
+[0m[1m▎› Task runner     [0m                                                                                 [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

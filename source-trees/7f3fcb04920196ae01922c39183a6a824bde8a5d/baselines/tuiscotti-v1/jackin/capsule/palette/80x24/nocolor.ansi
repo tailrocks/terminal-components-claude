@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help                                [0m
+          ╭──────────────────────────────────────────────────────────╮          [0m
+  1 Mix (3│ [0m[1mCommand palette[0m                                 20 of 20 │          [0m
+ ━━━━━━━━━│ ▎ Type to filter commands…                               │───────── [0m
+╭─ Claude │                                                          │─────────╮[0m
+│  +  cons│ [0m[1m▎[0m [0m[1m New tab                   [0mCtrl+B c[0m[1m                  [0m┃ │1,204.49││[0m
+│  +  let │    Split pane                Ctrl+B " %                ┃ │sion in ││[0m
+│  -  for │    Zoom / unzoom pane        Ctrl+B z                  ┃ │        ││[0m
+│  +  for │    Export file               host                      ┃ │        ││[0m
+│         │    Export file and reveal    host                      ┃ │        ┃│[0m
+│● Bash ca│    Export file and open      host                      ┃ │        ┃│[0m
+│  running│ [0m[2m   Export file under cursor  no file under cursor      [0m┃ │─────────╯[0m
+│         │ [0m[2m   Export file under curso…  no file under cursor      [0m┃ │──────────[0m
+│● Edit sr│ [0m[2m   Export file under curso…  no file under cursor      [0m│ │─────────╮[0m
+│  +  pub │ [0m[2m   Export selected file      no selection              [0m│ │2 (crate││[0m
+│         │ [0m[2m   Export selected file an…  no selection              [0m│ │] target││[0m
+│● Retries│ [0m[2m   Export selected file an…  no selection              [0m│ │dr      ││[0m
+│  One mor│ [0m[2m   Stage image from clipbo…  host                      [0m│ │0004-led││[0m
+│         │                                                          │0005-fx-││[0m
+│▶ Allow e╰──────────────────────────────────────────────────────────╯0007-ret││[0m
+│❯                                   ┃│││payments-platform ❯                  ┃│[0m
+╰─────────────────────────────────────╯│╰──────────────────────────────────────╯[0m
+ PR #482 · Settlement retry backoff                   Session ━━━━━━━━─── 76%   [0m
+     [0m[1m  Type[0m Filter  …   Attached to payments-platform · tabs and panes restored [0m

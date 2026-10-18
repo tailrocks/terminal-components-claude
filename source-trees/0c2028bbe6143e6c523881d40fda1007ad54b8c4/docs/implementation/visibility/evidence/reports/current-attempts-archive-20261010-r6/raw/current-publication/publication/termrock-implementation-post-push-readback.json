@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-10-10T02:39:31.275Z",
+  "commit": "331b6fd95835ca505a9417581aaa37df52504797",
+  "raw_commit": "tree c2a205953e94357e92b0e007318873f9fe0f32b4\nparent b311f628059f36e48a0a87ec1814f200bcf01b0c\nauthor Alexey Zhokhov <alexey@zhokhov.com> 1791599171 +0700\ncommitter Alexey Zhokhov <alexey@zhokhov.com> 1791599171 +0700\n\nfix(visibility): map listed Nextest aliases to runtime events\n\nResolve libtest-json-plus runtime binary names through the aliases recorded\nin the validated list, while checking crate and kind and retaining exact\nselected test identities.\n\nSigned-off-by: Alexey Zhokhov <alexey@zhokhov.com>\n",
+  "remote_refs": "331b6fd95835ca505a9417581aaa37df52504797\trefs/heads/termrock-implementation\n4b473a98a8641a9dae8dbf9c31c0c94b15465496\trefs/heads/visual-baseline\n1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5\trefs/tags/visual-baseline\n4a79c0a2d40fca46fc406b77157ce3b3f12ec16b\trefs/tags/visual-baseline^{}\n",
+  "root_tools": {
+    "commit": "ba4abe",
+    "push_completion": "4da6a3",
+    "previous_remote_readback": "715628"
+  },
+  "visibility_complete": false,
+  "refactor_ready": false
+}

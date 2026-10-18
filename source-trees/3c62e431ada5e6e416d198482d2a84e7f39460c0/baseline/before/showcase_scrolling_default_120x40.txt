@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Scrolling                              truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are
+▎  Overview
+                            Wrapped text   1–31 of 120      Long list      1–31 of 120      Log
+   Components
+▎  Buttons                  Junie works through a    ┃      ▎  Row 001               ┃       139.86s  info   Runnin… │
+▎  Inputs                   task the way a careful   ┃      ▎  Row 002               ┃       140.23s  info   test a… │
+▎  Text areas               engineer would: it reads ┃      ▎  Row 003               ┃       140.60s  info   test d… │
+▎  Forms                    the relevant code, forms ┃      ▎  Row 004               ┃       140.97s  error  test c… │
+▎  Lists                    a plan, makes focused    ┃      ▎  Row 005               ┃       141.34s  info   test w… │
+▎  Trees                    changes, runs the tests, ┃      ▎  Row 006               ┃       141.71s  info   Linkin… │
+▎  Tables                   and reports back with a  ┃      ▎  Row 007       flagged ┃       142.08s  info   Resolv… │
+▎  Editable tables          summary you can review   ┃      ▎  Row 008               ┃       142.45s  info   Fetchi… │
+▎  Panels                   before anything is       │      ▎  Row 009               │       142.82s  info   Compil… │
+▎  Sidebars                 merged.                  │      ▎  Row 010               │       143.19s  info   Compil… │
+▎  Dialogs                                           │      ▎  Row 011               │       143.56s  warn   unused… │
+▎  Progress                 Each step is visible.    │      ▎  Row 012               │       143.93s  info   Compil… │
+▎› Scrolling                You can pause, redirect, │      ▎  Row 013               │       144.30s  info   Runnin… │
+▎  Terminal                 or take over at any      │      ▎  Row 014       flagged │       144.67s  info   test a… │
+▎  Code editor              point, and every change  │      ▎  Row 015               │       145.04s  info   test d… │
+▎  Data grid                lands as an ordinary     │      ▎  Row 016               │       145.41s  error  test c… │
+▎  Chips & selects          diff in your working     │      ▎  Row 017               │       145.78s  info   test w… │
+▎  Pickers                  tree.                    │      ▎  Row 018               │       146.15s  info   Linkin… │
+▎  Chrome                                            │      ▎  Row 019               │       146.52s  info   Resolv… │
+                            The design system in     │      ▎  Row 020               │       146.89s  info   Fetchi… │
+   Screens                  this prototype exists so │      ▎  Row 021       flagged │       147.26s  info   Compil… │
+▎  Settings                 that the terminal        │      ▎  Row 022               │       147.63s  info   Compil… │
+▎  Task runner              version of that          │      ▎  Row 023               │       148.00s  warn   unused… │
+                            experience feels as      │      ▎  Row 024               │       148.37s  info   Compil… │
+                            deliberate as the web    │      ▎  Row 025               │       148.74s  info   Runnin… │
+                            version: quiet surfaces, │      ▎  Row 026               │       149.11s  info   test a… │
+                            one accent, clear focus, │      ▎  Row 027               │       149.48s  info   test d… │
+                            and no decoration that   │      ▎  Row 028       flagged │       149.85s  error  test c… │
+                            does not carry           │      ▎  Row 029               │       150.22s  info   test w… │
+                            information.             │      ▎  Row 030               │       150.59s  info   Linkin… ┃
+                                                     │      ▎  Row 031               │       150.96s  info   Resolv… ┃
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

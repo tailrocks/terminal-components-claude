@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      work · project c…lection  mbp · local
+
+  Here › … › Review
+ ━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────
+  Review · Clean developer artifacts under ~/work · gate 1 of 2 · rev…
+
+  Action       remove selected build artifacts and caches under
+               /Users/alex/work
+  Host         mbp · local
+  In           ~/work
+  Steps        4 included · 0 excluded · 3 branches parallel · ~9 s
+  Targets      3 candidates selected · 24.2 GB
+
+ ╭─ Sequence · 4 commands ───────────────────────────────── y copies ─╮
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                 ▎Cancel    Continue…
+
+ ~/work   review · gate 1 of 2   / ━━━━━━━━━━─ 91%     no color · 72×20
+  ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel

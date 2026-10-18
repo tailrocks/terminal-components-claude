@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Terminal            i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · … [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃  ╭─ Viewp… ─ 37 lines · following ─╮ │  Step rail   7 of 7  [0m
+   Text areas     ┃  │  [0m[2m  #9 RUN apt-get install -y b[0m│ │ │                      [0m
+   Forms          ┃  │    #10 COPY rust-toolchain.tom│ │ │   ✓ 01 Resolve wo…   [0m
+   Lists          ┃  │    #11 RUN cargo fetch --locke│ │ │   ✓ 02 Pull base …   [0m
+   Trees          ┃  │    #12 RUN cargo build --relea│ │ │   ✓ 03 Build cont…   [0m
+   Tables         ┃  │    #13 RUN apt-get install -y │ │ │     04 Mount sour…   [0m
+   Editable tabl… ┃  │    #14 COPY rust-toolchain.tom│ │ │   ✓ 05 Resolve cr…   [0m
+   Panels         ┃  │  ✓ Build container            │ │ │   ✓ 06 Start agent   [0m
+   Sidebars       ┃  │  [0m[1m▶ Resolve credentials[0m        │ │ │   ✓ 07 Ready         [0m
+   Dialogs        ┃  │    1Password  Engineering › An│ │ │                      [0m
+   Progress       ┃  │  ✓ Resolve credentials        │ │ │                      [0m
+   Scrolling      ┃  │  [0m[1m▶ Start agent[0m                ┃ │ │                      [0m
+[0m[1m▎› Terminal       [0m┃  │    claude --resume  pid 4188  ┃ │ │                      [0m
+   Code editor    ┃  │  ✓ Start agent                ┃ │ │                      [0m
+   Diff           ┃  │  [0m[1m▶ Ready[0m                      ┃ │ │                      [0m
+   Data grid      │  │  ✓ Ready                      ┃ │ │                      [0m
+   Chips & selec… │  │  [0m[1mpayments-platform ❯ [0m         ┃ │ │   [0m[1mRun [0m   Run with…   [0m
+[0m[2m   Pickers        [0m│  ╰─────────────────────────────────╯ │                      [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

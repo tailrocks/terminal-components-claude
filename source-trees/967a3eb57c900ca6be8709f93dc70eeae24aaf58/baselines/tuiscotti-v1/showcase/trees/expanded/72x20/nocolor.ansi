@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Trees       i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar ne… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃   ▎[0m[1mProject[0m                               1–4 of 16  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃     ▾ src                                        ┃  [0m
+   Lists          ┃    [0m[1m▎  ▸ api                                      [0m│  [0m
+ › Trees          ┃       ▸ db                                       │  [0m
+   Tables         ┃    [0m[2m   ▸ workers                                  [0m│  [0m
+   Editable tabl… ┃                                                     [0m
+   Panels         ┃    Selection                                        [0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        │    Nothing selected                                 [0m
+   Progress       │    Enter on a file selects it                       [0m
+   Scrolling      │                                                     [0m
+   Terminal       │    cursor  api                                      [0m
+[0m[2m   Code editor    [0m│    visible 16 rows                                  [0m
+                       open    5 folders                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1m← →[0m Fold / unfold  [0m[1mEnter[0m Open  [0m[1m*[0m Expand all  [0m[1mTab[0m Next        [0m

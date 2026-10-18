@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 5788683893302814151,
+  "legacy_name": "holla/flows/task/sources_diagnostic/120x40/16",
+  "name": "holla/task/sources-diagnostic/120x40/16",
+  "non_empty_cells": 693,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

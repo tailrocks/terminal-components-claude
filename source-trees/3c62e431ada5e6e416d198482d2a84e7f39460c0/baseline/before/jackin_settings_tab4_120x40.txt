@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                               Settings › global › Agents  inside the Construct  2 running
+
+
+   General    Mounts    Environments    Agents    Trust
+  ─────────────────────────────────────━━━━━━━━━──────────────────────────────────────────────────────────────────────
+
+    Agent runtime mode                                                       accounts are registered in Accounts (c)
+       Agent         Mode         Registry default
+  ▎›   Claude Code   sync         ★ Claude · Personal
+  ▎    Codex         api key      ★ Codex · Primary
+  ▎    Amp           sync         discovered · ~/.config/amp/secrets.json
+  ▎    Kimi Code     ignore       no credentials handed to the container
+  ▎    OpenCode      sync         ★ OpenCode · Go subscription
+  ▎    Grok Build    api key      ★ Grok · Team
+
+    sync mirrors the host login · api key and oauth token take material from the registry account
+    ignore starts the agent without credentials and removes it from session pickers
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+                         ← → Tab  1–5 Jump  Enter Body  [ ] Switch tab  Ctrl+S Save  Esc Back

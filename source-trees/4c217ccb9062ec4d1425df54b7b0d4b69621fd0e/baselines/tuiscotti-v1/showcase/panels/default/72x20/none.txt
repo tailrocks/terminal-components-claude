@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Panels      i Inspector   ? Help
+
+   Overview       ┃  Panels  Cards group; a frame only where a pane ne…
+   Buttons        ┃
+   Inputs         ┃    Titled card  surface    ╭─ Framed…   1–5 of 50 ─╮
+   Text areas     ┃                            │  Junie works        ┃ │
+   Forms          ┃    A card is a filled      │  through a task the │ │
+   Lists          ┃    surface. Its title      │  way a careful      │ │
+   Trees          ┃    sits in the top-left    │  engineer would: it │ │
+   Tables         ┃    and metadata on the     │  reads the relevant │ │
+   Editable tabl… ┃                            ╰───────────────────────╯
+▎› Panels         ┃
+   Sidebars       ┃                              Card · scr… 1–3 of 60
+   Dialogs        │    Untitled card. Same
+   Progress       │    surface, content             0.00s  info   R… ┃
+   Scrolling      │    starts at the                0.37s  info   F… │
+   Terminal       │    padding edge.                0.74s  info   C… │
+   Code editor    │
+                     Target
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

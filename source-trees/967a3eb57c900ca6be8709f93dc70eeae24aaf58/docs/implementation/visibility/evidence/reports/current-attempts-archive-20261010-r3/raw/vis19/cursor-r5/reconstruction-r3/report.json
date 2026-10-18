@@ -1,0 +1,192 @@
+{
+  "schema": "termrock.vis19.cursor-r4-r5-actual-result-reconstruction/v1",
+  "status": "RECONSTRUCTED_SELECTED_PASS_WRAPPER_INCOMPLETE",
+  "generated_at_utc": "2026-10-09T23:03:32.536Z",
+  "read_only": true,
+  "cargo_spawned_by_reconstruction": false,
+  "nextest_spawned_by_reconstruction": false,
+  "source_run": {
+    "receipt": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/attempt-01/receipt.json",
+      "sha256": "808adb20b783014dbb6b0e18f7ae8692e20d0b3ea5179ddf8f81a3c2cf589133",
+      "status": "FAIL_OR_INCOMPLETE"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/runner.cjs",
+      "bytes": 64468,
+      "sha256": "37b463ac3c0813e7d345228dcf9bbbedac146839a268fb99ef9c7d0e65f52f06"
+    },
+    "runplan": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/runplan.json",
+      "bytes": 8865,
+      "sha256": "aa6bebc15b19d84ba9cc4bb2ca0ba4d78210b817bec6bef8a4be6432fa3438c2"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/preflight.json",
+      "bytes": 270797,
+      "sha256": "44d4f7d0d4deb7cea876a61aae1a5c4e2552e3181a9c4d9fd9fabf1b8878782f"
+    },
+    "raw_stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/attempt-01/nextest.stdout.jsonl",
+      "bytes": 3444,
+      "sha256": "c4c1c034965fc1043639a11b8c2c0b3450a85df66667e09154d144306ee85e5a"
+    },
+    "raw_stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/attempt-01/nextest.stderr.raw",
+      "bytes": 5438,
+      "sha256": "967a66d84535fbef09b9457fc829a45fb3d60c38a1339e806d8942dc96fa14f8"
+    },
+    "process_events": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/attempt-01/process-events.jsonl",
+      "bytes": 1640,
+      "sha256": "0a1fc1f55800b895b541bcb668773acd75bbbeb30525c3efd2f03f8e4f78bbd6"
+    },
+    "run_id": "5a258156-c04b-4039-a241-71713eb0ef9f",
+    "root_reported_runner_exit_code": 125,
+    "root_reported_runner_exit_code_basis": "Root actual-launch observation; attempt receipt itself records wrapper status and child Cargo exit separately",
+    "cargo_exit_code": 0,
+    "cargo_signal": null,
+    "selected": {
+      "count": 9,
+      "passed": 9,
+      "failed": 0,
+      "other": 0,
+      "raw_event_record_count": 22,
+      "per_binary": [
+        {
+          "binary": "tuiscotti_runtime",
+          "kind": "lib",
+          "selected_count": 4,
+          "selected_started": 4,
+          "selected_ok": 4,
+          "selected_failed": 0,
+          "suite_started": [
+            {
+              "line": 1,
+              "test_count": 4
+            }
+          ],
+          "suite_terminal_summaries": [
+            {
+              "line": 10,
+              "event": "ok",
+              "passed": 4,
+              "failed": 0,
+              "ignored": 0,
+              "measured": 0,
+              "filtered_out_raw": "68"
+            }
+          ],
+          "suite_ignored": 0,
+          "filtered_out_raw": "68"
+        },
+        {
+          "binary": "tui_shell",
+          "kind": "test",
+          "selected_count": 5,
+          "selected_started": 5,
+          "selected_ok": 5,
+          "selected_failed": 0,
+          "suite_started": [
+            {
+              "line": 11,
+              "test_count": 5
+            }
+          ],
+          "suite_terminal_summaries": [
+            {
+              "line": 22,
+              "event": "ok",
+              "passed": 5,
+              "failed": 0,
+              "ignored": 0,
+              "measured": 0,
+              "filtered_out_raw": "20"
+            }
+          ],
+          "suite_ignored": 0,
+          "filtered_out_raw": "20"
+        }
+      ],
+      "names": [
+        {
+          "binary": "tuiscotti_runtime",
+          "name": "tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink",
+          "event": "ok"
+        },
+        {
+          "binary": "tuiscotti_runtime",
+          "name": "tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width",
+          "event": "ok"
+        },
+        {
+          "binary": "tuiscotti_runtime",
+          "name": "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes",
+          "event": "ok"
+        },
+        {
+          "binary": "tuiscotti_runtime",
+          "name": "tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position",
+          "event": "ok"
+        },
+        {
+          "binary": "tui_shell",
+          "name": "replay::hidden_cup_cursor_coordinates_match_live_and_replay",
+          "event": "ok"
+        },
+        {
+          "binary": "tui_shell",
+          "name": "replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay",
+          "event": "ok"
+        },
+        {
+          "binary": "tui_shell",
+          "name": "replay::replay_matches_live_session",
+          "event": "ok"
+        },
+        {
+          "binary": "tui_shell",
+          "name": "replay::replay_chunk_invariance_all_split_points",
+          "event": "ok"
+        },
+        {
+          "binary": "tui_shell",
+          "name": "replay::replay_recorded_pty_bytes_chunk_invariant",
+          "event": "ok"
+        }
+      ]
+    },
+    "human_summary": {
+      "lines": [
+        {
+          "raw": "     Summary [   0.178s] 9 tests run: 9 passed, 88 skipped",
+          "parsed": true,
+          "total": 9,
+          "passed": 9,
+          "failed": 0,
+          "skipped": 88
+        }
+      ],
+      "filtered_out_raw_sum": "88",
+      "skipped_matches_filtered_out_sum": true,
+      "emitted_unselected_ignored_test_rows": 0,
+      "wrapper_zero_skipped_rule_present": true,
+      "wrapper_rejection": [
+        "Nextest human summary contradicts the selected JSON test results"
+      ]
+    },
+    "integrity": {
+      "input_snapshots_stable": true,
+      "process_group_cleanup_clean": true,
+      "target_artifacts_valid": true,
+      "all_expected_file_pins_match": true,
+      "errors": []
+    }
+  },
+  "limits": [
+    "The original runner remains FAIL_OR_INCOMPLETE; this reconstruction does not rewrite its status or exit.",
+    "The 9 selected Rust tests passed in this invocation according to raw libtest-json-plus events, suite summaries, and human summary.",
+    "The human summary reports 88 skipped while JSON reports filtered_out 68+20 and suite ignored 0+0; the numeric totals coincide, but ignored test rows were not emitted.",
+    "This result is only evidence for the exact pinned VIS-19 cursor test packet, not broader product or corpus qualification."
+  ]
+}

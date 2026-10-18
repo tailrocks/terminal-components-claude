@@ -1,0 +1,15 @@
+# Independent Holla domain migration review
+
+ACCEPT committed source scope at1781b54fbe5d50de23c0f6f06667d659b2d942fe, including e39c16e pure port and2d7a236 bounded seek. Review used a clean detached worktree; owner uncommitted accounting/risk-memory work was not read. No app/runtime/source edits made. This accepts domain API wiring, not app visual parity or completion of excluded obligations H-S14/15 and H-S12/18.
+
+Plan declaration validation: unique nonempty IDs, earlier-only dependency indices, legal pending/excluded/policy states, required-step exclusion refusal. Immutable plan/step access removes postvalidation graph corruption. Linear iterative run/exclusion propagation cannot recurse through cycles. Failed/excluded/policy-skipped dependencies cannot authorize their dependents; independent branches continue.
+
+Approval boundary: private ReviewedPlan constructor captures host name/kind/environment, cwd, effect-target facts and simulation revision. Exact phrase errors retain no submitted input. Exclusive borrowed Approval prevents review mutation while approved; execute consumes the permit, revalidates immediately before any world effect, checks revision overflow first, runs once and privately applies effects. Partial simulated failures remain inspectable and consume review; replay refuses. Unrelated time/UI changes deliberately do not stale the target. This is a trusted in-memory fixture model, not an OS process/security sandbox. Plan command/output strings are display data. No process/filesystem/network/unsafe capability exists in reviewed domain/sim source; no broad security-gate exception is justified by this acceptance.
+
+Independent external harness at Rust1.88 passes39tests:35 committed tests plus4 reviewer suites. Added coverage rejects removal of every target family after approval, host/name/kind/cwd drift after approval, terminal preexecuted initial states, exclusion of policy steps, and submitted-phrase echo in errors. Existing tests cover malformed DAGs, partial effects, independent branches, cancellation, replay and revision exhaustion. Full log tests.log.
+
+Four independently compiled negative consumers fail for intended reasons: private review field E0616; private effect function E0603; reused approval E0382; mutable review access while approved E0499. Exact probes/logs and compile-fail.json retained. No dynamic token serialization or caller-created approval path exists.
+
+Disjoint seek/source-map review verified42hashes over21mapped files, preserving24original tests. Rebuilt/reproduced264projections and expanded2112projections across nonzero clocks/pause states—all match pinned794b095. Seek is bounded by discovery count, maximumframe test passes. See seek-review.md for exact limits and evidence.
+
+No blocking findings within committed reviewed scope. Future accounting/risk-memory revisions need their own review; this report does not approve those uncommitted changes. Domain purity and compile proofs do not establish final production UI wiring, screen parity, or interaction completeness.

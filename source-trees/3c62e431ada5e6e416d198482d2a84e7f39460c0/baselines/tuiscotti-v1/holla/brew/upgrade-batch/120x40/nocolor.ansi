@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+  Here   [0m[1m brew update [0m✓[0m[1m ×  [0m                                                                                             [0m
+ ────────━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mbrew update[0m · succeeded · 0 s · exit 0                                                                           mbp  [0m
+  $ brew update · started by Upgrade Homebrew packages · batch upgrade.brew-packages                                    [0m
+                                                                                                                        [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ brew update                                                                                                     │ [0m
+ │  ==> Updating Homebrew...                                                                                          │ [0m
+ │  ==> Outdated Formulae · 2                                                                                         │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m~[0m                                          succeeded · 0 s                                           no color · 120×40 [0m
+        [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  [0m[1mr[0m Restart  …   [0m[1m![0m Upgrade Homebrew packages · 4 ok · 1 failed · 0 cancelled [0m

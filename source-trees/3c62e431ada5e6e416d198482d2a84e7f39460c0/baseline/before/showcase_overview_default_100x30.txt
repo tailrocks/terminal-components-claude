@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Foundations / Overview          truecolor · 100×30   i Inspector   ? Help
+
+▎› Overview          Overview  Tokens and principles behind every component
+▎  Buttons
+▎  Inputs              Tokens                                          Principles
+▎  Text areas
+▎  Forms                   ▏ canvas                      #000000       One hue
+▎  Lists                   ▏ surface                     #111111       Green means focus, primary
+▎  Trees                   ▏ surface.elevated            #18181b       action or selection.
+▎  Tables                  ▏ surface.overlay             #27272a       Everything else is
+▎  Editable tables         ▏ field                       #1e1e22       achromatic.
+▎  Panels                  ▏ popover                     #3f3f46
+▎  Sidebars                ▏ border.subtle             white 15%       Alpha ladder
+▎  Dialogs                 ▏ border.strong             white 30%       Text and borders step down
+▎  Progress                ▏ text.primary                #ffffff       in white opacity, never in
+▎  Scrolling               ▏ text.secondary            white 70%       arbitrary grays.
+▎  Terminal                ▏ text.muted                white 50%
+▎  Code editor             ▏ text.faint                white 30%
+▎  Data grid               ▏ accent                      #48e054
+▎  Chips & selects         ▏ accent.hover                #3ab343       State language
+▎  Pickers                 ▏ accent.pressed              #2b8632
+▎  Chrome                  ▏ accent.bg                 green 20%       ▎  focus
+▎  Settings                ▏ error                       #e44545       ░  hover lifts the surface
+▎  Task runner             ▏ warning                     #f59e09       ›  current / chosen
+                           ▏ info                        #8787ff       ✓  checked
+                                                                       !  error
+                                                                       ▁  editing: cursor + underlin
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

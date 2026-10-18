@@ -1,0 +1,133 @@
+{
+  "schema": "termrock.vis19.cursor-nextest-plan/v1",
+  "state": "PREPARED_FOR_ROOT_REVIEW_ONLY_NOT_AUTHORIZED",
+  "owner": "Root only",
+  "packet_root": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010",
+  "runner_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/runner.cjs",
+  "source": {
+    "root": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3",
+    "manifest_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r2-20261010/r4-manifest-selection-correction.json",
+    "manifest_sha256": "4b95beab6a005c7271b067a7b193e3ac5165fcf1b2ec4a9c29f30ff6663ddf9b",
+    "patch_path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3/r4-full-source.patch",
+    "patch_sha256": "d9e87c6eb07c9bdd3522d0b2ee4b3f20496e3b672105edca746a1e6e22fee610",
+    "identity_manifest_path": "/private/tmp/termrock-vis19-tuiscotti-a47-source-r1-identity.json",
+    "identity_manifest_sha256": "b73438f18e20bead834a05e5fef0717f1e811bc553c0b8c00bac0e16a0ad8897",
+    "base_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+    "base_tree": "618b561d867f1bda0c1678d18a8f531a06c6469d",
+    "source_review_path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3-independent-review-luna-20261010.json",
+    "source_review_sha256": "f94c437b0bbd6e8612f407485ef7bc5303d10eda46ea023e4a402057a9842f8e",
+    "execution_binding_addendum_path": "/private/tmp/termrock-vis19-cursor-increment1-r3/execution-binding-addendum-r1.json",
+    "execution_binding_addendum_sha256": "c7c824014f1020e71c6b739a67326afbee8bbd8d2dbfe490ddd72ca74912f72e",
+    "metadata_review_path": "/private/tmp/termrock-vis19-cursor-increment1-r3-metadata-review-addendum-luna-20261010.json",
+    "metadata_review_sha256": "f80ceeee5db0b1c65914cc16123af67bbaa40d14ab39f4576110b57e2dc1c7cf",
+    "revision": "R4",
+    "prior_root": "/private/tmp/termrock-vis19-tuiscotti-cursor-r3",
+    "prior_manifest_path": "/private/tmp/termrock-vis19-cursor-increment1-r3/manifest.json",
+    "prior_manifest_sha256": "df3648c0fcade4d48b135f019b8d5fc5f8ba93a35fe768727097b1fd4d96a682",
+    "prior_patch_path": "/private/tmp/termrock-vis19-cursor-increment1-r3/source.patch",
+    "prior_patch_sha256": "a16c2b9c7795110ed152f8cc991860b2f298c4b72acc2bea24a1bf2ac4c0efa2",
+    "prior_source_review_path": "/private/tmp/termrock-vis19-cursor-increment1-r3-independent-review-current-branch-luna-20261010.json",
+    "prior_source_review_sha256": "9d6c8631081f0a5c0ccf49c16d5ae75dc90eda5acb03ceb3fc6283a346388ed6",
+    "prior_result_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r3-nine-tests-20261010/attempt-03/receipt.json",
+    "prior_result_sha256": "e25c1158fbf27fe77d613cdc3b99661289a94a6fca968f02d69f982ebbf5fce2",
+    "prior_actual_review_path": "/private/tmp/termrock-vis19-cursor-r3-nine-tests-actual-result-review-luna-20261010.json",
+    "prior_actual_review_sha256": "097700f900432ebe50d1b1ffe0b33034cb0955638783e059e69cae9b25738b75",
+    "reviewed_manifest_path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3/manifest.json",
+    "reviewed_manifest_sha256": "9964744c14822af5e8570823e53fd8bdafdf438a05ce61d001cb0b17947b57ae",
+    "selection_correction_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r2-20261010/selection-metadata-correction-addendum.json",
+    "selection_correction_sha256": "fb00f6402e5a10910e76f722632e3f55fd81a05fbfd931fc3ff539306369a6d0",
+    "selection_correction_review_path": "/private/tmp/termrock-vis19-r4-selection-metadata-correction-review-luna-20261010.json",
+    "selection_correction_review_sha256": "05d176c1e9131ba77006f3b4c1740cd8c32019ebb1afaed4ee8b5e3d9fcb07ca"
+  },
+  "selection": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r3/selection.json",
+    "sha256": "e4eed31d6afd7771a2b6c9c8228b3b67aa7ebe880d6c10536c5179ee45709034"
+  },
+  "package": {
+    "name": "tuiscotti-runtime",
+    "manifest_path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/crates/tuiscotti-runtime/Cargo.toml",
+    "manifest_sha256": "ef915cbd179544433a0bf5798802d22fdc4d54fa06adc8fc30c4ae8b077be4c9",
+    "lock_path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/Cargo.lock",
+    "lock_sha256": "3f89805ce891dfd9ad34b09618492116c99cb7242cf31eceaa340047bde0550f",
+    "features": [
+      "pty"
+    ]
+  },
+  "metadata": {
+    "result_path": "/private/tmp/termrock-vis19-root-metadata-r2-20261010/result.json",
+    "result_sha256": "62c394d123f9a219fba459f9e8672861574077ef2f432259904403590bae1fee",
+    "stdout_path": "/private/tmp/termrock-vis19-root-metadata-r2-20261010/stdout.json",
+    "stdout_sha256": "51327ac1d126e2134d7075f806772763198eaa7fc5283070442e4809856ec5a0",
+    "stderr_path": "/private/tmp/termrock-vis19-root-metadata-r2-20261010/stderr.raw",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "package_manifest_path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r2/crates/tuiscotti-runtime/Cargo.toml",
+    "package_lock_path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r2/Cargo.lock"
+  },
+  "cache_closure_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/cache-closure-r4-current.json",
+  "cargo_home": "/private/tmp/termrock-vis19-cursor-increment1-r2/offline-cache-20261010-r1/cargo-home",
+  "rustup_home": "/Users/donbeave/.rustup",
+  "rustup_toolchain": "1.98.1",
+  "nextest_config": {
+    "path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/.config/nextest.toml",
+    "sha256": "72f111cdc31263f40a31723bcf57d4ef77afc917c0e7c4e08762620c91f3b9ee"
+  },
+  "tools": {
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0"
+    },
+    "node": {
+      "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+      "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+      "version": "v24.20.0"
+    }
+  },
+  "targets": [
+    {
+      "cargo_flag": "--lib",
+      "cargo_target": "tuiscotti_runtime",
+      "cargo_kind": "lib",
+      "event_binary": "tuiscotti_runtime",
+      "event_kind": "lib",
+      "source_path": "crates/tuiscotti-runtime/src/tui/mod.rs",
+      "test_names": [
+        "tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink",
+        "tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width",
+        "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes",
+        "tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position"
+      ]
+    },
+    {
+      "cargo_flag": "--test",
+      "cargo_target": "tui_shell",
+      "cargo_kind": "test",
+      "event_binary": "tui_shell",
+      "event_kind": "test",
+      "source_path": "crates/tuiscotti-runtime/tests/tui_shell/replay.rs",
+      "test_names": [
+        "replay::hidden_cup_cursor_coordinates_match_live_and_replay",
+        "replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay",
+        "replay::replay_matches_live_session",
+        "replay::replay_chunk_invariance_all_split_points",
+        "replay::replay_recorded_pty_bytes_chunk_invariant"
+      ]
+    }
+  ],
+  "filter_expression": "test(=tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink) | test(=tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width) | test(=tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes) | test(=tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position) | test(=replay::hidden_cup_cursor_coordinates_match_live_and_replay) | test(=replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay) | test(=replay::replay_matches_live_session) | test(=replay::replay_chunk_invariance_all_split_points) | test(=replay::replay_recorded_pty_bytes_chunk_invariant)",
+  "output_root": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r5-20261010/attempt-01",
+  "bounds": {
+    "timeout_ms": 900000
+  }
+}

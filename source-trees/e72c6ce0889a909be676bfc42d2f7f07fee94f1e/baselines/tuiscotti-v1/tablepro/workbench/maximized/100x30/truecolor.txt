@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         truecolor · 100×30  ? help
+
+  ≡ Query 1 ×                                                                                   +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────  ─╮
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                         No results yet                                         │
+ │                                                                                                │
+ │                   Ctrl+R runs the statement under the cursor · Alt+R runs all                  │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑ ↓ Move  Enter Open  → Expand  / Filter  Ctrl+O Quick open  Tab Next      Connected to Production

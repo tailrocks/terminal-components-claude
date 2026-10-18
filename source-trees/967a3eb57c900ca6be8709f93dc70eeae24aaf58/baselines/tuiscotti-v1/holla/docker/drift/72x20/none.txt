@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development
+
+  Here › Clean Docker completely › Review
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────
+  Review · Clean Docker completely · gate 1 of 2 · review the resolve…
+
+  Action             remove all user-removable Docker state on devbox
+  Host               devbox · development · over SSH
+  In                 /work/scratch
+  Steps              7 included · 0 excluded · 4 branches parallel · …
+  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7
+                     volumes 4.1 GB · build cache 6.1 GB
+
+ ╭─ Sequence · 8 commands ───────────────────────────────── y copies ─╮
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                 ▎Cancel    Continue…
+
+ /work/scratch          review · gate 1 of 2           no color · 72×20
+ …   ! Plan changed · a new container (tmp-shell-3) appeared · confirm…

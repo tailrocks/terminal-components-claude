@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                    android · Gradle build  mbp · local
+
+  Here › Cleanup › gradle.clean-all
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────
+  Cleanup · Gradle outputs
+  1 category · 49.0 MiB · 4 selected (49.0 MiB) · Trash
+
+ ▎[✓] ▾ Gradle outputs                      49.0 MiB  review first · 4 candidates · ≥ 7 d
+    [✓] ~/work/android/.gradle                     9.0 MiB  3 d
+    [✓] ~/work/android/a/b/c/d/e/build             8.0 KiB  30 d
+    [✓] ~/work/android/app/build                  12.0 KiB  30 d
+    [✓] ~/work/android/build                      40.0 MiB  3 d
+
+    mode Trash (recoverable until emptied) · live · m toggles the mode · n toggles dry run
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/android                      4 selected · 49.0 MiB                       16 colors · 100×30
+  ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  …

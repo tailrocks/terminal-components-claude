@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local
+
+  Here › Files › site
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────
+  Files · ~/work/site
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first
+
+  ▸ assets                                      –  2026-09-06 08:41  directo… ┃
+  ▸ private                                     –  2026-09-03 08:41  permiss… ┃
+    bad.txt                                   3 B  2026-09-07 08:41  file     ┃
+ ▎  big.log                              19.4 KiB  2026-09-08 08:41  file     ┃
+  → broken                                    0 B  2026-09-09 08:41  broken … ┃
+    café.txt                                 11 B  2026-09-09 08:41  file     ┃
+    café.txt                                 12 B  2026-09-09 08:41  file     ┃
+    control.txt                              13 B  2026-09-07 08:41  file     ┃
+  → current                                   0 B  2026-09-09 08:41  symlink  ┃
+    empty.txt                                 0 B  2026-09-09 08:41  file     ┃
+    index.html                               34 B  2026-09-09 08:41  file     ┃
+    logo.png                                  6 B  2026-09-07 08:41  file     ┃
+    long.txt                              4.9 KiB  2026-09-08 08:41  file     │
+    package.json                             85 B  2026-09-08 08:41  file     │
+
+ ~/work/site             ~/work/site · hidden off             truecolor · 80×24
+    ↑↓ Move  Enter Open / preview  ← Parent  g Go to path  Ctrl+H Hidden  …

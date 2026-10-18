@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m        ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────── 14 cols ─╮ [0m
+ │  [0m[1m Data  [0m  Structure                                                        │ [0m
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │ [0m
+ │                                                                            │ [0m
+ │   match all ▾   status = 'pending' ×    + Add filter                       │ [0m
+ │                                                                            │ [0m
+ │   ‹4    status ∇     total_amount  currency    shipping_address       7›   │ [0m
+ │  [0m[1m▎  [0m  1[0m[1m pending           1617.64  USD         {"line1": "87 Nevsky …    [0m┃ │ [0m
+ │       2 pending           2236.65  EUR         {"line1": "78 Via Rom…    │ │ [0m
+ │       3 pending           2376.57  EUR         {"line1": "152 Market…    │ │ [0m
+ │       4 pending            550.69  USD         {"line1": "196 Market…    │ │ [0m
+ │       5 pending            290.26  EUR         {"line1": "164 Nevsky…    │ │ [0m
+ │       6 pending           2326.75  USD         {"line1": "139 Kungsg…    │ │ [0m
+ │       7 pending           2392.98  USD         {"line1": "125 Rue de…    │ │ [0m
+ │       8 pending            497.22  EUR         {"line1": "115 Kungsg…    │ │ [0m
+ │  [0m[2m     9 pending           1326.92  USD         {"line1": "10 Via Rom…    [0m│ │ [0m
+ │   filtered (1) · rows 1–9 of 335 loaded · ~201,559 total · cols 5–7 of 14  │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  [0m[1ms[0m Sort  …         1 filter applied [0m

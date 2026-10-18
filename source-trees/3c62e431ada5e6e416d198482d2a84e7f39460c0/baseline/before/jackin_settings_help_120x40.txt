@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Settings › global › Trust  • 1 change  inside the Construct  2 running
+  ╭─ Keyboard shortcuts ───────────────────────────────────────────────────────────────── Settings › global › Trust ─╮
+  │  Tabs                                Mounts · Environments · Auth        Trust                                   │
+  │  ←→ h l 1–5   switch tab             Enter e      edit…                  Space        trust / untrust a ro…      │
+  │  [ ]          switch from anywhere   s            scope global ⇄ role    o            open the source            │
+  │  Enter ↓      into the tab body      r i          read-only · isolation                                          │
+  │  Esc          back to tabs · leave   m p          show · 1Password                                               │
+  │                                      Space        cycle auth mode                                                │
+  │  Save                                d            remove · reset                                                 │
+  │  Ctrl+S       preview then save      u            undo row                                                       │
+  │  Esc          leave · asks when di…  c            manage accounts (Aut…                                          │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │                                                                                                                  │
+  │  ↑↓ Scroll · Esc Close                                                                                           │
+  ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                 ↑↓ Scroll  Esc Close                 Save aborted · settings unchanged

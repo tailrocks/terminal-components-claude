@@ -1,0 +1,22 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 8553572506604495422,
+  "legacy_name": "showcase/fade/sidebars/wheel/72x20/16",
+  "name": "showcase/sidebars/fade-wheel/72x20/16",
+  "non_empty_cells": 471,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

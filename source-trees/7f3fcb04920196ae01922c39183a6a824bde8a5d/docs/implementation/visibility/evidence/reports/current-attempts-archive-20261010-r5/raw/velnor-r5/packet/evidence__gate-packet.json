@@ -1,0 +1,1805 @@
+{
+  "schema": "termrock.vis11.prerelease-v2-rust-nextest-affected-gate/v1",
+  "status": "FROZEN_PREPARED_NOT_RUN",
+  "qualification": "NOT_QUALIFIED",
+  "execution": "NOT_RUN",
+  "scope": "Root-only exact 48-case Nextest gate on the admitted R8 Git-less source snapshot. This is a focused test gate, not full-workspace, Velnor tool, release, tag, or Termrock product qualification.",
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+    "identity": "Git-less admitted R8 external source snapshot. The R8 fixture-admission record binds one approved source-tag fixture update against its R7 base. The complete current input is the pinned R8 tree; no Git identity is asserted.",
+    "post_metadata_inventory": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/evidence/source-file-inventory-r1.json",
+      "sha256": "2f9d0616c41c06e2cd7986551aa934dec26c6e3a0d559f12decffac735a2d62b",
+      "bytes": 642941,
+      "mode": "644"
+    },
+    "full_tree": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/evidence/full-source-tree-r1.json",
+      "sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+      "bytes": 755222,
+      "mode": "644"
+    },
+    "test_source_map": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/test-source-map.json",
+      "sha256": "48d45264e38ac2f82192e46bf1c24a5e8472866277d906b2cae12a018a18ef55",
+      "bytes": 23209,
+      "mode": "444"
+    },
+    "entry_count": 3457,
+    "regular_file_count": 2608,
+    "directory_count": 842,
+    "symlink_count": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "lock_bytes": 127941,
+    "relevant_files": [
+      {
+        "path": ".config/nextest.toml",
+        "sha256": "913174ab853560d146da13a8e5628c9ff81476029a71686e9b9f9b97bc9d483d",
+        "bytes": 424,
+        "mode": "644"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+        "bytes": 127941,
+        "mode": "644"
+      },
+      {
+        "path": "Cargo.toml",
+        "sha256": "1e906299199c189bfe3bb8ea86895ae29c14c00375c1339bcac404cdb4b29ac8",
+        "bytes": 6594,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-config/Cargo.toml",
+        "sha256": "cca31dfec894665761a21a499268866095595499075865371bfc175c16751f70",
+        "bytes": 895,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-config/tests/impl_schema2_routing.rs",
+        "sha256": "7797d2ec576f39ba47e8ca1e44edae51fc5fcbe21bb126489b763e54f2a31a1a",
+        "bytes": 3716,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-release/Cargo.toml",
+        "sha256": "4bfe0ed5d52c4f910e82fe95bf326f9711f4a6befc057a826b2f58a09a02cf0e",
+        "bytes": 618,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-release/tests/impl_contract/manifest.rs",
+        "sha256": "993d8765467c8f395a9b8e77a77735d0c2a1223ce7ad50d9987633d89fe90951",
+        "bytes": 3483,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-release/tests/impl_contract_targets/prerelease.rs",
+        "sha256": "861bae7ffa598fa0f85ab301c7f199caf946acb7a00d3b53a121f824d0d807a4",
+        "bytes": 1280,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-workflow/Cargo.toml",
+        "sha256": "9eadc2f4c3eb4de21b6e9cfff5660502486baf6c9aab7e59a376154acd218e84",
+        "bytes": 793,
+        "mode": "644"
+      },
+      {
+        "path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "bytes": 5294,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-orchestrator-generation/Cargo.toml",
+        "sha256": "ecc20d4ad915916a300bef10d78e5b7eddf53c846cbc0190ff7585289d5a95d1",
+        "bytes": 3086,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-orchestrator-generation/src/ci_observer.rs",
+        "sha256": "2ce9c38739940bb4780d5f0b733158d5ebbb0cbbe4e2ceebb53e545fe89f15f2",
+        "bytes": 8783,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-orchestrator-generation/src/routing/generator_release_pins.rs",
+        "sha256": "b8b0894aaacc0a032a8a88b7573ca6fa856505d86c78ec42c92b0bc8013aa9e0",
+        "bytes": 6911,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "bytes": 18049,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "bytes": 5695,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+        "sha256": "d6f347f6e3ac3b2e160d020dca1c87fe60db23852dfd311ca6e5f8e423610e77",
+        "bytes": 15781,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-generator/Cargo.toml",
+        "sha256": "ff55afdcd2df97d26b5abee1c67f24d71c5b4f6d3e6ed443d0652c1e88b125e2",
+        "bytes": 815,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-generator/src/generator_release/manifest/tests/bundle.rs",
+        "sha256": "37b0bdc43acaa6b5681038f27c77309c43d71c94e77caa4a4e536d34b0a35dcb",
+        "bytes": 2043,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+        "sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+        "bytes": 8441,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests/branch_rejections.rs",
+        "sha256": "e9474b3b6394f506d27ae93a38d57465d56b120e5ccba12d593c9d2687167bde",
+        "bytes": 4939,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-generator/src/generator_release/tests.rs",
+        "sha256": "b53da8dce75f81a4e0f884e9d73370b93264eab72022c8fec9400dd4da7cadae",
+        "bytes": 7971,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+        "sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+        "bytes": 3264,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-renderer/Cargo.toml",
+        "sha256": "7ffb9190fd4427b8154683c90819b265a9e93cb1ce1e576be7d3c07b3d528a03",
+        "bytes": 1314,
+        "mode": "644"
+      },
+      {
+        "path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+        "sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+        "bytes": 4659,
+        "mode": "644"
+      }
+    ],
+    "fixture_admission": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/review/fixture-admission-r1.json",
+      "sha256": "2ac63643ad9f7a5a5b948f2bfc2081967138bbbe5039d8f8a37afab95a70ad12",
+      "bytes": 4874,
+      "mode": "644"
+    },
+    "test_source_map_rebinding": {
+      "base_map": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r1-20261010/evidence/test-source-map.json",
+        "sha256": "a6b141454947ee8cc7cbd97359783ff94ee625731577e7144360fc0d856dae76",
+        "bytes": 23187,
+        "mode": "600"
+      },
+      "derived_map": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/test-source-map.json",
+        "sha256": "48d45264e38ac2f82192e46bf1c24a5e8472866277d906b2cae12a018a18ef55",
+        "bytes": 23209,
+        "mode": "444"
+      },
+      "refreshed_source_hash_rows": 16,
+      "refreshed_source_files": [
+        "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+        "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs"
+      ],
+      "updated_line_numbers": [
+        {
+          "id": "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+          "old": 143,
+          "new": 144
+        },
+        {
+          "id": "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+          "old": 187,
+          "new": 189
+        },
+        {
+          "id": "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+          "old": 258,
+          "new": 260
+        },
+        {
+          "id": "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+          "old": 303,
+          "new": 305
+        },
+        {
+          "id": "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+          "old": 358,
+          "new": 360
+        },
+        {
+          "id": "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+          "old": 383,
+          "new": 385
+        }
+      ]
+    },
+    "root_mode": "755"
+  },
+  "impact_plan": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/impact-plan.json",
+    "sha256": "903a2f7649ed22422c16bf0ecf22fcf5c51236da16961ff67060251696b31739",
+    "bytes": 17407,
+    "mode": "444"
+  },
+  "metadata_actual_review": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-metadata-actual-review-luna-20261009.json",
+    "sha256": "67eccf20e6001f314c11df538b2ccd9c163165c1d668bce05c46093e897aa8aa"
+  },
+  "metadata_actual_result": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-metadata-runner-luna-r1-20261009/run-root/execution/result.json",
+    "sha256": "66cd71ea0d38ac55b38dd4e2dccc7e4f891dc139b6e305b5c9f80c2e11f5f786"
+  },
+  "previous_gate": {
+    "packet": {
+      "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/evidence/gate-packet.json",
+      "sha256": "87039bca0c9baa1f1a5f1a88e09b970df1965e2d154582116bae8374101f2b61"
+    },
+    "receipt": {
+      "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r7-20261009/run-root/execution/receipt.json",
+      "sha256": "48c9fa7b86f94dada95400029170895be0bae506f82863322215680fdd1dd14d",
+      "status": "failed_or_incomplete_preserved",
+      "qualification": "NOT_QUALIFIED"
+    },
+    "interpretation": "The 35-case attempt remains failed/incomplete and is not carried into this 48-case execution. Prior 10 test PASS rows are historical only; all current selected cases require exact raw PASS records."
+  },
+  "test_selection": {
+    "selected_unique_tests": 48,
+    "expected_counts": [
+      2,
+      2,
+      23,
+      11,
+      6,
+      4
+    ],
+    "groups": [
+      {
+        "index": 1,
+        "label": "contract_config_rc_and_branch_guards",
+        "package": "velnor-actions-contract-config",
+        "test_target": "velnor_contract_config",
+        "expected_count": 2,
+        "test_ids": [
+          "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+          "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component"
+        ],
+        "tests": [
+          {
+            "id": "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+            "package": "velnor-actions-contract-config",
+            "group_index": 1,
+            "source_path": "crates/core/velnor-actions-contract-config/tests/impl_schema2_routing.rs",
+            "function": "generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+            "line": 41,
+            "source_sha256": "7797d2ec576f39ba47e8ca1e44edae51fc5fcbe21bb126489b763e54f2a31a1a",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component",
+            "package": "velnor-actions-contract-config",
+            "group_index": 1,
+            "source_path": "crates/core/velnor-actions-contract-config/tests/impl_schema2_routing.rs",
+            "function": "generator_release_source_branch_is_a_safe_ref_component",
+            "line": 86,
+            "source_sha256": "7797d2ec576f39ba47e8ca1e44edae51fc5fcbe21bb126489b763e54f2a31a1a",
+            "expected_counted_result": "one_exact_pass_row"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "label": "contract_release_rc_manifest_policy",
+        "package": "velnor-actions-contract-release",
+        "test_target": "velnor_contract_release",
+        "expected_count": 2,
+        "test_ids": [
+          "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+          "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only"
+        ],
+        "tests": [
+          {
+            "id": "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+            "package": "velnor-actions-contract-release",
+            "group_index": 2,
+            "source_path": "crates/core/velnor-actions-contract-release/tests/impl_contract/manifest.rs",
+            "function": "manifest_schemas_validate_and_lookup_targets",
+            "line": 9,
+            "source_sha256": "993d8765467c8f395a9b8e77a77735d0c2a1223ce7ad50d9987633d89fe90951",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only",
+            "package": "velnor-actions-contract-release",
+            "group_index": 2,
+            "source_path": "crates/core/velnor-actions-contract-release/tests/impl_contract_targets/prerelease.rs",
+            "function": "release_manifest_accepts_canonical_prerelease_identity_only",
+            "line": 5,
+            "source_sha256": "861bae7ffa598fa0f85ab301c7f199caf946acb7a00d3b53a121f824d0d807a4",
+            "expected_counted_result": "one_exact_pass_row"
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "label": "orchestrator_generation_affected_and_source_cases",
+        "package": "velnor-actions-orchestrator-generation",
+        "test_target": "velnor_orchestrator_generation plus library unit tests",
+        "expected_count": 23,
+        "test_ids": [
+          "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+          "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins",
+          "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+          "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+          "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+          "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+          "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+          "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+          "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+          "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+          "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+          "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+          "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+          "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+          "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+          "impl_prepare::prepare_accepts_consumer_repo_with_default_branch",
+          "impl_prepare::prepare_rejects_missing_default_branch_without_git",
+          "impl_prepare::prepare_rejects_non_directory",
+          "impl_prepare::prepare_reports_default_runner_label",
+          "impl_prepare::freshness_disabled_for_consumer",
+          "impl_prepare::release_disabled_without_release_config",
+          "impl_prepare::finalized_jobs_lists_plan_and_required",
+          "impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest"
+        ],
+        "tests": [
+          {
+            "id": "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/src/ci_observer.rs",
+            "function": "input_snapshot_rejects_a_precommit_edit",
+            "line": 202,
+            "source_sha256": "2ce9c38739940bb4780d5f0b733158d5ebbb0cbbe4e2ceebb53e545fe89f15f2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/src/routing/generator_release_pins.rs",
+            "function": "source_selection_resolves_config_tag_and_branch_to_typed_pins",
+            "line": 177,
+            "source_sha256": "b8b0894aaacc0a032a8a88b7573ca6fa856505d86c78ec42c92b0bc8013aa9e0",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+            "function": "schema2_workflows_match_expected_bytes",
+            "line": 142,
+            "source_sha256": "d6f347f6e3ac3b2e160d020dca1c87fe60db23852dfd311ca6e5f8e423610e77",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+            "function": "committed_release_files_match_schema2_bytes",
+            "line": 165,
+            "source_sha256": "d6f347f6e3ac3b2e160d020dca1c87fe60db23852dfd311ca6e5f8e423610e77",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "opt_in_is_private_and_main_ci_stays_byte_identical",
+            "line": 14,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "private_config_rejects_malformed_and_unknown_fields",
+            "line": 25,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "enabled_generation_rejects_537470_byte_ci_without_touching_output",
+            "line": 38,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+            "line": 42,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+            "line": 86,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+            "line": 144,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+            "line": 189,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "fork_pr_run_without_association_is_ambiguous_not_missing",
+            "line": 260,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "runtime_reports_transport_and_workflow_source_errors",
+            "line": 305,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+            "line": 360,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+            "function": "stalled_api_response_is_an_error_and_not_a_missing_run",
+            "line": 385,
+            "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::prepare_accepts_consumer_repo_with_default_branch",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "prepare_accepts_consumer_repo_with_default_branch",
+            "line": 35,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::prepare_rejects_missing_default_branch_without_git",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "prepare_rejects_missing_default_branch_without_git",
+            "line": 43,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::prepare_rejects_non_directory",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "prepare_rejects_non_directory",
+            "line": 53,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::prepare_reports_default_runner_label",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "prepare_reports_default_runner_label",
+            "line": 60,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::freshness_disabled_for_consumer",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "freshness_disabled_for_consumer",
+            "line": 66,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::release_disabled_without_release_config",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "release_disabled_without_release_config",
+            "line": 72,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::finalized_jobs_lists_plan_and_required",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "finalized_jobs_lists_plan_and_required",
+            "line": 78,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest",
+            "package": "velnor-actions-orchestrator-generation",
+            "group_index": 3,
+            "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+            "function": "prepare_acquires_matching_prerelease_and_rejects_stable_manifest",
+            "line": 86,
+            "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+            "expected_counted_result": "one_exact_pass_row"
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "label": "workflow_generator_source_tag_and_stable_branch_cases",
+        "package": "velnor-actions-workflow-generator",
+        "test_target": "velnor_workflow_generator plus library unit tests",
+        "expected_count": 11,
+        "test_ids": [
+          "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+          "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+          "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+          "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+          "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+          "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+          "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+          "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+          "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+          "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+          "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication"
+        ],
+        "tests": [
+          {
+            "id": "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+            "function": "annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+            "line": 202,
+            "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+            "function": "missing_moved_and_mismatched_remote_tags_fail_closed",
+            "line": 214,
+            "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+            "function": "repository_event_ref_workflow_and_checkout_identity_are_required",
+            "line": 258,
+            "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/manifest/tests/bundle.rs",
+            "function": "manifest_bundle_uses_the_created_and_attested_file",
+            "line": 10,
+            "source_sha256": "37b0bdc43acaa6b5681038f27c77309c43d71c94e77caa4a4e536d34b0a35dcb",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/manifest/tests/bundle.rs",
+            "function": "tag_source_ref_flows_into_every_attestation_verification",
+            "line": 28,
+            "source_sha256": "37b0bdc43acaa6b5681038f27c77309c43d71c94e77caa4a4e536d34b0a35dcb",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+            "function": "stable_dispatch_requires_exact_branch_and_push_ci",
+            "line": 175,
+            "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests/branch_rejections.rs",
+            "function": "stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+            "line": 154,
+            "source_sha256": "e9474b3b6394f506d27ae93a38d57465d56b120e5ccba12d593c9d2687167bde",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/tests.rs",
+            "function": "stable_branch_publisher_uses_manual_dispatch",
+            "line": 44,
+            "source_sha256": "b53da8dce75f81a4e0f884e9d73370b93264eab72022c8fec9400dd4da7cadae",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+            "function": "prerelease_branch_build_mode_is_rejected",
+            "line": 5,
+            "source_sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+            "function": "source_tag_build_mode_binds_version_and_preserves_all_targets",
+            "line": 18,
+            "source_sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication",
+            "package": "velnor-actions-workflow-generator",
+            "group_index": 4,
+            "source_path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+            "function": "source_tag_rejects_version_mismatch_unsafe_ref_and_publication",
+            "line": 72,
+            "source_sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+            "expected_counted_result": "one_exact_pass_row"
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "label": "reusable_call_contract_revalidation",
+        "package": "velnor-actions-contract-workflow",
+        "test_target": "velnor_contract_workflow",
+        "expected_count": 6,
+        "test_ids": [
+          "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+          "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+          "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+          "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+          "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write",
+          "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies"
+        ],
+        "tests": [
+          {
+            "id": "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+            "package": "velnor-actions-contract-workflow",
+            "group_index": 5,
+            "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+            "function": "contract_accepts_sha_pinned_reusable_call",
+            "line": 29,
+            "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+            "package": "velnor-actions-contract-workflow",
+            "group_index": 5,
+            "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+            "function": "contract_rejects_mutable_or_malformed_refs",
+            "line": 43,
+            "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+            "package": "velnor-actions-contract-workflow",
+            "group_index": 5,
+            "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+            "function": "contract_accepts_only_fixed_github_input_contexts",
+            "line": 69,
+            "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+            "package": "velnor-actions-contract-workflow",
+            "group_index": 5,
+            "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+            "function": "contract_rejects_untyped_or_privileged_call_fields",
+            "line": 84,
+            "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write",
+            "package": "velnor-actions-contract-workflow",
+            "group_index": 5,
+            "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+            "function": "contract_requires_push_branch_guard_for_write",
+            "line": 122,
+            "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies",
+            "package": "velnor-actions-contract-workflow",
+            "group_index": 5,
+            "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+            "function": "contract_rejects_job_collisions_and_invalid_dependencies",
+            "line": 135,
+            "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+            "expected_counted_result": "one_exact_pass_row"
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "label": "reusable_call_renderer_revalidation",
+        "package": "velnor-actions-workflow-renderer",
+        "test_target": "velnor_workflow_renderer",
+        "expected_count": 4,
+        "test_ids": [
+          "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+          "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+          "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+          "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege"
+        ],
+        "tests": [
+          {
+            "id": "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+            "package": "velnor-actions-workflow-renderer",
+            "group_index": 6,
+            "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+            "function": "renderer_emits_valid_job_level_call",
+            "line": 52,
+            "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+            "package": "velnor-actions-workflow-renderer",
+            "group_index": 6,
+            "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+            "function": "renderer_rejects_job_id_and_needs_conflicts",
+            "line": 93,
+            "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+            "package": "velnor-actions-workflow-renderer",
+            "group_index": 6,
+            "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+            "function": "renderer_empty_calls_preserve_existing_output",
+            "line": 108,
+            "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+            "expected_counted_result": "one_exact_pass_row"
+          },
+          {
+            "id": "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege",
+            "package": "velnor-actions-workflow-renderer",
+            "group_index": 6,
+            "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+            "function": "renderer_publisher_call_is_push_gated_and_least_privilege",
+            "line": 124,
+            "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+            "expected_counted_result": "one_exact_pass_row"
+          }
+        ]
+      }
+    ],
+    "tests": [
+      {
+        "id": "impl_schema2_routing::generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+        "package": "velnor-actions-contract-config",
+        "group_index": 1,
+        "source_path": "crates/core/velnor-actions-contract-config/tests/impl_schema2_routing.rs",
+        "function": "generator_release_tag_requires_a_safe_single_ref_and_publish_false",
+        "line": 41,
+        "source_sha256": "7797d2ec576f39ba47e8ca1e44edae51fc5fcbe21bb126489b763e54f2a31a1a",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_schema2_routing::generator_release_source_branch_is_a_safe_ref_component",
+        "package": "velnor-actions-contract-config",
+        "group_index": 1,
+        "source_path": "crates/core/velnor-actions-contract-config/tests/impl_schema2_routing.rs",
+        "function": "generator_release_source_branch_is_a_safe_ref_component",
+        "line": 86,
+        "source_sha256": "7797d2ec576f39ba47e8ca1e44edae51fc5fcbe21bb126489b763e54f2a31a1a",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+        "package": "velnor-actions-contract-release",
+        "group_index": 2,
+        "source_path": "crates/core/velnor-actions-contract-release/tests/impl_contract/manifest.rs",
+        "function": "manifest_schemas_validate_and_lookup_targets",
+        "line": 9,
+        "source_sha256": "993d8765467c8f395a9b8e77a77735d0c2a1223ce7ad50d9987633d89fe90951",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only",
+        "package": "velnor-actions-contract-release",
+        "group_index": 2,
+        "source_path": "crates/core/velnor-actions-contract-release/tests/impl_contract_targets/prerelease.rs",
+        "function": "release_manifest_accepts_canonical_prerelease_identity_only",
+        "line": 5,
+        "source_sha256": "861bae7ffa598fa0f85ab301c7f199caf946acb7a00d3b53a121f824d0d807a4",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "ci_observer::tests::input_snapshot_rejects_a_precommit_edit",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/src/ci_observer.rs",
+        "function": "input_snapshot_rejects_a_precommit_edit",
+        "line": 202,
+        "source_sha256": "2ce9c38739940bb4780d5f0b733158d5ebbb0cbbe4e2ceebb53e545fe89f15f2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/src/routing/generator_release_pins.rs",
+        "function": "source_selection_resolves_config_tag_and_branch_to_typed_pins",
+        "line": 177,
+        "source_sha256": "b8b0894aaacc0a032a8a88b7573ca6fa856505d86c78ec42c92b0bc8013aa9e0",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+        "function": "schema2_workflows_match_expected_bytes",
+        "line": 142,
+        "source_sha256": "d6f347f6e3ac3b2e160d020dca1c87fe60db23852dfd311ca6e5f8e423610e77",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_schema2_routing.rs",
+        "function": "committed_release_files_match_schema2_bytes",
+        "line": 165,
+        "source_sha256": "d6f347f6e3ac3b2e160d020dca1c87fe60db23852dfd311ca6e5f8e423610e77",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "opt_in_is_private_and_main_ci_stays_byte_identical",
+        "line": 14,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::private_config_rejects_malformed_and_unknown_fields",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "private_config_rejects_malformed_and_unknown_fields",
+        "line": 25,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "enabled_generation_rejects_537470_byte_ci_without_touching_output",
+        "line": 38,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload",
+        "line": 42,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "rendered_runtime_paginates_and_measures_exact_run_attempt_and_source",
+        "line": 86,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+        "line": 144,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association",
+        "line": 189,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "fork_pr_run_without_association_is_ambiguous_not_missing",
+        "line": 260,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::runtime_reports_transport_and_workflow_source_errors",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "runtime_reports_transport_and_workflow_source_errors",
+        "line": 305,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+        "line": 360,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs",
+        "function": "stalled_api_response_is_an_error_and_not_a_missing_run",
+        "line": 385,
+        "source_sha256": "9a6c374f13f41dfa8a7e36b8528301a42f7d18e920867df7aba847a8e4ca5ef2",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::prepare_accepts_consumer_repo_with_default_branch",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "prepare_accepts_consumer_repo_with_default_branch",
+        "line": 35,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::prepare_rejects_missing_default_branch_without_git",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "prepare_rejects_missing_default_branch_without_git",
+        "line": 43,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::prepare_rejects_non_directory",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "prepare_rejects_non_directory",
+        "line": 53,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::prepare_reports_default_runner_label",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "prepare_reports_default_runner_label",
+        "line": 60,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::freshness_disabled_for_consumer",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "freshness_disabled_for_consumer",
+        "line": 66,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::release_disabled_without_release_config",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "release_disabled_without_release_config",
+        "line": 72,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::finalized_jobs_lists_plan_and_required",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "finalized_jobs_lists_plan_and_required",
+        "line": 78,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest",
+        "package": "velnor-actions-orchestrator-generation",
+        "group_index": 3,
+        "source_path": "crates/services/velnor-actions-orchestrator-generation/tests/impl_prepare.rs",
+        "function": "prepare_acquires_matching_prerelease_and_rejects_stable_manifest",
+        "line": 86,
+        "source_sha256": "95c39b0f2711d4370b146c4b6c17fed3331a66868e8d20e0f15cc4a0262062e7",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::source_gate::tests::annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+        "function": "annotated_and_lightweight_tags_resolve_to_the_exact_commit",
+        "line": 202,
+        "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::source_gate::tests::missing_moved_and_mismatched_remote_tags_fail_closed",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+        "function": "missing_moved_and_mismatched_remote_tags_fail_closed",
+        "line": 214,
+        "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::source_gate::tests::repository_event_ref_workflow_and_checkout_identity_are_required",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+        "function": "repository_event_ref_workflow_and_checkout_identity_are_required",
+        "line": 258,
+        "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::manifest::tests::bundle::manifest_bundle_uses_the_created_and_attested_file",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/manifest/tests/bundle.rs",
+        "function": "manifest_bundle_uses_the_created_and_attested_file",
+        "line": 10,
+        "source_sha256": "37b0bdc43acaa6b5681038f27c77309c43d71c94e77caa4a4e536d34b0a35dcb",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::manifest::tests::bundle::tag_source_ref_flows_into_every_attestation_verification",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/manifest/tests/bundle.rs",
+        "function": "tag_source_ref_flows_into_every_attestation_verification",
+        "line": 28,
+        "source_sha256": "37b0bdc43acaa6b5681038f27c77309c43d71c94e77caa4a4e536d34b0a35dcb",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::source_gate::tests::stable_dispatch_requires_exact_branch_and_push_ci",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests.rs",
+        "function": "stable_dispatch_requires_exact_branch_and_push_ci",
+        "line": 175,
+        "source_sha256": "ee09e4fc822b84525ed2de9b1c51b974bd959bf3f1a00c4d9ef5b0245d62a84e",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/source_gate/tests/branch_rejections.rs",
+        "function": "stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+        "line": 154,
+        "source_sha256": "e9474b3b6394f506d27ae93a38d57465d56b120e5ccba12d593c9d2687167bde",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "generator_release::tests::stable_branch_publisher_uses_manual_dispatch",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/src/generator_release/tests.rs",
+        "function": "stable_branch_publisher_uses_manual_dispatch",
+        "line": 44,
+        "source_sha256": "b53da8dce75f81a4e0f884e9d73370b93264eab72022c8fec9400dd4da7cadae",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_generator_mise_setup::source_modes::prerelease_branch_build_mode_is_rejected",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+        "function": "prerelease_branch_build_mode_is_rejected",
+        "line": 5,
+        "source_sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_generator_mise_setup::source_modes::source_tag_build_mode_binds_version_and_preserves_all_targets",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+        "function": "source_tag_build_mode_binds_version_and_preserves_all_targets",
+        "line": 18,
+        "source_sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_generator_mise_setup::source_modes::source_tag_rejects_version_mismatch_unsafe_ref_and_publication",
+        "package": "velnor-actions-workflow-generator",
+        "group_index": 4,
+        "source_path": "crates/services/velnor-actions-workflow-generator/tests/impl_generator_mise_setup/source_modes.rs",
+        "function": "source_tag_rejects_version_mismatch_unsafe_ref_and_publication",
+        "line": 72,
+        "source_sha256": "e937b30a1f778e2cb78e7f802f008cc494fb078d2b7e180b253721bf3e4df4b5",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_reusable_call::contract_accepts_sha_pinned_reusable_call",
+        "package": "velnor-actions-contract-workflow",
+        "group_index": 5,
+        "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "function": "contract_accepts_sha_pinned_reusable_call",
+        "line": 29,
+        "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_reusable_call::contract_rejects_mutable_or_malformed_refs",
+        "package": "velnor-actions-contract-workflow",
+        "group_index": 5,
+        "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "function": "contract_rejects_mutable_or_malformed_refs",
+        "line": 43,
+        "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_reusable_call::contract_accepts_only_fixed_github_input_contexts",
+        "package": "velnor-actions-contract-workflow",
+        "group_index": 5,
+        "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "function": "contract_accepts_only_fixed_github_input_contexts",
+        "line": 69,
+        "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_reusable_call::contract_rejects_untyped_or_privileged_call_fields",
+        "package": "velnor-actions-contract-workflow",
+        "group_index": 5,
+        "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "function": "contract_rejects_untyped_or_privileged_call_fields",
+        "line": 84,
+        "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_reusable_call::contract_requires_push_branch_guard_for_write",
+        "package": "velnor-actions-contract-workflow",
+        "group_index": 5,
+        "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "function": "contract_requires_push_branch_guard_for_write",
+        "line": 122,
+        "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_contract_reusable_call::contract_rejects_job_collisions_and_invalid_dependencies",
+        "package": "velnor-actions-contract-workflow",
+        "group_index": 5,
+        "source_path": "crates/core/velnor-actions-contract-workflow/tests/impl_contract_reusable_call.rs",
+        "function": "contract_rejects_job_collisions_and_invalid_dependencies",
+        "line": 135,
+        "source_sha256": "659f6f79866e8248d86b7b2491812f97a0d720063be98013b1bec5bd27217202",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_renderer_reusable_call::renderer_emits_valid_job_level_call",
+        "package": "velnor-actions-workflow-renderer",
+        "group_index": 6,
+        "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+        "function": "renderer_emits_valid_job_level_call",
+        "line": 52,
+        "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts",
+        "package": "velnor-actions-workflow-renderer",
+        "group_index": 6,
+        "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+        "function": "renderer_rejects_job_id_and_needs_conflicts",
+        "line": 93,
+        "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output",
+        "package": "velnor-actions-workflow-renderer",
+        "group_index": 6,
+        "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+        "function": "renderer_empty_calls_preserve_existing_output",
+        "line": 108,
+        "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+        "expected_counted_result": "one_exact_pass_row"
+      },
+      {
+        "id": "impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege",
+        "package": "velnor-actions-workflow-renderer",
+        "group_index": 6,
+        "source_path": "crates/services/velnor-actions-workflow-renderer/tests/impl_renderer_reusable_call.rs",
+        "function": "renderer_publisher_call_is_push_gated_and_least_privilege",
+        "line": 124,
+        "source_sha256": "68268995b9e71ae4121b8c3564c4dfc14cf4e9388e698177d6173ff50a358d99",
+        "expected_counted_result": "one_exact_pass_row"
+      }
+    ]
+  },
+  "tools": {
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+    },
+    "rustdoc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee"
+    },
+    "nextest": {
+      "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0"
+    },
+    "node": {
+      "path": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+      "sha256": "f75a79e4c96954709a130427e452d6720b35c90318ca8293727a4c6376198453",
+      "version": "v26.11.0"
+    },
+    "mise": {
+      "path": "/Users/donbeave/Projects/tailrocks/.termrock-visibility-runtime-20261009/mise-2026.9.18-macos-arm64/mise-v2026.9.18-macos-arm64",
+      "sha256": "484c135bd4329975d608d3f77e26c2ece5d2f5590f18ca71f44440294f8cfa6f",
+      "version": "2026.9.18"
+    },
+    "system_helpers": [
+      [
+        "/usr/bin/git",
+        "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2"
+      ],
+      [
+        "/bin/bash",
+        "d59c6f2312e551e9c46497329d435b6ec74fbc46e9155b84170f377127ed004e"
+      ],
+      [
+        "/usr/bin/python3",
+        "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2"
+      ],
+      [
+        "/usr/bin/awk",
+        "3dc6dc8f94de3d1597645e1da608a0b097bbfd186a793ab5c4a63ef417a2f072"
+      ],
+      [
+        "/usr/bin/wc",
+        "adcd3578fe789c4411723dd601adef2a83d2d475c58f3a8f4820a3f17be4cb8d"
+      ],
+      [
+        "/usr/bin/tr",
+        "188d384d918a49fab8263deaa423e33068c99e9a4a5cb23fb971d2ed5b6e4d16"
+      ],
+      [
+        "/usr/bin/jq",
+        "6de4a915497277d6787ce09beaeb0e2f66b2ca04125752a219d12a302491c660"
+      ],
+      [
+        "/bin/sh",
+        "84ca7f9b83021621e16059a1c7850df72a462d879e8239d566236ca6ddd00953"
+      ],
+      [
+        "/bin/chmod",
+        "69a801599d0b5d6908d97d487939c29b626442999af60b6dc57b58aa4824f751"
+      ]
+    ]
+  },
+  "runtime": {
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "target_dir": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+    "archive_manifest": {
+      "label": "cache_archive_manifest",
+      "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-cache-manifest-r2.json",
+      "sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+      "bytes": 64890,
+      "mode": "600"
+    },
+    "source_index_closure": {
+      "label": "cache_source_index_closure",
+      "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-cache-consumed-input-closure-r2.json",
+      "sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+      "bytes": 5448365,
+      "mode": "600"
+    },
+    "cache_independent_review": {
+      "label": "cache_postbuild_independent_review",
+      "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-output-review-luna-20261009/review.json",
+      "sha256": "2014afd3790578720fb4efd937db312d3cfd505b0b7dee410e94ec9708b92443",
+      "bytes": 3184,
+      "mode": "644"
+    },
+    "cache_summary": {
+      "archive_count": 406,
+      "archive_bytes": 59163074,
+      "source_index_files": 20133,
+      "source_index_directories": 3666,
+      "source_index_bytes": 441286079,
+      "source_index_entries": 23799,
+      "source_package_directories": 406,
+      "source_package_markers": 406,
+      "mutable_global_cache": "Record separately before/after; do not include it in immutable archive or registry source/index closure.",
+      "source_index_bytes_declared_in_raw_closure": 200791635,
+      "archive_manifest_unpacked_source_package_directory_count": 345
+    },
+    "source_index_summary_erratum": {
+      "label": "source_index_closure_derived_summary_erratum",
+      "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r5-20261009/evidence/cache-source-index-summary-erratum.json",
+      "sha256": "a52b89db66f0d5ec1b8ec3ec1195565f22d58ce29b4b536de5e1884aa2cb459f",
+      "bytes": 3359,
+      "mode": "600"
+    },
+    "cache_summary_erratum_review": {
+      "label": "r5_cache_summary_erratum_independent_review",
+      "path": "/private/tmp/termrock-vis11-combined-trigger-v1-35-gate-r5-cache-summary-review-luna.json",
+      "sha256": "bb9b5a309e5ace132aa38cc54924efaeab02ceb1528d2af61b83c3af8f677511",
+      "bytes": 4169,
+      "mode": "644"
+    },
+    "runtime_seed_root": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime",
+    "runtime_seed_review": {
+      "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/plan.json",
+      "sha256": "3f4b921065c3c50accb0b035c1d278094d29bb33a05c96ea767b3f4d3545fe35",
+      "actual_result_review": {
+        "label": "mise_fixture_actual_cli_review",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-cli-result-review-luna-20261009.json",
+        "sha256": "66f0f6ea0e372373560f6bf7d7676312a12d6aaf253ccf62cb02a729ab127272",
+        "bytes": 4673,
+        "mode": "600"
+      }
+    },
+    "runtime_seed_files": [
+      {
+        "relative_path": "mise-cache/actionlint/remote_versions-de691.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/actionlint/remote_versions-de691.msgpack.z",
+        "sha256": "3da46c8a3e6ac6c5e5a1053efc9bff162124605625274996e3f806c866b67d13",
+        "bytes": 1368,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/github/koalaman-shellcheck-1c2b670d0db853eb-all-releases-a2849.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/koalaman-shellcheck-1c2b670d0db853eb-all-releases-a2849.msgpack.z",
+        "sha256": "cbff76959e54a2da50ea4dff3d0ce6ac0b8e3d8da7986efee8a0a78a2e506053",
+        "bytes": 5808,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/github/rhysd-actionlint-228bd911006f7087-all-releases-a2849.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/rhysd-actionlint-228bd911006f7087-all-releases-a2849.msgpack.z",
+        "sha256": "88b7239e352d6c6658647f7cfc2a2d46fadd5ba1fa18ae3a152ca1916b1d16c5",
+        "bytes": 23111,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/github/rust-lang-rust-fde818873e897373-all-releases-a2849.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/rust-lang-rust-fde818873e897373-all-releases-a2849.msgpack.z",
+        "sha256": "7e8cf965d7ef92e2aad12782897cd53ab98972ab3eb3fe9b49c6583773c579a6",
+        "bytes": 2608,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/github/zizmorcore-zizmor-8f0169e9cbcbd61d-all-releases-a2849.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/github/zizmorcore-zizmor-8f0169e9cbcbd61d-all-releases-a2849.msgpack.z",
+        "sha256": "1fffb3f28c8121490815e59a2908ca3ed8f6aec1a035e9b1b8adcfa303e352c0",
+        "bytes": 22476,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/rust/remote_versions-b00d5.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/rust/remote_versions-b00d5.msgpack.z",
+        "sha256": "bf30c8a59f6401ab9256da403a752ae67eb9653ec510a8122fa66ff1914e40fe",
+        "bytes": 2033,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/shellcheck/remote_versions-dafdb.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/shellcheck/remote_versions-dafdb.msgpack.z",
+        "sha256": "670b5d2fdcdf9ce489f700e8f23b4a1010a72eba27ab03e42216c70f3c0ef533",
+        "bytes": 357,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-cache/zizmor/remote_versions-7066a.msgpack.z",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-cache/zizmor/remote_versions-7066a.msgpack.z",
+        "sha256": "25cc43d95e15df21aade97761a65bd04ded7b8719caac8f6a45046c38f7f6df5",
+        "bytes": 2165,
+        "mode": "644"
+      },
+      {
+        "relative_path": "mise-data/migrations/runtime-symlink-dirs-v2",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/mise-data/migrations/runtime-symlink-dirs-v2",
+        "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+        "bytes": 3,
+        "mode": "644"
+      },
+      {
+        "relative_path": "config/global.toml",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/config/global.toml",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "600"
+      },
+      {
+        "relative_path": "tool-bin/actionlint",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/tool-bin/actionlint",
+        "sha256": "8db11704dc296f096216db4db65d86cd7f0ebfdf4c38453a1da276b137b88388",
+        "bytes": 5829842,
+        "mode": "700"
+      },
+      {
+        "relative_path": "tool-bin/shellcheck",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/tool-bin/shellcheck",
+        "sha256": "61c17246d69f012cd458ae82f244c46023dac75d1b69733ca1cc7d28fb270fd7",
+        "bytes": 61551911,
+        "mode": "700"
+      },
+      {
+        "relative_path": "tool-bin/zizmor",
+        "path": "/private/tmp/termrock-vis11-generator-golden-fixture-r5-20261009/runtime/tool-bin/zizmor",
+        "sha256": "0cd1e69b329cdbc2ded5cd3b5161f21ffd89652eab6563153e4af5a69344c64d",
+        "bytes": 22909456,
+        "mode": "700"
+      }
+    ],
+    "mise": {
+      "path": "/Users/donbeave/Projects/tailrocks/.termrock-visibility-runtime-20261009/mise-2026.9.18-macos-arm64/mise-v2026.9.18-macos-arm64",
+      "sha256": "484c135bd4329975d608d3f77e26c2ece5d2f5590f18ca71f44440294f8cfa6f",
+      "version": "2026.9.18 macos-arm64",
+      "root_verification": {
+        "label": "mise_release_root_verification",
+        "path": "/Users/donbeave/Projects/tailrocks/.termrock-visibility-runtime-20261009/mise-2026.9.18-macos-arm64/evidence/root-verification-r2.json",
+        "sha256": "dd13a130441b635733ee2333634b749a59a250eefefbfe0263f680803755d004",
+        "bytes": 2240,
+        "mode": "644"
+      },
+      "isolation": "Create private HOME/TMPDIR/Mise data/cache/state/config/bin/tool-bin under execution; use exact pinned Mise binary by private mise alias, no global data, no config/env/hooks, auto-install disabled."
+    },
+    "target_reuse": {
+      "status": "R9_ONE_SELECTED_TEST_BUILD_INPUT_ONLY",
+      "target_directory": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+      "target_root_mode": "755",
+      "source_root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+      "source_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+      "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+      "prior_selected_test_count": 1,
+      "prior_selected_test_id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+      "prior_pass_count": 1,
+      "carry_forward_count": 0,
+      "qualification": "NOT_QUALIFIED",
+      "aggregate_receipt": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "cda48c8d0bb14a4d12656b7ca9600d9cf0cd39d7c76d49cf1a52964283975892",
+        "bytes": 3715,
+        "mode": "600"
+      },
+      "command_receipt": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/command-1-receipt.json",
+        "sha256": "b32c8b9a7abc564e8f65c3d8655160d5ef7dfb9f22362a956bddaedb588f4e45",
+        "bytes": 5835,
+        "mode": "600"
+      },
+      "ready_record": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/ready.json",
+        "sha256": "f6df3aa332ae5f9b874147741d876eb645b996f6f359ded38a18bd0cbbf70751",
+        "bytes": 7495,
+        "mode": "600"
+      },
+      "raw_command_output": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/command-1.log",
+        "sha256": "88a42a3aa2acf3783a7a8c7903f20fc26c28faf2dba47391f26a52a533ea0cee",
+        "bytes": 31333,
+        "mode": "600"
+      },
+      "independent_actual_result_review": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-actual-result-review-current-branch-comparison-luna-20261010.json",
+        "sha256": "44af25527d307822c2464d8f2ef398b47a78f9adddd76dc288c3aeffa9f2a009",
+        "bytes": 3227,
+        "mode": "644"
+      },
+      "target_dependency_file": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target/debug/deps/velnor_orchestrator_generation-9b862747344a7b88.d",
+        "sha256": "241fac8094398fac6fc71de4604221d1b206c6920a8c5c17527d8ea7290aac01",
+        "bytes": 17236,
+        "mode": "644"
+      },
+      "target_fingerprint": {
+        "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target/debug/.fingerprint/velnor-actions-orchestrator-generation-9b862747344a7b88/test-integration-test-velnor_orchestrator_generation.json",
+        "sha256": "a2a3fb1b73dd294acea19d60593a8442fedb2853cedb1ba01c0dcbfb65ca2b89",
+        "bytes": 2731,
+        "mode": "644"
+      },
+      "provenance_note": "The R9 target was fresh before its one selected test and uses the exact R8 source root, tree, and lock. The dependency file binds the source root, selected integration source, and admitted fixture. It is reused only as a Cargo build input; the prior PASS is not carried into this 48-case run."
+    }
+  },
+  "execution_profile": {
+    "runner_owner": "Root only",
+    "cargo": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+    "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+    "rustdoc_sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+    "nextest": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+    "nextest_sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+    "nextest_version": "0.9.146",
+    "node": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node",
+    "node_sha256": "f75a79e4c96954709a130427e452d6720b35c90318ca8293727a4c6376198453",
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "cache_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "cache_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "warm_target": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+    "cache_and_target_use": "The pinned registry closure is an offline input but remains NOT_QUALIFIED under its independent review. The R9 target is reused only as a warm build input with matching R8 source identity; its prior one-test PASS counts zero toward the current 48 selections.",
+    "common_nextest_options": [
+      "--locked",
+      "--offline",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never"
+    ],
+    "test_selection": "Generate exact `-E` selectors from each selected_tests list as `test(=ID1) | test(=ID2)`. Require exact unique ID and exact pass count per group.",
+    "nextest_experimental_libtest_json": "1",
+    "tests_run": false,
+    "build_run": false
+  },
+  "limits": {
+    "whole_gate_deadline_ms": 1200000,
+    "term_grace_ms": 15000,
+    "post_kill_close_grace_ms": 10000,
+    "combined_output_cap_bytes": 4194304,
+    "per_group_logs": true,
+    "process_group_cleanup": true
+  },
+  "outputs": {
+    "execution_directory": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution",
+    "execution_directory_must_be_absent": true,
+    "target_directory": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+    "target_is_existing_shared_warm_cache": true,
+    "source_writes_allowed": [],
+    "global_cache": "Record separately before/after; exclude it from immutable archive/source-index closure."
+  },
+  "nonclaims": [
+    "No test has passed until a raw command record proves one exact pass per selected ID.",
+    "No carry-forward from the prior 35-case run.",
+    "No full-workspace green or release qualification.",
+    "No source Git commit or tag identity.",
+    "No CLI or generated-workflow result.",
+    "R8 is a Git-less snapshot; no commit, tag, release, or remote identity is claimed.",
+    "The R9 single-test target pass is build-input provenance only; zero of the 48 current selections are carried forward.",
+    "The R9 cargo registry cache remains NOT_QUALIFIED and is not promoted by this gate.",
+    "The prior R9 zero-job failure and R10 isolated PASS are distinct historical attempts; no cause is inferred and neither is an expected-failure exception."
+  ],
+  "historical_observer_context": {
+    "statement": "The previously recorded zero-job case remains a historical failure followed by a separate isolated PASS. This does not establish the cause, does not create an expected-failure exception, and does not count toward this fresh 48-case run.",
+    "r9_21_case": {
+      "aggregate_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r9-observer-21-gate-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "32ca83dae8422de1233abbda081ecfca73c0e2edc4a7a6f4047991910b84c594",
+        "bytes": 96165,
+        "mode": "600"
+      },
+      "command_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r9-observer-21-gate-luna-20261010/run-root/execution/command-1-receipt.json",
+        "sha256": "83bc103e2d0060970f1c178e52b8a8869eb5214079a9ef8367b13753437c2899",
+        "bytes": 28451,
+        "mode": "600"
+      },
+      "raw_output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r9-observer-21-gate-luna-20261010/run-root/execution/command-1.log",
+        "sha256": "75a45cc9436550823f0a1b4faf05b43684d35fc9a55c282acf67b6de6a519518",
+        "bytes": 34992,
+        "mode": "600"
+      },
+      "source_tree_sha256": "16ae6439214c38b49e5a1cff24ec009fed837663729697c4799b63043e186d92",
+      "selected": 21,
+      "passed": 20,
+      "failed": 1,
+      "failed_test_id": "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+      "child_exit": 100,
+      "classification": "historical failure; no cause inferred"
+    },
+    "r10_isolated_retry": {
+      "aggregate_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r10-zero-job-diagnostic-gate-luna-20261010/run-root/execution/receipt.json",
+        "sha256": "82793052f80ab5fe06079e41d8a60bf09466aa3fe90eae8074c162bb074b39bd",
+        "bytes": 40175,
+        "mode": "600"
+      },
+      "command_receipt": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r10-zero-job-diagnostic-gate-luna-20261010/run-root/execution/command-1-receipt.json",
+        "sha256": "cf86584014ebc5f27dc69ae136e429d0cc638cbc2738747de7b6d0261a924841",
+        "bytes": 5002,
+        "mode": "600"
+      },
+      "raw_output": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-r10-zero-job-diagnostic-gate-luna-20261010/run-root/execution/command-1.log",
+        "sha256": "11425902d71a20da07ba374d20138a3386e3cd7bc9902dba236498bd0c36c950",
+        "bytes": 30870,
+        "mode": "600"
+      },
+      "source_tree_sha256": "c0fb4f5781f58e932be2b01a3cf96427196f4a5002693fbcdc6284976b762bbe",
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "test_id": "impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims",
+      "child_exit": 0,
+      "classification": "separate diagnostic retry PASS; not carried forward"
+    }
+  },
+  "predecessor": {
+    "revision": "R3",
+    "status": "PREFLIGHT_FAILED_BEFORE_CARGO",
+    "packet": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/gate-packet.json",
+      "sha256": "03b7323d6645219086a6a966ab823ae63860da16535ce7eed4c0d9fff3ebdae5",
+      "bytes": 93883,
+      "mode": "444"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/run-root/runner.cjs",
+      "sha256": "a7c580532a96aac2ba1da321328a3980c85370fc3dddffd9c9206b62e3ee613e",
+      "bytes": 45522,
+      "mode": "444"
+    },
+    "preflight": {
+      "command": "/opt/homebrew/Cellar/node/26.11.0_1/bin/node /private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/run-root/runner.cjs --preflight",
+      "exit_code": 2,
+      "stdout": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/preflight.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "444"
+      },
+      "stderr": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r3-r8-20261010/evidence/preflight.stderr",
+        "sha256": "79c051e259851835730d2f32c60da9090b8e3da5f2303936e7b730bd874da5c9",
+        "bytes": 1251,
+        "mode": "444"
+      },
+      "execution_started": false,
+      "diagnosis": "R8 source root mode was observed as 0755 but the R3 packet omitted source.root_mode because the full-tree JSON has no root_mode field. No Cargo, Nextest, build, or tests were spawned."
+    }
+  }
+}

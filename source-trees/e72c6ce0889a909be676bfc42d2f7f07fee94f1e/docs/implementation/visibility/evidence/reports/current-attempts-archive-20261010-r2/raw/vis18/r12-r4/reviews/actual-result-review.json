@@ -1,0 +1,86 @@
+{
+  "schema": "termrock-vis18-independent-result-and-tree-review/v1",
+  "verdict": "READY_EXTERNAL_TREE_PROPOSAL_ONLY",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "reviewed_at_utc": "2026-10-09T22:27:39Z",
+  "scope": "Read-only review of the R12-R4 actual result and reconstruction, then the exact three-path external Git tree proposal. No Cargo, Nextest, test, build, commit, ref update, or canonical repository write by reviewer.",
+  "actual_result": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/runner-result.json",
+    "sha256": "872158953ac14931819daf795b1cb3ba7bd4c8e80961c565faa3f8255dd17c15",
+    "cargo_exit": 0,
+    "child_reaped": true,
+    "timed_out": false,
+    "output_limit_exceeded": false,
+    "selected_test": "termrock-visibility-tests::cache_source_audit$audits_r11_unmanifested_sources_against_locked_crate_archives",
+    "raw_test_outcome": "one test-start and one matching test-ok; human output reports one PASS and 1 passed, 0 skipped",
+    "wrapper_outcome": "FAIL, exit 125: original parser rejected two suite lifecycle records and the u64 filtered_out count; output_contract_pass=false is preserved",
+    "audit_report": {
+      "sha256": "b31bd5d3c549ed5f14ff4964fcb5f59ecfb5d6f453a6008a867ffef26541948e",
+      "status": "PASS",
+      "unmanifested_paths": 7231,
+      "files": 6054,
+      "directories": 1177,
+      "package_roots": 153,
+      "locked_archive_rows": 319,
+      "historical_r11_content": "NOT_VERIFIED",
+      "tag_qualification": "NOT_ESTABLISHED",
+      "admission": "NOT_RUN"
+    },
+    "raw_log_bindings": {
+      "stdout_sha256": "d474f0316a18f49d383848ec5e629baad5c81d6e674fb389a6550ad4730f07cf",
+      "stderr_sha256": "31c13a6b539107c540c713308f01a99393112ec8054a4f61672cff353f38e1e2",
+      "process_events_sha256": "e5a5ce51aefdf96ffff3f3dbcd8f249a1ee84886f1d37f25b7c7d3a6f1dd8d2d"
+    }
+  },
+  "reconstruction": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-reconstruction-20261010/reconstruction.json",
+    "sha256": "6368cb2b7be6e57bef29e6c43698097f9e310b508d5d29bbc52516cc60ad59b6",
+    "collector_path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-reconstruction-20261010/reconstruct.cjs",
+    "collector_sha256": "a4a644f241940ac6eba01964655420815ce8bfadbb208b29868ad5579e55c7ce",
+    "collector_character": "Node-only read/hash reconstruction; it does not rerun Cargo or Nextest",
+    "cross_bindings_match": true,
+    "raw_json_and_human_test_pass_match": true,
+    "runner_wrapper_125_preserved": true,
+    "stable_input_projection": true,
+    "limits_preserved": true,
+    "note": "The projection packet was created before this reconstruction review and says the review was pending. This review supersedes that pending state; it does not change the proposal bytes."
+  },
+  "tree_proposal": {
+    "path": "/private/tmp/termrock-vis18-cache-source-audit-5b-projection-r2-20261010/tree-proposal.json",
+    "sha256": "9ad4e506b098e24f033de126e5bc98c81e860b3dcd926880e3116b2a0a23479c",
+    "base_commit": "5b147270c5ec8761278c90aa4c72752bef99c975",
+    "base_tree": "c100dac71c891c06e94fef9a161c205989e76a51",
+    "proposed_tree": "54f412d24cef18c21990f0a66e540ef3daa192cf",
+    "proposed_tree_type_verified": "tree",
+    "exact_changed_paths": [
+      "crates/termrock-visibility-tests/Cargo.lock",
+      "crates/termrock-visibility-tests/Cargo.toml",
+      "crates/termrock-visibility-tests/tests/cache_source_audit.rs"
+    ],
+    "package_file_count": 10,
+    "package_digest_recomputed": "c34adad274f64f2749e831c4fdd7d50bddea079a9896644d67d86695a44c6101",
+    "manifest_sha256": "62457d004c79177c557970d452081007affb4a72ac1374f4c4fc3f0b45739be3",
+    "lock_sha256": "a80325ffed5b5cf5b652f9d9e8a859573c91b93def1e59d42b4259b65a586c1f",
+    "audit_test_sha256": "9f82e8ae736575ff68bdf4adf96ef695c658ba99136f683b95f03cd147f4ed8f",
+    "patch_path": "/private/tmp/termrock-vis18-cache-source-audit-5b-projection-r2-20261010/projection.patch",
+    "patch_sha256": "00d1a21b9022d8b372959b90079b22970277b2acb2ac15510c95845017bdb898",
+    "generated_base_to_tree_diff_sha256_matches_patch": true,
+    "index_sha256": "2b77d257b6c4ac0d4bfc3323c2c8a1cdb9dd31c36a8a270ae7c60dffcb75aa72",
+    "commit_message_path": "/private/tmp/termrock-vis18-cache-source-audit-5b-projection-r2-20261010/commit-message.txt",
+    "commit_message_sha256": "828313ed781692aafff7ba033bdd52f7716101366632a59689a1631c734dc71f",
+    "dco_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+    "no_commit_or_ref_written": true,
+    "no_canonical_repository_write": true,
+    "lock_provenance_review": "Exact lock bytes were previously Root-generated for the identical successor manifest; metadata result records 41 packages, exit 0, tests_run=false, and identical before/after lock hashes.",
+    "prior_reviews": {
+      "source_review_sha256": "16d750440895b65cc7a38923adda9050df9ef71eb02766dd7a46f1801f983cec",
+      "package_digest_review_sha256": "c8f1843b436fc0e6b3827a623b401cafb422412603e719a3990909e1ad4db222"
+    },
+    "limits": [
+      "The proposed 5b package has not been compiled or tested.",
+      "The audit test pass applies to the R12-R4 package, while the original runner wrapper still exited 125.",
+      "Historical R11 extracted-source content remains NOT_VERIFIED.",
+      "Tag qualification is NOT_ESTABLISHED and admission is NOT_RUN."
+    ]
+  }
+}

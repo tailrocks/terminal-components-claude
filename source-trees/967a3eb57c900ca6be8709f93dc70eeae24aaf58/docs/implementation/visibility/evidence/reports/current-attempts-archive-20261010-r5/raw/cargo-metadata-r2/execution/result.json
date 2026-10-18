@@ -1,0 +1,192 @@
+{
+  "schema": "termrock.vis11.diagnostic-generator-registry-index-fill-result/v2",
+  "status": "METADATA_INDEX_FILL_FAILED_OR_INCOMPLETE",
+  "execution": "COMPLETED",
+  "qualification": "NOT_QUALIFIED",
+  "plan_sha256": "1d1f04db2f0cae97713ca358bed39b028360b084903c5aac605737c3dbad7dfb",
+  "runner_sha256": "697aa3ae07d5c44412a13bce25eeca95ccf13cf5c3d04c7b60a629eedbdd4d56",
+  "previous_r3b_failure_sha256": "d3c2bc1ee512d80cc6345de03b29bbd20788211f067ab2fe55d8bf0f6bd70d30",
+  "candidate": {
+    "before": {
+      "root": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+      "head": "e0bcfa26ec174241f09de17d04f3f45379be3452",
+      "tree": "6985c14d76029b01c2d8ee55d66cf3db801a29ef",
+      "status": " M .velnor/config.toml\n",
+      "index_path": "/private/tmp/termrock-root-integration-20261010.git/worktrees/termrock-vis11-diagnostic-candidate-e0bc-20261010/index",
+      "index_sha256": "422b24dbb2d41463db1eb30bb6b3e66bf0baf95fca4dda8b6f61881e25269401",
+      "cargo_lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+      "config_sha256": "6c1de7a7e7962308021e3d47909cc0853eb2c40e523e2ab3f9cc57ba92952279"
+    },
+    "after": {
+      "root": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+      "head": "e0bcfa26ec174241f09de17d04f3f45379be3452",
+      "tree": "6985c14d76029b01c2d8ee55d66cf3db801a29ef",
+      "status": " M .velnor/config.toml\n",
+      "index_path": "/private/tmp/termrock-root-integration-20261010.git/worktrees/termrock-vis11-diagnostic-candidate-e0bc-20261010/index",
+      "index_sha256": "422b24dbb2d41463db1eb30bb6b3e66bf0baf95fca4dda8b6f61881e25269401",
+      "cargo_lock_sha256": "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e",
+      "config_sha256": "6c1de7a7e7962308021e3d47909cc0853eb2c40e523e2ab3f9cc57ba92952279"
+    },
+    "unchanged": true
+  },
+  "cache_home": {
+    "path": "/private/tmp/termrock-vis11-diagnostic-generate-e0bc-r3b-luna-20261010/run-root/private/cargo-home",
+    "before": {
+      "inventory_schema": "runner-walkTree-canonical/v1",
+      "tree_sha256": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+      "entries": 23570,
+      "files": 19820,
+      "directories": 3748,
+      "symlinks": 2,
+      "file_bytes": 573227343,
+      "root_mode": "755"
+    },
+    "after": {
+      "inventory_schema": "runner-walkTree-canonical/v1",
+      "tree_sha256": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+      "entries": 23570,
+      "files": 19820,
+      "directories": 3748,
+      "symlinks": 2,
+      "file_bytes": 573227343,
+      "root_mode": "755"
+    },
+    "root_before": {
+      "type": "directory",
+      "symlink": false,
+      "mode": "755",
+      "dev": 16777234,
+      "ino": 90502622
+    },
+    "root_after": {
+      "exists": true,
+      "type": "directory",
+      "symlink": false,
+      "physical_directory": true,
+      "components_no_symlink": true,
+      "component_error": null,
+      "mode": "755",
+      "dev": 16777234,
+      "ino": 90502622
+    },
+    "root_identity_and_mode_unchanged": true,
+    "postcheck_passed": true,
+    "postcheck_error": null,
+    "mutable_bookkeeping_before": {
+      ".global-cache": {
+        "path": ".global-cache",
+        "type": "file",
+        "mode": "644",
+        "bytes": 81920,
+        "sha256": "709f053140a76abdb8305c9839a4f3930a4db9392b5697a68c1548afe261b0e5"
+      },
+      ".package-cache": {
+        "path": ".package-cache",
+        "type": "file",
+        "mode": "644",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".package-cache-mutate": {
+        "path": ".package-cache-mutate",
+        "type": "file",
+        "mode": "644",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "mutable_bookkeeping_after": {
+      ".global-cache": {
+        "path": ".global-cache",
+        "type": "file",
+        "mode": "644",
+        "bytes": 81920,
+        "sha256": "709f053140a76abdb8305c9839a4f3930a4db9392b5697a68c1548afe261b0e5"
+      },
+      ".package-cache": {
+        "path": ".package-cache",
+        "type": "file",
+        "mode": "644",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      ".package-cache-mutate": {
+        "path": ".package-cache-mutate",
+        "type": "file",
+        "mode": "644",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "mutable_bookkeeping_max_bytes_per_file": 1048576,
+    "changed_path_count": 0,
+    "changed_paths": [],
+    "changed_outside_allowed_cache_scope": [],
+    "removed_registry_index_paths": [],
+    "invalid_bookkeeping_path_changes": [],
+    "changes_confined_to_index_and_exact_bookkeeping_files": true,
+    "reqwest_index_after": null
+  },
+  "cargo_target": {
+    "before_entries": 0,
+    "after_entries": 0,
+    "unchanged": true
+  },
+  "git_network_guard": {
+    "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/tools/git",
+    "sha256": "638ef221a35c44979eb017a96cde44c2cb973f3fbe980a65f48cdf8ca5e9e4ab",
+    "blocked_operation_log": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/git-network-blocked.tsv",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "no_git_network_operation_observed": true
+  },
+  "command": {
+    "id": "cargo-metadata",
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "metadata",
+      "--manifest-path",
+      "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.toml",
+      "--locked",
+      "--no-deps",
+      "--format-version",
+      "1"
+    ],
+    "cwd": "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010",
+    "started_at": "2026-10-10T00:45:50.356Z",
+    "elapsed_ms": 42,
+    "exit_code": 0,
+    "signal": null,
+    "timeout_kind": null,
+    "spawn_error": null,
+    "captured_bytes": 127855,
+    "output_cap_bytes": 8388608,
+    "stdout": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/cargo-metadata.stdout.bin",
+      "bytes": 127855,
+      "sha256": "ea715e8d6c826037ffe895a696dfc66a6b715933a04b6997bc3a1074ba909494"
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/cargo-metadata.stderr.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "closed": true,
+    "success": true
+  },
+  "metadata_summary": {
+    "valid_json": true,
+    "package_count": 45,
+    "workspace_member_count": 45,
+    "resolve_present": false
+  },
+  "metadata_parse_error": null,
+  "limits": [
+    "Only one locked Cargo metadata --no-deps command was authorized.",
+    "No build, check, test, nextest, Velnor CLI, generation, or release action ran.",
+    "The existing isolated CARGO_HOME is mutable from this attempt onward; R3b failed-run evidence is preserved separately.",
+    "Success would mean only that metadata resolved and the reqwest index was populated; it would not establish complete lockfile cache closure or generator qualification."
+  ]
+}

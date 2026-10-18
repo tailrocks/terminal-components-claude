@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Terminal                                                                      256 colors · 160×50   i Inspector   ? Help
+
+   Foundations            Terminal  Viewport with scrollback, selection and copy · drag the seam · step rail reports a job
+   Overview
+                          ╭─ Viewport ───────────────────────────────────────────── 37 lines · following ─╮ │  Step rail                                7 of 7
+   Components             │  payments-platform ❯ jackin launch                                            │ │
+   Buttons                │  ▶ Resolve workspace                                                          │ │   ✓ 01 Resolve workspace                  0.8 s
+   Inputs                 │  ✓ Resolve workspace                                                          │ │   ✓ 02 Pull base image                    2.1 s
+   Text areas             │  ▶ Pull base image                                                            │ │   ✓ 03 Build container                    3.2 s
+   Forms                  │    layer 01/12    3%                                                          │ │     04 Mount sources                     cached
+   Lists                  │    layer 02/12   19%                                                          │ │   ✓ 05 Resolve credentials                1.4 s
+   Trees                  │    layer 03/12   34%                                                          │ │   ✓ 06 Start agent                        1.1 s
+   Tables                 │    layer 04/12   50%                                                          │ │   ✓ 07 Ready                              0.1 s
+   Editable tables        │    layer 05/12   65%                                                          │ │
+   Panels                 │    layer 06/12   80%                                                          │ │
+   Sidebars               │    layer 07/12   96%                                                          │ │
+   Dialogs                │  ✓ Pull base image                                                            │ │
+   Progress               │  ▶ Build container                                                            │ │
+   Scrolling              │    #1 RUN apt-get install -y build-essential                                  │ │
+▎› Terminal               │    #2 COPY rust-toolchain.toml ./                                             │ │
+   Code editor            │    #3 RUN cargo fetch --locked                                                │ │
+   Diff                   │    #4 RUN cargo build --release                                               │ │
+   Data grid              │    #5 RUN apt-get install -y build-essential                                  │ │
+   Chips & selects        │    #6 COPY rust-toolchain.toml ./                                             │ │
+   Pickers                │    #7 RUN cargo fetch --locked                                                │ │
+   Chrome                 │    #8 RUN cargo build --release                                               │ │
+                          │    #9 RUN apt-get install -y build-essential                                  │ │
+   Screens                │    #10 COPY rust-toolchain.toml ./                                            │ │
+   Settings               │    #11 RUN cargo fetch --locked                                               │ │
+   Task runner            │    #12 RUN cargo build --release                                              │ │
+                          │    #13 RUN apt-get install -y build-essential                                 │ │
+                          │    #14 COPY rust-toolchain.toml ./                                            │ │
+                          │  ✓ Build container                                                            │ │
+                          │  ▶ Resolve credentials                                                        │ │
+                          │    1Password  Engineering › Anthropic · Work › credential  ok                 │ │
+                          │  ✓ Resolve credentials                                                        │ │
+                          │  ▶ Start agent                                                                │ │
+                          │    claude --resume  pid 4188                                                  │ │
+                          │  ✓ Start agent                                                                │ │
+                          │  ▶ Ready                                                                      │ │
+                          │  ✓ Ready                                                                      │ │
+                          │  payments-platform ❯                                                          │ │
+                          │                                                                               │ │
+                          │                                                                               │ │
+                          │                                                                               │ │
+                          │                                                                               │ │
+                          │                                                                               │ │   Run    Run with a failure
+                          ╰───────────────────────────────────────────────────────────────────────────────╯ │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

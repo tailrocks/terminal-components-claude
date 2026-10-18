@@ -1,0 +1,32 @@
+{
+  "schema": "termrock-focused-actual-result-review/v1",
+  "verdict": "PASS_ACTUAL_EVIDENCE_REVIEW_WITH_LIMITS",
+  "scope": "Independent read-only review of the VIS-08 reader R4 attempt; no rerun or source change by reviewer.",
+  "bindings": {
+    "runner": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-runner-20261010/runner.cjs","sha256":"08feb21cd426aad630a9e8506cd6df6cf409319adbefb5f77bf9c868d60f9882"},
+    "packet": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-packet-20261010/packet.json","sha256":"a7c175440b0b534ff3c576ec66aac97178510b7a85c24a09197c92459595531d"},
+    "preflight": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/preflight.json","sha256":"37edae8ee1096ad0f3c14b6a463e59ac72caca13052ebf30780aaed7e9fb4b57"},
+    "runner_result": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/runner-result.json","sha256":"0ed52b295696ff953e0e5cd252542925a9894d1d7ca7a29ff3e829de29142b4a"},
+    "nextest_stdout": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/logs/nextest.stdout.raw","sha256":"e018fd274a59c4b8ae31891faf2b59bc386f86159086618c9ee005ad792862ba","bytes":8795},
+    "nextest_stderr": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/logs/nextest.stderr.raw","sha256":"3f5155dda7793c16dc004b928a9ec436f40c69ab1ac2fbdf892029d1931601c7","bytes":4313},
+    "cli_build_stderr": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/logs/cli-build.stderr.raw","sha256":"70f376c7312de2db346a2edc4fdee284cc2ac8d8cc618c2c1fe83d54d7377e0d","bytes":567},
+    "process_events": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/logs/process-events.jsonl","sha256":"c8a9f86679f3cdefb9bbc298fdd53cb6984a3cb892ce7334e1ade9030b9fac4b"},
+    "cache_copy_receipt": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cache-copy-receipt.json","sha256":"1cff357cbb98c7d5a839e0273c8ae1b1af48af6f6345b5c77f5d471f01b1ee63"},
+    "v1_cli_report": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output/v1-report.json","sha256":"38df66734317b1d0e2d9ad3650c52bd6d77cf752db3ec97e527ffe60f2c818c5"},
+    "v2_cli_report": {"path":"/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output/v2-report.json","sha256":"f777f1b5355542a3efb14bbaae5066c4473dbb7d7af724e4043fa800b187d9c8"}
+  },
+  "observations": {
+    "nextest": "Raw stdout independently parses to two suite records and 46 test records: exactly 23 unique selected identities, each with one started and one ok; suite metadata is termrock-visibility-tests / termrock_visibility_tests / lib; terminal summary is 23 passed, 0 failed, ignored 0, filtered_out 14. Human output records one Nextest run ID 28b87a06-e881-41c5-9a8a-8fae120ed8cb and agrees with the machine counts.",
+    "stages": "Nextest, locked/offline CLI build, and both synthetic CLI exercises each report child exit=0, close=0, child_reaped=true, without timeout or output cap. Event log records the corresponding four spawn/exit/close sequences.",
+    "cli_contracts": "The v1 synthetic report is accepted with selection_count 9 and nine selected rows; the v2 synthetic report is accepted with selection_count 59, expected count 59, one target, and 59 selected rows.",
+    "deadline": "Runner result records 11,663.031 ms elapsed against the 900,000 ms overall deadline, within deadline.",
+    "inputs": "Runner result records the exact 12-file package digest 4bb9caa4df4014301044bb1f59ff1f7ffa61236a007a73da3c97e57104b7e240 and source/cache/tool/fixture snapshot stability. Cache copy is 85 independently copied files (40 archives, 44 sparse entries, 1 config), with no extracted sources or Git sources.",
+    "wrapper": "Runner result state PASS; Nextest child and wrapper completed successfully."
+  },
+  "limitations": [
+    "The 23 selected unit tests and two synthetic CLI contract exercises are separate evidence categories.",
+    "The CLI inputs are synthetic fixtures; product behavior and product acceptance remain NOT_TESTED / NOT_ESTABLISHED.",
+    "This result does not qualify the broader workspace or any product/release behavior."
+  ],
+  "prior_history": "This review does not erase prior preflight failures or incomplete wrapper observations; the R4 run is evaluated only against its exact packet and raw artifacts."
+}

@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ──────────────────────────────────────────────────────────────────── 42 ms ─╮
+ │                           │ │  ▎›  1 UPDATE orders SET status = 'paid' WHERE id = 'x'                              │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │                                                                                      │
+ │ ▎    ▾ Tables             │ │                                                                                      │
+ │ ▎      ▸ T organizations  │ │                                                                                      │
+ │ ▎      ▸ T customers      │ │                                                                                      │
+ │ ▎      ▸ T products       │ │                                                                                      │
+ │ ▎      ▸ T orders         │ │                                                                                      │
+ │ ▎      ▸ T order_items    │ │                                                                                      │
+ │ ▎      ▸ T payments       │ │                                                                     ln 1/1 · col 49  │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
+ │ ▎    ▸ Views              │ │   UPDATE orders (8022) ×                                                             │
+ │ ▎    ▸ Functions          │ │  ━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────── │
+ │ ▎    ▸ Sequences          │ │   UPDATE orders · 8022 rows affected · 42 ms                                         │
+ │ ▎  ▸ S analytics          │ │    Statement executed                                                                │
+ │ ▎  ▸ S audit              │ │                                                                                      │
+ │                           │ │    Statement      UPDATE orders                                                      │
+ │                           │ │    Rows affected  8,022                                                              │
+ │                           │ │    Duration       42 ms                                                              │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Edit  Ctrl+R Run  Alt+R Run all  Ctrl+X Explain  / Find  Tab Next               Cancelled · nothing was executed

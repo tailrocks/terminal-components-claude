@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 7159237130655025125,
+  "legacy_name": "holla/flows/docker/remove_failed/160x50/truecolor",
+  "name": "holla/docker/remove-failed/160x50/truecolor",
+  "non_empty_cells": 1039,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

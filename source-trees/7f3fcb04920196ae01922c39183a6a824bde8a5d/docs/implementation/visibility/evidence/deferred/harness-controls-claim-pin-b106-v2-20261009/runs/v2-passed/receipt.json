@@ -1,0 +1,295 @@
+{
+  "schema": "termrock-vis04-deferred-harness-controls-run-receipt/v1",
+  "run_id": "2026-10-09T05-13-58-526Z-adb32ee0",
+  "started_at": "2026-10-09T05:13:58.526Z",
+  "finished_at": "2026-10-09T05:14:26.471Z",
+  "source": {
+    "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6",
+    "source_manifest_sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60",
+    "runplan_sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8",
+    "runner_sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd",
+    "launch_script_sha256": "15f734ab5678701f7a3dbe4fb466b9be18d4846e4f9e77b03e0539a4950df4df",
+    "preflight_sha256": "70630f87f06f7d49d55f55437af43502800c91f2aa567be6e14704c166da8857",
+    "test_names_sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369"
+  },
+  "selection": {
+    "target": "termrock-visibility-tests::deferred",
+    "count": 29,
+    "names": [
+      "inventory_uses_canonical_23_rows_and_25_case_references",
+      "inventory_rejects_non_not_run_status_and_changed_reason_sidecar",
+      "filter_uses_exact_names_and_explicit_writer_exclusion",
+      "receipt_separates_accepted_and_current_queue_revisions",
+      "claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup",
+      "claim_registry_rejects_non_integer_revisions_before_tool_setup",
+      "environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing",
+      "source_digest_tracks_workspace_and_ignores_nonworkspace_crates",
+      "source_drift_after_list_or_during_run_blocks_the_receipt",
+      "run_command_keeps_all_selected_failures_visible",
+      "list_requires_the_exact_canonical_selection",
+      "list_reconciles_selected_count_separately_from_nextest_total",
+      "list_rejects_total_smaller_than_the_selection",
+      "list_rejects_missing_and_writer_like_selected_tests",
+      "list_accepts_mixed_registration_and_rejects_metadata_drift",
+      "list_rejects_malformed_json_before_run",
+      "list_rejects_a_wrong_package_or_binary",
+      "list_rejects_a_duplicate_selected_name_across_suites",
+      "assertion_failure_stays_failed_without_expected_failure_inversion",
+      "non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass",
+      "receipt_rows_keep_stable_ids_and_test_metadata",
+      "prefixed_nextest_event_names_map_to_stable_test_names",
+      "unselected_case_events_are_rejected_with_run_ignored_all",
+      "unselected_terminal_results_are_rejected",
+      "run_requires_one_terminal_event_per_canonical_test",
+      "build_error_is_blocked_with_raw_exit_and_zero_executions",
+      "zero_exit_with_invalid_results_is_blocked_nonzero",
+      "signal_termination_is_blocked_and_maps_to_shell_status",
+      "assertion_failure_remains_failed_with_an_unreadable_event"
+    ]
+  },
+  "toolchain": {
+    "rust": "1.98.1",
+    "cargo_nextest": "0.9.146",
+    "build_jobs": 2,
+    "test_threads": 1,
+    "offline": true
+  },
+  "command": {
+    "program": "/Users/donbeave/.cargo/bin/rustup",
+    "argv": [
+      "run",
+      "1.98.1",
+      "cargo",
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-visibility-tests/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--package",
+      "termrock-visibility-tests",
+      "--test",
+      "deferred",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--run-ignored",
+      "all",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--no-tests",
+      "fail",
+      "--no-fail-fast",
+      "--retries",
+      "0",
+      "--flaky-result",
+      "fail",
+      "--failure-output",
+      "immediate-final",
+      "--status-level",
+      "all",
+      "--final-status-level",
+      "all",
+      "--no-output-indent",
+      "--show-progress",
+      "none",
+      "--color",
+      "never",
+      "--filterset",
+      "test(=inventory_uses_canonical_23_rows_and_25_case_references) | test(=inventory_rejects_non_not_run_status_and_changed_reason_sidecar) | test(=filter_uses_exact_names_and_explicit_writer_exclusion) | test(=receipt_separates_accepted_and_current_queue_revisions) | test(=claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup) | test(=claim_registry_rejects_non_integer_revisions_before_tool_setup) | test(=environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing) | test(=source_digest_tracks_workspace_and_ignores_nonworkspace_crates) | test(=source_drift_after_list_or_during_run_blocks_the_receipt) | test(=run_command_keeps_all_selected_failures_visible) | test(=list_requires_the_exact_canonical_selection) | test(=list_reconciles_selected_count_separately_from_nextest_total) | test(=list_rejects_total_smaller_than_the_selection) | test(=list_rejects_missing_and_writer_like_selected_tests) | test(=list_accepts_mixed_registration_and_rejects_metadata_drift) | test(=list_rejects_malformed_json_before_run) | test(=list_rejects_a_wrong_package_or_binary) | test(=list_rejects_a_duplicate_selected_name_across_suites) | test(=assertion_failure_stays_failed_without_expected_failure_inversion) | test(=non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass) | test(=receipt_rows_keep_stable_ids_and_test_metadata) | test(=prefixed_nextest_event_names_map_to_stable_test_names) | test(=unselected_case_events_are_rejected_with_run_ignored_all) | test(=unselected_terminal_results_are_rejected) | test(=run_requires_one_terminal_event_per_canonical_test) | test(=build_error_is_blocked_with_raw_exit_and_zero_executions) | test(=zero_exit_with_invalid_results_is_blocked_nonzero) | test(=signal_termination_is_blocked_and_maps_to_shell_status) | test(=assertion_failure_remains_failed_with_an_unreadable_event)",
+      "--message-format",
+      "libtest-json-plus",
+      "--message-format-version",
+      "0.1"
+    ],
+    "cwd": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source"
+  },
+  "environment": {
+    "inherits_parent": false,
+    "CARGO": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "CARGO_HOME": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/cargo-home",
+    "CARGO_TARGET_DIR": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_TERM_COLOR": "never",
+    "CARGO_NET_OFFLINE": "true",
+    "TMPDIR": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/scratch",
+    "RUSTUP_HOME": "/Users/donbeave/.rustup",
+    "RUSTUP_TOOLCHAIN": "1.98.1",
+    "PATH": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.cargo/bin:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "HOME": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/scratch/home",
+    "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"
+  },
+  "bounds": {
+    "timeout_ms": 600000,
+    "term_grace_ms": 5000,
+    "post_kill_grace_ms": 1000,
+    "combined_log_cap_bytes": 16777216
+  },
+  "execution": {
+    "result": "PASSED_29",
+    "elapsed_ms": 27945,
+    "timed_out": false,
+    "interrupted_by": null,
+    "exit_code": 0,
+    "signal": null,
+    "spawn_error": null,
+    "cargo_spawned": true,
+    "nextest_run_id": "a0bc2b22-bb0d-409f-95a8-5596e42ed06b",
+    "test_results": [
+      {
+        "name": "inventory_uses_canonical_23_rows_and_25_case_references",
+        "result": "passed"
+      },
+      {
+        "name": "inventory_rejects_non_not_run_status_and_changed_reason_sidecar",
+        "result": "passed"
+      },
+      {
+        "name": "filter_uses_exact_names_and_explicit_writer_exclusion",
+        "result": "passed"
+      },
+      {
+        "name": "receipt_separates_accepted_and_current_queue_revisions",
+        "result": "passed"
+      },
+      {
+        "name": "claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup",
+        "result": "passed"
+      },
+      {
+        "name": "claim_registry_rejects_non_integer_revisions_before_tool_setup",
+        "result": "passed"
+      },
+      {
+        "name": "environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing",
+        "result": "passed"
+      },
+      {
+        "name": "source_digest_tracks_workspace_and_ignores_nonworkspace_crates",
+        "result": "passed"
+      },
+      {
+        "name": "source_drift_after_list_or_during_run_blocks_the_receipt",
+        "result": "passed"
+      },
+      {
+        "name": "run_command_keeps_all_selected_failures_visible",
+        "result": "passed"
+      },
+      {
+        "name": "list_requires_the_exact_canonical_selection",
+        "result": "passed"
+      },
+      {
+        "name": "list_reconciles_selected_count_separately_from_nextest_total",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_total_smaller_than_the_selection",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_missing_and_writer_like_selected_tests",
+        "result": "passed"
+      },
+      {
+        "name": "list_accepts_mixed_registration_and_rejects_metadata_drift",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_malformed_json_before_run",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_a_wrong_package_or_binary",
+        "result": "passed"
+      },
+      {
+        "name": "list_rejects_a_duplicate_selected_name_across_suites",
+        "result": "passed"
+      },
+      {
+        "name": "assertion_failure_stays_failed_without_expected_failure_inversion",
+        "result": "passed"
+      },
+      {
+        "name": "non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass",
+        "result": "passed"
+      },
+      {
+        "name": "receipt_rows_keep_stable_ids_and_test_metadata",
+        "result": "passed"
+      },
+      {
+        "name": "prefixed_nextest_event_names_map_to_stable_test_names",
+        "result": "passed"
+      },
+      {
+        "name": "unselected_case_events_are_rejected_with_run_ignored_all",
+        "result": "passed"
+      },
+      {
+        "name": "unselected_terminal_results_are_rejected",
+        "result": "passed"
+      },
+      {
+        "name": "run_requires_one_terminal_event_per_canonical_test",
+        "result": "passed"
+      },
+      {
+        "name": "build_error_is_blocked_with_raw_exit_and_zero_executions",
+        "result": "passed"
+      },
+      {
+        "name": "zero_exit_with_invalid_results_is_blocked_nonzero",
+        "result": "passed"
+      },
+      {
+        "name": "signal_termination_is_blocked_and_maps_to_shell_status",
+        "result": "passed"
+      },
+      {
+        "name": "assertion_failure_remains_failed_with_an_unreadable_event",
+        "result": "passed"
+      }
+    ],
+    "parse_errors": [],
+    "forced_close": false
+  },
+  "artifacts": {
+    "stdout": {
+      "path": "runs/2026-10-09T05-13-58-526Z-adb32ee0/nextest.stdout.jsonl",
+      "bytes_received": 8676,
+      "bytes_stored": 8676,
+      "sha256": "e0f391786923482679e3e3e8971a7effc727672db0ac555d3a356d1d212c254f",
+      "truncated": false,
+      "write_failed": false
+    },
+    "stderr": {
+      "path": "runs/2026-10-09T05-13-58-526Z-adb32ee0/nextest.stderr.log",
+      "bytes_received": 7880,
+      "bytes_stored": 7880,
+      "sha256": "5b0d4b4d449e8fae19405a47e39a3764d3b1ba98d3d663512d86239f709cc367",
+      "truncated": false,
+      "write_failed": false
+    },
+    "total_bytes_stored": 16556,
+    "total_cap_bytes": 16777216
+  },
+  "cleanup_errors": [],
+  "log_errors": [],
+  "cargo_cache": {
+    "manifest_sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71",
+    "lock_sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2",
+    "locked_packages": 32,
+    "archive_files": 32,
+    "sparse_index_files": 32,
+    "config_sha256": "5b943a2c6f7eb743f7308aba07bdbb47d9ae44aafecd832d7f15df186afbafb3",
+    "before_closure_sha256": "21867ab3cfc05a00da02bc9e7f1cfd1533ef0be465e0a897b39e3ff893ee26b4",
+    "after_closure_sha256": "21867ab3cfc05a00da02bc9e7f1cfd1533ef0be465e0a897b39e3ff893ee26b4",
+    "unchanged": true
+  }
+}

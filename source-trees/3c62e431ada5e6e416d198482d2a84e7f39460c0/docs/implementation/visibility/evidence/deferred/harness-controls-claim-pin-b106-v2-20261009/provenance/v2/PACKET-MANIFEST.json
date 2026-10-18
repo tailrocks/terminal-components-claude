@@ -1,0 +1,199 @@
+{
+  "schema": "termrock-vis04-claim-pin-controls-packet-manifest/v1",
+  "state": "PREPARED_FOR_STATIC_REVIEW_NO_CARGO_TESTS_RUN",
+  "root": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009",
+  "created_at_utc": "2026-10-09T05:10:27.359Z",
+  "source_manifest_sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60",
+  "runplan_sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8",
+  "runner_sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd",
+  "preflight_script_sha256": "39e4a43fb3821eaf0edc090257f0b27deecace750f64a4008194f3c4cc83ff11",
+  "static_preflight_sha256": "70630f87f06f7d49d55f55437af43502800c91f2aa567be6e14704c166da8857",
+  "runtime_preflight_receipt_sha256": "cc1e78c01b0aa4b863792629950de6ffeeded627daa516d558a5749d5a40daf6",
+  "cargo_cache_manifest_sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71",
+  "trace_patch_sha256": "d79cf34fdf6de4c568523bacbf93d416b382481a93aa4610ca9237f15efa5b45",
+  "selected_rust_tests": 29,
+  "cargo_tests": "NOT_RUN",
+  "nextest_tests": "NOT_RUN",
+  "repository_mutations": false,
+  "excluded_mutable_paths": [
+    "runner/scratch/**",
+    "runner/target/**"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4843,
+      "sha256": "3bdfbd011ab9061eb785fc855569125fb4233b70855dd707e62f000a1df52c6c"
+    },
+    {
+      "path": "REVIEW-REQUEST.json",
+      "bytes": 3791,
+      "sha256": "b296ee16f589c22ddd2f42fc76a3cdf0e84630fb5fbc22c77d88dc6beec56245"
+    },
+    {
+      "path": "runner/cargo-cache-manifest.json",
+      "bytes": 24114,
+      "sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71"
+    },
+    {
+      "path": "runner/launch.sh",
+      "bytes": 197,
+      "sha256": "15f734ab5678701f7a3dbe4fb466b9be18d4846e4f9e77b03e0539a4950df4df"
+    },
+    {
+      "path": "runner/preflight.cjs",
+      "bytes": 10248,
+      "sha256": "39e4a43fb3821eaf0edc090257f0b27deecace750f64a4008194f3c4cc83ff11"
+    },
+    {
+      "path": "runner/preflight.json",
+      "bytes": 2205,
+      "sha256": "70630f87f06f7d49d55f55437af43502800c91f2aa567be6e14704c166da8857"
+    },
+    {
+      "path": "runner/provenance/base-deferred.py",
+      "bytes": 52726,
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+    },
+    {
+      "path": "runner/provenance/base-deferred.rs",
+      "bytes": 62489,
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+    },
+    {
+      "path": "runner/provenance/design-review.json",
+      "bytes": 6001,
+      "sha256": "ff07e9a2e8d2d1be5e3dd2f1ebcbdf03952039d3f7b36e54e25fced9e3f6bf99"
+    },
+    {
+      "path": "runner/provenance/implementation-manifest.json",
+      "bytes": 1986,
+      "sha256": "9dfb7bebafb6a6968f7a24bd1c5a86bde9ac9986d57775e19a1a82046fba66bd"
+    },
+    {
+      "path": "runner/provenance/implementation-review.json",
+      "bytes": 5617,
+      "sha256": "ac3a11153eb5192a74584b4dd21da16453a810d61b50db2933b67fc5466b9ad4"
+    },
+    {
+      "path": "runner/provenance/sourcefix-README.md",
+      "bytes": 2451,
+      "sha256": "9581380844e53dc9f5b4893973adf8f461b3ebd13ee11c2b342c6268a5f8d6f7"
+    },
+    {
+      "path": "runner/provenance/sourcefix.diff",
+      "bytes": 16736,
+      "sha256": "5c49a436ec77e5fc67534dbe6cbccbfd7a1501b480bf39f950f55a090fe638f3"
+    },
+    {
+      "path": "runner/provenance/trace-not-found.diff",
+      "bytes": 638,
+      "sha256": "d79cf34fdf6de4c568523bacbf93d416b382481a93aa4610ca9237f15efa5b45"
+    },
+    {
+      "path": "runner/run-controls.cjs",
+      "bytes": 26501,
+      "sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd"
+    },
+    {
+      "path": "runner/runplan.json",
+      "bytes": 9835,
+      "sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8"
+    },
+    {
+      "path": "runner/runs/2026-10-09T05-09-34-631Z-1ca26db6/nextest.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runner/runs/2026-10-09T05-09-34-631Z-1ca26db6/nextest.stdout.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runner/runs/2026-10-09T05-09-34-631Z-1ca26db6/receipt.json",
+      "bytes": 9335,
+      "sha256": "cc1e78c01b0aa4b863792629950de6ffeeded627daa516d558a5749d5a40daf6"
+    },
+    {
+      "path": "runner/source-manifest.json",
+      "bytes": 11045,
+      "sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60"
+    },
+    {
+      "path": "runner/test-names.json",
+      "bytes": 1948,
+      "sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369"
+    },
+    {
+      "path": "source/component-ownership.json",
+      "bytes": 4243,
+      "sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4"
+    },
+    {
+      "path": "source/crates/termrock-conformance/Cargo.toml",
+      "bytes": 726,
+      "sha256": "4d2b924566c74131adc9e4d57c3dad7ffd03fc487120683f1f8296c8d4f3c8d6"
+    },
+    {
+      "path": "source/crates/termrock-conformance/tests/control_states.rs",
+      "bytes": 278760,
+      "sha256": "dad018454b706e35518f2a405e4f4603f6a625c23de5d697932ec995fd55cabc"
+    },
+    {
+      "path": "source/crates/termrock-conformance/tests/parity_burndown.rs",
+      "bytes": 4195,
+      "sha256": "30d402b5f71fc078efa205c76139e43fa7effd3f9b9282ec889ce2d5c5e3a738"
+    },
+    {
+      "path": "source/crates/termrock-e2e/cases/deferred-obligations.json",
+      "bytes": 3675,
+      "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/Cargo.lock",
+      "bytes": 7322,
+      "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/Cargo.toml",
+      "bytes": 324,
+      "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "bytes": 21577,
+      "sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/src/lib.rs",
+      "bytes": 51086,
+      "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247"
+    },
+    {
+      "path": "source/crates/termrock-visibility-tests/tests/deferred.rs",
+      "bytes": 68958,
+      "sha256": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94"
+    },
+    {
+      "path": "source/docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+      "bytes": 27023,
+      "sha256": "e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d"
+    },
+    {
+      "path": "source/docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+      "bytes": 3138,
+      "sha256": "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d"
+    },
+    {
+      "path": "source/tests/conformance/required_cases.json",
+      "bytes": 621343,
+      "sha256": "04ebb893bdf4f9003e3f0957ff753eda95d1a0c68c4583b336d29af842acb99a"
+    },
+    {
+      "path": "source/tools/visibility/deferred.py",
+      "bytes": 55622,
+      "sha256": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee"
+    }
+  ]
+}

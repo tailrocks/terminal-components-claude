@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                            Workspaces › payments-platform › 7f3a  inside the Construct  2 running
+
+ ╭─ Workspaces ────────────────────── 2 running ─╮ │  7f3a · payments-platform           instance · running      Running                          2 instances
+ │     Current …ory  saved as payments-platform  │ │
+ │   ▾ payments-platform              1 running  │ │  Workspace     payments-platform › role the-architect       ◉ 7f3a  payments-platform · the-architect ·…
+ │     ◉ 7f3a  the-ar… Code  running 2 h 14 min  │ │  Agent         Claude Code · account Claude · Persona…         running 2 h 14 min · 3 tabs · 5 panes
+ │     ◌ c41e  revie…Codex  preserved · dirty •  │ │  Container     jackin-payments-platform-7f3a                   account Claude · Personal
+ │   ▸ infra-control-plane            1 running  │ │  Started       2 h ago · last seen 3 s ago
+ │   ▸ release-automation              ! failed  │ │  Lifecycle     running · Container and Capsule daemon       ◉ 9b02  infra-control-plane · sre · Codex
+ │   ▸ customer-portal                 ! failed  │ │                are live.                                       running 40 min · 1 tab · 1 pane
+ │     + New workspace                           │ │  Working tree  2 uncommitted · 1 unpushed                      account Codex · Experiments
+ │                                               │ │  Branch        feature/settlement-backoff · PR #482 ·…
+ │                                               │ │
+ │                                               │ │  Live topology                        daemon · 3 s ago      Preserved                          3 records
+ │                                               │ │  ▾ tab 1  Mix (3)                                           ◌ c41e  payments-platform · reviewer · pres…
+ │                                               │ │   › pane 1  claude     blocked                              ◌ a1c0  release-automation · backend · rest…
+ │                                               │ │     pane 2  codex      done                                 ◌ 04d7  infra-control-plane · sre · preserv…
+ │                                               │ │     pane 3  shell      unknown
+ │                                             ╭─ Container 7f3a ─────────────────────────────────── read-only ─╮Daemon                     healthy · 3 s ago
+ │                                             │ ▎ Container  jackin-payments-platform-7f3a            y copy   │Refresh      throttled · every 5 s
+ │                                             │   Image      jackin/derived:payments-platform-7f3a             │Usage        degraded · 4 warnings · 1 exha…
+ │                                             │   Workspace  payments-platform › role the-architect            │
+ │                                             │   Agent      Claude Code · account Claude · Personal           │
+ │                                             │   Target     /workspace/payments-platform · 2 mounts           │
+ │                                             │   Run id     run-7f3a                                          │
+ │                                             │   Lifecycle  running                                           │
+ │                                             │   Daemon     attached · 3 tabs · 3 s ago                       │
+ │                                             │                                                                │
+ │                                             │                                                                │
+ │                                             │                                                                │
+ │                                             │                                                        Close   │
+ │                                             ╰────────────────────────────────────────────────────────────────╯
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │  Reconnect    New session    Shell    Inspect    Stop
+ ╰───────────────────────────────────────────────╯ │
+
+                                                                  ↑↓ Move  y Copy  Esc Close

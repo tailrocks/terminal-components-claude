@@ -1,0 +1,43 @@
+{
+  "schema": "termrock.focused-static-runner-review/v1",
+  "status": "READY_STATIC_R5_DELTA_ONLY",
+  "qualification": "NOT_QUALIFIED",
+  "execution": "NOT_RUN_BY_REVIEWER; Root retains execution authority",
+  "bindings": {
+    "runner": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/runner.cjs",
+      "sha256": "0096bffe42a95984693c035cd00e562d2bfe346eac0b28841742caeddd92a083"
+    },
+    "packet": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/gate-packet.json",
+      "sha256": "5ab40a5ced48ea768f56c974ab177a64bca8639367a9a67444b1ad045625ccc1"
+    },
+    "plan": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/plan.json",
+      "sha256": "f544ae6af58928bce9dfdde97195796debcdc386d5aa4715ab8376469af37828"
+    },
+    "readme": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/README.md",
+      "sha256": "bde8475a5e29031d37ef1654d9b80e31d433679f641ea65b05d53d8ddd9ee411"
+    },
+    "preflight_stdout": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/preflight.stdout",
+      "sha256": "76ee106f332f43afe9ab74f27b2700116fbdffb8e5bdf3c57ff10f3a62e763fb"
+    },
+    "preflight_stderr": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/preflight.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "predecessor_runner": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r4-r8-20261010/run-root/runner.cjs",
+      "sha256": "1165a25cb5e6d827e8f3f2643e0d8550cd792165ac2aef663ecd6b655d22654a"
+    }
+  },
+  "review": {
+    "delta": "Runner diff from R4 changes only task/evidence root and packet SHA bindings plus passedIds() returning the sorted raw matches instead of Set-deduplicating them. The R4 source tree, source map, selected test rows, six groups, and [2,2,23,11,6,4] counts are unchanged.",
+    "pass_row_multiplicity": "The exact comparison of returned raw matched IDs against the sorted expected IDs now preserves duplicate multiplicity: a duplicate selected PASS row makes the arrays differ and the group cannot count as exact. Each selected ID must still appear, with summary executed/passed equal to its expected count and failed zero.",
+    "paths_and_preflight": "README runner path/SHA, --execute argv, output path, and preflight path/hash all identify R5. R5 preflight stdout binds this runner/packet, reports READY_FOR_INDEPENDENT_REVIEW_AND_ROOT_EXECUTION_DECISION_NOT_RUN, selected 48, execution output absent, and existing warm target. Preflight stderr is empty.",
+    "preserved_limits": "R9 prior one-test PASS and R10 isolated retry remain uncarried historical evidence. Source snapshot is Git-less; cache remains NOT_QUALIFIED and the declared-versus-derived byte/package-count discrepancies remain explicit. No workspace, product, release, tag, or tool qualification claim."
+  },
+  "no_cargo_nextest_or_tests_run_by_reviewer": true
+}

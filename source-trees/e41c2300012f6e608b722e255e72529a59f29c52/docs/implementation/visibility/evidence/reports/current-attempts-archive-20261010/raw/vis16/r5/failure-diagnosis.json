@@ -1,0 +1,178 @@
+{
+  "schema": "termrock.vis16.r5-failure-cause.v1",
+  "status": "CAUSE_ESTABLISHED_BY_ACTUAL_TYPED_ERROR_AND_SOURCE_DERIVED_ZIP_FIELD_RECONSTRUCTION",
+  "observed": {
+    "packet": "/private/tmp/termrock-vis16-observer-ingest-nextest-r5-diagnostic-20261010",
+    "exit_code": 100,
+    "counts": {
+      "expected_count": 7,
+      "started": 7,
+      "passed": 6,
+      "failed": 1,
+      "incomplete": 0,
+      "suites": [
+        {
+          "test_binary": "observer_ingest_cli",
+          "kind": "test",
+          "test_count": 7,
+          "started": 1,
+          "ok": 0,
+          "failed": 1,
+          "phase": "ended"
+        }
+      ],
+      "results": [
+        {
+          "name": "caller_api_identity_mismatches_stop_before_workflow_or_target_lookup",
+          "result": "passed"
+        },
+        {
+          "name": "github_sha_pull_request_and_target_sha_mismatches_fail_before_observer_lookup",
+          "result": "passed"
+        },
+        {
+          "name": "handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name",
+          "result": "failed"
+        },
+        {
+          "name": "incomplete_observer_run_stops_before_observer_record_or_artifact_lookup",
+          "result": "passed"
+        },
+        {
+          "name": "observer_api_attempt_mismatch_stops_before_jobs_artifacts_and_receipt",
+          "result": "passed"
+        },
+        {
+          "name": "process_help_and_fail_closed_policy_are_observable_without_network_access",
+          "result": "passed"
+        },
+        {
+          "name": "workflow_ref_or_workflow_source_mismatch_stops_before_target_and_observer_lookup",
+          "result": "passed"
+        }
+      ],
+      "errors": [
+        "suite did not finish successfully: observer_ingest_cli/failed",
+        "not passed: handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name (failed)",
+        "exact integration test suite did not complete with the expected count",
+        "suite did not have one ordered successful lifecycle: observer_ingest_cli"
+      ]
+    },
+    "failed_test": "handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name",
+    "typed_error": "Observer(MemberTooLarge)",
+    "synthetic_gets": 8,
+    "last_endpoint": "https://objects.githubusercontent.com/artifacts/900.zip",
+    "receipt_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r5-diagnostic-20261010/output/final-receipt.json",
+    "receipt_sha256": "193145b5f9e5f703807da300def025fe206b2f534a1095be81b2bf9e43abd4fa",
+    "stdout_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r5-diagnostic-20261010/output/nextest.stdout.jsonl",
+    "stdout_sha256": "a22230aecb2ff55520a8208ae3f9d708ecc45b1a5ce147e2af19a16833810cde",
+    "stderr_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r5-diagnostic-20261010/output/nextest.stderr.log",
+    "stderr_sha256": "b32f3f025e0c0353691bdc87af0ab0dfaa1760ca9e9266446d1e9ff86bd9642f",
+    "source_stable": true,
+    "nextest_run_id": "5445200a-7a6f-480e-bec0-194ed0faa3e9",
+    "child_pid": 86250,
+    "supervisor_child_exit": 100,
+    "selected_counts": {
+      "expected_count": 7,
+      "started": 7,
+      "passed": 6,
+      "failed": 1,
+      "incomplete": 0,
+      "suites": [
+        {
+          "test_binary": "observer_ingest_cli",
+          "kind": "test",
+          "test_count": 7,
+          "started": 1,
+          "ok": 0,
+          "failed": 1,
+          "phase": "ended"
+        }
+      ],
+      "results": [
+        {
+          "name": "caller_api_identity_mismatches_stop_before_workflow_or_target_lookup",
+          "result": "passed"
+        },
+        {
+          "name": "github_sha_pull_request_and_target_sha_mismatches_fail_before_observer_lookup",
+          "result": "passed"
+        },
+        {
+          "name": "handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name",
+          "result": "failed"
+        },
+        {
+          "name": "incomplete_observer_run_stops_before_observer_record_or_artifact_lookup",
+          "result": "passed"
+        },
+        {
+          "name": "observer_api_attempt_mismatch_stops_before_jobs_artifacts_and_receipt",
+          "result": "passed"
+        },
+        {
+          "name": "process_help_and_fail_closed_policy_are_observable_without_network_access",
+          "result": "passed"
+        },
+        {
+          "name": "workflow_ref_or_workflow_source_mismatch_stops_before_target_and_observer_lookup",
+          "result": "passed"
+        }
+      ],
+      "errors": [
+        "suite did not finish successfully: observer_ingest_cli/failed",
+        "not passed: handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name (failed)",
+        "exact integration test suite did not complete with the expected count",
+        "suite did not have one ordered successful lifecycle: observer_ingest_cli"
+      ]
+    }
+  },
+  "source_pins": {
+    "r4_source_root": "/private/tmp/termrock-vis16-observer-ingest-nextest-r4-diagnostic-20261010/source-root",
+    "test_file": "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs",
+    "test_file_sha256": "9b60bed8a629e7c06ae13041ee53bef52e9e4394b23276aad4f1dec92cadca49",
+    "observer_rs_sha256": "71e0404970c43cdf45af5dffaa07da0f24e6a00d5fa7ae952c53bcd474ea4e34",
+    "lib_rs_sha256": "ee109585c2da0b2ae3b60606e30a18f31fd6049ebaeaee38ce2b2986a789da38",
+    "api_rs_sha256": "21eb695b1e8a17f0f036de6550a5ef08bcc798078e1104a601b3fc700ae9d5fb"
+  },
+  "policy": {
+    "max_observer_json_bytes": 1048576,
+    "max_observer_zip_bytes": 8388608,
+    "json_limit_source": "crates/termrock-visibility-publisher/src/lib.rs:18",
+    "zip_limit_source": "crates/termrock-visibility-publisher/src/lib.rs:17 -> api::MAX_ARTIFACT_DOWNLOAD_BYTES; crates/termrock-visibility-publisher/src/api.rs:15",
+    "decode_member_limit_source": "crates/termrock-visibility-publisher/src/observer.rs:108"
+  },
+  "source_derived_measurement": {
+    "method": "Node-only deterministic reconstruction of the report field values and the exact stored_zip field-write order in observer_ingest_cli.rs; no Rust test or Cargo run. The fixture JSON strings are ASCII, and JSON object key order does not affect this byte count.",
+    "report_json_bytes": 692,
+    "zip_member_name": "ci-observer-report.json",
+    "zip_member_name_bytes": 23,
+    "malformed_fixture_archive_bytes": 834,
+    "malformed_central_fixed_header_bytes": 44,
+    "valid_central_fixed_header_bytes": 46,
+    "missing_central_header_bytes": 2,
+    "parser_uncompressed_size_read_at_central_offset_plus_24": 1507328,
+    "source_intended_local_uncompressed_size": 692,
+    "corrected_fixture_archive_bytes": 836,
+    "corrected_parser_uncompressed_size": 692,
+    "report_within_json_limit": true,
+    "malformed_parser_size_within_json_limit": false,
+    "malformed_archive_within_zip_limit": true,
+    "corrected_archive_within_zip_limit": true,
+    "calculation": "Central directory in current helper omits the DOS date u16 after signature/version/flags/method/time. Its fixed portion is 44 bytes, two short. This shifts CRC/compressed/uncompressed/name-length fields; the decoder reads the 23-byte filename length as the high word of the uncompressed-size value: 23 * 65536 = 1507328, above the 1 MiB JSON limit. Adding one zero u16 restores the 46-byte header; parsed uncompressed size becomes 692."
+  },
+  "fix_scope": {
+    "only_path": "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs",
+    "only_change": "Add the missing central-directory DOS date u16 field (zero) in stored_zip before CRC.",
+    "production_source_changed": false,
+    "production_size_limits_changed": false,
+    "assertions_removed_or_weakened": false,
+    "test_ids_changed": false,
+    "expected_test_line_count": 399
+  },
+  "limitations": [
+    "R5 did not preserve the archive response bytes as a standalone file; the 692/834/1507328 measurements are deterministic source-derived reconstruction, corroborated by the actual typed MemberTooLarge failure at the archive endpoint.",
+    "No claim that R5 passes; it exited 100 with six passing cases and one failing positive case.",
+    "R6 fix has not been built or tested."
+  ]
+}

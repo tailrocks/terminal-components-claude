@@ -1,0 +1,50 @@
+ [0m[1m jackin❯ [0m   File   Edit   View   Session   Help                                   [0m[1mpayments-platform › the-architect[0m  jackin-payments-pl…form-7f3a  2 instances [0m
+                                                                                                                                                                [0m
+ [0m[1m [0m1[0m[1m Mix (3) [0m●[0m[1m  [0m  2 Shell    3 docs ●                                                                                                                            [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+╭─[0m[1m Claude Code (Work) [0m●─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── zoomed ─╮[0m
+│▐ Claude Code v2.1.14 · Opus 4.5 · ~/payments-platform                                                                                                        │[0m
+│                                                                                                                                                              │[0m
+│› Refactor the settlement retry loop so failed batches                                                                                                        │[0m
+│  back off exponentially and cap at 5 attempts.                                                                                                               │[0m
+│                                                                                                                                                              │[0m
+│● I'll read the retry loop first.                                                                                                                             │[0m
+│                                                                                                                                                              │[0m
+│● Read src/settlement/retry.rs (142 lines)                                                                                                                    │[0m
+│● Read src/settlement/mod.rs (88 lines)                                                                                                                       │[0m
+│                                                                                                                                                              │[0m
+│● The loop retries with a fixed 3 attempts. I'll add                                                                                                          │[0m
+│  exponential backoff with jitter and cap it at 5.                                                                                                            │[0m
+│                                                                                                                                                              │[0m
+│● Edit src/settlement/retry.rs                                                                                                                                │[0m
+│  +  const MAX_ATTEMPTS: u32 = 5;                                                                                                                             │[0m
+│  +  let delay = BASE * 2u32.pow(attempt) + jitter();                                                                                                         │[0m
+│  -  for attempt in 0..3 {                                                                                                                                    │[0m
+│  +  for attempt in 0..MAX_ATTEMPTS {                                                                                                                         │[0m
+│                                                                                                                                                              │[0m
+│● Bash cargo test -p settlement retry                                                                                                                         │[0m
+│  running 6 tests … 6 passed (1.42 s)                                                                                                                         │[0m
+│                                                                                                                                                              │[0m
+│● Edit src/settlement/mod.rs                                                                                                                                  │[0m
+│  +  pub use retry::{MAX_ATTEMPTS, RetryPolicy};                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│● Retries now back off 250 ms → 4 s, capped at 5 tries.                                                                                                       │[0m
+│  One more edit: expose the policy in settlement config.                                                                                                      │[0m
+│                                                                                                                                                              │[0m
+│▶ Allow edit to src/settlement/config.rs? (y/n)                                                                                                               │[0m
+│❯                                                                                                                                                             │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+│                                                                                                                                                              │[0m
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+ [0m[1mPR #482 · Settlement retry backoff[0m   • 4 changed · 1 unpushed      Claude Code · Work · needs input       Session ━━━━━━━━─── 76%     Weekly ━━━━━━━━━━─ 88%   [0m
+                            [0m[1mCtrl+B[0m Prefix  [0m[1mF10[0m Menu  [0m[1mCtrl+\[0m Palette  [0m[1mAlt+Shift+↑↓←→[0m Resize  [0m[1mright-click[0m Tab menu  [0m[1mCtrl+Q[0m Quit    Zoomed · z restores the layout [0m

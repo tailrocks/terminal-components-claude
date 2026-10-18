@@ -1,0 +1,12 @@
+# Part 2 (24 worktrees): 36 unique + commits = 27 PRESENT, 2 DRIFT, 7 ABSENT (127 rows)
+DRIFT 58fea3e1 "warning statuses carry ▲" — keyhint adaptation not executed; analog REIMPLEMENTED via GlyphRole::WarningMark (theme/glyph.rs:35, rowui.rs:927) + holla direct ▲ (home.rs:367, plan.rs:216)
+DRIFT 4a46bcae "P6 verification walkthrough" — superseded by docs/audit/main-holla/holla-disposition.md (P6 132-identity analysis)
+ABSENT 49961e03 goal/prompt docs — stale/superseded, no action
+ABSENT 93d840fe + 26ed5d8e agent config/docs — trivial/stale, no .claude/agents in TARGET
+ABSENT 11f05998 holla-project/notes 1055 lines — dest never created; archive-worthy, non-functional
+ABSENT 5512ad63 p6_matrix capture script — known-defective per holla-disposition.md:62, replaced by xtask capture tooling
+ABSENT 0f974bf7 h_* scenario shots — historical snapshots only
+ABSENT 03a2bb50 main-vs-holla breakage analysis 1685 lines — explicitly superseded (holla-disposition.md:7)
+DIRTY holla-draw-review mod independent_draw_review — ADOPTED at 11b0d687
+DIRTY item-row-independent/columns independent_item_styles.rs — REJECTED: 9/10 assertions pass; 10th (explicit_columns_styles_win tier2) requires instance part-patch threading into RowUi/ColumnsUi/part() painters, a designed library change the source worktree never implemented either; independent_item_clip content already merged in item_row_columns.rs:342
+DIRTY holla-visual-reference +2 / jackin-fixture-reference-audit +11 — old bin layouts, superseded

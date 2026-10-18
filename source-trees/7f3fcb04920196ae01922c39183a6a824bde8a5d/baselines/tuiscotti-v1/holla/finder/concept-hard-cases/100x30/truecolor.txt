@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help      northwind-traders-platform-migrati…conciliation-core  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested here
+  › Analyze disk usage                 disk     here    / is 91% full
+    Resolve the rebase in lazygit      git      here    rebase in progress · 2 conflicts
+    Review 7 modified files            git      here    7 modified · 0 untracked
+    Open btm                           system   host    sustained pressure · continuous view fits
+    Review cleanup candidates          cleanup  host    8.0 GiB across 4 categories
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    Children · 14 projects             explore  child   14 child projects discovered
+    Parent · northwind-traders-platf…  explore  parent  workspace root above this folder
+    System · mbp                       explore  host    available on this host
+
+
+
+
+
+    → 'holla disk analyze' · here · read-only
+
+ ~/work/clients/northwind-trad…iation-service   ↓14 ↑3 • 7 · rebase   ! docker, github unavailable
+ Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

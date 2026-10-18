@@ -1,0 +1,11 @@
+{
+  "schema": "termrock-vis06-pair-build-launch-grant/v1",
+  "execution_authorized": true,
+  "runner_sha256": "4e75182162124f6b8398c305feba33021cdfc11463eca83ee6d1c4f23b1c322c",
+  "preflight_sha256": "c0e88ff9594195c1e509940f0a761dab689c2786b002183bb69f9a94af349212",
+  "selected_test": "supervises_real_holla_pair_build",
+  "suite_sha256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+  "review_sha256": "afc2d08038e9d9ab102991881bdbd5029ae791e7706f2e473d50e611a1da68e4",
+  "authorized_by": "/root",
+  "authorized_at": "2026-10-09T11:23:17.889Z"
+}

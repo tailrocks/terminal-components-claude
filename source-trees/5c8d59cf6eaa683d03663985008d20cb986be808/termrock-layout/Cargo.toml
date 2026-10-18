@@ -1,0 +1,11 @@
+[package]
+name = "termrock-layout"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+termrock-core.workspace = true
+ratatui.workspace = true
+ratatui-core.workspace = true

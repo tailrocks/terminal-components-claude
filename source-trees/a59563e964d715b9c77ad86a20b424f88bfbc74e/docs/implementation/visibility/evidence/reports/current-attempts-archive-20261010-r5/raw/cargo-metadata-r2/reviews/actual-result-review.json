@@ -1,0 +1,57 @@
+{
+  "schema": "termrock-vis11-diagnostic-metadata-r2-actual-result-review/v1",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "reviewed_at_utc": "2026-10-10T00:47:34Z",
+  "verdict": "VERIFIED_ACTUAL_RESULT_NOT_QUALIFIED_INDEX_GOAL_NOT_MET",
+  "scope": "Read-only review of Root\u2019s single R2 Cargo metadata result and its captured stdout/stderr. No rerun.",
+  "pins": {
+    "packet_root": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010",
+    "plan_sha256": "1d1f04db2f0cae97713ca358bed39b028360b084903c5aac605737c3dbad7dfb",
+    "runner_sha256": "697aa3ae07d5c44412a13bce25eeca95ccf13cf5c3d04c7b60a629eedbdd4d56",
+    "result_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/result.json",
+    "result_sha256": "f8bab9a7222c94eb170cf0ca26fe0c849c44fdc8955091d81f2ccf2c84418562",
+    "stdout_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/cargo-metadata.stdout.bin",
+    "stdout_bytes": 127855,
+    "stdout_sha256": "ea715e8d6c826037ffe895a696dfc66a6b715933a04b6997bc3a1074ba909494",
+    "stderr_path": "/private/tmp/termrock-vis11-diagnostic-metadata-e0bc-r2-luna-20261010/run-root/execution/cargo-metadata.stderr.bin",
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "observations": {
+    "execution": "COMPLETED",
+    "qualification": "NOT_QUALIFIED",
+    "argv": [
+      "metadata",
+      "--manifest-path",
+      "/private/tmp/termrock-vis11-diagnostic-candidate-e0bc-20261010/Cargo.toml",
+      "--locked",
+      "--no-deps",
+      "--format-version",
+      "1"
+    ],
+    "exit_code": 0,
+    "signal": null,
+    "timeout_kind": null,
+    "spawn_error": null,
+    "elapsed_ms": 42,
+    "closed": true,
+    "metadata_json_valid": true,
+    "package_count": 45,
+    "workspace_member_count": 45,
+    "resolve_present": false,
+    "reqwest_sparse_index_after": null,
+    "cache_tree_before": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+    "cache_tree_after": "fca99e44c62a4c1bd6fd1b274d143b7dac1e54e9f9751d4ea7856a329ba888f9",
+    "cache_changed_paths": 0,
+    "cache_root_identity_and_postcheck_passed": true,
+    "candidate_unchanged": true,
+    "cargo_target_unchanged": true,
+    "git_network_operation_observed": false,
+    "prior_r3b_failure_preserved_sha256": "d3c2bc1ee512d80cc6345de03b29bbd20788211f067ab2fe55d8bf0f6bd70d30"
+  },
+  "finding": "The command itself succeeded and produced valid Cargo metadata JSON, but the requested cache-fill postcondition failed: the JSON has no resolve data, the reqwest sparse-index file is still absent, and the full Cargo-home inventory has zero changes. The packet\u2019s METADATA_INDEX_FILL_FAILED_OR_INCOMPLETE status and NOT_QUALIFIED classification are correct.",
+  "limitations": [
+    "No Cargo, CLI, tests, build, network operation, or cache mutation was performed by this reviewer.",
+    "This review does not establish complete registry-index/cache closure or qualify the generator."
+  ]
+}

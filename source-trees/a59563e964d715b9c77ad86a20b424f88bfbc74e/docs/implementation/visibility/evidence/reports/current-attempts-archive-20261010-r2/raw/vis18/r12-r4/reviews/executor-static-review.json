@@ -1,0 +1,48 @@
+{
+  "schema": "termrock-independent-executor-review-v1",
+  "work_id": "VIS-18",
+  "verdict": "READY_STATIC_PREFLIGHT_REVIEW_ONLY",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "reviewed_at": "2026-10-10",
+  "scope": "Focused static review of the R12 R4 executor's source-successor validation, R11 metadata/package bindings, cache/warm-target receipts, and no-launch preflight. No Cargo, Nextest, tests, or launch.",
+  "pins": {
+    "executor": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/executor.cjs",
+      "sha256": "c94f2161d341b20b209f565f0e4f7fe7acefaa1657113e318aa4640cbe491280"
+    },
+    "invocation": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/invocation.json",
+      "sha256": "1cc4bb5aeb8088b1c84cce7e9b37349ffeb1315a6b498336280062dfa240638b"
+    },
+    "launch_grant_template": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/launch-grant.template.json",
+      "sha256": "874b2310a2691c09802305a0dfe2d39d23ede32439e40f05bf3a5b3aea8be4df"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/preflight.json",
+      "sha256": "5bfb08dada9b45041f666cacb672edaa811736cf1d17e817a4284a094fae1b86"
+    },
+    "r11_proposal": "73c393a3f46989c488c843b11121482826933f244d7e9199bbcae16a8f14ddeb",
+    "r11_source_review": "16d750440895b65cc7a38923adda9050df9ef71eb02766dd7a46f1801f983cec",
+    "r12_corrected_proposal": "0d2799467e728fdab6b5ba6a59e85ce60264d30acff9d1177b5c19a80181aef9",
+    "r12_digest_erratum": "bf2e3b0b8c44bae0d0c317ca441d1c9f6d880d0d76a9c8fd8b3b91af39892a32",
+    "r12_digest_review": "c8f1843b436fc0e6b3827a623b401cafb422412603e719a3990909e1ad4db222",
+    "source_patch": "475a918cd044f6b0230c7ee1114658703f601b7516b2ccfdf7e354972cc4a914",
+    "runtime_cache_copy_receipt": "59af63de5241679f2934ac5b8cb829729b7854dfa47f85bebbc60eb9872b7767",
+    "warm_target_receipt": "f896ae4ac16ee37f117094d70348d707e9f42ad869a4351e98f5721a3ab94f1b",
+    "r11_metadata_result": "ec4e77e5abee9c40b6eb4061872541556098c4cdc994ba4e9e43208aaac9f80b",
+    "r11_metadata_stdout": "a908da78966e6d45e978bc30e9123c973962bf749085af8d78c8ebd323b2404d"
+  },
+  "review": {
+    "source_successor_chain": "The executor separately opens and hash-pins the original R11 proposal and source review, corrected R12 proposal, digest erratum, and READY digest review. It preserves the original 4f832… digest, verifies the R11 source-review bindings against that original proposal, normalizes only successor.package_digest, then checks the corrected proposal and digest-review rows against the corrected value.",
+    "package": "The preflight snapshot records the R11 package root, ten file rows, unchanged lock SHA a80325ff…a586c1f, and corrected length-prefixed package digest ed1bbc08f867d4409dd71deb3fe81e398e725eaad04ab451c1261693416c57d0. This digest was independently recomputed in the bound digest review.",
+    "metadata": "The invocation reuses R11 metadata result/stdout/stderr and R11 package root. Executor checks locked/offline/all-features metadata result, lock before/after, package count 41, and workspace_root equal to the R11 package root; no tests are represented as having run.",
+    "cache_and_target": "Runtime Cargo cache receipt binds 85 private copied files, 40 archives, 44 sparse index records, R6 source receipt and R4 preparation receipt. Warm-target receipt binds the R10 source snapshot copied into the fresh R12 target root and checks exact file/directory identities before launch.",
+    "no_launch_state": "Invocation and grant template both say PREPARED_NOT_AUTHORIZED / PENDING_ROOT_DECISION with execution_authorized=false. Supplied preflight is PREFLIGHT_PASS_NO_CARGO_NO_TEST, authorized=false, and records only read-only inventories; runtime directory has no launch logs/result/report.",
+    "limits": "This review accepts the static binding/preflight contract only. It does not authorize the ignored Rust test or claim historical R11 cache-source audit success."
+  },
+  "execution": {
+    "cargo_or_nextest_run_by_reviewer": false,
+    "launch_grant_created_by_reviewer": false
+  }
+}

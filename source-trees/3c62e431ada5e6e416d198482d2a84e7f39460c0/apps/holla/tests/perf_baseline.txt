@@ -1,0 +1,3 @@
+# perf baseline: name ns allocs bytes [hits ring]
+# regenerate with PERF_BLESS=1 in a release build; review like a snapshot
+frame_holla_first_use_120x40 1999825 77 6234

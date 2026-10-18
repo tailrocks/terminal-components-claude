@@ -1,0 +1,45 @@
+{
+  "schema": "termrock-vis01-provider-poll-source-scope/v1",
+  "accepted_task": {
+    "work_id": "VIS-01",
+    "owner": "/root/reference_claim_luna",
+    "reviewer": "/root/ci_parity_review_luna",
+    "integrator": "/root",
+    "accepted_claim_path": "/private/tmp/termrock-vis01-provider-observation-root-accepted-claim-20261010.json",
+    "accepted_claim_sha256": "374b8ffdf56b7144bbddc28af29783c59392f3d93c49a44c35e04f3ece4c2cdc"
+  },
+  "source_base": {
+    "commit": "4a97037c04bb97b01ccbf9c9163b7bb3e406f6b7",
+    "tree": "963e51b485cf435baaebada0e851e9fd3cf08791",
+    "git_directory": "/private/tmp/termrock-root-integration-20261010.git"
+  },
+  "allowed_paths": [
+    {
+      "path": "tools/visibility/status.py",
+      "preimage_sha256": "53d7ca682e33ffe37f5ab22274d3a0d819562801939b17783690f4e4bd739419"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "preimage_sha256": "1fba764643b9fe5ce05fd9027732901a15e652e2a1e6baab2227eff957a2ea59"
+    }
+  ],
+  "change": "Add a discriminated provider-poll schema variant beside the unchanged strict provider endpoint-capture v1 validator/render path. Validate exact archived raw evidence, separate a CLI-visible zero-job report from a jobs API 404, represent log response status as NOT_CAPTURED and failure cause as NOT_EXPOSED, bind historical source/run/tree identity, and never promote readiness.",
+  "required_regressions": [
+    "valid historical poll remains renderable after latest candidate advances",
+    "jobs API 404 is distinct from CLI-visible zero jobs",
+    "log HTTP status is NOT_CAPTURED and cause is NOT_EXPOSED",
+    "reject missing/tampered/unlisted archive members",
+    "reject source/run/tree identity drift",
+    "reject duplicate run-attempt and non-monotone rows",
+    "reject unknown schema/fields and preserve strict endpoint-v1 behavior",
+    "preserve NOT_RUN readiness"
+  ],
+  "excluded": [
+    "facts or STATUS edits",
+    "canonical worktree/index/ref writes",
+    "Cargo, build, Nextest, or test execution",
+    "workflow-size attribution as this run's failure cause",
+    "inference of jobs API count from an HTTP error"
+  ],
+  "status": "EXTERNAL_SOURCE_PREIMAGES_FROZEN_NO_EDITS_YET"
+}

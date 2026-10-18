@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    repos · project collection  mbp · local [0m
+                                                                                                                        [0m
+  Here    pull alpha ✓ ×                                                                                                [0m
+ ────────━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────── [0m
+  pull alpha · succeeded · 0 s · exit 0                                               child · ~/work/repos/alpha · mbp  [0m
+  $ git -C /Users/alex/work/repos/alpha pull · started by Pull 4 sibling repositories · batch git.pull-all              [0m
+                                                                                                                        [0m
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ git -C /Users/alex/work/repos/alpha pull                                                                        │ [0m
+ │  From github.com:acme/alpha                                                                                        │ [0m
+ │     a1b2c3d..a9c0f1e  ╭────────────────────────────────────────────────────────────────────╮                       │ [0m
+ │  Updating a1b2c3d..a9c│ [0m[1mActivities[0m                                                  0 live │                       │ [0m
+ │  Fast-forward         │ [0m[1m▎[0m✓[0m[1m pull alpha  [0msucceeded · child · 0 s[0m[1m                 [0mactivities[0m[1m [0m │                       │ [0m
+ │   6 files changed, 39 │  ✓ pull beta   succeeded · child · 0 s                             │                       │ [0m
+ │                       │  ! pull delta  failed · child · 0 s                                │                       │ [0m
+ │                       │  ! pull gamma  failed · child · 0 s                                │                       │ [0m
+ │                       │                                                                    │                       │ [0m
+ │                       │                                                                    │                       │ [0m
+ │                       ╰────────────────────────────────────────────────────────────────────╯                       │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ ~/work/repos                                     succeeded · 0 s                                     no color · 120×40 [0m
+      [0m[1m  [0m         [0m[1m [0m   [0m[1m↑↓[0m Mov[0m[1me[0m  [0m[1mEnter [0mSwitch [0m[1m Esc[0m Cancel    [0m[1m![0m Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled [0m

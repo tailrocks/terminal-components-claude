@@ -1,0 +1,266 @@
+{
+  "schema": "termrock-vis13-fresh-clone-status-run-copy-map/v2",
+  "archive_revision": "R2",
+  "proposed_repository_path": "docs/implementation/visibility/evidence/reports/fresh-clone-status-1d66-r10-20261009",
+  "archive_root": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r2",
+  "revision_note": "R2 preserves R1 raw R10 evidence unchanged, corrects the queue acceptance-versus-observation wording, and adds three exact Git stdout captures for the task-scope snapshot. R1 is preserved unchanged.",
+  "task_scope_snapshot": {
+    "work_id": "VIS-13",
+    "owner": "/root/tag_capture_boundary_luna",
+    "reviewer": "/root/ci_parity_review_luna",
+    "priority": "P0",
+    "state": "claimed",
+    "claim_token": "visibility-status-archive-q34-20261009-01",
+    "accepted_queue_revision": 35,
+    "observed_queue_revision": 46,
+    "task_record_sha256": "89f43f7303c771631b5b54603b12db79b348f9b54919b57b6192643639a57d1b",
+    "work_queue_sha256": "90e3040151071d1b2a2c6438d7da0cdc37830959f74606ffee4572c20d049ddd",
+    "repository_path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+    "repository_branch": "termrock-implementation",
+    "repository_head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "scoped_status_lines": [
+      "M STATUS.md",
+      " M WORK_QUEUE.md",
+      " M docs/implementation/visibility/tasks.json"
+    ],
+    "allowed_paths": [
+      "docs/implementation/visibility/evidence/reports/**"
+    ],
+    "vis01_allowed_paths": [
+      "tools/visibility/status.py",
+      "tools/visibility/tests/test_status.py",
+      "tools/visibility/source-facts.json",
+      "tools/visibility/README.md",
+      "STATUS.md",
+      "README.md",
+      "crates/termrock-visibility-tests/tests/status.rs"
+    ],
+    "requested_destination_within_allowed_path": true,
+    "vis01_vis13_paths_disjoint": true,
+    "task_record_and_queue_are_working_tree_snapshots": true,
+    "remote_publication_not_asserted": true
+  },
+  "scope_observation": {
+    "captured_at_utc": "2026-10-09T09:18:12Z",
+    "git_optional_locks": "0",
+    "raw_outputs": [
+      "raw/scope/repository-head.stdout.raw",
+      "raw/scope/repository-branch.stdout.raw",
+      "raw/scope/task-scope-status.stdout.raw"
+    ]
+  },
+  "excluded": {
+    "fresh_clone": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/repo",
+    "cargo_home": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/cargo-home",
+    "target_dir": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/target-r10",
+    "reason": "source checkout, Cargo cache, and build target remain outside the repository archive"
+  },
+  "provenance_boundaries": [
+    "The copied worktree-sync note is explicitly derivative and not a raw Root restore-command log; no original Root restore log was supplied.",
+    "The saved independent after-guard is actual post-state guard output and is not represented as Root original command output.",
+    "The run-result record lacks an embedded runner hash and pre-spawn checkInputs snapshot; independent actual-result review preserves this limitation and links execution to Root reported invocation of the reviewed R10 runner.",
+    "Execution covers one status-render test only; it does not qualify a product, full suite, paired visual run, or readiness.",
+    "Task record and queue hashes represent the observed working tree at HEAD 766ae1e925e32b4b28aa9100bb3fde5279aa223b; they are not described as remotely published metadata."
+  ],
+  "files": [
+    {
+      "path": "raw/runner/runner.cjs",
+      "bytes": 13611,
+      "sha256": "21b1c22023c24cf364af0edebb76d1e966377d418f2208b898bb8296f9bb3c2e",
+      "label": "exact R10 supervisor source",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/runner.cjs",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/runner/runner.cjs",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/runner/preflight.json",
+      "bytes": 12374,
+      "sha256": "25466196c8b8a62c2a15d16da7e3034994b3cac1c25f84c19b9232d67584fb9b",
+      "label": "R10 no-Cargo preflight output",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/preflight.json",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/runner/preflight.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/runner/README.md",
+      "bytes": 5945,
+      "sha256": "7576a0b2615589c61031495e43ef6eaf140a7615e7befbb0704d005497c7fcfa",
+      "label": "R10 execution scope and instructions",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/README.md",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/runner/README.md",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/runner/review-request.json",
+      "bytes": 2474,
+      "sha256": "9b92ae937154acbe7de3c03bb3a38f30d15c3e00a259fe166175319144167acb",
+      "label": "R10 static review request",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/review-request.json",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/runner/review-request.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/execution/run-result.json",
+      "bytes": 2643,
+      "sha256": "f5de87380b9f05dd99a70861a68767a6d73d60fb1a7adcd259ca73be49ba929a",
+      "label": "R10 supervisor run result",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/result/run-result.json",
+      "source_mode": "600",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/execution/run-result.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/execution/supervisor.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "label": "R10 supervisor exit marker",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/result/supervisor.exit",
+      "source_mode": "600",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/execution/supervisor.exit",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/execution/stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "label": "unmodified R10 child stdout stream (empty)",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/result/stdout.raw",
+      "source_mode": "600",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/execution/stdout.raw",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/execution/stderr.raw",
+      "bytes": 1259,
+      "sha256": "527d81e65c32aaa66804ab55947d2ed9a16d2666b0ea6bb11097ceb44a0c9a69",
+      "label": "unmodified R10 child stderr stream with Nextest output",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/result/stderr.raw",
+      "source_mode": "600",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/execution/stderr.raw",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/reviews/static-review.json",
+      "bytes": 4358,
+      "sha256": "8842679c44c2c7ea0708a51d9f1a34a1a1148798e04cf1f394e5d72dbcc3e0c6",
+      "label": "independent static runner review",
+      "source_path": "/private/tmp/termrock-vis01-fresh-clone-run-r10-review-ci-parity-luna.json",
+      "source_mode": "644",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/reviews/static-review.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/reviews/actual-review-request.json",
+      "bytes": 3565,
+      "sha256": "198eb7aa85983f8da085bd7190f37398b7411f84fc9ed78f476c39e2234e3dca",
+      "label": "read-only actual-result review request",
+      "source_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10-actual-review/actual-review-request.json",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/reviews/actual-review-request.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/reviews/actual-review.json",
+      "bytes": 3743,
+      "sha256": "4fdfcb8b7397291c79c7ca500dcae0b20560c7ed12a874bc96c4898dc353dfe5",
+      "label": "independent actual-result review",
+      "source_path": "/private/tmp/termrock-vis01-fresh-clone-r10-actual-review-ci-parity-luna-v1.json",
+      "source_mode": "644",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/reviews/actual-review.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/publication/root-publication-observation.json",
+      "bytes": 1305,
+      "sha256": "4c466a15ab072e50f8a8d0a39fbb3276219b6ab36ac24e613309729110ade0fc",
+      "label": "Root saved publication observation for commit 1d66",
+      "source_path": "/private/tmp/termrock-vis01-root-publication-observation-20261009-r4.json",
+      "source_mode": "600",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/publication/root-publication-observation.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/worktree-sync/operation-note.md",
+      "bytes": 1703,
+      "sha256": "7778276338288b3e323f5ae4a440c7900e581bed600cb757b8ba48db8f03a141",
+      "label": "derivative sync note; explicitly not a raw Root execution receipt",
+      "source_path": "/private/tmp/termrock-vis01-worktree-sync-1d66f444-20261009-r6/operation-note.md",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/worktree-sync/operation-note.md",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/worktree-sync/independent-after-guard.json",
+      "bytes": 432,
+      "sha256": "f57bfa40095b963bb464715a134ebe270841324f10a1d72f3f9af68ec129853c",
+      "label": "saved independent post-sync guard output",
+      "source_path": "/private/tmp/termrock-vis01-worktree-sync-1d66f444-20261009-r6/independent-after-guard.json",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "copy_source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r1/raw/worktree-sync/independent-after-guard.json",
+      "copy_method": "byte-for-byte copy from preserved external R1 package"
+    },
+    {
+      "path": "raw/scope/repository-head.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r2/raw/scope/repository-head.stdout.raw",
+      "bytes": 41,
+      "sha256": "45a7e8f273c4866ef321d5cfa98ae6f745a7181ec7c1c5e62ba0a8bfe98e30ec",
+      "label": "exact stdout from read-only Git HEAD query",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "capture_command": "/usr/bin/git -C /Users/donbeave/Projects/tailrocks/terminal-components-claude rev-parse HEAD",
+      "capture_executable": "/usr/bin/git",
+      "capture_environment": {
+        "GIT_OPTIONAL_LOCKS": "0"
+      },
+      "capture_method": "exact child stdout bytes saved without formatting"
+    },
+    {
+      "path": "raw/scope/repository-branch.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r2/raw/scope/repository-branch.stdout.raw",
+      "bytes": 24,
+      "sha256": "f4cc7815914e89d4a04231e0b7e1eec7a046bd08d5778779dccdfca0cbd1b143",
+      "label": "exact stdout from read-only Git branch query",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "capture_command": "/usr/bin/git -C /Users/donbeave/Projects/tailrocks/terminal-components-claude branch --show-current",
+      "capture_executable": "/usr/bin/git",
+      "capture_environment": {
+        "GIT_OPTIONAL_LOCKS": "0"
+      },
+      "capture_method": "exact child stdout bytes saved without formatting"
+    },
+    {
+      "path": "raw/scope/task-scope-status.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis13-fresh-clone-status-r10-20261009-r2/raw/scope/task-scope-status.stdout.raw",
+      "bytes": 75,
+      "sha256": "fb158bac7a10c0411f6ce34bf554b5f91a006b974fa0f6ba942a49c34ed51675",
+      "label": "exact stdout from path-limited read-only Git status query",
+      "source_mode": "444",
+      "copy_mode": "444",
+      "capture_command": "/usr/bin/git -C /Users/donbeave/Projects/tailrocks/terminal-components-claude status --short --untracked-files=all -- STATUS.md WORK_QUEUE.md docs/implementation/visibility/tasks.json",
+      "capture_executable": "/usr/bin/git",
+      "capture_environment": {
+        "GIT_OPTIONAL_LOCKS": "0"
+      },
+      "capture_method": "exact child stdout bytes saved without formatting"
+    }
+  ]
+}

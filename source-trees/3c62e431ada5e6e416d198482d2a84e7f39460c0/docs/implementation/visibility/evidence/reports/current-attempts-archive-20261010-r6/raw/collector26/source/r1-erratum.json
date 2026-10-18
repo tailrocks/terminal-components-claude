@@ -1,0 +1,14 @@
+{
+  "schema": "termrock-vis08-r17-aliasfix-r1-erratum/v1",
+  "r1_directory": "/private/tmp/termrock-vis08-r17-aliasfix-r1-20261010",
+  "announced_expected_source_sha256": "74d49ee827893106a84f6a96d53b50e66cf848456c74f2384a762e55a45ef8d2",
+  "observed_preserved_candidate_sha256": "2968e5f4d01eac508f857b3a7a5088f25c053ac8116d2d11e7c141b2e8bc12cc",
+  "observed_projection_tree": "a2ef43293b757b10a7279e1f25e2a526e3c20421",
+  "observed_projection_blob": "c8500d29a0a723f3a152b4262563a53be20025cd",
+  "observed_projection_blob_sha256": "2968e5f4d01eac508f857b3a7a5088f25c053ac8116d2d11e7c141b2e8bc12cc",
+  "review_receipt": "/private/tmp/termrock-vis08-r17-aliasfix-source-review-luna-20261010.json",
+  "review_receipt_sha256": "e73bce1172296dce0567922c4e8639cd6efae117a584dd9ce03334fe1fd2a203",
+  "status": "unreconstructible-announced-bytes",
+  "reason": "The preserved R1 candidate, base, patch, and projection contain the observed 2968e5... bytes; the announced 74d49... source bytes are not present in the R1 packet. No restoration to the announced bytes was possible without inventing a reconstruction.",
+  "rustfmt_claim_clarification": "Only a read-only rustfmt --check was run. It exited 1 on both base and candidate with the same baseline formatting hunks; no rustfmt write/format command was run."
+}

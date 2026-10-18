@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Panels                                                                         truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Panels  Cards group; a frame only where a pane needs an edge; nothing boxed twice
+▎  Overview
+                            Titled card                                            surface    ╭─ Framed · split pane ───────────────────────────────────────  ─╮
+   Components                                                                                 │  Junie works through a task the way a careful engineer         │
+▎  Buttons                  A card is a filled surface. Its title sits in the top-left and    │  would: it reads the relevant code, forms a plan, makes        │
+▎  Inputs                   metadata on the right. It never has a border.                     │  focused changes, runs the tests, and reports back with a      │
+▎  Text areas                                                                                 │  summary you can review before anything is merged.             │
+▎  Forms                                                                                      │                                                                │
+▎  Lists                                                                                      │  Each step is visible. You can pause, redirect, or take over   │
+▎  Trees                                                                                      │  at any point, and every change lands as an ordinary diff in   │
+▎  Tables                                                                                     │  your working tree.                                            │
+▎  Editable tables          Untitled card. Same surface, content starts at the padding        │                                                                │
+▎› Panels                   edge.                                                             │  The design system in this prototype exists so that the        │
+▎  Sidebars                                                                                   │  terminal version of that experience feels as deliberate as    │
+▎  Dialogs                                                                                    │  the web version: quiet surfaces, one accent, clear focus,     │
+▎  Progress                                                                                   │  and no decoration that does not carry information.            │
+▎  Scrolling                                                                                  │                                                                │
+▎  Terminal                 Nested                                                            │  Scroll with the mouse wheel, PageUp/PageDown, or the arrow    │
+▎  Code editor                                                                                │  keys while this panel has focus. The scrollbar on the right   │
+▎  Data grid                Target                          A group inside a card is a        │  shows where you are and how much remains.                     │
+▎  Chips & selects          ▎  Local                        muted label plus indent. The      │                                                                │
+▎  Pickers                  ▎  CLI                          focus bar stays on the            │                                                                │
+▎  Chrome                   ▎  Cloud                        control.                          │                                                                │
+                                                                                              ╰────────────────────────────────────────────────────────────────╯
+   Screens
+▎  Settings                                                                                     Card · scrollable
+▎  Task runner
+                                                                                                   0.00s  info   Resolving workspace members                 ┃
+                                                                                                   0.37s  info   Fetching crates.io index                    ┃
+                                                                                                   0.74s  info   Compiling proc-macro2 v1.0.86               ┃
+                                                                                                   1.11s  info   Compiling serde v1.0.210                    ┃
+                                                                                                   1.48s  warn   unused import: `std::fmt` in src/api/mod.r… ┃
+                                                                                                   1.85s  info   Compiling tokio v1.40.0                     │
+                                                                                                   2.22s  info   Running unittests src/lib.rs                │
+                                                                                                   2.59s  info   test api::auth::tests::rejects_expired ...… │
+                                                                                                   2.96s  info   test db::pool::tests::reuses_connections .… │
+                                                                                                   3.33s  error  test checkout::places_order ... FAILED      │
+                                                                                                   3.70s  info   test workers::scheduler::tests::respects_t… │
+                                                                                                   4.07s  info   Linking target/debug/deps/app-4f2c1b        │
+                                                                                                   4.44s  info   Resolving workspace members                 │
+                                                                                                   4.81s  info   Fetching crates.io index                    │
+                                                                                                   5.18s  info   Compiling proc-macro2 v1.0.86               │
+                                                                                                   5.55s  info   Compiling serde v1.0.210                    │
+                                                                                                   5.92s  warn   unused import: `std::fmt` in src/api/mod.r… │
+                                                                                                   6.29s  info   Compiling tokio v1.40.0                     │
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

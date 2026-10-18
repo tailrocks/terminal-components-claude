@@ -1,0 +1,147 @@
+{
+  "schema": "termrock-vis04-product23-actual-independent-review-v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "reviewed_at_utc": "2026-10-09T03:14:09.125Z",
+  "verdict": "VERIFIED_FAILED_RUN",
+  "scope": "Independent read-only review of the frozen v3 product23 actual run and external ledger. No Cargo/Nextest rerun and no source edit.",
+  "static_review": {
+    "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW-independent-review-luna.json",
+    "sha256": "40888d5d3bb4af6d20f92dc6d31008510cd39a04420324d8b638f1aa28ed1cd5"
+  },
+  "pins": {
+    "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "source_manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
+    "archive_sha256": "a042bfc9e3a861660709fc345937c4ef2cecbebe6bb08c0646fafcdab7643edb",
+    "runplan_sha256": "1e80f9232545a41f3685857603d1d033d2b529878cb9efd443da1d034617b149",
+    "runner_sha256": "310d4ab8a689f45b19ae5ef40cd276c85fe658de039db6f7c57627d08412d267",
+    "launch_sha256": "ee2fc1f463e8348c6777b6ddd14ffeeb577fac8a69b251ac0f47a1c2ea725c47",
+    "source_file_count": 481,
+    "contract_reference_count": 3,
+    "source_and_contract_entries_match_manifest": true,
+    "archive_hash_matches_manifest": true
+  },
+  "run": {
+    "receipt_path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/receipt.json",
+    "receipt_sha256": "c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929",
+    "nextest_run_id": "b88b36d1-5809-4cc9-b9fd-306970f65be7",
+    "child_exit_code": 100,
+    "signal": null,
+    "timed_out": false,
+    "forced_close": false,
+    "parse_errors": [],
+    "selection": {
+      "package": "termrock-conformance",
+      "binary": "control_states",
+      "expected_count": 23,
+      "listed_count": 23,
+      "selected_names_match_plan": true,
+      "normal_count": 22,
+      "ignored_ids": [
+        "BD-21"
+      ],
+      "run_ignored": "all",
+      "bd21_listed_ignored": true
+    },
+    "counts": {
+      "passed": 22,
+      "failed": 1
+    },
+    "outer_nextest_summary": "23 tests run: 22 passed, 1 failed, 87 skipped",
+    "failed_rows": [
+      {
+        "id": "BD-21",
+        "cases": [
+          "W13-05"
+        ],
+        "test_name": "w13_filter_wide_trail_cells_clear",
+        "component": "W13",
+        "owner": "termrock-navigation",
+        "registry_status": "NOT_RUN",
+        "registered_ignored": true,
+        "ignore_reason": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints",
+        "status": "failed"
+      }
+    ],
+    "bd21_failure_is_not_inverted": true,
+    "raw_logs": {
+      "list_stdout": {
+        "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stdout.json",
+        "bytes": 15683,
+        "bytes_received": 15683,
+        "sha256": "da0409aa2057ef2b7572a6d710ec60525aac59f182e4bd958f6620837b130967",
+        "truncated": false,
+        "write_failed": false
+      },
+      "list_stderr": {
+        "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stderr.log",
+        "bytes": 0,
+        "bytes_received": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "truncated": false,
+        "write_failed": false
+      },
+      "run_stdout": {
+        "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stdout.jsonl",
+        "bytes": 6927,
+        "bytes_received": 6927,
+        "sha256": "bc842d9264dffa93dd6f68ad04b83b2604753f4571f702e42e1f9f6ec34fb800",
+        "truncated": false,
+        "write_failed": false
+      },
+      "run_stderr": {
+        "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stderr.log",
+        "bytes": 24398,
+        "bytes_received": 24398,
+        "sha256": "b1dc48563cbe3d7ab38d532b794121f6a3609cfe2d7f1d5f7cf0cbb5e898956c",
+        "truncated": false,
+        "write_failed": false
+      }
+    },
+    "source_postflight_check_passed_by_runner": true,
+    "source_tree_matches_manifest_at_review": true
+  },
+  "ledger": {
+    "path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/ledger-record.json",
+    "sha256": "485142854f3569909c0d8980de58a4e2f2f863eaf522982a027638d9496853ff",
+    "record_status": "external_record_prepared",
+    "repository_write_performed": false,
+    "receipt_sha256": "c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929",
+    "receipt_hash_matches": true,
+    "result": "FAILED",
+    "counts": {
+      "expected": 23,
+      "passed": 22,
+      "failed": 1,
+      "skipped": 0,
+      "not_run": 0,
+      "incomplete": 0
+    },
+    "row_mapping_matches_receipt": true,
+    "bd21": {
+      "requirement_id": "BD-21",
+      "case_ids": [
+        "W13-05"
+      ],
+      "test_name": "w13_filter_wide_trail_cells_clear",
+      "component_id": "W13",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": true,
+      "ignore_reason": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints",
+      "status": "failed"
+    }
+  },
+  "interpretation": {
+    "selected_control_suite_result": "FAILED: 22 passed, BD-21 failed",
+    "bd21_status_remains_failed": true,
+    "expected_failure_inversion": false,
+    "product_registry_status_remains": "NOT_RUN",
+    "product_repair_performed": false,
+    "pty_qualification": false,
+    "not_a_product_pass": true
+  },
+  "limitations": [
+    "This review validates the recorded R5/S1d selected 23-control run only.",
+    "The output shows the known W13-05 stale-glyph failure: the failure event reports unexpected `y` in the rendered `旧日本` cells (test source line 6137).",
+    "Raw receipt, stdout, stderr, event log, and ledger are preserved; no rerun or repository/source mutation was performed."
+  ]
+}

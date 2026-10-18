@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                              Accounts › Overview  ⠋ refreshing 1  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+ ╭─ Accounts ─────────────────────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                                                  12 accounts · 8 providers   [0m
+ │     Overview                                      │ │                                                                                                        [0m
+ │   ▾ Claude                                 !   3  │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 failed · 1 quota not   [0m
+ │     ★ Personal                     current 4 min  │ │                visible · 2 identities unresolved                                                       [0m
+ │       Archived contractor laptop prof…  disabled  │ │  Registry      12 accounts · 11 enabled · 1 disabled · 8 providers                                     [0m
+ │       Work                      !   stale 47 min  │ │  Sources       7 registered · 5 discovered · 1Password available                                       [0m
+ │   ▾ Codex                                      2  │ │                                                                                                        [0m
+ │     ★ Primary                      current 2 min  │ │  Comparable windows                                         identical provider, window and unit only   [0m
+ │       Experiments                   ⠋ refr╭─[0m[1m New account [0m───────────────────────────────────── form · unsaved ─╮ing (1 last good)                            [0m
+ │   ▾ Amp                                   │   [0m[1mDisplay name *                                                 [0m  │aining (1 last good)                         [0m
+ │       discovered               ▲   current│ ▎ Personal, Work, Team…                                        [0m[1m![0m   │(1 last good)                                [0m
+ │   ▾ Grok                                  │   Required                                                         │good)                                        [0m
+ │     ★ Team                         current│                                                                    │ (1 last good)                               [0m
+ │   ▾ Z.AI                                  │   Purpose label  optional                                          │1 last good)                                 [0m
+ │       discovered                   ▲   sta│   personal · work · experiments                                    │                                             [0m
+ │   ▾ Kimi                                  │                                                                    │                                             [0m
+ │       discovered                !   needs │                                                                    │ccount or different windows) · Z.AI          [0m
+ │   ▾ MiniMax                               │   Provider                                                         │ccount or different windows) · OpenCode      [0m
+ │       discovered                 !   unava│   Claude Code · Anthropic / Claude                             ▾   │                                             [0m
+ │   ▾ OpenCode                              │                                                                    │                                             [0m
+ │     ★ Go subscription           !   rate l│                                                                    │                                             [0m
+ │       ci-bot · discovered            unsup│   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │ h 5 min                                     [0m
+ │     Unsupported                         se│                                                                    │un 19:14                                     [0m
+ │     + Add account…                        │   Credential source                                                │:14                                          [0m
+ │                                           │  (●) 1Password item / field  (recommended)                         │                                             [0m
+ │                                           │  ( ) Local agent folder                                            │n 10 h                                       [0m
+ │                                           │  ( ) Plain-text API key                                            │                                             [0m
+ │                                           │                                                                    │                                             [0m
+ │                                           │   1Password reference                                              │ api key                                     [0m
+ │                                           │   not chosen                                            Choose…    │d not respond                                [0m
+ │                                           │                                                                    │25 min                                       [0m
+ │                                           │                                                                    │                                             [0m
+ │                                           │                                                                    │                                             [0m
+ │                                           │                                                                    │authenticated account                        [0m
+ │                                           │                                                                    │ authenticated account                       [0m
+ │                                           │                                                                    │                                             [0m
+ │                                           │              Enter plain text instead   Validate   Cancel   [0m[1mSave [0m  │                                             [0m
+ │                                           ╰────────────────────────────────────────────────────────────────────╯                                             [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │                                                                                                        [0m
+ │                                                   │ │  Refresh all    Add account…                                                                           [0m
+ ╰───────────────────────────────────────────────────╯ │                                                                                                        [0m
+                                                                                                                                                                [0m
+                                              [0m[1m     [0m     [0m[1mTab[0m N[0m[1me[0mxt field  [0m[1mEnter[0m Edit /[0m[1m [0mSave  [0m[1mEsc [0mCancel  [0m[1m   [0m                                                      [0m

@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             16 colors · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────  ─╮
+ │                           │ │   ›  1 x                                                                             │
+ │   Filter objects          │ │                                                                                      │
+ │  ▾ D acme_prod            │ │                                                                                      │
+ │    ▾ S public             │ │                                                                                      │
+ │      ▾ Tables             │ │                                                                                      │
+ │        ▸ T organizations  │ │                                                                                      │
+ │        ▸ T customers      │ │                                                                                      │
+ │        ▸ T products       │ │                                                                                      │
+ │        ▸ T orders         │ │                                                                                      │
+ │        ▸ T order_items    │ │                                                                                      │
+ │        ▸ T payments       │ │                                                                                      │
+ │        ▸ T subscriptions  │ │ ╭────────────────────────────────────────────────────╮                               │
+ │      ▸ Views              │ │ │                                                    │                               │
+ │      ▸ Functions          │ │ │  Quit TablePro?                                    │                               │
+ │      ▸ Sequences          │ │ │                                                    │                               │
+ │    ▸ S analytics          │ │ │  1 unsaved query will be lost.                     │                               │
+ │    ▸ S audit              │ │ │                                                    │                               │
+ │                           │ │ │                                   ▎Cancel   Quit   │                               │
+ │                           │ │ │                                                    │                               │
+ │                           │ │ ╰────────────────────────────────────────────────────╯                               │
+ │                           │ │                                    No results yet                                    │
+ │                           │ │                                                                                      │
+ │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer                                      Connected to Production

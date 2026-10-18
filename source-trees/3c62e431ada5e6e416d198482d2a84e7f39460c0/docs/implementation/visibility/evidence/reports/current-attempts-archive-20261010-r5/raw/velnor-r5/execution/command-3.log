@@ -1,0 +1,550 @@
+warning: missing documentation for a function
+   --> crates/core/velnor-actions-contract-workflow/src/workflow/artifact_build/reconcile.rs:198:1
+    |
+198 | / pub fn validate_downloaded_outputs(
+199 | |     result: &[super::ArtifactBuildFile],
+200 | |     expected: &[velnor_actions_contract_config::ArtifactBuildOutput],
+201 | |     downloaded: &[super::DownloadedArtifactOutput],
+202 | | ) -> Result<(), ContractError> {
+    | |______________________________^
+    |
+    = note: requested on the command line with `-W missing-docs`
+
+warning: `velnor-actions-contract-workflow` (lib) generated 1 warning
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/acquisition.rs:20:1
+   |
+20 | / pub fn acquire(
+21 | |     handle: &QualifiedCheck,
+22 | |     check: &DiscoveredCheck,
+23 | |     home: &Path,
+24 | |     deadline: CheckDeadline,
+25 | | ) -> Result<Vec<QualifiedToolReceipt>, OrchestratorError> {
+   | |_________________________________________________________^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:13:5
+   |
+13 |     pub id: String,
+   |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:14:5
+   |
+14 |     pub version: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:15:5
+   |
+15 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:16:5
+   |
+16 |     pub definition_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:17:5
+   |
+17 |     pub artifacts: Vec<QualifiedToolArtifact>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:18:5
+   |
+18 |     pub dependency_artifacts: Vec<QualifiedToolArtifact>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:19:5
+   |
+19 |     pub install_tree_sha256: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:20:5
+   |
+20 |     pub executables: Vec<QualifiedExecutableProof>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-acquisition/src/tools.rs:23:1
+   |
+23 | / pub fn receipt(
+24 | |     tool: &QualifiedTool,
+25 | |     platform: CheckPlatform,
+26 | |     artifacts: Vec<QualifiedToolArtifact>,
+...  |
+29 | |     executables: Vec<QualifiedExecutableProof>,
+30 | | ) -> Result<QualifiedToolReceipt, OrchestratorError> {
+   | |____________________________________________________^
+
+warning: `velnor-actions-orchestrator-check-acquisition` (lib) generated 10 warnings
+warning: missing documentation for a module
+ --> crates/services/velnor-actions-orchestrator-check-preparation/src/lib.rs:9:1
+  |
+9 | pub mod container_receipts;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a module
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:11:1
+   |
+11 | pub mod runtime;
+   | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:14:1
+   |
+14 | pub struct ContainerReceipt {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:15:5
+   |
+15 |     pub profile_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:16:5
+   |
+16 |     pub before: CheckCapabilityProof,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:17:5
+   |
+17 |     pub after: CheckCapabilityProof,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:19:5
+   |
+19 |     pub sdk: Option<Value>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:20:5
+   |
+20 |     pub runtime: Value,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:21:5
+   |
+21 |     pub before_runtime: Option<runtime::RuntimeObservation>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:22:5
+   |
+22 |     pub after_runtime: Option<runtime::RuntimeObservation>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:24:1
+   |
+24 | / pub fn container_receipt<S: Serialize, R: Serialize>(
+25 | |     runner: &CheckRunner,
+26 | |     before: CheckCapabilityProof,
+27 | |     after: CheckCapabilityProof,
+...  |
+31 | |     after_runtime: Option<runtime::RuntimeObservation>,
+32 | | ) -> Result<Option<ContainerReceipt>, OrchestratorError> {
+   | |________________________________________________________^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/container_receipts.rs:61:1
+   |
+61 | / pub fn validate_container_receipt(
+62 | |     runner: &CheckRunner,
+63 | |     receipt: Option<&ContainerReceipt>,
+64 | | ) -> Result<(), OrchestratorError> {
+   | |__________________________________^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation.rs:23:5
+   |
+23 |     pub container: Option<container::OwnedContainer>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation.rs:24:5
+   |
+24 |     pub system_tools: Vec<SystemToolProof>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation.rs:25:5
+   |
+25 |     pub qualified_tools: Vec<QualifiedToolReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:13:1
+   |
+13 | pub struct OwnedContainer {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:63:1
+   |
+63 | pub struct ObservedContainer {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:68:1
+   |
+68 | / pub fn probe(
+69 | |     runner: &CheckRunner,
+70 | |     owned: Option<&OwnedContainer>,
+71 | |     deadline: CheckDeadline,
+72 | | ) -> Result<ObservedContainer, OrchestratorError> {
+   | |_________________________________________________^
+
+warning: missing documentation for a function
+   --> crates/services/velnor-actions-orchestrator-check-preparation/src/preparation/container.rs:105:1
+    |
+105 | / pub fn receipt(
+106 | |     runner: &CheckRunner,
+107 | |     owned: Option<&OwnedContainer>,
+108 | |     before: ObservedContainer,
+109 | |     after: ObservedContainer,
+110 | | ) -> Result<Option<crate::container_receipts::ContainerReceipt>, OrchestratorError> {
+    | |___________________________________________________________________________________^
+
+warning: `velnor-actions-orchestrator-check-preparation` (lib) generated 19 warnings
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:19:5
+   |
+19 |     pub schema: u32,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-W missing-docs`
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:20:5
+   |
+20 |     pub source: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:21:5
+   |
+21 |     pub run_key: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:22:5
+   |
+22 |     pub head: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:23:5
+   |
+23 |     pub check_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:24:5
+   |
+24 |     pub task_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:25:5
+   |
+25 |     pub task_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:26:5
+   |
+26 |     pub input_digest: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:27:5
+   |
+27 |     pub matrix_key: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:28:5
+   |
+28 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:29:5
+   |
+29 |     pub evidence: Option<EvidenceReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:30:5
+   |
+30 |     pub container: Option<container::ContainerReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:31:5
+   |
+31 |     pub system_tools: Vec<velnor_actions_mise::checks::SystemToolProof>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:32:5
+   |
+32 |     pub qualified_tools: Vec<tools::QualifiedToolReceipt>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/gate.rs:43:1
+   |
+43 | / pub fn execution_receipt(
+44 | |     plan: &Plan,
+45 | |     entry: &MatrixEntry,
+46 | |     check_id: &str,
+...  |
+50 | |     qualified_tools: Vec<tools::QualifiedToolReceipt>,
+51 | | ) -> CheckExecutionReceipt {
+   | |__________________________^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:15:5
+   |
+15 |     pub schema: u32,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:16:5
+   |
+16 |     pub source: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:17:5
+   |
+17 |     pub head: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:18:5
+   |
+18 |     pub check_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:19:5
+   |
+19 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:20:5
+   |
+20 |     pub scenarios: Vec<Scenario>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:25:1
+   |
+25 | pub struct Scenario {
+   | ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:26:5
+   |
+26 |     pub id: String,
+   |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:27:5
+   |
+27 |     pub executed: bool,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:28:5
+   |
+28 |     pub status: ScenarioStatus,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an enum
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:33:1
+   |
+33 | pub enum ScenarioStatus {
+   | ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:34:5
+   |
+34 |     Passed,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:35:5
+   |
+35 |     Failed,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:36:5
+   |
+36 |     Skipped,
+   |     ^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:43:5
+   |
+43 |     pub schema: u32,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:44:5
+   |
+44 |     pub check_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:45:5
+   |
+45 |     pub source: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:46:5
+   |
+46 |     pub head: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:47:5
+   |
+47 |     pub platform: CheckPlatform,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:48:5
+   |
+48 |     pub path: String,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:49:5
+   |
+49 |     pub digest: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:50:5
+   |
+50 |     pub scenarios: Vec<String>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:52:5
+   |
+52 |     pub bytes: Vec<u8>,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a function
+   --> crates/services/velnor-actions-orchestrator-check-evidence/src/scenario.rs:96:1
+    |
+ 96 | / pub fn validate_evidence(
+ 97 | |     evidence: &ScenarioEvidence,
+ 98 | |     declaration: &CheckEvidence,
+ 99 | |     id: &str,
+100 | |     head: &str,
+101 | |     platform: CheckPlatform,
+102 | | ) -> Result<(), OrchestratorError> {
+    | |__________________________________^
+
+warning: `velnor-actions-orchestrator-check-evidence` (lib) generated 39 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+────────────
+ Nextest run ID d56ff7c9-5946-44e1-8fe7-7531fe39f3d3 with nextest profile: default
+    Starting 23 tests across 3 binaries (64 tests skipped)
+        PASS [   0.013s] ( 1/23) velnor-actions-orchestrator-generation ci_observer::tests::input_snapshot_rejects_a_precommit_edit
+        PASS [   0.015s] ( 2/23) velnor-actions-orchestrator-generation routing::generator_release_pins::tests::source_selection_resolves_config_tag_and_branch_to_typed_pins
+        PASS [   0.366s] ( 3/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::enabled_generation_rejects_537470_byte_ci_without_touching_output
+        PASS [   0.272s] ( 4/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::fork_pr_run_without_association_is_ambiguous_not_missing
+        PASS [   0.123s] ( 5/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::opt_in_is_private_and_main_ci_stays_byte_identical
+        PASS [   0.110s] ( 6/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::private_config_rejects_malformed_and_unknown_fields
+        PASS [   0.050s] ( 7/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::rendered_observer_uses_ir_filters_read_only_permissions_and_last_upload
+        PASS [   0.189s] ( 8/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::rendered_runtime_bounds_pr_search_by_exact_head_sha_and_matches_association
+        PASS [   0.221s] ( 9/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::rendered_runtime_paginates_and_measures_exact_run_attempt_and_source
+        PASS [   0.489s] (10/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::rendered_runtime_reports_zero_jobs_and_api_errors_without_success_or_missing_claims
+        FAIL [   0.188s] (11/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors
+  stdout ───
+
+    running 1 test
+    test impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors ... FAILED
+
+    failures:
+
+    failures:
+        impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.18s
+
+  stderr ───
+
+    thread 'impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors' (113262069) panicked at crates/services/velnor-actions-orchestrator-generation/tests/impl_ci_observer.rs:365:33:
+    assertion `left == right` failed: missing-run report: Object {
+        "artifacts_count": Null,
+        "artifacts_scope": String("whole_run"),
+        "branch": String("main"),
+        "conclusion": Null,
+        "error": String("request_timeout"),
+        "event": String("push"),
+        "event_sha": String("0123456789abcdef0123456789abcdef01234567"),
+        "jobs_count": Null,
+        "jobs_scope": String("run_attempt"),
+        "observer_run_attempt": Number(3),
+        "observer_run_id": Number(300),
+        "observer_state": String("api_error"),
+        "product_execution": String("NOT_RUN"),
+        "run_attempt": Null,
+        "run_id": Null,
+        "run_source_sha": String("0123456789abcdef0123456789abcdef01234567"),
+        "schema_version": Number(2),
+        "source_state": String("fetched"),
+        "target_run_state": String("NOT_RUN"),
+        "workflow_source_blob_sha": String("blobsha"),
+        "workflow_source_bytes": Number(9),
+        "workflow_source_sha256": String("06e1b32fa09079ae2f0001fff0eca27b4985957d4eb4857929b3cf058faae541"),
+    }; requests: [
+        "GET /repos/o/r/actions/runs/300 HTTP/1.1",
+        "GET /repos/o/r/contents/.github/workflows/ci.yml?ref=0123456789abcdef0123456789abcdef01234567 HTTP/1.1",
+        "GET /repos/o/r/actions/workflows/ci.yml/runs?event=push&branch=main&head_sha=0123456789abcdef0123456789abcdef01234567&per_page=100&page=1 HTTP/1.1",
+        "GET /repos/o/r/actions/workflows/ci.yml/runs?event=push&branch=main&head_sha=0123456789abcdef0123456789abcdef01234567&per_page=100&page=1 HTTP/1.1",
+    ]
+      left: String("api_error")
+     right: "confirmed_missing_within_window"
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.230s] (12/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::runtime_reports_transport_and_workflow_source_errors
+        PASS [   0.545s] (13/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::stalled_api_response_is_an_error_and_not_a_missing_run
+        PASS [   0.045s] (14/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::finalized_jobs_lists_plan_and_required
+        PASS [   0.053s] (15/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::freshness_disabled_for_consumer
+        PASS [   0.043s] (16/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::prepare_accepts_consumer_repo_with_default_branch
+        PASS [   0.245s] (17/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::prepare_acquires_matching_prerelease_and_rejects_stable_manifest
+        PASS [   0.028s] (18/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::prepare_rejects_missing_default_branch_without_git
+        PASS [   0.011s] (19/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::prepare_rejects_non_directory
+        PASS [   0.049s] (20/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::prepare_reports_default_runner_label
+        PASS [   0.046s] (21/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_prepare::release_disabled_without_release_config
+        PASS [   0.012s] (22/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::committed_release_files_match_schema2_bytes
+        PASS [   0.741s] (23/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes
+────────────
+     Summary [   4.087s] 23 tests run: 22 passed, 1 failed, 64 skipped
+        FAIL [   0.188s] (11/23) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors
+error: test run failed

@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+
+  ≡ Query 1 ×    T orders ×                                         +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                │
+ │  ────────━━━━━━━━━━━━───────────────────────────────────────────── │
+ │                                                                    │
+ │       Columns    Indexes    Foreign keys    Constraints         2› │
+ │  ────━━━━━━━━━━─────────────────────────────────────────────────── │
+ │                                                                    │
+ │     Name                               Type            Nullable …  │
+ │  ▎  id                                 uuid            no        ┃ │
+ │     order_number                       integer         no        │ │
+ │     customer_id                        uuid            no        │ │
+ │     organization_id                    uuid            no        │ │
+ │   14 columns · read from the catalog · changes are queued until Save
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ↑ ↓ Move  Ctrl+D Structure  Tab Next           Connected to Production

@@ -1,0 +1,44 @@
+{
+  "schema": "termrock.vis06.pair-build-postflight-reconstruction-actual-review/v1",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "verdict": "ACCEPTED_RECONSTRUCTION_WITH_LIMITS",
+  "report": {
+    "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4.json",
+    "sha256": "88b489f3a0eaa7380e892bac0f9f12b175d2c6b0746e44e3aa168e831f491763",
+    "collector_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4.cjs",
+    "collector_sha256": "52ece44761b73f27dafeb9fcd37a8760cd833ae302811cee88964de41d3d93c0"
+  },
+  "checks": {
+    "fixed_pins_match": true,
+    "raw_stdout_and_stderr_bind_to_runner_result": true,
+    "raw_stderr_also_binds_to_actual_review": true,
+    "parsed_buffers_match_checked_hashes_and_lengths": true,
+    "exact_nextest_result": "1 passed, 16 skipped; one PASS terminal row; one summary; one run ID",
+    "cargo_exit_code": 0,
+    "original_runner_conclusion": "PAIR_BUILD_GATE_INCOMPLETE",
+    "wrapper_exit_observation": {
+      "code": 125,
+      "source": "Root coordinator report",
+      "stored_in_runner_result": false
+    },
+    "raw_pass_is_not_a_gate_green_conclusion": true,
+    "pair_artifact_review_binding_flags_all_true": true,
+    "reference_and_candidate_build_records": "both source commits, executable hashes, builder receipts, and build exit 0 match",
+    "expected_generation": null,
+    "qualification_status": "blocked",
+    "output_roots": "both missing; product binaries were not launched, captured, or admitted",
+    "separate_linker_execution_proven": false
+  },
+  "later_point_in_time_limits": {
+    "suite_package_currently_matches": false,
+    "note": "27 of 28 current suite-path records are missing from the retained partial project snapshot; the report labels this as a current observation, not an original execution failure or input state.",
+    "immutable_non_global_seed_files_matching": 697,
+    "immutable_non_global_seed_mismatches": 0,
+    "current_extra_cache_entries": 8189,
+    "current_non_global_seed_cache_currently_matches": false,
+    "global_cache_seed_bytes": 0,
+    "global_cache_current_bytes": 57344,
+    "note2": "These cache values are later-point-in-time observations. The report keeps the .global-cache metadata mutation separate from the original independent review of 697 other seeded files."
+  },
+  "scope": "Reviewed report only. No collector, Cargo, Nextest, or product command was run by the reviewer."
+}

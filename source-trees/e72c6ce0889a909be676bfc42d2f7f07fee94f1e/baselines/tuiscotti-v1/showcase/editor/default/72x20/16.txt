@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Code editor i Inspector   ? Help
+
+   Overview       ┃  Code editor  Blocks, tones, diagnostics and compl…
+   Buttons        ┃
+   Inputs         ┃    retry.rs                               3 blocks
+   Text areas     ┃
+   Forms          ┃     ›  1 // Retry a request with exponential bac…┃
+   Lists          ┃        2 pub async fn fetch(url: &str) -> Result…│
+   Trees          ┃        3     let mut delay = 200;                │
+   Tables         ┃                                         1–3 of 26
+   Editable tabl… ┃
+   Panels         ┃    State
+   Sidebars       ┃
+   Dialogs        │    Mode         navigating
+   Progress       │    Cursor       ln 1 · col 1
+   Scrolling      │    Block        1 of 3
+   Terminal       │    Runs         0
+▎› Code editor    │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -1,0 +1,18 @@
+
+
+
+
+
+
+                          TablePro
+                     Terminal too small
+                   Need 72×20, have 60×18
+
+                           q Quit
+
+
+
+
+
+
+

@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Lists                                                                          truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Lists  Single and multiple selection, disabled items, scrolling, empty state
+▎  Overview
+                            Language                                     Files to include             2 selected      Search results
+   Components
+▎  Buttons                  Chosen: Rust                                 Space toggle · a all · Shift+↓ range
+▎  Inputs
+▎  Text areas               ▎› Rust                               ┃      ▎✓ src/api/auth.rs            modified
+▎  Forms                    ▎  TypeScript                         ┃      ▎✓ src/api/billing.rs         modified
+▎› Lists                    ▎  Python                             ┃      ▎  src/db/schema.rs          generated
+▎  Trees                    ▎  Kotlin                             ┃      ▎  tests/checkout.rs               new
+▎  Tables                   ▎  Go                                 ┃      ▎  Cargo.lock                   locked
+▎  Editable tables          ▎  Java                               ┃      ▎  docs/webhooks.md           modified                No results for “retry”
+▎  Panels                   ▎  Swift                              ┃      ▎  src/workers/mailer.rs      modified
+▎  Sidebars                 ▎  C#                                 ┃      ▎  src/config.rs              modified
+▎  Dialogs                  ▎  Ruby                               │      ▎  README.md                  modified
+▎  Progress                 ▎  Scala                              │      ▎  src/main.rs                modified
+▎  Scrolling                ▎  Elixir                             │      ▎  tests/auth_flow.rs              new
+▎  Terminal                 ▎  Haskell                            │      ▎  src/db/pool.rs             modified
+▎  Code editor              ▎  Zig                                │
+▎  Data grid
+▎  Chips & selects
+▎  Pickers
+▎  Chrome
+
+   Screens
+▎  Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

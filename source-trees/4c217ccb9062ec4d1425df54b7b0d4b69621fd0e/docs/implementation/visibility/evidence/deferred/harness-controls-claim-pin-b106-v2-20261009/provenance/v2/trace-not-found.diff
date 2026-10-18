@@ -1,0 +1,15 @@
+--- a/crates/termrock-visibility-tests/tests/deferred.rs
++++ b/crates/termrock-visibility-tests/tests/deferred.rs
+@@ -438,7 +438,11 @@
+     }
+ 
+     fn trace(&self) -> Vec<Value> {
+-        let bytes = fs::read(&self.trace_path).expect("read synthetic tool trace");
++        let bytes = match fs::read(&self.trace_path) {
++            Ok(bytes) => bytes,
++            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Vec::new(),
++            Err(error) => panic!("read synthetic tool trace: {error}"),
++        };
+         bytes
+             .split(|byte| *byte == b'\n')
+             .filter(|line| !line.is_empty())

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      web · Node proje… · pnpm  mbp · local
+
+  Here › Cleanup
+ ━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────
+  Cleanup review
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash
+
+                                                                      │
+  [✓] ▸ uv cache                 300.0 MiB  rebuilt on demand…        │
+                                                                      │
+  [~] ▸ User caches                1.9 GiB  review first…             │
+                                                                      │
+  [✓] ▸ User logs                 30.0 MiB  rebuilt on demand…        │
+                                                                      │
+  [✓] ▸ JetBrains logs            30.0 MiB  rebuilt on demand…        ┃
+                                                                      ┃
+ ▎[ ] ▸ Project artifacts          2.5 GiB  review first…             │
+
+ ~/Projects/web         19 selected · 12.4 GiB         no color · 72×20
+  ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  …

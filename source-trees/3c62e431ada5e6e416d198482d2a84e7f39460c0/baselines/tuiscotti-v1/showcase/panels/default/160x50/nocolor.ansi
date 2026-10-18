@@ -1,0 +1,50 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Panels                                                                          no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice                                                     [0m
+   Overview                                                                                                                                                     [0m
+                            Titled card                                            surface    ╭─ Framed · split pane                                          ─╮[0m
+   Components                                                                                 │  Junie works through a task the way a careful engineer         │[0m
+   Buttons                  A card is a filled surface. Its title sits in the top-left and    │  would: it reads the relevant code, forms a plan, makes        │[0m
+   Inputs                   metadata on the right. It never has a border.                     │  focused changes, runs the tests, and reports back with a      │[0m
+   Text areas                                                                                 │  summary you can review before anything is merged.             │[0m
+   Forms                                                                                      │                                                                │[0m
+   Lists                                                                                      │  Each step is visible. You can pause, redirect, or take over   │[0m
+   Trees                                                                                      │  at any point, and every change lands as an ordinary diff in   │[0m
+   Tables                                                                                     │  your working tree.                                            │[0m
+   Editable tables          Untitled card. Same surface, content starts at the padding        │                                                                │[0m
+[0m[1m▎› Panels               [0m    edge.                                                             │  The design system in this prototype exists so that the        │[0m
+   Sidebars                                                                                   │  terminal version of that experience feels as deliberate as    │[0m
+   Dialogs                                                                                    │  the web version: quiet surfaces, one accent, clear focus,     │[0m
+   Progress                                                                                   │  and no decoration that does not carry information.            │[0m
+   Scrolling                                                                                  │                                                                │[0m
+   Terminal                 Nested                                                            │  Scroll with the mouse wheel, PageUp/PageDown, or the arrow    │[0m
+   Code editor                                                                                │  keys while this panel has focus. The scrollbar on the right   │[0m
+   Diff                     Target                          A group inside a card is a        │  shows where you are and how much remains.                     │[0m
+   Data grid                   Local                        muted label plus indent. The      │                                                                │[0m
+   Chips & selects             CLI                          focus bar stays on the            │                                                                │[0m
+   Pickers                  [0m[2m   Cloud                      [0m  control.                          │                                                                │[0m
+   Chrome                                                                                     ╰────────────────────────────────────────────────────────────────╯[0m
+                                                                                                                                                                [0m
+   Screens                                                                                      Card · scrollable                                   1–18 of 60  [0m
+   Settings                                                                                                                                                     [0m
+   Task runner                                                                                     0.00s  info   Resolving workspace members                 ┃  [0m
+                                                                                                   0.37s  info   Fetching crates.io index                    ┃  [0m
+                                                                                                   0.74s  info   Compiling proc-macro2 v1.0.86               ┃  [0m
+                                                                                                   1.11s  info   Compiling serde v1.0.210                    ┃  [0m
+                                                                                                   1.48s  warn   unused import: `std::fmt` in src/api/mod.r… ┃  [0m
+                                                                                                   1.85s  info   Compiling tokio v1.40.0                     │  [0m
+                                                                                                   2.22s  info   Running unittests src/lib.rs                │  [0m
+                                                                                                   2.59s  info   test api::auth::tests::rejects_expired ...… │  [0m
+                                                                                                   2.96s  info   test db::pool::tests::reuses_connections .… │  [0m
+                                                                                                   3.33s  error  test checkout::places_order ... FAILED      │  [0m
+                                                                                                   3.70s  info   test workers::scheduler::tests::respects_t… │  [0m
+                                                                                                   4.07s  info   Linking target/debug/deps/app-4f2c1b        │  [0m
+                                                                                                   4.44s  info   Resolving workspace members                 │  [0m
+                                                                                                   4.81s  info   Fetching crates.io index                    │  [0m
+                                                                                                   5.18s  info   Compiling proc-macro2 v1.0.86               │  [0m
+                                                                                                   5.55s  info   Compiling serde v1.0.210                    │  [0m
+                                                                                                   5.92s  warn   unused import: `std::fmt` in src/api/mod.r… │  [0m
+                                                                                                [0m[2m   6.29s  info   Compiling tokio v1.40.0                     [0m│  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m

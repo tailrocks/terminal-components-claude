@@ -1,0 +1,24 @@
+  jackin❯  entering the Construct  2 running
+     ╭─ ! Launch failed ────────────── run id is the only copyable value ─╮
+     │  The Construct network could not be attached                       │
+     │  Loading the-architect into workspace payments-platform            │
+     │                                                                    │
+   Cl│ ▎ Stage      Network                                               │)
+     │   Run id     run-202609030914-b5df                                 │
+     │   Next step  Check that Docker's jackin-net bridge exists (dock…   │
+     │   Container  jackin-payments-platform-b5df                         │
+     │                                                                    │
+     │  network: attach jackin-net to jackin-payments-platform-7f3a      ┃│
+     │  docker: Error response from daemon: network jackin-net not       ┃│
+     │  found                                                            ┃│
+     │  retry 1/3 after 400 ms: network jackin-net not found             ┃│
+     │  retry 2/3 after 800 ms: network jackin-net not found             ┃│
+     │  retry 3/3 after 1600 ms: network jackin-net not found            ┃│
+     │  sidecar: not started (network stage failed)                      ┃│
+     │  capsule: not started                                             ┃│
+     │  cleanup: container jackin-payments-platform-7f3a kept for        ││
+     │  inspection                                                       ││
+ ! Ne│                                                                    │5df
+ 44 l│                                                            Close   │
+     ╰────────────────────────────────────────────────────────────────────╯
+                          ↑↓ Move  y Copy  Esc Close

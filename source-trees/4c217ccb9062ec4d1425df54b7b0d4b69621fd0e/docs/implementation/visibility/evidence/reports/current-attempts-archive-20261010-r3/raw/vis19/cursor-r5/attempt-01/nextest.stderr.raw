@@ -1,0 +1,137 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling syn v3.0.5
+   Compiling bitflags v2.13.1
+   Compiling rustversion v1.0.23
+   Compiling syn v2.0.119
+   Compiling once_cell v1.21.4
+   Compiling bytemuck_derive v1.12.1
+   Compiling errno v0.3.14
+   Compiling simd-adler32 v0.3.10
+   Compiling log v0.4.34
+   Compiling either v1.18.0
+   Compiling version_check v0.9.5
+   Compiling zerocopy v0.8.59
+   Compiling crossbeam-utils v0.8.23
+   Compiling bytemuck v1.25.2
+   Compiling ahash v0.8.12
+   Compiling itoa v1.0.18
+   Compiling adler2 v2.0.1
+   Compiling ident_case v1.0.1
+   Compiling smallvec v1.16.0
+   Compiling crc32fast v1.5.1
+   Compiling zmij v1.0.23
+   Compiling signal-hook v0.3.18
+   Compiling crossbeam-epoch v0.9.21
+   Compiling strsim v0.11.1
+   Compiling parking_lot_core v0.9.12
+   Compiling autocfg v1.5.1
+   Compiling num-traits v0.2.19
+   Compiling darling_core v0.24.1
+   Compiling signal-hook-registry v1.4.8
+   Compiling castaway v0.2.4
+   Compiling rustix v0.38.44
+   Compiling serde_core v1.0.229
+   Compiling static_assertions v1.1.0
+   Compiling crossbeam-deque v0.8.8
+   Compiling scopeguard v1.2.0
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.14
+   Compiling lock_api v0.4.14
+   Compiling darling_macro v0.24.1
+   Compiling miniz_oxide v0.9.1
+   Compiling mio v1.2.3
+   Compiling memchr v2.8.3
+   Compiling instability v0.3.13
+   Compiling allocator-api2 v0.2.21
+   Compiling cfg_aliases v0.1.1
+   Compiling paste v1.0.15
+   Compiling rayon-core v1.13.0
+   Compiling heck v0.5.0
+   Compiling thiserror v1.0.69
+   Compiling strum_macros v0.26.4
+   Compiling hashbrown v0.14.5
+   Compiling nix v0.28.0
+   Compiling signal-hook-mio v0.2.5
+   Compiling flate2 v1.1.10
+   Compiling parking_lot v0.12.5
+   Compiling darling v0.24.1
+   Compiling font-types v0.12.5
+   Compiling miniz_oxide v0.8.9
+   Compiling itertools v0.13.0
+   Compiling fdeflate v0.3.7
+   Compiling thiserror-impl v1.0.69
+   Compiling serde v1.0.229
+   Compiling thiserror v2.0.20
+   Compiling unicode-segmentation v1.13.3
+   Compiling unicode-width v0.1.14
+   Compiling unicode-width v0.2.0
+   Compiling serde_json v1.0.151
+   Compiling cfg_aliases v0.2.2
+   Compiling weezl v0.1.12
+   Compiling indoc v2.0.7
+   Compiling color_quant v1.1.0
+   Compiling ryu v1.0.23
+   Compiling anyhow v1.0.104
+   Compiling pxfm v0.1.30
+   Compiling compact_str v0.8.2
+   Compiling gif v0.14.2
+   Compiling moxcms v0.8.1
+   Compiling nix v0.31.3
+   Compiling unicode-truncate v1.1.0
+   Compiling png v0.18.1
+   Compiling read-fonts v0.41.0
+   Compiling crossterm v0.28.1
+   Compiling lru v0.12.4
+   Compiling strum v0.26.3
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling byteorder-lite v0.1.0
+   Compiling const-oid v0.10.2
+   Compiling cassowary v0.3.0
+   Compiling digest v0.11.3
+   Compiling ratatui v0.29.0
+   Compiling image v0.25.10
+   Compiling skrifa v0.44.0
+   Compiling rayon v1.12.0
+   Compiling filedescriptor v0.8.3
+   Compiling itertools v0.14.0
+   Compiling cpufeatures v0.3.1
+   Compiling serial2 v0.2.38
+   Compiling downcast-rs v1.2.1
+   Compiling zeno v0.3.3
+   Compiling shell-words v1.1.1
+   Compiling yazi v0.2.1
+   Compiling arrayvec v0.7.8
+   Compiling vte v0.15.0
+   Compiling swash v0.2.10
+   Compiling portable-pty v0.9.0
+   Compiling image-compare v0.5.0
+   Compiling sha2 v0.11.0
+   Compiling tuiscotti-core v0.2.0 (/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/crates/tuiscotti-core)
+   Compiling compact_str v0.10.0
+   Compiling base64 v0.23.1
+   Compiling tuiscotti-render v0.2.0 (/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/crates/tuiscotti-render)
+   Compiling termpane v0.1.0
+   Compiling fs2 v0.4.3
+   Compiling tuiscotti-runtime v0.2.0 (/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/crates/tuiscotti-runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 42.11s
+────────────
+ Nextest run ID 5a258156-c04b-4039-a241-71713eb0ef9f with nextest profile: default
+    Starting 9 tests across 2 binaries (88 tests skipped)
+        PASS [   0.008s] (1/9) tuiscotti-runtime tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink
+        PASS [   0.008s] (2/9) tuiscotti-runtime tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width
+        PASS [   0.009s] (3/9) tuiscotti-runtime tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes
+        PASS [   0.012s] (4/9) tuiscotti-runtime tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position
+        PASS [   0.056s] (5/9) tuiscotti-runtime::tui_shell replay::hidden_cup_cursor_coordinates_match_live_and_replay
+        PASS [   0.019s] (6/9) tuiscotti-runtime::tui_shell replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay
+        PASS [   0.010s] (7/9) tuiscotti-runtime::tui_shell replay::replay_chunk_invariance_all_split_points
+        PASS [   0.020s] (8/9) tuiscotti-runtime::tui_shell replay::replay_matches_live_session
+        PASS [   0.035s] (9/9) tuiscotti-runtime::tui_shell replay::replay_recorded_pty_bytes_chunk_invariant
+────────────
+     Summary [   0.178s] 9 tests run: 9 passed, 88 skipped

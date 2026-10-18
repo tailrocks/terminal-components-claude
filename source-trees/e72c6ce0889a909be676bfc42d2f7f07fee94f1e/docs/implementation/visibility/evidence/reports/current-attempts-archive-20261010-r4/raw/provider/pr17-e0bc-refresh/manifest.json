@@ -1,0 +1,268 @@
+{
+  "capture_dir": "/private/tmp/termrock-vis11-pr17-ci-refresh-current-luna-20261010.AIHBzn",
+  "capture_mode": "GitHub CLI gh api --include; GET-only REST requests; existing auth; no API writes",
+  "credential_note": "Existing GitHub CLI auth used; no token recorded.",
+  "candidate": {
+    "pr": 17,
+    "head_sha": "e0bcfa26ec174241f09de17d04f3f45379be3452",
+    "base_sha": "81a8bf15cd3042f80649e2b48fed479829518dbd",
+    "state": "open",
+    "draft": true,
+    "mergeable_state": "dirty",
+    "workflow": {
+      "path": ".github/workflows/ci.yml",
+      "blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+      "size_bytes": 537470
+    },
+    "combined_status": {
+      "state": "pending",
+      "total_count": 0
+    },
+    "check_runs": [
+      {
+        "name": "DCO",
+        "status": "completed",
+        "conclusion": "success",
+        "app": "dco-2"
+      }
+    ],
+    "latest_exact_head_runs": [
+      {
+        "id": 38003496873,
+        "path": ".github/workflows/ci.yml",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "failure",
+        "attempt": 1,
+        "head_sha": "e0bcfa26ec174241f09de17d04f3f45379be3452",
+        "check_suite_id": 102973892788
+      }
+    ],
+    "selected_ci_run": {
+      "id": 38003496873,
+      "status": "completed",
+      "conclusion": "failure",
+      "attempt": 1,
+      "check_suite_id": 102973892788,
+      "head_sha": "e0bcfa26ec174241f09de17d04f3f45379be3452"
+    },
+    "selected_ci_run_evidence": {
+      "jobs_total": 0,
+      "attempt1_jobs_total": 0,
+      "artifacts_total": 0,
+      "timing_billable": {},
+      "run_logs_http": "HTTP/2.0 404 Not Found",
+      "actions_suite_conclusion": "failure",
+      "actions_suite_latest_check_runs_count": 0,
+      "actions_suite_check_runs_total": 0
+    }
+  },
+  "reference": {
+    "sha": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "combined_status": {
+      "state": "pending",
+      "total_count": 0
+    },
+    "check_runs": [
+      {
+        "name": "DCO",
+        "status": "completed",
+        "conclusion": "action_required",
+        "app": "dco-2"
+      }
+    ],
+    "dco_missing_commit_count": 14,
+    "exact_head_workflow_runs": [],
+    "workflow_contents_http": "HTTP/2.0 404 Not Found"
+  },
+  "prior_workflow_validation": {
+    "reused_because_candidate_blob_unchanged": true,
+    "workflow_blob_sha": "672078dc6c964a768c05b53f73de8bb99b90bffa",
+    "bytes": 537470,
+    "actionlint_summary_path": "/private/tmp/termrock-vis11-pr17-actionlint-validation-luna-20261010.jgF6ur/SUMMARY.md",
+    "actionlint_summary_sha256": "7728cabd908d1a4606d3567a5c9e9b99ab59411007498069f8262f4662cd6752",
+    "actionlint_success_record_sha256": "0186c30d1b402bf338ebf6a638c2259c84f4f0b4e6e83b35800058aa16436671"
+  },
+  "interpretation": {
+    "documented_github_workflow_file_limit": "500 KB; 537470 byte candidate exceeds it",
+    "provider_startup_cause": "NOT EXPOSED by captured run/jobs/check-suite/log API responses",
+    "no_size_causation_claim": true
+  },
+  "files": [
+    {
+      "file": "pr.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/pulls/17",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 18776,
+      "sha256": "59413317310172dd3205951c78b04f65002a1663141faa47abebf56540cd9536",
+      "date": "Fri, 09 Oct 2026 23:33:04 GMT"
+    },
+    {
+      "file": "candidate_commit.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/e0bcfa26ec174241f09de17d04f3f45379be3452",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 44421,
+      "sha256": "ef348a580bb628f982dfe3acfdc90e23f9f438991f2dd1e5945b9eb2bdba035d",
+      "date": "Fri, 09 Oct 2026 23:33:02 GMT"
+    },
+    {
+      "file": "candidate_workflow.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/contents/.github/workflows/ci.yml?ref=e0bcfa26ec174241f09de17d04f3f45379be3452",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 743143,
+      "sha256": "6061bc4fb86020d8ca068c22fcb4ee82fe5e9139c2a47391c2572ad8162d2b77",
+      "date": "Fri, 09 Oct 2026 23:33:02 GMT"
+    },
+    {
+      "file": "combined_status.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/e0bcfa26ec174241f09de17d04f3f45379be3452/status",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 6690,
+      "sha256": "cfa8b1d6dae672ff1970a48ae40df0d161f8f60e2a41e292f8232600296b233d",
+      "date": "Fri, 09 Oct 2026 23:33:02 GMT"
+    },
+    {
+      "file": "check_runs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/e0bcfa26ec174241f09de17d04f3f45379be3452/check-runs?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 58770,
+      "sha256": "5dbf31e81d931d8759e24e7137023209fc2c6f6bc8f8f520f02c6fe5558c03dc",
+      "date": "Fri, 09 Oct 2026 23:33:02 GMT"
+    },
+    {
+      "file": "check_suites.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/e0bcfa26ec174241f09de17d04f3f45379be3452/check-suites?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 18826,
+      "sha256": "207ff30cc45f11711b58aa2cfd2ad8ff607319ad1d908ceec2efab023e111bd2",
+      "date": "Fri, 09 Oct 2026 23:33:02 GMT"
+    },
+    {
+      "file": "workflow_runs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs?head_sha=e0bcfa26ec174241f09de17d04f3f45379be3452&per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 15898,
+      "sha256": "d72456a52d77aa6ba3a81c430f246e250242d07fa6dd1ab3926873c68cdcddf6",
+      "date": "Fri, 09 Oct 2026 23:33:02 GMT"
+    },
+    {
+      "file": "workflow_run.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38003496873",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 15864,
+      "sha256": "f3306f586517f8012b69c1c3ae8980a140574a19ffcf9aef4fff4ad6a637c771",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "workflow_jobs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38003496873/jobs?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 1442,
+      "sha256": "af8a9ecf490f34993bc294146081fd9495dbf0f128854a7d5f2184b24793c026",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "workflow_attempt_jobs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38003496873/attempts/1/jobs?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 1443,
+      "sha256": "f6cf433b364703889b6046e9cd491f9ee22fdd633fa986b24aaba19fc319286a",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "workflow_artifacts.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38003496873/artifacts?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 1448,
+      "sha256": "0f6c9cfb9395cf1c6f542998efd0cf60186eb7662a6d2e777a7c991afaf5c026",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "workflow_timing.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38003496873/timing",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 1448,
+      "sha256": "69b7d82fb46c835d4946f959eb19315d156acf766484f3f4a0a57a5e6e4326c6",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "workflow_run_logs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs/38003496873/logs",
+      "http_status": "HTTP/2.0 404 Not Found",
+      "bytes": 1417,
+      "sha256": "893ce508da0e2289216de1abc9b25b6ae0d84a7ad7ec38bbe477a9f9f4329686",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "actions_suite.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/check-suites/102973892788",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 10361,
+      "sha256": "88071bb64c957f81f3108928e0e5af5d0737c5cd34af5e1fc3332d912c23f2ed",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "actions_suite_check_runs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/check-suites/102973892788/check-runs?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 1448,
+      "sha256": "7c9282bf392ce579e1f31cf93ef1c88dd91018a777bebb596b95eccc5ad1cdb7",
+      "date": "Fri, 09 Oct 2026 23:33:26 GMT"
+    },
+    {
+      "file": "reference_commit.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 130992,
+      "sha256": "d90edf05f94a2ac91d1a001282bbd6b758cfceb83a0151d1823c68d4adb6ead2",
+      "date": "Fri, 09 Oct 2026 23:33:39 GMT"
+    },
+    {
+      "file": "reference_status.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/4b473a98a8641a9dae8dbf9c31c0c94b15465496/status",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 6691,
+      "sha256": "e3e499940d633cbfde17158564c18d50d7d1f243f479e09e0a91893cc0ee0a55",
+      "date": "Fri, 09 Oct 2026 23:33:39 GMT"
+    },
+    {
+      "file": "reference_check_runs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/4b473a98a8641a9dae8dbf9c31c0c94b15465496/check-runs?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 37790,
+      "sha256": "44b12fe4b1f899a0cacd6dc3635c44869cd83a7f1288b2fed57de343f28008e8",
+      "date": "Fri, 09 Oct 2026 23:33:39 GMT"
+    },
+    {
+      "file": "reference_check_suites.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/commits/4b473a98a8641a9dae8dbf9c31c0c94b15465496/check-suites?per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 9895,
+      "sha256": "c0e9f106a4233470aeae0c23fdab9772af5e419512a6fa8f4c10393c6ae128ee",
+      "date": "Fri, 09 Oct 2026 23:33:39 GMT"
+    },
+    {
+      "file": "reference_workflow_runs.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/actions/runs?head_sha=4b473a98a8641a9dae8dbf9c31c0c94b15465496&per_page=100",
+      "http_status": "HTTP/2.0 200 OK",
+      "bytes": 1451,
+      "sha256": "ccc353f0cbeec684b10309a498f1e8f271d3f39640abddd6e3fd28c7b52ef06c",
+      "date": "Fri, 09 Oct 2026 23:33:39 GMT"
+    },
+    {
+      "file": "reference_workflow.json.http",
+      "request": "GET /repos/tailrocks/terminal-components-claude/contents/.github/workflows/ci.yml?ref=4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+      "http_status": "HTTP/2.0 404 Not Found",
+      "bytes": 1430,
+      "sha256": "516d73dc5f2b6f06e10128a3566ff745b8457b2ac744ca91e9ab896f8bdc82de",
+      "date": "Fri, 09 Oct 2026 23:34:04 GMT"
+    }
+  ],
+  "documents": {
+    "summary": {
+      "file": "SUMMARY.md",
+      "bytes": 2907,
+      "sha256": "bb4971b2d31986b4e7b6e18eaa7cb54ad3025335bab0a58790e8f2fe3f793902"
+    }
+  }
+}

@@ -1,0 +1,2491 @@
+{
+  "case_sha256": "90e42f6ad19bb4eef28d3a2d1438f43d1296f41c225e3b950f08711e7baf7612",
+  "compiled_suite_sha256": "b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d",
+  "receipt": {
+    "rows": [
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "showcase"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [],
+        "exact_command": "cargo run --release --bin showcase",
+        "id": "RUN-01",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "showcase"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "NOT_RUN"
+      },
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "jackin-preview"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [],
+        "exact_command": "cargo run --release --bin jackin-preview",
+        "id": "RUN-02",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "jackin-preview"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "NOT_RUN"
+      },
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "holla"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [
+                "finished_boundary=1200",
+                "a53f1568727f9c47307b08460e48e59c5622c7985fb5b4f2ba791ee8e3ba6d6c"
+              ],
+              "reason": "Cargo emitted a complete Finished line; the root build result is recorded separately from launch",
+              "status": "PASS"
+            },
+            "cleanup": {
+              "evidence": [
+                "termpane close completed and joined PTY I/O workers",
+                "verified child process group is empty; descendants that create a new session are outside this containment boundary"
+              ],
+              "reason": "direct PTY teardown succeeded and verified child process group empty",
+              "status": "PASS"
+            },
+            "exit": {
+              "evidence": [
+                "signal_present=false",
+                "final_exit_key_sent=true"
+              ],
+              "reason": "direct child exit code 0; stream clean_eof",
+              "status": "PASS"
+            },
+            "first_frame": {
+              "evidence": [
+                "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+              ],
+              "reason": "live PTY grid met the first checkpoint readiness assertions",
+              "status": "PASS"
+            },
+            "interaction": {
+              "evidence": [
+                "1:f1:prior checkpoint failed or was blocked",
+                "2:escape:prior checkpoint failed or was blocked",
+                "3:ctrl-c:written_and_recorded"
+              ],
+              "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+              "status": "FAIL"
+            },
+            "launch": {
+              "evidence": [
+                "pid=32514",
+                "running_boundary=1337"
+              ],
+              "reason": "Cargo emitted a complete Running line naming the frozen selected release executable",
+              "status": "PASS"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "command execution does not establish the independent candidate ownership source checks",
+              "status": "BLOCKED"
+            },
+            "restoration": {
+              "evidence": [
+                "host_terminal_state=not_observed"
+              ],
+              "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+              "status": "BLOCKED"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+              "status": "BLOCKED"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [
+          {
+            "argv": [
+              "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/reference/aarch64-apple-darwin/release/holla"
+            ],
+            "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+            "kind": "DirectExecutableDiagnostic",
+            "layers": {
+              "build": {
+                "evidence": [],
+                "reason": "separate direct-executable diagnostic; exact Cargo build result remains in the root-command invocation",
+                "status": "NOT_APPLICABLE"
+              },
+              "cleanup": {
+                "evidence": [
+                  "termpane close completed and joined PTY I/O workers",
+                  "process-group ID contains a foreign session; refusing to signal reused IDs"
+                ],
+                "reason": "PTY teardown ran but process-group containment could not be proven",
+                "status": "BLOCKED"
+              },
+              "exit": {
+                "evidence": [
+                  "final_exit_key_sent=true"
+                ],
+                "reason": "child exit status unavailable: PTY child exit wait: timeout: child still alive",
+                "status": "BLOCKED"
+              },
+              "first_frame": {
+                "evidence": [
+                  "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+                ],
+                "reason": "live PTY grid met the first checkpoint readiness assertions",
+                "status": "PASS"
+              },
+              "interaction": {
+                "evidence": [
+                  "1:f1:written_and_recorded",
+                  "2:escape:prior checkpoint failed or was blocked",
+                  "3:ctrl-c:written_and_recorded"
+                ],
+                "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+                "status": "FAIL"
+              },
+              "launch": {
+                "evidence": [
+                  "pid=32378"
+                ],
+                "reason": "PTY child process was created",
+                "status": "PASS"
+              },
+              "ownership": {
+                "evidence": [],
+                "reason": "reference implementation is not required to use candidate component ownership",
+                "status": "NOT_APPLICABLE"
+              },
+              "restoration": {
+                "evidence": [
+                  "host_terminal_state=not_observed"
+                ],
+                "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+                "status": "BLOCKED"
+              },
+              "visual": {
+                "evidence": [],
+                "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+                "status": "BLOCKED"
+              }
+            },
+            "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+            "role": "reference",
+            "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+            "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+            "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+          },
+          {
+            "argv": [
+              "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/candidate/aarch64-apple-darwin/release/holla"
+            ],
+            "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+            "kind": "DirectExecutableDiagnostic",
+            "layers": {
+              "build": {
+                "evidence": [],
+                "reason": "separate direct-executable diagnostic; exact Cargo build result remains in the root-command invocation",
+                "status": "NOT_APPLICABLE"
+              },
+              "cleanup": {
+                "evidence": [
+                  "termpane close completed and joined PTY I/O workers",
+                  "verified child process group is empty; descendants that create a new session are outside this containment boundary"
+                ],
+                "reason": "direct PTY teardown succeeded and verified child process group empty",
+                "status": "PASS"
+              },
+              "exit": {
+                "evidence": [
+                  "signal_present=false",
+                  "final_exit_key_sent=true"
+                ],
+                "reason": "direct child exit code 0; stream clean_eof",
+                "status": "PASS"
+              },
+              "first_frame": {
+                "evidence": [
+                  "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+                ],
+                "reason": "live PTY grid met the first checkpoint readiness assertions",
+                "status": "PASS"
+              },
+              "interaction": {
+                "evidence": [
+                  "1:f1:prior checkpoint failed or was blocked",
+                  "2:escape:prior checkpoint failed or was blocked",
+                  "3:ctrl-c:written_and_recorded"
+                ],
+                "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+                "status": "FAIL"
+              },
+              "launch": {
+                "evidence": [
+                  "pid=32561"
+                ],
+                "reason": "PTY child process was created",
+                "status": "PASS"
+              },
+              "ownership": {
+                "evidence": [],
+                "reason": "command execution does not establish the independent candidate ownership source checks",
+                "status": "BLOCKED"
+              },
+              "restoration": {
+                "evidence": [
+                  "host_terminal_state=not_observed"
+                ],
+                "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+                "status": "BLOCKED"
+              },
+              "visual": {
+                "evidence": [],
+                "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+                "status": "BLOCKED"
+              }
+            },
+            "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+            "role": "candidate",
+            "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+            "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+            "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+          }
+        ],
+        "exact_command": "cargo run --release --bin holla",
+        "id": "RUN-03",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "holla"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [
+                "finished_boundary=1204",
+                "c00774f0c8cbfe9b2295b2e4207c0c19cf269aa346cd14824cc95c5e28030a1b"
+              ],
+              "reason": "Cargo emitted a complete Finished line; the root build result is recorded separately from launch",
+              "status": "PASS"
+            },
+            "cleanup": {
+              "evidence": [
+                "termpane close completed and joined PTY I/O workers",
+                "process-group ID contains a foreign session; refusing to signal reused IDs"
+              ],
+              "reason": "PTY teardown ran but process-group containment could not be proven",
+              "status": "BLOCKED"
+            },
+            "exit": {
+              "evidence": [
+                "final_exit_key_sent=true"
+              ],
+              "reason": "child exit status unavailable: PTY child exit wait: timeout: child still alive",
+              "status": "BLOCKED"
+            },
+            "first_frame": {
+              "evidence": [
+                "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+              ],
+              "reason": "live PTY grid met the first checkpoint readiness assertions",
+              "status": "PASS"
+            },
+            "interaction": {
+              "evidence": [
+                "1:f1:written_and_recorded",
+                "2:escape:prior checkpoint failed or was blocked",
+                "3:ctrl-c:written_and_recorded"
+              ],
+              "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+              "status": "FAIL"
+            },
+            "launch": {
+              "evidence": [
+                "pid=32202",
+                "running_boundary=1341"
+              ],
+              "reason": "Cargo emitted a complete Running line naming the frozen selected release executable",
+              "status": "PASS"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "reference implementation is not required to use candidate component ownership",
+              "status": "NOT_APPLICABLE"
+            },
+            "restoration": {
+              "evidence": [
+                "host_terminal_state=not_observed"
+              ],
+              "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+              "status": "BLOCKED"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+              "status": "BLOCKED"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "FAIL"
+      },
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "tablepro"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [],
+        "exact_command": "cargo run --release --bin tablepro",
+        "id": "RUN-04",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "tablepro"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "NOT_RUN"
+      },
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "tablepro",
+            "--",
+            "--connect",
+            "Production"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [],
+        "exact_command": "cargo run --release --bin tablepro -- --connect Production",
+        "id": "RUN-05",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "tablepro",
+            "--",
+            "--connect",
+            "Production"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "NOT_RUN"
+      },
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "jackin-preview",
+            "--",
+            "--scenario",
+            "accounts-mixed"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [],
+        "exact_command": "cargo run --release --bin jackin-preview -- --scenario accounts-mixed",
+        "id": "RUN-06",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "jackin-preview",
+            "--",
+            "--scenario",
+            "accounts-mixed"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "NOT_RUN"
+      },
+      {
+        "candidate": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "holla",
+            "--",
+            "--scenario",
+            "remote-host"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+          "role": "candidate",
+          "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+          "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+        },
+        "direct_executable_diagnostics": [],
+        "exact_command": "cargo run --release --bin holla -- --scenario remote-host",
+        "id": "RUN-07",
+        "reference": {
+          "argv": [
+            "cargo",
+            "run",
+            "--release",
+            "--bin",
+            "holla",
+            "--",
+            "--scenario",
+            "remote-host"
+          ],
+          "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+          "kind": "ExactRootCommand",
+          "layers": {
+            "build": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "cleanup": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "exit": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "first_frame": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "interaction": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "launch": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "ownership": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "restoration": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            },
+            "visual": {
+              "evidence": [],
+              "reason": "no native command invocation has executed",
+              "status": "NOT_RUN"
+            }
+          },
+          "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+          "role": "reference",
+          "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+          "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+          "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+        },
+        "status": "NOT_RUN"
+      }
+    ],
+    "schema": "termrock-spec/visibility-command-lane-v1"
+  },
+  "runs": [
+    {
+      "artifacts": [
+        {
+          "bytes": 1204,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/build.raw",
+          "sha256": "c00774f0c8cbfe9b2295b2e4207c0c19cf269aa346cd14824cc95c5e28030a1b"
+        },
+        {
+          "bytes": 36295,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/launch.raw",
+          "sha256": "d9a9ad79a046b2c09136e0a4c1cd7f53e94b3f61a3eefa222af780b6d7f7279a"
+        },
+        {
+          "bytes": 34954,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/application.raw",
+          "sha256": "d9a5184fa68afa3ec86bcb0f8ae734b7c6f188f06d7109d804339998eede9443"
+        },
+        {
+          "bytes": 433,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/inputs.json",
+          "sha256": "2efd15037ab993bf9cd26dc3129d1a957c8b00b69004d6a7787edf9b5283457f"
+        }
+      ],
+      "checkpoints": [
+        {
+          "capture_artifacts": [
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/live-text.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 1279148,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/frame.json",
+              "sha256": "61b8bcf2f8689acc7048218407181106c85e43d960d3bfff5abadaf50fc105af"
+            },
+            {
+              "bytes": 13248,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/ansi.txt",
+              "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+            },
+            {
+              "bytes": 571289,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/html.html",
+              "sha256": "63301eaa7a2d996baa1df3807d17cc1a26293ccb4785443601f6b4c2bc0cf28d"
+            },
+            {
+              "bytes": 405908,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/screen.png",
+              "sha256": "ffc5c586c62b4499f509e55d8c8fbf549f6801db7c7d8ac2b2267bfcbb2f9de7"
+            },
+            {
+              "bytes": 2761,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/ascii.txt",
+              "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+            },
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/screen.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 14522,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/ascii-loss.json",
+              "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+            },
+            {
+              "bytes": 1210,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/00-root/capture.json",
+              "sha256": "aace2f67ea0c7d9fe08705fe4300f55c1367a036328e1c747a6da108671a1a69"
+            }
+          ],
+          "frame_digest": "ad36d3e552a4f4d6",
+          "id": "00-root",
+          "live_cursor": {
+            "col": 3,
+            "row": 4,
+            "style": 0,
+            "text_cursor_enable": null,
+            "visible": true
+          },
+          "live_modes": {
+            "alternate_screen": true,
+            "application_cursor": false,
+            "application_keypad": false,
+            "bracketed_paste": true,
+            "focus_events": false,
+            "in_synchronized_update": false,
+            "kitty_keyboard": 0,
+            "mid_sequence": false,
+            "mouse_encoding": "Sgr",
+            "mouse_mode": "AnyMotion"
+          },
+          "live_text_sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259",
+          "reason": "live termpane observation matches the Tuiscotti replay frame",
+          "status": "PASS"
+        },
+        {
+          "capture_artifacts": [
+            {
+              "bytes": 4650,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/live-text.txt",
+              "sha256": "24bce0562d633680258d1ccd010fb4e1255bd776ca1871c0417e9e05dd46ceab"
+            },
+            {
+              "bytes": 1284482,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/frame.json",
+              "sha256": "9654897519dbc22d4d8541ee65de6d1f64d3e39cf6f9fa0646123bf08f522d55"
+            },
+            {
+              "bytes": 18935,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/ansi.txt",
+              "sha256": "1634918be835d6b3c95a21d14a1955b3b255393d8249387d36c4298b7f2ff726"
+            },
+            {
+              "bytes": 792191,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/html.html",
+              "sha256": "2dce52fa39cec45673058c3e9d3056187a42d935304ff0241a4d50854fe44438"
+            },
+            {
+              "bytes": 554507,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/screen.png",
+              "sha256": "4100baace30599a86604ee5ab0bd414725c2c891e427687a230363dd411e3a67"
+            },
+            {
+              "bytes": 4032,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/ascii.txt",
+              "sha256": "1f9b28bdb97dd092bf89960f1715c873764d6d042026b89cace00894859b6e39"
+            },
+            {
+              "bytes": 4650,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/screen.txt",
+              "sha256": "24bce0562d633680258d1ccd010fb4e1255bd776ca1871c0417e9e05dd46ceab"
+            },
+            {
+              "bytes": 30200,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/ascii-loss.json",
+              "sha256": "fcc0fd6708afbf921a26e869b9dc54ea0571c738eeb148848aa2d4d78fc7cce3"
+            },
+            {
+              "bytes": 1216,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/cargo-run/01-help/capture.json",
+              "sha256": "9a7297cf0997cbb9c98f85ade806746ad15eeb97434cbfedf0d15b34865efe0b"
+            }
+          ],
+          "frame_digest": "ddd4592f5b475cd8",
+          "id": "01-help",
+          "live_cursor": {
+            "col": 106,
+            "row": 39,
+            "style": 0,
+            "text_cursor_enable": null,
+            "visible": false
+          },
+          "live_modes": {
+            "alternate_screen": true,
+            "application_cursor": false,
+            "application_keypad": false,
+            "bracketed_paste": true,
+            "focus_events": false,
+            "in_synchronized_update": false,
+            "kitty_keyboard": 0,
+            "mid_sequence": false,
+            "mouse_encoding": "Sgr",
+            "mouse_mode": "AnyMotion"
+          },
+          "live_text_sha256": "24bce0562d633680258d1ccd010fb4e1255bd776ca1871c0417e9e05dd46ceab",
+          "reason": "live observation differs from replay text or cursor; capture retained",
+          "status": "FAIL"
+        },
+        {
+          "capture_artifacts": [],
+          "frame_digest": null,
+          "id": "02-root-restored",
+          "live_cursor": null,
+          "live_modes": null,
+          "live_text_sha256": null,
+          "reason": "checkpoint 02-root-restored requires earlier positive checkpoint 01-help",
+          "status": "BLOCKED"
+        }
+      ],
+      "cleanup": {
+        "direct_session_close": "termpane close completed and joined PTY I/O workers",
+        "process_group_containment": "process-group ID contains a foreign session; refusing to signal reused IDs",
+        "signalled_pids": [],
+        "state": "Unverified",
+        "survivors": [
+          32202
+        ]
+      },
+      "environment": {
+        "cargo_configs": [],
+        "cargo_jobs": 2,
+        "cargo_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "cargo_runner": "blocked unless no target runner or compiler wrapper is configured",
+        "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "case_environment_hashes": {
+          "HOLLA_NO_HISTORY": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        },
+        "inherited_environment": "cleared; backend SHELL explicitly overridden",
+        "rustc_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "target_dir": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/reference/aarch64-apple-darwin",
+        "target_triple": "aarch64-apple-darwin",
+        "variable_hashes": {
+          "CARGO_BUILD_JOBS": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+          "CARGO_HOME": "ac4f1e013c5cdb3ed29d4d39c39c840f27bc832deaf36dd60bd09ff6d9ea2b0e",
+          "CARGO_NET_OFFLINE": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "CARGO_TARGET_DIR": "334b7ec61d831fe142d55f9d604eba1790e75732af4cb03bafd99c525fab957d",
+          "COLORTERM": "4a5e83365abe1ee0eeab886f5545aa9bb5f43a06b183e773a342bd6f00ae74b0",
+          "HOME": "7f4942bf5f759f9d26f6219e3e5c24335bb1346b1c4aa42da2ace9c568755943",
+          "LC_ALL": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad",
+          "PATH": "e5680c90dbcb4602296b67bd133aaaddda91d27d34d75dd255d39327a874abdd",
+          "RUSTUP_HOME": "e6ade14dbfd69dfafa48d1541ef6157c1e261dc2dde50de5c5337dbc0c64b0cb",
+          "RUSTUP_TOOLCHAIN": "3dc4350e40e54bcad9d328e1b12aaf0aef718f846ce423db3c1be981e41e7364",
+          "SHELL": "77bafa9e3a8a092afc4f1dd84e6e1cc58b68f42eb934bf0f6b73deb2518f78a3",
+          "TERM": "f4093053b48fcc9e8858a9939b31849416819981c5326b64a253cd5dbec2db90",
+          "TMPDIR": "dc127ec04a0ae09d66f30254e7a3e977dcc3f90deab79b36766c3431ddb9ab01"
+        }
+      },
+      "exit": null,
+      "inputs": [
+        {
+          "attempted": true,
+          "bytes_hex": "1b4f50",
+          "key": "f1",
+          "sequence": 1,
+          "write_status": "written_and_recorded"
+        },
+        {
+          "attempted": false,
+          "bytes_hex": "",
+          "key": "escape",
+          "sequence": 2,
+          "write_status": "prior checkpoint failed or was blocked"
+        },
+        {
+          "attempted": true,
+          "bytes_hex": "03",
+          "key": "ctrl-c",
+          "sequence": 3,
+          "write_status": "written_and_recorded"
+        }
+      ],
+      "invocation": {
+        "argv": [
+          "cargo",
+          "run",
+          "--release",
+          "--bin",
+          "holla"
+        ],
+        "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+        "kind": "ExactRootCommand",
+        "layers": {
+          "build": {
+            "evidence": [
+              "finished_boundary=1204",
+              "c00774f0c8cbfe9b2295b2e4207c0c19cf269aa346cd14824cc95c5e28030a1b"
+            ],
+            "reason": "Cargo emitted a complete Finished line; the root build result is recorded separately from launch",
+            "status": "PASS"
+          },
+          "cleanup": {
+            "evidence": [
+              "termpane close completed and joined PTY I/O workers",
+              "process-group ID contains a foreign session; refusing to signal reused IDs"
+            ],
+            "reason": "PTY teardown ran but process-group containment could not be proven",
+            "status": "BLOCKED"
+          },
+          "exit": {
+            "evidence": [
+              "final_exit_key_sent=true"
+            ],
+            "reason": "child exit status unavailable: PTY child exit wait: timeout: child still alive",
+            "status": "BLOCKED"
+          },
+          "first_frame": {
+            "evidence": [
+              "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            ],
+            "reason": "live PTY grid met the first checkpoint readiness assertions",
+            "status": "PASS"
+          },
+          "interaction": {
+            "evidence": [
+              "1:f1:written_and_recorded",
+              "2:escape:prior checkpoint failed or was blocked",
+              "3:ctrl-c:written_and_recorded"
+            ],
+            "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+            "status": "FAIL"
+          },
+          "launch": {
+            "evidence": [
+              "pid=32202",
+              "running_boundary=1341"
+            ],
+            "reason": "Cargo emitted a complete Running line naming the frozen selected release executable",
+            "status": "PASS"
+          },
+          "ownership": {
+            "evidence": [],
+            "reason": "reference implementation is not required to use candidate component ownership",
+            "status": "NOT_APPLICABLE"
+          },
+          "restoration": {
+            "evidence": [
+              "host_terminal_state=not_observed"
+            ],
+            "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+            "status": "BLOCKED"
+          },
+          "visual": {
+            "evidence": [],
+            "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+            "status": "BLOCKED"
+          }
+        },
+        "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+        "role": "reference",
+        "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+        "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+      },
+      "post_run_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+      "pre_spawn_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+      "restoration": {
+        "after_exit": {
+          "alternate_screen": true,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": true,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Sgr",
+          "mouse_mode": "AnyMotion"
+        },
+        "after_exit_cursor": {
+          "col": 100,
+          "row": 20,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": false
+        },
+        "before_exit": {
+          "alternate_screen": true,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": true,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Sgr",
+          "mouse_mode": "AnyMotion"
+        },
+        "before_exit_cursor": {
+          "col": 106,
+          "row": 39,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": false
+        },
+        "child_pty_state": "live cursor and DEC mode facts recorded from termpane observations",
+        "host_terminal_state": "not_observed",
+        "reason": "child PTY mode state is recorded but parent/slave termios and shell continuation remain required and unobserved",
+        "status": "BLOCKED"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 34837,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/launch.raw",
+          "sha256": "57bb8c6457f911d54eb0691d330b4a759bd40fbf10e4e319cda1596d08131279"
+        },
+        {
+          "bytes": 34837,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/application.raw",
+          "sha256": "57bb8c6457f911d54eb0691d330b4a759bd40fbf10e4e319cda1596d08131279"
+        },
+        {
+          "bytes": 433,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/inputs.json",
+          "sha256": "2efd15037ab993bf9cd26dc3129d1a957c8b00b69004d6a7787edf9b5283457f"
+        }
+      ],
+      "checkpoints": [
+        {
+          "capture_artifacts": [
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/live-text.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 1279148,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/frame.json",
+              "sha256": "61b8bcf2f8689acc7048218407181106c85e43d960d3bfff5abadaf50fc105af"
+            },
+            {
+              "bytes": 13248,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/ansi.txt",
+              "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+            },
+            {
+              "bytes": 571289,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/html.html",
+              "sha256": "63301eaa7a2d996baa1df3807d17cc1a26293ccb4785443601f6b4c2bc0cf28d"
+            },
+            {
+              "bytes": 405908,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/screen.png",
+              "sha256": "ffc5c586c62b4499f509e55d8c8fbf549f6801db7c7d8ac2b2267bfcbb2f9de7"
+            },
+            {
+              "bytes": 2761,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/ascii.txt",
+              "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+            },
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/screen.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 14522,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/ascii-loss.json",
+              "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+            },
+            {
+              "bytes": 1210,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/00-root/capture.json",
+              "sha256": "40857b5816eae5dd247af1b66dbbc50ba3dca272138ccf4da292069948ed2a24"
+            }
+          ],
+          "frame_digest": "ad36d3e552a4f4d6",
+          "id": "00-root",
+          "live_cursor": {
+            "col": 3,
+            "row": 4,
+            "style": 0,
+            "text_cursor_enable": null,
+            "visible": true
+          },
+          "live_modes": {
+            "alternate_screen": true,
+            "application_cursor": false,
+            "application_keypad": false,
+            "bracketed_paste": true,
+            "focus_events": false,
+            "in_synchronized_update": false,
+            "kitty_keyboard": 0,
+            "mid_sequence": false,
+            "mouse_encoding": "Sgr",
+            "mouse_mode": "AnyMotion"
+          },
+          "live_text_sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259",
+          "reason": "live termpane observation matches the Tuiscotti replay frame",
+          "status": "PASS"
+        },
+        {
+          "capture_artifacts": [
+            {
+              "bytes": 4650,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/live-text.txt",
+              "sha256": "cbc87187fd739154a1dbbfd486e4e76ae091ea67f9c835bfa0f120e980854c0f"
+            },
+            {
+              "bytes": 1284482,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/frame.json",
+              "sha256": "0d3acd0bc847a424920fa87a0bc47cadf9c33d1a2d1e4beb5da5fb6048cddbae"
+            },
+            {
+              "bytes": 18935,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/ansi.txt",
+              "sha256": "defa2adcd18d6dfa480d5751aa2fad1cbd47860a3a10cfda3338ffd75916e8e6"
+            },
+            {
+              "bytes": 792187,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/html.html",
+              "sha256": "63a4dcd88c035365c9cc4b82762a50b1c0771f917109223295ffcb7fccfd1122"
+            },
+            {
+              "bytes": 554505,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/screen.png",
+              "sha256": "bebf7dfbb7c60f6ab475757f3c693b934d774d8a58caa71fba8e7e74aaa30ba5"
+            },
+            {
+              "bytes": 4032,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/ascii.txt",
+              "sha256": "1f9b28bdb97dd092bf89960f1715c873764d6d042026b89cace00894859b6e39"
+            },
+            {
+              "bytes": 4650,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/screen.txt",
+              "sha256": "cbc87187fd739154a1dbbfd486e4e76ae091ea67f9c835bfa0f120e980854c0f"
+            },
+            {
+              "bytes": 30200,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/ascii-loss.json",
+              "sha256": "4d5838e081fc5b680f566545b22e13150312978040be16d899d0a27670d8f14c"
+            },
+            {
+              "bytes": 1216,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/reference/direct-executable/01-help/capture.json",
+              "sha256": "f4c5b7503a4a05564d1ad92a75b723256934d3b062f7a6bcc676a9f8641d5902"
+            }
+          ],
+          "frame_digest": "3925340745c94694",
+          "id": "01-help",
+          "live_cursor": {
+            "col": 106,
+            "row": 39,
+            "style": 0,
+            "text_cursor_enable": null,
+            "visible": false
+          },
+          "live_modes": {
+            "alternate_screen": true,
+            "application_cursor": false,
+            "application_keypad": false,
+            "bracketed_paste": true,
+            "focus_events": false,
+            "in_synchronized_update": false,
+            "kitty_keyboard": 0,
+            "mid_sequence": false,
+            "mouse_encoding": "Sgr",
+            "mouse_mode": "AnyMotion"
+          },
+          "live_text_sha256": "cbc87187fd739154a1dbbfd486e4e76ae091ea67f9c835bfa0f120e980854c0f",
+          "reason": "live observation differs from replay text or cursor; capture retained",
+          "status": "FAIL"
+        },
+        {
+          "capture_artifacts": [],
+          "frame_digest": null,
+          "id": "02-root-restored",
+          "live_cursor": null,
+          "live_modes": null,
+          "live_text_sha256": null,
+          "reason": "checkpoint 02-root-restored requires earlier positive checkpoint 01-help",
+          "status": "BLOCKED"
+        }
+      ],
+      "cleanup": {
+        "direct_session_close": "termpane close completed and joined PTY I/O workers",
+        "process_group_containment": "process-group ID contains a foreign session; refusing to signal reused IDs",
+        "signalled_pids": [],
+        "state": "Unverified",
+        "survivors": [
+          32378
+        ]
+      },
+      "environment": {
+        "cargo_configs": [],
+        "cargo_jobs": 2,
+        "cargo_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "cargo_runner": "blocked unless no target runner or compiler wrapper is configured",
+        "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "case_environment_hashes": {
+          "HOLLA_NO_HISTORY": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        },
+        "inherited_environment": "cleared; backend SHELL explicitly overridden",
+        "rustc_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "target_dir": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/reference/aarch64-apple-darwin",
+        "target_triple": "aarch64-apple-darwin",
+        "variable_hashes": {
+          "CARGO_BUILD_JOBS": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+          "CARGO_HOME": "ac4f1e013c5cdb3ed29d4d39c39c840f27bc832deaf36dd60bd09ff6d9ea2b0e",
+          "CARGO_NET_OFFLINE": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "CARGO_TARGET_DIR": "334b7ec61d831fe142d55f9d604eba1790e75732af4cb03bafd99c525fab957d",
+          "COLORTERM": "4a5e83365abe1ee0eeab886f5545aa9bb5f43a06b183e773a342bd6f00ae74b0",
+          "HOME": "7f4942bf5f759f9d26f6219e3e5c24335bb1346b1c4aa42da2ace9c568755943",
+          "LC_ALL": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad",
+          "PATH": "e5680c90dbcb4602296b67bd133aaaddda91d27d34d75dd255d39327a874abdd",
+          "RUSTUP_HOME": "e6ade14dbfd69dfafa48d1541ef6157c1e261dc2dde50de5c5337dbc0c64b0cb",
+          "RUSTUP_TOOLCHAIN": "3dc4350e40e54bcad9d328e1b12aaf0aef718f846ce423db3c1be981e41e7364",
+          "SHELL": "77bafa9e3a8a092afc4f1dd84e6e1cc58b68f42eb934bf0f6b73deb2518f78a3",
+          "TERM": "f4093053b48fcc9e8858a9939b31849416819981c5326b64a253cd5dbec2db90",
+          "TMPDIR": "dc127ec04a0ae09d66f30254e7a3e977dcc3f90deab79b36766c3431ddb9ab01"
+        }
+      },
+      "exit": null,
+      "inputs": [
+        {
+          "attempted": true,
+          "bytes_hex": "1b4f50",
+          "key": "f1",
+          "sequence": 1,
+          "write_status": "written_and_recorded"
+        },
+        {
+          "attempted": false,
+          "bytes_hex": "",
+          "key": "escape",
+          "sequence": 2,
+          "write_status": "prior checkpoint failed or was blocked"
+        },
+        {
+          "attempted": true,
+          "bytes_hex": "03",
+          "key": "ctrl-c",
+          "sequence": 3,
+          "write_status": "written_and_recorded"
+        }
+      ],
+      "invocation": {
+        "argv": [
+          "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/reference/aarch64-apple-darwin/release/holla"
+        ],
+        "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+        "kind": "DirectExecutableDiagnostic",
+        "layers": {
+          "build": {
+            "evidence": [],
+            "reason": "separate direct-executable diagnostic; exact Cargo build result remains in the root-command invocation",
+            "status": "NOT_APPLICABLE"
+          },
+          "cleanup": {
+            "evidence": [
+              "termpane close completed and joined PTY I/O workers",
+              "process-group ID contains a foreign session; refusing to signal reused IDs"
+            ],
+            "reason": "PTY teardown ran but process-group containment could not be proven",
+            "status": "BLOCKED"
+          },
+          "exit": {
+            "evidence": [
+              "final_exit_key_sent=true"
+            ],
+            "reason": "child exit status unavailable: PTY child exit wait: timeout: child still alive",
+            "status": "BLOCKED"
+          },
+          "first_frame": {
+            "evidence": [
+              "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            ],
+            "reason": "live PTY grid met the first checkpoint readiness assertions",
+            "status": "PASS"
+          },
+          "interaction": {
+            "evidence": [
+              "1:f1:written_and_recorded",
+              "2:escape:prior checkpoint failed or was blocked",
+              "3:ctrl-c:written_and_recorded"
+            ],
+            "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+            "status": "FAIL"
+          },
+          "launch": {
+            "evidence": [
+              "pid=32378"
+            ],
+            "reason": "PTY child process was created",
+            "status": "PASS"
+          },
+          "ownership": {
+            "evidence": [],
+            "reason": "reference implementation is not required to use candidate component ownership",
+            "status": "NOT_APPLICABLE"
+          },
+          "restoration": {
+            "evidence": [
+              "host_terminal_state=not_observed"
+            ],
+            "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+            "status": "BLOCKED"
+          },
+          "visual": {
+            "evidence": [],
+            "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+            "status": "BLOCKED"
+          }
+        },
+        "pre_command_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+        "role": "reference",
+        "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+        "source_manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7"
+      },
+      "post_run_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+      "pre_spawn_executable_sha256": "7d47f4051ea70747554ccf0594d93cda1ff6f768e5ddc1bee40a4d1aab9e4edb",
+      "restoration": {
+        "after_exit": {
+          "alternate_screen": true,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": true,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Sgr",
+          "mouse_mode": "AnyMotion"
+        },
+        "after_exit_cursor": {
+          "col": 100,
+          "row": 20,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": false
+        },
+        "before_exit": {
+          "alternate_screen": true,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": true,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Sgr",
+          "mouse_mode": "AnyMotion"
+        },
+        "before_exit_cursor": {
+          "col": 106,
+          "row": 39,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": false
+        },
+        "child_pty_state": "live cursor and DEC mode facts recorded from termpane observations",
+        "host_terminal_state": "not_observed",
+        "reason": "child PTY mode state is recorded but parent/slave termios and shell continuation remain required and unobserved",
+        "status": "BLOCKED"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 1200,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/build.raw",
+          "sha256": "a53f1568727f9c47307b08460e48e59c5622c7985fb5b4f2ba791ee8e3ba6d6c"
+        },
+        {
+          "bytes": 17286,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/launch.raw",
+          "sha256": "97a4b835191b6cdb1fcb9f359330a966c94f3a22cd00637023db24b61e8f9179"
+        },
+        {
+          "bytes": 15949,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/application.raw",
+          "sha256": "29d7dfd6009ff565a492ac5feb2095a30272512363254c581e437858291a842e"
+        },
+        {
+          "bytes": 446,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/inputs.json",
+          "sha256": "44c8c49572135ba7e5ab6b30a2cffa06cd4a6973194faca7f0423c139c90d317"
+        }
+      ],
+      "checkpoints": [
+        {
+          "capture_artifacts": [
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/live-text.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 1279149,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/frame.json",
+              "sha256": "8a3c891ff122fb49d8876e09efc4683476b3f8e69514ffe84fa98fba19326681"
+            },
+            {
+              "bytes": 13248,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/ansi.txt",
+              "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+            },
+            {
+              "bytes": 571209,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/html.html",
+              "sha256": "8fafd6e57fe7e02da1b42efa096f813c334da45b572fd39f69559e7930264b96"
+            },
+            {
+              "bytes": 405847,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/screen.png",
+              "sha256": "a97571fd2e07b6e5f7535a2f1692285504cbf4c730dd5515dcab52001964800f"
+            },
+            {
+              "bytes": 2761,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/ascii.txt",
+              "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+            },
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/screen.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 14522,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/ascii-loss.json",
+              "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+            },
+            {
+              "bytes": 1216,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/cargo-run/00-root/capture.json",
+              "sha256": "5a0fc6b4b158d2e9a47f1a40ff970b65490299ea42871e1ecb8b4da05fc1788d"
+            }
+          ],
+          "frame_digest": "55c5aec4cf61a5e4",
+          "id": "00-root",
+          "live_cursor": {
+            "col": 120,
+            "row": 39,
+            "style": 0,
+            "text_cursor_enable": null,
+            "visible": false
+          },
+          "live_modes": {
+            "alternate_screen": true,
+            "application_cursor": false,
+            "application_keypad": false,
+            "bracketed_paste": true,
+            "focus_events": false,
+            "in_synchronized_update": false,
+            "kitty_keyboard": 0,
+            "mid_sequence": false,
+            "mouse_encoding": "Sgr",
+            "mouse_mode": "AnyMotion"
+          },
+          "live_text_sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259",
+          "reason": "live observation differs from replay text or cursor; capture retained",
+          "status": "FAIL"
+        },
+        {
+          "capture_artifacts": [],
+          "frame_digest": null,
+          "id": "01-help",
+          "live_cursor": null,
+          "live_modes": null,
+          "live_text_sha256": null,
+          "reason": "checkpoint 01-help requires earlier positive checkpoint 00-root",
+          "status": "BLOCKED"
+        },
+        {
+          "capture_artifacts": [],
+          "frame_digest": null,
+          "id": "02-root-restored",
+          "live_cursor": null,
+          "live_modes": null,
+          "live_text_sha256": null,
+          "reason": "checkpoint 02-root-restored requires earlier positive checkpoint 01-help",
+          "status": "BLOCKED"
+        }
+      ],
+      "cleanup": {
+        "direct_session_close": "termpane close completed and joined PTY I/O workers",
+        "process_group_containment": "verified child process group is empty; descendants that create a new session are outside this containment boundary",
+        "signalled_pids": [],
+        "state": "Verified",
+        "survivors": []
+      },
+      "environment": {
+        "cargo_configs": [],
+        "cargo_jobs": 2,
+        "cargo_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "cargo_runner": "blocked unless no target runner or compiler wrapper is configured",
+        "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "case_environment_hashes": {
+          "HOLLA_NO_HISTORY": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        },
+        "inherited_environment": "cleared; backend SHELL explicitly overridden",
+        "rustc_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "target_dir": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/candidate/aarch64-apple-darwin",
+        "target_triple": "aarch64-apple-darwin",
+        "variable_hashes": {
+          "CARGO_BUILD_JOBS": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+          "CARGO_HOME": "ac4f1e013c5cdb3ed29d4d39c39c840f27bc832deaf36dd60bd09ff6d9ea2b0e",
+          "CARGO_NET_OFFLINE": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "CARGO_TARGET_DIR": "e33cd77340c73ecd93d8371a60bd91d7210958fbf67cacc0ed8ea0e159f84f82",
+          "COLORTERM": "4a5e83365abe1ee0eeab886f5545aa9bb5f43a06b183e773a342bd6f00ae74b0",
+          "HOME": "7f4942bf5f759f9d26f6219e3e5c24335bb1346b1c4aa42da2ace9c568755943",
+          "LC_ALL": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad",
+          "PATH": "e5680c90dbcb4602296b67bd133aaaddda91d27d34d75dd255d39327a874abdd",
+          "RUSTUP_HOME": "e6ade14dbfd69dfafa48d1541ef6157c1e261dc2dde50de5c5337dbc0c64b0cb",
+          "RUSTUP_TOOLCHAIN": "3dc4350e40e54bcad9d328e1b12aaf0aef718f846ce423db3c1be981e41e7364",
+          "SHELL": "77bafa9e3a8a092afc4f1dd84e6e1cc58b68f42eb934bf0f6b73deb2518f78a3",
+          "TERM": "f4093053b48fcc9e8858a9939b31849416819981c5326b64a253cd5dbec2db90",
+          "TMPDIR": "dc127ec04a0ae09d66f30254e7a3e977dcc3f90deab79b36766c3431ddb9ab01"
+        }
+      },
+      "exit": {
+        "code": 0,
+        "signal_present": false,
+        "stream": "clean_eof",
+        "success": true
+      },
+      "inputs": [
+        {
+          "attempted": false,
+          "bytes_hex": "",
+          "key": "f1",
+          "sequence": 1,
+          "write_status": "prior checkpoint failed or was blocked"
+        },
+        {
+          "attempted": false,
+          "bytes_hex": "",
+          "key": "escape",
+          "sequence": 2,
+          "write_status": "prior checkpoint failed or was blocked"
+        },
+        {
+          "attempted": true,
+          "bytes_hex": "03",
+          "key": "ctrl-c",
+          "sequence": 3,
+          "write_status": "written_and_recorded"
+        }
+      ],
+      "invocation": {
+        "argv": [
+          "cargo",
+          "run",
+          "--release",
+          "--bin",
+          "holla"
+        ],
+        "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+        "kind": "ExactRootCommand",
+        "layers": {
+          "build": {
+            "evidence": [
+              "finished_boundary=1200",
+              "a53f1568727f9c47307b08460e48e59c5622c7985fb5b4f2ba791ee8e3ba6d6c"
+            ],
+            "reason": "Cargo emitted a complete Finished line; the root build result is recorded separately from launch",
+            "status": "PASS"
+          },
+          "cleanup": {
+            "evidence": [
+              "termpane close completed and joined PTY I/O workers",
+              "verified child process group is empty; descendants that create a new session are outside this containment boundary"
+            ],
+            "reason": "direct PTY teardown succeeded and verified child process group empty",
+            "status": "PASS"
+          },
+          "exit": {
+            "evidence": [
+              "signal_present=false",
+              "final_exit_key_sent=true"
+            ],
+            "reason": "direct child exit code 0; stream clean_eof",
+            "status": "PASS"
+          },
+          "first_frame": {
+            "evidence": [
+              "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            ],
+            "reason": "live PTY grid met the first checkpoint readiness assertions",
+            "status": "PASS"
+          },
+          "interaction": {
+            "evidence": [
+              "1:f1:prior checkpoint failed or was blocked",
+              "2:escape:prior checkpoint failed or was blocked",
+              "3:ctrl-c:written_and_recorded"
+            ],
+            "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+            "status": "FAIL"
+          },
+          "launch": {
+            "evidence": [
+              "pid=32514",
+              "running_boundary=1337"
+            ],
+            "reason": "Cargo emitted a complete Running line naming the frozen selected release executable",
+            "status": "PASS"
+          },
+          "ownership": {
+            "evidence": [],
+            "reason": "command execution does not establish the independent candidate ownership source checks",
+            "status": "BLOCKED"
+          },
+          "restoration": {
+            "evidence": [
+              "host_terminal_state=not_observed"
+            ],
+            "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+            "status": "BLOCKED"
+          },
+          "visual": {
+            "evidence": [],
+            "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+            "status": "BLOCKED"
+          }
+        },
+        "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+        "role": "candidate",
+        "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+        "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+      },
+      "post_run_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+      "pre_spawn_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+      "restoration": {
+        "after_exit": {
+          "alternate_screen": false,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": false,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Default",
+          "mouse_mode": "None"
+        },
+        "after_exit_cursor": {
+          "col": 0,
+          "row": 17,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": true
+        },
+        "before_exit": {
+          "alternate_screen": true,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": true,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Sgr",
+          "mouse_mode": "AnyMotion"
+        },
+        "before_exit_cursor": {
+          "col": 120,
+          "row": 39,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": false
+        },
+        "child_pty_state": "live cursor and DEC mode facts recorded from termpane observations",
+        "host_terminal_state": "not_observed",
+        "reason": "child PTY mode state is recorded but parent/slave termios and shell continuation remain required and unobserved",
+        "status": "BLOCKED"
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 15681,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/launch.raw",
+          "sha256": "03aa22cf2b72679cf1e0e38f0967fbf4dba186a2998b5d4aa6deafc10c61f1b7"
+        },
+        {
+          "bytes": 15681,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/application.raw",
+          "sha256": "03aa22cf2b72679cf1e0e38f0967fbf4dba186a2998b5d4aa6deafc10c61f1b7"
+        },
+        {
+          "bytes": 446,
+          "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/inputs.json",
+          "sha256": "44c8c49572135ba7e5ab6b30a2cffa06cd4a6973194faca7f0423c139c90d317"
+        }
+      ],
+      "checkpoints": [
+        {
+          "capture_artifacts": [
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/live-text.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 1279149,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/frame.json",
+              "sha256": "8a3c891ff122fb49d8876e09efc4683476b3f8e69514ffe84fa98fba19326681"
+            },
+            {
+              "bytes": 13248,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/ansi.txt",
+              "sha256": "24af35f2d4a60b5e093c44f31348e720b2747fad4a51dcb9ae580f70a4de61bc"
+            },
+            {
+              "bytes": 571209,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/html.html",
+              "sha256": "8fafd6e57fe7e02da1b42efa096f813c334da45b572fd39f69559e7930264b96"
+            },
+            {
+              "bytes": 405847,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/screen.png",
+              "sha256": "a97571fd2e07b6e5f7535a2f1692285504cbf4c730dd5515dcab52001964800f"
+            },
+            {
+              "bytes": 2761,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/ascii.txt",
+              "sha256": "23e48f102551932fd8e5f658d73bfe457f2ffaf76e4264f9bbb6f40d60106acc"
+            },
+            {
+              "bytes": 3061,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/screen.txt",
+              "sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            },
+            {
+              "bytes": 14522,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/ascii-loss.json",
+              "sha256": "fcbe1eb6d87c7fc8937b4df089a36d0a51bcedeb65abfd3accb636d2c6534a0a"
+            },
+            {
+              "bytes": 1216,
+              "path": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts/RUN-03/candidate/direct-executable/00-root/capture.json",
+              "sha256": "4e06d2642c66da7c2f66d60f68f1fb4114a916f2afffa121308c4d9f325ced1b"
+            }
+          ],
+          "frame_digest": "55c5aec4cf61a5e4",
+          "id": "00-root",
+          "live_cursor": {
+            "col": 120,
+            "row": 39,
+            "style": 0,
+            "text_cursor_enable": null,
+            "visible": false
+          },
+          "live_modes": {
+            "alternate_screen": true,
+            "application_cursor": false,
+            "application_keypad": false,
+            "bracketed_paste": true,
+            "focus_events": false,
+            "in_synchronized_update": false,
+            "kitty_keyboard": 0,
+            "mid_sequence": false,
+            "mouse_encoding": "Sgr",
+            "mouse_mode": "AnyMotion"
+          },
+          "live_text_sha256": "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259",
+          "reason": "live observation differs from replay text or cursor; capture retained",
+          "status": "FAIL"
+        },
+        {
+          "capture_artifacts": [],
+          "frame_digest": null,
+          "id": "01-help",
+          "live_cursor": null,
+          "live_modes": null,
+          "live_text_sha256": null,
+          "reason": "checkpoint 01-help requires earlier positive checkpoint 00-root",
+          "status": "BLOCKED"
+        },
+        {
+          "capture_artifacts": [],
+          "frame_digest": null,
+          "id": "02-root-restored",
+          "live_cursor": null,
+          "live_modes": null,
+          "live_text_sha256": null,
+          "reason": "checkpoint 02-root-restored requires earlier positive checkpoint 01-help",
+          "status": "BLOCKED"
+        }
+      ],
+      "cleanup": {
+        "direct_session_close": "termpane close completed and joined PTY I/O workers",
+        "process_group_containment": "verified child process group is empty; descendants that create a new session are outside this containment boundary",
+        "signalled_pids": [],
+        "state": "Verified",
+        "survivors": []
+      },
+      "environment": {
+        "cargo_configs": [],
+        "cargo_jobs": 2,
+        "cargo_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "cargo_runner": "blocked unless no target runner or compiler wrapper is configured",
+        "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "case_environment_hashes": {
+          "HOLLA_NO_HISTORY": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+        },
+        "inherited_environment": "cleared; backend SHELL explicitly overridden",
+        "rustc_path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "target_dir": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/candidate/aarch64-apple-darwin",
+        "target_triple": "aarch64-apple-darwin",
+        "variable_hashes": {
+          "CARGO_BUILD_JOBS": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+          "CARGO_HOME": "ac4f1e013c5cdb3ed29d4d39c39c840f27bc832deaf36dd60bd09ff6d9ea2b0e",
+          "CARGO_NET_OFFLINE": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "CARGO_TARGET_DIR": "e33cd77340c73ecd93d8371a60bd91d7210958fbf67cacc0ed8ea0e159f84f82",
+          "COLORTERM": "4a5e83365abe1ee0eeab886f5545aa9bb5f43a06b183e773a342bd6f00ae74b0",
+          "HOME": "7f4942bf5f759f9d26f6219e3e5c24335bb1346b1c4aa42da2ace9c568755943",
+          "LC_ALL": "99fed2d548c2eb1022f4067f97fe838a2c3ea60ee0e0f53086788505c3ababad",
+          "PATH": "e5680c90dbcb4602296b67bd133aaaddda91d27d34d75dd255d39327a874abdd",
+          "RUSTUP_HOME": "e6ade14dbfd69dfafa48d1541ef6157c1e261dc2dde50de5c5337dbc0c64b0cb",
+          "RUSTUP_TOOLCHAIN": "3dc4350e40e54bcad9d328e1b12aaf0aef718f846ce423db3c1be981e41e7364",
+          "SHELL": "77bafa9e3a8a092afc4f1dd84e6e1cc58b68f42eb934bf0f6b73deb2518f78a3",
+          "TERM": "f4093053b48fcc9e8858a9939b31849416819981c5326b64a253cd5dbec2db90",
+          "TMPDIR": "dc127ec04a0ae09d66f30254e7a3e977dcc3f90deab79b36766c3431ddb9ab01"
+        }
+      },
+      "exit": {
+        "code": 0,
+        "signal_present": false,
+        "stream": "clean_eof",
+        "success": true
+      },
+      "inputs": [
+        {
+          "attempted": false,
+          "bytes_hex": "",
+          "key": "f1",
+          "sequence": 1,
+          "write_status": "prior checkpoint failed or was blocked"
+        },
+        {
+          "attempted": false,
+          "bytes_hex": "",
+          "key": "escape",
+          "sequence": 2,
+          "write_status": "prior checkpoint failed or was blocked"
+        },
+        {
+          "attempted": true,
+          "bytes_hex": "03",
+          "key": "ctrl-c",
+          "sequence": 3,
+          "write_status": "written_and_recorded"
+        }
+      ],
+      "invocation": {
+        "argv": [
+          "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/targets/candidate/aarch64-apple-darwin/release/holla"
+        ],
+        "cwd": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+        "kind": "DirectExecutableDiagnostic",
+        "layers": {
+          "build": {
+            "evidence": [],
+            "reason": "separate direct-executable diagnostic; exact Cargo build result remains in the root-command invocation",
+            "status": "NOT_APPLICABLE"
+          },
+          "cleanup": {
+            "evidence": [
+              "termpane close completed and joined PTY I/O workers",
+              "verified child process group is empty; descendants that create a new session are outside this containment boundary"
+            ],
+            "reason": "direct PTY teardown succeeded and verified child process group empty",
+            "status": "PASS"
+          },
+          "exit": {
+            "evidence": [
+              "signal_present=false",
+              "final_exit_key_sent=true"
+            ],
+            "reason": "direct child exit code 0; stream clean_eof",
+            "status": "PASS"
+          },
+          "first_frame": {
+            "evidence": [
+              "51e8c548c1535009e71bb4ed35c30a32c38d5ed2c2955e773d1360abcb939259"
+            ],
+            "reason": "live PTY grid met the first checkpoint readiness assertions",
+            "status": "PASS"
+          },
+          "interaction": {
+            "evidence": [
+              "1:f1:prior checkpoint failed or was blocked",
+              "2:escape:prior checkpoint failed or was blocked",
+              "3:ctrl-c:written_and_recorded"
+            ],
+            "reason": "the command's frozen input and checkpoint program ran in order; negative assertions required earlier positive checkpoints",
+            "status": "FAIL"
+          },
+          "launch": {
+            "evidence": [
+              "pid=32561"
+            ],
+            "reason": "PTY child process was created",
+            "status": "PASS"
+          },
+          "ownership": {
+            "evidence": [],
+            "reason": "command execution does not establish the independent candidate ownership source checks",
+            "status": "BLOCKED"
+          },
+          "restoration": {
+            "evidence": [
+              "host_terminal_state=not_observed"
+            ],
+            "reason": "required parent/slave termios and shell-continuation restoration are not exposed by this PTY adapter; live child-PTY mode state is supporting evidence only",
+            "status": "BLOCKED"
+          },
+          "visual": {
+            "evidence": [],
+            "reason": "captures were produced, but no shared approved generation was admitted for visual comparison",
+            "status": "BLOCKED"
+          }
+        },
+        "pre_command_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+        "role": "candidate",
+        "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "source_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/Cargo.toml",
+        "source_manifest_sha256": "53005653fb55066acdfa69fb85e7a00f02fe2979f1106880337436f521090f8f"
+      },
+      "post_run_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+      "pre_spawn_executable_sha256": "fd7659e3b5ee04db37a2c8f99f0910555912016a7eba66ddc21af686b9aa06b2",
+      "restoration": {
+        "after_exit": {
+          "alternate_screen": false,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": false,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Default",
+          "mouse_mode": "None"
+        },
+        "after_exit_cursor": {
+          "col": 0,
+          "row": 0,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": true
+        },
+        "before_exit": {
+          "alternate_screen": true,
+          "application_cursor": false,
+          "application_keypad": false,
+          "bracketed_paste": true,
+          "focus_events": false,
+          "in_synchronized_update": false,
+          "kitty_keyboard": 0,
+          "mid_sequence": false,
+          "mouse_encoding": "Sgr",
+          "mouse_mode": "AnyMotion"
+        },
+        "before_exit_cursor": {
+          "col": 120,
+          "row": 39,
+          "style": 0,
+          "text_cursor_enable": null,
+          "visible": false
+        },
+        "child_pty_state": "live cursor and DEC mode facts recorded from termpane observations",
+        "host_terminal_state": "not_observed",
+        "reason": "child PTY mode state is recorded but parent/slave termios and shell continuation remain required and unobserved",
+        "status": "BLOCKED"
+      }
+    }
+  ],
+  "schema": "termrock-e2e/run03-pair-evidence-v1"
+}

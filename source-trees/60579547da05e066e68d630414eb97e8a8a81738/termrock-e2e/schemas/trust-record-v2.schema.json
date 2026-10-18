@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/parity-trust-record-v2",
+  "title": "Termrock externally pinned suite, source pair, and build evidence v2",
+  "type": "object",
+  "required": [
+    "schema",
+    "suite",
+    "subjects",
+    "expected_generation",
+    "write_policy_sha256",
+    "build_evidence"
+  ],
+  "properties": {
+    "schema": {
+      "const": "termrock-spec/parity-trust-record-v2"
+    },
+    "suite": {
+      "type": "object",
+      "required": [
+        "digest",
+        "case_set_digest",
+        "profile_digest",
+        "dependency_lock_sha256",
+        "review_receipt_sha256",
+        "test_binary_sha256"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "case_set_digest": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "dependency_lock_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "review_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "test_binary_sha256": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "subjects": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/subject"
+      },
+      "contains": {
+        "properties": {
+          "role": {
+            "const": "reference"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "expected_generation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/expected_generation"
+        }
+      ]
+    },
+    "write_policy_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "build_evidence": {
+      "type": "object",
+      "required": [
+        "subject_manifest",
+        "builder_run"
+      ],
+      "properties": {
+        "subject_manifest": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        },
+        "builder_run": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "role",
+        "source_commit",
+        "builder_receipt_sha256"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40}$"
+        },
+        "builder_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "expected_generation": {
+      "type": "object",
+      "required": [
+        "id",
+        "sha256",
+        "admission_receipt_sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "admission_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,108 @@
+{
+  "schema": "termrock.vis19.cursor-r4-test-only-overlay/v1",
+  "state": "PREPARED_FOR_INDEPENDENT_REVIEW_ONLY_NOT_EXECUTED",
+  "project": {
+    "root": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3",
+    "head": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+    "tree": "618b561d867f1bda0c1678d18a8f531a06c6469d",
+    "base_tagged_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+    "base_tree": "618b561d867f1bda0c1678d18a8f531a06c6469d"
+  },
+  "supersedes": [
+    {
+      "packet": "/private/tmp/termrock-vis19-cursor-increment1-r4-r2",
+      "manifest_sha256": "81e1017d3c08dd5dbb73223e102552943fe070e61e8cd1a7d79be92176874902",
+      "reason": "successor makes the cloned Cursor value explicit with (*Screen::cursor()).clone(); all previous R3-specific accessor corrections are retained"
+    }
+  ],
+  "prior": {
+    "r3_source_manifest_sha256": "df3648c0fcade4d48b135f019b8d5fc5f8ba93a35fe768727097b1fd4d96a682",
+    "r3_source_patch_sha256": "a16c2b9c7795110ed152f8cc991860b2f298c4b72acc2bea24a1bf2ac4c0efa2",
+    "r3_static_source_review_sha256": "9d6c8631081f0a5c0ccf49c16d5ae75dc90eda5acb03ceb3fc6283a346388ed6",
+    "r3_execution_binding_addendum_sha256": "c7c824014f1020e71c6b739a67326afbee8bbd8d2dbfe490ddd72ca74912f72e",
+    "r3_metadata_review_addendum_sha256": "f80ceeee5db0b1c65914cc16123af67bbaa40d14ab39f4576110b57e2dc1c7cf",
+    "r3_runner_review_sha256": "88c1c66c4ca30bb7ec84baa2d0342ba5191d50df184f8ee80f0def80cad5328d",
+    "r3_actual_result_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r3-nine-tests-20261010/attempt-03/receipt.json",
+    "r3_actual_result_sha256": "e25c1158fbf27fe77d613cdc3b99661289a94a6fca968f02d69f982ebbf5fce2"
+  },
+  "delta": {
+    "changed_paths": [
+      "crates/tuiscotti-runtime/tests/tui_shell/replay.rs"
+    ],
+    "prior_file_sha256": "302f3ba60d9e97b91498b8d0ea7bfcd6e23df753800bc75d967f32449c6d76ae",
+    "proposed_file_sha256": "207e3dee725cb1308fad3b428ee231d87980ad70ea29ed98e875202e0f585484",
+    "changed_access_sites": 5,
+    "description": "Replace five private Screen.cursor field reads with public Screen::cursor() access. The live helper clones the underlying value explicitly. Comparison references are explicit; coordinates, visibility, style, blinking, and all live/replay equalities remain asserted."
+  },
+  "selected_tests": {
+    "count": 9,
+    "unit": [
+      "tui::cursor_projection_tests::hidden_cursor_preserves_raw_coordinates_style_and_blink",
+      "tui::cursor_projection_tests::hidden_pending_wrap_preserves_column_equal_to_width",
+      "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscsr_shapes",
+      "tui::cursor_projection_tests::visibility_requires_backend_and_bounds_without_clamping_raw_position"
+    ],
+    "integration": [
+      "replay::hidden_cup_cursor_coordinates_match_live_and_replay",
+      "replay::hidden_pending_wrap_cursor_coordinates_match_live_and_replay",
+      "replay::replay_matches_live_session",
+      "replay::replay_chunk_invariance_all_split_points",
+      "replay::replay_recorded_pty_bytes_chunk_invariant"
+    ]
+  },
+  "scope": {
+    "allowed_source_files": [
+      "crates/tuiscotti-runtime/src/tui/frame.rs",
+      "crates/tuiscotti-runtime/src/tui/mod.rs",
+      "crates/tuiscotti-runtime/src/tui_shell/replay_screen.rs",
+      "crates/tuiscotti-runtime/tests/tui_shell/replay.rs"
+    ],
+    "changed_source_files": [
+      "crates/tuiscotti-runtime/tests/tui_shell/replay.rs"
+    ],
+    "cargo_or_nextest_run_by_owner": false,
+    "git_mutations": false,
+    "upstream_ref_tag_or_release_mutations": false
+  },
+  "r3_result": {
+    "status": "FAIL_OR_INCOMPLETE",
+    "cargo_exit_code": 101,
+    "nextest_tests_started": 0,
+    "stderr_bytes": 6662,
+    "stderr_sha256": "4079c68fccdf84a0a5a8e4c77d14c35d7278218e3c45702b271766e8d05ca1fd",
+    "compile_error": "Five E0616 accesses to private Screen.cursor fields; compiler suggests cursor().",
+    "postflight_error": "Unmanifested postlaunch CARGO_HOME file .package-cache-mutate; inputs_stable=false."
+  },
+  "checks": {
+    "diff_check": "PASS",
+    "modified_path_set": [
+      "crates/tuiscotti-runtime/src/tui/frame.rs",
+      "crates/tuiscotti-runtime/src/tui/mod.rs",
+      "crates/tuiscotti-runtime/src/tui_shell/replay_screen.rs",
+      "crates/tuiscotti-runtime/tests/tui_shell/replay.rs"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "replay.rs",
+      "bytes": 9565,
+      "sha256": "207e3dee725cb1308fad3b428ee231d87980ad70ea29ed98e875202e0f585484",
+      "packet_mode": "0444",
+      "source_mode": "0644"
+    },
+    {
+      "path": "r3-to-r4-test-source.patch",
+      "bytes": 1036,
+      "sha256": "ba01a313284ed3e4ca53291d85d2ccca985f589c3309499018f855a4e36b008a",
+      "packet_mode": "0444",
+      "source_mode": null
+    },
+    {
+      "path": "r4-full-source.patch",
+      "bytes": 10957,
+      "sha256": "d9e87c6eb07c9bdd3522d0b2ee4b3f20496e3b672105edca746a1e6e22fee610",
+      "packet_mode": "0444",
+      "source_mode": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help      web · Node proje… · pnpm  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here › Cleanup  [0m                                                      [0m
+ ━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────── [0m
+  [0m[1mCleanup review[0m                                                        [0m
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash             [0m
+                                                                        [0m
+ [0m[2m                                                                     [0m│ [0m
+  [ ] ▸ Xcode archives           300.0 MiB  review first…             ┃ [0m
+                                                                      ┃ [0m
+  [✓] ▸ Simulator caches         900.0 MiB  rebuilt on demand…        │ [0m
+                                                                      │ [0m
+  [✓] ▸ Homebrew cache           100.0 MiB  rebuilt on demand…        │ [0m
+                                                                      │ [0m
+  [✓] ▸ npm cache                201.0 MiB  rebuilt on demand…        │ [0m
+                                                                      │ [0m
+ [0m[2m [✓] ▸ pnpm store                 2.1 GiB  safe if old…              [0m│ [0m
+                                                                        [0m
+ [0m[1m~/Projects/web[0m         19 selected · 12.4 GiB         no color · 72×20 [0m
+  [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Permanent  [0m[1mn[0m Dry run  …   [0m

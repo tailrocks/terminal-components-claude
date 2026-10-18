@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                         Accounts › Claude › Work  ⠋ refreshing 1  inside the Construct  2 running
+
+ ╭─ Accounts ─────────────────────── 12 · 4 ▲ · 4 ! ─╮ │  Claude · Work                                                                   account · exhausted
+ │     Overview                                      │ │
+ │   ▾ Claude                                 !   3  │ │  Provider            Anthropic / Claude
+ │     ★ Personal                     current 4 min  │ │  Agent runtime       Claude Code
+ │       Archived contractor laptop prof…  disabled  │ │  Usage surface       Claude
+ │ ▎     Work                      !   stale 47 min  │ │  Identity            alexey@chainargos.com
+ │   ▾ Codex                                      2  │ │  Plan                Team
+ │     ★ Primary                      current 2 min  │ │  Credential          1Password · Engineering › Anthropic · Work › credential
+ │       Experiments                   ⠋ refreshing  │ │                      chainargos.1password.com · op://v_eng01/it_ant01/credential · ••••••••…3c9e
+ │   ▾ Amp                                    ▲   1  │ │  Provenance          configured source · confidence authoritative · registered
+ │       discovered               ▲   current 1 min  │ │  Lifecycle           available
+ │   ▾ Grok                                       1  │ │  Default             no
+ │     ★ Team                         current 9 min  │ │  Enabled             yes
+ │   ▾ Z.AI                                   ▲   1  │ │  Purpose             work
+ │       discovered                   ▲   stale 2 h  │ │  Used by             Workspace choice in payments-platform
+ │   ▾ Kimi                                   !   1  │ │
+ │       discovered                !   needs secret  │ │  Quota                                                                  stale · last good 47 min ago
+ │   ▾ MiniMax                                !   1  │ │  Session · 5-hour      76%                                 resets in 1 h 5 min
+ │       discovered                 !   unavailable  │ │  Weekly · all models   88%                                 resets Sun 19:14
+ │   ▾ OpenCode                               !   2  │ │  Weekly · Opus        100%                                 resets Sun 19:14 · exhausted
+ │     ★ Go subscription           !   rate limited  │ │  Extra usage credits   28%                                 1,420 / 5,000 USD · $14.20 of $50.00
+ │       ci-bot · discovered            unsupported  │ │
+ │     Unsupported                         sentinel  │ │  Validation          ✓ material   ✓ identity   ✓ quota access · quota readable
+ │     + Add account…                                │ │  Status              Usage stale · last good 47 min ago · retry  in 13 min · retryable
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │
+ │                                                   │ │  Refresh    Validate    Edit…    Set default    Disable    Remove…
+ ╰───────────────────────────────────────────────────╯ │
+
+                   Enter Details  r Refresh  e Edit…  Space Default  d Disable  v Validate  x Remove…  a Add…  / Filter  m Usage  Esc Back

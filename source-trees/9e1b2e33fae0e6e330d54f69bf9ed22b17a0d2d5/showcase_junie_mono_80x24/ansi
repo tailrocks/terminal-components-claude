@@ -1,0 +1,24 @@
+ ▪ [1mJunie[0m Design system / Foundations / Overview           i Inspector   ? Help  
+                                                                                
+▎› Overview          [1mOverview[0m  Tokens and principles behind every component     
+▎  Buttons                                                                      
+▎  Inputs              Tokens                                                   
+▎  Text areas                                                                   
+▎  Forms                   ▏ canvas                   ▏ text.muted              
+▎  Lists                   ▏ surface                  ▏ text.faint              
+▎  Trees                   ▏ surface.elevated         ▏ accent                  
+▎  Tables                  ▏ surface.overlay          ▏ accent.hover            
+▎  Editable tables         ▏ field                    ▏ accent.pressed          
+▎  Panels                  ▏ popover                  ▏ accent.bg               
+▎  Sidebars                                                                     
+▎  Dialogs                                                                      
+▎  Progress            State language                                           
+▎  Scrolling                                                                    
+▎  Terminal            ▎  focus                                                 
+▎  Code editor         ░  hover lifts the surface                               
+▎  Data grid           ›  current / chosen                                      
+▎  Chips & selects     ✓  checked                                               
+▎  Pickers             !  error                                                 
+▎  Chrome                                                                       
+                                                                                
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                                    

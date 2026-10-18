@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help             Accounts › Overview  ⠋ refreshing 1  inside the Construct [0m
+               ╭─[0m[1m New account [0m───────────────────────────────────── form · unsaved ─╮               [0m
+ ╭─ Accounts ──│   [0m[1mDisplay name *                                                 [0m ┃│ 1–17 of 23 ─╮ [0m
+ │     Overview│ ▎ Personal, Work, Team…                                           ┃│           ┃ │ [0m
+ │   ▾ Claude  │                                                                   ┃│     !   3 ┃ │ [0m
+ │     ★ Person│                                                                   ┃│rent 4 min ┃ │ [0m
+ │       Archiv│   Purpose label  optional                                         ┃│  disabled ┃ │ [0m
+ │       Work  │   personal · work · experiments                                   ┃│ale 47 min ┃ │ [0m
+ │   ▾ Codex   │                                                                   ┃│         2 ┃ │ [0m
+ │     ★ Primar│                                                                   ┃│rent 2 min ┃ │ [0m
+ │       Experi│   Provider                                                        ┃│refreshing ┃ │ [0m
+ │   ▾ Amp     │   Claude Code · Anthropic / Claude                             ▾  ┃│     ▲   1 ┃ │ [0m
+ │       discov│                                                                   ┃│rent 1 min ┃ │ [0m
+ │   ▾ Grok    │                                                                   ┃│         1 ┃ │ [0m
+ │     ★ Team  │   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ┃│rent 9 min ┃ │ [0m
+ │   ▾ Z.AI    │                                                                   ┃│     ▲   1 │ │ [0m
+ │       discov│   Credential source                                               ┃│ stale 2 h │ │ [0m
+ │   ▾ Kimi    │  (●) 1Password item / field  (recommended)                        ┃│     !   1 │ │ [0m
+ │       discov│  ( ) Local agent folder                                           ┃│eds secret │ │ [0m
+ │   ▾ MiniMax │  ( ) Plain-text API key                                           ┃│     !   1 │ │ [0m
+ ╰─────────────│                                                                   ┃│─────────────╯ [0m
+               │   1Password reference                                             ┃│               [0m
+   Overview    │   not chosen                                            Choose…   ┃│ Tab details   [0m
+               │                                                                   ┃│               [0m
+   Health  degr[0m[2m│                                                                   [0m││1 quota not…   [0m
+   Registry  12│                                                                    │               [0m
+   Sources  7 r│                                                                    │               [0m
+               │              Enter plain text instead   Validate   Cancel   [0m[1mSave [0m  │               [0m
+               ╰────────────────────────────────────────────────────────────────────╯               [0m
+                [0m[1m     [0m     [0m[1mTab[0m N[0m[1me[0mxt field  [0m[1mEnter[0m Edit /[0m[1m [0mSave  [0m[1mEsc [0mCancel  [0m[1m   [0m                        [0m

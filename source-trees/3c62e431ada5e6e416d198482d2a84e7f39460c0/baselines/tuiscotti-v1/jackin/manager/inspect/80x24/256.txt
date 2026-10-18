@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help             Workspaces › payments-platform › 7f3a
+
+ ╭─ Workspaces ─────────────────────────────────────────────────── 2 running ─╮
+ │     Current directory                          saved as payments-platform  │
+ │   ▾ payments-platform                                           1 running  │
+ │     ╭─ Container 7f3a ─────────────────────────────────── read-only ─╮min  │
+ │     │ ▎ Container  jackin-payments-platform-7f3a            y copy   │y •  │
+ │   ▸ │   Image      jackin/derived:payments-platform-7f3a             │ing  │
+ │   ▸ │   Workspace  payments-platform › role the-architect            │led  │
+ │   ▸ │   Agent      Claude Code · account Claude · Personal           │led  │
+ │     │   Target     /workspace/payments-platform · 2 mounts           │     │
+ │     │   Run id     run-7f3a                                          │     │
+ │     │   Lifecycle  running                                           │     │
+ │     │   Daemon     attached · 3 tabs · 3 s ago                       │     │
+ ╰─────│                                                                │─────╯
+       │                                                                │
+   Inst│                                                                │ails
+       │                                                        Close   │
+   the-╰────────────────────────────────────────────────────────────────╯
+   daemon · 3 tabs · 5 panes
+
+
+
+                          ↑↓ Move  y Copy  Esc Close

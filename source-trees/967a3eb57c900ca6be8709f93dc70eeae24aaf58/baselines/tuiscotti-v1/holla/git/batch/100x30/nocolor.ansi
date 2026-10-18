@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                repos · project collection  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+  Here   [0m[1m pull alpha [0m✓[0m[1m ×  [0m                                                                          [0m
+ ────────━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mpull alpha[0m · succeeded · 0 s · exit 0                           child · ~/work/repos/alpha · mbp  [0m
+  $ git -C /Users/alex/work/repos/alpha pull · started by Pull 4 sibling repositories · batch git…  [0m
+                                                                                                    [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ git -C /Users/alex/work/repos/alpha pull                                                    │ [0m
+ │  From github.com:acme/alpha                                                                    │ [0m
+ │     a1b2c3d..a9c0f1e  main -> origin/main                                                      │ [0m
+ │  Updating a1b2c3d..a9c0f1e                                                                     │ [0m
+ │  Fast-forward                                                                                  │ [0m
+ │   6 files changed, 39 insertions(+)                                                            │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+ [0m[1m~/work/repos[0m                           succeeded · 0 s                           no color · 100×30 [0m
+     [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  …   [0m[1m![0m Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled [0m

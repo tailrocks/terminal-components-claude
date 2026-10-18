@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                         engine · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mcargo clean[0m                                                                                          scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Results · 3                                                                  cargo clean · 900.0 … cleanup · here   [0m
+ [0m[1m › cargo clean · 900.0 MiB    [0mcleanup[0m[1m  [0mhere[0m[1m  [0m900.0 MiB of gen…[0m[1m  [0mdestructive[0m[1m [0m                                           [0m
+    [0m[1mcargo[0m clean dry run        cargo    here  read-only                          Does       remove the resolved         [0m
+    [0m[1mClean[0m Cargo registry cac…  cleanup  host  safe if old…                                  target directory            [0m
+                                                                                            ~/work/engine/target · 2    [0m
+                                                                                            files · tool-native         [0m
+                                                                                            permanent removal, not      [0m
+                                                                                            Trash · rebuilt by the      [0m
+                                                                                            next build                  [0m
+                                                                                 Runs       cargo clean                 [0m
+                                                                                 In         ~/work/engine               [0m
+                                                                                 Host       mbp · local                 [0m
+                                                                                 Scope      here                        [0m
+                                                                                 Why        900.0 MiB of generated      [0m
+                                                                                            artifacts                   [0m
+                                                                                 Changes    900.0 MiB freed by cargo    [0m
+                                                                                            itself · permanent ·        [0m
+                                                                                            next build recompiles       [0m
+                                                                                            everything · shared         [0m
+                                                                                            target:                     [0m
+                                                                                            /Users/alex/work/engine-    [0m
+                                                                                            wt loses its artifacts      [0m
+                                                                                            too                         [0m
+                                                                                 Risk       destructive                 [0m
+                                                                                 Data       live · 2 s ago              [0m
+                                                                                 Gate       one confirmation            [0m
+                                                                                 Alt+Enter  Show what clean would       [0m
+                                                                                            remove (dry run) · Pin ·    [0m
+                                                                                            Alias · Why here?           [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/engine[0m   main                                                                                 no color · 120×40 [0m
+             [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear                [0m

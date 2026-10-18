@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Terminal           truecolor · 100×30   i Inspector   ? Help
+
+▎  Overview          Terminal  Viewport with scrollback, selection and copy · drag the seam · step…
+▎  Buttons
+▎  Inputs            ╭─ Viewport ──────────── 2 lines · following ─╮ │  Step rail
+▎  Text areas        │  payments-platform ❯ jackin launch          │ │
+▎  Forms             │  ▶ Resolve workspace                        │ │  ▎⠏ 01 Resolve wor…  0.7 s
+▎  Lists             │                                             │ │  ▎  02 Pull base …  queued
+▎  Trees             │                                             │ │  ▎  03 Build cont…  queued
+▎  Tables            │                                             │ │  ▎  04 Mount sour…  queued
+▎  Editable tables   │                                             │ │  ▎  05 Resolve cr…  queued
+▎  Panels            │                                             │ │  ▎  06 Start agent  queued
+▎  Sidebars          │                                             │ │  ▎  07 Ready        queued
+▎  Dialogs           │                                             │ │
+▎  Progress          │                                             │ │
+▎  Scrolling         │                                             │ │
+▎› Terminal          │                                             │ │
+▎  Code editor       │                                             │ │
+▎  Data grid         │                                             │ │
+▎  Chips & selects   │                                             │ │
+▎  Pickers           │                                             │ │
+▎  Chrome            │                                             │ │
+▎  Settings          │                                             │ │
+▎  Task runner       │                                             │ │
+                     │                                             │ │
+                     │                                             │ │
+                     │                                             │ │  ▎Run   ▎Run with a failu…
+                     ╰─────────────────────────────────────────────╯ │
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

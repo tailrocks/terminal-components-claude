@@ -1,0 +1,30 @@
+{
+  "schema": "termrock-vis01-fresh-clone-single-case-runner-review-request/v1",
+  "scope": "Static review of the R10 one-case external runner, its inputs, and no-Cargo preflight only. Do not run Cargo, Nextest, or tests.",
+  "runner_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/runner.cjs",
+  "runner_sha256": "21b1c22023c24cf364af0edebb76d1e966377d418f2208b898bb8296f9bb3c2e",
+  "preflight_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/preflight.json",
+  "preflight_sha256": "25466196c8b8a62c2a15d16da7e3034994b3cac1c25f84c19b9232d67584fb9b",
+  "readme_path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/README.md",
+  "readme_sha256": "7576a0b2615589c61031495e43ef6eaf140a7615e7befbb0704d005497c7fcfa",
+  "source_commit": "1d66f444f5962414b7c33734fa37376471e5f853",
+  "source_tree": "0ae9e285e8f771b8e250c63bf80f902d112dcd95",
+  "test": "checked_in_records_render_from_exact_copies",
+  "rust_toolchain": {
+    "version": "1.98.1-aarch64-apple-darwin",
+    "rust_version_requirement": "1.98.1",
+    "cargo_sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+    "rustc_sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+  },
+  "expected_execution_scope": "one selected test; no retries; test threads 1; Cargo jobs 2; no-tests=fail; 600-second process-group timeout; SIGTERM then SIGKILL after 5 seconds; 5-second post-SIGKILL close deadline; 8 MiB per raw child stream",
+  "review_checks": [
+    "Verify all child binary, source, lock, cache, config, clone, and environment pins match the request.",
+    "Verify Rust 1.98.1 satisfies the crate rust-version and the runner pins the exact Cargo/rustc binaries.",
+    "Verify the exact filter plus --ignore-default-filter cannot select another test and zero selected tests fails.",
+    "Verify the runner starts only one direct child, captures stdout/stderr separately, has process-group timeout handling, finite post-SIGKILL close handling, and does not retry.",
+    "Verify target, HOME, TMPDIR, and result paths are external to the clone and fail closed if already present; there are no shell redirections to overwrite supervisor files.",
+    "Verify Git status preflight uses GIT_OPTIONAL_LOCKS=0 and preflight mode does not invoke Cargo/Nextest tests or mutate the clone/cache."
+  ],
+  "execution_state": "NOT_RUN",
+  "cargo_or_test_launched_by_request_author": false
+}

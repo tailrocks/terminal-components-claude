@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                         no project  [0m[1mdevbox · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here › Cleanup › Review  [0m                                                                                                                                     [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mReview · trash 1 item[0m · gate 1 of 2 · review the resolved facts, then continue deliberately                                                                   [0m
+                                                                                                                                                                [0m
+  Action        move to Trash 1 item under ~                                                                                                                    [0m
+  Host          devbox · local                                                                                                                                  [0m
+  Mode          Trash · no Trash backend · every item will fail, never fall back · space returns after the Trash is emptied                                     [0m
+  Estimate      124.0 KiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee                                         [0m
+  Denied        none · every path passed the lexical, protected-root, user-data and symlink rules                                                               [0m
+  Revision      c4d729e20ca0805b · any change to paths, mode or dry run voids this review                                                                       [0m
+  Threat model  an unprivileged user · ancestors are re-resolved at commit · a concurrent rename of the final path cannot be excluded                           [0m
+  Paths         ~/Projects/app/node_modules                                                                                                                     [0m
+  Recoverable   yes · until the Trash is emptied                                                                                                                [0m
+  Provenance    holla cleanup · paths validated at review and again at commit                                                                                   [0m
+  Gate          second gate types the target-bound phrase                                                                                                       [0m
+                                                                                                                                                                [0m
+ ╭─ Sequence · 1 command ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── y copies ─╮ [0m
+ │  01  trash /home/alex/Projects/app/node_modules  # 124.0 KiB · project.artifacts                                                                           │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+                                                                                                                                         ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/box[0m                                                       review · gate 1 of 2                                                        no color · 160×50 [0m
+                                              [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  [0m[1my[0m Copy sequence  [0m[1mEsc[0m Cancel                     1 item selected · 124.0 KiB [0m

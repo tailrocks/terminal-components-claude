@@ -1,0 +1,35 @@
+{
+  "schema": "termrock.vis11.external-implementation-plan-independent-review/v1",
+  "verdict": "READY_FOR_ROOT_QUEUE_ADMISSION",
+  "reviewed_at_utc": "2026-10-09",
+  "plan_path": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r7-20261009/plan.json",
+  "plan_sha256": "70f8bc1ab302d47f1ca747283874b1626c4c67bc27eb1c40c0e56b80bb26b3c9",
+  "markdown_path": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r7-20261009/plan.md",
+  "markdown_sha256": "750b555ba9538abaa6dd86332643956e5b3c77c772dd12d6be76a104d2223113",
+  "review_scope": "Focused R6-to-R7 delta review plus confirmation that the previously reviewed V1 trust, scope, input-type, permission, source, and execution-gate provisions remain unchanged.",
+  "checks": {
+    "required_input_delta": "All six workflow_call input objects now explicitly specify required:true and default_presence:absent. The contract/rendering text and positive/negative/render snapshot regressions require each exact property, reject omission, required:false, and defaults.",
+    "previous_type_finding": "The six direct context mappings remain strings, including github.run_id and github.run_attempt. The later Rust publisher is separately assigned positive decimal-string validation with checked u64 conversion before side effects.",
+    "unchanged_v1_bindings": "The eight exact paths, fixed Git-less R3 inventory, AGENTS line/function caps, push-only dynamic caller identity guard, callee repository check, permission maps, GitHub.com-only scope, exclusions, and Root-controlled gates remain as reviewed in R6.",
+    "diff_scope": "The R6-to-R7 change is limited to the revision/status, explicit required/no-default input semantics and regressions, and an accurate R6 finding/resolution history entry."
+  },
+  "official_references": [
+    "https://docs.github.com/en/actions/reference/workflows-and-actions/contexts",
+    "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax"
+  ],
+  "superseded_predecessors": [
+    {
+      "path": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r6-20261009/plan.json",
+      "sha256": "20d20d6d61d54a93a55d08cd31cd90fab4e35313a8cb68031206a82620a9f78e",
+      "reason": "R7 closes the explicit rendered-input requiredness gap."
+    },
+    {
+      "path": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r5-20261009/plan.json",
+      "sha256": "5cb3dcdc4b160d9a8fb3cbbe6cd3bf1e33972b1fbb7617507715cd32d423f075",
+      "reason": "R5 declared run_id/run_attempt as numbers, which did not match their string context expressions."
+    }
+  ],
+  "source_edits": false,
+  "queue_writes": false,
+  "cargo_or_tests_run": false
+}

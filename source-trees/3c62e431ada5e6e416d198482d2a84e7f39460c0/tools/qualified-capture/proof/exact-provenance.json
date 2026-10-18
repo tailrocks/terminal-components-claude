@@ -1,0 +1,122 @@
+{
+  "commit": "e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2",
+  "source_status": "",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "exact-0.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--bin",
+        "tuisnap"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "exact-1.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "+stable",
+        "run",
+        "--locked",
+        "--manifest-path",
+        "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/qualification/snap-harness/Cargo.toml",
+        "--bin",
+        "tool-qualification",
+        "--",
+        "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/qualification"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "exact-2.log"
+    },
+    {
+      "argv": [
+        "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/tuisnap",
+        "render",
+        "--input",
+        "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/qualification/snap.frame.json",
+        "--format",
+        "png",
+        "--format",
+        "svg",
+        "--out",
+        "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/qualification/snap-repaired"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "exact-3.log"
+    },
+    {
+      "argv": [
+        "python3",
+        "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/qualification/qualify.py",
+        "--strict-snap"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "exact-4.log"
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain"
+      ],
+      "exit": 0,
+      "expected": 0,
+      "log": "exact-5.log"
+    }
+  ],
+  "artifacts": {
+    "qualification/snap-repaired.png": "38bd88ac5dff0cd166f3ee9267485bec1af1d3847e4e74eff0cf9a9ed2253d61",
+    "qualification/fixture.py": "7d8c4da061f79c78b77ef380045c476cc89ecb1c0539a44a5fed4d8cb62b2935",
+    "qualification/qualification-results.json": "748e5682a68bf111b9145128740eb120d768c847b175449e9f739f4765c2b229",
+    "qualification/run-commands.json": "76599201f1fa7b043a74301a838f6ef21a6467739205be2af197f72f0dfb3c63",
+    "qualification/snap-run-repaired.log": "7568f3a7dfbab34be364b940d2c8ebe7d6afbbe3da71d9c58a6e8dd738ea1f84",
+    "qualification/tuitest-commands.json": "66a7d5069bbcd46bc2c2b487b37fad70847b6e14d918d6f2b06ced69fd23fc77",
+    "qualification/provenance.json": "967043e0dfa4e5339e18c2f92e152724d4de2d69c89ef308a4cf50a0a3c328d9",
+    "qualification/strict-gate.log": "33e60504ba3482f5df0c9286a3cfc0f264812874d00bef0d4db3b349b8c142da",
+    "qualification/snap.frame.json": "7a27d601d8af4fedfbb53555ebad78fc325ef61dece9d1dc11a891895be3e1d5",
+    "qualification/tuitest-settled-cells.json": "941cba78ca86f6dec5233b398396801b2c9b573c62d649c32e1b66854be6e42a",
+    "qualification/tuitest-run.log": "daea84bebd44129dd632c710477f7a5f138d38f3ebfe323ab35b0600fba9e87a",
+    "qualification/REPORT.md": "c70cf93156a27fe70e3dca2fe16dcdb1d5676cb507414a1bd0755bbc933bce49",
+    "qualification/tuitest-events.json": "77b087d0a8b3ac540dad77fd659993eab892021c1384f9ebb2594039dd2bb155",
+    "qualification/snap-dim-resolution.txt": "652907522d92f51b9231ffdf6138642bf6209d9d40d82bcf98f89a417c04320f",
+    "qualification/tuitest.svg": "fccec4b48de3f5f95daebbd09650bb4281e8adfba1129fce15e17db8d3e9b303",
+    "qualification/snap-exit.txt": "a1079eebe59c69e73996eec574e50f27a21cb7bcb14114f41c483764cffab61b",
+    "qualification/tuitest-cursor.json": "831b190728ffd3588ceec2a438b3b36866a33eaa602d2cca0f6330b4cad4a4f3",
+    "qualification/snap-repaired.svg": "3bae265c53a55c2bf3fbcc8b2aecaf8088eddcffc47d90747f4b754d809cd77f",
+    "qualification/run-0.log": "2f15ba2aa92e3555c6f375aa3683995907490842ffcd0ec6c88842cb9d9b3027",
+    "qualification/snap-settle-ms.txt": "8952115444bab6de66aab97501f75fee64be3448203a91b47818e5e8943e0dfb",
+    "qualification/run-1.log": "0bc1935ee0603d3f42f680bff78c66c5b1dd2699434645232b451c6bcb131d9c",
+    "qualification/run-3.log": "e0d82351b89d7d50efd1a176f80c4256254aec17fefff571b11f89f5b8d7090c",
+    "qualification/snap.png": "675dbaca7507818b7d23fc4e78be03c94785c81d562a397cfa3cfa67de7361ab",
+    "qualification/run-2.log": "931a24f0bc5257c11e93d08ee92900d1dca76b16b6e22cace552878517901859",
+    "qualification/run_tuitest.py": "2bb41fe092b02cb5d51c4193283a2778d3bcb40b402fe8e9a2abd90faf63a6ff",
+    "qualification/tuitest-exit-state.json": "f82a6c5fc3332f32be4951665c482eb4208f6dabe0b0f16ae2c55a7e736c0e12",
+    "qualification/run_all.py": "6f46a8e4561d5eb7c63a8b8a5b95dfe4e596d1139e62abdb42ccf5045453d7bc",
+    "qualification/snap-run.log": "193564760f4ac53d686a2245261aad99cec9e06ffde86202b38d6227f33f956d",
+    "qualification/tuitest-state.json": "11646e6d768862e6e883c5e8abeac7f9becff5377aff075f98e93b9b0ff16313",
+    "qualification/snap.svg": "229fb83bd6143e7f9214c9d68f885bc28916a0e00805c1015b023d6a3fe48cae",
+    "qualification/qualify.py": "52c7be85ba0c16a5d79311cea0f2b0ffb92b8b4b733c1844bf145bf2c0cf2ba6",
+    "qualification/expected-cells.json": "c3a07e85392d78f4d661292d8fbf860a33371ecfe1b7af6408afec907fec9ea8",
+    "qualification/snap-settled.frame.json": "7a83ebf2a1486781d0de419e356c6e8aee53227fdd128670f5370dfbe6b238e1",
+    "qualification/snap-events.json": "a023a3af4d0fbe11fc4f5b07ff98bd2dc2f61632ce2e675948722f0f0eb37dfa",
+    "qualification/tuitest-cells.json": "0a41a722a134b3537bb3d9376c3ae573b81b5c9d8913f784f88e2956ccb2a1ef",
+    "target/debug/tuisnap": "07e1efcac7d6c38288949f48c94b2ebea1dff8780bd6f401a94f1d44445f484f",
+    "target/debug/tool-qualification": "ac445d4dad68349404b3026c060c396be172b61a3f2e6ed03dfc2384baa3138e"
+  }
+}

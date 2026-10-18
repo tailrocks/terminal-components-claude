@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                    Workspaces  inside the Construct  2 running  ⠋ working
+            ╭─────────────────────────╮
+ ╭─ Workspac│  New workspace…       n ││  Current directory · payments-platform                       saved workspace
+ │ ▎   Curre│  Edit workspace…      e ││
+ │ ▎ ▸ payme│  Launch…          Enter ││  Working dir   /workspace/payments-platform
+ │ ▎ ▸ infra│  Prewarm              w ││  Mounts        ~/src/payments-platform · rw worktree
+ │ ▎ ▸ relea│  Delete workspace…    d ││                ~/src/shared-libs · ro shared
+ │ ▎ ▸ custo│ ─────────────────────── ││  Roles         the-architect ★ · allowed 3 of 46
+ │ ▎   + New│  Refresh             F5 ││  Environments  5 vars · 2 [op]
+ │          │ ─────────────────────── ││  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·
+ │          │  Quit            Ctrl+Q ││                Grok · Team ★ · OpenCode · Go subscription ★
+ │          ╰─────────────────────────╯│  Policies      git pull enabled · keep awake on · dirty exit ask
+ │                                   │ │
+ │                                   │ │  Instances                                                  daemon · 3 s ago
+ │                                   │ │  ◉ 7f3a  the-architect · Claude Code · running
+ │                                   │ │  ◌ c41e  reviewer · Codex · preserved · dirty
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit
+ ╰───────────────────────────────────╯ │
+
+    ← → Menu  ↑↓ Move  …   Validating Claude · Archived contractor laptop profile — do not use for production launches…

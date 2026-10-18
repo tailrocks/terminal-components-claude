@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      payments · s…eckout  ◆ prod-eu-1 · production [0m
+  ╭──────────────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                          │  [0m
+ ━│  [0m[1mRestart payments · gate 2 of 2[0m                                          │─ [0m
+  │                                                                          │  [0m
+  │  Action   systemctl restart payments on prod-eu-1 · production ·         │  [0m
+  │           in-flight requests are dropped                                 │  [0m
+  │  Host     prod-eu-1 · production                                         │  [0m
+  │  In       prod-eu-1 · host-wide                                          │  [0m
+  │  Scope    on prod-eu-1                                                   │  [0m
+  │  Changes  payments restarts · brief outage on prod-eu-1                  │  [0m
+  │  Risk     privileged                                                     │  [0m
+  │                                                                          │  [0m
+  │  sudo systemctl restart payments                                         │  [0m
+  │  systemctl status payments                                               │  [0m
+ ╭│                                                                          │╮ [0m
+ ││   [0m[1mType RESTART PAYMENTS ON prod-eu-1 to confirm                        [0m  ││ [0m
+ ││ ▎ [0m[4mRESTART PAYMENTS ON prod-eu-1[0m                                          ││ [0m
+ ╰│                                                                          │╯ [0m
+  │                                                                          │  [0m
+  │                                                       Cancel   Execute   │  [0m
+  │                                                                          │  [0m
+ /╰──────────────────────────────────────────────────────────────────────────╯4 [0m
+ [0m[1m EDIT [0m  [0m[1m   [0m         [0m[1mType [0mPhrase  [0m[1mEnter [0mNext  [0m[1mEsc[0m Cancel        [0m[1m   [0m             [0m

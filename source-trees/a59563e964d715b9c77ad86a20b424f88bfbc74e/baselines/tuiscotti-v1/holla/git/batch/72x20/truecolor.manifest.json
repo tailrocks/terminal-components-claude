@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "c6fced8e5ea7eb5811040074b6074fa9a146f0822c385c008310cc81e2c88106",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5356,
+      "file": "holla/git/batch/72x20/truecolor.ansi",
+      "sha256": "c6fced8e5ea7eb5811040074b6074fa9a146f0822c385c008310cc81e2c88106"
+    },
+    "ascii": {
+      "bytes": 1146,
+      "file": "holla/git/batch/72x20/truecolor.ascii",
+      "sha256": "fee787972b911e342e4a36f68ce95ff00f673ecba494dda9433bf984a3f6f549"
+    },
+    "ascii_loss_json": {
+      "bytes": 20820,
+      "file": "holla/git/batch/72x20/truecolor.ascii.loss.json",
+      "sha256": "b091c0c363d382c9cff803cd726908ff2d3d14c952a7ee6df42bdf59569d6afa"
+    },
+    "frame_json": {
+      "bytes": 382187,
+      "file": "holla/git/batch/72x20/truecolor.frame.json",
+      "sha256": "0362de52c70ea0fdeede44dd8cb808d73fb315a927c754f0d1e43e7a117a70a6"
+    },
+    "html": {
+      "bytes": 272510,
+      "file": "holla/git/batch/72x20/truecolor.html",
+      "sha256": "f06865d5ecdbc3e72a5783363d8df4ac4d2e7a0246e1cf66317c18efc1650175"
+    },
+    "observations_json": {
+      "bytes": 449,
+      "file": "holla/git/batch/72x20/truecolor.observations.json",
+      "sha256": "01e47cb06c2bc82ac909e57be79d42a354c19d5412f451cb91a5392a2740bea0"
+    },
+    "png": {
+      "bytes": 195432,
+      "file": "holla/git/batch/72x20/truecolor.png",
+      "sha256": "12095e08ba5e17d52ae16619c4da89942660abea95d6c84e92b5b11076940c6d"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/git/batch/72x20/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1583,
+      "file": "holla/git/batch/72x20/truecolor.txt",
+      "sha256": "13ad63d265dc60ba2a0c34b28f5b6a38d8306993b6d50929d3895d2b7f3ad69a"
+    }
+  },
+  "ascii_substitutions_count": 225,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 9034762662934129637,
+  "frame_sha256": "0362de52c70ea0fdeede44dd8cb808d73fb315a927c754f0d1e43e7a117a70a6",
+  "generation": "16959440b73b8ac102b14b0d52380182a4727a23436a18bf75d221d5fec0ba48",
+  "html_sha256": "f06865d5ecdbc3e72a5783363d8df4ac4d2e7a0246e1cf66317c18efc1650175",
+  "legacy_name": "holla/flows/git/batch/72x20/truecolor",
+  "name": "holla/git/batch/72x20/truecolor",
+  "png_sha256": "12095e08ba5e17d52ae16619c4da89942660abea95d6c84e92b5b11076940c6d",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:12Z",
+  "txt_sha256": "13ad63d265dc60ba2a0c34b28f5b6a38d8306993b6d50929d3895d2b7f3ad69a"
+}

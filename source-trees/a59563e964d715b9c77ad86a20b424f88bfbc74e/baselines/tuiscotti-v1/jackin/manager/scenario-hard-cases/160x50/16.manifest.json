@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "63b8208bf09cfb06f3235aa9c0e4add3bd58e43feaeac6660bb881f51f3d199b",
+  "artifacts": {
+    "ansi": {
+      "bytes": 19963,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.ansi",
+      "sha256": "63b8208bf09cfb06f3235aa9c0e4add3bd58e43feaeac6660bb881f51f3d199b"
+    },
+    "ascii": {
+      "bytes": 4983,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.ascii",
+      "sha256": "9b9d85ffe903f7d96395c086ca16205608a99d61a87cc30075b3adc2d68a6a0f"
+    },
+    "ascii_loss_json": {
+      "bytes": 29774,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.ascii.loss.json",
+      "sha256": "2b924697b3ef91da454cabcd534397a5f0db102cad6d5fb82ab907686576f3f8"
+    },
+    "frame_json": {
+      "bytes": 1864039,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.frame.json",
+      "sha256": "9cc66435cd9feb6c6a26ce87f2bf586eb479f27393d58b17719b20ee4f938a9b"
+    },
+    "html": {
+      "bytes": 1190339,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.html",
+      "sha256": "5bc68676847bf11c7c55d3a3a84e6720eb382eb1f7597ad29ed547b410f702f6"
+    },
+    "observations_json": {
+      "bytes": 465,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.observations.json",
+      "sha256": "8c7b3083d28c405d5f4655a165551690e8f537b6fa06ca40b9822af1b4ed8de6"
+    },
+    "png": {
+      "bytes": 854082,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.png",
+      "sha256": "71ac2bd3be0af399bfb07772612aa50d2f9b282ec2e457d13cfd6cae2406f727"
+    },
+    "png_fidelity_json": {
+      "bytes": 1282,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.png.fidelity.json",
+      "sha256": "e161068a36a6a2f6df598d91ba9f992f8b212fbb0f2bc7e8e77841980f6ac983"
+    },
+    "txt": {
+      "bytes": 5560,
+      "file": "jackin/manager/scenario-hard-cases/160x50/16.txt",
+      "sha256": "3f6f52cbfe7f51377cb01e0ebff44ddb3f04ca047aa79b9d28ab8d38281687cd"
+    }
+  },
+  "ascii_substitutions_count": 321,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 10822169876263541769,
+  "frame_sha256": "9cc66435cd9feb6c6a26ce87f2bf586eb479f27393d58b17719b20ee4f938a9b",
+  "generation": "14fbdc295790be8752d227550d202e69b4d1601da5342eba96b25baa93275a98",
+  "html_sha256": "5bc68676847bf11c7c55d3a3a84e6720eb382eb1f7597ad29ed547b410f702f6",
+  "legacy_name": "jackin/scenarios/hard-cases/160x50/16",
+  "name": "jackin/manager/scenario-hard-cases/160x50/16",
+  "png_sha256": "71ac2bd3be0af399bfb07772612aa50d2f9b282ec2e457d13cfd6cae2406f727",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:27Z",
+  "txt_sha256": "3f6f52cbfe7f51377cb01e0ebff44ddb3f04ca047aa79b9d28ab8d38281687cd"
+}

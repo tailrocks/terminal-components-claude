@@ -1,0 +1,57 @@
+{
+  "schema": "termrock-independent-runner-review-v1",
+  "work_id": "VIS-01",
+  "verdict": "READY_STATIC_RUNNER_PREFLIGHT_REVIEW_ONLY",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "reviewed_at": "2026-10-10",
+  "scope": "Focused static review of VIS-01 R5 runner bindings, status-only selection, fixture build-dependency/artifact contract, and the supplied no-Cargo preflight receipt. No new preflight or Rust execution by reviewer.",
+  "pins": {
+    "runner": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/runner.cjs",
+      "sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25"
+    },
+    "runplan": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/runplan.json",
+      "sha256": "fcf0d07797be669008236c700ada85781d010510c2988987de1039dfc9124985"
+    },
+    "source_manifest": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/source-manifest.json",
+      "sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212"
+    },
+    "test_names": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/test-names.json",
+      "sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb"
+    },
+    "review_request": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/review-request.json",
+      "sha256": "b8beda016dc28c8f216efde046d0e5c15b3cca77d32c6452bf4e851cf172abb8"
+    },
+    "packet_checksums": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/SHA256SUMS",
+      "sha256": "5ff253930d54ae8401ef2c5854c077bdf5e36e9d75ac87f08bf3fcc88f3a1ebb"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/preflight/runner-preflight.json",
+      "sha256": "b4c0db84c5272ba3886eb8e8cc2437fe8ef4a3b09ff21f0ee704f0104fce2ff3"
+    },
+    "cache_closure_sha256": "ebaa2272db4f51932240fa178697d5a5186c3661887aca802ee632de561f255b",
+    "source_freeze_sha256": "b60026ab91d39961027c435a274108d3f837671b7394724c2f3f9cbac8d29fc1",
+    "source_delta_sha256": "d3651b036a9201ebb4a1bc76577a771dd14c7926b44222eb7d5dbce889bc966c"
+  },
+  "review": {
+    "runplan_bindings_match_current_source_manifest_and_test_inventory": true,
+    "review_request_and_preflight_bind_exact_runner_and_inputs": true,
+    "packet_checksum_manifest_valid": true,
+    "argv_selects_only_package_integration_target_status": true,
+    "expected_selected_integration_test_count": 53,
+    "fixture_target_role": "build_dependency_only; source declares one unit test and selected count is zero",
+    "fixture_artifact_contract": "Requires regular target/debug/fixture mode 0755 and pinned target/debug/fixture.d source provenance; no fixture test suite/event is accepted.",
+    "preflight_observation": "PREFLIGHT_READY_NO_CARGO; cargo_spawned=false; nextest_spawned=false; tests_run=false; network_used=false; empty target/output artifacts at preflight.",
+    "history": "R1 preflight failure and review erratum, R2 stale-binding CHANGES_REQUIRED receipt, and later superseded attempts are preserved and explicitly carried forward.",
+    "limits": "This is runner/preflight review only. It does not authorize execution or make product qualification/readiness claims."
+  },
+  "execution": {
+    "new_preflight_run_by_reviewer": false,
+    "cargo_or_nextest_run_by_reviewer": false
+  }
+}

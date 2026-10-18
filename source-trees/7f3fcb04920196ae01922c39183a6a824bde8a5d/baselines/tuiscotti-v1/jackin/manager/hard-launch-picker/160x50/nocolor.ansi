@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                     Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale [0m
+                                                                                                                                                                [0m
+ ╭─ Workspaces ────────────────────── 3 running ─╮ │  Current directory · payments-platform saved workspace      Running                          3 instances   [0m
+ │     Current …ory  saved as payments-platform  │ │                                                                                                            [0m
+ │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
+ │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
+ │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m
+ │   ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 126                                                          [0m
+ │   ▸ data-pipeline                  1 running  │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex      [0m
+ │   ▸ docs-site                       1 record  │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane             [0m
+ │     auth-service                        idle  │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments                 [0m
+ │     gateway                             idle  │ │                OpenCode · Go subscription ★                                                                [0m
+ │     mobile-app                          idle  │ │  Policies      git pull enabled · keep awake on · dir…      ◉ e0e0  data-pipeline · backend · Claude Co…   [0m
+ │     ml-notebooks                   ╭──────────────────────────────────────────────────────────────────────────────────╮g 10 min · daemon unavailable         [0m
+ │     search-indexer                 │ [0m[1mLaunch · choose Agent[0m                          payments-platform › the-architect │t Claude · Personal                   [0m
+ │     staging-env                    │ [0m[1m▎[0m▪[0m[1m Claude Code  [0maccount Claude · Personal · provider d…[0m[1m [0mchoose at start[0m[1m  [0magents[0m[1m [0m │                                      [0m
+ │     billing-reconciliation…-truncat│  ▪ Codex        account Codex · Primary · provider def… ready                    │                                      [0m
+ │     legacy-monolith                │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │                          6 records   [0m
+ │     + New workspace                │  ▪ Grok Build   account Grok · Team · provider default  ready                    │ayments-platform · reviewer · pres…   [0m
+ │                                    │                                                                                  │elease-automation · backend · rest…   [0m
+ │                                    │                                                                                  │nfra-control-plane · sre · preserv…   [0m
+ │                                    ╰──────────────────────────────────────────────────────────────────────────────────╯ayments-platform · reviewer · rest…   [0m
+ │                                               │ │  ◌ b555  reviewer · Codex · restore available               ◌ b333  payments-platform · reviewer · rest…   [0m
+ │                                               │ │                                                             ◌ b555  payments-platform · reviewer · rest…   [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                             Daemon                     ▲ stale · 3 s ago   [0m
+ │                                               │ │                                                             Refresh      throttled · every 5 s             [0m
+ │                                               │ │                                                             Usage        degraded · 4 warnings · 1 exha…   [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │  Launch    Edit                                                                                            [0m
+ ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+                                                                                                                                                                [0m
+        [0m[1m     [0m         [0m[1m [0m      [0m[1m↑↓[0m Move [0m[1m Enter[0m Choose[0m[1m [0m [0m[1mEsc[0m Cancel    [0m[1m▲[0m Could not confirm running instances: instance index unreadable · entered without the ritual [0m

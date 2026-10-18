@@ -1,0 +1,44 @@
+{
+  "schema": "termrock-vis06-private-cache-independent-review/v1",
+  "verdict": "PASS_CACHE_PREPARATION_ONLY",
+  "review_scope": "Read-only verification of the frozen external Cargo cache closure. No Cargo, Nextest, build, source edit, or repository/ref operation was performed.",
+  "bindings": {
+    "seed_runner": {
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/seed-private-cargo-cache-r3.mjs",
+      "sha256": "8f3e3c18fb9b4cdeb9a62e41a1a88544793ea4b5df291e04997e45b9c5c6af61"
+    },
+    "execution_record": {
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-seed-execution-r3.json",
+      "sha256": "6c737639599f42a6c91fbf9fa386ccfc7187a25a8c15d06edcc30a8dee48be8c"
+    },
+    "closure": {
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-closure-r3.json",
+      "sha256": "437eeadc8cf26858e372536688fc6e14d10683557c66bca56ee8ffb272e9d158"
+    },
+    "destination_cargo_home": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3",
+    "node_version": "v24.20.0",
+    "node_sha256_matches_execution_record": true
+  },
+  "verified": {
+    "lockfiles": [
+      {"role":"visibility","sha256":"d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2","packages":33,"actual_sha_matches":true},
+      {"role":"reference","sha256":"3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460","packages":317,"actual_sha_matches":true},
+      {"role":"candidate","sha256":"6ce8eab6040704d9eadb71349aa0f382e232ffeb657c84fe4f266e93660b5a4a","packages":386,"actual_sha_matches":true}
+    ],
+    "registry_archives": {"count":356,"global_cache_copied":260,"downloaded_from_static_crates_io":96,"checksum_mismatches":0,"all_actual_destination_bytes_match_locked_sha256":true},
+    "sparse_indices": {"name_count":309,"global_cache_sources":307,"preserved_prior_private_index_sources":2,"actual_destination_hash_mismatches":0,"actual_source_hash_mismatches":0,"locked_name_version_checksum_binding_checked_by_runner":true},
+    "git_sources": [
+      {"repository":"tui-snap-4a3f4d7f4a2255af","commit":"2d43458ad2bc37d76653c22d56e61ee74512d893","tree":"a0da2110124ea52d62ac0a071271953be57449db","source_and_destination_tree_match":true},
+      {"repository":"termpane-bf9ac2d357304fc4","commit":"04382971db3d13c8f23e0749b8330be4bb08324a","tree":"8fc2c38328199bb7cbc03217985c376793396fd7","source_and_destination_tree_match":true},
+      {"repository":"tuiscotti-9317ad0850957efe","commit":"a47c9aaefb34e4c00026f99d8a8dd7ee5916b274","tree":"618b561d867f1bda0c1678d18a8f531a06c6469d","source_and_destination_tree_match":true}
+    ],
+    "git_config_sanitization": {"destination_config_count":3,"all_config_hashes_match_closure":true,"allowed_keys_only_core_storage_settings":true,"credential_extraheader_include_or_remote_url_keys":0,"alternates_files":0,"cargo_config_or_credentials_files":0},
+    "filesystem": {"destination_mode":"0700","manifest_files":698,"actual_regular_files":698,"manifest_bytes":80183727,"actual_inventory_hash_or_size_mismatches":0,"symlinks":0,"hardlink_aliases":0},
+    "prior_sparse_index_attempt": {"failure_preserved":true,"correction_preserved":true,"initial_attempt_exit_code":1,"initial_error":"ENOENT for the global sparse index fontdue row","destination_creation_at_failure_time":"unknown","r3_destination_is_fresh_and_distinct_from_r2_observation":true,"failed_r2_destination_not_reused":true},
+    "execution_scope": {"seed_exit_code":0,"cargo_invoked":false,"nextest_invoked":false,"cache_preparation_only":true}
+  },
+  "limits": [
+    "This confirms offline cache contents and checksum closure only. It does not establish Cargo resolution/build/test success, product behavior, or source qualification.",
+    "Two sparse-index rows were copied from the separately recorded prior tag cache after their source and destination hashes matched; the failed R2 destination was preserved and not reused."
+  ]
+}

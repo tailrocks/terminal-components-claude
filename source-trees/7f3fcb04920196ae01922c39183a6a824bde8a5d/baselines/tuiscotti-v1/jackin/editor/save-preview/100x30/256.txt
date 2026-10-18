@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                     Workspaces › payments-platform › edit  • 1 change
+
+
+   General •    Mounts    Roles    Environments    Accounts
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+
+      Name *
+      payments-platform
+      Directory basename by default
+                 ╭────────────────────────────────────────────────────────────────╮
+    Working direc│                                                                │
+    /workspace/pa│  Save workspace                                                │
+    Inside the Co│                                                                │
+                 │  Workspace  payments-platform                                  │
+     [ ] Keep awa│  Scope      workspace config · ~/.jackin/workspaces/payments…  │
+     [✓] Git pull│  Changes    1 change                                           │
+                 │                                                                │
+      On dirty ex│  ~ keep_awake true → false                                     │
+      ask · show │                                                                │
+                 │                                               ▎Cancel   Save   │
+                 │                                                                │
+                 ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+                                                                              Cancel     Save…
+
+                              ← → Choose  Enter Confirm  Esc Cancel

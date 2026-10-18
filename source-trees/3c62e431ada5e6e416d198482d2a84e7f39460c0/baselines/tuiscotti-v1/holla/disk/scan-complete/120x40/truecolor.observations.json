@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 3967761335125104276,
+  "legacy_name": "holla/flows/disk/scan_complete/120x40/truecolor",
+  "name": "holla/disk/scan-complete/120x40/truecolor",
+  "non_empty_cells": 822,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

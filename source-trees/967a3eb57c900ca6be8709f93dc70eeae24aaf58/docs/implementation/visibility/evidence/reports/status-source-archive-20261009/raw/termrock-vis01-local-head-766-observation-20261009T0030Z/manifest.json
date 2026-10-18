@@ -1,0 +1,39 @@
+{
+  "record_type": "read_only_local_head_observation",
+  "repository": "tailrocks/terminal-components-claude",
+  "observed_at": "2026-10-09T00:30:35Z",
+  "head_sha": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+  "tree_sha": "b5701830ac45f93620b2f55da71862aacc549cd6",
+  "signature_status": "N",
+  "branch": "termrock-implementation",
+  "publication_status": "not_recorded",
+  "commit_subject": "test: add pinned reference capture and explicit corpus admission",
+  "commit_author_at": "2026-10-09T06:02:10+07:00",
+  "commit_committer_at": "2026-10-09T06:02:10+07:00",
+  "exact_dco_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+  "trailer_present": true,
+  "inspection_commands": [
+    "git rev-parse HEAD HEAD^{tree}",
+    "git show -s --format=%H%n%T%n%G?%n%aI%n%cI%n%s HEAD",
+    "git show -s --format=%B HEAD | git interpret-trailers --parse"
+  ],
+  "raw_observations": [
+    {
+      "path": "/private/tmp/termrock-vis01-local-head-766-observation-20261009T0030Z/commit-metadata.txt",
+      "sha256": "0c05097953dc84b3199350b50e5078e389002fee5f40cdef35273b45edf51745"
+    },
+    {
+      "path": "/private/tmp/termrock-vis01-local-head-766-observation-20261009T0030Z/commit-and-tree.txt",
+      "sha256": "78e52579b3a2b5ca64bd2af9713e8fd4c892cd1bb2b74ef5ceee59e1620b0d2f"
+    },
+    {
+      "path": "/private/tmp/termrock-vis01-local-head-766-observation-20261009T0030Z/parsed-trailers.txt",
+      "sha256": "7c585a262adf1ed593f61efe129a89bfd35405dce6445730615ff718e471885b"
+    },
+    {
+      "path": "/private/tmp/termrock-vis01-local-head-766-observation-20261009T0030Z/observed_at.txt",
+      "sha256": "3f3ba8ee1e78c518267a20ac6f34c0ef13d22b4acffb582ba2a8a2b6c3355581"
+    }
+  ],
+  "interpretation": "Commit identity and message were observed. This record does not assert a clean worktree/index or independently confirm publication of this local HEAD."
+}

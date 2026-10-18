@@ -1,0 +1,34 @@
+{
+  "schema": "velnor-fixture-r8-runner-review/v1",
+  "verdict": "READY_FOR_ROOT_EXECUTION_DECISION",
+  "qualification": "NOT_QUALIFIED",
+  "pins": {
+    "packet": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/evidence/gate-packet-r8.json",
+    "packet_sha256": "e94e4a9125bb7581be92078184391592f2827a84683afc65a6fe8e1b8e25ce86",
+    "runner": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/runner-r8.cjs",
+    "runner_sha256": "d4e17fbe95f10cea93382c6b8b3dc574aa6efcd05c737819de37e7ec9e61991c",
+    "request_sha256": "fb51c655e47a3b9575048a000762edd2b4c4e4f20118213372e80ece856474b5",
+    "checksums_file_sha256": "9195799673910ae8e84303d35ab30cf09d3295463713ed2415a0dd1b1dcffff5",
+    "preflight_stdout_sha256": "28d440e7f05c8c6487acde626443761ed04b9a99001cff7aef33f76636c4d537",
+    "preflight_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_tree_sha256": "1ef2c7e6929f96c0c12ffcbb675162490d677c31d43a1fe0fd1c2330b03ec115",
+    "test_source_map_sha256": "85374ec31275621fc688390bcbaa3ec1188e79827ad25d97b3abd989d9c5897b",
+    "source_review_path": "/private/tmp/termrock-vis11-tool-fixture-admission-r5-source-tag-guard-review-ci-parity.json",
+    "source_review_sha256": "74df2804858ee25f655b0f03f4e3207eb123500cfa5e9a16bc62e37809fd6761"
+  },
+  "findings": [
+    "All files listed in SHA256SUMS-r8 verify. Runner and packet pins, including the request and source tree/map, match the exact frozen bytes.",
+    "The selected set contains exactly one source-mapped test: impl_schema2_routing::schema2_workflows_match_expected_bytes. The command uses the pinned Cargo/Nextest paths with --locked, --offline, package scoping, 2 build jobs, 1 test thread, no retries, no default filter, and an exact Nextest test selector.",
+    "The runner verifies the source tree's file bytes, modes, symlinks, lock hash, selected function name/line/hash, and test-map binding before execution. The cache archive/source/index closures, tool hashes and sanitized environment are checked; mutable .global-cache is recorded separately. CARGO_TARGET_DIR is the fresh target, source and cache are disjoint from output, and preflight verifies both output and target are absent.",
+    "Outcome collection requires exactly one valid full Summary for one test, one unique status row for the selected ID, PASS, exit 0, no timeout/overflow/launch error, and completion within the shared deadline. Combined output is capped at 4 MiB; timeout and owned-process-group termination are bounded.",
+    "The pinned Node-only --preflight exited 0 with empty stderr. Static verification hashes tools and inputs without spawning Cargo, Nextest, a build, tests, or the CLI. The execution and fresh target directories were absent when reviewed.",
+    "Prior evidence is preserved truthfully: R5 ran two tests with one pass and one failure; R6's schema mismatch and R7's source inventory mismatch are retained as failed preflights. This R8 packet selects only the previously failing schema-2 workflow test, and the one-file assertion-only source fix has a separate READY_SOURCE_ONLY review."
+  ],
+  "reviewer_actions": {
+    "cargo_or_nextest_run": false,
+    "test_or_build_run": false,
+    "cli_run": false,
+    "source_or_packet_edited": false,
+    "execution_qualification_claimed": false
+  }
+}

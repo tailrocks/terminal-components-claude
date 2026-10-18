@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Screens / Settings                                  truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Project settings  Composed: tabs, form, editable table, list, dialogs
+▎  Overview
+                           General    Members    Environment
+   Components             ──────────────────────━━━━━━━━━━━━━━──────────────────────────────────────────────────────────
+▎  Buttons
+▎  Inputs                   Environment variables                                                           0 selected
+▎  Text areas
+▎  Forms                    ▎  DATABASE_URL                                postgres://…
+▎  Lists                    ▎  REDIS_URL                                      redis://…
+▎  Trees                    ▎  STRIPE_KEY                                     sk_live_…
+▎  Tables                   ▎  LOG_LEVEL                                           info
+▎  Editable tables          ▎  FEATURE_FLAGS                                  beta,otel
+▎  Panels
+▎  Sidebars                 ▎Add variable…   ▎Remove selected
+▎  Dialogs
+▎  Progress
+▎  Scrolling
+▎  Terminal
+▎  Code editor
+▎  Data grid
+▎  Chips & selects
+▎  Pickers
+▎  Chrome
+
+   Screens
+▎› Settings
+▎  Task runner
+
+
+
+
+
+
+
+
+
+
+ Space Toggle  a All  Tab Next                                                                              Kept member

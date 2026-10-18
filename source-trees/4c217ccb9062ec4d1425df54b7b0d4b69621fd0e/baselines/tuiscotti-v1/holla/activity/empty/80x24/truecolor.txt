@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                scope ‹ here ›
+
+    S╭────────────────────────────────────────────────────────────────────╮
+    A│ Activities                                                  0 live │
+    O│                    Nothing has been started yet                    │
+  › S│                                                                    │
+     │                                                                    │
+    R╰────────────────────────────────────────────────────────────────────╯
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp           explore  host  available on this host
+
+
+
+    → 'holla snapshot system' · host · read-only
+
+ ~/scratch                              / ━━━━━━━━━━─ 91%     truecolor · 80×24
+                      ↑↓ Move  Enter Switch  Esc Cancel

@@ -1,0 +1,52 @@
+{
+  "schema": "termrock.vis19.r4-selection-metadata-correction/v1",
+  "status": "PREPARED_FOR_INDEPENDENT_METADATA_REVIEW_ONLY_NOT_AUTHORIZED",
+  "classification": "metadata-only selector spelling correction; frozen R4 source manifest and source review are preserved unchanged",
+  "original_manifest": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3/manifest.json",
+    "sha256": "9964744c14822af5e8570823e53fd8bdafdf438a05ce61d001cb0b17947b57ae",
+    "bytes": 5000
+  },
+  "corrected_manifest": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r4-nine-tests-r2-20261010/r4-manifest-selection-correction.json",
+    "sha256": "4b95beab6a005c7271b067a7b193e3ac5165fcf1b2ec4a9c29f30ff6663ddf9b",
+    "bytes": 5001
+  },
+  "exact_delta": {
+    "json_pointer": "/selected_tests/unit/2",
+    "before": "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscsr_shapes",
+    "after": "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes",
+    "replacement_count": 1
+  },
+  "selection_authority": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r3/selection.json",
+    "sha256": "e4eed31d6afd7771a2b6c9c8228b3b67aa7ebe880d6c10536c5179ee45709034",
+    "selected_test_count": 9,
+    "exact_unit_name": "tui::cursor_projection_tests::style_code_matrix_preserves_default_and_six_decscusr_shapes"
+  },
+  "source_confirmation": {
+    "path": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3/crates/tuiscotti-runtime/src/tui/mod.rs",
+    "sha256": "9408375ac3d08bb15ab8f4c2015e65d55cff25629838c31712e433d83b168a6b",
+    "function_declaration": "fn style_code_matrix_preserves_default_and_six_decscusr_shapes("
+  },
+  "source_review": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3-independent-review-luna-20261010.json",
+    "sha256": "f94c437b0bbd6e8612f407485ef7bc5303d10eda46ea023e4a402057a9842f8e",
+    "verdict": "READY_FOR_ROOT_TEST_EXECUTION_REVIEW"
+  },
+  "source_patch": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3/r4-full-source.patch",
+    "sha256": "d9e87c6eb07c9bdd3522d0b2ee4b3f20496e3b672105edca746a1e6e22fee610"
+  },
+  "preserved_failures": {
+    "r3_result_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r3-nine-tests-20261010/attempt-03/receipt.json",
+    "r3_result_sha256": "e25c1158fbf27fe77d613cdc3b99661289a94a6fca968f02d69f982ebbf5fce2",
+    "r3_actual_review_path": "/private/tmp/termrock-vis19-cursor-r3-nine-tests-actual-result-review-luna-20261010.json",
+    "r3_actual_review_sha256": "097700f900432ebe50d1b1ffe0b33034cb0955638783e059e69cae9b25738b75"
+  },
+  "actions_not_performed": [
+    "no source edits",
+    "no Cargo/Nextest/tests",
+    "no preflight or launch authorization"
+  ]
+}

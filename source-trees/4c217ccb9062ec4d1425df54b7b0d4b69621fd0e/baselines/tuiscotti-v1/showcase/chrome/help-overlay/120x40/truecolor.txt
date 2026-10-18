@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Foundations / Overview                              truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Overview  Tokens and principles behind every component
+ › Overview
+                            Tokens                                          Principles
+   Components
+   Buttons                      ▏ canvas                      #000000       One hue
+   Inputs                       ▏ surface                     #111111       Green means focus, primary action or
+   Text areas                   ▏ surface.elevated            #18181b       selection. Everything else is achromatic.
+   Forms                        ▏ surface.overlay             #27272a
+   Lists                        ▏ field                       #1e1e22       Alpha ladder
+   Trees                 ╭────────────────────────────────────────────────────────────────────╮ep down in white
+   Tables                │                                                                    │rbitrary grays.
+   Editable tables       │  Keyboard & mouse                                                  │
+   Panels                │                                                                    │
+   Sidebars              │  Tab / Shift+Tab   move keyboard focus                             │face, focus adds a bar,
+   Dialogs               │  ↑ ↓ ← →           move inside the focused control                 │rker, editing shows the
+   Progress              │  Enter / Space     activate · start editing                        │
+   Scrolling             │  Esc               cancel editing · back to navigation             │
+   Terminal              │  [ ]               previous / next page                            │
+   Code editor           │  0                 jump to navigation                              │evated. Depth comes
+   Diff                  │  i                 toggle state inspector                          │ borders.
+   Data grid             │  q                 quit                                            │
+   Chips & selects       │                                                                    │
+   Pickers               │  Mouse: hover to preview, click to focus and activate, wheel to    │r the focused control.
+   Chrome                │  scroll, drag the scrollbar thumb.                                 │ng unless the box
+                         │                                                                    │
+   Screens               │                                                           ▎Close   │
+   Settings              │                                                                    │
+   Task runner           ╰────────────────────────────────────────────────────────────────────╯
+
+                                                                            ▎  focus
+                                                                            ░  hover lifts the surface
+                                                                            ›  current / chosen
+                                                                            ✓  checked
+                                                                            !  error
+                                                                            ▁  editing: cursor + underline
+
+
+ ← → Choose  Enter Confirm  Esc Cancel

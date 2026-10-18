@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe        256 colors · 100×30  ? help
+
+  ≡ Query 1 ×    T orders ×    T order_items ×                                                  +
+ ─────────────────────────────━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────
+ ╭─ public › order_items ──────────────────────────────────────────────────────────────── 7 cols ─╮
+ │   Data    Structure                                                                            │
+ │  ━━━━━━━───────╭──────────────────────────────────────────────────────────────╮─────────────── │
+ │                │ Open tabs                                                    │                │
+ │         ⚷ id   │ ▎ Filter tabs…                                               │           5›   │
+ │       1 139f9a9│                                                              │ea→           ┃ │
+ │       2 37fb655│  ≡ Query 1      query                                        │6c→           │ │
+ │       3 5d07231│  T orders       public.orders · data                         │00→           │ │
+ │       4 db302dd│ ▎T order_items  public.order_items · data           active   │0f→           │ │
+ │       5 de25ba6│                                                              │52→           │ │
+ │       6 9e3d290│ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │81→           │ │
+ │       7 2f8b3fc╰──────────────────────────────────────────────────────────────╯c4→           │ │
+ │       8 565027aa-4602-4c61-8e39-7c9b550a59e8  c4fa815e-55e6-44b1-8fc5-a187b7128b9→           │ │
+ │       9 a6e8201a-9141-415b-bb7c-e1bad8d8a107  d29ed03c-d228-4218-8fc9-16cf1e232b5→           │ │
+ │      10 64901374-8774-4e0f-b0f9-a38a5cab1846  0ff64453-8fae-4560-8a77-80cfd5b4b1b→           │ │
+ │      11 a6baba91-8907-410f-b710-da5ce56d56c3  c79767d6-3420-4532-b43f-b24511348c9→           │ │
+ │      12 425929f1-c76a-4d9c-902c-6c73a25dea9f  16467cbd-df78-45cd-b911-326d7d64a63→           │ │
+ │      13 c79767d6-3420-4532-b43f-b24511348c91  e64865d9-f436-4d6c-983a-05f6f9cedff→           │ │
+ │      14 de10f397-50b5-4095-a39e-1652d9ca9a05  c0a84803-0195-4636-968c-d9107d79c41→           │ │
+ │      15 f501af39-6b7a-4469-9d02-d26936e0434f  a01a5d75-a47f-4855-93f9-9d201b3c4cb→           │ │
+ │      16 0c77d517-bfbd-427c-be9b-3748e3355f4f  74cd735d-b149-4bf2-b4bd-142cc8eb7da→           │ │
+ │      17 a01a5d75-a47f-4855-93f9-9d201b3c4cb4  a7f954b8-8c8e-455f-bd9e-9acc326de20→           │ │
+ │   rows 1–17 of 500 loaded · 3,811,020 total · cols 1–2 of 7                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                            Connected to Production

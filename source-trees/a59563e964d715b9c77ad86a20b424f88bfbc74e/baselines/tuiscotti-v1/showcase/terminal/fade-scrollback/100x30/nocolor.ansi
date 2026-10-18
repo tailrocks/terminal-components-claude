@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Terminal            no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step… [0m
+   Buttons                                                                                          [0m
+   Inputs            ╭─ Viewport ─────────── 21 lines · following ─╮ │  Step rail 2 of 7 · running  [0m
+   Text areas        │  [0m[1mpayments-platform ❯ [0mjackin launch          │ │                              [0m
+   Forms             │  [0m[1m▶ Resolve workspace[0m                        │ │   ✓ 01 Resolve wor…  0.8 s   [0m
+   Lists             │  ✓ Resolve workspace                        │ │   ✓ 02 Pull base i…  2.1 s   [0m
+   Trees             │  [0m[1m▶ Pull base image[0m                          │ │   ⠋ 03 [0m[1mBuild conta…[0m  1.9 s   [0m
+   Tables            │    layer 01/12    3%                        │ │     04 Mount sour…  queued   [0m
+   Editable tables   │    layer 02/12   19%                        │ │     05 Resolve cr…  queued   [0m
+   Panels            │    layer 03/12   34%                        │ │     06 Start agent  queued   [0m
+   Sidebars          │    layer 04/12   50%                        │ │     07 Ready        queued   [0m
+   Dialogs           │    layer 05/12   65%                        │ │                              [0m
+   Progress          │    layer 06/12   80%                        │ │                              [0m
+   Scrolling         │    layer 07/12   96%                        │ │                              [0m
+[0m[1m▎› Terminal        [0m  │  ✓ Pull base image                          │ │                              [0m
+   Code editor       │  [0m[1m▶ Build container[0m                          │ │                              [0m
+   Diff              │    #1 RUN apt-get install -y build-essentia │ │                              [0m
+   Data grid         │    #2 COPY rust-toolchain.toml ./           │ │                              [0m
+   Chips & selects   │    #3 RUN cargo fetch --locked              │ │                              [0m
+   Pickers           │    #4 RUN cargo build --release             │ │                              [0m
+   Chrome            │    #5 RUN apt-get install -y build-essentia │ │                              [0m
+   Settings          │    #6 COPY rust-toolchain.toml ./           │ │                              [0m
+   Task runner       │    #7 RUN cargo fetch --locked              │ │                              [0m
+                     │    #8 RUN cargo build --release             │ │                              [0m
+                     │                                             │ │   [0m[1mRun [0m   Run with a failu…   [0m
+                     ╰─────────────────────────────────────────────╯ │                              [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

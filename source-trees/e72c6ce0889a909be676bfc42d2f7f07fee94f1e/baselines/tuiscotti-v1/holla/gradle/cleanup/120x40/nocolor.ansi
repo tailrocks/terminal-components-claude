@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                        android · Gradle build  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Cleanup › gradle.clean-all  [0m                                                                                   [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mCleanup · Gradle outputs[0m                                                                                              [0m
+  1 category · 49.0 MiB · 4 selected (49.0 MiB) · Trash                                                                 [0m
+                                                                                                                        [0m
+ [0m[1m▎[0m[✓][0m[1m [0m▾[0m[1m Gradle outputs            [0m 49.0 MiB[0m[1m  [0mreview first…[0m[1m               [0m    Gradle outputs                  category   [0m
+    [✓] ~/work/android/.gradle          9.0 MiB  3 d                                                                    [0m
+    [✓] ~/work/android/a/b/c/d/e/bu…    8.0 KiB  30 d                        Safety        review first                 [0m
+    [✓] ~/work/android/app/build       12.0 KiB  30 d                        Age rule      older than 7 days ·          [0m
+    [✓] ~/work/android/build           40.0 MiB  3 d                                       unknown or future age        [0m
+                                                                                           counts as recent             [0m
+    mode Trash (recoverable until emptied) · live · m toggles the mode ·…    Platform      macOS and Linux              [0m
+                                                                             Roots         ~/Projects                   [0m
+                                                                             Why           .gradle and build            [0m
+                                                                                           directories below this       [0m
+                                                                                           folder · depth 5 · no        [0m
+                                                                                           symlinks · no node_modules   [0m
+                                                                             Size          49.0 MiB                     [0m
+                                                                             Prerequisite  gradle --stop runs first ·   [0m
+                                                                                           a failed or unknown stop     [0m
+                                                                                           prevents the cleanup · dry   [0m
+                                                                                           run never stops the daemon   [0m
+                                                                             Selection     4 of 4 candidates eligible   [0m
+                                                                                           · 4 checked                  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/android[0m                                 4 selected · 49.0 MiB                                 no color · 120×40 [0m
+        [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Permanent  [0m[1mn[0m Dry run  [0m[1md[0m Review deletion  [0m[1mp[0m Facts  [0m[1mEsc[0m Back          [0m

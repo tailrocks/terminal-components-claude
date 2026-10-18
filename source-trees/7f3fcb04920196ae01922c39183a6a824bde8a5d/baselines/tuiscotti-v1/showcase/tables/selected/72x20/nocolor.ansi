@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Tables      i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mTables[0m  Sort by header, hover rows, select with E… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃   ▎[0m[1mTasks[0m                      unsorted · 3–3 of 24  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃       ID     Task                       Owner   …   [0m
+   Lists          ┃    [0m[1m▎  #1042  Fix flaky checkout integ…  ana      [0m┃  [0m
+   Trees          ┃                                                     [0m
+ › Tables         ┃                                                     [0m
+   Editable tabl… ┃    Checks                                           [0m
+   Panels         ┃                                                     [0m
+   Sidebars       ┃       Check                             Result      [0m
+   Dialogs        │                                                     [0m
+   Progress       │                                                     [0m
+   Scrolling      │                No checks have run yet               [0m
+   Terminal       │                                                     [0m
+[0m[2m   Code editor    [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1m← →[0m Columns  [0m[1ms[0m Sort column  [0m[1mEnter[0m Select  [0m[1mTab[0m Next           [0m

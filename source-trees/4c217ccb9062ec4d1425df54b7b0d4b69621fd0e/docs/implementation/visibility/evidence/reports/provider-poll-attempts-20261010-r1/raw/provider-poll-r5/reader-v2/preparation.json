@@ -1,0 +1,47 @@
+{
+  "capture": {
+    "capture_plan_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/capture-plan.json",
+    "capture_plan_sha256": "00696fa074cf250406df8a636aae21a9e738614c54e46adf003a40d418d59ab3",
+    "list_capture_result_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/raw/capture-result.json",
+    "list_capture_result_sha256": "95dc7696d8ca0bfe2adc92be18f87f085cf1be20aa6934399484dc5ee86e42a0",
+    "list_request_sha256": "63f56e2661b0c8243fda6607c7c9473eae16a5631a7c195a3686caee96789f9c",
+    "list_root_wrapper_receipt_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/list/root-wrapper.receipt.json",
+    "list_root_wrapper_receipt_sha256": "fb808181ead4ea7d8384f115ca94bc56405af57eceebd96810caf7e82a1664dd",
+    "nextest_run_id": "7c996c69-8cdf-44b8-99ca-c1a13e010618",
+    "packet": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010",
+    "run_capture_result_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/raw/capture-result.json",
+    "run_capture_result_sha256": "7c13684ac7aed142a418ab35377a0754a3b352b8cca122add25eedfc9b1f9e00",
+    "run_request_sha256": "64c0d526bf7a54458525b76e54c070034062923f63034f106b0a631f8df32d6b",
+    "run_root_wrapper_receipt_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/run/root-wrapper.receipt.json",
+    "run_root_wrapper_receipt_sha256": "1f608380eca705d10013301b587833499698c446ffe70eb2f1e2faa76d2fbde7",
+    "selected_names": [
+      "provider_poll_variant_preserves_error_and_historical_boundaries",
+      "provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind",
+      "provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes"
+    ],
+    "source_closure_path": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010/source-closure.json",
+    "source_closure_sha256": "8478e151777e4849ae09890e90e93af85a41a44b364adc1b5ae9bf76f148d0c9",
+    "test_count": 3
+  },
+  "interpretation": "This packet binds the exact captured Nextest listing/run streams and separate outer wrapper streams. It records no test-result interpretation; the Rust reader is the sole semantic consumer.",
+  "reader": {
+    "command": "nextest-result-reader --request REQUEST.json --selection SELECTION.json --trusted-selection-sha256 SHA256",
+    "request_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/request.json",
+    "request_sha256": "117e080f1d88841c65cf1ee7f100a583bc5c50e24b34b5165f35a40ae1defe6a",
+    "selection_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/selection.json",
+    "selection_sha256": "65897f7d8e28f948e3fb7cdb3bd989000cc55b0bea0fb0f38924b99fba9c015e",
+    "status": "NOT_RUN",
+    "trusted_selection_sha256": "65897f7d8e28f948e3fb7cdb3bd989000cc55b0bea0fb0f38924b99fba9c015e"
+  },
+  "schema": "termrock-vis01-provider-poll-reader-inputs/v1",
+  "source": {
+    "base_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "base_tree": "48e074b5503c227422d51faaa8d8a143a295d9da",
+    "source_manifest_path": "/private/tmp/termrock-vis01-provider-poll-variant-0b7545-r5-fixture-fixes-20261010/source-manifest.json",
+    "source_manifest_sha256": "8cd86631d0681abb6e207eee2ea52efd09c59682c00faa2be7f2acdca3e50b63",
+    "source_patch_sha256": "2193eee5e0bfd92428cb2391fa49c5762cf42e13635203347cf693ee95678025",
+    "source_review_path": "/private/tmp/termrock-vis01-provider-poll-r5-source-review-rust-test-execution-20261010.json",
+    "source_review_sha256": "c422437606a9430735a599c16735edc3b8eaa4e4aad2398ddbe704ae85c9f162"
+  },
+  "status": "PREPARED_NOT_EXECUTED; ROOT_OWNS_READER"
+}
