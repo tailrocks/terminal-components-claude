@@ -1,5 +1,5 @@
-
-
+// Appended inside the actual, pinned conformance integration target.
+// The wrapper consumes the existing registry invocation, not a second manual list.
 macro_rules! conformance_suite {
     ($($name:ident => $case:ty),+ $(,)?) => {
         junie_tui_testing::conformance_suite!($($name => $case),+);
@@ -46,7 +46,7 @@ fn architecture_bootstrap_actual_row_columns_and_measure() {
     println!("ARCHROWBEGIN");
     println!("ARCHROWPARTS|{:?}|{:?}", Part::custom("external.row.part"), Part::custom("external.column.part"));
     scene.draw(|ui, _| {
-
+        // Same-id child is a genuine library component resolution.
         Button::new(OWNER, "Child").draw(ui, Rect::new(1, 1, 12, 1));
         {
             let mut row = RowUi::new(ui, OWNER, Family::LIST, Variant::DEFAULT, StateFlags::empty(), ItemKey::num(1), Rect::new(1, 3, 30, 1));
@@ -110,9 +110,9 @@ fn architecture_bootstrap_actual_button_slots() {
 }
 
 fn architecture_documented_button_slots() -> &'static [Part] {
-
-
-    &[                                          ]
+    // Replaced from the actual pinned public Overrides rustdoc, never a second
+    // independently maintained component slot declaration.
+    &[/* ARCHITECTURE_DOCUMENTED_BUTTON_SLOTS */]
 }
 
 #[derive(Debug)]

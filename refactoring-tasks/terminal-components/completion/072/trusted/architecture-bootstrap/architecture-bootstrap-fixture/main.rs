@@ -1,4 +1,4 @@
-
+//! Private, planner-owned execution harness. Never executable candidate input.
 mod library;
 mod app;
 use app::App;
