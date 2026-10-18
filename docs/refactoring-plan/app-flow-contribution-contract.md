@@ -1,26 +1,5 @@
 # Jackin and TablePro flow contribution contract
 
-## Status
-
-Historical evidence. Its dated findings and source pins describe the recorded review only.
-
-## Authority
-
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
-
-## Current evidence
-
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
-
-## Remaining work
-
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
-
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
-
-
 This planner-owned contract repairs PARITY-FINAL-02 and PARITY-FINAL-03. It applies to TASK-051–064 and oracle baseline producers TASK-004/005. The oracle is commit 02f5294bfdbf38004cc49130d0aff1d01f31434c. All original parent scenario events, source-native assertions, variants and complete frames remain required. A contribution never replaces a parent or makes an unexecuted route reachable.
 
 ## Complete ownership and nonempty stage proof

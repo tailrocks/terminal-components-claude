@@ -1,26 +1,5 @@
 # Shell contribution and whole-scenario closure contract
 
-## Status
-
-Historical evidence. Its dated findings and source pins describe the recorded review only.
-
-## Authority
-
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
-
-## Current evidence
-
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
-
-## Remaining work
-
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
-
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
-
-
 TASK-032 and TASK-040 repair shell ownership before their applications' page slices. Full-frame shell navigation scenarios cross those later pages, so declaring those whole scenarios green at the shell stage would either force an unbounded page rewrite or conceal real mismatches. Neither is permitted.
 
 ## Separate proof products

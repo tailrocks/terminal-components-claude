@@ -12,7 +12,7 @@ impl App {
     pub fn draw(&self, busy: bool, slot: Option<(u32, SlotFn)>, ui: &mut Ui) {
         Widget::draw(Self::control_props(self.disabled), self.value, busy, slot, ui);
         crate::library::compose(Self::control_props(self.disabled), ui);
-
+        // Product art deliberately occupies a disjoint cell.
         ui.row(|ui| ui.paint(3, 64));
     }
 }
