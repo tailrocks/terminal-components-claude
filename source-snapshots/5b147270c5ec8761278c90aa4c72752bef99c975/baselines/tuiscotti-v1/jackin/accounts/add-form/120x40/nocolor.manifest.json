@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "ac75344c7c6c1acf9e89f65a893ce0290ed1296ba1a73deb7cb09a127ced8f7b",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5773,
+      "file": "jackin/accounts/add-form/120x40/nocolor.ansi",
+      "sha256": "ac75344c7c6c1acf9e89f65a893ce0290ed1296ba1a73deb7cb09a127ced8f7b"
+    },
+    "ascii": {
+      "bytes": 4180,
+      "file": "jackin/accounts/add-form/120x40/nocolor.ascii",
+      "sha256": "3619187c2e7cc17139bacf90cbb66d46706ea1399ee2462e5beb32de5794f3c7"
+    },
+    "ascii_loss_json": {
+      "bytes": 31089,
+      "file": "jackin/accounts/add-form/120x40/nocolor.ascii.loss.json",
+      "sha256": "1f2532f8a153e96bfe53ea06f90914ed4d2e0fb98b3c6d6d447c9d5b48801212"
+    },
+    "frame_json": {
+      "bytes": 1075188,
+      "file": "jackin/accounts/add-form/120x40/nocolor.frame.json",
+      "sha256": "31aa9b4d795b44025b393c166b18d917c6f6787c1e87a1ce98bf6e741f40efd6"
+    },
+    "html": {
+      "bytes": 698638,
+      "file": "jackin/accounts/add-form/120x40/nocolor.html",
+      "sha256": "02faf093e81cbc98f379e52b63cb5a86865fa74baca875dcb5ec00640997e43c"
+    },
+    "observations_json": {
+      "bytes": 462,
+      "file": "jackin/accounts/add-form/120x40/nocolor.observations.json",
+      "sha256": "44130873365433f498ff10b70ec8f2b78554e0ec8bfade394e6d001dfcd5cb49"
+    },
+    "png": {
+      "bytes": 512457,
+      "file": "jackin/accounts/add-form/120x40/nocolor.png",
+      "sha256": "a1a39fdf052f394ba99832ce09c5729976ca3d3e908a1182c09ae5af54de3434"
+    },
+    "png_fidelity_json": {
+      "bytes": 1081,
+      "file": "jackin/accounts/add-form/120x40/nocolor.png.fidelity.json",
+      "sha256": "c4747400ddd0c36dd571bd12e33ba39ffa495026d43f49c1d5349756eaebaa52"
+    },
+    "txt": {
+      "bytes": 4833,
+      "file": "jackin/accounts/add-form/120x40/nocolor.txt",
+      "sha256": "4fc50ca9bef7468c5f6c086352981ca4433cb2fb3c43f1f39c79cef3bdf34687"
+    }
+  },
+  "ascii_substitutions_count": 335,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 15650205360793337158,
+  "frame_sha256": "31aa9b4d795b44025b393c166b18d917c6f6787c1e87a1ce98bf6e741f40efd6",
+  "generation": "52d7e135170fd25301dc505aa2770f8fe3fed317e1cf8a2a72ab1e75dad0b34a",
+  "html_sha256": "02faf093e81cbc98f379e52b63cb5a86865fa74baca875dcb5ec00640997e43c",
+  "legacy_name": "jackin/accounts/add_form/120x40/nocolor",
+  "name": "jackin/accounts/add-form/120x40/nocolor",
+  "png_sha256": "a1a39fdf052f394ba99832ce09c5729976ca3d3e908a1182c09ae5af54de3434",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:12Z",
+  "txt_sha256": "4fc50ca9bef7468c5f6c086352981ca4433cb2fb3c43f1f39c79cef3bdf34687"
+}

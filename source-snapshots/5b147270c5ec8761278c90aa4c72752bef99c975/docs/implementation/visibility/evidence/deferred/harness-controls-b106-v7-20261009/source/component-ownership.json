@@ -1,0 +1,230 @@
+{
+  "schema": "termrock-component-ownership/proposal-v1",
+  "components": [
+    {
+      "id": "W01",
+      "name": "Brand",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W02",
+      "name": "Button",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W03",
+      "name": "Checkbox",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W04",
+      "name": "Toggle",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W05",
+      "name": "RadioGroup",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W06",
+      "name": "ChipBar",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W07",
+      "name": "Field",
+      "owner": "termrock-fields"
+    },
+    {
+      "id": "W08",
+      "name": "TextInput",
+      "owner": "termrock-fields"
+    },
+    {
+      "id": "W09",
+      "name": "TextArea",
+      "owner": "termrock-fields"
+    },
+    {
+      "id": "W10",
+      "name": "Select",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W11",
+      "name": "Form",
+      "owner": "termrock-forms"
+    },
+    {
+      "id": "W12",
+      "name": "List",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W13",
+      "name": "FilterList",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W14",
+      "name": "NavList",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W15",
+      "name": "Tree",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W16",
+      "name": "Steps",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W17",
+      "name": "Tabs",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W18",
+      "name": "Picker",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W19",
+      "name": "CommandPalette",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W20",
+      "name": "PickerChain",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W21",
+      "name": "Completion",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W22",
+      "name": "Dialog",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W23",
+      "name": "Menu",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W24",
+      "name": "ContextMenu",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W25",
+      "name": "MenuBar",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W26",
+      "name": "HelpOverlay",
+      "owner": "termrock-overlays"
+    },
+    {
+      "id": "W27",
+      "name": "Wizard",
+      "owner": "termrock-forms"
+    },
+    {
+      "id": "W28",
+      "name": "Grid",
+      "owner": "termrock-grid"
+    },
+    {
+      "id": "W29",
+      "name": "CodeEditor",
+      "owner": "termrock-editors"
+    },
+    {
+      "id": "W30",
+      "name": "DiffView",
+      "owner": "termrock-editors"
+    },
+    {
+      "id": "W31",
+      "name": "TextViewport",
+      "owner": "termrock-viewport"
+    },
+    {
+      "id": "W32",
+      "name": "Panel",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W33",
+      "name": "SplitPane",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W34",
+      "name": "Props",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W35",
+      "name": "PropsList",
+      "owner": "termrock-navigation"
+    },
+    {
+      "id": "W36",
+      "name": "Empty",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W37",
+      "name": "ProgressBar",
+      "owner": "termrock-feedback"
+    },
+    {
+      "id": "W38",
+      "name": "Spinner",
+      "owner": "termrock-feedback"
+    },
+    {
+      "id": "W39",
+      "name": "Meter",
+      "owner": "termrock-feedback"
+    },
+    {
+      "id": "W40",
+      "name": "StatusBar",
+      "owner": "termrock-feedback"
+    },
+    {
+      "id": "W41",
+      "name": "HintBar",
+      "owner": "termrock-feedback"
+    },
+    {
+      "id": "W42",
+      "name": "KeyHint",
+      "owner": "termrock-feedback"
+    },
+    {
+      "id": "W43",
+      "name": "TooSmall",
+      "owner": "termrock-controls"
+    },
+    {
+      "id": "W44",
+      "name": "TerminalView",
+      "owner": "termrock-terminal"
+    },
+    {
+      "id": "W45",
+      "name": "ScrollRegion",
+      "owner": "termrock-viewport"
+    }
+  ]
+}

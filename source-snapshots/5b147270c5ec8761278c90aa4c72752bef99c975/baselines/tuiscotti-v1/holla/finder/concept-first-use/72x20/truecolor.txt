@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+    Analyze disk usage     disk     here  / is 91% full               ┃
+    Open btm               system   host  sustained pressure…         ┃
+  › Show system resources  system   host  CPU 78% for 4 min           ┃
+                                                                      ┃
+    Recent here                                                       ┃
+    nothing used here yet                                             ┃
+                                                                      │
+    Explore                                                           │
+
+    → 'holla snapshot system' · host · read-only
+
+ ~/scratch                      / ━━━━━━━━━━─ 91%     truecolor · 72×20
+   Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

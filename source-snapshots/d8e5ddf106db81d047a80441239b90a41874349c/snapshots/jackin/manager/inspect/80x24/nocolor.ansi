@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help             Workspaces › payments-platform › 7f3a [0m
+                                                                                [0m
+ ╭─ Workspaces ─────────────────────────────────────────────────── 2 running ─╮ [0m
+ │     Current directory                          saved as payments-platform  │ [0m
+ │   ▾ payments-platform                                           1 running  │ [0m
+ │     ╭─[0m[1m Container 7f3a [0m─────────────────────────────────── read-only ─╮min  │ [0m
+ │     │ [0m[1m▎ [0mContainer[0m[1m  jackin-payments-platform-7f3a            [0my copy[0m[1m [0m  │y •  │ [0m
+ │   ▸ │   Image      jackin/derived:payments-platform-7f3a             │ing  │ [0m
+ │   ▸ │   Workspace  payments-platform › role the-architect            │led  │ [0m
+ │   ▸ │   Agent      Claude Code · account Claude · Personal           │led  │ [0m
+ │     │   Target     /workspace/payments-platform · 2 mounts           │     │ [0m
+ │     │   Run id     run-7f3a                                          │     │ [0m
+ │     │   Lifecycle  running                                           │     │ [0m
+ │     │   Daemon     attached · 3 tabs · 3 s ago                       │     │ [0m
+ ╰─────│                                                                │─────╯ [0m
+       │                                                                │       [0m
+   Inst│                                                                │ails   [0m
+       │                                                        Close   │       [0m
+   the-╰────────────────────────────────────────────────────────────────╯       [0m
+   daemon · 3 tabs · 5 panes                                                    [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+    [0m[1m     [0m            [0m[1m [0m    [0m[1m↑↓[0m Move  [0m[1my [0mCopy  [0m[1mEsc[0m Close [0m[1m [0m          [0m[1m [0m               [0m

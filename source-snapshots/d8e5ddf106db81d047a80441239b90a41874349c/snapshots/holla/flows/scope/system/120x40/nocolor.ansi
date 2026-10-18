@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                          acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                      scope ‹ system ›  [0m
+                                                                                                                        [0m
+    System · mbp · 45 entries                                               ┃    Review cleanup candi… cleanup · host   [0m
+ [0m[1m › Review cleanup candidates  [0mcleanup[0m[1m  [0mhost[0m[1m  [0m10.6 GiB across…[0m[1m              [0m┃                                           [0m
+    Clean Docker completely    plan     host  7.1 GB reclaima…  destructive ┃    Does       4 detected categories ·     [0m
+    List containers            docker   host  5 running                     ┃               10.6 GiB ·                  [0m
+    Prune builder cache        docker   host  2.9 GB of build…  destructive ┃               rebuilt-on-demand and       [0m
+    Show Docker disk usage     docker   host  7.1 GB reclaima…              ┃               safe-if-old candidates      [0m
+    Show system resources      system   host  CPU 12%…                      ┃               start selected,             [0m
+    Stop all containers        docker   host  5 running on mbp              ┃               review-first never does,    [0m
+    Upgrade 8 outdated mise …  task     host  8 tools have ne…              ┃               too-recent ones stay        [0m
+    Upgrade everything         plan     host  1 managers dete…              ┃               visible but ineligible      [0m
+    Upgrade mise-managed too…  upgrade  host  8 outdated tools              ┃    Runs       'holla cleanup review'      [0m
+    Analyze a custom path…     disk     host  available                     ┃    In         mbp · host-wide             [0m
+    Clean Cargo registry cac…  cleanup  host  safe if old…                  ┃    Host       mbp · local                 [0m
+    Clean Project artifacts …  cleanup  host  review first…                 ┃    Scope      host                        [0m
+    Clean User caches · 900.…  cleanup  host  review first…                 ┃    Why        10.6 GiB across 4           [0m
+    Clean User logs · 44.0 K…  cleanup  host  rebuilt on dema…              ┃               categories                  [0m
+    Connect to bastion         ssh      host  from ~/.ssh/con…              ┃    Changes    none · read-only            [0m
+    Connect to devbox          ssh      host  from ~/.ssh/con…              ┃    Risk       read-only                   [0m
+    Connect to prod-eu-1       ssh      host  from ~/.ssh/con…   privileged ┃    Data       live · 0 s ago              [0m
+    Connect to production-db   ssh      host  from ~/.ssh/con…   privileged ┃    Gate       opens a review · the        [0m
+    Disk overview              disk     host  available                     ┃               deletion is gated there     [0m
+    Find files under home…     file     host  always available              │               (typed phrase)              [0m
+    Find the process on a po…  system   host  available on th…              │    Alt+Enter  Pin · Alias · Why here?     [0m
+    Follow pgadmin logs        docker   host  exited                        │                                           [0m
+    Open btm                   system   host  installed on th…              │                                           [0m
+    Prune buildx caches        docker   host  expansion beyon…  destructive │                                           [0m
+    Prune unused networks      docker   host  available on th…              │                                           [0m
+    Prune unused volumes       docker   host  3 volumes         destructive │                                           [0m
+    Remove all unused images   docker   host  5 dangling        destructive │                                           [0m
+    Restart acme-api-1         docker   host  container action              │                                           [0m
+ [0m[2m   Restart acme-db-1          docker   host  container action              [0m│                                           [0m
+                                                                                                                        [0m
+ [0m[1m~/work/acme[0m   main   ↑1                              scope system · mbp                              no color · 120×40 [0m
+            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Here    Scope system · mbp [0m

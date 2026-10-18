@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help          acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                      scope ‹ system ›  [0m
+                                                                        [0m
+    System · mbp · 45 entries                                         ┃ [0m
+ [0m[1m › Review cleanup candida…  [0mcleanup[0m[1m  [0mhost[0m[1m  [0m10.6 GiB ac…[0m[1m              [0m│ [0m
+    Clean Docker completely  plan     host  7.1 GB recl…  destructive │ [0m
+    List containers          docker   host  5 running                 │ [0m
+    Prune builder cache      docker   host  2.9 GB of b…  destructive │ [0m
+    Show Docker disk usage   docker   host  7.1 GB recl…              │ [0m
+    Show system resources    system   host  CPU 12%…                  │ [0m
+    Stop all containers      docker   host  5 running o…              │ [0m
+ [0m[2m   Upgrade 8 outdated mis…  task     host  8 tools hav…              [0m│ [0m
+                                                                        [0m
+    → 'holla cleanup review' · host · read-only                         [0m
+                                                                        [0m
+ [0m[1m~/work/acme[0m   main   ↑1      scope system · mbp       no color · 72×20 [0m
+                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  …   Scope system · mbp [0m

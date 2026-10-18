@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Inputs                                  no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mInputs[0m  Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.                    [0m
+   Overview                                                                                                             [0m
+                            Playground                                     Enter Edit · Esc Cancel · Tab Commit + next  [0m
+   Components                                                                                                           [0m
+   Buttons                    Project name *                                 Branch  optional                           [0m
+[0m[1m▎› Inputs               [0m      payments-gateway                               feat/…                                     [0m
+   Text areas                 Used as the working directory name             Leave empty to work on a detached checko…  [0m
+   Forms                      Owner email *                                  API token  optional                        [0m
+   Lists                      mira@example                           [0m[1m![0m     [0m[2m  jb_live_••••••••••••                     [0m  [0m
+   Trees                      Enter a valid email address                    Managed by the organization                [0m
+   Tables                     Search files  optional                         API key  optional                          [0m
+   Editable tables            Type a path or symbol…                         ••••••••••••••••••••••••c1f2               [0m
+   Panels                     Selection: Shift+← →  ·  words: Ctrl+← →…      Masked while typing; the last four chara…  [0m
+   Sidebars                                                                                                             [0m
+   Dialogs                                                                                                              [0m
+   Progress                                                                                                             [0m
+   Scrolling                                                                                                            [0m
+   Terminal                                                                                                             [0m
+   Code editor                                                                                                          [0m
+   Diff                                                                                                                 [0m
+   Data grid                State reference                                                                     static  [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                  default           payments-gateway                                                          [0m
+   Chrome                   placeholder       (feat/…)                                                                  [0m
+                            hover             payments-gateway                                                          [0m
+   Screens                  focused         ▎ payments-gateway                                                          [0m
+   Settings                 editing         ▎ [0m[4mpayments-gateway[0m                                                          [0m
+   Task runner              error             mira@example                  [0m[1m![0m                                           [0m
+                            error + focus   ▎ mira@example                  [0m[1m![0m                                           [0m
+                            disabled        [0m[2m  jb_live_••••                    [0m                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

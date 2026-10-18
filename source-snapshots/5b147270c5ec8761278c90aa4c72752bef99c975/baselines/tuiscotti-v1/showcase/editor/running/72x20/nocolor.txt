@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Code editor i Inspector   ? Help
+
+   Overview       ┃  Code editor  Blocks, tones, diagnostics and compl…
+   Buttons        ┃
+   Inputs         ┃   ▎retry.rs                                running
+   Text areas     ┃
+   Forms          ┃       16 }                                       │
+   Lists          ┃       17                                         ┃
+   Trees          ┃    ▎⠋ 18 fn client() -> Client {                 │
+   Tables         ┃                                  ln 18/26 · col 1
+   Editable tabl… ┃
+   Panels         ┃    State
+   Sidebars       ┃
+   Dialogs        │    Mode         navigating
+   Progress       │    Cursor       ln 18 · col 1
+   Scrolling      │    Block        2 of 3
+   Terminal       │    Runs         0
+ › Code editor    │
+
+ i Edit  Ctrl+R Run block  { } Blocks  / Find  Tab Next

@@ -1,0 +1,18 @@
+[package]
+name = "holla"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+holla-domain.workspace = true
+holla-ui.workspace = true
+holla-sim.workspace = true
+termrock-session.workspace = true
+clap.workspace = true
+ratatui.workspace = true
+
+[[test]]
+name = "holla_pty"
+path = "tests/holla_pty.rs"

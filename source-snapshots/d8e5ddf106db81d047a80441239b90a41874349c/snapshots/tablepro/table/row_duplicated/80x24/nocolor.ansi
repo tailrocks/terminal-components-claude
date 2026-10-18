@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m   • 1 pending [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────── 14 cols ─╮ [0m
+ │  [0m[1m Data  [0m  Structure                                                        │ [0m
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │ [0m
+ │                                                                            │ [0m
+ │         ⚷ id                                    order_number  custom… 12›  │ [0m
+ │  [0m[2m   491 63803b5f-29a5-4c74-a8ff-e559c0edb695           10490  8f30…0→    [0m│ │ [0m
+ │     492 5d9a96aa-bac3-4075-9060-e3d81c23cc44           10491  5344…5→    │ │ [0m
+ │     493 dcb6db82-d77a-4181-b9c0-3dbbb55eca8c           10492  363b…4→    │ │ [0m
+ │     494 b55eca8c-3dbb-49c0-b06f-a389363b8257           10493  6bef…4→    │ │ [0m
+ │     495 fa70b703-caef-4854-9997-6a5ffc4309f9           10494  3c01…9→    │ │ [0m
+ │     496 12afd08f-4342-47c5-a0b6-ad06a18e0c1c           10495  18f8…d→    │ │ [0m
+ │     497 dce6f3f6-ff9d-4d2e-8c35-bfb812cc2d50           10496  3ec4…7→    │ │ [0m
+ │     498 c3ad24b1-ad5f-419d-8a25-cf181b6f0a7a           10497  ac4d…d→    │ │ [0m
+ │  [0m[2m   499 ea3426ef-d76a-47d4-9acf-2f938e2a6096           10498  8cd3…d→    [0m┃ │ [0m
+ │                                                                            │ [0m
+ │   • 1 pending · 1 insert                    Preview SQL   Discard   [0m[1mSave [0m  │ [0m
+ │   rows 491–499 of 501 loaded · 1,203,338 total · cols 1–2 of 14            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  …          Connected to Production [0m

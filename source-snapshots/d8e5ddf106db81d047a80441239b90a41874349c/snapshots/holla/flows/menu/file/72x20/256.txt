@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          holla · Rust project  mbp · local
+           ╭─────────────────────────────╮
+  Here     │  Run                  Enter │
+ ━━━━━━━───│  Alternatives…    Alt+Enter │─────────────────────────────
+ ▎ Search a│  Copy command               │              scope ‹ here ›
+           │ ─────────────────────────── │
+    Suggest│  Close tab           Ctrl+W │                            ┃
+  › Inspect│ ─────────────────────────── │e  12 GB generated artifac… ┃
+    Pull   │  Quit                Ctrl+Q │e  branch is 3 commits beh… ┃
+    Review ╰─────────────────────────────╯e  4 modified · 1 untracked ┃
+    Run tests                task      here  5 files changed since t… ┃
+    Who is blocking the da…  postgres  here  2 sessions blocked for … ┃
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → 'holla disk analyze --artifacts' · here · read-only
+
+ ~/work/holla   main   ↓3 • 5                        256 colors · 72×20
+              ← → Menu  ↑↓ Move  Enter Choose  Esc Close

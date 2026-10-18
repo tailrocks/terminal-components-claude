@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                     Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ────────────────────── 3 running ─╮ │  Current directory · payments-platform saved workspace      Running                          3 instances
+ │ ▎   Current …ory  saved as payments-platform  │ │
+ │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…
+ │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes
+ │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal
+ │   ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 126
+ │   ▸ data-pipeline                  1 running  │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex
+ │   ▸ docs-site                       1 record  │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane
+ │     auth-service                        idle  │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments
+ │     gateway                             idle  │ │                OpenCode · Go subscription ★
+ │     mobile-app                          idle  │ │  Policies      git pull enabled · keep awake on · dir…      ◉ e0e0  data-pipeline · backend · Claude Co…
+ │     ml-notebooks                        idle  │ │                                                                running 10 min · daemon unavailable
+ │     search-indexer                      idle  │ │  Instances                    ▲ daemon stale · 3 s ago         account Claude · Personal
+ │     staging-env                         idle  │ │  ◉ 7f3a  the-architect · Claude Code · running
+ │     billing-reconciliation…-truncation  idle  │ │  ◌ c41e  reviewer · Codex · preserved · dirty
+ │     legacy-monolith                     idle  │ │  ◌ b000  reviewer · Codex · exited                          Preserved                          6 records
+ │     + New workspace                           │ │  ◌ b111  reviewer · Codex · restore available               ◌ c41e  payments-platform · reviewer · pres…
+ │                                               │ │  ◌ b222  reviewer · Codex · exited                          ◌ a1c0  release-automation · backend · rest…
+ │                                               │ │  ◌ b333  reviewer · Codex · restore available               ◌ 04d7  infra-control-plane · sre · preserv…
+ │                                               │ │  ◌ b444  reviewer · Codex · exited                          ◌ b111  payments-platform · reviewer · rest…
+ │                                               │ │  ◌ b555  reviewer · Codex · restore available               ◌ b333  payments-platform · reviewer · rest…
+ │                                               │ │                                                             ◌ b555  payments-platform · reviewer · rest…
+ │                                               │ │
+ │                                               │ │                                                             Daemon                     ▲ stale · 3 s ago
+ │                                               │ │                                                             Refresh      throttled · every 5 s
+ │                                               │ │                                                             Usage        degraded · 4 warnings · 1 exha…
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │  Launch    Edit
+ ╰───────────────────────────────────────────────╯ │
+
+        Enter Launch  n New  e Edit  Tab Details  c Accounts  …   ▲ Could not confirm running instances: instance index unreadable · entered without the ritual

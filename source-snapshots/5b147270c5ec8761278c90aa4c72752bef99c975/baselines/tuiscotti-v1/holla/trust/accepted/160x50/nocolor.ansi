@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                 acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here › Arguments  [0m                                                                                                                                            [0m
+ ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mRun tests · arguments[0m                                                                                                                                         [0m
+  field name, expected value, default and validation · secrets stay masked                                                                                      [0m
+                                                                                                                                                                [0m
+   [0m[1mfilter  optional                                      [0m                                                                                                       [0m
+ ▎ test name substring                                                                                                                                          [0m
+   passes through to nextest                                                                                                                                    [0m
+                                                                                                                                                                [0m
+   profile                                                                                                                                                      [0m
+   default                                             ▾                                                                                                        [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+   Command                                                                                                                                                      [0m
+                                                                                                                                                                [0m
+   mise run //apps/frontend:test --profile default                                                                                                              [0m
+                                                                                                                                                                [0m
+                                                                                                                                                Cancel    [0m[1mRun [0m  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2                                                                                                    no color · 160×50 [0m
+                                            [0m[1mEnter[0m Edit  [0m[1mTab[0m Next  [0m[1mCtrl+S[0m Run  [0m[1mEsc[0m Cancel    Trusted ~/work/acme/apps/frontend/mise.toml · re-resolving the task [0m

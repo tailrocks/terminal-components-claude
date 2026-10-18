@@ -1,0 +1,42 @@
+{
+  "schema": "termrock-r15-capture-recollector-static-review-v2",
+  "reviewed_at_utc": "2026-10-09T10:41:26.017Z",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "subject": {
+    "path": "/private/tmp/termrock-tag-capture-r15-r4-recollection-20261009/recollect-r4.cjs",
+    "sha256": "40d2416361c42091bbb399512692ff01da3466c2c703d75f1216595b51051028"
+  },
+  "verdict": "READY_FOR_ROOT_READ_ONLY_RECOLLECTION",
+  "review_mode": "Static inspection only. Recollector was not run; no Cargo/Nextest/product/PTY execution and no source or attempt-file changes.",
+  "prior_findings": {
+    "R15-RECOLLECTOR-VM-ARRAY-PROTOTYPE": "CLOSED: Array.from(patchedExpected.checkpoint_ids) creates a host-realm array before deepStrictEqual.",
+    "R15-RECOLLECTOR-RESULT-IDENTITY-ASSERTION": "CLOSED: raw text asserts exact PASS line and JSON event start/ok names; process spawn argv and wrapper command argv/environment/executable/cwd are compared against the pinned manifest.",
+    "R15-RECOLLECTOR-TEMPORAL-WORDING": "CLOSED: current comparison has start/end timestamps and wording expressly denies continuous stability during original run; original wrapper exit 125/input_stable=false/after_snapshot=null are preserved."
+  },
+  "findings": [],
+  "verified": {
+    "frozen_inputs": {
+      "runner_sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425",
+      "manifest_sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3",
+      "grant_template_sha256": "83159f9a2f30fc9d97f5b6c2beb82cb45f6a50985de7ac7f49849194d2570955",
+      "preflight_sha256": "4edd546cc689b1b1db6b7c198906d638bb1e102b971c86e0fb4ea3ec32bc05a3",
+      "original_wrapper_receipt_sha256": "bbbaa88c6d00da04f28b3d9237397c42f0bd66b251842921c29dca89e7a09dd3",
+      "stdout_sha256": "61cae509dcfa8d7185726fe3e256e9c1c7e479235e1b70aaf03d105470e2ec1c",
+      "stderr_sha256": "c8729887173fb6daefab7388eb0e473b9b562261ed627878f94a7e07469b2e5d",
+      "process_events_sha256": "4fa05c3e8de92bf1375c46bfe62b892b7f7cc650e613711713211a24a5279426",
+      "capture_receipt_sha256": "dba8be2ed8c80e6c56418ba9e78b476b65fe027c964b757903daa5c97fd8eea2"
+    },
+    "corrected_recollection_logic": {
+      "source_changes": "Exactly two in-memory substitutions: use registry suite revision/case-tree digest and count only the three-part interaction IDs selected by frozen Rust test.",
+      "test_identity": "Checks pinned run UUID, exact raw PASS text, exact Nextest JSON test-start and test-ok names, suite started count 1 and passed=1/failed=0, plus exact raw spawn and wrapper argv/environment against pinned manifest.",
+      "row_completeness": "Requires 12 exact source-derived assertion IDs and four exact checkpoint aggregate IDs with no omissions/duplicates/extras; all 16 interaction rows PASS.",
+      "artifacts": "Calls the original read-only capture validator with corrected metadata/filter, then checks exact 40 checkpoint/format bindings and regular-file/link constraints.",
+      "context": "Compares nine current context groups with saved preflight; report includes comparison start/end and expressly says this point-in-time check cannot establish continuous stability during original child run.",
+      "outcome_boundary": "Preserves original child exit 0, wrapper exit 125, input_stable=false, after_snapshot=null, capture evidence, qualification blocked, execution anchor unverified and admission NOT_RUN.",
+      "launch_exclusion": "VM executes runner prefix only up to but excluding `const launchGrant = readLaunchGrant();`; no runner launch section or Nextest invocation is evaluated. The only write is a new report under a distinct external recollection root.",
+      "version_probes": "Context helpers make read-only version/Git/SDK queries if recollector is run (including cargo --version); they do not build or run Cargo/Nextest tests or launch the product."
+    },
+    "remaining_wording_note": "Console status RECONSTRUCTED_POSTFLIGHT_PASS is paired with a reconstructed-only report type and original wrapper failure fields; it does not claim that the historical runner postflight succeeded."
+  },
+  "limitations": "Static approval covers the recollector source only. No reconstructed report has yet been produced or independently verified. The historical R4 runner remains failed at wrapper postflight with no original after-snapshot."
+}

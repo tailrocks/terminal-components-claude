@@ -1,0 +1,80 @@
+{
+  "schema": "termrock.vis17.r4.actual-source-review.v1",
+  "reviewer": "/root/ci_parity_review_luna",
+  "verdict": "READY_ACTUAL_RESULT_AND_SOURCE_CLOSURE",
+  "review_mode": "Read-only review of frozen packet and actual run artifacts; no rerun, Cargo, Nextest, build, test, source edit, or repository mutation.",
+  "packet_root": "/private/tmp/termrock-vis17-rust-trusted-status-writer-nextest-r4-20261010",
+  "pins": {
+    "final_receipt_sha256": "bc4532a77edabbd76fb2857384f3cce4b498687a9992034845bc387b5c9b6594",
+    "stdout_sha256": "e53f622c8d045945daa5170d368342f71a2a39cd422e090765d8becc4e66b267",
+    "stderr_sha256": "efa577e14ebf45527d29bd46d51c609dd826ec7f937137fd30788655c951a7d2",
+    "source_manifest_sha256": "556f33339c43c82a031d11251690465e3d0eb59db0f19334099907b727f05559",
+    "runplan_sha256": "f4ab73cdd2ac7d5baf52a5c7fac440e799429c65738176f1d24bafd3be770e59",
+    "preflight_receipt_sha256": "fcc905ad689248f835b79787182968ad71dab28f193d2b2c20bc76d86bd8a8e2",
+    "runner_sha256": "d22705499678f79f155281e987a0fc0dd51b9a3a420e506c310c4618eae0e309",
+    "test_inventory_sha256": "cc16fcc8113423caeee5a2f0faf67c77246f45666059b78ed92702cd839f9b89",
+    "prior_r3_compile_fix_review_sha256": "f73733daa8b3442837fd207c88a14a8e34abb5b1af4434f3e6fd82b93abbd6eb"
+  },
+  "actual_result": {
+    "nextest_run_id": "bcb3113a-eadc-4444-9525-e861de8fdf9a",
+    "summary": "11 selected integration tests run; 11 passed, 0 failed, 0 skipped, 0 incomplete.",
+    "child_exit_code": 0,
+    "timed_out": false,
+    "output_truncated": false,
+    "retries": 0,
+    "target": "termrock-visibility-publisher / bin status-publish plus integration test impl_status_publish",
+    "toolchain": "Rust 1.98.1; Nextest 0.9.146",
+    "execution_constraints": "locked and offline; build jobs 2; test threads 1; no inherited parent environment",
+    "test_names": [
+      "compare_and_swap_conflict_is_not_retried_or_reported_as_published",
+      "duplicate_or_older_target_run_cursor_is_rejected_before_writes",
+      "failed_write_step_is_not_retried_and_does_not_update_the_ref",
+      "newer_target_run_on_same_source_advances_cursor",
+      "observer_report_digest_mismatch_never_reaches_the_writer",
+      "stale_remote_branch_tip_fails_before_any_write",
+      "stale_source_after_existing_publisher_commit_and_valid_cursor_fails_before_writes",
+      "stale_source_commit_fails_before_any_write",
+      "status_publish_command_commits_only_status_and_cursor_and_preserves_product_failure",
+      "unsafe_zip_member_is_rejected_without_extraction_or_publication",
+      "untrusted_repository_event_ref_and_workflow_source_are_rejected_before_network"
+    ]
+  },
+  "source_closure": {
+    "source_root": "/private/tmp/termrock-vis17-rust-trusted-status-writer-impl-luna-r3-20261010/source-root",
+    "source_base_commit_from_audit": "4e72874628a95a5c7d1a9284762c83c927c42825",
+    "manifest_base_commit": null,
+    "manifest_note": "The manifest content-pins the external source snapshot; it does not claim a Git commit identity.",
+    "all_nine_build_input_hashes_recomputed_and_match_manifest": true,
+    "build_inputs": [
+      ["Cargo.toml", "8f4bad7af6cc8aa1b3b35f4f8293e350d25dfa9e96c49a453c92ad2a14c63987"],
+      ["Cargo.lock", "a43fdf2640e4934ecb60289c215363298b5932effdc9f161495269159f1f917e"],
+      ["crates/termrock-visibility-publisher/Cargo.toml", "6dd47d382d857a1ded414eed5a4c2aab7b16882a78ca7bd7a4b75b6bb9207585"],
+      ["crates/termrock-visibility-publisher/src/lib.rs", "ee109585c2da0b2ae3b60606e30a18f31fd6049ebaeaee38ce2b2986a789da38"],
+      ["crates/termrock-visibility-publisher/src/api.rs", "21eb695b1e8a17f0f036de6550a5ef08bcc798078e1104a601b3fc700ae9d5fb"],
+      ["crates/termrock-visibility-publisher/src/observer.rs", "71e0404970c43cdf45af5dffaa07da0f24e6a00d5fa7ae952c53bcd474ea4e34"],
+      ["crates/termrock-visibility-publisher/src/repository_writer.rs", "10d17014ae6f0836f68f33b33c3a59cdc62270f3b5c8fd95d998e595f0c75ea4"],
+      ["crates/termrock-visibility-publisher/src/bin/status-publish.rs", "c525271dfb5498687140cfe79f4fba72da584d9bef24ed0c7853cdf4bf0515d5"],
+      ["crates/termrock-visibility-publisher/tests/impl_status_publish.rs", "b57decb124b182a694366c4266efff67be8856ca0fc1657c82789e272d4a56df"]
+    ],
+    "source_stable_before_after": true,
+    "packet_input_changes": [],
+    "prior_static_source_review": "R3 compile-fix review is bound above; it found only the three validator-name/type corrections and two test compile fixes, with test assertions unchanged."
+  },
+  "compiled_artifact_provenance": {
+    "target_was_fresh_per_preflight": true,
+    "target_artifact_check_ok": true,
+    "missing_artifacts": [],
+    "binary_and_test_dep_info_both_name_pinned_source_paths": true,
+    "dep_info": [
+      ["binary", "crates/termrock-visibility-publisher/src/bin/status-publish.rs", "240eaf5e8600f0aa8dd2fb88a33b4bf811955e84ebccae8b24e7f38df81ce828"],
+      ["integration", "crates/termrock-visibility-publisher/tests/impl_status_publish.rs", "6e16cff237d864a31e4ba33dad7739e8bd70f05db63dc0f21715acdeed277234"]
+    ],
+    "before_after_target_snapshots_recorded": true
+  },
+  "limitations": [
+    "This establishes the selected 11 local integration tests on the pinned external source/cache/tool inputs only.",
+    "It is not live GitHub workflow or publisher qualification and does not qualify the full package, workspace, or release build.",
+    "The cache audit covers the pinned Cargo registry archive/index inputs and Cargo.lock, not a complete fingerprint of all extracted Cargo source trees.",
+    "Preflight preparation status is historical; the separate final receipt and raw Nextest streams record the completed actual run."
+  ]
+}

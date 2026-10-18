@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "6d1a8b0867a4b03af22f389e04f3263145ec5a071adad65c2d1cf088f35f0469",
+  "artifacts": {
+    "ansi": {
+      "bytes": 12718,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.ansi",
+      "sha256": "6d1a8b0867a4b03af22f389e04f3263145ec5a071adad65c2d1cf088f35f0469"
+    },
+    "ascii": {
+      "bytes": 3070,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.ascii",
+      "sha256": "9e8a7d9074dfa0f4e0a47f896b3ac0f921caefcbda5f53b023adafb21d37ee69"
+    },
+    "ascii_loss_json": {
+      "bytes": 17158,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.ascii.loss.json",
+      "sha256": "dbf613258503c70b750275e7f301b6876e015b018b3327d5da2efb631daf1ddb"
+    },
+    "frame_json": {
+      "bytes": 1864535,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.frame.json",
+      "sha256": "a51882b7bc3a626d549f74ce0a2744c0a3229712f897fd56440d1eec5d1066fe"
+    },
+    "html": {
+      "bytes": 684627,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.html",
+      "sha256": "18e037bfc91b5273761dada46b7f4bcf7c2570e227864b549c9523fcbda11926"
+    },
+    "observations_json": {
+      "bytes": 469,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.observations.json",
+      "sha256": "db26ae005e7318a9e951e835fd4f081165689033126ef39b177fdedf2768e6dd"
+    },
+    "png": {
+      "bytes": 493434,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.png",
+      "sha256": "a1c3ae67a93b657809372668fab68966177027bfa84dd0a0c12b31c79a452591"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3426,
+      "file": "holla/finder/resize-rust-dirty-grown/160x50/16.txt",
+      "sha256": "70979f9539aa1c2ccefa955a3cec3623b5416e55edb958d607875a03ac1a6cc7"
+    }
+  },
+  "ascii_substitutions_count": 185,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 10013214745993377129,
+  "frame_sha256": "a51882b7bc3a626d549f74ce0a2744c0a3229712f897fd56440d1eec5d1066fe",
+  "generation": "551814434ca2970223e93307a578c143d259250b8f97fe6efdcbf3fa82606ee0",
+  "html_sha256": "18e037bfc91b5273761dada46b7f4bcf7c2570e227864b549c9523fcbda11926",
+  "legacy_name": "holla/resize/rust-dirty_grown/160x50/16",
+  "name": "holla/finder/resize-rust-dirty-grown/160x50/16",
+  "png_sha256": "a1c3ae67a93b657809372668fab68966177027bfa84dd0a0c12b31c79a452591",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:13Z",
+  "txt_sha256": "70979f9539aa1c2ccefa955a3cec3623b5416e55edb958d607875a03ac1a6cc7"
+}

@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         truecolor · 100×30  ? help
+
+  ≡ Query 1 ×    H History ×                                                                    +
+ ───────────────━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────
+ ╭─ Query history ─────────────────────────────────────────────────────────────────── 15 entries ─╮
+ │                                                                                                │
+ │    Search history · terms are ANDed                          scope: Production  ·  status: any │
+ │                                                                                                │
+ │  ▎› SELECT plan, count(*) FRO… 3 d ago · 5 ms     Query                     Editor · 3 d ago   │
+ │     SELECT * FROM payments W… 1 d ago · 24 ms                                                  │
+ │     SELECT day, revenue, ref… 3 h ago · 14 ms     ›  1 SELECT plan, count(*) FROM              │
+ │   ! SELECT * FROM ordres          1 h ago · –        2 subscriptions GROUP BY plan             │
+ │     SELECT o.id, o.total_amo… 1 h ago · 61 ms                                                  │
+ │     UPDATE orders SET stat… 58 min ago · 3 ms                                                  │
+ │     SELECT * FROM custome… 40 min ago · 21 ms     Connection  Production · acme_prod.public    │
+ │     EXPLAIN ANALYZE SELECT… 15 min ago · 9 ms     Duration    5 ms                             │
+ │     SELECT count(*) FROM… 12 min ago · 412 ms     Rows        3                                │
+ │     SELECT * FROM orders W… 4 min ago · 38 ms                                                  │
+ │                                                    Open in new tab    Run in new tab    Co…    │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  / Search  c s Scope · Status  …    Connected to Production

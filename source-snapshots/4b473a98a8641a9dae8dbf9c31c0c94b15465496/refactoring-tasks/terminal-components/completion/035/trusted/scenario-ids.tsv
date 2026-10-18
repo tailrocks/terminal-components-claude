@@ -1,0 +1,5 @@
+source_namespace	source_id	requirement_id	acceptance_id	check_id
+APP	SC-BASE-settings	R-001	AC-001	CHK-004
+APP	SC-SETTINGS-GENERAL	R-001	AC-001	CHK-004
+APP	SC-SETTINGS-MEMBERS	R-001	AC-001	CHK-004
+APP	SC-SETTINGS-ENV	R-001	AC-001	CHK-004

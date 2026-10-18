@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 14960740047823572952,
+  "legacy_name": "tablepro/overlays/tablist_open/160x50/nocolor",
+  "name": "tablepro/workbench/overlay-tablist-open/160x50/nocolor",
+  "non_empty_cells": 1256,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

@@ -1,0 +1,1042 @@
+{
+  "record_type": "termrock_holla_actual_paired_journey_seal_v1",
+  "state": "sealed",
+  "scope": "one actual HELP-HOLLA-004 paired Holla diagnostic journey using prebuilt source-pinned binaries; not full app matrix, not tag build, not visual admission or qualification",
+  "executor": {
+    "root": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05",
+    "runner": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/actual-holla-diagnostic-vis06-20261009-05.cjs",
+      "sha256": "b1aad9be5adbcacb987ff592ba0d2f5d2396d5b7a7307e311464ef0eef326db4",
+      "bytes": 17514
+    },
+    "node_path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+    "node_version": "v24.20.0",
+    "node_sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a"
+  },
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/Users/donbeave/Projects/tailrocks/terminal-components-claude/crates/termrock-e2e/Cargo.toml",
+      "--test",
+      "holla_help_overlay",
+      "--locked",
+      "--offline",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--user-config-file",
+      "none",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--no-tests",
+      "fail",
+      "--success-output",
+      "final",
+      "--run-ignored",
+      "only",
+      "-E",
+      "test(=holla_help_overlay)"
+    ],
+    "cwd": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+    "timeout_ms": 1200000,
+    "build_jobs": 2,
+    "test_threads": 1
+  },
+  "process": {
+    "started_at_utc": "2026-10-08T20:12:05.392Z",
+    "ended_at_utc": "2026-10-08T20:12:32.834Z",
+    "elapsed_ms": 27512,
+    "pid": 3905,
+    "pgid": 3905,
+    "exit_code": 100,
+    "signal": null,
+    "timed_out": false,
+    "spawn_error": null,
+    "nextest_run_id": "be22e745-da96-47ba-880f-eb00605352a6",
+    "raw_summary_line": "     Summary [  26.799s] 1 test run: 0 passed, 1 failed, 1 skipped",
+    "test_result_line": "\n    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 26.79s"
+  },
+  "selection": {
+    "target": "holla_help_overlay",
+    "case": "termrock-e2e::holla_help_overlay holla_help_overlay",
+    "selected": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 1
+  },
+  "actual_receipt": {
+    "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json",
+    "sha256": "8fa7329ffad3130f03f1c3025bc7e47807c927e66bff61b3c45b52f778619882",
+    "bytes": 115436,
+    "run_id": "vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+    "suite_revision": "termrock-e2e-2026-10-08.1",
+    "suite_sha256": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+    "case_set_sha256": "790d9f2aa375b67ab5c99290433f5cd5bb8a1e385a7a9b9fe9c9d8ec4cdba9cb",
+    "profile_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "dependency_lock_sha256": "7d2811ca72f03c2c1946f302e53f10cda65225df466236d9c867333b41453bce",
+    "test_binary_sha256": "4070018e0229ffcaf6ce2ca9b86cf58e811d07d1f5d7bec7280639c2f622b94e",
+    "expected_generation": null,
+    "check_count": 80,
+    "status_counts": {
+      "PASS": 56,
+      "BLOCKED": 8,
+      "NOT_APPLICABLE": 16
+    },
+    "build_counts": {
+      "PASS": 8
+    },
+    "launch_counts": {
+      "PASS": 8
+    },
+    "visual_counts": {
+      "BLOCKED": 8
+    },
+    "qualification": "BLOCKED"
+  },
+  "source_pair": [
+    {
+      "role": "candidate",
+      "source_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+      "builder_receipt_sha256": "b55d7015e364d04702fa0ac47ea556558db631522743f6c1bb5b8a40cae46ae3",
+      "executable": {
+        "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/targets/candidate/aarch64-apple-darwin/release/holla",
+        "expected_sha256": "af7bdeca543603e5ce75110fc521dba6ab84d6e51f4a15666b2ab037a9f6cdec",
+        "actual_sha256": "af7bdeca543603e5ce75110fc521dba6ab84d6e51f4a15666b2ab037a9f6cdec"
+      }
+    },
+    {
+      "role": "reference",
+      "source_commit": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+      "builder_receipt_sha256": "36a3ecc889335577a8fb95d5d11e3ffc8949fdd9a0ae05db4cb9de59e5c6877e",
+      "executable": {
+        "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/targets/reference/aarch64-apple-darwin/release/holla",
+        "expected_sha256": "07f6a793d2af38896873a00c9883855217dbb23610aa2a49779a9915e14e435c",
+        "actual_sha256": "07f6a793d2af38896873a00c9883855217dbb23610aa2a49779a9915e14e435c"
+      }
+    }
+  ],
+  "trust": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/holla-write-policy-preflight-vis06-a914-20261009-02/trust/trust.json",
+    "sha256": "b3a8414fb0661a44f92b0d134fa03dbdcd5f244f1cae15d15189df22568a7865",
+    "acceptance": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-write-policy-preflight-vis06-a914-20261009-02/diagnostic-input-acceptance.json",
+      "sha256": "eabb7ed7165d5cd8427378c5ecadeeab72da34c942244cafd27442a61208c1aa",
+      "bytes": 1004
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-write-policy-preflight-vis06-a914-20261009-02/attempt-1/preflight-output.json",
+      "sha256": "d371b7b801d4021dc4229cf7d41e8187e6f2ff501760143be53a62f48f802ee2",
+      "bytes": 15022
+    },
+    "actual_build_review": {
+      "path": "/private/tmp/termrock-vis06-actual-holla-build-review-20261009.json",
+      "sha256": "b48b6f8083e97d03a258220e6743180e1d6e8c76ae6270d59d5ac628fc4c7259",
+      "bytes": 8786
+    },
+    "write_policy_sha256": "244ab6e0e0fd7403a2221049791ca7c8ea06b4297dbcedba0f0b8befff838615",
+    "expected_generation": null
+  },
+  "suite_inputs": {
+    "revision": "termrock-e2e-2026-10-08.1",
+    "digest": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+    "case_set_digest": "790d9f2aa375b67ab5c99290433f5cd5bb8a1e385a7a9b9fe9c9d8ec4cdba9cb",
+    "profile_digest": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+    "dependency_lock_sha256": "7d2811ca72f03c2c1946f302e53f10cda65225df466236d9c867333b41453bce",
+    "test_binary": {
+      "path": "/private/tmp/termrock-e2e-target-vis02-v2-20261008/debug/deps/holla_help_overlay-5eeeb0b9ebf1e9a1",
+      "sha256": "4070018e0229ffcaf6ce2ca9b86cf58e811d07d1f5d7bec7280639c2f622b94e"
+    },
+    "manifest": {
+      "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/subject-manifest.json",
+      "sha256": "0799aca655f619a06adda1a13067722e0d8bb8b5c9eb33a70847ee3e997837a9"
+    },
+    "builder_run": {
+      "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/run.json",
+      "sha256": "218de161e2e3b89678565544c62977edae2dfb57b0d9144bb91ab87154595b24"
+    },
+    "package_preflight": {
+      "count": 19,
+      "digest": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+      "files": [
+        {
+          "path": "Cargo.lock",
+          "bytes": 50037,
+          "sha256": "7d2811ca72f03c2c1946f302e53f10cda65225df466236d9c867333b41453bce"
+        },
+        {
+          "path": "Cargo.toml",
+          "bytes": 485,
+          "sha256": "702dac135bc58215220797062ef67e948eb2960d2473eedf0efe03f609af39bf"
+        },
+        {
+          "path": "README.md",
+          "bytes": 11024,
+          "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785"
+        },
+        {
+          "path": "build.rs",
+          "bytes": 2198,
+          "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64"
+        },
+        {
+          "path": "cases/deferred-obligations.json",
+          "bytes": 3675,
+          "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+        },
+        {
+          "path": "cases/registry.json",
+          "bytes": 2987,
+          "sha256": "7631aafc3f3699e027cd3b72610164efacea32936e3930814fdf58d4f3bf45c8"
+        },
+        {
+          "path": "profile.json",
+          "bytes": 1043,
+          "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6"
+        },
+        {
+          "path": "schemas/expected-generation-v1.schema.json",
+          "bytes": 17088,
+          "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe"
+        },
+        {
+          "path": "schemas/receipt-v1.schema.json",
+          "bytes": 11270,
+          "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb"
+        },
+        {
+          "path": "schemas/receipt-v2.schema.json",
+          "bytes": 22643,
+          "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f"
+        },
+        {
+          "path": "schemas/receipt-v3.schema.json",
+          "bytes": 37672,
+          "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8"
+        },
+        {
+          "path": "schemas/subject-manifest-v1.schema.json",
+          "bytes": 6026,
+          "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1"
+        },
+        {
+          "path": "schemas/subject-manifest-v2.schema.json",
+          "bytes": 9807,
+          "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0"
+        },
+        {
+          "path": "schemas/trust-record-v1.schema.json",
+          "bytes": 2535,
+          "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555"
+        },
+        {
+          "path": "schemas/trust-record-v2.schema.json",
+          "bytes": 4418,
+          "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
+        },
+        {
+          "path": "src/lib.rs",
+          "bytes": 324083,
+          "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a"
+        },
+        {
+          "path": "src/visual.rs",
+          "bytes": 60248,
+          "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835"
+        },
+        {
+          "path": "tests/contract.rs",
+          "bytes": 37295,
+          "sha256": "67f37f0737c692a746206acef3a4dc727b3a966baa3b1e571345bc232a337b1b"
+        },
+        {
+          "path": "tests/holla_help_overlay.rs",
+          "bytes": 1729,
+          "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5"
+        }
+      ]
+    },
+    "package_postflight": {
+      "count": 19,
+      "digest": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+      "files": [
+        {
+          "path": "Cargo.lock",
+          "bytes": 50037,
+          "sha256": "7d2811ca72f03c2c1946f302e53f10cda65225df466236d9c867333b41453bce"
+        },
+        {
+          "path": "Cargo.toml",
+          "bytes": 485,
+          "sha256": "702dac135bc58215220797062ef67e948eb2960d2473eedf0efe03f609af39bf"
+        },
+        {
+          "path": "README.md",
+          "bytes": 11024,
+          "sha256": "571ec565516553cbe85c0a5ce9c816c411ccf2e61db99ceb4c506d922a994785"
+        },
+        {
+          "path": "build.rs",
+          "bytes": 2198,
+          "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64"
+        },
+        {
+          "path": "cases/deferred-obligations.json",
+          "bytes": 3675,
+          "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+        },
+        {
+          "path": "cases/registry.json",
+          "bytes": 2987,
+          "sha256": "7631aafc3f3699e027cd3b72610164efacea32936e3930814fdf58d4f3bf45c8"
+        },
+        {
+          "path": "profile.json",
+          "bytes": 1043,
+          "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6"
+        },
+        {
+          "path": "schemas/expected-generation-v1.schema.json",
+          "bytes": 17088,
+          "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe"
+        },
+        {
+          "path": "schemas/receipt-v1.schema.json",
+          "bytes": 11270,
+          "sha256": "6a5259d8e84e5b2af4af8fe3154aade993cd3655626ed49e601afb71d8c749cb"
+        },
+        {
+          "path": "schemas/receipt-v2.schema.json",
+          "bytes": 22643,
+          "sha256": "0ad77df8d99b59494d076343a974f808310aacfab4ccf44df337563472748d3f"
+        },
+        {
+          "path": "schemas/receipt-v3.schema.json",
+          "bytes": 37672,
+          "sha256": "44573b48c5751b736e31e5bbf60536780b3d0e9d126f1675a6ca2a357fad8cf8"
+        },
+        {
+          "path": "schemas/subject-manifest-v1.schema.json",
+          "bytes": 6026,
+          "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1"
+        },
+        {
+          "path": "schemas/subject-manifest-v2.schema.json",
+          "bytes": 9807,
+          "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0"
+        },
+        {
+          "path": "schemas/trust-record-v1.schema.json",
+          "bytes": 2535,
+          "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555"
+        },
+        {
+          "path": "schemas/trust-record-v2.schema.json",
+          "bytes": 4418,
+          "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
+        },
+        {
+          "path": "src/lib.rs",
+          "bytes": 324083,
+          "sha256": "b922f7006e396c63956e9b8bfdfac052ab1db8d91fb78e1c0a6338b06639986a"
+        },
+        {
+          "path": "src/visual.rs",
+          "bytes": 60248,
+          "sha256": "b80587f7e0b5607147f8c3144b6fa1bdad924b93071744025941d3b0041a1835"
+        },
+        {
+          "path": "tests/contract.rs",
+          "bytes": 37295,
+          "sha256": "67f37f0737c692a746206acef3a4dc727b3a966baa3b1e571345bc232a337b1b"
+        },
+        {
+          "path": "tests/holla_help_overlay.rs",
+          "bytes": 1729,
+          "sha256": "ecaae0ae75100475b4af4c2d1285880f28ac926e8ce78eb4187a89e57f12efe5"
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "preflight_path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/preflight.json",
+    "preflight_sha256": "1308f260455d48de35b74f60fc8e23e8c17e1dc213b041db12bc1376a9e8a3cd",
+    "postflight_path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/postflight.json",
+    "postflight_sha256": "4522f7f2eef5ac5538a5aa9f3d51ce47fa326003b15047b3abd74195f52d6768",
+    "output_roots_after": {
+      "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/candidate": [
+        {
+          "path": "holla",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 18842,
+          "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 4019,
+          "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 29455,
+          "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1284301,
+          "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 787462,
+          "sha256": "4f54fb79745ed0d4054664f1aa8aac212f8c9dd9604c12190b10488c123b4eae"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3762,
+          "sha256": "66736bbaf0f94cba53de8b7380d0df0eafe7bfb05f442c99882562e39da096e0"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 2022,
+          "sha256": "f7562665f9691eb7e618fd7901906360d06681e15c05a7ae89b431a24b1eb87b"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 551174,
+          "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 4621,
+          "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 13319,
+          "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 2646,
+          "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 13774,
+          "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1279138,
+          "sha256": "868c25f8aba0e075b8c82825e6b0e17a56c594945db4f1039da0b0f5e3f55953"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 586502,
+          "sha256": "04152ab213bb9463ea2209f6cde0b1447b118cff36d1173ad0e9d7e4ca0c8061"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3774,
+          "sha256": "09c9bc675a4dd97abcc020826f1d3b54f143b184e19ea7df18b4a61ebf02a401"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 1984,
+          "sha256": "83d478bd75ba34e92b6528536f9c977bac4d283defbc64176ff205f3dc471d8d"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 417641,
+          "sha256": "d63ea1a7b755a9325a1bcc4aea52e1d229c9fd7468027592552646df541ccac4"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 2930,
+          "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 13319,
+          "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 2646,
+          "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 13774,
+          "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1279138,
+          "sha256": "868c25f8aba0e075b8c82825e6b0e17a56c594945db4f1039da0b0f5e3f55953"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 586506,
+          "sha256": "396c9a0d7013dbab15b5cf11abd40796f13666b6bac4a55da92ff179f4cd490a"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3796,
+          "sha256": "3e3fd0dca3debe9a2f93e4b20bfb046380608ff44a06c243abc62d8c6c0f9f54"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 1986,
+          "sha256": "dcdfd0680349094310505481149fb502f95568def9cea00de59686f1e82103a6"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 417641,
+          "sha256": "d63ea1a7b755a9325a1bcc4aea52e1d229c9fd7468027592552646df541ccac4"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 2930,
+          "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 18842,
+          "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 4019,
+          "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 29455,
+          "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1284301,
+          "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 787474,
+          "sha256": "a5bd850b0c561d8e8d93bef3f596e66bfef7516ac75793ca754a825e4bb47060"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3819,
+          "sha256": "337aaed60b61caef1a5d230e235e98dc089ecd10953ea32a8201e5ac114f278b"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 1989,
+          "sha256": "6c3b39ff6c714d9bb725e71ea389acc091fac3967ee4be366111fb765093b905"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 551174,
+          "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 4621,
+          "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24"
+        }
+      ],
+      "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/reference": [
+        {
+          "path": "holla",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 18842,
+          "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 4019,
+          "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 29455,
+          "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1284301,
+          "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 787462,
+          "sha256": "4f54fb79745ed0d4054664f1aa8aac212f8c9dd9604c12190b10488c123b4eae"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3762,
+          "sha256": "66736bbaf0f94cba53de8b7380d0df0eafe7bfb05f442c99882562e39da096e0"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 2022,
+          "sha256": "f7562665f9691eb7e618fd7901906360d06681e15c05a7ae89b431a24b1eb87b"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 551174,
+          "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 4621,
+          "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 13319,
+          "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 2646,
+          "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 13774,
+          "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1279137,
+          "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 586582,
+          "sha256": "3e65fadb63db66cc02a230c5bc885c659c74f9fe1b463de431e01fd0728744ef"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3772,
+          "sha256": "7028a7c916ad8202a52d5e72f423c4fb28eaa2bd012e6d7b5ac6ee5d3f92cc2f"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 1981,
+          "sha256": "a17c99097f90e7cc0db7a656183284afdbcea87d9543749cff2e5f4806e7b363"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 417702,
+          "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/boot/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 2930,
+          "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 13319,
+          "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 2646,
+          "sha256": "bd2f769534d8cfffada6856be53116422796bde1d46d255cb00232b2e167af90"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 13774,
+          "sha256": "3a9315faea3b81cd9d5e8b5d1e96eb7220c10a61418807cc0181cbbf8c61af15"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1279137,
+          "sha256": "c7da81c312bbd306bb2ddfd5e7ede508a11b02af0439d1bac4b795ba1e9517bb"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 586586,
+          "sha256": "0bb6cf67b2f5683eef9271511e2052657fd397db9533525029d8e32048c627b4"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3794,
+          "sha256": "31c96d164b787df1923a8eb986da2bd2082828af894d79f5f84fbd5e47cc7b61"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 1983,
+          "sha256": "b3b04ffc809564e3bb0562dbf6549cc913e6cc63be5a4f3172dbc8d6194ff86e"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 417702,
+          "sha256": "1285c0a1a589769cb75b979e26d6ffdd8e1d36cfde629221d99ae801db43db7e"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/closed/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 2930,
+          "sha256": "73062d3478ce50cfa5c5d6642cd7a6e915d8b32e7b57a57002463c1592b883fd"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor",
+          "type": "directory"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/ansi",
+          "type": "file",
+          "bytes": 18842,
+          "sha256": "c5f858949c058b64ece4f5046e72f6bf7e3565c3f7a17558b829cdc43d7704b1"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/ascii",
+          "type": "file",
+          "bytes": 4019,
+          "sha256": "6105d62ce6f25fcf70d6ad50d04378a19bbf151a4ba6b078b2ab5f33e26a4448"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/ascii.loss.json",
+          "type": "file",
+          "bytes": 29455,
+          "sha256": "76b48adc5586f94ba12ed40c5e135a2a7d5f9b74de05253a2084cf172bfc24f1"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/frame.json",
+          "type": "file",
+          "bytes": 1284301,
+          "sha256": "1584010ec74a03dfb230be3261fca2e4d3fde300a1dd17c9e7c5a31ee385f22f"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/html",
+          "type": "file",
+          "bytes": 787474,
+          "sha256": "a5bd850b0c561d8e8d93bef3f596e66bfef7516ac75793ca754a825e4bb47060"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/manifest.json",
+          "type": "file",
+          "bytes": 3819,
+          "sha256": "337aaed60b61caef1a5d230e235e98dc089ecd10953ea32a8201e5ac114f278b"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/observations.json",
+          "type": "file",
+          "bytes": 1989,
+          "sha256": "6c3b39ff6c714d9bb725e71ea389acc091fac3967ee4be366111fb765093b905"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/png",
+          "type": "file",
+          "bytes": 551174,
+          "sha256": "5a8ab882c49aa86f7ef62f94dd5c5d37dcaf6ed599e373ec3042a040faab1537"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/png.fidelity.json",
+          "type": "file",
+          "bytes": 273,
+          "sha256": "f62dc6cf3a07fb380e15c87d6bd2798bd8a9e2dc76bea2ee9116353f7fd4c3f7"
+        },
+        {
+          "path": "holla/finder/help-overlay/reopened/120x40/truecolor/txt",
+          "type": "file",
+          "bytes": 4621,
+          "sha256": "297b088557208fc57187cccd495b76a2dc828011ca14e8e7cf00220db8725c24"
+        }
+      ]
+    },
+    "first_output_artifact": {
+      "at_utc": "2026-10-08T20:12:11.410Z",
+      "artifact": {
+        "roleRoot": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/candidate",
+        "path": "holla/finder/help-overlay/boot/120x40/truecolor/ansi",
+        "type": "file",
+        "bytes": 13319,
+        "sha256": "f411e831e9b1c07eb4f79b8c75f5116972a27a92508e66af325b9109d74dab60"
+      }
+    },
+    "receipt_path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json",
+    "receipt_sha256": "8fa7329ffad3130f03f1c3025bc7e47807c927e66bff61b3c45b52f778619882"
+  },
+  "raw_streams": {
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/logs/nextest.stdout.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/logs/nextest.stderr.raw",
+      "sha256": "4b4003541ba0098c791eafde824451925c5ea84ddb754de1a6d329df6020c254",
+      "bytes": 3449
+    },
+    "events": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/logs/process-events.jsonl",
+      "sha256": "73edd07b99fa4a1b91d777d7b284d2c4f0e54663456f6151e27d2f2a06cb8c98",
+      "bytes": 79687
+    }
+  },
+  "artifacts": {
+    "runner_result": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/runner-result.json",
+      "sha256": "1b4b5582db54eabe5a29eff3747f75bd3fe6fcc032015c1e064a97618f95f20d",
+      "bytes": 2062
+    },
+    "final_receipt": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/final-receipt.json",
+      "sha256": "e89a0165415c1b6dde43ad2a4ce961fb26b757af69673860af37555178d4bd18",
+      "bytes": 127320
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/preflight.json",
+      "sha256": "1308f260455d48de35b74f60fc8e23e8c17e1dc213b041db12bc1376a9e8a3cd",
+      "bytes": 13082
+    },
+    "postflight": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-05/postflight.json",
+      "sha256": "4522f7f2eef5ac5538a5aa9f3d51ce47fa326003b15047b3abd74195f52d6768",
+      "bytes": 158396
+    }
+  },
+  "prior_setup_not_runs": [
+    {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-03/setup-attempt-01/setup-error.json",
+      "sha256": "09bc03c7025c131a194d102a77eee7d1cb3d2d569b161544d00059ad11b8263b",
+      "cargo_spawned": false,
+      "product_spawned": false
+    },
+    {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-diagnostic-journey-vis06-a914-20261009-04/setup-attempt-01/setup-error.json",
+      "sha256": "e014939e6c5e887100b9242d3361824e0af7a55ac37a5a790bbce8230702146c",
+      "cargo_spawned": false,
+      "product_spawned": false
+    }
+  ],
+  "qualification_boundary": {
+    "visual_result": "8 BLOCKED, each stating exact comparison is blocked because no shared expected generation was supplied",
+    "product_builds": "not performed in this journey; prebuilt executables were verified and launched",
+    "product_launches": "8 PASS launch checks in the receipt, via Tuiscotti PTY",
+    "corpus_admission": "NOT RUN",
+    "expected_generation": null,
+    "milestone_qualification": "not established"
+  }
+}

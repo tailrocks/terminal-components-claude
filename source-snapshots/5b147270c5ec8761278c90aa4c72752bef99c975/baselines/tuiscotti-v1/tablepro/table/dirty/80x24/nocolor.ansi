@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m   • 2 pending [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────── 14 cols ─╮ [0m
+ │  [0m[1m Data  [0m  Structure                                                        │ [0m
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │ [0m
+ │                                                                            │ [0m
+ │   ‹4    status       total_amount  currency    shipping_address       7›   │ [0m
+ │    •  1 paid                25.90  USD         {"line1": "104 Calle …    ┃ │ [0m
+ │  [0m[1m▎ •[0m  2[0m[1m shipped           1617.64  USD         {"line1": "87 Nevsky …    [0m│ │ [0m
+ │       3 pending           2236.65  EUR         {"line1": "78 Via Rom…    │ │ [0m
+ │       4 pending           2376.57  EUR         {"line1": "152 Market…    │ │ [0m
+ │       5 refunded          2067.52  USD         {"line1": "179 Market…    │ │ [0m
+ │       6 shipped            675.78  GBP         {"line1": "152 Calle …    │ │ [0m
+ │       7 delivered         2397.83  GBP         {"line1": "3 Rue de R…    │ │ [0m
+ │       8 refunded          1677.55  EUR         [0m[3mNULL                  [0m    │ │ [0m
+ │  [0m[2m     9 pending            550.69  USD         {"line1": "196 Market…    [0m│ │ [0m
+ │                                                                            │ [0m
+ │   • 2 pending · 2 updates                   Preview SQL   Discard   [0m[1mSave [0m  │ [0m
+ │   rows 1–9 of 500 loaded · 1,203,338 total · cols 5–7 of 14                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  …          Connected to Production [0m

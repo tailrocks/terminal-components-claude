@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor         no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; the gutter says where… [0m
+   Buttons                                                                                          [0m
+   Inputs             ▎[0m[1mretry.rs[0m                            3 blocks      State                      [0m
+   Text areas                                                                                       [0m
+   Forms               ▎› [0m[1m 1[0m [0m[4mcl[0m[3;4m// Retry a request with exponentia…[0m┃      Mode         editing       [0m
+   Lists                   2 [0m[1m╭──[0m─[0m[1m─────[0m─[0m[1m──[0m──────────────────────────────────╮sor       ln 1 · col 3  [0m
+   Trees                   3 │[0m[1m▎[0mT[0m[1m Client                             [0mstruct[0m[1m [0m│ck        1 of 3        [0m
+   Tables                  4 │ ƒ [0m[1mcl[0mient(     [0m[1m  [0m            fn () -> Client │s         0             [0m
+   Editable tables         5 │ ƒ s[0m[1mc[0mhedu[0m[1ml[0me(  fn (attempts: u32) -> Vec<u64> │t run     —             [0m
+   Panels                  6 ╰───────────────────────[0m[1m──────[0m────────────────╯gnostics  0             [0m
+   Sidebars                7             Err(e) [0m[1mif[0m e.is_transient…┃      Completion   3 items       [0m
+   Dialogs                 8                 log::warn!("attempt …┃                                 [0m
+   Progress                9                 sleep(delay).[0m[1mawait[0m;  ┃                                 [0m
+   Scrolling              10                 delay *= 2;          ┃                                 [0m
+   Terminal               11             }                        ┃      Diagnostics                [0m
+ › Code editor            12             Err(e) => [0m[1mreturn[0m Err(e), ┃                                 [0m
+   Diff                   13         }                            ┃           Nothing flagged       [0m
+   Data grid              14     }                                ┃                                 [0m
+   Chips & selects        15     Err(Error::Exhausted)            ┃        Run the second block:    [0m
+   Pickers                16 }                                    │         its unwrap() gets a     [0m
+   Chrome                 17                                      │               warning           [0m
+   Settings               18 [0m[1mfn[0m client() -> Client {              │                                 [0m
+   Task runner            19     Client::builder().timeout(10).bu…│                                 [0m
+                       [0m[2m   20 }                                    [0m│                                 [0m
+                                                   ln 1/26 · col 3                                  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m EDIT [0m  [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Accept  [0m[1mEsc[0m Close                                                          [0m

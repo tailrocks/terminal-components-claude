@@ -1,0 +1,97 @@
+{
+  "schema": "termrock-vis04-deferred-harness-controls-actual-independent-review/v1",
+  "verdict": "READY_ACTUAL_RESULT_REVIEW",
+  "reviewer": "controls_wrapper_review_luna",
+  "reviewed_at_utc": "2026-10-09T05:19:49Z",
+  "request": {
+    "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-actual-result-review-request-20261009.json",
+    "sha256": "68f0c1fce167bb153e7790d625872dea1e75f665c2756c55cfebeda7d9a9dc37"
+  },
+  "frozen_inputs": {
+    "packet_manifest_sha256": "65b836ca0c4abf45528c2ef9e7ed446098d2addac297b68f700541701e0ca2ef",
+    "static_review_sha256": "1116be98dceea49e0aba188a012a20379312b53b6bfb512f95579bb0b67e81a5",
+    "source_manifest_sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60",
+    "runplan_sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8",
+    "runner_sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd",
+    "trace_fix_diff_sha256": "d79cf34fdf6de4c568523bacbf93d416b382481a93aa4610ca9237f15efa5b45",
+    "selected_names_sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369",
+    "cache_manifest_sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71",
+    "cache_closure_sha256": "21867ab3cfc05a00da02bc9e7f1cfd1533ef0be465e0a897b39e3ff893ee26b4",
+    "trace_fixed_test_source_sha256": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94",
+    "unchanged_helper_source_sha256": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee"
+  },
+  "actual_run": {
+    "run_directory": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0",
+    "wrapper_run_id": "2026-10-09T05-13-58-526Z-adb32ee0",
+    "nextest_run_id": "a0bc2b22-bb0d-409f-95a8-5596e42ed06b",
+    "receipt": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0/receipt.json",
+      "sha256": "976e530df3dbbc39498e0bd261950e74a9d98dcceed183027359aa1ba69ee9e7"
+    },
+    "stdout": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0/nextest.stdout.jsonl",
+      "sha256": "e0f391786923482679e3e3e8971a7effc727672db0ac555d3a356d1d212c254f",
+      "bytes": 8676
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0/nextest.stderr.log",
+      "sha256": "5b0d4b4d449e8fae19405a47e39a3764d3b1ba98d3d663512d86239f709cc367",
+      "bytes": 7880
+    },
+    "result": "PASSED_29",
+    "nextest_exit_code": 0,
+    "selected": 29,
+    "started": 29,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "suite_events": [
+      "started",
+      "ok"
+    ],
+    "malformed_lines": 0,
+    "parse_errors": [],
+    "timed_out": false,
+    "signal": null,
+    "forced_close": false,
+    "logs_truncated": false,
+    "source_revalidation": "Runner calls verifySource(manifest) after process close before interpreting the test result; all 14 current copied source files rehash to the frozen manifest, and the receipt is PASSED_29.",
+    "cache_revalidation": "Rehashed all 32 locked .crate archives (each matching Cargo.lock checksum), 32 sparse-index entries, and config.json in the dedicated v7 Cargo home; before/after closure hashes match.",
+    "v1_failure_preserved": {
+      "receipt_path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/runs/2026-10-09T05-06-26-032Z-7d60e16b/receipt.json",
+      "receipt_sha256": "cc1d73677d1fa73937ae8c3c6128f5edb09178f4fb8ac5675f0425dbf574cc96",
+      "stdout_sha256": "e26228854578dfa12afd8202cfcbc796f985f29149544e089806bc2c81c9a123",
+      "stderr_sha256": "a0b4ac201af7801ececaa6fcc8bf1f79eadbbbc1d9c398ac952bdb501a5d4895",
+      "result": "FAILED",
+      "passed": 27,
+      "failed": 2,
+      "failed_names": [
+        "claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup",
+        "claim_registry_rejects_non_integer_revisions_before_tool_setup"
+      ],
+      "raw_failure": "Both panicked at trace() with io::ErrorKind::NotFound before the bounded trace fix."
+    }
+  },
+  "scope_and_limits": {
+    "covered": "Exactly the 29 frozen Rust tests in termrock-visibility-tests::deferred. This is harness-control coverage for the deferred helper and receipt/selection guards.",
+    "product23": "Separate recorded result remains 22 PASS / 1 FAIL (BD-21 w13_filter_wide_trail_cells_clear); not covered by this run or review.",
+    "not_claimed": [
+      "product assertion readiness",
+      "PTY qualification",
+      "new product journey evidence"
+    ],
+    "execution_by_reviewer": "None; review was read-only and did not rerun Cargo or Nextest."
+  },
+  "checks_passed": [
+    "All request, packet/static review, source, runplan, runner, test-name, trace-diff, actual receipt, and raw log hashes matched pins.",
+    "Selected names match the frozen 29 exactly; raw libtest-json-plus stream has 60 valid records: one suite.started, 29 per-name test.started/test.ok pairs, then one successful suite.ok.",
+    "Every expected prefixed test name appears exactly once in started and ok states; no extra events or malformed lines.",
+    "Exactly one Nextest ID appears in stderr and matches receipt execution.nextest_run_id; wrapper run ID is separately preserved.",
+    "Exit 0 and PASSED_29; no parse errors, timeout, signal, forced close, capture truncation/write errors, or cleanup/log errors.",
+    "Source post-run revalidation succeeded and current 14-file copied source inventory matches all frozen sizes and hashes.",
+    "Dedicated offline Cargo cache closure rehash succeeds for 64 archive/index files plus config, with unchanged before/after closure.",
+    "The v2 source tree differs from v1 only at tests/deferred.rs; the helper file remains byte-identical; v1 raw failure receipt/logs remain preserved."
+  ],
+  "findings": [],
+  "decision": "The actual result satisfies the bounded 29-test harness-controls gate. Preserve the v1 failure record; this pass is specific to the v2 trace-fix source and does not alter the separate product23 failure."
+}

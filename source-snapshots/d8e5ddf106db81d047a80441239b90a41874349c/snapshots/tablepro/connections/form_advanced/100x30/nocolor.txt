@@ -1,0 +1,30 @@
+ ▪  TablePro  Connections  6 saved                                        no color · 100×30  ? help
+
+ ╭─ Connections ──────────── 6 ─╮    New connection                                   Ctrl+S Save
+ │                              │
+ │   Filter connections         │     Basic    Advanced
+ │  ▾ Personal                  │    ─────────━━━━━━━━━━━────────────────────────────────────────
+ │      · Local PostgreSQL  pg  │
+ │      · Scratch       sqlite  │     ○── Use SSL / TLS off                Startup commands
+ │  ▾ Acme                      │                                          SET statement_timeo…
+ │      · Development       pg  │     ○── SSH tunnel off
+ │      ◇ Staging           pg  │      SSH host  optional
+ │      ◆ Analytics      mysql  │      bastion.example.com                 Run after every conne…
+ │      ◆ Production        pg  │
+ │                              │      SSH user  optional                  External clients: read on
+ │                              │      deploy
+ │                              │
+ │                              │     ○── Local only (no iCloud sync)
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │     Test connection    Cancel    Save    Save & connect
+ ╰──────────────────────────────╯
+
+ Enter Edit  ← → Basic / Advanced  Ctrl+S Save  Tab Next

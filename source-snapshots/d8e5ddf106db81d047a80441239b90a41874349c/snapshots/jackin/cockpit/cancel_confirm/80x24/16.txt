@@ -1,0 +1,24 @@
+  jackin❯  entering the Construct  2 running
+
+                                                                {
+                                    jackin❯                     s
+             Loading the-architect into workspace payments-platform
+   Claude Code · Anthropic / Claude · account Claude · Work (session choice)
+                stage 3 of 11 · Credentials · 2 done · 0 skipped
+             ╭────────────────────────────────────────────────────╮
+             │                                                    │     G
+             │  Cancel the launch?                                │     h
+             │                                                    │     n
+             │  The pipeline stops at its current stage and the   │     o
+             │  partially prepared instance is marked failed      │
+             │  setup. Nothing is attached.                       │
+             │                                                    │
+             │                          ▎Cancel   Cancel launch   │
+             │                                                    │
+             ╰────────────────────────────────────────────────────╯
+                     11 Hardline                       queued
+
+ ⠋ Resolving credentials…
+
+
+          ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer

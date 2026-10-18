@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      acme › frontend … · pnpm  mbp · local
+
+  Here › Trust
+ ━━━━━━━━━━━━━━━───────────────────────────────────────────────────────
+  Trust ~/work/acme/apps/frontend/mise.toml?
+  not trusted yet · review the exact definition, commands and environmen
+
+  File         ~/work/acme/apps/frontend/mise.toml
+  Defines      4 tasks · 2 tools
+  Environment  VITE_API_URL=http://localhost:8080
+  Trust scope  this exact file · not the folder, not descendants · re…
+  Provenance   committed in the project · last changed 3 d ago by the…
+  Then         re-resolve and run //apps/frontend:test
+
+ ╭─ Definition ─────────────────────────────────────── exact content ─╮
+
+                                           ▎Cancel    Trust this file
+
+ ~/work/acme/apps/frontend   ↑1 • 2   trust review · one exact file
+           ← → Choose  Enter Activate  Tab Next  Esc Cancel

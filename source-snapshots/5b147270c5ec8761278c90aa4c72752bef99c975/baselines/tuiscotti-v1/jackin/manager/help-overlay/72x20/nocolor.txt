@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help          Workspaces  inside the Construct
+  ╭─ Keyboard shortcuts ──────────────────────────────── 1–14 of 45 ─╮
+ ╭│  Workspaces                                                     ┃│╮
+ ││  ↑↓ j k       move                                              ┃││
+ ││  ←→ h l       collapse / expand                                 ┃││
+ ││  Space        fold workspace                                    ┃││
+ ││  Enter        launch                                            │││
+ ││  e            edit workspace                                    │││
+ ││  n            new workspace                                     │││
+ ││  d            delete…                                           │││
+ ││  w            prewarm                                           │││
+ ╰│  o            open in GitHub                                    ││╯
+  │  * -          expand / collapse all                             ││
+  │  Tab          details                                           ││
+  │                                                                 ││
+  │  Instances                                                      ││
+  │  ↑↓ Scroll · Esc Close                                           │
+  ╰──────────────────────────────────────────────────────────────────╯
+
+                         ↑↓ Scroll  Esc Close

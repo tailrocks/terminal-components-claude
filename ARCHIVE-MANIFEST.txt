@@ -1,0 +1,18 @@
+Synthetic archival snapshot candidate
+This commit has the three source salvage tips as parents.
+The two distinct source trees are stored below source-snapshots; 4b and d8 use the same tree object.
+Source bare gitdir: /Users/donbeave/.local/state/github-repatriation/operations/user-request-20261013T2201Z/supplemental-terminal-components/state-only-salvage-v1-20261014T0221Z/objects.git
+Source HEAD: refs/heads/master (unborn; no commit SHA resolved)
+Original refs:
+refs/heads/rescue/local/937c9c5f-a870-43c7-aa58-36a3f5c1b9cf/5e7def0db09d39344e46211b/orphan-5b147270 -> 5b147270c5ec8761278c90aa4c72752bef99c975
+refs/heads/rescue/local/937c9c5f-a870-43c7-aa58-36a3f5c1b9cf/5e7def0db09d39344e46211b/orphan-d8e5ddf1 -> d8e5ddf106db81d047a80441239b90a41874349c
+refs/heads/rescue/local/937c9c5f-a870-43c7-aa58-36a3f5c1b9cf/5e7def0db09d39344e46211b/source-ref-4b473a98 -> 4b473a98a8641a9dae8dbf9c31c0c94b15465496
+refs/salvage/original/visual-baseline -> 4b473a98a8641a9dae8dbf9c31c0c94b15465496
+Tip commits and source trees:
+A 4b473a98a8641a9dae8dbf9c31c0c94b15465496 tree ccafe5e19aa701765b06a5277c544b7459b998e8
+B 5b147270c5ec8761278c90aa4c72752bef99c975 tree c100dac71c891c06e94fef9a161c205989e76a51
+C d8e5ddf106db81d047a80441239b90a41874349c tree ccafe5e19aa701765b06a5277c544b7459b998e8
+Snapshot mapping:
+source-snapshots/4b473a98a8641a9dae8dbf9c31c0c94b15465496 -> tree ccafe5e19aa701765b06a5277c544b7459b998e8
+source-snapshots/5b147270c5ec8761278c90aa4c72752bef99c975 -> tree c100dac71c891c06e94fef9a161c205989e76a51
+source-snapshots/d8e5ddf106db81d047a80441239b90a41874349c -> tree ccafe5e19aa701765b06a5277c544b7459b998e8

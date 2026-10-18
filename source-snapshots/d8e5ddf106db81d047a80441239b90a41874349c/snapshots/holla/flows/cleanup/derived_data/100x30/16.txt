@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                 web · Node project · pnpm  mbp · local
+
+  Here › Cleanup
+ ━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────
+  Cleanup review
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash
+
+ ▎[–] ▾ Xcode DerivedData                 810.0 MiB  rebuilt on demand · 1 candidate…             ┃
+    [ ] ~/Library/Developer/Xcode/DerivedData   810.0 MiB  30 d         Xcode is running          ┃
+                                                                                                  ┃
+  [✓] ▸ Xcode device support                2.4 GiB  safe if old · 2 candidates · ≥ 90 d          ┃
+                                                                                                  ┃
+  [ ] ▸ Xcode archives                    300.0 MiB  review first · 1 candidate · any age         ┃
+                                                                                                  ┃
+  [✓] ▸ Simulator caches                  900.0 MiB  rebuilt on demand · 1 candidate · any age    ┃
+                                                                                                  ┃
+  [✓] ▸ Homebrew cache                    100.0 MiB  rebuilt on demand · 1 candidate · any age    ┃
+                                                                                                  │
+  [✓] ▸ npm cache                         201.0 MiB  rebuilt on demand · 2 candidates · any age   │
+                                                                                                  │
+  [✓] ▸ pnpm store                          2.1 GiB  safe if old · 1 candidate · ≥ 30 d           │
+                                                                                                  │
+  [✓] ▸ Yarn cache                         50.0 MiB  rebuilt on demand · 1 candidate · any age    │
+                                                                                                  │
+  [✓] ▸ Bun cache                          60.0 MiB  rebuilt on demand · 1 candidate · any age    │
+                                                                                                  │
+  [✓] ▸ Cargo registry cache                4.8 GiB  safe if old · 2 candidates · ≥ 30 d          │
+
+ ~/Projects/web                      19 selected · 12.4 GiB                      16 colors · 100×30
+  ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  …

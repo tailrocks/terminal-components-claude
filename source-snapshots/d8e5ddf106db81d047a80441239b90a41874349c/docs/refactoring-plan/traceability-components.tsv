@@ -1,0 +1,158 @@
+source_namespace	source_id	task_id	requirement_id	acceptance_id	check_id	role	disposition
+COMP	runtime-session-time	TASK-009	R-001	AC-001	CHK-004	primary	Terminal session cleanup, normalized input, bootstrap and monotonic deadlines match the oracle without widening color capability.
+COMP	event-response	TASK-009	R-001	AC-001	CHK-004	primary	Terminal session cleanup, normalized input, bootstrap and monotonic deadlines match the oracle without widening color capability.
+ARCH	A06	TASK-009	R-002	AC-002	CHK-006	preservation	Keep optional backend normalization at the terminal boundary; pure Theme/Runtime/Scene constructors do not read environment. Preserve Moment, monotonic advance_to, independent feedback versus simulation and public ColorLevel::narrow_to.
+ARCH	A12	TASK-009	R-002	AC-002	CHK-006	preservation	Keep optional backend normalization at the terminal boundary; pure Theme/Runtime/Scene constructors do not read environment. Preserve Moment, monotonic advance_to, independent feedback versus simulation and public ColorLevel::narrow_to.
+ARCH	A30	TASK-009	R-002	AC-002	CHK-006	preservation	Keep optional backend normalization at the terminal boundary; pure Theme/Runtime/Scene constructors do not read environment. Preserve Moment, monotonic advance_to, independent feedback versus simulation and public ColorLevel::narrow_to.
+DEC	ADJ-03	TASK-009	R-002	AC-002	CHK-006	preservation	Apply ADJ-03 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+COMP	focus-hit-capture	TASK-010	R-001	AC-001	CHK-004	primary	Published focus, capture and typing ownership reproduce oracle event trajectories.
+ARCH	A03	TASK-010	R-002	AC-002	CHK-006	preservation	Keep one runtime ring/dispatch/presentation authority; input and draw use the same controlled props and allocation. Pending input is delivered only against successfully published geometry. Ui::reference alone suppresses every registration while forcing only exact-target runtime presentation flags.
+ARCH	A05	TASK-010	R-002	AC-002	CHK-006	preservation	Keep one runtime ring/dispatch/presentation authority; input and draw use the same controlled props and allocation. Pending input is delivered only against successfully published geometry. Ui::reference alone suppresses every registration while forcing only exact-target runtime presentation flags.
+ARCH	A07	TASK-010	R-002	AC-002	CHK-006	preservation	Keep one runtime ring/dispatch/presentation authority; input and draw use the same controlled props and allocation. Pending input is delivered only against successfully published geometry. Ui::reference alone suppresses every registration while forcing only exact-target runtime presentation flags.
+ARCH	A08	TASK-010	R-002	AC-002	CHK-006	preservation	Keep one runtime ring/dispatch/presentation authority; input and draw use the same controlled props and allocation. Pending input is delivered only against successfully published geometry. Ui::reference alone suppresses every registration while forcing only exact-target runtime presentation flags.
+ARCH	A11	TASK-010	R-002	AC-002	CHK-006	preservation	Keep one runtime ring/dispatch/presentation authority; input and draw use the same controlled props and allocation. Pending input is delivered only against successfully published geometry. Ui::reference alone suppresses every registration while forcing only exact-target runtime presentation flags.
+ARCH	A22	TASK-010	R-002	AC-002	CHK-006	preservation	Keep one runtime ring/dispatch/presentation authority; input and draw use the same controlled props and allocation. Pending input is delivered only against successfully published geometry. Ui::reference alone suppresses every registration while forcing only exact-target runtime presentation flags.
+DEC	ADJ-01	TASK-010	R-002	AC-002	CHK-006	preservation	Apply ADJ-01 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+COMP	theme-paint	TASK-011	R-001	AC-001	CHK-004	primary	Semantic theme overrides, capability projection and complete opt-in ASCII conversion preserve exact paint.
+ARCH	A13	TASK-011	R-002	AC-002	CHK-006	preservation	Use semantic PaintStyle provenance, not RGB role inference. State rules merge by specificity and declaration before subtree/instance/part/slot overrides. Keep Clear/Inherit/Set and modifier add/remove. Preserve all seventy-three slot projection histories and authored palette eligibility; narrow capability with existing meet, never public Ord.
+DEC	ADJ-03	TASK-011	R-002	AC-002	CHK-006	preservation	Apply ADJ-03 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+DEC	ADJ-05	TASK-011	R-002	AC-002	CHK-006	preservation	Apply ADJ-05 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+DEC	ADJ-06	TASK-011	R-002	AC-002	CHK-006	preservation	Apply ADJ-06 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+COMP	layout-measure	TASK-012	R-001	AC-001	CHK-004	primary	Pure measurement and SplitPane allocation share exact clipping and pointer geometry.
+COMP	split-pane	TASK-012	R-001	AC-001	CHK-004	primary	Pure measurement and SplitPane allocation share exact clipping and pointer geometry.
+ARCH	A14	TASK-012	R-002	AC-002	CHK-006	preservation	Measure performs no state mutation, registration or allocation and follows the same style accumulation as paint. Container callbacks run once even under empty clipping; empty leaves paint/register nothing. No public bypass exposes duplicated split geometry.
+COMP	text-core	TASK-013	R-001	AC-001	CHK-004	primary	One logical grapheme and editor grammar governs display, movement and source-preserving copy.
+ARCH	A15	TASK-013	R-002	AC-002	CHK-006	preservation	Preserve borrowed TextEditorCore/TextBuffer/CellWidth ownership and allocation-free clipping; no per-widget alternative Unicode algorithm or preformatted owned span copies.
+ARCH	A16	TASK-013	R-002	AC-002	CHK-006	preservation	Preserve borrowed TextEditorCore/TextBuffer/CellWidth ownership and allocation-free clipping; no per-widget alternative Unicode algorithm or preformatted owned span copies.
+COMP	scroll-state-region	TASK-014	R-001	AC-001	CHK-004	primary	One scroll and fade primitive preserves exact hidden-edge cells and routing.
+ARCH	A09	TASK-014	R-002	AC-002	CHK-006	preservation	Compose ScrollRegion directly, never revive Ui::scroll_region or collection-to-component inversion. Preserve one thumb track/grab and nearest eligible owner; boundary wheel consumes without chaining, repaint or focus shift. Hidden bars reserve no column and expose no pointer part while wheel/reveal stay active.
+COMP	collection-core	TASK-015	R-001	AC-001	CHK-004	primary	Borrowed row and column overrides paint their declared parts without losing stable identity.
+COMP	identity	TASK-015	R-001	AC-001	CHK-004	primary	Borrowed row and column overrides paint their declared parts without losing stable identity.
+ARCH	A04	TASK-015	R-002	AC-002	CHK-006	preservation	Caller keyed sources own data; collection caches own only derived identity/projection. Keep row-author provenance distinct from same-ID component composition through callbacks; no fabricated owner ID. No Display/Clone/static requirement for borrowed renderers or full-dataset clone in measured work.
+ARCH	A17	TASK-015	R-002	AC-002	CHK-006	preservation	Caller keyed sources own data; collection caches own only derived identity/projection. Keep row-author provenance distinct from same-ID component composition through callbacks; no fabricated owner ID. No Display/Clone/static requirement for borrowed renderers or full-dataset clone in measured work.
+ARCH	A18	TASK-015	R-002	AC-002	CHK-006	preservation	Caller keyed sources own data; collection caches own only derived identity/projection. Keep row-author provenance distinct from same-ID component composition through callbacks; no fabricated owner ID. No Display/Clone/static requirement for borrowed renderers or full-dataset clone in measured work.
+COMP	field-chrome	TASK-016	R-001	AC-001	CHK-004	primary	Fields separate keyboard navigation from completed-click editing and preserve secret lifecycle.
+COMP	text-input	TASK-016	R-001	AC-001	CHK-004	primary	Fields separate keyboard navigation from completed-click editing and preserve secret lifecycle.
+COMP	text-area	TASK-016	R-001	AC-001	CHK-004	primary	Fields separate keyboard navigation from completed-click editing and preserve secret lifecycle.
+COMP	secret-validation	TASK-016	R-001	AC-001	CHK-004	primary	Fields separate keyboard navigation from completed-click editing and preserve secret lifecycle.
+ARCH	A15	TASK-016	R-002	AC-002	CHK-006	preservation	Field supplies chrome only and no second focus stop. Shared TextEditorCore and sealed String/Secret FieldControl own lifecycle; no duplicate app editor. Secret has no Clone/Eq/Serialize, Debug redacts, synthetic mask preserves grapheme geometry and drafts clear on close/cancel/removal.
+COMP	layers-popups	TASK-017	R-001	AC-001	CHK-004	primary	Runtime layers preserve anchor, modal ownership and restoration independently of concrete wrappers.
+ARCH	A10	TASK-017	R-002	AC-002	CHK-006	preservation	Layer lifecycle owns z-order/barriers; only size/anchor may change while open and no-op setters do not repaint. Keep capture origin/publication semantics; no Form/Dialog dependency or app backdrop loop.
+COMP	checkbox-toggle	TASK-018	R-001	AC-001	CHK-004	primary	Controlled choices preserve cursor/value distinction and mono label geometry.
+COMP	radio-group	TASK-018	R-001	AC-001	CHK-004	primary	Controlled choices preserve cursor/value distinction and mono label geometry.
+COMP	select	TASK-018	R-001	AC-001	CHK-004	primary	Controlled choices preserve cursor/value distinction and mono label geometry.
+ARCH	A24	TASK-018	R-002	AC-002	CHK-006	preservation	Use shared fields/rows/runtime popup; no item-aware public FieldControl widening. Preserve source item ownership, effective inherited/configured disable and explicit glyph Set/Clear over defaults.
+COMP	form	TASK-019	R-001	AC-001	CHK-004	primary	Form satisfies all thirteen declared invariants with live per-phase data.
+ARCH	A20	TASK-019	R-002	AC-002	CHK-006	preservation	Preserve per-phase semantic items, private configured bridges and closed FieldKind. FormData::disabled occurs before one mutable value_and_options borrow; inherited OR configured disable applies. No dyn/public item-aware trait, public secret projection, owned values bundle or domain execution.
+DEC	ADJ-08	TASK-019	R-002	AC-002	CHK-006	preservation	Apply ADJ-08 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+COMP	list	TASK-020	R-001	AC-001	CHK-004	primary	Keyed collections preserve exact selection, branch and strip journeys.
+COMP	nav-list	TASK-020	R-001	AC-001	CHK-004	primary	Keyed collections preserve exact selection, branch and strip journeys.
+COMP	tree	TASK-020	R-001	AC-001	CHK-004	primary	Keyed collections preserve exact selection, branch and strip journeys.
+COMP	steps	TASK-020	R-001	AC-001	CHK-004	primary	Keyed collections preserve exact selection, branch and strip journeys.
+COMP	chips	TASK-020	R-001	AC-001	CHK-004	primary	Keyed collections preserve exact selection, branch and strip journeys.
+COMP	tabs	TASK-020	R-001	AC-001	CHK-004	primary	Keyed collections preserve exact selection, branch and strip journeys.
+ARCH	A04	TASK-020	R-002	AC-002	CHK-006	preservation	Keep borrowed models and stable identities; Tree cache stores derived structure only and filtering projects matches plus ancestors without changing saved expansion. AddRequested has no fake item key; domain shell alone focuses content after EnterContent.
+ARCH	A17	TASK-020	R-002	AC-002	CHK-006	preservation	Keep borrowed models and stable identities; Tree cache stores derived structure only and filtering projects matches plus ancestors without changing saved expansion. AddRequested has no fake item key; domain shell alone focuses content after EnterContent.
+COMP	text-viewport	TASK-021	R-001	AC-001	CHK-004	primary	TextViewport preserves retained reading, selection, marks and non-tailing prose.
+COMP	scroll-panel	TASK-021	R-001	AC-001	CHK-004	primary	TextViewport preserves retained reading, selection, marks and non-tailing prose.
+COMP	grid	TASK-022	R-001	AC-001	CHK-004	primary	Generic keyed Grid restores table and current-cell completed-click behavior.
+COMP	table	TASK-022	R-001	AC-001	CHK-004	primary	Generic keyed Grid restores table and current-cell completed-click behavior.
+ARCH	A19	TASK-022	R-002	AC-002	CHK-006	preservation	Only GridEditor/update_editable mutates caller model; three-method GridModel remains readonly. App adapter owns SQL/NULL/default/pending/undo/comparator/permutation. Ragged None cells never call decoration/action/editor hooks; state exposes owned semantics not derived windows.
+COMP	dialog	TASK-023	R-001	AC-001	CHK-004	primary	Dialogs and menus preserve measured facts, submenus and exact dismissal.
+COMP	menu-context-menubar	TASK-023	R-001	AC-001	CHK-004	primary	Dialogs and menus preserve measured facts, submenus and exact dismissal.
+ARCH	A10	TASK-023	R-002	AC-002	CHK-006	preservation	Compose established runtime layers and Form; no duplicate trap, backdrop, input dispatch or domain execution. Dialog body returns bare R and runs once at empty clip; callbacks cannot escape. Menu action and key route resolve the same effective owner/action metadata.
+COMP	filter-list	TASK-024	R-001	AC-001	CHK-004	primary	Pickers preserve borrowed query identity, chained stages and editor completion ownership.
+COMP	picker-command-palette	TASK-024	R-001	AC-001	CHK-004	primary	Pickers preserve borrowed query identity, chained stages and editor completion ownership.
+COMP	picker-chain	TASK-024	R-001	AC-001	CHK-004	primary	Pickers preserve borrowed query identity, chained stages and editor completion ownership.
+COMP	completion	TASK-024	R-001	AC-001	CHK-004	primary	Pickers preserve borrowed query identity, chained stages and editor completion ownership.
+COMP	code-editor	TASK-025	R-001	AC-001	CHK-004	primary	CodeEditor preserves readonly caret, editing, diagnostics and find trajectories.
+ARCH	A15	TASK-025	R-002	AC-002	CHK-006	preservation	Keep borrowed Highlighter/Segmenter and update-owned revision caches; one text editor grammar and runtime cursor owner. No owned syntax clone, alternative test painter or app-specific editor engine.
+COMP	diff-view	TASK-026	R-001	AC-001	CHK-004	primary	Diff preserves requested review mode through narrow fallback and width recovery.
+COMP	button	TASK-027	R-001	AC-001	CHK-004	primary	Reusable chrome preserves action geometry, borrowed facts and readiness paint.
+COMP	brand	TASK-027	R-001	AC-001	CHK-004	primary	Reusable chrome preserves action geometry, borrowed facts and readiness paint.
+COMP	panel	TASK-027	R-001	AC-001	CHK-004	primary	Reusable chrome preserves action geometry, borrowed facts and readiness paint.
+COMP	props	TASK-027	R-001	AC-001	CHK-004	primary	Reusable chrome preserves action geometry, borrowed facts and readiness paint.
+COMP	empty-readiness	TASK-027	R-001	AC-001	CHK-004	primary	Reusable chrome preserves action geometry, borrowed facts and readiness paint.
+COMP	too-small	TASK-027	R-001	AC-001	CHK-004	primary	Reusable chrome preserves action geometry, borrowed facts and readiness paint.
+COMP	statusbar-segments	TASK-028	R-001	AC-001	CHK-004	primary	Status and hints reflect live owner/action metadata with exact truncation.
+COMP	hintbar	TASK-028	R-001	AC-001	CHK-004	primary	Status and hints reflect live owner/action metadata with exact truncation.
+COMP	keyhint	TASK-028	R-001	AC-001	CHK-004	primary	Status and hints reflect live owner/action metadata with exact truncation.
+ARCH	A21	TASK-028	R-002	AC-002	CHK-006	preservation	Retain one StatusBar for old segments/statusbar, pure draw-time caller projection with fixed buffers and no mutable mirror cache. Binding metadata and structural revisions drive actual routing and hints, warm caches allocate zero.
+COMP	progress-bar	TASK-029	R-001	AC-001	CHK-004	primary	Progress, Spinner and Meter preserve deterministic motion and semantic paint.
+COMP	spinner	TASK-029	R-001	AC-001	CHK-004	primary	Progress, Spinner and Meter preserve deterministic motion and semantic paint.
+COMP	meter	TASK-029	R-001	AC-001	CHK-004	primary	Progress, Spinner and Meter preserve deterministic motion and semantic paint.
+ARCH	A12	TASK-029	R-002	AC-002	CHK-006	preservation	Keep shared driver clock; Input::Tick does not advance elapsed time. MeterFillRest Color/ReferenceLift uses accepted ordered Canvas/Surface/Elevated/Field/Popover reference policy only; no generic RGB role inference. Authored tokens and explicit colors win before delayed dimming.
+COMP	help-overlay	TASK-030	R-001	AC-001	CHK-004	primary	Help and Wizard preserve effective bindings and caller-owned step state.
+COMP	wizard	TASK-030	R-001	AC-001	CHK-004	primary	Help and Wizard preserve effective bindings and caller-owned step state.
+ARCH	A21	TASK-030	R-002	AC-002	CHK-006	preservation	No help-only decorative bindings, parallel keymap, domain jobs or redesigned wizard chrome. Retain caller-owned state and runtime layers; repeated draw cannot navigate or mutate completion.
+COMP	testing-registry	TASK-031	R-001	AC-001	CHK-006	primary	The complete component registry proves exact owned PARTS and advertised painted slots through independent actual Rust architecture fixtures, not a fictitious oracle widget.
+ARCH	A22	TASK-031	R-002	AC-002	CHK-006	preservation	Parse actual public Overrides named slot promises and require exact equality to slots changing intended painted cells across fixture sweep. Measuring-only style queries do not count as paint. No extra set, manual coverage list, fake owner IDs, new public patch_part hook or declaration-only slot proof.
+DEC	ADJ-04	TASK-031	R-002	AC-002	CHK-006	preservation	Apply ADJ-04 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+COMP	testing-registry	TASK-073	R-001	AC-001	CHK-006	preservation	Truthful resolution provenance and one generated registry support later conformance repair.
+DEC	ADJ-04	TASK-073	R-002	AC-002	CHK-006	preservation	Apply ADJ-04 fixed decision and its positive/negative evidence without reviving its rejected alternative.
+ARCH	A01	TASK-068	R-002	AC-002	CHK-006	primary	preserve ownership through integration
+ARCH	A02	TASK-068	R-002	AC-002	CHK-006	primary	close export/docs inventory including all reusable components
+ARCH	A23	TASK-065	R-002	AC-002	CHK-006	primary	remove Showcase Grid/shell paint-over and audit all app painters
+ARCH	A25	TASK-067	R-002	AC-002	CHK-006	primary	reconcile named deferral without restoring clone path
+ARCH	A26	TASK-067	R-002	AC-002	CHK-006	primary	implement promised real Showcase frame share measurement
+ARCH	A27	TASK-067	R-002	AC-002	CHK-006	primary	distinguish smoke tests from allocation proof; compare real counts
+ARCH	A28	TASK-066	R-001	AC-001	CHK-005	primary	map catalog plus newly pinned oracle tests and wire CI
+ARCH	A29	TASK-068	R-002	AC-002	CHK-006	primary	close valid unresolved names and expired Buttons/render split deviation
+ARCH	A31	TASK-069	R-001	AC-001	CHK-004	primary	qualify tool and production view adapter; run full scenario closure
+ARCH	A32	TASK-068	R-002	AC-002	CHK-006	primary	prepare release readiness without publishing in planning scope
+COMP	custom-author-api	TASK-068	R-001	AC-001	CHK-006	primary	External keyed custom author example reorder/insert/delete; all API capabilities compile
+COMP	public-compatibility-removal	TASK-068	R-001	AC-001	CHK-006	primary	Forbidden old imports/types/parallel painters; docs/examples compile; registry and dependency closure
+COMP	identity	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	event-response	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	focus-hit-capture	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	runtime-session-time	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	layout-measure	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	theme-paint	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	text-core	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	scroll-state-region	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	layers-popups	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	collection-core	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	button	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	brand	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	checkbox-toggle	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	radio-group	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	chips	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	field-chrome	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	text-input	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	text-area	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	secret-validation	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	select	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	form	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	list	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	filter-list	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	nav-list	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	tree	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	steps	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	tabs	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	picker-command-palette	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	picker-chain	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	completion	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	dialog	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	menu-context-menubar	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	help-overlay	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	wizard	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	grid	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	table	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	code-editor	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	diff-view	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	text-viewport	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	scroll-panel	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	panel	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	split-pane	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	props	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	empty-readiness	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	progress-bar	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	spinner	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	meter	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	statusbar-segments	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	hintbar	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	keyhint	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	too-small	TASK-006	R-001	AC-001	CHK-004	baseline	Capture every source-applicable CP-COMMON family state and exact app composition; seal source-qualified non-applicability for lanes without executable counterparts.
+COMP	custom-author-api	TASK-006	R-001	AC-006	CHK-002	baseline	Validate complete family membership and source-qualified applicability; API-only states require explicit source-proven lane disposition rather than fabricated visual frames.
+COMP	testing-registry	TASK-006	R-001	AC-006	CHK-002	baseline	Classify registry infrastructure as architecture-only; bind real component baseline membership and explicit non-applicability instead of inventing historical registry frames.
+COMP	public-compatibility-removal	TASK-006	R-001	AC-006	CHK-002	baseline	Validate complete family membership and source-qualified applicability; API-only states require explicit source-proven lane disposition rather than fabricated visual frames.

@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "818d05631c581e5605a918bfc7536664e0fdec4f8306f37c0971b0ad0b4b3f8b",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5375,
+      "file": "jackin/cockpit/info/72x20/256.ansi",
+      "sha256": "818d05631c581e5605a918bfc7536664e0fdec4f8306f37c0971b0ad0b4b3f8b"
+    },
+    "ascii": {
+      "bytes": 937,
+      "file": "jackin/cockpit/info/72x20/256.ascii",
+      "sha256": "2eed8d9389f77f5fc9c396530eb721b24f0aff550ded2df2db233eb5f1030bd5"
+    },
+    "ascii_loss_json": {
+      "bytes": 12824,
+      "file": "jackin/cockpit/info/72x20/256.ascii.loss.json",
+      "sha256": "a7641ca3fc8ca05f7e64a41ea109e0ef066fc72f2fa2522217686530b26c16da"
+    },
+    "frame_json": {
+      "bytes": 338645,
+      "file": "jackin/cockpit/info/72x20/256.frame.json",
+      "sha256": "8b135999977e9465190571a1746affd24da12b221d943d52a2f2b114a836cc61"
+    },
+    "html": {
+      "bytes": 190998,
+      "file": "jackin/cockpit/info/72x20/256.html",
+      "sha256": "ff366212156e51d4a1f9fd3531d5971a01c2ae6dee7ffee96d11338332b31472"
+    },
+    "observations_json": {
+      "bytes": 439,
+      "file": "jackin/cockpit/info/72x20/256.observations.json",
+      "sha256": "9a814807f796ed5e37a02b5b84778e1170c64e001ebd2e7fefe55b45ef71a69d"
+    },
+    "png": {
+      "bytes": 128410,
+      "file": "jackin/cockpit/info/72x20/256.png",
+      "sha256": "ddc5e271de33734d7c21dc12433eb1714baee302b228bc79b366b6f3231affe5"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/cockpit/info/72x20/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1210,
+      "file": "jackin/cockpit/info/72x20/256.txt",
+      "sha256": "b1c103eb920dbcf6332cff1147ee1c757144318ff83bcd6df17871ca7f173346"
+    }
+  },
+  "ascii_substitutions_count": 138,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 9123637088187505123,
+  "frame_sha256": "8b135999977e9465190571a1746affd24da12b221d943d52a2f2b114a836cc61",
+  "generation": "cdad15020671fcc49ffcb6ca7b93f517d9aa2c5c824df245fc61caaaf9f75aa7",
+  "html_sha256": "ff366212156e51d4a1f9fd3531d5971a01c2ae6dee7ffee96d11338332b31472",
+  "legacy_name": "jackin/cockpit/info/72x20/256",
+  "name": "jackin/cockpit/info/72x20/256",
+  "png_sha256": "ddc5e271de33734d7c21dc12433eb1714baee302b228bc79b366b6f3231affe5",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:39Z",
+  "txt_sha256": "b1c103eb920dbcf6332cff1147ee1c757144318ff83bcd6df17871ca7f173346"
+}

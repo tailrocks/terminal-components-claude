@@ -1,0 +1,86 @@
+{
+  "backup_and_execution_limits": {
+    "e44_backup_record_sha256": "24698e8afcc28a4a60976280fd8fb47c2af38c528b46e2f489019c26994c5443",
+    "e44_bundle_bytes_rehashed_by_reviewer": true,
+    "e44_bundle_sha256": "da8d1b85c40625b86f6c49f843ab221ff34211d7bfa3fa8b23f08496a284b80e",
+    "e44_bundle_size_bytes": 5757777217,
+    "q31_bundle_included": false,
+    "required_after_rewrite": "Capture a fresh DCO result for the rewritten head; no q31 DCO result is claimed by R2.",
+    "required_before_rewrite": "Create and verify a recoverable backup of current q31 head 28058beecf63acee3b65bab847e507fe8e1c539d and repeat exact-head lease immediately before rewrite/push.",
+    "tag_protection_note": "Commit 4a79 is outside the rewrite map; root separately reports checking immutable tag refs.",
+    "tag_ref_snapshot_in_package": false
+  },
+  "findings": [],
+  "history_audit": {
+    "dco_result_head": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+    "dco_result_is_historical_for_q31": true,
+    "dco_split": {
+      "outside_250_row_cap": 14,
+      "red": 2,
+      "skipped_merge_missing": 4
+    },
+    "dco_split_partitions_all_20_missing": true,
+    "exact_required_trailer_count": 453,
+    "full_pr_commit_count": 473,
+    "head_oid": "28058beecf63acee3b65bab847e507fe8e1c539d",
+    "head_tree_oid": "3a58036c595688898fc989ef6453e6d9d512f230",
+    "missing_inventory_matches_raw_objects": true,
+    "no_signoff_count": 20,
+    "residual_equals_full_missing_minus_four_edits": true,
+    "residual_unsigned_count": 16,
+    "wrong_or_duplicate_count": 0
+  },
+  "inputs": {
+    "all_manifest_entries_in_sha256sums": true,
+    "all_source_commits_oid_verified": true,
+    "all_source_commits_reachable_from_head": true,
+    "audit_sha256": "aa5fbc8b7303ea9bb4e344c1b77da7ff6a4f11c7b1260356c539c0cf8fd66b31",
+    "manifest_self_hash_in_sha256sums": true,
+    "old_to_new_map_sha256": "0c231c4c85234ac60d6ab78fa68ab5bd49d2b3f433b84ace196c47a092b8cf87",
+    "plan_sha256": "077dc66c4494835a8be74d9764400079cecc41aa09d82ce1582e241c36f0befb",
+    "sha256sums_entries": 486,
+    "sha256sums_sha256": "0fb454390ad3f07565f36665f0e9d75e146df47ce86b1a27703bfd9e00178b7a",
+    "sole_external_parent": "cc14dd6beae526884aabdf897e309be837b4f504",
+    "source_commit_objects": 473,
+    "source_manifest_entries": 485,
+    "source_manifest_mismatches": 0,
+    "source_manifest_sha256": "1379c02550e90e43fac9f315a8eeda46211b8b4ae956ad1047220ce0fee1a672",
+    "source_manifest_verified_matches": 485
+  },
+  "limitations": [
+    "The 20\u219216 repair is intentionally limited and is not full AGENTS all-commit compliance.",
+    "The saved DCO run is e44-era and cannot establish a q31 result.",
+    "The R2 projection is internally verified but is not push-ready until a q31 backup and fresh lease are verified."
+  ],
+  "projection": {
+    "all_83_old_raw_hashes_and_old_oids_match": true,
+    "all_83_projected_message_hashes_match": true,
+    "all_83_projected_messages_have_exactly_one_required_trailer": true,
+    "all_83_projected_raw_hashes_and_git_oids_match": true,
+    "all_projected_trees_authors_committers_and_parent_edges_match": true,
+    "audit_projection_equals_map": true,
+    "closure_sizes": [
+      82,
+      81
+    ],
+    "immutable_tag_commit_4a79_in_projection": false,
+    "local_186_in_projection": false,
+    "message_edit_count": 4,
+    "message_edit_oids": [
+      "cb89f1d61a0d8d78a1b7b7c872de16c12131e8b1",
+      "99c9524772f717111489db5324ccd8632138c8d9",
+      "1f6411c7d10f16506e73f6463bd09865d9bac239",
+      "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c"
+    ],
+    "other_pr_objects_unchanged": 390,
+    "projected_new_head": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "projection_array_dependency_order_valid": true,
+    "q31_message_unchanged": true,
+    "q31_parent_remapped_from_e44_to_projected_e44": "415741b8950e1784af0343f34923246c2d267a0e",
+    "union_objects": 83
+  },
+  "reviewer": "/root/technical_review",
+  "schema": "termrock-pr17-dco-projection-review/v1",
+  "scope": "Independent read-only review of frozen R2 audit/projection. No Git, Cargo, tests, push, or repository edits.",
+  "verdict": "READY_WITH_PREPUSH_REQUIREMENTS"
+}

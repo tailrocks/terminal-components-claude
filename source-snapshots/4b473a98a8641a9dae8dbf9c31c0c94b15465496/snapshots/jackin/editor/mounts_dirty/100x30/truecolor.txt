@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                     Workspaces › payments-platform › edit  • 1 change
+
+
+   General    Mounts •    Roles    Environments    Accounts
+  ───────────━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────
+
+        Destination                                                       Mode  Isolation  Kind 1›
+  ▎› •  /workspace/payments-platform                                      ro    clone      host
+        /workspace/libs                                                   ro    shared     host
+        + Add mount
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                              Cancel     Save…
+
+          Enter Edit…  r Read-only  i Isolation  …   /workspace/payments-platform · isolation clone

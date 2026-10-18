@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                             web · Node project · pnpm  mbp · local
+
+  Here › Cleanup
+ ━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Cleanup review
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash
+
+  [–] ▸ Xcode DerivedData                     810.0 MiB  rebuilt on demand · 1 candidate · Xcode running       Project artifacts                     category
+
+  [✓] ▸ Xcode device support                    2.4 GiB  safe if old · 2 candidates · ≥ 90 d                   Safety      review first
+                                                                                                               Age rule    older than 7 days · unknown or
+  [ ] ▸ Xcode archives                        300.0 MiB  review first · 1 candidate · any age                              future age counts as recent
+                                                                                                               Platform    macOS and Linux
+  [✓] ▸ Simulator caches                      900.0 MiB  rebuilt on demand · 1 candidate · any age             Roots       ~/Projects
+                                                                                                               Why         generated directories beside a
+  [✓] ▸ Homebrew cache                        100.0 MiB  rebuilt on demand · 1 candidate · any age                         project indicator · rebuilt by the
+                                                                                                                           project's own tooling
+  [✓] ▸ npm cache                             201.0 MiB  rebuilt on demand · 2 candidates · any age            Size        2.5 GiB
+                                                                                                               Unreadable  1 folder skipped · the list is a
+  [✓] ▸ pnpm store                              2.1 GiB  safe if old · 1 candidate · ≥ 30 d                                lower bound: ~/Projects/locked
+                                                                                                               Selection   14 of 14 candidates eligible · 0
+  [✓] ▸ Yarn cache                             50.0 MiB  rebuilt on demand · 1 candidate · any age                         checked
+
+  [✓] ▸ Bun cache                              60.0 MiB  rebuilt on demand · 1 candidate · any age
+
+  [✓] ▸ Cargo registry cache                    4.8 GiB  safe if old · 2 candidates · ≥ 30 d
+
+  [✓] ▸ Gradle caches                           1.5 GiB  safe if old · 2 candidates · ≥ 30 d
+
+  [ ] ▸ Maven repository                      700.0 MiB  review first · 1 candidate · any age
+
+  [✓] ▸ pip cache                             150.0 MiB  rebuilt on demand · 1 candidate · any age
+
+  [✓] ▸ uv cache                              300.0 MiB  rebuilt on demand · 1 candidate · any age
+
+  [~] ▸ User caches                             1.9 GiB  review first · 5 candidates · ≥ 30 d
+
+  [✓] ▸ User logs                              30.0 MiB  rebuilt on demand · 2 candidates · ≥ 7 d
+
+  [✓] ▸ JetBrains logs                         30.0 MiB  rebuilt on demand · 1 candidate · ≥ 7 d
+
+ ▎[ ] ▸ Project artifacts                       2.5 GiB  review first · 14 candidates · ≥ 7 d
+
+    mode Trash (recoverable until emptied) · live · m toggles the mode · n toggles dry run
+
+
+
+
+ ~/Projects/web                                                    19 selected · 12.4 GiB                                                     no color · 160×50
+                            ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back

@@ -1,0 +1,20 @@
+  holla?    File   Go   Help          acme . mise monorepo  mbp . local
+
+      Here    frontend dev : x    api dev : x    api tests v x       2?
+ -+------------------------------------------------------------------+-
+  | Activities                                                4 live |
+  | ?: frontend dev                 running . child . 3. activities  |
+  |  : api dev                      running . child . 3.             |?
+  |  v api tests                    succeeded . project.             |?
+  |  : logs . api worker scheduler  running . here . 3 s             |?
+  |  ? btm                          detached . host . 3.             |?
+  |                                                                  ||
+  |                                                                  ||
+  +------------------------------------------------------------------+|
+    Recent here                                                       |
+    nothing used here yet                                             |
+
+    > tools/deploy-preview.sh --env preview . here . mutating
+
+ ~/work/acme   main   ^1               : 4 running    truecolor . 72x20
+       ^v Move  Enter Switch  Esc Cancel    api tests finished . exit 0

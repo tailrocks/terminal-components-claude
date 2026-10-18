@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      holla · Rust project  mbp · local
+           ╭────────────────────────────────────────────────────────────────────────────╮
+  Here     │                                                                            │
+ ━━━━━━━───│  Key reference                                                       Here  │──────────
+   Search a│                                                                            │ ‹ here ›
+           │  Finder                                                                 ┃  │
+    Suggest│  Type             search actions and resources together · @parent       ┃  │
+  › Inspect│                   @children @system @all narrow the scope               ┃  │
+    Pull   │  ↑↓               move · PgUp PgDn Home End                             ┃  │
+    Review │  Enter            primary action · destructive rows open a review inste…┃  │
+    Run tes│  Alt+Enter        alternatives · run, copy, insert, arguments, pin,     ┃  │
+    Who is │                   alias, hide, why                                      ┃  │
+           │  Tab              preview › tab strip › finder                          ┃  │
+    Recent │  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward (children)    ┃  │
+    nothing│  Esc              clear query › scope back to here › back a page › quit ┃  │
+           │  Aliases          gp pull · du disk usage · test the test task here · d ┃  │
+    Explore│                   then u · dc docker cleanup                            ┃  │
+     Tasks │                                                                         ┃  │
+    System │  Pages                                                                  ┃  │
+           │  Disk             ↑↓ move · Space select · a all · Enter drill · c      ┃  │
+           │                   cleanup plan · p details                              │  │
+           │  Plan review      Space include or exclude · u undo · Enter step facts ·│  │
+           │                   c confirm                                             │  │
+           │  Gates            Gate 1 reviews facts and the full sequence · Gate 2   │  │
+           │                   types the target-bound phrase                         │  │
+           │                                                                         │  │
+    → 'holl│                                                                            │
+           ╰────────────────────────────────────────────────────────────────────────────╯
+ ~/work/holla   main   ↓3 • 5                                                    truecolor · 100×30
+                                       ↑↓ Scroll  Esc Close

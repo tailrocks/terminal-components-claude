@@ -1,0 +1,32 @@
+{
+  "schema": "termrock.dco.publication.v1",
+  "old_head": "28058beecf63acee3b65bab847e507fe8e1c539d",
+  "new_head": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+  "old_and_new_tree": "3a58036c595688898fc989ef6453e6d9d512f230",
+  "recreated_commits": 83,
+  "message_edits": 4,
+  "unchanged_older_missing_trailers": 16,
+  "force_with_lease_old_head": "28058beecf63acee3b65bab847e507fe8e1c539d",
+  "push_exit": 0,
+  "materializer_exit": 0,
+  "head_diff_exit": 0,
+  "local_head_unchanged": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+  "index_sha256_unchanged": "bdb1c1ea3935936eeaaaa4dadd3728f4490c4e2b20bbdc8f7decf8e7be633ed8",
+  "immutable_tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+  "immutable_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "dco_check_id": 113639531062,
+  "dco_conclusion": "success",
+  "captures": [
+    {
+      "path": "/private/tmp/termrock-pr17-dco-publication-20261009/checks.json",
+      "sha256": "30c7f5732b02e5d72f5539f342b58d5c9accf734488e077fad403072b72e4d9a"
+    },
+    {
+      "path": "/private/tmp/termrock-pr17-dco-publication-20261009/remote-head-and-tag.raw",
+      "sha256": "72b6506d849ed6c82f22a0cb69fc281051b0e0721ddcb4d10533074942362280"
+    }
+  ],
+  "recorded_utc": "2026-10-09T02:25:20.253Z",
+  "visibility_complete": "NOT_ACCEPTED",
+  "refactor_ready": "NOT_READY"
+}

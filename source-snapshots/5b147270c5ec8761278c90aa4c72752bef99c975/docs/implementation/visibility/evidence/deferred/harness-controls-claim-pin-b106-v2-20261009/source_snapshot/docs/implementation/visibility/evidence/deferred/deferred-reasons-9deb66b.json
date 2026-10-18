@@ -1,0 +1,37 @@
+{
+  "schema": "termrock-visibility/deferred-historical-reasons-v1",
+  "source": {
+    "commit": "9deb66b48c99f674f23bb5ba183b3a8d0e57e534",
+    "path": "crates/termrock-conformance/tests/parity_burndown.rs",
+    "git_blob": "d7f588218e5128db53a374f641199f5736267b7b",
+    "raw_sha256": "037f56cd5b40585b1321c3919bd589031b7f2d56ef0b78ff0338f8b592899014"
+  },
+  "interpretation": "Historical source-recorded allegations/context only. These reasons are not current diagnoses, current ignore metadata, assertion outcomes, or PASS/FAIL results.",
+  "row_count": 23,
+  "missing_historical_id": "BD-19",
+  "rows": [
+    {"id":"BD-01","source_recorded_reason":"pressed lockup repaints hover; BRAND recipe has no PRESSED rule"},
+    {"id":"BD-02","source_recorded_reason":"disabled+focused paints gutter; GUTTER recipe keys on FOCUSED alone"},
+    {"id":"BD-03","source_recorded_reason":"narrow checkbox clips instead of compact marks; no compact branch"},
+    {"id":"BD-04","source_recorded_reason":"checked+focus swallows the hover lift"},
+    {"id":"BD-05","source_recorded_reason":"narrow toggle clips instead of compact dots; no compact branch"},
+    {"id":"BD-06","source_recorded_reason":"RadioGroup has no per-option disabled (whole-group only)"},
+    {"id":"BD-07","source_recorded_reason":"RadioGroup has no horizontal orientation (vertical only)"},
+    {"id":"BD-08","source_recorded_reason":"closable ChipBar ignores all keys; triplicate Remove rejects binding table"},
+    {"id":"BD-09","source_recorded_reason":"pressing × toggles; LABEL part covers CLOSE in hit-test"},
+    {"id":"BD-10","source_recorded_reason":"masked clicks use plaintext widths, not display graphemes"},
+    {"id":"BD-11","source_recorded_reason":"mouse Down alone begins the draft; reference demands completed click"},
+    {"id":"BD-12","source_recorded_reason":"paste while navigating is dropped; paste arm requires is_editing"},
+    {"id":"BD-13","source_recorded_reason":"commit overwrites external value changes; no revision check"},
+    {"id":"BD-14","source_recorded_reason":"nav Enter begins AND inserts a newline; reference begins only"},
+    {"id":"BD-15","source_recorded_reason":"nav PageUp/Home/End begin editing; reference scrolls the view"},
+    {"id":"BD-16","source_recorded_reason":"wheel-while-editing snaps back; ensure_visible runs every update"},
+    {"id":"BD-17","source_recorded_reason":"select popup never fades scrolled edges; no scroll_edges call"},
+    {"id":"BD-18","source_recorded_reason":"Enter submits while submit action is disabled; enter path ignores eligibility"},
+    {"id":"BD-20","source_recorded_reason":"query backspace pops one char and splits grapheme clusters"},
+    {"id":"BD-21","source_recorded_reason":"wide-char trail cells never cleared; stale glyphs leak"},
+    {"id":"BD-22","source_recorded_reason":"reseed picks nearest-from-index; reference picks first eligible"},
+    {"id":"BD-23","source_recorded_reason":"running step shows static Bullet; reference cycles a 10-phase spinner"},
+    {"id":"BD-24","source_recorded_reason":"focused/pressed tabs render inactive; reference bolds the cursor tab"}
+  ]
+}

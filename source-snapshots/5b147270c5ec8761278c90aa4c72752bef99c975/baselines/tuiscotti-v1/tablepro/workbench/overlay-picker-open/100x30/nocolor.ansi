@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe          no color · 100×30  ? help [0m
+                                                                                                    [0m
+  ≡ Query 1 ×                                                                                   +   [0m
+ ━━━━━╭──────────────────────────────────────────────────────────────────────────────────────╮───── [0m
+ ╭─ Ex│ [0m[1mOpen Quickly[0m                                                         All · Tab scope │ic ─╮ [0m
+ │    │ ▎ Search tables, views, schemas, tabs, queries…                                      │    │ [0m
+ │   F│                                                                                      │    │ [0m
+ │  ▾ │ [0m[1m▎[0mT[0m[1m change_log                             [0maudit · Production[0m[1m        [0mTables[0m[1m         [0m┃ │    │ [0m
+ │ ▎  │  T customers                              public · Production                      ┃ │    │ [0m
+ │    │  T daily_revenue                          analytics · Produc…                      ┃ │ 7  │ [0m
+ │    │  T events                                 analytics · Produc…                      ┃ │ k  │ [0m
+ │    │  T login_attempts                         audit · Production                       ┃ │ k  │ [0m
+ │    │  T order_items                            public · Production                      ┃ │12  │ [0m
+ │    │  T orders                                 public · Production                      ┃ │ M  │ [0m
+ │    │  T organizations                          public · Production                      │ │ M  │ [0m
+ │    │  T payments                               public · Production                      │ │ M  │ [0m
+ │    │  T products                               public · Production                      │ │ k  │ [0m
+ │    │  T subscriptions                          public · Production                      │ │ 2  │ [0m
+ │    │  V active_customers                       public · Production       Views          │ │ 1  │ [0m
+ │    │ [0m[2m V cohort_retention                       analytics · Produc…                      [0m│ │ 1  │ [0m
+ │    │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │    │ [0m
+ │    ╰──────────────────────────────────────────────────────────────────────────────────────╯    │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+                                                                            Connected to Production [0m

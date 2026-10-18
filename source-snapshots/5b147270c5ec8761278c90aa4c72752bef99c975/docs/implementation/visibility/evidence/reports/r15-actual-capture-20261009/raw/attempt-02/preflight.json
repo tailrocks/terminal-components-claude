@@ -1,0 +1,999 @@
+{
+  "run_root": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02",
+  "created_at_utc": "2026-10-09T10:24:04.815Z",
+  "launch_grant": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.json",
+    "sha256": "bf71eb369cc1cb03fcbb257d2d3327c5dcb2b58a3130e6d6a7d6b0739191c426",
+    "json": {
+      "schema": "termrock-rust-tool-test-execution/tag-capture-launch-grant-v3",
+      "decision": "RUN_ONE_IGNORED_IMMUTABLE_TAG_CAPTURE",
+      "attempt_id": "tag-capture-r15-r2-d990-20261009-01",
+      "runner_sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425",
+      "package_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+      "package_freeze_sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52",
+      "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+      "invocation_manifest_sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3",
+      "cache_verification_sha256": "f6418704b2917bfbc2646a2df73c34e69a6cf3a3e30b9e89ab83bcf41edfbf01",
+      "prefetch_completion_sha256": "02874b9da5be4e3ca657382361adfe2e7bab69417001613431c3a50b7d88c82a",
+      "reused_target_dir": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+      "selected_target": "holla_tag_capture",
+      "selected_test": "captures_holla_from_pinned_immutable_tag",
+      "test_threads": 1,
+      "build_jobs": 2,
+      "retry_count": 0,
+      "timeout_ms": 1200000,
+      "max_output_bytes": 8388608,
+      "tag_builder_receipt_sha256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec",
+      "tag_executable_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5",
+      "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+      "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+      "validator_source_commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+      "validator_helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "candidate_source_review_sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+      "validator_source_publication_sha256": "10b4744bbcea9a85e623b0db2701598d4563a8b2a243d68593deeff8a0721c86",
+      "actual_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+      "actual_output_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual",
+      "receipt_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+      "renderer_source_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+      "renderer_profile_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+      "renderer_hash": "e25cbd7fc819a7c73d69493755154f03bf8bc1afea3f87c9a426557e637c4db4",
+      "sdk_version": "27.0",
+      "sdk_build_version": "26A425",
+      "r2_contract_receipt_sha256": "e9b086621d2fd0cdb9f3edfcfc61eca6f14465628aaecefd116e479d11b482a5",
+      "r2_contract_review_sha256": "ca7236861d3efcfe616ebc4d5d7ade3566245a36402877049690a50b237de2a5",
+      "r13_runner_executed": false,
+      "allow_admission": false,
+      "allow_expected_generation": false,
+      "allow_qualification": false,
+      "execution_authorized": true,
+      "template_status": "ROOT_AUTHORIZED_EXECUTION"
+    },
+    "invocation_manifest_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/invocation-manifest-r4.json",
+    "invocation_manifest_sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3",
+    "invocation_manifest": {
+      "schema": "termrock-rust-tool-test-execution/tag-capture-invocation-v1",
+      "attempt_id": "tag-capture-r15-r2-d990-20261009-01",
+      "status": "PREPARED_REVIEW_REQUIRED_ROOT_LAUNCH_GRANT_REQUIRED",
+      "command": {
+        "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "argv": [
+          "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "nextest",
+          "run",
+          "--profile",
+          "default",
+          "--manifest-path",
+          "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package/Cargo.toml",
+          "--package",
+          "termrock-e2e",
+          "--test",
+          "holla_tag_capture",
+          "--locked",
+          "--offline",
+          "--build-jobs",
+          "2",
+          "--test-threads",
+          "1",
+          "--user-config-file",
+          "none",
+          "--run-ignored",
+          "only",
+          "--ignore-default-filter",
+          "--filterset",
+          "package(=termrock-e2e) & binary(=holla_tag_capture) & test(=captures_holla_from_pinned_immutable_tag)",
+          "--no-tests",
+          "fail",
+          "--no-fail-fast",
+          "--retries",
+          "0",
+          "--color",
+          "never",
+          "--show-progress",
+          "none",
+          "--success-output",
+          "final",
+          "--failure-output",
+          "immediate-final",
+          "--final-status-level",
+          "all",
+          "--no-output-indent",
+          "--message-format",
+          "libtest-json-plus",
+          "--message-format-version",
+          "0.1"
+        ],
+        "cwd": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package",
+        "environment": {
+          "HOME": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/home",
+          "TMPDIR": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/tmp",
+          "TMP": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/tmp",
+          "TEMP": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/tmp",
+          "PATH": "/Users/donbeave/.cargo/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+          "CARGO": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+          "CARGO_HOME": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+          "CARGO_TARGET_DIR": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+          "CARGO_BUILD_JOBS": "2",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_NET_OFFLINE": "true",
+          "CARGO_TERM_COLOR": "never",
+          "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+          "RUSTUP_HOME": "/Users/donbeave/.rustup",
+          "RUSTUP_TOOLCHAIN": "1.98.1",
+          "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+          "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+          "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+          "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+          "GIT_CONFIG_NOSYSTEM": "1",
+          "GIT_CONFIG_GLOBAL": "/dev/null",
+          "GIT_OPTIONAL_LOCKS": "0",
+          "GIT_NO_REPLACE_OBJECTS": "1",
+          "GIT_NO_LAZY_FETCH": "1",
+          "CI": "1",
+          "LANG": "C",
+          "LC_ALL": "C.UTF-8",
+          "TERM": "dumb",
+          "TERMROCK_E2E_ORACLE_BUILD_RECEIPT": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+          "TERMROCK_E2E_ORACLE_BUILD_RECEIPT_SHA256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec",
+          "TERMROCK_E2E_ORACLE_ACTUAL_ROOT": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual",
+          "TERMROCK_VIS06_SUBJECTS_PY": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+          "TERMROCK_VIS06_GIT_REPOSITORY": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+          "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+          "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN_SHA256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072",
+          "TERMROCK_E2E_WRITE_ROOT": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+          "TERMROCK_E2E_RECEIPT_PATH": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+          "TERMROCK_E2E_PROTECTED_ROOTS": "[{\"kind\":\"subject_source\",\"role\":\"oracle\",\"path\":\"/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle\"},{\"kind\":\"subject_artifact\",\"role\":\"oracle\",\"path\":\"/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle\"},{\"kind\":\"oracle\",\"role\":null,\"path\":\"/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle\"}]"
+        }
+      },
+      "target": {
+        "package": "termrock-e2e",
+        "binary": "holla_tag_capture",
+        "test": "captures_holla_from_pinned_immutable_tag"
+      },
+      "bounds": {
+        "timeout_ms": 1200000,
+        "raw_output_limit_bytes_total": 8388608,
+        "build_jobs": 2,
+        "test_threads": 1,
+        "retries": 0,
+        "fail_fast": false,
+        "selected_test_count": 1,
+        "no_tests": "fail",
+        "cargo_locked": true,
+        "cargo_offline": true,
+        "user_config_file": "none"
+      },
+      "inputs": {
+        "candidate_suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+        "candidate_freeze_sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52",
+        "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+        "suite_revision": "termrock-e2e-2026-10-09.1",
+        "case_set_digest": "bd786b32e08bb1c88254caaa2e1203077363683ca3dcac0838b07dc7250cc8b5",
+        "profile_digest": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+        "renderer_hash": "e25cbd7fc819a7c73d69493755154f03bf8bc1afea3f87c9a426557e637c4db4",
+        "validator_helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+        "validator_source_commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+        "validator_source_publication_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/source-publication.json",
+        "validator_source_publication_sha256": "10b4744bbcea9a85e623b0db2701598d4563a8b2a243d68593deeff8a0721c86",
+        "validator_toolchain_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+        "validator_toolchain_sha256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072",
+        "tag_builder_receipt_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+        "tag_builder_receipt_sha256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec",
+        "tag_nested_receipt_sha256": "89fd9cc1d03f5278c0bca0480e0dace110c154f0d36aed7bcc9113e2a260ba02",
+        "tag_run_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/run.json",
+        "tag_run_sha256": "744f22edbe4f35dca773715bc6cf738f5fb0b24c83d5c8dd0edc3e9575a02bb1",
+        "tag_closure_path": "/private/tmp/termrock-vis06-tag-closure-tag-20261008T212348Z-25ce63f5a3b7/actual-evidence-seal.json",
+        "tag_closure_sha256": "f5b4796e32625bcc96476a8ccd4b7b80740c9337faf4eaa69ccc1dbea5dfd86a",
+        "tag_executable_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+        "tag_executable_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5",
+        "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+        "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+        "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+        "cache_verification_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cache-verification.json",
+        "cache_verification_sha256": "f6418704b2917bfbc2646a2df73c34e69a6cf3a3e30b9e89ab83bcf41edfbf01",
+        "prefetch_completion_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/prefetch-completion.json",
+        "prefetch_completion_sha256": "02874b9da5be4e3ca657382361adfe2e7bab69417001613431c3a50b7d88c82a",
+        "cargo_home": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+        "target_dir": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+        "renderer_source_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+        "renderer_profile_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+        "candidate_source_review_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/d990-helper-pin-source-review.json",
+        "candidate_source_review_sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+        "candidate_package_root": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package",
+        "candidate_freeze_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/candidate-freeze.json",
+        "capture_test_binary_path": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009/debug/deps/holla_tag_capture-fa2a1ab31e8cb087",
+        "capture_test_binary_sha256": "7014b46f1facde2ac83894702619dec1565453a5163a87eb5289aa56ce3c4060"
+      },
+      "pin_successor": {
+        "base_package_root": "/private/tmp/termrock-vis02-suite-checkpoint-r2-20261009",
+        "source_candidate_path": "/private/tmp/termrock-vis02-helperpin-d990-candidate-20261009-q47",
+        "candidate_package_root": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package",
+        "changed_path": "src/lib.rs",
+        "plan_path": "/private/tmp/termrock-vis02-helperpin-d990-runner-plan-20261009-q47.md",
+        "plan_sha256": "3430b360333131241541fbddb497a06c442a9d12e3b01979d5c06125a9f5629e",
+        "previous_helper_sha256": "0e09a25178749178252846512a66ad1dd1787ac9f27c96b5251e5a3aa61680c3",
+        "new_helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+        "patch_path": "/private/tmp/termrock-vis02-helperpin-d990-candidate-20261009-q47.patch",
+        "patch_sha256": "dd3325f9ae17c0e4877953f2c072caaf4782553969ed113c93bd140c6f9da9bd",
+        "candidate_lib_sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7"
+      },
+      "tools": {
+        "cargo": {
+          "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+        },
+        "rustc": {
+          "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)"
+        },
+        "rustdoc": {
+          "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+          "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)"
+        },
+        "nextest": {
+          "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+          "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)"
+        },
+        "node": {
+          "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+          "version": "v24.20.0"
+        },
+        "rustup": {
+          "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+          "version": "rustup 1.29.1 (d95a37b6a 2026-08-13)"
+        },
+        "python3": {
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "version": "Python 3.9.6"
+        },
+        "git": {
+          "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+          "version": "git version 2.54.0 (Apple Git-157)"
+        },
+        "clang": {
+          "sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+          "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)"
+        },
+        "linker": {
+          "sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+          "version": "@(#)PROGRAM:ld PROJECT:ld-27037.1"
+        },
+        "xcrun": {
+          "sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+          "version": "xcrun version 72."
+        }
+      },
+      "host": {
+        "platform": "darwin",
+        "architecture": "arm64",
+        "macos_version": "27.0.1",
+        "developer_dir": "/Library/Developer/CommandLineTools",
+        "sdk_root": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "sdk_resolved_root": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk",
+        "sdk_version": "27.0",
+        "sdk_build_version": "26A425",
+        "sdk_settings_json_sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+        "sdk_settings_plist_sha256": "90a738dbf3fd88e7f6d35646e19d3a8a716923b9773ce1b67260466d9ceed370",
+        "clang_sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+        "linker_sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+        "xcrun_sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+        "rust_host": "aarch64-apple-darwin"
+      },
+      "renderer": {
+        "source_root": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git/checkouts/tuiscotti-9317ad0850957efe/a47c9aa/crates/tuiscotti-render",
+        "source_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+        "profile_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+        "renderer_hash": "e25cbd7fc819a7c73d69493755154f03bf8bc1afea3f87c9a426557e637c4db4",
+        "profile_id": "tuiscotti-default-parity-v1",
+        "tool_revision": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+        "implementation": "strict-vendored-profile",
+        "files": [
+          {
+            "path": "Cargo.toml",
+            "sha256": "338eda5223a37c6dde03e5e7a900ec55a48fbfb09b5a9f14637816b272812c5b"
+          },
+          {
+            "path": "src/profile/fonts.rs",
+            "sha256": "6b27214acd3698fd2470c96bf7bf3b5b1290e79d4f925151551ed429c4331609"
+          },
+          {
+            "path": "src/profile/strict.rs",
+            "sha256": "4cb98ccc1dc996add327876c2e40ca470097390988ecb6d6753f54936f5943a0"
+          },
+          {
+            "path": "src/profile/strict_types.rs",
+            "sha256": "050fc00904dc868a2f106b795a83351e5bda47a806063c56a4281cccd721de07"
+          },
+          {
+            "path": "fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
+            "sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a"
+          },
+          {
+            "path": "fonts/JetBrainsMonoNerdFontMono-Bold.ttf",
+            "sha256": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b"
+          },
+          {
+            "path": "fonts/JetBrainsMonoNerdFontMono-Italic.ttf",
+            "sha256": "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97"
+          },
+          {
+            "path": "fonts/JetBrainsMonoNerdFontMono-BoldItalic.ttf",
+            "sha256": "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31"
+          },
+          {
+            "path": "fonts/NotoSansCJKjp-subset.otf",
+            "sha256": "777bee41f0c6076c00ad919384359a6e396b8822cf9056041fca8fcf2759d897"
+          },
+          {
+            "path": "fonts/NotoSansSymbols-subset.ttf",
+            "sha256": "6f9cc93e71f8676361c5db286368be046e75d42c0b841afbf3f50da6bb0a2b8a"
+          },
+          {
+            "path": "fonts/NotoSansSymbols2-subset.ttf",
+            "sha256": "e1d177a40af910100eceb0e825331e55f0cfd005bc0f26087fd4e58fbe60e6c5"
+          }
+        ]
+      },
+      "outputs": {
+        "write_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+        "actual_output_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual",
+        "receipt_path": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json"
+      },
+      "baseline_evidence": {
+        "r2_source_review_sha256": "6189179c67b494ba158570250c8b006c87e269eb51c1f4616202aa13b8cade9e",
+        "r2_contract_review_sha256": "ca7236861d3efcfe616ebc4d5d7ade3566245a36402877049690a50b237de2a5",
+        "r2_contract_receipt_sha256": "e9b086621d2fd0cdb9f3edfcfc61eca6f14465628aaecefd116e479d11b482a5",
+        "r2_runner_review_sha256": "6f139a7434a11f3d203ccf9f5cd419db3c4b3b2be85c9f84b04bcc25794b5329",
+        "source_review_applies_to_d990_candidate": false,
+        "baseline_limit": "R2 source review and 14-test result cover the previous 0e09 helper pin. They are cache/template baseline evidence only for this d990 candidate. The separate d990 source-delta review is recorded under candidate_evidence; runner review and launch remain pending."
+      },
+      "r13_reference": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/runner.cjs",
+        "sha256": "183218ad139982fba9a75481ae7ca10b1fd4e3d4dcd95cf32248c31d05f6d34a",
+        "executed": false,
+        "reason": "Historical reference only; old R5/f072 inputs and old output-root binding make it invalid for this run."
+      },
+      "r2_runner_template": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-contract14-privatecache-20261009/runner-v5.cjs",
+        "sha256": "d7ca8a35303d0007c452b4917d922fc55942a0f6335d22045dcdc495b8045ae6",
+        "invoked_by_this_run": false,
+        "reason": "Reviewed bounded output-capture and process-supervision template; its 14-test target is not executed in this attempt."
+      },
+      "r7_pattern_reference": {
+        "path": "/private/tmp/termrock-vis06-tag-holla-runner-20261009-r7-reuse-cache.cjs",
+        "sha256": "15011afd6843d61413779e6ebee364c0082d69b501cc5bfaac20252071d3087f",
+        "executed": false,
+        "reason": "Bounded command and process-supervision pattern only; its old VIS-06 package/cache/source/run bindings are not reused."
+      },
+      "policy": {
+        "test_authoring": "Rust Nextest integration test; invokes the production Python CLI only as a subprocess black box",
+        "python_authored_test_program": false,
+        "expected_generation": false,
+        "admission": false,
+        "qualification": false,
+        "execution_anchor": "unverified",
+        "r13_runner_executed": false,
+        "actual_tag_capture_only": true,
+        "paired_journey": false
+      },
+      "expected_capture": {
+        "run_id": "tag-20261008T212348Z-25ce63f5a3b7",
+        "case_id": "HELP-HOLLA-004",
+        "geometry": {
+          "cols": 120,
+          "rows": 40
+        },
+        "artifact_count": 40,
+        "checkpoint_count": 4,
+        "interaction_assertions": 12,
+        "visual_assertions": "none may PASS",
+        "capture_status": "COMPLETE",
+        "execution_anchor_status": "unverified",
+        "qualification_status": "blocked",
+        "admission_status": "NOT_RUN"
+      },
+      "launch": {
+        "required": true,
+        "launch_grant_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.json",
+        "launch_grant_sha256_argument_required": true,
+        "authorized": false
+      },
+      "evidence_limit": "This runner prepares one Rust capture test against the already-built immutable-tag executable. A passing capture is not a product rebuild/requalification, expected-generation admission, or paired reference/candidate parity result.",
+      "candidate_evidence": {
+        "d990_source_review_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/d990-helper-pin-source-review.json",
+        "d990_source_review_sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+        "reviewer": "/root/controls_wrapper_review_luna",
+        "verdict": "READY_SOURCE_DELTA_ONLY",
+        "candidate_package_root": "/private/tmp/termrock-vis02-helperpin-d990-candidate-20261009-q47",
+        "candidate_suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+        "candidate_lib_sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7",
+        "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+        "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+        "helper_source_commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+        "helper_publication_receipt_sha256": "10b4744bbcea9a85e623b0db2701598d4563a8b2a243d68593deeff8a0721c86",
+        "patch_sha256": "dd3325f9ae17c0e4877953f2c072caaf4782553969ed113c93bd140c6f9da9bd",
+        "plan_path": "/private/tmp/termrock-vis02-helperpin-d990-runner-plan-20261009-q47.md",
+        "plan_sha256": "3430b360333131241541fbddb497a06c442a9d12e3b01979d5c06125a9f5629e",
+        "applies_to_capture": "d990 source-delta review applies to these unchanged package bytes; R14 captured no artifacts because its write root overlapped the protected suite checkout. R15 uses a fresh, disjoint write root and remains pending review and launch.",
+        "executed_package_root": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package"
+      },
+      "previous_attempt": {
+        "attempt_id": "tag-capture-r14-r2-d990-20261009-01",
+        "final_receipt_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/attempt-01/final-receipt.json",
+        "final_receipt_sha256": "11418da10ec6005f126783f05d643d8fe7ab83f94d2f198f71ff45e08c39b206",
+        "runner_sha256": "18afde915852df0799dc9481e4f7b474bff66b17f4a3052c85460c56e4e1ea8d",
+        "invocation_manifest_sha256": "0e5a441a570712a53ab78e5d51dc46d7b50696384bf05c59a50f5dd8f33f39a1",
+        "launch_grant_sha256": "811c34379b8a3fb390b5592ab30e82a9331c707c1e453d0656cfa04eafcf43b0",
+        "nextest_run_id": "c59bd975-4a77-467d-9f8d-53e0a7fefa86",
+        "process_exit_code": 100,
+        "tests": {
+          "expected": 1,
+          "observed": 1,
+          "passed": 0,
+          "failed": 1,
+          "skipped": 0
+        },
+        "capture_receipt_exists": false,
+        "diagnostic": "Rust capture rejected the write root because it overlapped protected suite_checkout root /private/tmp/termrock-rust-tool-test-execution; R15 relocates the write root outside that ancestor."
+      },
+      "predecessor_preflight_failure": {
+        "attempt_id": "tag-capture-r15-r2-d990-20261009-01",
+        "runner_sha256": "ce7f3a8bed0c7f2f5d77d8429254d6975f4356ded29cde55935f3ee655ff535f",
+        "invocation_manifest_sha256": "aaacf73019a6618095dd2dd4aebad306692c76bd8a8bd65c47df6ca89d521311",
+        "launch_grant_sha256": "ba02d53e50a5d1e769cf1c42d6e19cce8e5a6acee0f8a26db66abc83e6f114cd",
+        "selected_test_started": false,
+        "cargo_spawned": false,
+        "nextest_run_id": null,
+        "diagnostic": "The manifest command environment retained R14 paths for TERMROCK_VIS06_SUBJECTS_PY and TERMROCK_VIS06_VALIDATOR_TOOLCHAIN, while R15 runner derived both paths from the R15 evidence root."
+      },
+      "predecessor_preflight_failure_r3": {
+        "attempt_id": "tag-capture-r15-r2-d990-20261009-01",
+        "runner_sha256": "ca438e706bf482722ce2246b4108bc90b5689ef55478bc3a8776fff27c9b3b02",
+        "invocation_manifest_sha256": "6038d364abcbc4f3b10efdd6fb071352e3f07746f6088d33d1cec4d6371aea24",
+        "launch_grant_sha256": "b65499b039239c5e2988b51eab9c74e7e736afab7424f20f5c21f053df879006",
+        "preflight_error_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-01/preflight-error.json",
+        "preflight_error_sha256": "7c3fec59aeca9a1e2b616c4a21c49e473de754ae4eb5ee5878171d6afd4c643a",
+        "selected_test_started": false,
+        "cargo_spawned": false,
+        "nextest_run_id": null,
+        "error": "Error: d990 candidate source review does not bind this exact helper-pin successor\n    at reviewContext (/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r3.cjs:418:11)\n    at snapshot (/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r3.cjs:550:110)\n    at Object.<anonymous> (/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r3.cjs:720:9)\n    at Module._compile (node:internal/modules/cjs/loader:1929:14)\n    at Object..js (node:internal/modules/cjs/loader:2060:10)\n    at Module.load (node:internal/modules/cjs/loader:1651:32)\n    at Module._load (node:internal/modules/cjs/loader:1443:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47"
+      }
+    }
+  },
+  "invocation_manifest": {
+    "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/invocation-manifest-r4.json",
+    "sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3"
+  },
+  "source_snapshot": {
+    "label": "before",
+    "at_utc": "2026-10-09T10:24:04.826Z",
+    "source_root": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package",
+    "runner": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r4.cjs",
+      "sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425",
+      "template_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-contract14-privatecache-20261009/runner-v5.cjs",
+      "template_sha256": "d7ca8a35303d0007c452b4917d922fc55942a0f6335d22045dcdc495b8045ae6",
+      "r7_pattern_reference_path": "/private/tmp/termrock-vis06-tag-holla-runner-20261009-r7-reuse-cache.cjs",
+      "r7_pattern_reference_sha256": "15011afd6843d61413779e6ebee364c0082d69b501cc5bfaac20252071d3087f",
+      "r7_pattern_reference_executed": false,
+      "r13_reference_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/runner.cjs",
+      "r13_reference_sha256": "183218ad139982fba9a75481ae7ca10b1fd4e3d4dcd95cf32248c31d05f6d34a",
+      "r13_executed": false
+    },
+    "freeze_sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52",
+    "suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "package_file_count": 28,
+    "package_files": [
+      {
+        "path": "Cargo.lock",
+        "bytes": 50065,
+        "sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e"
+      },
+      {
+        "path": "Cargo.toml",
+        "bytes": 758,
+        "sha256": "39f5e8e0af5db6df748b8fe7f27ead263bd64105e270ae176b0cb1face907c9c"
+      },
+      {
+        "path": "README.md",
+        "bytes": 15231,
+        "sha256": "b439dec03e5f007a70042345579a47666b9d9b0c29691dda5920ecedf6989408"
+      },
+      {
+        "path": "build.rs",
+        "bytes": 2198,
+        "sha256": "306c88c710972ca9eb2d8cdd4ad43f114b8a698dacf619713c216a627ee01c64"
+      },
+      {
+        "path": "cases/deferred-obligations.json",
+        "bytes": 3675,
+        "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+      },
+      {
+        "path": "cases/registry.json",
+        "bytes": 18993,
+        "sha256": "2685f7a8b39d154ab96e107abeada9aaac98b3b4ed66f36a4fdf37e5479ad703"
+      },
+      {
+        "path": "profile.json",
+        "bytes": 1043,
+        "sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6"
+      },
+      {
+        "path": "schemas/expected-generation-v1.schema.json",
+        "bytes": 17088,
+        "sha256": "b1b8b73458914054afc9542d15bab4a317e0883dc9b4a08046ca5f07ba06acbe"
+      },
+      {
+        "path": "schemas/generation-admission-v1.schema.json",
+        "bytes": 3679,
+        "sha256": "cfec0679de8245be6e165babf7cd4df15855fef42349a28ecc9b8d5102a069a5"
+      },
+      {
+        "path": "schemas/oracle-capture-receipt-v1.schema.json",
+        "bytes": 21009,
+        "sha256": "448577bd07ccec30596f0a60ee38ca943271183ede8a45c7a7b2c9c167187e20"
+      },
+      {
+        "path": "schemas/qualification-review-v1.schema.json",
+        "bytes": 4146,
+        "sha256": "f3f06b64d25d806dac6ada4b081df8532e83a50f5ec5b6f811a4231c87ba08d0"
+      },
+      {
+        "path": "schemas/receipt-v1.schema.json",
+        "bytes": 11472,
+        "sha256": "68f9c6964d6b732a5a67fa5571b01e8001717f47b0b87db3aa1ab3764768dd61"
+      },
+      {
+        "path": "schemas/receipt-v2.schema.json",
+        "bytes": 22929,
+        "sha256": "31135e33541dcc21fffed2c77d3a37a169ae5ceaeb482fa9dc8340394f9b6a5d"
+      },
+      {
+        "path": "schemas/receipt-v3.schema.json",
+        "bytes": 37958,
+        "sha256": "562d95a7a104a6f3127fb9f403f7cb79c24b25f77943e1eec732ed2120f476fe"
+      },
+      {
+        "path": "schemas/subject-manifest-v1.schema.json",
+        "bytes": 6026,
+        "sha256": "af925c2f6d09e88d72bef51b35fae19c7580f37e62623e5dd78fc5e0e326fdf1"
+      },
+      {
+        "path": "schemas/subject-manifest-v2.schema.json",
+        "bytes": 9807,
+        "sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0"
+      },
+      {
+        "path": "schemas/tag-validator-toolchain-v1.schema.json",
+        "bytes": 943,
+        "sha256": "979fd241c4b35c8402e3e4161ccd9bad1925c7e5af7f25c0f0b55ebe9fa1b9a6"
+      },
+      {
+        "path": "schemas/trust-record-v1.schema.json",
+        "bytes": 2535,
+        "sha256": "d78a7958613ae4a42dd3340595fd6e2177d99c0fea0098f269713b4269aa9555"
+      },
+      {
+        "path": "schemas/trust-record-v2.schema.json",
+        "bytes": 4418,
+        "sha256": "7ccf18520699d475a8e1710df909ce2fd1991e432051ef1b1c87caddd48f564b"
+      },
+      {
+        "path": "src/admission.rs",
+        "bytes": 19654,
+        "sha256": "2c3b57ac207a64d31fdadae274e90a1d90b9b0e1ddbf620493f83bfb03d5b566"
+      },
+      {
+        "path": "src/bin/admit_expected_generation.rs",
+        "bytes": 1927,
+        "sha256": "947064afb21c3938aa783d9b8d62af2738d4c357d21d2694e96accb1e2f87f1e"
+      },
+      {
+        "path": "src/lib.rs",
+        "bytes": 476350,
+        "sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7"
+      },
+      {
+        "path": "src/visual.rs",
+        "bytes": 60776,
+        "sha256": "f4bb552cddd3cbac2dd8f9fff986c31efa6ed04e6e46b2ebe9372a88660e5960"
+      },
+      {
+        "path": "tests/command_lane.rs",
+        "bytes": 164558,
+        "sha256": "5daebdfd3ee467b9bd2308602c79ebd30a08bd56431b477e1d8da56504e82506"
+      },
+      {
+        "path": "tests/contract.rs",
+        "bytes": 50268,
+        "sha256": "3a4758fc63797761e5009dbbcc655b278a7448405435beb67a6088b2e9e4eb4e"
+      },
+      {
+        "path": "tests/holla_help_overlay.rs",
+        "bytes": 3897,
+        "sha256": "64bcaae6070ca7bfac6e7caaf8c355e2b8e942a3ba670b4c7aab808e808472b8"
+      },
+      {
+        "path": "tests/holla_tag_capture.rs",
+        "bytes": 1823,
+        "sha256": "255f840b9f6953e462a67aabb7afbbeffb92214e5bcb6f5f860e513043dff31e"
+      },
+      {
+        "path": "tests/shared_journeys.rs",
+        "bytes": 1529,
+        "sha256": "9243d25741e24744f9b0ef6dd7dba277e4a344cdc5f67b1df5d0d21c549b6639"
+      }
+    ],
+    "tools": {
+      "cargo": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+      },
+      "rustc": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+        "host": "aarch64-apple-darwin",
+        "llvm_version": "22.1.8"
+      },
+      "rustdoc": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+        "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+        "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)"
+      },
+      "nextest": {
+        "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+        "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+        "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin"
+      },
+      "node": {
+        "path": "/Users/donbeave/.local/share/mise/installs/node/24.20.0/bin/node",
+        "sha256": "9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a",
+        "version": "v24.20.0"
+      },
+      "rustup": {
+        "path": "/Users/donbeave/.cargo/bin/rustup",
+        "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+        "version": "rustup 1.29.1 (d95a37b6a 2026-08-13)"
+      },
+      "python3": {
+        "path": "/usr/bin/python3",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "Python 3.9.6"
+      },
+      "git": {
+        "path": "/usr/bin/git",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "git version 2.54.0 (Apple Git-157)"
+      },
+      "clang": {
+        "path": "/Library/Developer/CommandLineTools/usr/bin/clang",
+        "sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+        "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin"
+      },
+      "linker": {
+        "path": "/Library/Developer/CommandLineTools/usr/bin/ld",
+        "sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+        "version": "@(#)PROGRAM:ld PROJECT:ld-27037.1\nBUILD 21:17:51 Aug 25 2026\nconfigured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main\nLTO support using: LLVM version 21.0.0 (static support for 30, runtime is 30)\nTAPI support using: Apple TAPI version 21.0.0 (tapi-2100.3.8.1)"
+      },
+      "xcrun": {
+        "path": "/usr/bin/xcrun",
+        "sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+        "version": "xcrun version 72."
+      }
+    },
+    "sdk": {
+      "platform": "darwin",
+      "architecture": "arm64",
+      "macos_version": "27.0.1",
+      "developer_dir": "/Library/Developer/CommandLineTools",
+      "developer_dir_realpath": "/Library/Developer/CommandLineTools",
+      "sdk_root": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "sdk_root_link_target": "MacOSX27.0.sdk",
+      "sdk_resolved_root": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk",
+      "sdk_version": "27.0",
+      "sdk_build_version": "26A425",
+      "sdk_settings_json_sha256": "7b93ad7e534cc4b31c6a4e39d19b5e0288acf2168c2649479a796d1cb51939fb",
+      "sdk_settings_plist_sha256": "90a738dbf3fd88e7f6d35646e19d3a8a716923b9773ce1b67260466d9ceed370",
+      "xcrun_path": "/usr/bin/xcrun",
+      "xcrun_sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+      "selected_clang": "/Library/Developer/CommandLineTools/usr/bin/clang",
+      "selected_linker": "/Library/Developer/CommandLineTools/usr/bin/ld",
+      "clang_sha256": "1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9",
+      "linker_sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+      "rust_host": "aarch64-apple-darwin"
+    },
+    "renderer": {
+      "source_root": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git/checkouts/tuiscotti-9317ad0850957efe/a47c9aa/crates/tuiscotti-render",
+      "source_root_realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git/checkouts/tuiscotti-9317ad0850957efe/a47c9aa/crates/tuiscotti-render",
+      "source_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+      "package_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+      "profile_sha256": "fc36250c315565fe5ef1b7e099b5a868398e76aaa6fd209fcf87c22824289af6",
+      "profile": {
+        "id": "tuiscotti-default-parity-v1",
+        "tool_revision": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+        "renderer": {
+          "id": "tuiscotti-default",
+          "implementation": "strict-vendored-profile",
+          "expected_hash": "e25cbd7fc819a7c73d69493755154f03bf8bc1afea3f87c9a426557e637c4db4",
+          "renderer_version": 1
+        },
+        "terminal": {
+          "term": "xterm-256color",
+          "colorterm": "truecolor",
+          "locale": "C.UTF-8",
+          "shell": "/bin/sh",
+          "cwd_policy": "suite-checkout"
+        },
+        "environment": {
+          "clear": true,
+          "case_allowlist": [
+            "HOLLA_NO_HISTORY"
+          ]
+        },
+        "visual_acceptance": "BLOCKED-until-independent-oracle-admission-and-exact-cells-cursor-decoded-pixels-comparator"
+      },
+      "files": [
+        {
+          "path": "Cargo.toml",
+          "bytes": 543,
+          "sha256": "338eda5223a37c6dde03e5e7a900ec55a48fbfb09b5a9f14637816b272812c5b"
+        },
+        {
+          "path": "src/profile/fonts.rs",
+          "bytes": 4656,
+          "sha256": "6b27214acd3698fd2470c96bf7bf3b5b1290e79d4f925151551ed429c4331609"
+        },
+        {
+          "path": "src/profile/strict.rs",
+          "bytes": 13824,
+          "sha256": "4cb98ccc1dc996add327876c2e40ca470097390988ecb6d6753f54936f5943a0"
+        },
+        {
+          "path": "src/profile/strict_types.rs",
+          "bytes": 6183,
+          "sha256": "050fc00904dc868a2f106b795a83351e5bda47a806063c56a4281cccd721de07"
+        },
+        {
+          "path": "fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
+          "bytes": 2573248,
+          "sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a"
+        },
+        {
+          "path": "fonts/JetBrainsMonoNerdFontMono-Bold.ttf",
+          "bytes": 2577016,
+          "sha256": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b"
+        },
+        {
+          "path": "fonts/JetBrainsMonoNerdFontMono-Italic.ttf",
+          "bytes": 2575368,
+          "sha256": "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97"
+        },
+        {
+          "path": "fonts/JetBrainsMonoNerdFontMono-BoldItalic.ttf",
+          "bytes": 2578280,
+          "sha256": "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31"
+        },
+        {
+          "path": "fonts/NotoSansCJKjp-subset.otf",
+          "bytes": 678988,
+          "sha256": "777bee41f0c6076c00ad919384359a6e396b8822cf9056041fca8fcf2759d897"
+        },
+        {
+          "path": "fonts/NotoSansSymbols-subset.ttf",
+          "bytes": 27352,
+          "sha256": "6f9cc93e71f8676361c5db286368be046e75d42c0b841afbf3f50da6bb0a2b8a"
+        },
+        {
+          "path": "fonts/NotoSansSymbols2-subset.ttf",
+          "bytes": 86696,
+          "sha256": "e1d177a40af910100eceb0e825331e55f0cfd005bc0f26087fd4e58fbe60e6c5"
+        }
+      ]
+    },
+    "reviews": {
+      "r2_baseline_source_review": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/r2-checkpoint-source-review.json",
+        "sha256": "6189179c67b494ba158570250c8b006c87e269eb51c1f4616202aa13b8cade9e",
+        "helper_pin": "0e09a25178749178252846512a66ad1dd1787ac9f27c96b5251e5a3aa61680c3"
+      },
+      "d990_candidate_source_review": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/d990-helper-pin-source-review.json",
+        "sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+        "reviewer": "/root/controls_wrapper_review_luna",
+        "verdict": "READY_SOURCE_DELTA_ONLY",
+        "candidate_suite_sha256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+        "candidate_lib_sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7",
+        "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853"
+      },
+      "r2_contract_review": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/r2-contract14-actual-review.md",
+        "sha256": "ca7236861d3efcfe616ebc4d5d7ade3566245a36402877049690a50b237de2a5"
+      },
+      "r2_contract_receipt": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/r2-contract14-final-receipt.json",
+        "sha256": "e9b086621d2fd0cdb9f3edfcfc61eca6f14465628aaecefd116e479d11b482a5"
+      },
+      "r2_runner_template_review": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/reviews/r2-runner-v5-review.md",
+        "sha256": "6f139a7434a11f3d203ccf9f5cd419db3c4b3b2be85c9f84b04bcc25794b5329"
+      },
+      "baseline_review_applies_to_d990_candidate": false
+    },
+    "git": {
+      "head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "index_path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude/.git/index",
+      "index_sha256": "bdb1c1ea3935936eeaaaa4dadd3728f4490c4e2b20bbdc8f7decf8e7be633ed8",
+      "cached_diff_sha256": "46050113439d3d2fba16c8d513fc00cea4a3647cb0aaa6641750f306bf37f105",
+      "status_porcelain_v2": "# branch.oid 766ae1e925e32b4b28aa9100bb3fde5279aa223b\n# branch.head termrock-implementation\n# branch.upstream origin/termrock-implementation\n# branch.ab +3 -62\n1 .M N... 100644 100644 100644 da9dcdd06753fad5c2b284e5d320922070f72bcf da9dcdd06753fad5c2b284e5d320922070f72bcf STATUS.md\n1 .M N... 100644 100644 100644 9ccc9306941fcae2ba147cfd2a5402f9c92213ea 9ccc9306941fcae2ba147cfd2a5402f9c92213ea WORK_QUEUE.md\n1 .M N... 100644 100644 100644 a5d08dfe76d6c4f0dd924d4a5fe5ce8a06275d0b a5d08dfe76d6c4f0dd924d4a5fe5ce8a06275d0b crates/termrock-e2e/cases/registry.json\n1 .M N... 100644 100644 100644 fa552bc7ba88facb9bae435440d6adb38f8890eb fa552bc7ba88facb9bae435440d6adb38f8890eb crates/termrock-e2e/src/lib.rs\n1 .M N... 100644 100644 100644 69860bb4512db9473bc2c3a914dcd9d5d10bb6f8 69860bb4512db9473bc2c3a914dcd9d5d10bb6f8 crates/termrock-e2e/tests/command_lane.rs\n1 .M N... 100644 100644 100644 6492fafd8038d39806a7ac7418899b263e29b114 6492fafd8038d39806a7ac7418899b263e29b114 crates/termrock-e2e/tests/contract.rs\n1 MM N... 100644 100644 100644 f4e55e99dc68279f02c2045e83230ef6649170a9 6f9870766c021b3d10cf6f7c521a9683c9b1afb1 crates/termrock-visibility-tests/src/bin/fixture.rs\n1 .M N... 100644 100644 100644 fd505d663f01aa4fdf73516c21e0314b4b4a71d2 fd505d663f01aa4fdf73516c21e0314b4b4a71d2 crates/termrock-visibility-tests/tests/deferred.rs\n1 .M N... 100644 100644 100644 783777111f16dedce22d6971d853aacbabb025fc 783777111f16dedce22d6971d853aacbabb025fc crates/termrock-visibility-tests/tests/status.rs\n1 .M N... 100644 100644 100644 26c34d6d0a9b841ae06901d86e0e276d0da452a6 26c34d6d0a9b841ae06901d86e0e276d0da452a6 crates/termrock-visibility-tests/tests/subjects.rs\n1 .M N... 100644 100644 100644 43403d48ffbd9a1dface2109989687a0ace44cf1 43403d48ffbd9a1dface2109989687a0ace44cf1 docs/implementation/visibility/evidence/reviews/20261008-external-records/index.md\n1 .M N... 100644 100644 100644 5e58ac8407b7cdaf7232b1dc663d7d9e3f96f5ef 5e58ac8407b7cdaf7232b1dc663d7d9e3f96f5ef docs/implementation/visibility/evidence/subjects/implementation-pilot-v1.json\n1 .M N... 100644 100644 100644 00e105c3936d2c7802608a6760ae4fcc3979a4d6 00e105c3936d2c7802608a6760ae4fcc3979a4d6 docs/implementation/visibility/tasks.json\n1 .M N... 100644 100644 100644 ce280a40c172c75e5371b5136f749d43d97a38d5 ce280a40c172c75e5371b5136f749d43d97a38d5 tools/visibility/README.md\n1 .M N... 100644 100644 100644 2db040fefc59557d50432dc55965ffedbb91ab9c 2db040fefc59557d50432dc55965ffedbb91ab9c tools/visibility/deferred.py\n1 .M N... 100644 100644 100644 dbd323c05834e73d26df635b7ec541a22bc47723 dbd323c05834e73d26df635b7ec541a22bc47723 tools/visibility/queue.py\n1 .M N... 100644 100644 100644 07bcda6f1db193a6f5166a768775ed52109f28cc 07bcda6f1db193a6f5166a768775ed52109f28cc tools/visibility/source-facts.json\n1 .M N... 100644 100644 100644 cdcc6022ce94a2f769c3392b2fff0398f30ef30b cdcc6022ce94a2f769c3392b2fff0398f30ef30b tools/visibility/status.py\n1 .M N... 100644 100644 100644 385b34e0b21f82c2cba8bf634d501e699e6d3be2 385b34e0b21f82c2cba8bf634d501e699e6d3be2 tools/visibility/subjects.py\n1 .D N... 100644 100644 000000 6c361ac4edba286edc30a9d10a87bc3c20ed455e 6c361ac4edba286edc30a9d10a87bc3c20ed455e tools/visibility/tests/test_queue.py\n? crates/termrock-visibility-tests/tests/queue.rs\n? crates/termrock-visibility-tests/tests/queue_v2.rs\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/README.md\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/SHA256SUMS\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/dco-check-runs.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/manifest.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/materializer-independent-review.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/materializer-preflight-receipt.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/materializer-preflight.stdout.raw\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/old-to-new-map.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/original-head-backup-record.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/post-push-actual-review.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/prior-materializer-failure-observation.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/publication.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/remote-head-and-tag.raw\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/rewrite-audit.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/rewrite-independent-review.json\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/rewrite-plan.md\n? docs/implementation/visibility/evidence/dco/20261009-pr17-repair/rewrite-source-manifest.json\n? docs/implementation/visibility/evidence/dco/reviews/termrock-vis12-dco-readme-r4-language-review-luna.json\n? docs/implementation/visibility/evidence/dco/reviews/termrock-vis12-dco-readme-r4-wording-content-review-luna.json\n? docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md\n? docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/README.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/SHA256SUMS.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/PACKAGE-INVENTORY.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/cargo-cache-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/launch.sh\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/preflight.cjs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/preflight.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/prelaunch-audit.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/review-request.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/run-controls.cjs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/runplan.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/runtime-preflight-receipt.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/source-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/provenance/test-names.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/reviews/actual-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/reviews/static-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stderr.log\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stdout.jsonl\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/runs/2026-10-09T04-10-28-951Z-2fccc5cd/receipt.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/component-ownership.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-conformance/Cargo.toml\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-conformance/tests/control_states.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-conformance/tests/parity_burndown.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-e2e/cases/deferred-obligations.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-visibility-tests/Cargo.lock\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-visibility-tests/Cargo.toml\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-visibility-tests/src/bin/fixture.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-visibility-tests/src/lib.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/crates/termrock-visibility-tests/tests/deferred.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/tests/conformance/required_cases.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-b106-v7-20261009/source/tools/visibility/deferred.py\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009.archive-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/COPY-PLAN.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/MANIFEST.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/README.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/base-deferred.py\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/base-deferred.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/design-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/implementation-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/implementation-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/run-controls.cjs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/runplan.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/source-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/sourcefix.diff\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v1/test-names.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/PACKET-MANIFEST.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/base-deferred.py\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/base-deferred.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/cargo-cache-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/design-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/implementation-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/implementation-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/independent-review-luna.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/launch.sh\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/original-packet-README.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/preflight.cjs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/preflight.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/run-controls.cjs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/runplan.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/source-manifest.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/sourcefix-README.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/sourcefix.diff\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/test-names.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/provenance/v2/trace-not-found.diff\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/reviews/v2-actual-independent-review.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/reviews/v2-actual-result-review-request.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/runs/v1-failed/nextest.stderr.log\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/runs/v1-failed/nextest.stdout.jsonl\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/runs/v1-failed/receipt.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/runs/v2-passed/nextest.stderr.log\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/runs/v2-passed/nextest.stdout.jsonl\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/runs/v2-passed/receipt.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/component-ownership.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-conformance/Cargo.toml\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-conformance/tests/control_states.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-conformance/tests/parity_burndown.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-e2e/cases/deferred-obligations.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-visibility-tests/Cargo.lock\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-visibility-tests/Cargo.toml\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-visibility-tests/src/bin/fixture.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-visibility-tests/src/lib.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/crates/termrock-visibility-tests/tests/deferred.rs\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/tests/conformance/required_cases.json\n? docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009/source_snapshot/tools/visibility/deferred.py\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/README.md\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred-reasons-9deb66b.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.py\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.rs\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/launch.sh\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/preflight.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/preflight/receipt.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/record-ledger.cjs\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/reviews/v3-static-review.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/run-controls.cjs\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/runplan.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/source-manifest.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/stable-case-map.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/static-preflight.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/test-names.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/actual-independent-review-luna.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/ledger-record.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stderr.log\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stdout.json\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stderr.log\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stdout.jsonl\n? docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/runs/2026-10-09T03-04-14-975Z-10bae096/receipt.json\n? docs/implementation/visibility/evidence/deferred/reviews/product23-publication-20261009-luna.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r12-r5-f072-20261009-01/attempt-01/runner-result.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stderr.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/logs/nextest.stdout.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tag-capture-r13-r5-f072-20261009-01/attempt-01/runner-result.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/logs/nextest.stderr.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-rust-tool-test-execution/tree-oid-regression-rust-gate-r4-20261009/attempt-01/runner-result.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-velnor-ca3ef-current-rollout-gate-r5-20261009.2NgGLc/run-root/execution/receipt.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-velnor-ca3ef-current-rollout-gate-r5-actual-review-20261009.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/jobs.body\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/manifest.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-b9-ci-observation-20261009T0028Z/run.body\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/2b-check-runs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/b106-check-runs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/b106-workflow-runs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-branch-b106-observation-20261009-luna-r1/branch.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/branch.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/check-runs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-ci.yml\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-content-api.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-artifacts.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-jobs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951-provider-page.html\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-run-37882112951.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-branch-9f1-capture-20261009-luna-r2/workflow-runs-by-head.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/artifacts.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/jobs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/provider-page.html\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37875373092-capture-20261009-luna-r1/run-detail.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/artifacts.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/jobs.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/provider-page.html\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-ci-37877649904-capture-20261009-luna-r1/run-detail.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-map.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/case-results.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/final-seal.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/deferred/independent-review.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/journey/final-seal.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/build-review.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/holla/reviews/journey-review.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-receipt.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-contract-gate-review.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/f307-package-technical-addendum.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-evidence-amendment-draft-20261008T2220Z/records/status-controls/r9-cumulative-actual-review.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-local-head-766-observation-20261009T0030Z/manifest.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/jobs.body.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/manifest.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-p169-ci-refresh-20261009T0018Z/run.body.raw\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-2b-20261009-luna-r1/ci.yml\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-2b-20261009-luna-r1/content-api.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-b106-20261009-luna-r1/ci.yml\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-workflow-b106-20261009-luna-r1/content-api.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis02-r5-all7-jackin-r5-20261009/source-freeze-r5.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-current-source-facts-20261008T233054Z-luna.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/outputs/holla-paired-receipt.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-commit-review-technical.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-postcommit-review-technical.json\n? docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis10-foundation-publication-20261009.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt2-digest.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt2-files.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt2-head.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt2-nextest.exit\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt2-nextest.stderr\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt2-nextest.stdout\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-digest.after\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-digest.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-files.after\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-files.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-head.after\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-head.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-nextest.exit\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-nextest.stderr\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-nextest.stdout\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt3-tool-receipt.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt4-digest.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt4-files.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt4-head.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt4-nextest.exit\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt4-nextest.stderr\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt4-nextest.stdout\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/argv.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/digest.after\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/digest.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/files.after\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/files.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/head.after\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/head.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/nextest.exit\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/nextest.stderr\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/nextest.stdout\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/attempt5/tool-receipt.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/cargo-version.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/head.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest-version.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest.corrected.exit\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest.corrected.stderr\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest.corrected.stdout\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest.exit\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest.stderr\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/nextest.stdout\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/package-digest.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/package-files.before\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/e2e-writepolicy/rustc-version.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/index.md\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/manifest.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/concurrent-integration/commit-binding.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/concurrent-integration/commit-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/current-status/commit-binding.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/current-status/commit-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/e2e-boundaries/commit-binding.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/e2e-boundaries/commit-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/e2e-boundaries/source-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/e2e-pilot/commit-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/prior-archive-492e/commit-binding.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/prior-archive-492e/subject.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/prior-archive-492e/technical-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/queue-migration/source-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/rust-helper/final-commit-binding.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/rust-helper/final-commit-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/rust-helper/v2-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/rust-helper/v3-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/status-rust-migration/commit-binding.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/status-rust-migration/commit-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/reviews/status-rust-migration/source-review.json\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/frozen-module-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045010Z.rhPZEu/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-20261008T045418Z.JMmXeM/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-final-20261008TT1tGiv/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/deferred-hardened-20261008T4yLRXx/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-20261008T045509Z.50Idyy/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-20261008TkIYhJF/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-fixture-rerun-20261008TIsJx64/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-20261008TTLquqB/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/helpers-lib-hardened-20261008TvZEMed/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/setup-note.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T044734Z.tbKDgj/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/frozen-module-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045046Z.mOxrRU/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045438Z.aPQPS2/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-20261008T045532Z.oAhrrY/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-final-20261008ToAqBol/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/queue-hardened-20261008TmR6bLT/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/frozen-module-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T044857Z.4le5YV/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-20261008T045357Z.tK92vg/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-checked-input-final-20261008TeV7r6o/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-final-20261008T8xQz08/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/status-hardened-20261008TlCEREO/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/expected-inputs.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/preflight-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/resources-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/resources-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/tempdirs-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/tempdirs-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/tempdirs-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/test-cases-and-subcases.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-20261008TpexRkh/tool-versions.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/actual-argv.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/clean-environment.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/exit-status.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/expected-inputs.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/frozen-source-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/inputs-after.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/inputs-before.sha256\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/late-artifact-subcases.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/preflight-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/repository-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/repository-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/resources-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/resources-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/rust-cases.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/source-input-paths.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/stderr.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/stdout.raw\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/summary.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/temp-audit-followup.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tempdir-size-samples.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tempdirs-after.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tempdirs-before.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tempdirs-check.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tempdirs-current.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tempdirs-new-current.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tool-binary-sha256.txt\n? docs/implementation/visibility/evidence/reviews/20261008-external-records/20261008-followup/rust-tool-test-execution/subjects-focused-rerun-20261008TxN8jgo/tool-versions.txt\n? docs/implementation/visibility/queue-v2.md\n"
+    },
+    "cache": {
+      "cargo_home": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+      "cargo_home_realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+      "registry": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/registry",
+        "is_symlink": false,
+        "link_target": null,
+        "realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/registry"
+      },
+      "git": {
+        "path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git",
+        "is_symlink": false,
+        "link_target": null,
+        "realpath": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home/git"
+      },
+      "cache_verification_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cache-verification.json",
+      "cache_verification_sha256": "f6418704b2917bfbc2646a2df73c34e69a6cf3a3e30b9e89ab83bcf41edfbf01",
+      "registry_locked_packages": 206,
+      "git_locked_packages": 5,
+      "prefetch_completion_path": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/prefetch-completion.json",
+      "prefetch_completion_sha256": "02874b9da5be4e3ca657382361adfe2e7bab69417001613431c3a50b7d88c82a",
+      "target_dir": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+      "target_dir_exists": true,
+      "target_dir_realpath": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+      "target_dir_device": "16777234",
+      "target_dir_inode": "83357571",
+      "holla_tag_capture_binaries": [
+        "holla_tag_capture-fa2a1ab31e8cb087"
+      ],
+      "holla_tag_capture_binary": {
+        "path": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009/debug/deps/holla_tag_capture-fa2a1ab31e8cb087",
+        "sha256": "7014b46f1facde2ac83894702619dec1565453a5163a87eb5289aa56ce3c4060",
+        "bytes": 34072080
+      }
+    },
+    "tag": {
+      "receipt_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+      "receipt_sha256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec",
+      "run_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/run.json",
+      "run_sha256": "744f22edbe4f35dca773715bc6cf738f5fb0b24c83d5c8dd0edc3e9575a02bb1",
+      "closure_path": "/private/tmp/termrock-vis06-tag-closure-tag-20261008T212348Z-25ce63f5a3b7/actual-evidence-seal.json",
+      "closure_sha256": "f5b4796e32625bcc96476a8ccd4b7b80740c9337faf4eaa69ccc1dbea5dfd86a",
+      "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+      "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "tag_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+      "executable_path": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle/aarch64-apple-darwin/release/holla",
+      "executable_bytes": 3619040,
+      "executable_sha256": "a3b93ef2c1b018cc2b337a7ed2657450669a9c9497aa35733bce2d09fe2e9bd5",
+      "source_root": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle",
+      "build_root": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle"
+    },
+    "validator": {
+      "helper_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+      "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "helper_bytes": 141167,
+      "source_commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+      "source_publication_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/source-publication.json",
+      "source_publication_sha256": "10b4744bbcea9a85e623b0db2701598d4563a8b2a243d68593deeff8a0721c86",
+      "toolchain_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+      "toolchain_sha256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072"
+    },
+    "capture": {
+      "write_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+      "actual_output_root": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual",
+      "receipt_exists": false,
+      "output_files": []
+    }
+  },
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--profile",
+      "default",
+      "--manifest-path",
+      "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package/Cargo.toml",
+      "--package",
+      "termrock-e2e",
+      "--test",
+      "holla_tag_capture",
+      "--locked",
+      "--offline",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--user-config-file",
+      "none",
+      "--run-ignored",
+      "only",
+      "--ignore-default-filter",
+      "--filterset",
+      "package(=termrock-e2e) & binary(=holla_tag_capture) & test(=captures_holla_from_pinned_immutable_tag)",
+      "--no-tests",
+      "fail",
+      "--no-fail-fast",
+      "--retries",
+      "0",
+      "--color",
+      "never",
+      "--show-progress",
+      "none",
+      "--success-output",
+      "final",
+      "--failure-output",
+      "immediate-final",
+      "--final-status-level",
+      "all",
+      "--no-output-indent",
+      "--message-format",
+      "libtest-json-plus",
+      "--message-format-version",
+      "0.1"
+    ],
+    "cwd": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/package",
+    "environment": {
+      "HOME": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/home",
+      "TMPDIR": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/tmp",
+      "TMP": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/tmp",
+      "TEMP": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/attempt-02/tmp",
+      "PATH": "/Users/donbeave/.cargo/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "CARGO": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "CARGO_HOME": "/private/tmp/termrock-rust-tool-test-execution/e2e-r2-private-cache-20261009/cargo-home",
+      "CARGO_TARGET_DIR": "/private/tmp/termrock-e2e-target-vis02-r2-privatecache-20261009",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_NET_OFFLINE": "true",
+      "CARGO_TERM_COLOR": "never",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+      "RUSTUP_HOME": "/Users/donbeave/.rustup",
+      "RUSTUP_TOOLCHAIN": "1.98.1",
+      "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+      "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "GIT_CONFIG_NOSYSTEM": "1",
+      "GIT_CONFIG_GLOBAL": "/dev/null",
+      "GIT_OPTIONAL_LOCKS": "0",
+      "GIT_NO_REPLACE_OBJECTS": "1",
+      "GIT_NO_LAZY_FETCH": "1",
+      "CI": "1",
+      "LANG": "C",
+      "LC_ALL": "C.UTF-8",
+      "TERM": "dumb",
+      "TERMROCK_E2E_ORACLE_BUILD_RECEIPT": "/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/tag-builder-receipt.json",
+      "TERMROCK_E2E_ORACLE_BUILD_RECEIPT_SHA256": "772208ace8cff5c1f1dc70a62ceb8771fcde5b429104636d679b2121a9cdc6ec",
+      "TERMROCK_E2E_ORACLE_ACTUAL_ROOT": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-actual",
+      "TERMROCK_VIS06_SUBJECTS_PY": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+      "TERMROCK_VIS06_GIT_REPOSITORY": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+      "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+      "TERMROCK_VIS06_VALIDATOR_TOOLCHAIN_SHA256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072",
+      "TERMROCK_E2E_WRITE_ROOT": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009",
+      "TERMROCK_E2E_RECEIPT_PATH": "/private/tmp/termrock-tag-capture-r15-r4-output-20261009/oracle-capture-receipt.json",
+      "TERMROCK_E2E_PROTECTED_ROOTS": "[{\"kind\":\"subject_source\",\"role\":\"oracle\",\"path\":\"/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle\"},{\"kind\":\"subject_artifact\",\"role\":\"oracle\",\"path\":\"/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/targets/oracle\"},{\"kind\":\"oracle\",\"role\":null,\"path\":\"/private/tmp/termrock-vis06-tag-holla-tag-20261008T212348Z-25ce63f5a3b7/evidence/tag-20261008T212348Z-25ce63f5a3b7/source/oracle\"}]"
+    },
+    "timeout_ms": 1200000,
+    "raw_output_limit_bytes_total": 8388608,
+    "retry_count": 0,
+    "fail_fast": false,
+    "target": "termrock-e2e integration test holla_tag_capture::captures_holla_from_pinned_immutable_tag (one ignored test)",
+    "frozen_suite_digest": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+    "freeze_sha256": "09429c5647d554bf53dfe66e814cea5d7ea8d47e7143d12dbbf3e689cdd13f52",
+    "r13_runner_executed": false
+  },
+  "cache_sharing_note": "CARGO_HOME, registry, and git are private real directories. The prefetch proof was made for the same unchanged Cargo.lock and the R2 root package; its checked lock closure is 206 registry archive/index entries and five Git checkouts. This capture command is strictly locked and offline."
+}

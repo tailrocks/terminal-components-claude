@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 8271971204199921989,
+  "legacy_name": "showcase/flows/editable/editing/160x50/nocolor",
+  "name": "showcase/editable/editing/160x50/nocolor",
+  "non_empty_cells": 1295,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

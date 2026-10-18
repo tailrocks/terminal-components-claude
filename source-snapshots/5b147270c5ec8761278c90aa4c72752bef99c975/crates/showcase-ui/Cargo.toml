@@ -1,0 +1,12 @@
+[package]
+name = "showcase-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+showcase-data.workspace = true
+showcase-demos.workspace = true
+termrock.workspace = true
+ratatui.workspace = true

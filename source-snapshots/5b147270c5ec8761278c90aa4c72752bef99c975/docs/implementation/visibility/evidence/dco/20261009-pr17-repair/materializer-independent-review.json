@@ -1,0 +1,55 @@
+{
+  "schema": "termrock-pr17-dco-q31-materializer-review/v2",
+  "reviewer": "/root/technical_review",
+  "verdict": "READY_FOR_EXTERNAL_MIRROR_ONLY_MATERIALIZATION",
+  "scope": "Focused read-only review of the corrected CommonJS materializer and its recorded read-only preflight. The R1 module-load failure is preserved. No Git, Node materializer, Cargo, tests, network, or repository mutation was run by this reviewer.",
+  "helper": {
+    "path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/materialize.cjs",
+    "sha256": "77046d9b864f8dd66d1d86d7a2e5efff5024722ca0617cf18df6e538aa09d8d0"
+  },
+  "package_sums": {
+    "path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/SHA256SUMS",
+    "sha256": "acd1166b8e68c7fa4a500faeec49d44fa212335d724ffa78609565c2662b83d8",
+    "verified_all_entries": true
+  },
+  "preflight": {
+    "receipt_path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/preflight-receipt.json",
+    "receipt_sha256": "8324adc87db2133d2c9322fb809754a5b1c0a9dcc6311e794404f920c6f86202",
+    "stdout_path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/preflight.stdout.raw",
+    "stdout_sha256": "660a79d6ff408668914dc55bce835a87bb33fb4a0dd8d36b2618cb2fa7c106c3",
+    "exit_code": 0,
+    "git_object_writes": 0,
+    "refs_unchanged": true,
+    "remote_push_performed": false
+  },
+  "prior_failed_attempt": {
+    "path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/failure-observation.json",
+    "sha256": "1d28161cdc946e488f8f5d0d49f7f913dbbba5a9605de85a64083d753be210b7",
+    "status": "R1 .mjs failed at CommonJS require before Git; preserved separately and not reclassified"
+  },
+  "reviewed_projection_bindings": {
+    "r2_projection_review_path": "/private/tmp/termrock-pr17-dco-rewrite-r2-review-technical.json",
+    "r2_projection_review_sha256": "d4c2bf62c0ca5d7e2322fe87d27a09e83124fd9b56b4cb4df254251ad64a109e",
+    "source_head": "28058beecf63acee3b65bab847e507fe8e1c539d",
+    "source_tree": "3a58036c595688898fc989ef6453e6d9d512f230",
+    "projected_head": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "source_commit_count": 473,
+    "projected_object_count": 83,
+    "trailer_counts": {"signed": 453, "missing": 20, "wrong": 0}
+  },
+  "checks": {
+    "cjs_extension_resolves_prior_require_failure": true,
+    "preflight_and_write_modes_are_mutually_exclusive": true,
+    "optional_ref_update_mode_removed": true,
+    "preflight_validates_package_mirror_and_full_projection_before_any_object_write": true,
+    "preflight_receipt_binds_exact_r2_package_map_and_projected_head": true,
+    "write_mode_uses_only_hash_object_write_and_readback_for_83_commits": true,
+    "write_mode_requires_refs_unchanged_and_has_no_push_fetch_checkout_or_index_operation": true,
+    "external_mirror_path_and_git_directory_are_pinned": true
+  },
+  "limitations": [
+    "The q31 incremental bundle checksum and record were verified; the materializer preflight independently compares q31 raw commit bytes in the external mirror with the reviewed package. I did not run git bundle verify or perform a restore rehearsal.",
+    "The preflight is read-only evidence; materialization has not been reviewed as an actual completed write until Root records its own exact post-write receipt and unchanged-ref check.",
+    "This projection is not a DCO-clean result and does not authorize a remote push. A fresh DCO run and a separate exact-head push review remain required."
+  ]
+}

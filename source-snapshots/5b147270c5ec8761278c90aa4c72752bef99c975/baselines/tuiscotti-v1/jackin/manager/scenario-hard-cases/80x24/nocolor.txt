@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help       ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ─────────────────────────────────────────────────── 3 running ─╮
+ │ ▎   Current directory                         saved as payments-platform ┃ │
+ │   ▸ payments-platform                                          1 running ┃ │
+ │   ▸ infra-control-plane                                        1 running ┃ │
+ │   ▸ release-automation                                          ! failed ┃ │
+ │   ▸ customer-portal                                             ! failed ┃ │
+ │   ▸ data-pipeline                                              1 running ┃ │
+ │   ▸ docs-site                                                   1 record ┃ │
+ │     auth-service                                                    idle │ │
+ │     gateway                                                         idle │ │
+ │     mobile-app                                                      idle │ │
+ │     ml-notebooks                                                    idle │ │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+   Current directory                                              Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+   ◉ 7f3a  the-architect · Claude Code · running
+
+
+ ▲ Could not confirm running instances: instance index unreadable · entered wi…

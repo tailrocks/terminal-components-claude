@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Lists                                   no color · 120×40   i Inspector   ? Help
+
+   Foundations            Lists  Single and multiple selection, disabled items, scrolling, empty state
+   Overview
+                            Language        7–19 of 20      Files to inclu… 2 selected      Search results
+   Components
+   Buttons                  Chosen: Rust                    Space toggle · a all · Sh…
+   Inputs
+   Text areas                  Swift                 │       ✓ src/api/auth… modified
+   Forms                       C#                    │       ✓ src/api/bill… modified
+▎› Lists                       Ruby                  │         src/db/sche… generated
+   Trees                       Scala                 │         tests/checkout.rs  new
+   Tables                      Elixir                ┃         Cargo.lock      locked
+   Editable tables             Haskell               ┃         docs/webhook… modified         No results for “retry”
+   Panels                      Zig                   ┃         src/workers/… modified
+   Sidebars                    Dart                  ┃         src/config.rs modified
+   Dialogs                     PHP                   ┃         README.md     modified
+   Progress                    C++                   ┃         src/main.rs   modified
+   Scrolling                   Lua                   ┃         tests/auth_flow.rs new
+   Terminal                    OCaml                 ┃         src/db/pool.… modified
+   Code editor                 Clojure               │
+   Diff
+   Data grid
+   Chips & selects
+   Pickers
+   Chrome
+
+   Screens
+   Settings
+   Task runner
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

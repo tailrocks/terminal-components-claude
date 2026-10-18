@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here
+  › pnpm a        script   here  package.json here
+    pnpm b        script   here  package.json here
+    pnpm c        script   here  package.json here
+    pnpm d        script   here  package.json here
+    pnpm e        script   here  package.json here
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp  explore  host  available on this host
+
+    → pnpm run a · here · mutating
+
+ ~/work/site                                                  truecolor · 80×24
+ Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  …

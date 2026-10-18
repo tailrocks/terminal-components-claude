@@ -1,0 +1,158 @@
+{
+  "schema": "termrock-spec/capture-plan-v1",
+  "component_id": "W44",
+  "component": "TerminalView",
+  "oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "status": "planned_not_captured",
+  "authority_policy": "Classify and bind expected output before candidate testing. Existing/ExtractedOracle preserve old behavior; newly introduced robustness or API behavior is Extension. Source directory links are discovery roots, not proof of all-state coverage.",
+  "source_urls": [
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/screens/capsule.rs",
+    "https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/src/bin/jackin_preview/sim/pty.rs"
+  ],
+  "snapshot_discovery_roots": [
+    "https://github.com/donbeave/terminal-components-claude/tree/4a79c0a2d40fca46fc406b77157ce3b3f12ec16b/snapshots/jackin/capsule"
+  ],
+  "dimensions": [
+    [
+      72,
+      20
+    ],
+    [
+      80,
+      24
+    ],
+    [
+      100,
+      30
+    ],
+    [
+      120,
+      40
+    ],
+    [
+      160,
+      50
+    ]
+  ],
+  "capabilities": [
+    "truecolor",
+    "256",
+    "16",
+    "none",
+    "nocolor"
+  ],
+  "state_axes": [
+    {
+      "axis": "geometry",
+      "applies_to": "component",
+      "states": [
+        "normal",
+        "zero_area",
+        "tiny_area",
+        "nonzero_origin",
+        "exact_fit",
+        "one_cell_short",
+        "unicode_long_content",
+        "narrow_then_wide"
+      ]
+    },
+    {
+      "axis": "focus_hover",
+      "applies_to": "interactive owner or child; Brand only in interactive mode; Steps only in navigable mode; no decorative focus stop",
+      "states": [
+        "unfocused",
+        "focused",
+        "hovered",
+        "focus_and_hover",
+        "keyboard_suppresses_hover",
+        "pointer_motion_restores_hover"
+      ]
+    },
+    {
+      "axis": "activation",
+      "applies_to": "none at this surface",
+      "states": [],
+      "not_applicable_reason": "No generic whole-surface activation. Text/scroll/selection gestures and child actions are covered by their own cases."
+    },
+    {
+      "axis": "scroll",
+      "applies_to": "component scroll region; horizontal strips use start/end; fade/protection only on applicable content rows",
+      "states": [
+        "no_overflow",
+        "start",
+        "middle",
+        "end",
+        "wheel_boundary",
+        "thumb_drag",
+        "resize_while_scrolled",
+        "edge_fade",
+        "protected_row"
+      ]
+    },
+    {
+      "axis": "output",
+      "applies_to": "borrowed content projection; eviction only for retained-history sources, cursor only when owned",
+      "states": [
+        "source_replaced",
+        "source_appended",
+        "selection",
+        "source_copy",
+        "cursor_clipped"
+      ]
+    },
+    {
+      "axis": "retention",
+      "applies_to": "sources with retained line history",
+      "states": [
+        "history_evicted",
+        "evicted_selection",
+        "retained_reading_anchor"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "W44-01",
+      "requirement": "borrowed cell buffer with wide cells, combining symbols and cursor visibility",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "extension_or_oracle_component_subregion"
+    },
+    {
+      "id": "W44-02",
+      "requirement": "focused/inactive/dimmed terminal regions in generic pane fixture",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "extension_or_oracle_component_subregion"
+    },
+    {
+      "id": "W44-03",
+      "requirement": "modal intercepts input; normal mode emits forwarding token",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "extension_or_oracle_component_subregion"
+    },
+    {
+      "id": "W44-04",
+      "requirement": "selection mode copies by source coordinates and rejects stale history",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "extension_or_oracle_component_subregion"
+    },
+    {
+      "id": "W44-05",
+      "requirement": "viewport resize reports facts but performs no IO",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "extension_or_oracle_component_subregion"
+    },
+    {
+      "id": "W44-06",
+      "requirement": "new protocol attributes explicitly classified outside baseline proof",
+      "required": true,
+      "execution_status": "not_executed",
+      "authority_lane": "extension_or_oracle_component_subregion"
+    }
+  ],
+  "expected_artifacts": null
+}

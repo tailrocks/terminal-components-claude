@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  acme · mise monorepo  mbp · local [0m
+                                                                                [0m
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×               2› [0m
+ ────━━━━━━━─────────────────────────────────────────────────────────────────── [0m
+   Se╭────────────────────────────────────────────────────────────────────╮e ›  [0m
+     │ [0m[1mActivities[0m                                                  4 live │     [0m
+    S│ [0m[1m▎[0m⠋[0m[1m frontend dev                 [0mrunning · child · 3 s[0m[1m  [0mactivities[0m[1m [0m │   ┃ [0m
+    F│  ⠋ api dev                      running · child · 3 s              │   ┃ [0m
+    I│  ✓ api tests                    succeeded · project ·…             │   ┃ [0m
+    I│  ⠋ logs · api worker scheduler  running · here · 3 s               │   ┃ [0m
+    R│  ○ btm                          detached · host · 3 s              │es ┃ [0m
+  › D│                                                                    │   ┃ [0m
+     │                                                                    │   ┃ [0m
+    R╰────────────────────────────────────────────────────────────────────╯   ┃ [0m
+    nothing used here yet                                                     │ [0m
+                                                                              │ [0m
+    Running                                                                   │ [0m
+    logs · api worker schedul…  activity  here   ⠋ running · 3 s              │ [0m
+    api dev                     activity  child  ⠋ running · 3 s              │ [0m
+                                                                                [0m
+    → tools/deploy-preview.sh --env preview · here · mutating                   [0m
+                                                                                [0m
+ ~/work/acme   main   ↑1                        ⠋ 4 running    no color · 80×24 [0m
+            [0m[1m   ↑↓[0m Move  [0m[1mEnter[0m Swit[0m[1mch  Esc[0m Cancel    api tests finished · exit 0 [0m

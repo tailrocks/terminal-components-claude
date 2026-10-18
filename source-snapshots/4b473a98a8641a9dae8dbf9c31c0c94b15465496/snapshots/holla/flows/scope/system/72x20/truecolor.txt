@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                      scope ‹ system ›
+
+    System · mbp · 45 entries                                         ┃
+  › Review cleanup candida…  cleanup  host  10.6 GiB ac…              │
+    Clean Docker completely  plan     host  7.1 GB recl…  destructive │
+    List containers          docker   host  5 running                 │
+    Prune builder cache      docker   host  2.9 GB of b…  destructive │
+    Show Docker disk usage   docker   host  7.1 GB recl…              │
+    Show system resources    system   host  CPU 12%…                  │
+    Stop all containers      docker   host  5 running o…              │
+    Upgrade 8 outdated mis…  task     host  8 tools hav…              │
+
+    → 'holla cleanup review' · host · read-only
+
+ ~/work/acme   main   ↑1      scope system · mbp      truecolor · 72×20
+                Type Search  ↑↓ Move  Enter Run  …   Scope system · mbp

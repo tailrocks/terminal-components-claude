@@ -1,0 +1,11 @@
+[package]
+name = "stream-projection-feasibility"
+version = "0.0.0"
+edition = "2024"
+[lib]
+path = "lib.rs"
+[dependencies]
+junie-tui = { path = "/private/tmp/tc-architecture.L0vAdH/main/crates/tui", default-features = false, features = ["testing"] }
+junie-tui-testing = { path = "/private/tmp/tc-architecture.L0vAdH/main/crates/tui-testing" }
+ratatui-core = "=0.1.2"
+unicode-segmentation = "=1.13.3"

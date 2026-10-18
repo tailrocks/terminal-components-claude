@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                           Workspaces  inside the Construct  2 running
+  ╭─ Keyboard shortcuts ──────────────────────────────────────────────────────────── 1–24 of 30 ─╮
+ ╭│  Workspaces                          Instances                                              ┃│╮
+ ││  ↑↓ j k       move                   Enter r      reconnect / restore                       ┃││
+ ││  ←→ h l       collapse / expand      a            new session                               ┃││
+ ││  Space        fold workspace         x            open shell                                ┃││
+ ││  Enter        launch                 i            inspect container                         ┃││
+ ││  e            edit workspace         t            stop                                      ┃││
+ ││  n            new workspace          p            purge…                                    ┃││
+ ││  d            delete…                                                                       ┃││
+ ││  w            prewarm                Editor and Settings                                    ┃││
+ ││  o            open in GitHub         ←→ 1–5 [ ]   switch tab                                ┃││
+ ││  * -          expand / collapse all  Ctrl+S       save (preview first)                      ┃││
+ ││  Tab          details                Space        toggle / cycle                            ┃││
+ ││                                      a e d        add / edit / remove                       ┃││
+ ││  Everywhere                          m p s        mask · 1Password · s…                     ┃││
+ ││  Tab Shift+T… next / previous                                                               ┃││
+ ││  Esc          back one level                                                                ┃││
+ ││  u            Usage overlay                                                                 ┃││
+ ││  c            Accounts & Usage                                                              ┃││
+ ╰│  s            Settings                                                                      ┃│╯
+  │  F5           refresh now                                                                   ││
+  │  ?            this help                                                                     ││
+  │  q            back / quit                                                                   ││
+  │  Ctrl+Q       quit with confirmati…                                                         ││
+  │  Ctrl+C       quit immediately                                                              ││
+  │  ↑↓ Scroll · Esc Close                                                                       │
+  ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                       ↑↓ Scroll  Esc Close

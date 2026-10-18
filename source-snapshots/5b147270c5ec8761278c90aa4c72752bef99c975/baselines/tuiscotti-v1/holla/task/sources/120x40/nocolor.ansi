@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                    poly · Node project · yarn  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4myarn[0m                                                                                                 scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Results · 31                                                            ┃    yarn dev               script · here   [0m
+ [0m[1m › yarn dev                [0mscript [0m[1m  [0mhere[0m[1m  [0mpackage.json here[0m[1m                [0m┃                                           [0m
+    [0m[1myarn[0m s00                script   here  package.json here                ┃    Does       vite · package.json         [0m
+    [0m[1myarn[0m s01                script   here  package.json here                ┃    Runs       yarn run dev                [0m
+    [0m[1myarn[0m s02                script   here  package.json here                ┃    In         ~/work/poly                 [0m
+    [0m[1myarn[0m s03                script   here  package.json here                ┃    Host       mbp · local                 [0m
+    [0m[1myarn[0m s04                script   here  package.json here                ┃    Scope      here                        [0m
+    [0m[1myarn[0m s05                script   here  package.json here                ┃    Why        package.json here           [0m
+    [0m[1myarn[0m s06                script   here  package.json here                ┃    Changes    see the command             [0m
+    [0m[1myarn[0m s07                script   here  package.json here                ┃    Risk       mutating                    [0m
+    [0m[1myarn[0m s08                script   here  package.json here                ┃    Data       live · 0 s ago              [0m
+    [0m[1myarn[0m s09                script   here  package.json here                ┃    Gate       runs directly               [0m
+    [0m[1myarn[0m s10                script   here  package.json here                ┃    Alt+Enter  Pin · Alias · Why here?     [0m
+    [0m[1myarn[0m s11                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s12                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s13                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s14                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s15                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s16                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s17                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s18                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s19                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s20                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s21                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s22                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s23                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s24                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s25                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s26                script   here  package.json here                ┃                                           [0m
+    [0m[1myarn[0m s27                script   here  package.json here                ┃                                           [0m
+ [0m[2m   [0m[1;2myarn[0m[2m it's; rm           script   here  package.json here                [0m│                                           [0m
+                                                                                                                        [0m
+ [0m[1m~/work/poly[0m                                                                                          no color · 120×40 [0m
+                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear                  [0m

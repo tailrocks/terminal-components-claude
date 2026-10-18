@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Foundations / Overview           i Inspector   ? Help
+
+ › Overview       ┃  Overview  Tokens and principles behind every component
+   Bu╭────────────────────────────────────────────────────────────────────╮
+   In│                                                                    │
+   Te│  Keyboard & mouse                                                  │
+   Fo│                                                                    │
+   Li│  Tab / Shift+Tab   move keyboard focus                             │
+   Tr│  ↑ ↓ ← →           move inside the focused control                 │
+   Ta│  Enter / Space     activate · start editing                        │
+   Ed│  Esc               cancel editing · back to navigation             │
+   Pa│  [ ]               previous / next page                            │
+   Si│  0                 jump to navigation                              │
+   Di│  i                 toggle state inspector                          │
+   Pr│  q                 quit                                            │
+   Sc│                                                                    │
+   Te│  Mouse: hover to preview, click to focus and activate, wheel to    │
+   Co│  scroll, drag the scrollbar thumb.                                 │
+   Di│                                                                    │
+   Da│                                                           ▎Close   │
+   Ch│                                                                    │
+   Pi╰────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel

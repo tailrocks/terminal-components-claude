@@ -1,0 +1,99 @@
+{
+  "schema": "termrock-independent-language-review/v1",
+  "proposal_id": "VIS12-dco-readme-language-r4-20261009",
+  "reviewer": "controls_wrapper_review_luna",
+  "verdict": "READY_FOR_INTEGRATOR_REVIEW",
+  "scope": "Read-only follow-up on the R4 publication.json bullet sentence, its factual preservation, and the pinned preimage/candidate. Not a full dictionary audit or full ASD-STE100 compliance review.",
+  "artifacts": {
+    "review_request": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/review-request.json",
+      "sha256": "a8f9eaa497b4451ad60ddcfe4e988cd4b0c10cab72d26d49020aa651325e29c9"
+    },
+    "source_manifest": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/source-manifest.json",
+      "sha256": "1a9afd0e36ac1cbbdabd857f2d02c683239a1db8bb84084d946c22d61ec23a14"
+    },
+    "preimage": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/pinned-inputs/README.md",
+      "sha256": "db7cb20a24416c631b0156b353cf09f771421a73a12fe37adeeeacd2b5aee192",
+      "repository_target_read_only_hash_match": true
+    },
+    "r3_candidate": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/pinned-inputs/r3-candidate.md",
+      "sha256": "cf31c412550fac9deb9c1d62726c5a0ec6b74e9595b06a2a5c279f7d710aca23"
+    },
+    "r4_candidate": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/candidate/README.md",
+      "sha256": "f9941ee745e303671c73e0d42ad7014ad30dad83e1b417d2d35a2d4f0a4f87a2"
+    },
+    "r3_to_r4_diff": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/r3-to-r4.diff",
+      "sha256": "aaf163c5603d5633cd1c4e76ce6e25cf16d136f3cd9ac880ccfa4c9ec14c631c"
+    },
+    "first_pass_findings": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/pinned-inputs/first-pass-language-review.md",
+      "sha256": "242dad29b2a3c3c1e6a368f4ecf0db44786b8bffbb17920c4bbaa010bb724c86"
+    },
+    "r3_second_pass_transcription": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/pinned-inputs/r3-second-pass-review-findings.md",
+      "sha256": "ff16df8d8b3f596534ccac2394bdb775ec608208b14cf37ec4c4b18a37fae172",
+      "provenance_limit": "Transcription of reviewer message; no durable R3 second-pass review receipt was supplied."
+    },
+    "authorized_standard": {
+      "path": "/tmp/asd-ste100-issue9-official.pdf",
+      "sha256": "d1f4ea9e7cd6e46b47aa9057209f99e78c0e9cfc4e27a5b07895b05c1a166431",
+      "hash_verified_and_consulted": true
+    },
+    "packet_checksums": {
+      "path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/SHA256SUMS",
+      "sha256": "f2c338380da6eec6d7bbc189d13619ecaa87df2237f3ec228ec4e2a5a1e480cb",
+      "all_entries_verified": true
+    }
+  },
+  "standard_rules_checked_for_this_follow_up": [
+    {
+      "rule": "6.3",
+      "application": "Descriptive sentences have a maximum of 25 words."
+    },
+    {
+      "rule": "8.6",
+      "application": "Abbreviations and identifiers count as one word."
+    },
+    {
+      "rule": "8.7",
+      "application": "Hyphenated words count as one word."
+    }
+  ],
+  "replacement_sentences": [
+    {
+      "text": "It records the old and new heads, equal tree, and unchanged local HEAD and index.",
+      "word_count": 15
+    },
+    {
+      "text": "It also records the frozen tag object and target commit IDs, and the DCO check ID.",
+      "word_count": 16
+    }
+  ],
+  "findings": [],
+  "factual_preservation": {
+    "r3_to_r4_change_is_limited_to_the_publication_bullet_sentence": true,
+    "all_information_in_the_27_word_sentence_is_retained_across_two_sentences": true,
+    "prior_r3_corrections_preserved": true,
+    "no_new_claim_about_dco_history_or_compliance": true,
+    "pre_repair_unsigned_commit_count": 20,
+    "commits_changed_in_limited_repair": 4,
+    "older_unsigned_omissions_unchanged": 16,
+    "old_to_new_map_objects": 83,
+    "message_edits": 4,
+    "verified_objects_and_distinct_trees": "83 objects and 82 distinct trees, as stated in the pinned README",
+    "backup_limits_preserved": "e44 full bundle size 5,757,777,217 bytes; q31 incremental bundle size 3,550 bytes; external paths listed in original-head-backup-record.json; bundles are not in the repository packet; they are stated sufficient to reconstruct q31 history; no restore test was run.",
+    "raw_capture_limits_preserved": "Successful commit-rewrite output and exact push command/output have no raw copies in the packet; neither capture is recreated.",
+    "product_and_readiness_limits_preserved": "DCO check is a repository gate only; no product visibility result is accepted; refactor is not ready."
+  },
+  "limitations": [
+    "No repository or Git history facts were edited or independently validated against external systems.",
+    "The transcribed R3 second-pass findings are not a durable signed review receipt.",
+    "This review is not a full dictionary audit or a full ASD-STE100 compliance verdict.",
+    "The candidate remains external and unapproved. No repository edits or tests/builds were made."
+  ]
+}

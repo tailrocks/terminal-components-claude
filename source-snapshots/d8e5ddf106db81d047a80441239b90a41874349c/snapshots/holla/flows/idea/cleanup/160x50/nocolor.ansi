@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                            no project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here › Cleanup › idea.clean  [0m                                                                                                                                 [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mCleanup · IntelliJ metadata[0m                                                                                                                                   [0m
+  1 category · 44.0 KiB · 4 selected (44.0 KiB) · Trash                                                                                                         [0m
+                                                                                                                                                                [0m
+ [0m[1m▎[0m[✓][0m[1m [0m▾[0m[1m IntelliJ metadata                     [0m 44.0 KiB[0m[1m  [0mreview first · 4 candidates · ≥ 7 d[0m[1m               [0m    IntelliJ metadata                     category   [0m
+    [✓] ~/work/ide/.idea                             32.0 KiB  3 d                                                                                              [0m
+    [✓] ~/work/ide/a/b/c/d/e/deep.iml                 4.0 KiB  3 d                                             Safety      review first                         [0m
+    [✓] ~/work/ide/app.iml                            4.0 KiB  3 d                                             Age rule    older than 7 days · unknown or       [0m
+    [✓] ~/work/ide/mod/mod.iml                        4.0 KiB  3 d                                                         future age counts as recent          [0m
+                                                                                                               Platform    macOS and Linux                      [0m
+    mode Trash (recoverable until emptied) · live · m toggles the mode · n toggles dry run                     Roots       ~/Projects                           [0m
+                                                                                                               Why         .idea directories and lowercase      [0m
+                                                                                                                           .iml files below this folder ·       [0m
+                                                                                                                           depth 5 · no symlinks · no           [0m
+                                                                                                                           node_modules                         [0m
+                                                                                                               Size        44.0 KiB                             [0m
+                                                                                                               Unreadable  1 folder skipped · the list is a     [0m
+                                                                                                                           lower bound: ~/work/ide/locked       [0m
+                                                                                                               Selection   4 of 4 candidates eligible · 4       [0m
+                                                                                                                           checked                              [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/ide[0m                                                       4 selected · 44.0 KiB                                                       no color · 160×50 [0m
+                            [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Permanent  [0m[1mn[0m Dry run  [0m[1md[0m Review deletion  [0m[1mp[0m Facts  [0m[1mEsc[0m Back                              [0m

@@ -1,0 +1,47 @@
+{
+  "schema": "termrock-vis02-helper-pin-source-review/v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "READY_SOURCE_DELTA_ONLY",
+  "scope": "Read-only review of the single helper-pin change from the R2 suite checkpoint and the associated immutable-tag capture plan. No Cargo, Nextest, product process, PTY, or canonical repository edits were performed.",
+  "reviewed_artifacts": {
+    "base_package": {
+      "path": "/private/tmp/termrock-vis02-suite-checkpoint-r2-20261009",
+      "suite_sha256": "4a2bd6845c5e310b8964c100e9c6deaae395a248e3ed359f4d38aa8d5c800d66",
+      "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e"
+    },
+    "candidate_package": {
+      "path": "/private/tmp/termrock-vis02-helperpin-d990-candidate-20261009-q47",
+      "package_file_count": 28,
+      "recomputed_suite_sha256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590",
+      "src_lib_sha256": "7830f8a7069eb622fbbd4126ddcf42dd658e4dff23c108d76058e7cf986df3f7",
+      "cargo_lock_sha256": "6c24ba612e204973dbf9414af15c8d5ee33f2d2ae6bc11bbcaff97a9c9f1e73e",
+      "package_freeze_sha256": "9b4ac40fdfc28e2590c12bdd4bf115c490f7296166458cd455d3b48d2a9416e0"
+    },
+    "patch": {
+      "path": "/private/tmp/termrock-vis02-helperpin-d990-candidate-20261009-q47.patch",
+      "sha256": "dd3325f9ae17c0e4877953f2c072caaf4782553969ed113c93bd140c6f9da9bd"
+    },
+    "capture_plan": {
+      "path": "/private/tmp/termrock-vis02-helperpin-d990-runner-plan-20261009-q47.md",
+      "sha256": "3430b360333131241541fbddb497a06c442a9d12e3b01979d5c06125a9f5629e"
+    },
+    "helper_bytes": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+      "sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853"
+    }
+  },
+  "findings": [],
+  "review": {
+    "scope_and_integrity": "A recursive package comparison found exactly one differing path, `src/lib.rs`. The sole diff changes TAG_SOURCE_VALIDATOR_SHA256 from the prior 0e09... pin to d990b77f...; the candidate Cargo.lock is byte-identical to the R2 base. The candidate digest was recomputed using the suite's SHA-256 sorted relative-path/length/content algorithm and matches 037460649d.... The d990 pin matches the supplied helper bytes.",
+    "behavior_preservation": "The changed constant is the existing exact-byte check used by immutable-tag source-validator execution and receipt validation. No test, assertion, admission, registry, schema, or write-policy path changed. The selected test remains the existing ignored `captures_holla_from_pinned_immutable_tag` in `tests/holla_tag_capture.rs`; it asserts the tag/capture identity and expected artifact/check counts while requiring execution anchor `unverified`, qualification `blocked`, admission `NOT_RUN`, and no visual PASS assertions.",
+    "selection_and_command": "The plan scopes Nextest to package `termrock-e2e`, binary `holla_tag_capture`, and test `captures_holla_from_pinned_immutable_tag`; `--run-ignored only`, `--ignore-default-filter`, and `--no-tests fail` are consistent with that test's ignored registration and one-test scope. Locked/offline mode, build jobs 2, one test thread, zero retries, no-fail-fast, and the existing bounded Rust executor are specified. The R2 target is external to the candidate and currently has no `holla_tag_capture-*` executable, so the planned selected binary would be compiled there.",
+    "capture_isolation": "The plan correctly requires a fresh external write root and new receipt leaf, with an `oracle-actual` child used as TERMROCK_E2E_ORACLE_ACTUAL_ROOT. TERMROCK_E2E_PROTECTED_ROOTS must bind the builder receipt's exact source/oracle and artifact/oracle roots plus the oracle source root; these roots must stay disjoint from the suite, validator/toolchain, Git metadata, and output root. Trust-record, subject-manifest, and generation-admission inputs are omitted.",
+    "capture_limits": "The intended receipt checks 40 artifacts, four checkpoints, and 12 interaction checks, while retaining `execution_anchor_status=unverified`, `qualification=blocked`, and `admission_status=NOT_RUN`. This capture does not establish paired parity, expected-corpus acceptance, admission, qualification, or a product-readiness result. The later paired Holla binary is distinct from `holla_tag_capture`."
+  },
+  "execution_preconditions_and_limits": [
+    "This review approves only the one-pin external source delta. It does not approve execution or canonical integration.",
+    "The plan itself says not to launch until Root confirms publication of the exact d990 helper commit and the committed helper file rehashes to the pinned digest. This review verified the supplied helper bytes but did not verify commit publication.",
+    "The capture plan leaves the fresh write-root, receipt leaf, actual-output child, and concrete protected-root environment values to the eventual invocation. Root's runner/preflight must freeze and validate those exact paths, use the existing bounded executor, and keep the write paths disjoint before launch.",
+    "No Rust tests, Cargo build, product capture, PTY, queue mutation, snapshot, paired execution, or qualification evidence was produced by this review."
+  ]
+}

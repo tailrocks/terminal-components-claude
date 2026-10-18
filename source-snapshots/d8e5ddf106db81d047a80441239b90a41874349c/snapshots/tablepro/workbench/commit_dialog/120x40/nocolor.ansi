@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                 • 1 pending  no color · 120×40  ? help [0m
+                                                                                                                        [0m
+  ≡ Query 1 ×    T orders ×                                                                                         +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─────── public ─╮ ╭─ public › orders ────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                           │ │   Data    Structure                                                                  │ [0m
+ │   Filter objects          │ │  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod            │ │                                                                                      │ [0m
+ │    ▾ S public             │ │   ‹4    status       total_amount  currency    shipping_address                 7›   │ [0m
+ │      ▾ Tables             │ │    •  1 paid                25.90  USD         {"line1": "104 Calle Mayor", "c…    ┃ │ [0m
+ │        ▸ T organiz╭────────────────────────────────────────────────────────────────────────────╮y Ave", "cit…    │ │ [0m
+ │        ▸ T custome│                                                                            │oma", "city"…    │ │ [0m
+ │        ▸ T product│  [0m[1mSave changes?[0m                                                             │et St", "cit…    │ │ [0m
+ │        ▸ T orders │                                                                            │et St", "cit…    │ │ [0m
+ │        ▸ T order_i│  Action       Save changes                                                 │e Mayor", "c…    │ │ [0m
+ │        ▸ T payment│  Target       Production · production · acme_prod · public.orders          │ Rivoli", "c…    │ │ [0m
+ │        ▸ T subscri│  Scope        1 update · 0 inserts · 0 deletes                             │                 │ │ [0m
+ │      ▸ Views      │  Transaction  All statements run in one transaction; a failure rolls       │et St", "cit…    │ │ [0m
+ │      ▸ Functions  │               everything back.                                             │ky Ave", "ci…    │ │ [0m
+ │      ▸ Sequences  │  Safe Mode    Safe Mode · deliberate confirmation required                 │n St", "city…    │ │ [0m
+ │    ▸ S analytics  │                                                                            │ Mayor", "ci…    │ │ [0m
+ │    ▸ S audit      │  UPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…  │Mayor", "cit…    │ │ [0m
+ │                   │                                                                            │gatan", "cit…    │ │ [0m
+ │                   │   [0m[1mType orders to confirm                                                 [0m  │atan", "city…    │ │ [0m
+ │                   │ ▎                                                                          │y Ave", "cit…    │ │ [0m
+ │                   │                                                                            │sgatan", "ci…    │ │ [0m
+ │                   │                                                                            │de Rivoli", …    │ │ [0m
+ │                   │                                                            Cancel   [0m[2mSave [0m  │ St", "city"…    │ │ [0m
+ │                   │                                                                            │sgatan", "ci…    │ │ [0m
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                 │ │ [0m
+ │                           │ │      22 refunded          1645.69  USD         {"line1": "43 Hauptstrasse", "c…    │ │ [0m
+ │                           │ │      23 refunded          2412.74  EUR         {"line1": "32 Queen St", "city"…    │ │ [0m
+ │                           │ │      24 delivered         1282.42  USD         NULL                                │ │ [0m
+ │                           │ │      25 delivered         2219.60  USD         {"line1": "41 Market St", "city…    │ │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │   • 1 pending · 1 update                              Preview SQL   Discard   Save   │ [0m
+ │                           │ │   rows 1–25 of 500 loaded · 1,203,338 total · cols 5–7 of 14                         │ [0m
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                                          Connected to Production [0m

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development [0m
+  ╭──────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                  │  [0m
+ ━│  [0m[1mStart upgrade everything?[0m                                       │─ [0m
+  │                                                                  │  [0m
+  │  Plan       Upgrade everything · upgrade Debian packages and     │  [0m
+  │             global mise tools on devbox                          │  [0m
+  │  Host       devbox                                               │  [0m
+  │                                                                  ││ [0m
+  │  cat /etc/os-release                                             │┃ [0m
+  │  sudo -n true                                                    │┃ [0m
+  │  fuser /var/lib/dpkg/lock-frontend                               │┃ [0m
+  │  df -h /                                                         ││ [0m
+  │  test -f /var/run/reboot-required                                │  [0m
+  │  sudo apt-get update … 8 more                                    │  [0m
+  │                                                                  │  [0m
+  │                                           ▎[0m[1mCancel [0m  [0m[1mStart plan [0m  │  [0m
+  │                                                                  │  [0m
+ ~╰──────────────────────────────────────────────────────────────────╯0 [0m
+  [0m[1m← →[0m Ch[0m[1moo[0mse  [0m[1mEnter Co[0mnfirm  [0m[1mEsc[0m Cancel    06 excluded · 08 now blocked [0m

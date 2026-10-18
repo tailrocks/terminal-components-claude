@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "41a3e60123e7de8ff2410ff77b38e884adef3090c3c5c412d148fac052cccc4a",
+  "artifacts": {
+    "ansi": {
+      "bytes": 14413,
+      "file": "holla/finder/help-overlay/100x30/truecolor.ansi",
+      "sha256": "41a3e60123e7de8ff2410ff77b38e884adef3090c3c5c412d148fac052cccc4a"
+    },
+    "ascii": {
+      "bytes": 2708,
+      "file": "holla/finder/help-overlay/100x30/truecolor.ascii",
+      "sha256": "debf0eb4e2a63f3c2896fd27a723a78a573730332ea4b7a07183276ad1f26e52"
+    },
+    "ascii_loss_json": {
+      "bytes": 26787,
+      "file": "holla/finder/help-overlay/100x30/truecolor.ascii.loss.json",
+      "sha256": "3ef8fd4cefd914d7fb1ca7fac09fcaa663aca5fc4fbc7b38104c8ce4a5ac6fdf"
+    },
+    "frame_json": {
+      "bytes": 802057,
+      "file": "holla/finder/help-overlay/100x30/truecolor.frame.json",
+      "sha256": "aeebdaf491da2086aae2a8e383c220c7cf0d27028bdb210f815b1157487dbd6d"
+    },
+    "html": {
+      "bytes": 542759,
+      "file": "holla/finder/help-overlay/100x30/truecolor.html",
+      "sha256": "6e720f84896deb51d76772a696877dc36e4c4b11f1728c35c268faed369d8939"
+    },
+    "observations_json": {
+      "bytes": 465,
+      "file": "holla/finder/help-overlay/100x30/truecolor.observations.json",
+      "sha256": "5f7d2be04eee2b164db5f1276071a3c9ebf0bb9ea6d63d54299d85159fbdb685"
+    },
+    "png": {
+      "bytes": 376158,
+      "file": "holla/finder/help-overlay/100x30/truecolor.png",
+      "sha256": "2fb622a65682ab6273c501915e3fc82993ab286ad213ca455a9bf1a073c468c0"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/help-overlay/100x30/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3265,
+      "file": "holla/finder/help-overlay/100x30/truecolor.txt",
+      "sha256": "c960868a6b52fbdfa132d8dc2837950094aaff479fa2341bb3b6941b5235f98b"
+    }
+  },
+  "ascii_substitutions_count": 289,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 393993607674128317,
+  "frame_sha256": "aeebdaf491da2086aae2a8e383c220c7cf0d27028bdb210f815b1157487dbd6d",
+  "generation": "ba5fbef98270f8495207b3f750d12753eeff4874c63c32aacdc3ed0f395faa37",
+  "html_sha256": "6e720f84896deb51d76772a696877dc36e4c4b11f1728c35c268faed369d8939",
+  "legacy_name": "holla/flows/help/overlay/100x30/truecolor",
+  "name": "holla/finder/help-overlay/100x30/truecolor",
+  "png_sha256": "2fb622a65682ab6273c501915e3fc82993ab286ad213ca455a9bf1a073c468c0",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:07Z",
+  "txt_sha256": "c960868a6b52fbdfa132d8dc2837950094aaff479fa2341bb3b6941b5235f98b"
+}

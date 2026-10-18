@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Homebrew services  [0m                                                                                            [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mHomebrew services[0m                                                                               mbp · live · 1 s ago  [0m
+                                                                                                                        [0m
+  Source       brew services list --json · live                                                                         [0m
+  Cache        brew-services-v1 · 6 min ago · 1 names · hint for the next start                                         [0m
+  Services     11                                                                                                       [0m
+  Cache write  fails on this host · listings still work · nothing is retried                                            [0m
+                                                                                                                        [0m
+ ╭─[0m[1m Detail [0m───────────────────────────────────────────────────────────────────────────────────── 12 lines · y copies ─╮ [0m
+ │  service                     status      actions                                                                   │ [0m
+ │  svc00                       started     start · stop · restart                                                    │ [0m
+ │  svc01                       stopped     start · stop · restart                                                    │ [0m
+ │  svc02                       error       start · stop · restart                                                    │ [0m
+ │  svc03                       started     start · stop · restart                                                    │ [0m
+ │  svc04                       stopped     start · stop · restart                                                    │ [0m
+ │  svc05                       error       start · stop · restart                                                    │ [0m
+ │  svc06                       started     start · stop · restart                                                    │ [0m
+ │  svc07                       stopped     start · stop · restart                                                    │ [0m
+ │  svc08                       error       start · stop · restart                                                    │ [0m
+ │  svc09                       started     start · stop · restart                                                    │ [0m
+ │  svc10                       stopped     start · stop · restart                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+  Next   Restart svc00    Restart svc01    Restart svc02    Restart svc03    Restart svc04    Restart svc05             [0m
+                                                                                                                        [0m
+ [0m[1m~/work[0m                                     snapshot · read-only                                      no color · 120×40 [0m
+                                    [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mTab[0m Next actions  [0m[1mEsc[0m Back                                       [0m

@@ -1,0 +1,30 @@
+  jackin❯    File   Edit   View   Session   Help                  payments-platform › the-architect [0m
+                                                                                                    [0m
+  1 Mix (3) ●    2 Shell    3 docs ●                                                                [0m
+ ━━━━━━━━━━━━━━─────╭──────────────────────────────────────────────────────────╮─────────────────── [0m
+╭─ Claude Code (Work│ [0m[1mCommand palette[0m                                 20 of 20 │───────────────────╮[0m
+│● Read src/settleme│ ▎ Type to filter commands…                               │nored (6.8 s)     ││[0m
+│                   │                                                          │                  ││[0m
+│● The loop retries │ [0m[1m▎[0m [0m[1m New tab                   [0mCtrl+B c[0m[1m                  [0m┃ │_currency         ││[0m
+│  exponential backo│    Split pane                Ctrl+B " %                ┃ │1,204.49 EUR      ││[0m
+│                   │    Zoom / unzoom pane        Ctrl+B z                  ┃ │sion in ledger/fx.││[0m
+│● Edit src/settleme│    Export file               host                      ┃ │                  ┃│[0m
+│  +  const MAX_ATTE│    Export file and reveal    host                      ┃ │                  ┃│[0m
+│  +  let delay = BA│    Export file and open      host                      ┃ │                  ┃│[0m
+│  -  for attempt in│ [0m[2m   Export file under cursor  no file under cursor      [0m┃ │                  ┃│[0m
+│  +  for attempt in│ [0m[2m   Export file under curso…  no file under cursor      [0m┃ │───────────────────╯[0m
+│                   │ [0m[2m   Export file under curso…  no file under cursor      [0m│ │────────────────────[0m
+│● Bash cargo test -│ [0m[2m   Export selected file      no selection              [0m│ │───────────────────╮[0m
+│  running 6 tests …│ [0m[2m   Export selected file an…  no selection              [0m│ │                  ││[0m
+│                   │ [0m[2m   Export selected file an…  no selection              [0m│ │f.md              ││[0m
+│● Edit src/settleme│ [0m[2m   Stage image from clipbo…  host                      [0m│ │ppy -p settlement ││[0m
+│  +  pub use retry:│                                                          │2 (crates/settleme││[0m
+│                   ╰──────────────────────────────────────────────────────────╯] target(s) in 3.1││[0m
+│● Retries now back off 250 ms → 4 s, capped at┃│││payments-platform ❯ ls docs/adr                ││[0m
+│  One more edit: expose the policy in settleme┃│││0001-record-architecture.md  0004-ledger-precis││[0m
+│                                              ┃│││0002-settlement-batches.md   0005-fx-rounding.m││[0m
+│▶ Allow edit to src/settlement/config.rs? (y/n┃│││0003-retry-policy.md         0007-retry-backoff││[0m
+│❯                                             ┃│││payments-platform ❯                            ┃│[0m
+╰───────────────────────────────────────────────╯│╰────────────────────────────────────────────────╯[0m
+ PR #482 · Settlement retry backoff   Claude Code · Work · needs input    Session ━━━━━━━━─── 76%   [0m
+    [0m[1mType[0m Filter[0m[1m  ↑↓ M[0move  [0m[1mEnter C[0mhoose  …   Attached to payments-platform · tabs and panes restored [0m

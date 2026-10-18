@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help            svc · Rust project  mbp · local
+
+  Here    pull with merge ! ×
+ ────────━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────
+  pull with merge · failed · 0 s · exit 1
+  $ git -C /Users/alex/work/svc pull --no-rebase · started by Pull wi…
+
+ ╭─ output ─────────────────────────────────────────────── following ─╮
+ │  $ git -C /Users/alex/work/svc pull --no-rebase                    │
+ │  error: Your local changes to the following files would be overwri │
+ │  tten by merge:                                                    │
+ │          src/api/mod.rs                                            │
+ │  Please commit your changes or stash them before you merge.        │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1       ! exit 1 · 0 s
+     ↑↓ Scroll  f Follow  / Find  …   ! pull with merge failed · exit 1

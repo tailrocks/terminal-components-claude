@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                            svc · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mPull[0m                                                                                                 scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Results · 3                                                                  Pull                    git · parent   [0m
+ [0m[1m › Pull              [0mgit[0m[1m  [0mparent[0m[1m  [0mblocked · 1 modified[0m[1m                      [0m                                           [0m
+    [0m[1mPull[0m with merge   git  parent  history has diverged                          Does       pull (configured            [0m
+    [0m[1mPull[0m with rebase  git  parent  history has diverged                                     strategy) ~/work/svc        [0m
+                                                                                            from origin/feature/x       [0m
+                                                                                 Runs       git -C /Users/al…vc pull    [0m
+                                                                                 In         ~/work/svc                  [0m
+                                                                                 Host       mbp · local                 [0m
+                                                                                 Scope      parent                      [0m
+                                                                                 Why        blocked · 1 modified        [0m
+                                                                                 Changes    blocked · 1 modified ·      [0m
+                                                                                            the command fails           [0m
+                                                                                            without changing            [0m
+                                                                                            anything                    [0m
+                                                                                 Risk       mutating                    [0m
+                                                                                 Data       live · 2 s ago              [0m
+                                                                                 Gate       one confirmation            [0m
+                                                                                 Alt+Enter  Fetch only · Pull with      [0m
+                                                                                            merge · Pull with rebase    [0m
+                                                                                            · Push · Pin · Alias ·      [0m
+                                                                                            Why here?                   [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1 • 1                                                           no color · 120×40 [0m
+             [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear                [0m

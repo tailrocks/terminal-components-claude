@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help        android · Gradle build  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › Clean Gradle outputs u…  cleanup  here  4 candidates  destructive ┃
+    gradle build             gradle   here  build.gradl…              ┃
+    gradle clean             gradle   here  build.gradl…              ┃
+    gradle test              gradle   here  build.gradl…              ┃
+                                                                      ┃
+    Recent here                                                       │
+    nothing used here yet                                             │
+                                                                      │
+
+    → gradle --stop · here · destructive
+
+ ~/work/android                                      256 colors · 72×20
+ Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  …

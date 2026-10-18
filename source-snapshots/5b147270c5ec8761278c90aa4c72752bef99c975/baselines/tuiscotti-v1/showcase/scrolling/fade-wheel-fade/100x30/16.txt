@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Scrolling          16 colors · 100×30   i Inspector   ? Help
+
+   Overview          Scrolling  Wheel under the pointer, keys on the focused container, thumb show…
+   Buttons
+   Inputs              Wrapped … 1–21 of 141      Long list 1–21 of 120      Log 1974–1994 of 2000
+   Text areas
+   Forms               Junie works through ┃         Row 001          ┃       730.01s  info   C… │
+   Lists               a task the way a    ┃         Row 002          ┃       730.38s  info   R… │
+   Trees               careful engineer    ┃         Row 003          ┃       730.75s  info   t… │
+   Tables              would: it reads the │         Row 004          │       731.12s  info   t… │
+   Editable tables     relevant code,      │         Row 005          │       731.49s  error  t… │
+   Panels              forms a plan, makes │         Row 006          │       731.86s  info   t… │
+   Sidebars            focused changes,    │         Row 007          │       732.23s  info   L… │
+   Dialogs             runs the tests, and │         Row 008          │       732.60s  info   R… │
+   Progress            reports back with a │         Row 009          │       732.97s  info   F… │
+▎› Scrolling           summary you can     │         Row 010          │       733.34s  info   C… │
+   Terminal            review before       │         Row 011          │       733.71s  info   C… │
+   Code editor         anything is merged. │         Row 012          │       734.08s  warn   u… │
+   Diff                                    │         Row 013          │       734.45s  info   C… │
+   Data grid           Each step is        │         Row 014          │       734.82s  info   R… │
+   Chips & selects     visible. You can    │         Row 015          │       735.19s  info   t… │
+   Pickers             pause, redirect, or │         Row 016          │       735.56s  info   t… │
+   Chrome              take over at any    │         Row 017          │       735.93s  error  t… │
+   Settings            point, and every    │         Row 018          │       736.30s  info   t… │
+   Task runner         change lands as an  │         Row 019          │       736.67s  info   L… │
+                       ordinary diff in    │         Row 020          │       737.04s  info   R… │
+                       your working tree.  │         Row 021          │       737.41s  info   F… ┃
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

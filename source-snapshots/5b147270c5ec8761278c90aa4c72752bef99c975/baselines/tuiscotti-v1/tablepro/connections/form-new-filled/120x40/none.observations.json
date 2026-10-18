@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 5054498071152337754,
+  "legacy_name": "tablepro/connections/form_new-filled/120x40/none",
+  "name": "tablepro/connections/form-new-filled/120x40/none",
+  "non_empty_cells": 923,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

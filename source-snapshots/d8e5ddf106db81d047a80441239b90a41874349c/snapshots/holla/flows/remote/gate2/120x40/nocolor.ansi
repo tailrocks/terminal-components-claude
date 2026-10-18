@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production [0m
+                                                                                                                        [0m
+  Here › Review                                                                                                         [0m
+ ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  Review · Restart payments · gate 1 of 2 · review the resolved facts, then continue deliberately                       [0m
+                                                                                                                        [0m
+  Action       systemctl restart payments on prod-eu-1 · production · in-flight requests are dropped                    [0m
+  Host         prod-eu-1 · production                                                                                   [0m
+  In           prod-eu-1 · host-wide                                                                                    [0m
+  Scope        on pro╭────────────────────────────────────────────────────────────────────────────╮                     [0m
+  Changes      paymen│                                                                            │                     [0m
+  Risk         privil│  [0m[1mRestart payments · gate 2 of 2[0m                                            │                     [0m
+  Data         live ·│                                                                            │                     [0m
+  Recoverable  servic│  Action   systemctl restart payments on prod-eu-1 · production ·           │                     [0m
+  Provenance   built-│           in-flight requests are dropped                                   │                     [0m
+  Gate         second│  Host     prod-eu-1 · production                                           │                     [0m
+                     │  In       prod-eu-1 · host-wide                                            │                     [0m
+ ╭─ Sequence · 2 comm│  Scope    on prod-eu-1                                                     │──────── y copies ─╮ [0m
+ │  01  sudo systemct│  Changes  payments restarts · brief outage on prod-eu-1                    │                   │ [0m
+ │  02  systemctl sta│  Risk     privileged                                                       │                   │ [0m
+ │                   │  Data     live · 0 s ago                                                   │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │  sudo systemctl restart payments                                           │                   │ [0m
+ │                   │  systemctl status payments                                                 │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │   [0m[1mType RESTART PAYMENTS ON prod-eu-1 to confirm                          [0m  │                   │ [0m
+ │                   │ ▎                                                                          │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │                                                         Cancel   [0m[2mExecute [0m  │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                                  Cancel    Continue…   [0m
+                                                                                                                        [0m
+ /srv/payments   detached @ v2.14.3                       review · gate 1 of 2                        no color · 120×40 [0m
+                          [0m[1m   [0m         [0m[1m  ← →[0m Choose  [0m[1mEnter[0m Confir[0m[1mm[0m  [0m[1mEsc[0m Cancel    [0m[1m   [0m                                    [0m

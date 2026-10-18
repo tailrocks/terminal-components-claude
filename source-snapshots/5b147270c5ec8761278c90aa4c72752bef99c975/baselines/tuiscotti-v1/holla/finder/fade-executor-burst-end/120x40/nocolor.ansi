@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                    batch · project collection  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+  Here   [0m[1m emit a burst [0m✓[0m[1m ×  [0m                                                                                            [0m
+ ────────━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1memit a burst[0m · succeeded · 1 s · exit 0                                                    here · ~/work/batch · mbp  [0m
+  $ ./emit-burst · started by Emit a burst                                                                              [0m
+                                                                                                                        [0m
+ ╭─[0m[1m output [0m────────────────────────────────────────────────── following · 500 earlier lines dropped · last 4000 kept ─╮ [0m
+ │  [0m[2mburst line 4472                                                                                                 [0m│ │ [0m
+ │  burst line 4473                                                                                                 │ │ [0m
+ │  burst line 4474                                                                                                 │ │ [0m
+ │  burst line 4475                                                                                                 │ │ [0m
+ │  burst line 4476                                                                                                 │ │ [0m
+ │  burst line 4477                                                                                                 │ │ [0m
+ │  burst line 4478                                                                                                 │ │ [0m
+ │  burst line 4479                                                                                                 │ │ [0m
+ │  burst line 4480                                                                                                 │ │ [0m
+ │  burst line 4481                                                                                                 │ │ [0m
+ │  burst line 4482                                                                                                 │ │ [0m
+ │  burst line 4483                                                                                                 │ │ [0m
+ │  burst line 4484                                                                                                 │ │ [0m
+ │  burst line 4485                                                                                                 │ │ [0m
+ │  burst line 4486                                                                                                 │ │ [0m
+ │  burst line 4487                                                                                                 │ │ [0m
+ │  burst line 4488                                                                                                 │ │ [0m
+ │  burst line 4489                                                                                                 │ │ [0m
+ │  burst line 4490                                                                                                 │ │ [0m
+ │  burst line 4491                                                                                                 │ │ [0m
+ │  burst line 4492                                                                                                 │ │ [0m
+ │  burst line 4493                                                                                                 │ │ [0m
+ │  burst line 4494                                                                                                 │ │ [0m
+ │  burst line 4495                                                                                                 │ │ [0m
+ │  burst line 4496                                                                                                 │ │ [0m
+ │  burst line 4497                                                                                                 │ │ [0m
+ │  burst line 4498                                                                                                 │ │ [0m
+ │  burst line 4499                                                                                                 ┃ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m~/work/batch[0m                                     succeeded · 1 s                                     no color · 120×40 [0m
+                    [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  [0m[1mr[0m Restart  [0m[1mx[0m Close  [0m[1mEsc[0m Here    emit a burst finished · exit 0 [0m

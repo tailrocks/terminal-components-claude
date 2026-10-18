@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help                 no project  [0m[1mdevbox · local[0m [0m
+                                                                        [0m
+ [0m[1m Here › Cleanup › Review  [0m                                             [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────── [0m
+  [0m[1mReview · trash 1 item[0m · gate 1 of 2 · review the resolved facts, th…  [0m
+                                                                        [0m
+  Action        move to Trash 1 item under ~                            [0m
+  Host          devbox · local                                          [0m
+  Mode          Trash · no Trash backend · every item will fail, never  [0m
+                fall back · space returns after the Trash is emptied    [0m
+  Estimate      124.0 KiB allocated · APFS clones may overcount ·       [0m
+                purgeable space excluded · not a free-space guarantee   [0m
+                                                                        [0m
+ ╭─ Sequence · 1 command ────────────────────────────────── y copies ─╮ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+                                                 ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                        [0m
+ [0m[1m~/work/box[0m            review · gate 1 of 2            no color · 72×20 [0m
+  [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  …   1 item selected · 124.0 KiB [0m

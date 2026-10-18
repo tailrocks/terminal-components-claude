@@ -1,0 +1,83 @@
+   Compiling libc v0.2.190
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling getrandom v0.4.3
+   Compiling cfg-if v1.0.5
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling rustix v1.1.5
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling errno v0.3.14
+   Compiling serde_json v1.0.151
+   Compiling bitflags v2.13.2
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling once_cell v1.21.4
+   Compiling memchr v2.8.3
+   Compiling fastrand v2.5.0
+   Compiling itoa v1.0.18
+   Compiling tempfile v3.27.0
+   Compiling sha2 v0.10.9
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/source/crates/termrock-visibility-tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.75s
+────────────
+ Nextest run ID e2844649-cddf-4afa-9b9c-4eff48edf3ae with nextest profile: default
+    Starting 27 tests across 1 binary
+        PASS [   0.940s] termrock-visibility-tests::deferred assertion_failure_remains_failed_with_an_unreadable_event
+        PASS [   0.534s] termrock-visibility-tests::deferred assertion_failure_stays_failed_without_expected_failure_inversion
+        PASS [   0.679s] termrock-visibility-tests::deferred build_error_is_blocked_with_raw_exit_and_zero_executions
+        PASS [   0.532s] termrock-visibility-tests::deferred environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing
+        PASS [   0.417s] termrock-visibility-tests::deferred filter_uses_exact_names_and_explicit_writer_exclusion
+        PASS [   0.703s] termrock-visibility-tests::deferred inventory_rejects_non_not_run_status_and_changed_reason_sidecar
+        PASS [   0.424s] termrock-visibility-tests::deferred inventory_uses_canonical_23_rows_and_25_case_references
+        PASS [   1.166s] termrock-visibility-tests::deferred list_accepts_mixed_registration_and_rejects_metadata_drift
+        PASS [   0.481s] termrock-visibility-tests::deferred list_reconciles_selected_count_separately_from_nextest_total
+        PASS [   0.441s] termrock-visibility-tests::deferred list_rejects_a_duplicate_selected_name_across_suites
+        PASS [   2.293s] termrock-visibility-tests::deferred list_rejects_a_wrong_package_or_binary
+        PASS [   0.649s] termrock-visibility-tests::deferred list_rejects_malformed_json_before_run
+        PASS [   1.696s] termrock-visibility-tests::deferred list_rejects_missing_and_writer_like_selected_tests
+        PASS [   0.417s] termrock-visibility-tests::deferred list_rejects_total_smaller_than_the_selection
+        PASS [   0.425s] termrock-visibility-tests::deferred list_requires_the_exact_canonical_selection
+        PASS [   2.977s] termrock-visibility-tests::deferred non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass
+        PASS [   0.445s] termrock-visibility-tests::deferred prefixed_nextest_event_names_map_to_stable_test_names
+        PASS [   0.436s] termrock-visibility-tests::deferred receipt_rows_keep_stable_ids_and_test_metadata
+        PASS [   0.547s] termrock-visibility-tests::deferred receipt_separates_accepted_and_current_queue_revisions
+        PASS [   0.729s] termrock-visibility-tests::deferred run_command_keeps_all_selected_failures_visible
+        PASS [   2.012s] termrock-visibility-tests::deferred run_requires_one_terminal_event_per_canonical_test
+        PASS [   0.677s] termrock-visibility-tests::deferred signal_termination_is_blocked_and_maps_to_shell_status
+        PASS [   2.161s] termrock-visibility-tests::deferred source_digest_tracks_workspace_and_ignores_nonworkspace_crates
+        PASS [   1.342s] termrock-visibility-tests::deferred source_drift_after_list_or_during_run_blocks_the_receipt
+        PASS [   0.702s] termrock-visibility-tests::deferred unselected_case_events_are_rejected_with_run_ignored_all
+        PASS [   0.562s] termrock-visibility-tests::deferred unselected_terminal_results_are_rejected
+        PASS [   0.594s] termrock-visibility-tests::deferred zero_exit_with_invalid_results_is_blocked_nonzero
+────────────
+     Summary [  24.984s] 27 tests run: 27 passed, 0 skipped
+        PASS [   0.940s] termrock-visibility-tests::deferred assertion_failure_remains_failed_with_an_unreadable_event
+        PASS [   0.534s] termrock-visibility-tests::deferred assertion_failure_stays_failed_without_expected_failure_inversion
+        PASS [   0.679s] termrock-visibility-tests::deferred build_error_is_blocked_with_raw_exit_and_zero_executions
+        PASS [   0.532s] termrock-visibility-tests::deferred environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing
+        PASS [   0.417s] termrock-visibility-tests::deferred filter_uses_exact_names_and_explicit_writer_exclusion
+        PASS [   0.703s] termrock-visibility-tests::deferred inventory_rejects_non_not_run_status_and_changed_reason_sidecar
+        PASS [   0.424s] termrock-visibility-tests::deferred inventory_uses_canonical_23_rows_and_25_case_references
+        PASS [   1.166s] termrock-visibility-tests::deferred list_accepts_mixed_registration_and_rejects_metadata_drift
+        PASS [   0.481s] termrock-visibility-tests::deferred list_reconciles_selected_count_separately_from_nextest_total
+        PASS [   0.441s] termrock-visibility-tests::deferred list_rejects_a_duplicate_selected_name_across_suites
+        PASS [   2.293s] termrock-visibility-tests::deferred list_rejects_a_wrong_package_or_binary
+        PASS [   0.649s] termrock-visibility-tests::deferred list_rejects_malformed_json_before_run
+        PASS [   1.696s] termrock-visibility-tests::deferred list_rejects_missing_and_writer_like_selected_tests
+        PASS [   0.417s] termrock-visibility-tests::deferred list_rejects_total_smaller_than_the_selection
+        PASS [   0.425s] termrock-visibility-tests::deferred list_requires_the_exact_canonical_selection
+        PASS [   2.977s] termrock-visibility-tests::deferred non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass
+        PASS [   0.445s] termrock-visibility-tests::deferred prefixed_nextest_event_names_map_to_stable_test_names
+        PASS [   0.436s] termrock-visibility-tests::deferred receipt_rows_keep_stable_ids_and_test_metadata
+        PASS [   0.547s] termrock-visibility-tests::deferred receipt_separates_accepted_and_current_queue_revisions
+        PASS [   0.729s] termrock-visibility-tests::deferred run_command_keeps_all_selected_failures_visible
+        PASS [   2.012s] termrock-visibility-tests::deferred run_requires_one_terminal_event_per_canonical_test
+        PASS [   0.677s] termrock-visibility-tests::deferred signal_termination_is_blocked_and_maps_to_shell_status
+        PASS [   2.161s] termrock-visibility-tests::deferred source_digest_tracks_workspace_and_ignores_nonworkspace_crates
+        PASS [   1.342s] termrock-visibility-tests::deferred source_drift_after_list_or_during_run_blocks_the_receipt
+        PASS [   0.702s] termrock-visibility-tests::deferred unselected_case_events_are_rejected_with_run_ignored_all
+        PASS [   0.562s] termrock-visibility-tests::deferred unselected_terminal_results_are_rejected
+        PASS [   0.594s] termrock-visibility-tests::deferred zero_exit_with_invalid_results_is_blocked_nonzero

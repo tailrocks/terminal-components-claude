@@ -1,0 +1,109 @@
+{
+  "schema": "termrock-vis04-deferred-controls-actual-result-independent-review/v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "ACTUAL_RESULT_CONFIRMED_PASSED_27",
+  "review_mode": "read-only actual-result review; no Cargo/Nextest rerun or evidence edits",
+  "request": {
+    "path": "/private/tmp/termrock-vis04-deferred-controls-v7-actual-review-20261009-v1.Xpi5Nv/actual-review-request.json",
+    "sha256": "871399c14108d1f352f0e146dadad1d8e4dfff4bf6d7626dff98c6a64dc88710"
+  },
+  "run": {
+    "run_id": "2026-10-09T04-10-28-951Z-2fccc5cd",
+    "receipt": {
+      "path": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/runner/runs/2026-10-09T04-10-28-951Z-2fccc5cd/receipt.json",
+      "bytes": 11273,
+      "sha256": "62e96370d3bb97bd83df72171ffc9d5654405fc0e522786a2583923e8c7e8980"
+    },
+    "nextest": {
+      "run_id": "e2844649-cddf-4afa-9b9c-4eff48edf3ae",
+      "result": "PASSED_27",
+      "exit_code": 0,
+      "elapsed_ms": 34152,
+      "timed_out": false,
+      "interrupted_by": null,
+      "signal": null,
+      "spawn_error": null,
+      "forced_close": false,
+      "parse_errors": [],
+      "cleanup_errors": [],
+      "log_errors": []
+    }
+  },
+  "frozen_bindings": {
+    "runner_sha256": "cb637afb80b87910dcbdb6b5601c735773c585f25e906cba9ad0a058b7061ee4",
+    "source_manifest_sha256": "3fba61dc932f1cd40f7dd522f5883346a947e96746a2819f30834b88add3133b",
+    "runplan_sha256": "834171f244fb72d514192f967a0dbe8a2acb23396bfd9b5282b8c1de71f125f9",
+    "test_names_sha256": "78d14ca903206f26ee12a6fba4abc24503511d628454ae4a9f7555035520f596",
+    "launch_sha256": "24a17669a1331fa7a2d22f017e659f2f7e46815a2914acfabdca4ca5b7492106",
+    "cache_manifest_sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71",
+    "prelaunch_audit_sha256": "991457df7b72c3ed98202d92c6b03631db1e596e5b56b5333cae8b26e05ba9b8",
+    "static_preflight_sha256": "3f78f8e27a41abda8b2df8efb54ce604e4c068edc54fe559b570941a8c685a7e",
+    "runtime_preflight_sha256": "978536fa896851b21ac534743bcd07587c9b5efd2dbc4261651ecdeade14ec84",
+    "receipt_and_request_pins_match": true
+  },
+  "selection_and_events": {
+    "target": "termrock-visibility-tests::deferred",
+    "selected_count": 27,
+    "test_names_file_count": 27,
+    "receipt_name_count": 27,
+    "nextest_suite_started_events": 1,
+    "nextest_suite_ok_events": 1,
+    "suite_test_count": 27,
+    "test_started_events": 27,
+    "test_ok_events": 27,
+    "failed_or_skipped_or_extra_test_events": 0,
+    "duplicate_start_or_terminal_names": false,
+    "started_and_ok_name_sets_exactly_match_test_names_and_receipt": true,
+    "suite_ok_summary": {
+      "passed": 27,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0
+    },
+    "stderr_summary_lines": [
+      "Summary [  24.984s] 27 tests run: 27 passed, 0 skipped"
+    ],
+    "unique_nextest_run_id_count_in_stderr": 1,
+    "stderr_run_id_matches_receipt": true,
+    "ignored_policy": "The runplan selects run_ignored=all; the exact filter produced no ignored/skipped/filtered-out tests."
+  },
+  "raw_logs": {
+    "stdout": {
+      "path": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/runner/runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stdout.jsonl",
+      "bytes": 8046,
+      "sha256": "ef00d1a85c62809ea0822b35bc7c592d6952b4f81eda0c6e0b572f4be898b5b2",
+      "truncated": false,
+      "write_failed": false,
+      "valid_json_lines": 56
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/runner/runs/2026-10-09T04-10-28-951Z-2fccc5cd/nextest.stderr.log",
+      "bytes": 7368,
+      "sha256": "98db926a1ec58014c87b707bcfe49a6dd54ee8b0b7764b9b136dffbb3892147f",
+      "truncated": false,
+      "write_failed": false
+    },
+    "combined_bytes": 15414,
+    "combined_cap_bytes": 16777216
+  },
+  "post_run_source_check": {
+    "source_root": "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/source",
+    "source_manifest_sha256": "3fba61dc932f1cd40f7dd522f5883346a947e96746a2819f30834b88add3133b",
+    "manifest_files": 14,
+    "actual_regular_files": 14,
+    "path_set_matches": true,
+    "file_hash_mismatches": 0,
+    "unexpected_symlinks": 0,
+    "runner_calls_verifySource_after_child_close": true
+  },
+  "scope": {
+    "lane": "27 selected Rust Nextest harness-control tests only",
+    "product_cli_or_pty_qualification": false,
+    "external_node_parser_regression_claimed": false,
+    "separate_product23_status": "22 PASS / 1 FAIL (BD-21 w13_filter_wide_trail_cells_clear)",
+    "global_product_NOT_RUN_claim": false
+  },
+  "findings": [],
+  "summary": "The receipt and all frozen input hashes match the review request. Raw Nextest JSONL contains exactly one suite start and success, and exactly one start/ok pair for each of the 27 selected test names. Stderr contains one matching Nextest run ID and a 27 run / 27 passed / 0 skipped summary. Both raw logs match receipt bytes and hashes, are untruncated and below cap. This confirms only the bounded Rust harness-controls result; it does not qualify product behavior."
+}

@@ -1,0 +1,323 @@
+{
+  "schema": "termrock-vis04-product23-ledger-record/v1",
+  "recorded_at_utc": "2026-10-09T03:12:43.525Z",
+  "record_status": "external_record_prepared",
+  "repository_write_performed": false,
+  "source": {
+    "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "source_manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
+    "runplan_sha256": "1e80f9232545a41f3685857603d1d033d2b529878cb9efd443da1d034617b149"
+  },
+  "run": {
+    "run_id": "2026-10-09T03-04-14-975Z-10bae096",
+    "nextest_run_id": "b88b36d1-5809-4cc9-b9fd-306970f65be7",
+    "result": "FAILED",
+    "receipt_path": "/private/tmp/termrock-vis04-product23-s1d-plan-20261009-v3.1QGtWW/runs/2026-10-09T03-04-14-975Z-10bae096/receipt.json",
+    "receipt_sha256": "c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929"
+  },
+  "selection": {
+    "package": "termrock-conformance",
+    "binary": "control_states",
+    "count": 23,
+    "run_ignored": "all",
+    "expected_failure_treatment": "none",
+    "registered_normal_count": 22,
+    "registered_ignored_ids": [
+      "BD-21"
+    ]
+  },
+  "counts": {
+    "expected": 23,
+    "passed": 22,
+    "failed": 1,
+    "skipped": 0,
+    "not_run": 0,
+    "incomplete": 0
+  },
+  "rows": [
+    {
+      "requirement_id": "BD-01",
+      "case_ids": [
+        "W01-02"
+      ],
+      "test_name": "w01_brand_press_paints_distinct_from_hover",
+      "component_id": "W01",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-02",
+      "case_ids": [
+        "W02-01"
+      ],
+      "test_name": "w02_button_disabled_suppresses_focus_gutter",
+      "component_id": "W02",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-03",
+      "case_ids": [
+        "W03-01"
+      ],
+      "test_name": "w03_checkbox_compact_markers",
+      "component_id": "W03",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-04",
+      "case_ids": [
+        "W03-01"
+      ],
+      "test_name": "w03_checkbox_checked_focus_hover_independent",
+      "component_id": "W03",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-05",
+      "case_ids": [
+        "W04-01"
+      ],
+      "test_name": "w04_toggle_compact_markers",
+      "component_id": "W04",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-06",
+      "case_ids": [
+        "W05-02",
+        "W05-04"
+      ],
+      "test_name": "w05_radio_per_option_disabled",
+      "component_id": "W05",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-07",
+      "case_ids": [
+        "W05-04"
+      ],
+      "test_name": "w05_radio_no_horizontal",
+      "component_id": "W05",
+      "component_owner": "termrock-controls",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-08",
+      "case_ids": [
+        "W06-02",
+        "W06-05"
+      ],
+      "test_name": "w06_chipbar_closable_keyboard_dead",
+      "component_id": "W06",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-09",
+      "case_ids": [
+        "W06-02"
+      ],
+      "test_name": "w06_chipbar_close_press_then_reorder_or_delete",
+      "component_id": "W06",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-10",
+      "case_ids": [
+        "W08-02"
+      ],
+      "test_name": "w08_input_masked_clicks_follow_display",
+      "component_id": "W08",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-11",
+      "case_ids": [
+        "W08-02"
+      ],
+      "test_name": "w08_input_down_only_does_not_edit",
+      "component_id": "W08",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-12",
+      "case_ids": [
+        "W08-03"
+      ],
+      "test_name": "w08_input_navigation_paste_begins_editing",
+      "component_id": "W08",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-13",
+      "case_ids": [
+        "W08-07"
+      ],
+      "test_name": "w08_input_external_change_is_not_silently_overwritten",
+      "component_id": "W08",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-14",
+      "case_ids": [
+        "W09-01"
+      ],
+      "test_name": "w09_area_nav_enter_begins_without_newline",
+      "component_id": "W09",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-15",
+      "case_ids": [
+        "W09-03"
+      ],
+      "test_name": "w09_area_nav_page_home_end_scroll_without_editing",
+      "component_id": "W09",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-16",
+      "case_ids": [
+        "W09-05"
+      ],
+      "test_name": "w09_area_wheel_holds_past_caret_until_it_moves",
+      "component_id": "W09",
+      "component_owner": "termrock-fields",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-17",
+      "case_ids": [
+        "W10-05"
+      ],
+      "test_name": "w10_select_popup_edge_fade",
+      "component_id": "W10",
+      "component_owner": "termrock-overlays",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-18",
+      "case_ids": [
+        "W11-04"
+      ],
+      "test_name": "w11_form_busy_enter_submit_blocked",
+      "component_id": "W11",
+      "component_owner": "termrock-forms",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-20",
+      "case_ids": [
+        "W13-02"
+      ],
+      "test_name": "w13_filter_backspace_removes_grapheme",
+      "component_id": "W13",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-21",
+      "case_ids": [
+        "W13-05"
+      ],
+      "test_name": "w13_filter_wide_trail_cells_clear",
+      "component_id": "W13",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": true,
+      "ignore_reason": "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints",
+      "status": "failed"
+    },
+    {
+      "requirement_id": "BD-22",
+      "case_ids": [
+        "W13-04"
+      ],
+      "test_name": "w13_filter_reseed_selects_first_eligible",
+      "component_id": "W13",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-23",
+      "case_ids": [
+        "W16-02"
+      ],
+      "test_name": "w16_steps_running_spinner_cycles_phases",
+      "component_id": "W16",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    },
+    {
+      "requirement_id": "BD-24",
+      "case_ids": [
+        "W17-01"
+      ],
+      "test_name": "w17_tabs_focused_pressed_bold",
+      "component_id": "W17",
+      "component_owner": "termrock-navigation",
+      "registered_ignored": false,
+      "ignore_reason": null,
+      "status": "passed"
+    }
+  ],
+  "scope": {
+    "evidence_class": "candidate-direct-assertions",
+    "qualifies_paired_pty_evidence": false,
+    "product_registry_source_status_remains": "NOT_RUN",
+    "no_product_repair_performed": true
+  }
+}

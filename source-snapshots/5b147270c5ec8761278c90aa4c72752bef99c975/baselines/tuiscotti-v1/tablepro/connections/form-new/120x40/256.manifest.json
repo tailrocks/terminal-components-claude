@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "09671d6993dcb3ea888f900239ae9254cac61c49de7d40fc6b78a96ed78f431e",
+  "artifacts": {
+    "ansi": {
+      "bytes": 16140,
+      "file": "tablepro/connections/form-new/120x40/256.ansi",
+      "sha256": "09671d6993dcb3ea888f900239ae9254cac61c49de7d40fc6b78a96ed78f431e"
+    },
+    "ascii": {
+      "bytes": 2971,
+      "file": "tablepro/connections/form-new/120x40/256.ascii",
+      "sha256": "6188477098a752faf54a64bfea34ae39cffd26cf696316cfde69cf7bafcae41f"
+    },
+    "ascii_loss_json": {
+      "bytes": 20468,
+      "file": "tablepro/connections/form-new/120x40/256.ascii.loss.json",
+      "sha256": "42d0720e93583e28b9660561736e82254d455b570f59dcc511a52a54fa2b1c20"
+    },
+    "frame_json": {
+      "bytes": 1130554,
+      "file": "tablepro/connections/form-new/120x40/256.frame.json",
+      "sha256": "8e9a6962ebdcbdcedaf8c06729e9cf3589c713cbaa0f9292e4bad010e8d94006"
+    },
+    "html": {
+      "bytes": 534176,
+      "file": "tablepro/connections/form-new/120x40/256.html",
+      "sha256": "5ce8058b2246108f149d98fdd9da63efa20a67cd7aaa63a5873707ee3f1629e6"
+    },
+    "observations_json": {
+      "bytes": 462,
+      "file": "tablepro/connections/form-new/120x40/256.observations.json",
+      "sha256": "d10911f8d05f5bc80273aaaf249d57e812b202a02da4ca4b07b452fff957fdd9"
+    },
+    "png": {
+      "bytes": 362932,
+      "file": "tablepro/connections/form-new/120x40/256.png",
+      "sha256": "a9a56652299d07a2968d3c2049a7e57f2a79f32048e88ccc20f8645cd572c426"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/connections/form-new/120x40/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3408,
+      "file": "tablepro/connections/form-new/120x40/256.txt",
+      "sha256": "cff7564a39a94e8abdbf8d6b0781f93a601aaaa21da750d74fd1d04e32e9731c"
+    }
+  },
+  "ascii_substitutions_count": 221,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 1535518930564654288,
+  "frame_sha256": "8e9a6962ebdcbdcedaf8c06729e9cf3589c713cbaa0f9292e4bad010e8d94006",
+  "generation": "30c0bcd9ef37cff42d8857e0428000aa7bd7a69ea6c32028e8567c6967342cef",
+  "html_sha256": "5ce8058b2246108f149d98fdd9da63efa20a67cd7aaa63a5873707ee3f1629e6",
+  "legacy_name": "tablepro/connections/form_new/120x40/256",
+  "name": "tablepro/connections/form-new/120x40/256",
+  "png_sha256": "a9a56652299d07a2968d3c2049a7e57f2a79f32048e88ccc20f8645cd572c426",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:48Z",
+  "txt_sha256": "cff7564a39a94e8abdbf8d6b0781f93a601aaaa21da750d74fd1d04e32e9731c"
+}

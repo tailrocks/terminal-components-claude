@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Chrome              i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Buttons        [0m│  [0m[1mChrome[0m  Brand lockup · menu bar with anchored menus · sta… [0m
+   Inputs         ┃                                                             [0m
+   Text areas     ┃   [0m[1m app❯ [0m  [0m[1m File [0m  View   Help                               [0m
+   Forms          ┃           ╭───────────────────╮                             [0m
+   Lists          ┃    Session│[0m[1m  New tab        [0mc[0m[1m [0m│click or m for the tab menu  [0m
+   Trees          ┃           │  Split right    % │                             [0m
+   Tables         ┃       1 Cl│  Export…          │            working     Th…  [0m
+   Editable tabl… ┃       2 Co│ ───────────────── │               idle     se…  [0m
+   Panels         ┃       3 Sh│  Close tab      & │                        na…  [0m
+   Sidebars       ┃       4 do╰───────────────────╯            blocked          [0m
+   Dialogs        ┃                                                        Br…  [0m
+   Progress       ┃                                                             [0m
+   Scrolling      ┃                                                             [0m
+   Terminal       ┃                                                             [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      ┃                                                             [0m
+   Chips & selec… ┃   [0m[1mpayments-platform[0m   PR #482 · settlement backoff          [0m
+   Pickers        │   hint bar · topmost layer wins:                            [0m
+[0m[2m › Chrome         [0m│   [0m[1m↑↓[0m Move  [0m[1m← →[0m Switch menu  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close         [0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1m← →[0m Switch menu  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close  [0m[1mTab[0m Next                    [0m

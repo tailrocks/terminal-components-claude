@@ -1,0 +1,7 @@
+{
+  "reviewer": "/root/reference_luna",
+  "decision": "approved",
+  "subject_sha256": "76bcffac8c31c52abce94d9ddb5e228b9feb4be79ce12fc1771a9c5614387994",
+  "reviewed_at": "2026-10-08T04:02:17Z",
+  "evidence": "Independent VIS-05 review of the exact allowed paths tools/visibility/queue.py and tools/visibility/tests/test_queue.py. The staged commit e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2 has parent 994706c6fb4a8d15fa0d5e937839fb07d0e02585, tree b74a0a1956c627377aeb0620637953dff52b7384, and binary diff SHA-256 9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9. Current and committed file hashes match the independently approved hashes. The current allowed-path scope digest is 76bcffac8c31c52abce94d9ddb5e228b9feb4be79ce12fc1771a9c5614387994. Review JSON is external to the repository and does not authenticate reviewer identity cryptographically."
+}

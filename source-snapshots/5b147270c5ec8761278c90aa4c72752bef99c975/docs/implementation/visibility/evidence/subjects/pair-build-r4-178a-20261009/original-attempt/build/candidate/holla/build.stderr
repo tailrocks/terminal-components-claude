@@ -1,0 +1,106 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling libc v0.2.189
+   Compiling syn v3.0.4
+   Compiling syn v2.0.119
+   Compiling cfg-if v1.0.4
+   Compiling allocator-api2 v0.2.21
+   Compiling heck v0.5.0
+   Compiling equivalent v1.0.2
+   Compiling rustversion v1.0.23
+   Compiling foldhash v0.2.0
+   Compiling bitflags v2.13.1
+   Compiling thiserror v2.0.20
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling darling_core v0.24.1
+   Compiling thiserror-impl v2.0.20
+   Compiling errno v0.3.14
+   Compiling either v1.18.0
+   Compiling itertools v0.14.0
+   Compiling darling_macro v0.24.1
+   Compiling castaway v0.2.4
+   Compiling hashbrown v0.16.1
+   Compiling hashbrown v0.17.1
+   Compiling strum_macros v0.28.0
+   Compiling signal-hook v0.3.18
+   Compiling unicode-width v0.2.0
+   Compiling ryu v1.0.23
+   Compiling parking_lot_core v0.9.12
+   Compiling instability v0.3.13
+   Compiling unicode-segmentation v1.13.3
+   Compiling itoa v1.0.18
+   Compiling static_assertions v1.1.0
+   Compiling compact_str v0.9.1
+   Compiling convert_case v0.10.0
+   Compiling unicode-truncate v2.0.1
+   Compiling strum v0.28.0
+   Compiling lru v0.18.3
+   Compiling kasuari v0.4.12
+   Compiling darling v0.24.1
+   Compiling signal-hook-registry v1.4.8
+   Compiling indoc v2.0.7
+   Compiling smallvec v1.16.0
+   Compiling rustix v1.1.4
+   Compiling scopeguard v1.2.0
+   Compiling critical-section v1.2.0
+   Compiling log v0.4.34
+   Compiling mio v1.2.2
+   Compiling ratatui-core v0.1.2
+   Compiling lock_api v0.4.14
+   Compiling derive_more-impl v2.1.1
+   Compiling litrs v1.0.0
+   Compiling document-features v0.2.12
+   Compiling derive_more v2.1.1
+   Compiling signal-hook-mio v0.2.5
+   Compiling parking_lot v0.12.5
+   Compiling num_threads v0.1.7
+   Compiling num-conv v0.2.2
+   Compiling deranged v0.5.8
+   Compiling crossterm v0.29.0
+   Compiling powerfmt v0.2.0
+   Compiling time-core v0.1.9
+   Compiling time v0.3.55
+   Compiling ratatui-crossterm v0.1.2
+   Compiling line-clipping v0.3.8
+   Compiling ratatui-widgets v0.3.2
+   Compiling termrock-core v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-theme)
+   Compiling ratatui-macros v0.7.2
+   Compiling ratatui v0.30.2
+   Compiling termrock-text v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-text)
+   Compiling termrock-layout v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-layout)
+   Compiling termrock-collections v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-collections)
+   Compiling termrock-render v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-render)
+   Compiling termrock-runtime v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-runtime)
+   Compiling utf8parse v0.2.2
+   Compiling anstyle-parse v1.0.0
+   Compiling holla-domain v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla-domain)
+   Compiling termrock-controls v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-controls)
+   Compiling termrock-feedback v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-feedback)
+   Compiling termrock-fields v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-fields)
+   Compiling termrock-viewport v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-viewport)
+   Compiling termrock-navigation v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-navigation)
+   Compiling anstyle v1.0.14
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling colorchoice v1.0.5
+   Compiling anstyle-query v1.1.5
+   Compiling anstream v1.0.0
+   Compiling clap_lex v1.1.0
+   Compiling termrock-overlays v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-overlays)
+   Compiling termrock-editors v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-editors)
+   Compiling termrock-grid v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-grid)
+   Compiling termrock-forms v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-forms)
+   Compiling clap_builder v4.6.6
+   Compiling termrock-terminal v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-terminal)
+   Compiling holla-catalog v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla-catalog)
+   Compiling holla-plan v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla-plan)
+   Compiling termrock-session v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock-session)
+   Compiling clap_derive v4.6.4
+   Compiling clap v4.6.6
+   Compiling termrock v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/termrock)
+   Compiling holla-sim v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla-sim)
+   Compiling holla-ui v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla-ui)
+   Compiling holla v0.1.0 (/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla)
+    Finished `release` profile [optimized] target(s) in 59.94s

@@ -1,0 +1,72 @@
+{
+  "schema": "termrock-vis04-claim-pin-controls-followup-independent-review/v1",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "verdict": "READY_FOR_ROOT_CONTROLLED_AFFECTED_RUST_GATE",
+  "subject": {
+    "packet_root": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009",
+    "review_request": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/REVIEW-REQUEST.json",
+      "sha256": "b296ee16f589c22ddd2f42fc76a3cdf0e84630fb5fbc22c77d88dc6beec56245"
+    },
+    "packet_manifest": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/PACKET-MANIFEST.json",
+      "sha256": "65b836ca0c4abf45528c2ef9e7ed446098d2addac297b68f700541701e0ca2ef"
+    },
+    "runplan": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runplan.json",
+      "sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8",
+      "schema": "termrock-vis04-deferred-harness-controls-runplan/v4",
+      "mode": "prepared_not_launched"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/run-controls.cjs",
+      "sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd"
+    },
+    "source_manifest": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/source-manifest.json",
+      "sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60",
+      "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6",
+      "candidate_deferred_rs_sha256": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94",
+      "helper_sha256": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee",
+      "file_count": 14
+    },
+    "test_names": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/test-names.json",
+      "sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369",
+      "selected_count": 29,
+      "ignored_count": 0,
+      "target": "termrock-visibility-tests::deferred"
+    },
+    "trace_patch": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/trace-not-found.diff",
+      "sha256": "d79cf34fdf6de4c568523bacbf93d416b382481a93aa4610ca9237f15efa5b45"
+    }
+  },
+  "findings": [],
+  "review": {
+    "source_delta": "Compared v1 and v2 external source trees: exactly one path differs, crates/termrock-visibility-tests/tests/deferred.rs. The supplied patch changes only DeferredFixture::trace().",
+    "trace_semantics": "A successful read is parsed as before. ErrorKind::NotFound returns an empty trace; every other I/O error still panics. This matches the synthetic-fixture contract: the trace file is created by the fake tool when a probe is invoked, so an absent file records no probe. Existing tests that require list/run traces assert a matching row or wait for the trace; the two invalid-input controls explicitly require an empty trace.",
+    "prior_failure": "Inspected the pinned v1 actual stdout events and source assertions. Both tests reached the final trace check after asserting CLI exit 2, blocked result, zero executions, and null tool-version data; both failed only because read(trace_path) returned NotFound. The observed failure is a fixture accessor mismatch, not a production expectation failure.",
+    "runner_delta": "Compared v1 and v2 runners: the only code change is the expected runplan schema version v3→v4. Runplan v4 updates paths and digest pins for the external v2 source/runner and retains the same 29-name filter and execution controls.",
+    "selection_and_scope": "The runner parses the pinned source's #[test] declarations and requires exact order/equality with the 29-name manifest and runplan filter. It selects only the Rust deferred integration-test target, with locked/offline execution, 2 build jobs, 1 test thread, retries 0, no-fail-fast, and --run-ignored all; the exact source has zero ignored controls. No standalone Python test driver, product-control test target, or PTY journey is selected. Fixture-driven production CLI invocations inside the Rust control tests are part of this harness lane.",
+    "cache_and_bounds": "Runplan v4 binds the v7 cache manifest, 32 locked registry packages, their archive/index hashes, sparse-index config, and lock hash. The prepared runtime preflight records successful source/tool/environment/cache checks, bounded process-group supervision (600s, TERM 5s, post-KILL 1s), and the 16 MiB combined output cap. Preflight receipt reports no Cargo spawn.",
+    "product_lane_boundary": "The request records the separate product23 result as 22 PASS / BD-21 FAIL. This review does not rerun, alter, or qualify that lane."
+  },
+  "execution_state": "NOT_RUN",
+  "limits": {
+    "cargo_or_nextest_run_by_reviewer": false,
+    "repository_or_source_edits": false,
+    "product_qualification_claim": false,
+    "admission_claim": false,
+    "paired_execution_claim": false
+  },
+  "preflight": {
+    "static_result": "PASS_STATIC_PREFLIGHT_NO_CARGO",
+    "runtime_result": "PASS_RUNTIME_PREFLIGHT_NO_CARGO",
+    "runtime_receipt_path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-09-34-631Z-1ca26db6/receipt.json",
+    "runtime_receipt_sha256": "cc1e78c01b0aa4b863792629950de6ffeeded627daa516d558a5749d5a40daf6",
+    "cargo_spawned": false,
+    "nextest_run_id": null
+  }
+}

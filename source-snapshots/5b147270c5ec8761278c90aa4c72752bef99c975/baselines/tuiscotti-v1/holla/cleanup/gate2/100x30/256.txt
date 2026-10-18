@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       safe · Rust project  mbp · local
+
+  Here › Di╭────────────────────────────────────────────────────────────────────────────╮
+ ━━━━━━━━━━│                                                                            │──────────
+  Review · │  Trash 1 items · gate 2 of 2                                               │tely
+           │                                                                            │
+  Action   │  Action        move to Trash 1 item under ~/Projects/safe                  │
+  Host     │  Host          mbp · local                                                 │
+  Mode     │  Mode          Trash · native macOS Trash · space returns after the Trash  │
+  Estimate │                is emptied                                                  │ed · not
+           │  Estimate      1000.0 MiB allocated · APFS clones may overcount ·          │
+  Denied   │                purgeable space excluded · not a free-space guarantee       │nk rules
+  Revision │  Denied        none · every path passed the lexical, protected-root,       │
+  Threat mo│                user-data and symlink rules                                 │ rename
+           │  Revision      68c21e8eb8ed0a71 · any change to paths, mode or dry run     │
+  Paths    │                voids this review                                           │
+  Recoverab│  Threat model  an unprivileged user · ancestors are re-resolved at commit  │
+           │                · a concurrent rename of the final path cannot be excluded  │
+ ╭─ Sequenc│  Paths         ~/Projects/safe/target                                      │ copies ─╮
+ │  01  tra│                                                                            │         │
+ │         │  /Users/alex/Projects/safe/target                                          │         │
+ │         │                                                                            │         │
+ │         │   Type TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm           │         │
+ │         │ ▎                                                                          │         │
+ ╰─────────│                                                                            │─────────╯
+           │                                                                            │
+           │                                                         Cancel   Execute   │ontinue…
+           │                                                                            │
+ ~/Projects╰────────────────────────────────────────────────────────────────────────────╯s · 100×30
+                    ← → Choose  Enter Confirm  Esc Cancel    1 item selected · 1000.0 MiB estimated

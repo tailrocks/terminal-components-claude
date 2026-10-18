@@ -1,0 +1,31 @@
+[package]
+name = "termrock-conformance"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+termrock.workspace = true
+termrock-test-support.workspace = true
+showcase-ui.workspace = true
+jackin-preview-app.workspace = true
+holla-ui.workspace = true
+holla-sim.workspace = true
+tablepro-ui.workspace = true
+tablepro-demo.workspace = true
+tuiscotti.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+image.workspace = true
+sha2.workspace = true
+rayon.workspace = true
+ratatui.workspace = true
+
+[dev-dependencies]
+unicode-width.workspace = true
+
+[[test]]
+name = "visual_baseline"
+path = "tests/visual_baseline/main.rs"

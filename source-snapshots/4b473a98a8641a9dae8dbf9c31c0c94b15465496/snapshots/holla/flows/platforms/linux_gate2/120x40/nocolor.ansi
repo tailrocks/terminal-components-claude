@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                 no project  devbox · local [0m
+                                                                                                                        [0m
+  Here › Cleanup › Review                                                                                               [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────── [0m
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately                           [0m
+                                                                                                                        [0m
+  Action        move to Trash 1 item under ~                                                                            [0m
+  Host          devbo╭────────────────────────────────────────────────────────────────────────────╮                     [0m
+  Mode          Trash│                                                                            │ter the Trash is     [0m
+                empti│  [0m[1mTrash 1 items · gate 2 of 2[0m                                               │                     [0m
+  Estimate      124.0│                                                                            │free-space           [0m
+                guara│  Action        move to Trash 1 item under ~                                │                     [0m
+  Denied        none │  Host          devbox · local                                              │                     [0m
+  Revision      c4d72│  Mode          Trash · no Trash backend · every item will fail, never      │                     [0m
+  Threat model  an un│                fall back · space returns after the Trash is emptied        │ the final path      [0m
+                canno│  Estimate      124.0 KiB allocated · APFS clones may overcount ·           │                     [0m
+  Paths         ~/Pro│                purgeable space excluded · not a free-space guarantee       │                     [0m
+  Recoverable   yes ·│  Denied        none · every path passed the lexical, protected-root,       │                     [0m
+  Provenance    holla│                user-data and symlink rules                                 │                     [0m
+                     │  Revision      c4d729e20ca0805b · any change to paths, mode or dry run     │                     [0m
+ ╭─ Sequence · 1 comm│                voids this review                                           │──────── y copies ─╮ [0m
+ │  01  trash /home/a│  Threat model  an unprivileged user · ancestors are re-resolved at commit  │                   │ [0m
+ │                   │                · a concurrent rename of the final path cannot be excluded  │                   │ [0m
+ │                   │  Paths         ~/Projects/app/node_modules                                 │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │  /home/alex/Projects/app/node_modules                                      │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │   [0m[1mType TRASH 1 UNDER /home/alex ON devbox to confirm                     [0m  │                   │ [0m
+ │                   │ ▎                                                                          │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   │                                                         Cancel   [0m[2mExecute [0m  │                   │ [0m
+ │                   │                                                                            │                   │ [0m
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                                  Cancel    Continue…   [0m
+                                                                                                                        [0m
+ ~/work/box                                   review · gate 1 of 2                                    no color · 120×40 [0m
+                       [0m[1m   [0m         [0m[1m     ← →[0m Choose [0m[1m Enter[0m Con[0m[1mf[0mirm  [0m[1mEsc[0m Cancel [0m[1m   [0m           1 item selected · 124.0 KiB [0m

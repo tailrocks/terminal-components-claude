@@ -1,0 +1,81 @@
+{
+  "schema": "termrock-spec/document-validation-v1",
+  "status": "passed",
+  "scope": "document_pack_only",
+  "counts": {
+    "components": 45,
+    "foundations": 12,
+    "legacy_families": 54,
+    "capture_plans": 45,
+    "component_specific_case_descriptions": 222,
+    "embedded_documents": 67
+  },
+  "checks": [
+    {
+      "name": "component_count_and_unique_ids",
+      "status": "passed",
+      "details": "45 distinct component/API surface records."
+    },
+    {
+      "name": "foundation_count_and_unique_ids",
+      "status": "passed",
+      "details": "12 distinct shared-foundation records."
+    },
+    {
+      "name": "dependency_graph",
+      "status": "passed",
+      "details": "All component dependencies resolve, are acyclic, and precede or share the component implementation phase."
+    },
+    {
+      "name": "legacy_family_mapping",
+      "status": "passed",
+      "details": "All 54 legacy families have one or more explicit component/foundation dispositions; no legacy family omitted."
+    },
+    {
+      "name": "component_references_and_capture_schema",
+      "status": "passed",
+      "details": "45 detailed component files and 45 JSON capture plans exist and validate; all expected artifacts remain null and execution remains not_executed."
+    },
+    {
+      "name": "unique_case_ids",
+      "status": "passed",
+      "details": "222 distinct component-specific acceptance case descriptions; these are plans, not executed tests or snapshot counts."
+    },
+    {
+      "name": "local_markdown_links",
+      "status": "passed",
+      "details": "329 relative Markdown links resolve. External GitHub references are not network-tested by this check."
+    },
+    {
+      "name": "immutable_visual_pin",
+      "status": "passed",
+      "details": "Visual authority is exactly the user-selected commit; refactored main is separately labeled API-direction evidence."
+    },
+    {
+      "name": "offline_html",
+      "status": "passed",
+      "details": "67 Markdown documents embedded in an offline viewer; internal document anchors resolve; no remote display assets or font files."
+    },
+    {
+      "name": "no_font_files",
+      "status": "passed",
+      "details": "No font files distributed."
+    },
+    {
+      "name": "text_conflict_consistency",
+      "status": "passed",
+      "details": "Plain and secret-specialized text response references consistently include Conflict."
+    }
+  ],
+  "not_executed": [
+    "Rust compilation",
+    "library implementation",
+    "new oracle captures",
+    "candidate visual comparisons",
+    "PTY runs",
+    "performance benchmarks",
+    "independent-agent review",
+    "remote-link revalidation"
+  ],
+  "archive_integrity": "validated_after_writing_in_companion_archive_check_report"
+}

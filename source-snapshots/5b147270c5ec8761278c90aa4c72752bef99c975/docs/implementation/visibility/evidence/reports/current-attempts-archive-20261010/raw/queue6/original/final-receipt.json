@@ -1,0 +1,115 @@
+{
+  "schema": "termrock-rust-execution-receipt-v1",
+  "run_root": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010",
+  "source_identity": {
+    "context": "q65 accepted task/view inputs plus the separately reviewed R3 candidate files; assembled source closure, not a full Git-tree identity",
+    "queue_revision": 65,
+    "task_count": 17,
+    "candidate_delta_sha256": "e44827076a60ed67aecf5aa2b0b1e4ddb17e0f0ff13f8ae7fed4edae8043c989",
+    "closure_sha256": "f85405e511dcdca33358a544ce3a16911153e9d5115acbc7b60fd10b2b281da9"
+  },
+  "command": {
+    "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--manifest-path",
+      "/private/tmp/termrock-vis08-reviewer-handoff-rust-gate-r1-20261010/source/crates/termrock-visibility-tests/Cargo.toml",
+      "--test",
+      "queue_v2",
+      "-E",
+      "test(reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer) | test(reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes) | test(reviewer_handoff_rejects_reused_reason_without_writes) | test(reviewer_handoff_rejects_review_state_without_writes) | test(reviewer_handoff_rejects_lower_priority_work_without_writes) | test(reviewer_handoff_rejects_a_stale_review_subject_without_writes)",
+      "--locked",
+      "--offline",
+      "--profile",
+      "default",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--user-config-file",
+      "none",
+      "--no-fail-fast",
+      "--retries",
+      "0",
+      "--no-tests",
+      "fail"
+    ],
+    "cwd": "/private/tmp/termrock-vis08-reviewer-handoff-rust-gate-r1-20261010/source",
+    "environment": {
+      "HOME": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/home",
+      "TMPDIR": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/tmp",
+      "TMP": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/tmp",
+      "TEMP": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/tmp",
+      "PATH": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "CARGO_HOME": "/private/tmp/termrock-vis04-deferred-controls-b106-cache-repair-20261009-v7.Qs1c13/cargo-home",
+      "CARGO_TARGET_DIR": "/private/tmp/termrock-visibility-tests-target",
+      "CARGO_BUILD_JOBS": "2",
+      "RUSTUP_HOME": "/Users/donbeave/.rustup",
+      "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "LANG": "C",
+      "LC_ALL": "C"
+    }
+  },
+  "process": {
+    "pid": 94641,
+    "process_group": 94641,
+    "started_at_utc": "2026-10-09T20:40:13.896Z",
+    "ended_at_utc": "2026-10-09T20:45:03.172Z",
+    "elapsed_ms": 289276,
+    "timeout_ms": 600000,
+    "timed_out": false,
+    "exit_code": 0,
+    "signal": null,
+    "spawn_error": null,
+    "wrapper_exit_code": 125
+  },
+  "nextest_run_id": "4ba5ac4d-7e63-4195-beee-dca048e1291e",
+  "observed": {
+    "started_selected_test_count": 6,
+    "passed_test_count": null,
+    "skipped_test_count": null,
+    "expected_filtered_count": 77,
+    "filtered_count_match": false,
+    "selected_test_names": [
+      "reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer",
+      "reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes",
+      "reviewer_handoff_rejects_reused_reason_without_writes",
+      "reviewer_handoff_rejects_review_state_without_writes",
+      "reviewer_handoff_rejects_lower_priority_work_without_writes",
+      "reviewer_handoff_rejects_a_stale_review_subject_without_writes"
+    ],
+    "selected_test_names_with_pass_line": [
+      "reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer",
+      "reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes",
+      "reviewer_handoff_rejects_reused_reason_without_writes",
+      "reviewer_handoff_rejects_review_state_without_writes",
+      "reviewer_handoff_rejects_lower_priority_work_without_writes",
+      "reviewer_handoff_rejects_a_stale_review_subject_without_writes"
+    ],
+    "selected_test_names_match": true,
+    "focused_test_group_success_predicate": false
+  },
+  "input_stable": true,
+  "postflight_error": null,
+  "output_capture_error": null,
+  "raw_outputs": {
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/stderr.log",
+      "bytes": 1570,
+      "sha256": "a169de5454a597609083bf911b6a679d9d6d4ec6ad80c9c96ad887aee2cc7f58"
+    },
+    "aggregate_persisted_bytes": 1570,
+    "aggregate_limit_bytes": 16777216,
+    "truncated": false,
+    "process_events": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/process-events.jsonl"
+  },
+  "cache_note": "The runner rehashed the 32 reviewed archives and 32 sparse-index files before and after execution. The independent offline 27-control result is dependency-resolution evidence only and does not count as a queue_v2 result."
+}

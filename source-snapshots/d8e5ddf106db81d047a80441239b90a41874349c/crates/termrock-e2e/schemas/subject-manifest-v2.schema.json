@@ -1,0 +1,422 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/parity-subject-manifest-v2",
+  "title": "Termrock shared PTY subject manifest v2",
+  "type": "object",
+  "required": [
+    "schema",
+    "run_id",
+    "suite_revision",
+    "suite_sha256",
+    "expected_generation",
+    "subjects",
+    "build_evidence"
+  ],
+  "properties": {
+    "schema": {
+      "const": "termrock-spec/parity-subject-manifest-v2"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "suite_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "suite_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "expected_generation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "sha256"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "root": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "subjects": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/subject"
+      },
+      "contains": {
+        "properties": {
+          "role": {
+            "const": "reference"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "build_evidence": {
+      "type": "object",
+      "required": [
+        "source_inputs",
+        "build_environment"
+      ],
+      "properties": {
+        "source_inputs": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "const": "source-inputs.json"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "build_environment": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "const": "build-environment.json"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "mise_config": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "present",
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "present": {
+              "const": true
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "present",
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "present": {
+              "const": false
+            },
+            "path": {
+              "type": "null"
+            },
+            "sha256": {
+              "type": "null"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "builder_receipt": {
+      "type": "object",
+      "required": [
+        "schema",
+        "source_commit",
+        "package_id",
+        "target_name",
+        "requested_features",
+        "default_features",
+        "target_triple",
+        "toolchain",
+        "profile",
+        "manifest_sha256",
+        "lock_sha256",
+        "mise_config",
+        "cargo_version",
+        "rustc_version",
+        "host_triple",
+        "executed_argv",
+        "executable_path",
+        "executable_sha256",
+        "sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "termrock-spec/parity-subject-build-receipt-v1"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40}$"
+        },
+        "package_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "default_features": {
+          "type": "boolean"
+        },
+        "target_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolchain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "lock_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "mise_config": {
+          "$ref": "#/$defs/mise_config"
+        },
+        "cargo_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rustc_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_argv": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "executable_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subject": {
+      "type": "object",
+      "required": [
+        "role",
+        "source_commit",
+        "build",
+        "executable",
+        "actual_output_root",
+        "build_inputs",
+        "builder_receipt",
+        "builder_receipt_sha256"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "reference",
+            "candidate"
+          ]
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40}$"
+        },
+        "build": {
+          "type": "object",
+          "required": [
+            "package_id",
+            "target_name",
+            "features",
+            "default_features",
+            "target_triple",
+            "toolchain",
+            "profile"
+          ],
+          "properties": {
+            "package_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "default_features": {
+              "type": "boolean"
+            },
+            "target_triple": {
+              "type": "string",
+              "minLength": 1
+            },
+            "toolchain": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "executable": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "actual_output_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_inputs": {
+          "type": "object",
+          "required": [
+            "manifest_sha256",
+            "lock_sha256",
+            "mise_config",
+            "cargo_version",
+            "rustc_version",
+            "host_triple",
+            "executed_argv"
+          ],
+          "properties": {
+            "manifest_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "lock_sha256": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "mise_config": {
+              "$ref": "#/$defs/mise_config"
+            },
+            "cargo_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rustc_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "host_triple": {
+              "type": "string",
+              "minLength": 1
+            },
+            "executed_argv": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "builder_receipt": {
+          "$ref": "#/$defs/builder_receipt"
+        },
+        "builder_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

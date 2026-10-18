@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe        [0m
+                                                                        [0m
+  ≡ Query 1 ×                                                       +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+ ╭─ ╭──────────────────────────────────────────────────────────────╮ ─╮ [0m
+ │  │ [0m[1mOpen tabs[0m                                                    │  │ [0m
+ │  │ ▎ Filter tabs…                                               │  │ [0m
+ │  │                                                              │┃ │ [0m
+ │ ▎│ [0m[1m▎[0m≡[0m[1m Query 1  [0mquery[0m[1m                                   [0mactive[0m[1m  [0m │┃ │ [0m
+ │  │                                                              │┃ │ [0m
+ │  │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │┃ │ [0m
+ │  ╰──────────────────────────────────────────────────────────────╯┃ │ [0m
+ │        ▸ T products                                          312 ┃ │ [0m
+ │        ▸ T orders                                          1.2 M │ │ [0m
+ │        ▸ T order_items                                     3.8 M │ │ [0m
+ │        ▸ T payments                                        1.2 M │ │ [0m
+ │        ▸ T subscriptions                                   1.1 k │ │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+                                                Connected to Production [0m

@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Dialogs             i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  Dialogs  Focus is trapped, the page dims, Esc always canc… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Open a dialog                                            [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     Confirm run    Rename task…    Three choices…    Del…   [0m
+   Lists     ╭────────────────────────────────────────────────────╮             [0m
+   Trees     │                                                    │n answer d…  [0m
+   Tables    │  [0m[1mDelete branch?[0m                                    │s, validat…  [0m
+   Editable t│                                                    │ danger st…  [0m
+   Panels    │  feat/rate-limit has 14 commits that are not on    │             [0m
+   Sidebars  │  main. This cannot be undone.                      │             [0m
+ › Dialogs   │                                                    │             [0m
+   Progress  │                          ▎[0m[1mCancel [0m  Delete branch   │             [0m
+   Scrolling │                                                    │             [0m
+   Terminal  ╰────────────────────────────────────────────────────╯             [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │                                                             [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel  [0m[1my / n[0m Quick answer                      [0m

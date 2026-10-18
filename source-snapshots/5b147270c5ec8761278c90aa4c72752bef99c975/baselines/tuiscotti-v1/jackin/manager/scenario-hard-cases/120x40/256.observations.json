@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 12392982700575294148,
+  "legacy_name": "jackin/scenarios/hard-cases/120x40/256",
+  "name": "jackin/manager/scenario-hard-cases/120x40/256",
+  "non_empty_cells": 1223,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

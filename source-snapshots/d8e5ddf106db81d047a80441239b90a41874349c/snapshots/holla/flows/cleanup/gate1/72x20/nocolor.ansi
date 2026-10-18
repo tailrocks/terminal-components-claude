@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help           safe · Rust project  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here › Disk › Usage › Review  [0m                                        [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────── [0m
+  [0m[1mReview · trash 1 item[0m · gate 1 of 2 · review the resolved facts, th…  [0m
+                                                                        [0m
+  Action        move to Trash 1 item under ~/Projects/safe              [0m
+  Host          mbp · local                                             [0m
+  Mode          Trash · native macOS Trash · space returns after the    [0m
+                Trash is emptied                                        [0m
+  Estimate      1000.0 MiB allocated · APFS clones may overcount ·      [0m
+                purgeable space excluded · not a free-space guarantee   [0m
+                                                                        [0m
+ ╭─ Sequence · 1 command ────────────────────────────────── y copies ─╮ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+                                                 ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                        [0m
+ [0m[1m~/Projects/safe[0m         review · gate 1 of 2          no color · 72×20 [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  …   1 item selected · 1000.0 MiB estimated [0m

@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Data grid                                                                       no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            Data grid  Typed cells, a pending-change queue, paging and local sort                                                                 [0m
+   Overview                                                                                                                                                     [0m
+                            customers                                                                                    rows 1–24 of 40 loaded · ~4,812 total  [0m
+   Components                                                                                                                                                   [0m
+   Buttons                        ⚷ id       customer                   plan          seats      mrr  active    renewed_at    notes                             [0m
+   Inputs                     • 1 1001       Northwind Traders          enterprise      600    57.00  true      2026-01-01    {"owner":"mira","seats":3}     ┃  [0m
+   Text areas                 • 2 1002       Blue Yonder Airlines       team             12  1920.00  true      2026-02-04    NULL                           ┃  [0m
+   Forms                        3 1003       Contoso Pharmaceuticals    pro              12   348.00  true      2026-03-07    NULL                           ┃  [0m
+   Lists                        4 1004       Fabrikam Robotics          free              1     0.00  false     NULL          NULL                           ┃  [0m
+   Trees                        5 1005       Litware Analytics          enterprise       40   760.00  true      2026-05-13    {"owner":"mira","seats":40}    ┃  [0m
+   Tables                       6 1006       Tailspin Toys              team              5   120.00  true      2026-06-16    NULL                           ┃  [0m
+   Editable tables              7 1007       Wide World Importers       pro             150  4350.00  true      2026-07-19    NULL                           ┃  [0m
+   Panels                       8 1008       Adventure Works            free             25     0.00  true      NULL          NULL                           ┃  [0m
+   Sidebars                     9 1009       Proseware Studio           enterprise        3    57.00  false     2026-09-25    {"owner":"mira","seats":3}     ┃  [0m
+   Dialogs                     10 1010       Woodgrove Bank             team             80  1920.00  true      2026-10-28    NULL                           ┃  [0m
+   Progress                    11 1011       Alpine Ski House           pro              12   348.00  true      2026-11-03    NULL                           ┃  [0m
+   Scrolling                   12 1012       Co╭────────────────────────────────────────────────────────────────╮ULL          NULL                           ┃  [0m
+   Terminal                    13 1013       Lu│                                                                │026-01-09    {"owner":"mira","seats":40}    ┃  [0m
+   Code editor                 14 1014       Ma│  [0m[1mPending changes[0m                                               │026-02-12    NULL                           ┃  [0m
+   Diff                        15 1015       Tr│                                                                │026-03-15    NULL                           │  [0m
+ › Data grid                   16 1016       Hu│  Statements  2                                                 │ULL          NULL                           │  [0m
+   Chips & selects             17 1017       No│  Rows        2 changed · 0 inserted · 0 deleted                │026-05-21    {"owner":"mira","seats":3}     │  [0m
+   Pickers                     18 1018       Bl│  Target      customers                                         │026-06-24    NULL                           │  [0m
+   Chrome                      19 1019       Co│                                                                │026-07-27    NULL                           │  [0m
+                               20 1020       Fa│  UPDATE customers SET seats = 600 WHERE id = 1001;             │ULL          NULL                           │  [0m
+   Screens                     21 1021       Li│  UPDATE customers SET seats = 12 WHERE id = 1002;              │026-09-05    {"owner":"mira","seats":40}    │  [0m
+   Settings                    22 1022       Ta│                                                                │026-10-08    NULL                           │  [0m
+   Task runner                 23 1023       Wi│                                           ▎[0m[1mCancel [0m  [0m[1mCopy SQL [0m  │026-11-11    NULL                           │  [0m
+                               24 1024       Ad│                                                                │ULL          NULL                           │  [0m
+                                               ╰────────────────────────────────────────────────────────────────╯                                               [0m
+                             • 2 pending · 2 updates                                                                            Preview SQL   Discard   Save    [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                                                                                                2 pending [0m

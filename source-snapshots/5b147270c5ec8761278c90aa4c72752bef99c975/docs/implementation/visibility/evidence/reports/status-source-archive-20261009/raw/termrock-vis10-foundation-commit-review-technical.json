@@ -1,0 +1,71 @@
+{
+  "schema": "termrock-proposed-commit-independent-review/v1",
+  "reviewer": "technical_review",
+  "verdict": "READY_FOR_COMMIT_TREE",
+  "reviewed_subject": {
+    "parent_commit": "169380c7d6a4cff9f1c43ecef592abc715e6df6a",
+    "parent_tree": "904fe74a84da3c826608d0fb2756269c79100d53",
+    "candidate_tree": "3d7c68dcf6724799c38aefb774ac25447ea630b3",
+    "candidate_is_git_tree_object": true,
+    "diff_name_status": [
+      "A crates/termrock-visibility-tests/tests/queue_v2.rs",
+      "A docs/implementation/visibility/queue-v2.md",
+      "M tools/visibility/queue.py"
+    ],
+    "diff_stat": "3 files changed, 4375 insertions(+), 17 deletions(-)"
+  },
+  "candidate_blobs": [
+    {
+      "path": "crates/termrock-visibility-tests/tests/queue_v2.rs",
+      "git_blob": "b2e4b1002dd2165b6eb94a32b530e7f39173b73d",
+      "sha256": "e38d4b0b9e795b2aa9155d1dd30b31062b1774fc0798410ac90833902980a252"
+    },
+    {
+      "path": "docs/implementation/visibility/queue-v2.md",
+      "git_blob": "1f0f643a6c7125e0d819ffc60de0f9b1e43ff320",
+      "sha256": "29b271de2a92c9c3d3a8d40400a808efa50f34866d558100a017efd4fa13aab1"
+    },
+    {
+      "path": "tools/visibility/queue.py",
+      "git_blob": "6345bbc46a6bf1a7cae01a55c9dbb2a3808ff7b7",
+      "sha256": "bef3f27e20faab531fa5ae648fa4a76ee1344ed142b30ef56ca60573451ae1f1"
+    }
+  ],
+  "commit_message": {
+    "path": "/private/tmp/termrock-vis10-foundation-commit-message-20261009.txt",
+    "sha256": "9126bae8fc9120fee55af7137de3e55d790c2c440b6a0e4f0ddd4bd794d1d355",
+    "subject": "test: add queue registry validation and migration preview",
+    "signed_off_by_count": 1,
+    "signed_off_by": "Alexey Zhokhov <alexey@zhokhov.com>"
+  },
+  "test_evidence_accounting": {
+    "historical_gate_seal": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-v2-21-lifetime-20261009-wNoAbV/final-seal.json",
+      "sha256": "951db344726f591023c58716cb75a45f128174677eac3e4592ce41a1285be3d1",
+      "result": "21 selected and passed on q25 inputs; one is the accepted-record preview case and is replaced for q26 accounting by the later q26-specific run; 20 other registry cases remain historical passes. The prior gate filtered 29 additional cases."
+    },
+    "q26_selected_case": {
+      "actual_review_path": "/private/tmp/termrock-q26-foundation-r4-actual-review-technical.json",
+      "actual_review_sha256": "4fe77637960d9c0b4623a2d1bd797fdde51fd4311d9cbfa48242e260e91a07de",
+      "interpretation_path": "/private/tmp/termrock-q26-foundation-onecase-r4-interpretation-review-technical.json",
+      "interpretation_sha256": "193de7105a8d91779253f71238e7873d63a7abeed1e50504825add4bdae9061c",
+      "observed_case_result": "The q26-selected Rust test passed once; Cargo child exit was 0 and source inputs were stable. The R4 wrapper exited 125 because it rejected Nextest's omitted-zero summary form. That wrapper failure remains preserved and is not represented as a clean full-gate result."
+    },
+    "current_unique_case_accounting": {
+      "historical_passes_reused": 20,
+      "q26_case_pass_observed": 1,
+      "not_run": 29,
+      "fresh_full_21_case_pass_claim": false
+    }
+  },
+  "scope_and_state": {
+    "candidate_tree_only": true,
+    "no_other_paths_in_diff": true,
+    "no_commit_object_created_by_review": true,
+    "current_worktree_head_at_review": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "current_dirty_worktree_or_index_included": false,
+    "cargo_or_tests_run": false,
+    "repository_or_index_mutated": false,
+    "qualification_claim": false
+  }
+}

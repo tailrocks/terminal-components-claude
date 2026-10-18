@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                Workspaces › payments-platform › edit  • 1 change  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+   General •    Mounts    Roles    Environments    Accounts                                                                                                     [0m
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                                                                                                                                                                [0m
+      Name *                                                                                                                                                    [0m
+      payments-platform                                                                                                                                         [0m
+      Directory basename by default                                                                                                                             [0m
+                                                                                                                                                                [0m
+    Working directory *                                                                                                                                         [0m
+    /workspace/payments-platform                                  Choose…                                                                                       [0m
+    Inside the Construct                                                                                                                                        [0m
+                                                                                                                                                                [0m
+     [ ] Keep awake               macOS only                                                                                                                    [0m
+     [✓] Git pull before launch                                                                                                                                 [0m
+                                                                                                                                                                [0m
+      On dirty exit                                                                                                                                             [0m
+      ask · show the exit dialog                  ▾                                                                                                             [0m
+                                               ╭────────────────────────────────────────────────────────────────╮                                               [0m
+                                               │                                                                │                                               [0m
+                                               │  [0m[1mSave workspace[0m                                                │                                               [0m
+                                               │                                                                │                                               [0m
+                                               │  Workspace  payments-platform                                  │                                               [0m
+                                               │  Scope      workspace config · ~/.jackin/workspaces/payments…  │                                               [0m
+                                               │  Changes    1 change                                           │                                               [0m
+                                               │                                                                │                                               [0m
+                                               │  ~ keep_awake true → false                                     │                                               [0m
+                                               │                                                                │                                               [0m
+                                               │                                               ▎[0m[1mCancel [0m  [0m[1mSave [0m  │                                               [0m
+                                               │                                                                │                                               [0m
+                                               ╰────────────────────────────────────────────────────────────────╯                                               [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                          Cancel     Save…      [0m
+                                                                                                                                                                [0m
+                                                [0m[1m     [0m       [0m[1m← → C[0mhoose  [0m[1mEnter[0m Confirm  [0m[1mEsc Can[0mcel    [0m[1m   [0m                                                        [0m

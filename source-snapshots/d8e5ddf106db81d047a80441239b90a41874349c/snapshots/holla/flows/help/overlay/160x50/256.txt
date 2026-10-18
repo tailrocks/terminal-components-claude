@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                  holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                                                                                                scope ‹ here ›
+                                         ╭────────────────────────────────────────────────────────────────────────────╮
+    Suggested here                       │                                                                            │t 12 GB of generated arti… disk · here
+  › Inspect 12 GB of generated artifacts │  Key reference                                                       Here  │
+    Pull                                 │                                                                            │     1 rebuildable candidate below
+    Review 5 modified files              │  Finder                                                                    │     this folder · 0 stale enough to
+    Run tests                            │  Type             search actions and resources together · @parent          │     start selected
+    Who is blocking the database?        │                   @children @system @all narrow the scope                  │     'holla disk analyze --artifacts'
+                                         │  ↑↓               move · PgUp PgDn Home End                                │     ~/work/holla
+    Recent here                          │  Enter            primary action · destructive rows open a review instead  │     mbp · local
+    nothing used here yet                │  Alt+Enter        alternatives · run, copy, insert, arguments, pin,        │     here
+                                         │                   alias, hide, why                                         │     12 GB generated artifacts
+    Explore                              │  Tab              preview › tab strip › finder                             │s    none · read-only
+     Tasks   Git   Files   Disk   Service│  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward (children)       │     read-only
+    System · mbp                         │  Esc              clear query › scope back to here › back a page › quit    │     live · 3 s ago
+                                         │  Aliases          gp pull · du disk usage · test the test task here · d    │     opens a review · the deletion is
+                                         │                   then u · dc docker cleanup                               │     gated there (typed phrase)
+                                         │                                                                            │ter  Pin · Alias · Why here?
+                                         │  Pages                                                                     │
+                                         │  Disk             ↑↓ move · Space select · a all · Enter drill · c         │
+                                         │                   cleanup plan · p details                                 │
+                                         │  Plan review      Space include or exclude · u undo · Enter step facts ·   │
+                                         │                   c confirm                                                │
+                                         │  Gates            Gate 1 reviews facts and the full sequence · Gate 2      │
+                                         │                   types the target-bound phrase                            │
+                                         │                                                                            │
+                                         │  Everywhere                                                                │
+                                         │  F10              menu bar · F1 this reference                             │
+                                         │  Ctrl+G           activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close    │
+                                         │                   tab                                                      │
+                                         │  Ctrl+Q           quit with confirmation · Ctrl+C quit now                 │
+                                         │  Mouse            click selects · double-click runs · right-click          │
+                                         │                   alternatives · wheel scrolls under the pointer           │
+                                         │                                                                            │
+                                         │                                                                            │
+                                         ╰────────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+ ~/work/holla   main   ↓3 • 5                                                                                                               256 colors · 160×50
+                                                                     ↑↓ Scroll  Esc Close

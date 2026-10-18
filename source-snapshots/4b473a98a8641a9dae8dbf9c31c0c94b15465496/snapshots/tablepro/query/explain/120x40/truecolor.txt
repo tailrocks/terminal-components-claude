@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ───────────────────────────────────────────────────────────────────── 2 ms ─╮
+ │                           │ │  ▎›  1 SELECT * FROM orders                                                          │
+ │   Filter objects          │ │                                                                                      │
+ │  ▾ D acme_prod            │ │                                                                                      │
+ │    ▾ S public             │ │                                                                                      │
+ │      ▾ Tables             │ │                                                                                      │
+ │        ▸ T organizations  │ │                                                                                      │
+ │        ▸ T customers      │ │                                                                                      │
+ │        ▸ T products       │ │                                                                                      │
+ │        ▸ T orders         │ │                                                                                      │
+ │        ▸ T order_items    │ │                                                                                      │
+ │        ▸ T payments       │ │                                                                     ln 1/1 · col 21  │
+ │        ▸ T subscriptions  │ │                                                                                      │
+ │      ▸ Views              │ │   EXPLAIN ×                                                                          │
+ │      ▸ Functions          │ │  ━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────── │
+ │      ▸ Sequences          │ │   Planning 0.210 ms · r Raw                                                          │
+ │    ▸ S analytics          │ │     Operation                                          cost     rows     actual    % │
+ │    ▸ S audit              │ │   ▾ Gather                                      1000..16254    1.2 M          —   7  │
+ │                           │ │       Parallel Seq Scan on public.orders           0..15054    1.2 M          —  93 ▲│
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+  EDIT   Ctrl+R Run  Alt+R Run all  Ctrl+Space Complete  Esc Done                               Connected to Production

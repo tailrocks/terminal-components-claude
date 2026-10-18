@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                            no project  mbp · local
+
+  Here › Files › site
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Files · ~/work/site
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first
+
+  ▸ assets                                           –  2026-09-06 08:41  directory         ~/work/site/assets                                      directory
+  ▸ private                                          –  2026-09-03 08:41  permission d…
+    bad.txt                                        3 B  2026-09-07 08:41  file              2048 visible · 0 hidden · at least (count capped at 2048 / 40 ms)
+    big.log                                   19.4 KiB  2026-09-08 08:41  file              modified 2026-09-06 08:41
+  → broken                                         0 B  2026-09-09 08:41  broken link …     Find and Browse are always available from Here
+    café.txt                                      11 B  2026-09-09 08:41  file
+    café.txt                                      12 B  2026-09-09 08:41  file
+    control.txt                            ╭────────────────────────────────────────────────────────────────────────╮
+  → current                                │ Go to path                                                 ~/work/site │
+    empty.txt                              │ ▎ path · ~/… · relative to this folder                                 │
+    index.html                             │                                                                        │
+    logo.png                               │                         type a path or a name                          │
+    long.txt                               │                                                                        │
+    package.json                           │                                                                        │
+  ◇ pipe                                   ╰────────────────────────────────────────────────────────────────────────╯
+    pnpm-lock.yaml                                19 B  2026-09-08 08:41  file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/site                                                     ~/work/site · hidden off                                                     no color · 160×50
+                                                        Type Filter  ↑↓ Move  Enter Switch  Esc Cancel

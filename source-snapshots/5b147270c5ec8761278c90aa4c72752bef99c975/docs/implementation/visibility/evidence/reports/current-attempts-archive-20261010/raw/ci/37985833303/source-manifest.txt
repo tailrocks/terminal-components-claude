@@ -1,0 +1,45 @@
+schema: termrock-ci-provider-poll/v1
+observed_at_utc: 2026-10-09T20:44:35Z
+provider: GitHub REST API via gh 2.102.0; one gh run view diagnostic
+repository: tailrocks/terminal-components-claude
+
+Exact refs observed:
+- refs/heads/termrock-implementation = ed7d30de8ffabe9ebe6f1119f8f364142b777d0f
+- refs/heads/visual-baseline = 4b473a98a8641a9dae8dbf9c31c0c94b15465496
+- PR #17 open, draft, head matches candidate; base main = 81a8bf15cd3042f80649e2b48fed479829518dbd; mergeable=false, mergeable_state=dirty.
+
+Candidate results at ed7d30de8ffabe9ebe6f1119f8f364142b777d0f:
+- GitHub Actions workflow run 37985833303 (.github/workflows/ci.yml, event push, run 851 attempt 1): completed failure.
+- Actions run reports zero jobs. Its GitHub Actions check suite 102925783239 is completed failure with latest_check_runs_count=0; the suite check-runs API returns zero entries. The actions run artifacts API returns zero artifacts.
+- `gh run view --log-failed` returned exit 1 and `failed to get run log: log not found`.
+- The only commit check-run is DCO: completed success, title “Check passed!”.
+- The API responses and CLI output expose no workflow failure cause. This poll does not establish a workflow-size or configuration diagnosis.
+
+Reference results at 4b473a98a8641a9dae8dbf9c31c0c94b15465496:
+- No GitHub Actions workflow run is returned for this exact head SHA.
+- The only check-run is DCO: completed action_required, title “Check failed”; DCO summary says 14 commits are incorrectly signed off.
+
+Both commit-status APIs return state=pending with total_count=0 and no status contexts. This is preserved as reported; it is not treated as a workflow result.
+
+Raw successful provider responses and their SHA-256 digests:
+- candidate-branch-ref.json  bb025d2c8bc34468ee6116f8939b66fc80484b1dc32c3133bf15cf2206c20ca4
+- reference-branch-ref.json  7c04a8d27e5c742dc67013c71b7d55da9613e32e56a67aff128beec277614387
+- pr17.json  70408f82bc73d73ff2aff56790afa6ba1676a4f18f5386ce599e834853e6d370
+- candidate-check-runs.json  762e11457f07f20612ada1e9e1fa9558ed73b76d8f6d71a54ff1e2455c542591
+- candidate-check-suites.json  9bbac2c2f7605dfc6519509e5816706d338d4951e94592bb7ed6591b6270766e
+- candidate-actions-runs.json  d8cb35af12644bea0e55fb4f223461630872e26642de117e44e4bfd90fbdfc00
+- candidate-commit-status.json  f3354e093de41d3ff291303d223711c7a7999067a0f5ff645a17d025741113fb
+- candidate-failed-suite.json  a16c16cdca4e3ce74f99ff4f2978c1af738f30b574c87d5fca5dd18d37a48538
+- candidate-failed-suite-runs.json  e83cfac35507982a40cfeb776ce85aa0367e7646f81fe857df4a6c841ea8a170
+- candidate-actions-run.json  63dc8659c6112f205db3ed2fec2e50134c07cd48fa7bc8b18350aec5ebcf25ee
+- candidate-actions-jobs.json  b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6
+- candidate-actions-artifacts.json  244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c
+- candidate-actions-run-cli-view.json  aaa90aaf7609ee8b880ca8bb47d8e9102eac0eb2fe32a61f194521e5c78308fd
+- candidate-failed-log-cli.txt  e4238f2f3cbfb95454d5468ba5ee520254b9f3e365b6fe5f6e5df70950a7e3ec
+- reference-check-runs.json  fc4075bd27f14ac23f1f1f3c1dadd97217ef1e7adbf2218c3d2274663cf99167
+- reference-check-suites.json  b7bf2c0c756ab2d8b1271c91f710c627c74770b0298263903cfd2cc5c5f94c5c
+- reference-actions-runs.json  a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915
+- reference-commit-status.json  a92fbf6cc9aef5697dc6969d84fce5cbaf80cabb2eecf6473789dc46ebfea365
+- reference-failed-suite.json  393f08e52888f7cf36db42214a5dfec0774b461a0ae17f5e6d68dd679c872e53
+
+No Termrock repository files or refs were changed. Failed shell-glob attempts and a non-existent `pulls/17/checks` route are excluded from provider evidence.

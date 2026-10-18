@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here › Review
+ ━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────
+  Review · Stop and remove all containers · gate 1 of 2 · review the …
+
+  Action       stop the running containers, then remove every captured
+               container on mbp (running and stopped) · images and
+               volumes stay · rm runs only after stop succeeds
+  Host         mbp · local
+  In           mbp · host-wide
+  Scope        host
+
+ ╭─ Sequence · 2 commands ───────────────────────────────── y copies ─╮
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                 ▎Cancel    Continue…
+
+ ~/work/stack          review · gate 1 of 2           truecolor · 72×20
+  ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel

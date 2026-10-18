@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "386b4167d4684d5759229db4bffbf98b798bf7a4241092278e5efaf77834b790",
+  "artifacts": {
+    "ansi": {
+      "bytes": 7247,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.ansi",
+      "sha256": "386b4167d4684d5759229db4bffbf98b798bf7a4241092278e5efaf77834b790"
+    },
+    "ascii": {
+      "bytes": 1950,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.ascii",
+      "sha256": "33137e04e7045d5a3bc727864b6c5d8d952b8684a6c99989ba7318d7579df42e"
+    },
+    "ascii_loss_json": {
+      "bytes": 13722,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.ascii.loss.json",
+      "sha256": "c8471b5f53ca8f3dc5155b75af692859c69bab6550978d5602f0a3bf21bb52b0"
+    },
+    "frame_json": {
+      "bytes": 695265,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.frame.json",
+      "sha256": "098413f5aab499d09c4c65e4a9b002484018e39431a26f88253780b9186245f2"
+    },
+    "html": {
+      "bytes": 347253,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.html",
+      "sha256": "d96d161234306ffc99c1ae1433ed107fccb7b6cef6ecb43a5a283b2672a863c7"
+    },
+    "observations_json": {
+      "bytes": 461,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.observations.json",
+      "sha256": "a5ed63ff08841e96988781c6b7d09eb6d1d1eefbf23de0ef2ea1763d5653bcb7"
+    },
+    "png": {
+      "bytes": 245844,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.png",
+      "sha256": "6af400c4dd36c3d26b3e7486b477eff940c8be2615ab6ffa0a625d58e1c89924"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 2235,
+      "file": "jackin/cockpit/cancel-confirm/100x30/16.txt",
+      "sha256": "3ac57e180e4dcf4d1984ce5cc928c056b2e806ed8a03fcb7eec92d7fe0cf69d7"
+    }
+  },
+  "ascii_substitutions_count": 147,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 15503092845895835749,
+  "frame_sha256": "098413f5aab499d09c4c65e4a9b002484018e39431a26f88253780b9186245f2",
+  "generation": "91786cd958f96527e6d5a469f446cc4b4dc64ecdd3ac270406b22fffa8cd9884",
+  "html_sha256": "d96d161234306ffc99c1ae1433ed107fccb7b6cef6ecb43a5a283b2672a863c7",
+  "legacy_name": "jackin/cockpit/cancel_confirm/100x30/16",
+  "name": "jackin/cockpit/cancel-confirm/100x30/16",
+  "png_sha256": "6af400c4dd36c3d26b3e7486b477eff940c8be2615ab6ffa0a625d58e1c89924",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:26Z",
+  "txt_sha256": "3ac57e180e4dcf4d1984ce5cc928c056b2e806ed8a03fcb7eec92d7fe0cf69d7"
+}

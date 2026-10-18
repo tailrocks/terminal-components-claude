@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    repos · project collection  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Status across 5 child p… git · child
+  › Status across 5 child pr…  git      child  0 dirty · 1 behind
+                                                                                 Does       inspect every discovered
+    Recent here                                                                             Git project · worktrees
+    nothing used here yet                                                                   deduplicated, submodules
+                                                                                            marked
+    Explore                                                                      Runs       git -C /Users/al…-branch
+     Tasks   Git   Files   Disk   Services   System                                         git -C /Users/al…-branch
+    Children · 4 projects      explore  child  4 child projects discovered                  git -C /Users/al…-branch
+    System · mbp               explore  host   available on this host                       git -C /Users/al…-branch
+                                                                                            git -C /Users/al…-branch
+                                                                                 In         ~/work/repos
+                                                                                 Host       mbp · local
+                                                                                 Scope      child
+                                                                                 Why        0 dirty · 1 behind
+                                                                                 Changes    none · read-only
+                                                                                 Risk       read-only
+                                                                                 Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/repos                                                                                        truecolor · 120×40
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

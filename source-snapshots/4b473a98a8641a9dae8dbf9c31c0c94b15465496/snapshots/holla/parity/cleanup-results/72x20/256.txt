@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           safe · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › cargo build              cargo    here  Cargo.toml …              ┃
+    cargo check              cargo    here  Cargo.toml …              ┃
+    cargo clean · 1000.0 M…  cleanup  here  1000.0 MiB …  destructive ┃
+    cargo clippy             cargo    here  Cargo.toml …              ┃
+    cargo fmt --check        cargo    here  Cargo.toml …              ┃
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → cargo build · here · mutating
+
+ ~/Projects/safe                                     256 colors · 72×20
+    Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …

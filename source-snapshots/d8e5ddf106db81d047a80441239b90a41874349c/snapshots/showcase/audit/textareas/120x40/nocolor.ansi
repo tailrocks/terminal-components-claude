@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Text areas                              no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mText areas[0m  Multi-line editing, Unicode cursor motion, horizontal and vertical scrolling      [0m
+   Overview                                                                                                             [0m
+                            Playground                                                Enter Edit · Esc Done · Tab Next  [0m
+   Components                                                                                                           [0m
+   Buttons                    Task description                               Notes                                      [0m
+   Inputs                      1. Read src/api/billing.rs before tou… ┃      Anything the agent should know…            [0m
+[0m[1m▎› Text areas           [0m       2. Keep the public API stable; add, n… ┃                                                 [0m
+   Forms                       3. Open a PR against main with a clea… │                                                 [0m
+   Lists                       4. Run the integration suite and atta… │                                                 [0m
+   Trees                       5. Read src/api/billing.rs before tou… │                                                 [0m
+   Tables                      6. Keep the public API stable; add, n… │                                                 [0m
+   Editable tables             7. Open a PR against main with a clea… │                                                 [0m
+   Panels                   [0m[2m   8. Run the integration suite and atta… [0m│                                                 [0m
+   Sidebars                   Home/End follows long lines …  1–8 of 28       Optional                                   [0m
+   Dialogs                                                                                                              [0m
+   Progress                                                                                                             [0m
+   Scrolling                Disabled and error                                                                          [0m
+   Terminal                                                                                                             [0m
+   Code editor                Read-only transcript                           Commit message                             [0m
+   Diff                     [0m[2m  Junie: Reading 14 files…                 [0m      fix stuff                              [0m[1m![0m   [0m
+   Data grid                [0m[2m  Junie: Plan ready. 3 steps.              [0m                                                 [0m
+   Chips & selects          [0m[2m                                           [0m                                                 [0m
+   Pickers                  [0m[2m                                           [0m                                                 [0m
+   Chrome                                                                    Use the imperative mood and explain why    [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

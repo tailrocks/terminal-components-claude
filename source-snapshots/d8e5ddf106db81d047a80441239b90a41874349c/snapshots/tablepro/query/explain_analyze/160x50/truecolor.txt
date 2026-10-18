@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                     truecolor · 160×50  ? help
+
+  ≡ Query 1 ×                                                                                                                                               +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ───────────────── public ─╮ ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────────────────── 258 ms ─╮
+ │                                     │ │  ▎›  1 SELECT * FROM orders                                                                                        │
+ │   Filter objects                    │ │                                                                                                                    │
+ │  ▾ D acme_prod                      │ │                                                                                                                    │
+ │    ▾ S public                       │ │                                                                                                                    │
+ │      ▾ Tables                    7  │ │                                                                                                                    │
+ │        ▸ T organizations     1.2 k  │ │                                                                                                                    │
+ │        ▸ T customers        48.9 k  │ │                                                                                                                    │
+ │        ▸ T products            312  │ │                                                                                                                    │
+ │        ▸ T orders            1.2 M  │ │                                                                                                                    │
+ │        ▸ T order_items       3.8 M  │ │                                                                                                                    │
+ │        ▸ T payments          1.2 M  │ │                                                                                                                    │
+ │        ▸ T subscriptions     1.1 k  │ │                                                                                                                    │
+ │      ▸ Views                     2  │ │                                                                                                                    │
+ │      ▸ Functions                 1  │ │                                                                                                                    │
+ │      ▸ Sequences                 1  │ │                                                                                                   ln 1/1 · col 21  │
+ │    ▸ S analytics                    │ │                                                                                                                    │
+ │    ▸ S audit                        │ │   EXPLAIN ANALYZE ×                                                                                                │
+ │                                     │ │  ━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────── │
+ │                                     │ │   Planning 0.210 ms · Execution 257.301 ms                                                                         │
+ │                                     │ │     Operation                              cost     rows     actual    %    Gather                                 │
+ │                                     │ │   ▾ Gather                          1000..16254    1.2 M   256.9 ms   7                                            │
+ │                                     │ │       Parallel Seq Scan on public.     0..15054    1.2 M   252.7 ms  93 ▲   Cost             1000.00..16253.73     │
+ │                                     │ │                                                                             Est. rows        1,203,338             │
+ │                                     │ │                                                                             Actual           256.901 ms · 1 loop   │
+ │                                     │ │                                                                             Workers Planned  2                     │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  EDIT   Ctrl+R Run  Alt+R Run all  Ctrl+Space Complete  Esc Done                                                                       Connected to Production

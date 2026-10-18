@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "00563e9096c833e0d0c223f860490fcdec2f2c9c44f36169f8a6b5d5e1dede5a",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5892,
+      "file": "holla/cargo/clean/100x30/16.ansi",
+      "sha256": "00563e9096c833e0d0c223f860490fcdec2f2c9c44f36169f8a6b5d5e1dede5a"
+    },
+    "ascii": {
+      "bytes": 817,
+      "file": "holla/cargo/clean/100x30/16.ascii",
+      "sha256": "227a6abfb4689c41995705a98ab5c3d3c100d52f23f8fa62a9ee6d3c8419e5cd"
+    },
+    "ascii_loss_json": {
+      "bytes": 11009,
+      "file": "holla/cargo/clean/100x30/16.ascii.loss.json",
+      "sha256": "1501cbb85b6264f0663682f1b722d0ebe375a0aba6f2a4ddb848d57a10f8e57f"
+    },
+    "frame_json": {
+      "bytes": 697964,
+      "file": "holla/cargo/clean/100x30/16.frame.json",
+      "sha256": "b5e90076d580296c8feb8a230d50dcd6bd35a037974f53d7bc0195e4143db500"
+    },
+    "html": {
+      "bytes": 284426,
+      "file": "holla/cargo/clean/100x30/16.html",
+      "sha256": "a3d49dea21f121f0d2ff469cc221a0f7e3201a5fb3e135b686bfb2dc83ce05e6"
+    },
+    "observations_json": {
+      "bytes": 442,
+      "file": "holla/cargo/clean/100x30/16.observations.json",
+      "sha256": "e39641eb82519c85b99f94eef6f59eb1c8cedd3e9e05a7cbeb244fe840ff21c1"
+    },
+    "png": {
+      "bytes": 202701,
+      "file": "holla/cargo/clean/100x30/16.png",
+      "sha256": "b65d50819d6ca467995a38f8916f91af94301d70434bc1658b559e681fb4ab97"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/cargo/clean/100x30/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1045,
+      "file": "holla/cargo/clean/100x30/16.txt",
+      "sha256": "a98c63d877c762df6b27658cd31ae9e58e28ac2fb59ea7e6afab3ca38e04e6e8"
+    }
+  },
+  "ascii_substitutions_count": 119,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 6439253137922267007,
+  "frame_sha256": "b5e90076d580296c8feb8a230d50dcd6bd35a037974f53d7bc0195e4143db500",
+  "generation": "83121dc4df0de90ace9a340662f5f7686fb212909f70f3c6e13708c97f70c695",
+  "html_sha256": "a3d49dea21f121f0d2ff469cc221a0f7e3201a5fb3e135b686bfb2dc83ce05e6",
+  "legacy_name": "holla/flows/cargo/clean/100x30/16",
+  "name": "holla/cargo/clean/100x30/16",
+  "png_sha256": "b65d50819d6ca467995a38f8916f91af94301d70434bc1658b559e681fb4ab97",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:08:58Z",
+  "txt_sha256": "a98c63d877c762df6b27658cd31ae9e58e28ac2fb59ea7e6afab3ca38e04e6e8"
+}

@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://terminal-components-claude/tests/scenario-registry/v1/schema.json",
+  "title": "Scenario Registry v1",
+  "description": "Executable requirements registry for visual-baseline parity scenarios (goal S5). Each scenario pins a stable ID, the app/component/part under test, reference vs candidate symbols, fixture dimensions, an input sequence with checkpoints, four assertion classes, provenance, snapshot paths, harness adapters, applicability, and latest results.",
+  "type": "object",
+  "required": ["version", "scenarios", "legacy_roots"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1"
+    },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scenario" }
+    },
+    "legacy_roots": {
+      "type": "array",
+      "description": "Migration inventory: legacy snapshot roots (parents of WxH size dirs under snapshots/) awaiting mapping to scenario IDs.",
+      "items": { "$ref": "#/$defs/legacy_root" }
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "required": [
+        "id",
+        "app",
+        "component",
+        "part",
+        "ref_symbols",
+        "cand_symbols",
+        "data",
+        "state",
+        "env",
+        "viewport",
+        "color",
+        "motion",
+        "inputs",
+        "checkpoints",
+        "assertions",
+        "provenance",
+        "snapshots",
+        "adapters",
+        "applicability",
+        "results"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable scenario ID, never reused. Format: <COMPONENT>-<TOPIC>-<NNN>.",
+          "pattern": "^[A-Z0-9]+(-[A-Z0-9]+)*-[0-9]{3}$"
+        },
+        "app": {
+          "type": "string",
+          "enum": ["showcase", "tablepro", "jackin-preview", "holla"]
+        },
+        "component": {
+          "type": "string",
+          "description": "Widget or screen under test, e.g. 'Button'."
+        },
+        "part": {
+          "type": "string",
+          "description": "Sub-region of the component under test, e.g. 'marker cell'."
+        },
+        "ref_symbols": {
+          "type": "array",
+          "description": "Reference (pre-refactor) symbols rendered by this scenario.",
+          "items": { "$ref": "#/$defs/symbol" }
+        },
+        "cand_symbols": {
+          "type": "array",
+          "description": "Candidate (post-refactor) symbols expected; must match ref unless the scenario documents an intentional change.",
+          "items": { "$ref": "#/$defs/symbol" }
+        },
+        "data": {
+          "type": "object",
+          "description": "Fixture data (labels, rows, model contents)."
+        },
+        "state": {
+          "type": "object",
+          "description": "Widget state flags (busy, on, disabled, focused, ...)."
+        },
+        "env": {
+          "type": "object",
+          "description": "Process environment (TERM, NO_COLOR, locale, ...)."
+        },
+        "viewport": {
+          "type": "object",
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "color": {
+          "type": "string",
+          "enum": ["truecolor", "256", "16", "none", "nocolor"]
+        },
+        "motion": {
+          "type": "string",
+          "description": "Animation clock mode.",
+          "enum": ["playing", "paused"]
+        },
+        "inputs": {
+          "type": "array",
+          "description": "Ordered input sequence driving the scenario.",
+          "items": { "$ref": "#/$defs/input" }
+        },
+        "checkpoints": {
+          "type": "array",
+          "description": "Capture/assert points keyed to ticks or input steps.",
+          "items": { "$ref": "#/$defs/checkpoint" }
+        },
+        "assertions": {
+          "type": "object",
+          "required": ["visual", "state", "action", "negative"],
+          "properties": {
+            "visual": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/assertion" }
+            },
+            "state": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/assertion" }
+            },
+            "action": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/assertion" }
+            },
+            "negative": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/assertion" }
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "required": ["sources", "commit"],
+          "properties": {
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "lines", "note"],
+                "properties": {
+                  "path": { "type": "string" },
+                  "lines": { "type": "string" },
+                  "note": { "type": "string" }
+                }
+              }
+            },
+            "commit": {
+              "type": "string",
+              "description": "Commit the reference behavior was read from."
+            }
+          }
+        },
+        "snapshots": {
+          "type": "object",
+          "required": ["ref", "cand"],
+          "properties": {
+            "ref": {
+              "type": "array",
+              "description": "Reference snapshot paths (relative to repo root).",
+              "items": { "type": "string" }
+            },
+            "cand": {
+              "type": "array",
+              "description": "Candidate snapshot paths (relative to repo root).",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "adapters": {
+          "type": "array",
+          "description": "Harness adapters that can execute this scenario (pty, headless, image-compare, ...).",
+          "items": { "type": "string" }
+        },
+        "applicability": {
+          "type": "object",
+          "description": "When this scenario applies (branches, components, platforms).",
+          "properties": {
+            "branches": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "requires": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "results": {
+          "type": "object",
+          "description": "Latest execution results, keyed by run or branch.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["unrun", "pass", "fail"]
+            },
+            "runs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["at", "branch", "status"],
+                "properties": {
+                  "at": { "type": "string" },
+                  "branch": { "type": "string" },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pass", "fail"]
+                  },
+                  "note": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "symbol": {
+      "type": "object",
+      "required": ["glyph", "meaning"],
+      "properties": {
+        "glyph": { "type": "string" },
+        "meaning": { "type": "string" },
+        "tick": {
+          "type": "integer",
+          "description": "Spinner tick this glyph appears at, when applicable."
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": ["step", "action"],
+      "properties": {
+        "step": { "type": "integer", "minimum": 1 },
+        "action": { "type": "string" },
+        "key": { "type": "string" },
+        "ticks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Animation ticks to advance after this input."
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "required": ["name", "tick", "capture"],
+      "properties": {
+        "name": { "type": "string" },
+        "tick": { "type": "integer", "minimum": 0 },
+        "capture": { "type": "boolean" }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "required": ["id", "text"],
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" }
+      }
+    },
+    "legacy_root": {
+      "type": "object",
+      "required": ["old", "app", "sizes", "new", "status"],
+      "properties": {
+        "old": {
+          "type": "string",
+          "description": "Legacy snapshot root path relative to snapshots/ (parent of WxH size dirs)."
+        },
+        "app": {
+          "type": "string",
+          "enum": ["showcase", "tablepro", "jackin", "holla"]
+        },
+        "sizes": {
+          "type": "array",
+          "description": "WxH size dirs present under this root.",
+          "items": { "type": "string" }
+        },
+        "new": {
+          "type": ["string", "null"],
+          "description": "Mapped scenario ID, or null while unmapped."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "mapped", "retired"]
+        }
+      }
+    }
+  }
+}

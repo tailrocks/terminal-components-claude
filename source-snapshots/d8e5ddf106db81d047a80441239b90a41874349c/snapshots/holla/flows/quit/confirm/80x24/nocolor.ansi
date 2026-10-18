@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  acme · mise monorepo  mbp · local [0m
+                                                                                [0m
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×               2› [0m
+ ────━━━━━━━─────────────────────────────────────────────────────────────────── [0m
+   Search actions and resources…                                scope ‹ here ›  [0m
+                                                                                [0m
+    Suggested here                                                            ┃ [0m
+    Follow ac╭────────────────────────────────────────────────────╮hy         ┃ [0m
+    Inspect 1│                                                    │tifacts    ┃ [0m
+    Install m│  [0m[1mQuit holla❯?[0m                                      │           ┃ [0m
+    Review cl│                                                    │categories ┃ [0m
+  › Deploy pr│  4 activities are still running. Quitting stops    │           ┃ [0m
+             │  what holla started; detached monitors keep        │           ┃ [0m
+    Recent he│  running.                                          │           ┃ [0m
+    nothing u│                                                    │           │ [0m
+             │                          ▎[0m[1mCancel [0m  Stop and quit   │           │ [0m
+    Running  │                                                    │           │ [0m
+    logs · ap╰────────────────────────────────────────────────────╯           │ [0m
+    api dev                     activity  child  ⠋ running · 3 s              │ [0m
+                                                                                [0m
+    → tools/deploy-preview.sh --env preview · here · mutating                   [0m
+                                                                                [0m
+ ~/work/acme   main   ↑1                        ⠋ 4 running    no color · 80×24 [0m
+         [0m[1m← → Cho[0mose  [0m[1mEnter [0mConfirm[0m[1m  Esc[0m Cancel  …   api tests finished · exit 0 [0m

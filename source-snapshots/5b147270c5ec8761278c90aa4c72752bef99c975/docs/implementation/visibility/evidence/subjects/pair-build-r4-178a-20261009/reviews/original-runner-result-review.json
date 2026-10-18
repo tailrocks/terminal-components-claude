@@ -1,0 +1,81 @@
+{
+  "schema": "termrock-vis06-pair-build-actual-result-independent-review/v1",
+  "verdict": "RAW_ONE_CASE_PASS_WRAPPER_INCOMPLETE",
+  "reviewed_at_utc": "2026-10-09",
+  "runner_result_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/runner-result.json",
+  "runner_result_sha256": "8f6204894095d1ed64cad234a5a47ecbeee6e5894ef3d1c41812a878ac70fe57",
+  "runner_sha256": "4e75182162124f6b8398c305feba33021cdfc11463eca83ee6d1c4f23b1c322c",
+  "preflight_sha256": "c0e88ff9594195c1e509940f0a761dab689c2786b002183bb69f9a94af349212",
+  "stderr_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/logs/nextest.stderr.raw",
+  "stderr_sha256": "e80edc7d30e3aac2c34c3822678d187d4ee0427f8e4136eaa00b9aa5c61a16d1",
+  "events_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/logs/process-events.jsonl",
+  "events_sha256": "99620ee6c28fc002adeef42846cafbe33d63e46713c562347ccaf3a5f4208c9a",
+  "actual_execution": {
+    "nextest_run_id": "dc5cad83-f98f-47ee-acda-b64559fa0925",
+    "selected_test": "supervises_real_holla_pair_build",
+    "raw_nextest_result": "1 passed (1 slow), 16 skipped",
+    "raw_terminal_row": "PASS [ 131.199s] (1/1) termrock-visibility-tests::subjects supervises_real_holla_pair_build",
+    "cargo_exit_code": 0,
+    "elapsed_ms": 131200,
+    "process_group_gone": true,
+    "runner_parsed_counts": {"selected": 0, "passed": 0, "failed": 0},
+    "runner_conclusion": "PAIR_BUILD_GATE_INCOMPLETE"
+  },
+  "wrapper_incomplete_causes": [
+    {
+      "stage": "nextest_parser",
+      "detail": "The row regex expects termrock-visibility-tests::subjects::<test>, while raw Nextest uses termrock-visibility-tests::subjects <test>. The summary regex rejects the actual `1 passed (1 slow), 16 skipped` form, so the wrapper records no unique selected row or summary."
+    },
+    {
+      "stage": "postflight_input_snapshot",
+      "detail": "Seeded `.global-cache` changed from the closure's empty file (SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855) to 57,344 bytes (SHA-256 0a1f41bdb9579def9f060db41d804bc97e8800ae373f5df28f253d207efd69a4)."
+    },
+    {
+      "stage": "pair_artifact_validator",
+      "detail": "R4 requires run.json.suite_revision and run.json.suite_sha256 to equal the pinned suite, but those run.json fields are null. The byte-bound subject manifest carries the exact suite revision/hash."
+    },
+    {
+      "stage": "pair_artifact_path_predicate",
+      "detail": "Independent artifact inspection found executables at `<runRoot>/evidence/<runId>/targets/{reference,candidate}/...`; R4 checks for `<runRoot>/targets/...`. The validator would reject these otherwise valid paths after its earlier run/manifest predicate is corrected."
+    }
+  ],
+  "cache_integrity_separation": {
+    "closure_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/preparation/cache-closure-r3.json",
+    "closure_sha256": "437eeadc8cf26858e372536688fc6e14d10683557c66bca56ee8ffb272e9d158",
+    "non_global_cache_seed_files_checked": 697,
+    "mismatches": 0,
+    "counts": {"registry_archive_files": 356, "registry_index_files": 310, "git_cache_files": 28, "other_seed_files": 3},
+    "interpretation": "The `.global-cache` metadata mutation is distinct from the immutable seeded archive, index, Git, and other file checks; all 697 other seeded files match closure size and digest."
+  },
+  "pair_artifact_review": {
+    "run_root": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3",
+    "run_json_sha256": "e19ff24b314f2284de93d64dd535a104850102bd39ac27a809a1d5bc0da0127d",
+    "manifest_sha256": "2faf06339fcbe01ad30d92cb7dd490e07d69c1bee41e755d07877f8f27a31767",
+    "source_inputs_sha256": "09f8907cc8d54cadd5f1f761d67ffcd342be084ab51eb5f2b632c7f1763692d0",
+    "build_environment_sha256": "a43f1d3c2d0c7694728ca25e9d6f91f60180f24ac9f7bafb433c40f765d8fc3a",
+    "supervisor_result_sha256": "d5b9dd3baaa1df780056ff3b74d609cf023bc2f3b3ef2d9115a3ebd916c8726c",
+    "source_commits_and_trees": {
+      "reference": {"commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526", "tree": "ff774280a5f1f30b649dc6f762d8c686b1b64c67"},
+      "candidate": {"commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712", "tree": "d184b8935e99748756180e19fdb84286d054991d"}
+    },
+    "suite": {"revision": "termrock-e2e-2026-10-09.2", "sha256": "037460649d3663f27d4c3af77c36d3519f3262fae82b99535396aa0eb65f0590"},
+    "oracle_tag": {"object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5", "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"},
+    "expected_generation": null,
+    "qualification_status": "blocked",
+    "manifest_and_receipt_executable_hashes_match": true,
+    "supervisor_run_manifest_source_input_digests_match": true,
+    "scope_limit": "Evidence covers the pair build supervisor only; product binaries were not launched, captured, or admitted."
+  },
+  "non_claims": [
+    "This review does not convert the original R4 wrapper conclusion into a runner pass; the wrapper remains incomplete.",
+    "This is not a 15-test suite result or product execution/qualification claim.",
+    "No rerun, Cargo/Nextest command, source edit, or cache repair was performed."
+  ],
+  "reviewed_raw_artifacts": {
+    "run_json": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/run.json",
+    "subject_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/subject-manifest.json",
+    "source_inputs": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source-inputs.json",
+    "build_environment": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build-environment.json",
+    "supervisor_result": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/supervisor/result.json"
+  }
+}

@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Diff        i Inspector   ? Help
+
+   Buttons        │  Diff viewer  Unified or old / new review · narrow…
+   Inputs         ┃
+   Text areas     ┃   ● Review   ▎● Empty
+   Forms          ┃
+   Lists          ┃  ╭─ Diff ──────────────────────────────────────────╮
+   Trees          ┃  │  No file selected                               │
+   Tables         ┃  │                                                 │
+   Editable tabl… ┃  │                                                 │
+   Panels         ┃  │                                                 │
+   Sidebars       ┃  │                                                 │
+   Dialogs        ┃  │                                                 │
+   Progress       ┃  │                                                 │
+   Scrolling      │  │                                                 │
+   Terminal       │  │                                                 │
+   Code editor    │  │                                                 │
+ › Diff           │  ╰─────────────────────────────────────────────────╯
+
+ Enter Toggle  Tab Next control

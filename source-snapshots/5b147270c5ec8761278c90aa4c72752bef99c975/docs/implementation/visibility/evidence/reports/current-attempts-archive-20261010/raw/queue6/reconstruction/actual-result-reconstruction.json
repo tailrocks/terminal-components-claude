@@ -1,0 +1,74 @@
+{
+  "schema": "termrock-vis08-rust-actual-result-reconstruction/v1",
+  "status": "RECONSTRUCTED_SELECTED_TEST_RESULT_WITH_ORIGINAL_WRAPPER_FAILURE_PRESERVED",
+  "method": "Read-only hash-bound reconstruction from the original execution receipt, stdout/stderr, process events, preflight/source packet, and selected-test manifest. No Cargo, Nextest, tests, CLI, or source edits were run by this reconstruction.",
+  "original_execution": {
+    "run_id": "4ba5ac4d-7e63-4195-beee-dca048e1291e",
+    "run_root": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010",
+    "receipt": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/final-receipt.json",
+      "sha256": "6fda5fb42e6f448cd91de3dd0e06cdc1d27da92c8e97b9586bab16254bec54ae"
+    },
+    "stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/stderr.log",
+      "sha256": "a169de5454a597609083bf911b6a679d9d6d4ec6ad80c9c96ad887aee2cc7f58",
+      "bytes": 1570
+    },
+    "stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "process_events": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/process-events.jsonl",
+      "sha256": "28cb62e3cafe4d33bdf667e942a194fb4c78fc38845e9ef5583f57b1662149a1"
+    },
+    "child_exit_code": 0,
+    "wrapper_exit_code": 125,
+    "wrapper_success_predicate": false,
+    "input_stable_as_recorded": true,
+    "source_closure_sha256": "f85405e511dcdca33358a544ce3a16911153e9d5115acbc7b60fd10b2b281da9",
+    "source_manifest_sha256": "932922019498601c68fa1a5372737d66f0dd8ffe46689b19109074a3918a8fe0",
+    "runner_sha256": "e23557ba54f1813ca5c3967f5fb60fc73a96f73cd39d414ef98f950109ec0409",
+    "reviewer_receipts": {
+      "source_review": {
+        "path": "/private/tmp/termrock-vis08-reviewer-only-handoff-cli-r3-review-observer-20261010.json",
+        "expected_sha256": "cb8d397bce362a88a9499f5facac1dfba07322bccfcbef452d8595a01ab59761",
+        "observed_sha256": "cb8d397bce362a88a9499f5facac1dfba07322bccfcbef452d8595a01ab59761",
+        "matched": true
+      },
+      "gate_review": {
+        "path": "/private/tmp/termrock-vis08-reviewer-handoff-rust-gate-r1-independent-review-observer-20261010.json",
+        "expected_sha256": "4322cd3d4cd5e3c1f7c6d73dbb020801abafde004e5b1974f68a830e629bdf2a",
+        "observed_sha256": "4322cd3d4cd5e3c1f7c6d73dbb020801abafde004e5b1974f68a830e629bdf2a",
+        "matched": true
+      }
+    }
+  },
+  "reconstructed_nextest_summary": {
+    "elapsed_text": "286.354s",
+    "run_count": 6,
+    "passed_count": 6,
+    "failed_count": 0,
+    "slow_count": 1,
+    "skipped_count": 77
+  },
+  "reconstructed_pass_names": [
+    "reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer",
+    "reviewer_handoff_rejects_a_stale_review_subject_without_writes",
+    "reviewer_handoff_rejects_lower_priority_work_without_writes",
+    "reviewer_handoff_rejects_reused_reason_without_writes",
+    "reviewer_handoff_rejects_review_state_without_writes",
+    "reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes"
+  ],
+  "interpretation": {
+    "selected_tests": "6 PASS; all six exact selected names have raw PASS lines and the raw summary reports six passed, zero failed, one slow, and 77 skipped.",
+    "wrapper": "The original wrapper remains failed with exit 125. Its summary parser did not accept Nextest’s valid “(1 slow)” annotation, left passed/skipped counts null, and set the success predicate false. This reconstruction does not rewrite or promote the original receipt.",
+    "scope": "Focused Rust black-box evidence only for the six q65 reviewer-handoff cases in an assembled nine-file input closure; not a complete q65 Git tree and not a live queue operation."
+  },
+  "packet_checks": {
+    "sums_verified": 19,
+    "source_files_rehashed": 9
+  },
+  "no_rerun": true
+}

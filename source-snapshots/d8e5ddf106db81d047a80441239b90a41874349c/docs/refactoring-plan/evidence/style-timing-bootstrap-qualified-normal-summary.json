@@ -1,0 +1,374 @@
+{
+  "schema": "tc-style-timing-qualified-run-summary/v1",
+  "provenance": "Recorded from completed session29273 stdout; summary, not the original full JSON event receipt. Full event output retained in execution transcript.",
+  "command": "rtk proxy python3 -B docs/refactoring-plan/evidence/style-timing-bootstrap-driver.py --self-test",
+  "exit_code": 0,
+  "driver_sha256": "eca42a9c12c249d670b949adce07eb7679955ea8da1e4d308df586d09e365ae1",
+  "compiler_helper_sha256": "fd6e1f240cd09367b8414041302fa926d6d939502577d2ff8f3269c9cde1cd49",
+  "prepared": 26,
+  "negative_cases": 19,
+  "required_negative_classes": 14,
+  "positive_control_runs": 34,
+  "fresh_recoveries": 30,
+  "malicious_external_runner_rejections": 6,
+  "qualified_execution_receipts": 50,
+  "arithmetic_control": {
+    "clock_kind": "injected-arithmetic-only",
+    "upper_ratio": 0.01,
+    "census_count": 355,
+    "strict_arithmetic_pass": true,
+    "strict_performance_pass": false
+  },
+  "Instant_attestations": [
+    {
+      "phase": "pre_dispatch",
+      "case": "attest-valid",
+      "quality": "PASS",
+      "upper_ratio": 0.040935998070107074,
+      "calibration_ns": [
+        5547,
+        6907,
+        6080,
+        5750,
+        5792,
+        7167,
+        7462,
+        6827,
+        6622
+      ],
+      "raw_numerator_ns": [
+        12165,
+        12380,
+        11420,
+        11580,
+        11865,
+        10958,
+        10957,
+        11747,
+        12206
+      ],
+      "uninstrumented_denominator_ns": [
+        166666,
+        167208,
+        161667,
+        163750,
+        164416,
+        164334,
+        172459,
+        166417,
+        164333
+      ],
+      "corrected_ns": [
+        6618,
+        5473,
+        5340,
+        5830,
+        6073,
+        3791,
+        3495,
+        4920,
+        5584
+      ]
+    },
+    {
+      "phase": "pre_dispatch",
+      "case": "attest-expensive-resolution",
+      "quality": "REJECT",
+      "upper_ratio": 0.730985423605136,
+      "calibration_ns": [
+        6994,
+        6582,
+        5703,
+        6621,
+        7332,
+        7831,
+        6923,
+        6418,
+        5910
+      ],
+      "raw_numerator_ns": [
+        379369,
+        372495,
+        372911,
+        381281,
+        374380,
+        370869,
+        371497,
+        374412,
+        371407
+      ],
+      "uninstrumented_denominator_ns": [
+        523625,
+        516292,
+        530792,
+        538791,
+        516917,
+        517084,
+        516542,
+        512541,
+        516334
+      ],
+      "corrected_ns": [
+        372375,
+        365913,
+        367208,
+        374660,
+        367048,
+        363038,
+        364574,
+        367994,
+        365497
+      ]
+    },
+    {
+      "phase": "pre_dispatch",
+      "case": "attest-paint-only",
+      "quality": "PASS",
+      "upper_ratio": 0.0022850346878097124,
+      "calibration_ns": [
+        5710,
+        7130,
+        6793,
+        6215,
+        6331,
+        5704,
+        7078,
+        6290,
+        5994
+      ],
+      "raw_numerator_ns": [
+        12915,
+        12503,
+        11841,
+        12334,
+        12375,
+        12692,
+        11381,
+        12331,
+        11291
+      ],
+      "uninstrumented_denominator_ns": [
+        3194000,
+        3159291,
+        3306250,
+        3298916,
+        3552583,
+        3333125,
+        3235750,
+        3365250,
+        3153125
+      ],
+      "corrected_ns": [
+        7205,
+        5373,
+        5048,
+        6119,
+        6044,
+        6988,
+        4303,
+        6041,
+        5297
+      ]
+    },
+    {
+      "phase": "dispatch",
+      "case": "attest-valid",
+      "quality": "PASS",
+      "upper_ratio": 0.048425,
+      "calibration_ns": [
+        5791,
+        5377,
+        6252,
+        6256,
+        7295,
+        5957,
+        7336,
+        5831,
+        5373
+      ],
+      "raw_numerator_ns": [
+        13539,
+        11506,
+        12332,
+        10461,
+        12333,
+        12036,
+        13049,
+        12164,
+        12591
+      ],
+      "uninstrumented_denominator_ns": [
+        164042,
+        174542,
+        171084,
+        168000,
+        160000,
+        162667,
+        160041,
+        171084,
+        164541
+      ],
+      "corrected_ns": [
+        7748,
+        6129,
+        6080,
+        4205,
+        5038,
+        6079,
+        5713,
+        6333,
+        7218
+      ]
+    },
+    {
+      "phase": "dispatch",
+      "case": "attest-expensive-resolution",
+      "quality": "REJECT",
+      "upper_ratio": 0.7240464383596235,
+      "calibration_ns": [
+        6127,
+        7037,
+        6455,
+        6462,
+        5590,
+        7043,
+        6578,
+        7004,
+        6955
+      ],
+      "raw_numerator_ns": [
+        369876,
+        368667,
+        371995,
+        373422,
+        374990,
+        369996,
+        379341,
+        377508,
+        375331
+      ],
+      "uninstrumented_denominator_ns": [
+        527167,
+        514833,
+        530250,
+        518375,
+        538166,
+        515833,
+        522625,
+        520000,
+        562959
+      ],
+      "corrected_ns": [
+        363749,
+        361630,
+        365540,
+        366960,
+        369400,
+        362953,
+        372763,
+        370504,
+        368376
+      ]
+    },
+    {
+      "phase": "dispatch",
+      "case": "attest-paint-only",
+      "quality": "PASS",
+      "upper_ratio": 0.0022167132266104317,
+      "calibration_ns": [
+        6530,
+        7119,
+        5910,
+        6083,
+        6665,
+        6794,
+        6334,
+        6167,
+        6748
+      ],
+      "raw_numerator_ns": [
+        12666,
+        13426,
+        12831,
+        12585,
+        13670,
+        12035,
+        11051,
+        12043,
+        11255
+      ],
+      "uninstrumented_denominator_ns": [
+        3160834,
+        3167792,
+        3160084,
+        3175292,
+        3162667,
+        3165416,
+        3167792,
+        3165916,
+        3178875
+      ],
+      "corrected_ns": [
+        6136,
+        6307,
+        6921,
+        6502,
+        7005,
+        5241,
+        4717,
+        5876,
+        4507
+      ]
+    },
+    {
+      "phase": "dispatch",
+      "case": "attest-expensive-resolution/always-pass-attack",
+      "quality": "REJECT",
+      "upper_ratio": 0.7249811617596377,
+      "calibration_ns": [
+        5834,
+        6190,
+        6085,
+        6172,
+        6336,
+        6389,
+        6374,
+        6254,
+        6044
+      ],
+      "raw_numerator_ns": [
+        370959,
+        371197,
+        378339,
+        369763,
+        372631,
+        366491,
+        367627,
+        369504,
+        378382
+      ],
+      "uninstrumented_denominator_ns": [
+        534500,
+        533417,
+        529000,
+        514833,
+        525000,
+        523917,
+        517916,
+        515375,
+        513583
+      ],
+      "corrected_ns": [
+        365125,
+        365007,
+        372254,
+        363591,
+        366295,
+        360102,
+        361253,
+        363250,
+        372338
+      ]
+    }
+  ]
+}

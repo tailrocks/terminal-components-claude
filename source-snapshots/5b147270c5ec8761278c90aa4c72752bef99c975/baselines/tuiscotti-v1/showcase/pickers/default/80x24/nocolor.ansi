@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Pickers             i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mPickers[0m  One modal list for files, tabs and levels: searc… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Open a picker                                            [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     [0m[1mOpen quickly [0m   Switch tab    Choose a level            [0m
+   Lists          ┃                                                             [0m
+   Trees          ┃    Quick: fuzzy over files and tasks, Tab cycles the scop…  [0m
+   Tables         ┃                                                             [0m
+   Editable tabl… ┃                                                             [0m
+   Panels         ┃                                                             [0m
+   Sidebars       ┃    Result                                                   [0m
+   Dialogs        ┃                                                             [0m
+   Progress       ┃    Chosen          nothing yet                              [0m
+   Scrolling      ┃    Detail          —                                        [0m
+   Terminal       ┃    Level           Safe Mode                                [0m
+   Code editor    ┃    Open tabs       Query 1 · orders · order_items · Histo…  [0m
+   Diff           ┃    Pickers opened  0                                        [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │                                                             [0m
+[0m[1m▎› Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

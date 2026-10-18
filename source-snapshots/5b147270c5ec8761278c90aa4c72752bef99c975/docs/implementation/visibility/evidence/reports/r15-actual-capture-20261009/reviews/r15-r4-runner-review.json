@@ -1,0 +1,116 @@
+{
+  "schema": "termrock-independent-review/r15-r4-static-runner-v1",
+  "reviewed_at_utc": "2026-10-09T10:20:07Z",
+  "reviewer": "/root/controls_wrapper_review_luna",
+  "scope": "R15 R4 attempt-02 path/manifest/grant-template delta and read-only preflight binding",
+  "verdict": "READY_FOR_ROOT_GRANT",
+  "artifacts": {
+    "runner": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/runner-r4.cjs",
+      "sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425"
+    },
+    "invocation_manifest": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/invocation-manifest-r4.json",
+      "sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3"
+    },
+    "pending_grant_template": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/launch-grant-r4.template.json",
+      "sha256": "83159f9a2f30fc9d97f5b6c2beb82cb45f6a50985de7ac7f49849194d2570955"
+    },
+    "read_only_preflight_report": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/r4-readonly-preflight.json",
+      "sha256": "76f7c9e562a12262c956daa80543a2160cd6088925ca594584c4021a17ff6e0c"
+    }
+  },
+  "findings": [],
+  "review_details": {
+    "runner_delta_from_r3": "Only runRoot is advanced to attempt-02; validator helper and toolchain paths are rebound to their R14 approved originals; output root is fresh R4; grant and manifest constants point to R4 files. Selection, Cargo argv, time/output bounds, process supervision, Rust write-policy guard, and evidence limits are unchanged.",
+    "review_binding": {
+      "approved_candidate_source_review_sha256": "393acd58eecba22b3448005b22913e9594470dd8c762816063c42ad83b097712",
+      "review_helper_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+      "runner_helper_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/subjects.py",
+      "helper_sha256": "d990b77fbec0d01f242dbd191698939cbf5790d8dcd203337166c26688d85853",
+      "runner_and_manifest_toolchain_path": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r14-r2-d990-20261009-01/inputs/validator/toolchain.json",
+      "toolchain_sha256": "d3bce7d5775bf755e3d0a6fb675a4eea3e62a2ffaf775a4874d91f7a43bff072",
+      "publication_record_remains_r15_input": "/private/tmp/termrock-rust-tool-test-execution/tag-capture-r15-r2-d990-20261009-01/inputs/validator/source-publication.json",
+      "interpretation": "R4 now satisfies the approved review's exact helper path binding and preserves byte hashes; the two R14 originals are reused as read inputs."
+    },
+    "manifest_command_and_bounds": {
+      "literal_environment_comparison": "No mismatches across all 38 environment keys.",
+      "argv_and_cwd_match_runner": true,
+      "argv_elements_including_executable": 44,
+      "selected_test": "termrock-e2e / holla_tag_capture / captures_holla_from_pinned_immutable_tag; one ignored test",
+      "cargo_locked": true,
+      "cargo_offline": true,
+      "build_jobs": 2,
+      "test_threads": 1,
+      "retries": 0,
+      "timeout_ms": 1200000,
+      "raw_output_limit_bytes_total": 8388608,
+      "manifest_attempt_id_matches_evidence_root": true,
+      "manifest_outputs_match_runner": true,
+      "admission_expected_generation_qualification": false
+    },
+    "grant_template": {
+      "top_level_keys": 43,
+      "runner_sha256": "0d1d07a82a1a89b684924e736c3bc743e306b4bd197e6bdb480891745ad8a425",
+      "invocation_manifest_sha256": "ded529a2c0e0d9080029ee05fc843fec15d9cba8905749b026d160a6ce0042c3",
+      "template_status": "PREPARED_NOT_AUTHORIZED",
+      "execution_authorized": false,
+      "template_absorbs_expected_r4_changes_only": [
+        "runner and manifest hash bindings",
+        "R4 actual/output/receipt roots",
+        "pending authorization status"
+      ],
+      "all_other_values_match_predecessor_one_test_contract": true
+    },
+    "failure_provenance": {
+      "r2_actual_test_failure_preserved": {
+        "final_receipt_sha256": "11418da10ec6005f126783f05d643d8fe7ab83f94d2f198f71ff45e08c39b206",
+        "observed": "1 selected, 0 passed, 1 failed; capture rejected overlapping suite_checkout write root"
+      },
+      "r3_preflight_failure_preserved": {
+        "runner_sha256": "ca438e706bf482722ce2246b4108bc90b5689ef55478bc3a8776fff27c9b3b02",
+        "manifest_sha256": "6038d364abcbc4f3b10efdd6fb071352e3f07746f6088d33d1cec4d6371aea24",
+        "grant_sha256": "b65499b039239c5e2988b51eab9c74e7e736afab7424f20f5c21f053df879006",
+        "preflight_error_sha256": "7c3fec59aeca9a1e2b616c4a21c49e473de754ae4eb5ee5878171d6afd4c643a",
+        "observed": "reviewContext helper path mismatch; selected test not started, no Nextest run ID"
+      },
+      "r4_claims_no_predecessor_was_successful": true
+    },
+    "preflight": {
+      "report_binds_exact_runner_manifest_and_template_hashes": true,
+      "report_says_manifest_grant_predicates_pass_with_in_memory_synthetic_values": true,
+      "report_says_no_actual_r4_grant_file_was_created": true,
+      "attempt_02_absent": true,
+      "r4_output_root_and_receipt_absent": true,
+      "cargo_test_build_and_nextest_not_started": true,
+      "pty_not_started": true
+    },
+    "write_root_boundary": "R4 output root /private/tmp/termrock-tag-capture-r15-r4-output-20261009 is fresh and outside the broad Rust suite root /private/tmp/termrock-rust-tool-test-execution and the bound tag source/artifact roots. The unchanged Rust runtime write-policy guard remains responsible for full policy enforcement; this review adds no dynamic-write claim.",
+    "evidence_limits": "One immutable-tag capture only. No candidate product rebuild, expected-generation admission, qualification, paired journey, or product pass is claimed."
+  },
+  "limitations": [
+    "Static/read-only review only; no runner, Cargo, Nextest, product, or PTY invocation.",
+    "No source, manifest, grant, cache, or repository files were modified.",
+    "The R4 grant template is not authorization; a Root-issued launch-grant-r4.json bound to these exact bytes remains required before execution."
+  ],
+  "prior_review_references": {
+    "r15_r2_prelaunch_failure_review": {
+      "path": "/private/tmp/termrock-vis02-r15-actual-prelaunch-failure-review-luna-20261009.json",
+      "sha256": "2726a067e318ae83d9a79edb12009c83452f576ee860aaed887f2a62fd924700"
+    },
+    "r15_r3_static_review": {
+      "path": "/private/tmp/termrock-vis02-r15-r3-runner-review-luna-20261009.json",
+      "sha256": "42882048ee4c7a4e223d650c869d82dd562fac8ac5401651c311f9ffb4e21db7"
+    },
+    "r15_r3_actual_failure_review": {
+      "path": "/private/tmp/termrock-vis02-r15-r3-actual-preflight-failure-review-luna-20261009.json",
+      "sha256": "e95748275e10a98fcb225fd528dfa70bff7ea6739817bf54513b244d547d97ae"
+    },
+    "r15_root_policy_addendum": {
+      "path": "/private/tmp/termrock-vis02-r15-runner-review-luna-addendum-20261009.json",
+      "sha256": "0594a5c559c165e2e4d24c0a1e51fdb33cd2031cd92d79de52f4747b411131f7"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "termrock-pr17-dco-materializer-attempt-observation/v1",
+  "attempt": "prior-r1-module-load-failure",
+  "observed_by": "Root execution report",
+  "raw_tool_chunk_id": "499716",
+  "helper_path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r1/materialize.mjs",
+  "helper_sha256": "9348700ed2ada8ca7eaca0610aa779422ce72d56e9468b03e7c2986a9d8dbc46",
+  "runtime": "Node 24.20.0",
+  "failure": "ReferenceError: require is not defined in ES module scope",
+  "stage": "CommonJS require during ES module loading, before Git invocation",
+  "git_or_object_writes": 0,
+  "execution_receipt_generated": false,
+  "preservation": "The failed R1 script and its input pins remain unchanged; this R2 uses a new .cjs path."
+}

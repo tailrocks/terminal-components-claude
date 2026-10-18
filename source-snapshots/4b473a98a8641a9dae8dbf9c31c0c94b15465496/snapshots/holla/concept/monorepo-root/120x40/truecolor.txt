@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Deploy preview         custom · here
+    Follow acme-api-1 logs     docker   here   service is unhealthy
+    Inspect 10 GB of generat…  disk     here   10 GB generated artifacts         Does       push the current branch
+    Install missing tools · …  task     here   1 tool missing                               to the preview stack
+    Review cleanup candidates  cleanup  host   10.6 GiB across 4 categories      Runs       tools/deploy-pre…preview
+  › Deploy preview             custom   here   Current folder · ⚠ unreviewed     In         ~/work/acme
+                                                                                 Host       mbp · local
+    Recent here                                                                  Scope      here
+    nothing used here yet                                                        Why        Current folder · ⚠
+                                                                                            unreviewed
+    Explore                                                                      Changes    see the command
+     Tasks   Git   Files   Disk   Services   System                              Risk       mutating
+    Children · 3 projects      explore  child  3 child projects discovered       Data       live · 0 s ago
+    System · mbp               explore  host   available on this host            Gate       trust required ·
+                                                                                            ~/work/acme/.holla.toml
+                                                                                 Alt+Enter  Set an alias… · Show
+                                                                                            configuration
+                                                                                            diagnostics · Pin ·
+                                                                                            Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                                                             truecolor · 120×40
+          Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

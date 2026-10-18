@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Tables      i Inspector   ? Help
+
+   Overview       ┃  Tables  Sort by header, hover rows, select with E…
+   Buttons        ┃
+   Inputs         ┃   ▎Tasks                      unsorted · 3–3 of 24
+   Text areas     ┃
+   Forms          ┃       ID     Task                       Owner   …
+   Lists          ┃    ▎  #1042  Fix flaky checkout integ…  ana      ┃
+   Trees          ┃
+ › Tables         ┃
+   Editable tabl… ┃    Checks
+   Panels         ┃
+   Sidebars       ┃       Check                             Result
+   Dialogs        │
+   Progress       │
+   Scrolling      │                No checks have run yet
+   Terminal       │
+   Code editor    │
+
+ ↑ ↓ Move  ← → Columns  s Sort column  Enter Select  Tab Next

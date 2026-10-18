@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Foundations / Overview   i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Tables         [0m│  [0m[1mOverview[0m  Tokens and principles behind every comp… [0m
+   Editable tabl… │                                                     [0m
+   Panels         │    Tokens                                           [0m
+   Sidebars       │                                                     [0m
+   Dialogs        │        ▏ canvas               ▏ text.muted          [0m
+   Progress       ┃        ▏ surface              ▏ text.faint          [0m
+   Scrolling      ┃        ▏ surface.elevated     ▏ accent              [0m
+   Terminal       ┃        ▏ surface.overlay      ▏ accent.hover        [0m
+   Code editor    ┃                                                     [0m
+   Diff           ┃                                                     [0m
+   Data grid      ┃    State language                                   [0m
+   Chips & selec… ┃                                                     [0m
+   Pickers        ┃    ▎  focus                                         [0m
+   Chrome         ┃    ░  hover lifts the surface                       [0m
+   Settings       ┃    ›  current / chosen                              [0m
+[0m[1m▎  Task runner    [0m┃                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

@@ -1,0 +1,64 @@
+{
+  "review": "independent_archive_index_language_first_pass",
+  "subject": {
+    "path": "docs/implementation/visibility/evidence/reviews/20261008-external-records/index.md",
+    "sha256": "433c94cf1c70b287665f9134c98d0bcce90a4f91c3f3532b23e2527a62498d7f"
+  },
+  "outcome": "changes_recommended",
+  "findings": [
+    {
+      "id": "ARCH-LANG-01",
+      "severity": "low",
+      "line": 3,
+      "text": "This directory stores 13 existing JSON review records. Each file is a byte-for-byte copy of its external source.",
+      "issue": "The manifest lists 13 JSON records, but four are subject or commit-binding records rather than review decisions. “Each file” can also refer to index.md and manifest.json, which are new archive files, not copies from external sources.",
+      "suggested_wording": "This directory archives 13 JSON records from prior reviews and their subject or commit bindings. The manifest lists each archived JSON record's source and reports its byte-copy check.",
+      "scope_check": "manifest.json has 13 record entries; the archive directory also contains index.md and manifest.json. The manifest reports byte_copy_check as passed for each entry. Raw-copy integrity was not independently checked in this language review."
+    },
+    {
+      "id": "ARCH-LANG-02",
+      "severity": "medium",
+      "line": 9,
+      "text": "The follow-up approved a code fix for its scope; it did not change that recorded test result. The product result remains red.",
+      "issue": "The pronoun “it” can refer to the code fix or the follow-up review. “The product result remains red” can also read as a current product status, although the records describe a historical run and the follow-up did not produce a current product result.",
+      "evidence": "Both deferred records show 23 failed and 0 passed for run 20261008T033324.855742Z at subject commit 994706c6fb4a8d15fa0d5e937839fb07d0e02585. The v2 freshness note says that receipt is historical and out of pair with candidate e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2. The v2 review approves a scoped exit-mapping fix; its latest_run remains the same historical failed run.",
+      "suggested_wording": "The follow-up review approved a code fix within its scope. The recorded test result remains unchanged: 23 selected tests failed and 0 passed. The archive does not report a current product run."
+    },
+    {
+      "id": "ARCH-LANG-03",
+      "severity": "low",
+      "line": 9,
+      "text": "The product result remains red.",
+      "issue": "“Red” uses color as shorthand for a result state. This status metaphor is less precise than the recorded outcome, and it can imply a current result.",
+      "suggested_wording": "The last recorded product test result remains failed.",
+      "standard_basis": "ASD-STE100 Issue 9 Part 1, technical-noun category 17 (Colors): color terms are technical nouns in STE. The metaphorical status use here is not a color attribute."
+    }
+  ],
+  "scope_claims_checked": {
+    "manifest_record_count": 13,
+    "v1_language_record": "Reports changes requested; it does not approve a later version.",
+    "v3_records": "The technical and language reviews share the same parent, tree, and diff digest.",
+    "queue_reviews": "The source review records no staged subject; the queue-commit records bind the reviewed subject to commit e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2.",
+    "language_reference": "The v1 and v3 language records cite the authorized Issue 9 PDF and the stated SHA-256.",
+    "deferred_results": "Both archived deferred reviews show 23 failed and 0 passed; the v2 review preserves the historical run and approves a code fix only within its scope.",
+    "archive_limits": "The manifest states that raw subject diffs were not archived, that two committed diff reconstructions are recorded, and that the v1 language subject has no commit binding. These statements match the listed manifest entries.",
+    "raw_copy_integrity": "Not independently verified; a separate technical reviewer owns that check."
+  },
+  "vocabulary_and_grammar_coverage": {
+    "checks": [
+      "sentence grammar, pronoun references, and scope wording in all 13 lines",
+      "selected technical terms and result wording against ASD-STE100 Issue 9",
+      "scope statements checked against manifest entries and the archived review records"
+    ],
+    "selected_standard_note": "Issue 9 category 17 identifies colors as technical nouns in STE. The use of red as an abstract pass/fail status is metaphorical. Other domain terms such as review, record, subject, and scope were treated as project terminology; their formal approval was not verified.",
+    "not_completed": [
+      "all 53 Issue 9 writing rules",
+      "full Section 8 word-count audit",
+      "full dictionary audit",
+      "formal approval of project-specific technical terms"
+    ],
+    "full_conformity_claim": false
+  },
+  "repository_edits": false,
+  "raw_copy_hashes_recomputed": false
+}

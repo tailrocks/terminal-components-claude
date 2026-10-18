@@ -1,0 +1,23 @@
+target
+target/
+/.venv
+.DS_Store
+__pycache__/
+# per-session capture arguments in shots/ (written by the retired capture.sh)
+/shots/.args.*
+docs/refactoring-plan/evidence/*.tar.gz
+
+# tuisnap grouped baseline: approved frames at snapshots/ are the tracked
+# baseline (exactly four artifacts per scenario); actuals, diffs and the HTML
+# report are regenerable scratch under target/ (gitignored above).
+# `snapshots.actual` is a local symlink bridging the suite's
+# target/tuisnap/actual root to the tuisnap CLI's default sibling roots so
+# `tuisnap accept|report --grouped --store snapshots` works verbatim
+# (see docs/baseline/snapshots-v2.md).
+/snapshots.actual
+/snapshots.diff
+
+# Investigation files
+/termrock-library-spec/
+/termrock-tuiscotti-baseline-goal.md
+

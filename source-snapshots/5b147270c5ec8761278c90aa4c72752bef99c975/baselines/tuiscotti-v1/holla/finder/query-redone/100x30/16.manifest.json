@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "f5b2fe53acdbc36b07488fe7d83ca83ddef0d9b0521e4a493a1c3958d1c1bb70",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5885,
+      "file": "holla/finder/query-redone/100x30/16.ansi",
+      "sha256": "f5b2fe53acdbc36b07488fe7d83ca83ddef0d9b0521e4a493a1c3958d1c1bb70"
+    },
+    "ascii": {
+      "bytes": 767,
+      "file": "holla/finder/query-redone/100x30/16.ascii",
+      "sha256": "a1e54f623889fc38d0e15ae77d4472228c9c79c9efb3921b98bd2c484f7404f4"
+    },
+    "ascii_loss_json": {
+      "bytes": 10643,
+      "file": "holla/finder/query-redone/100x30/16.ascii.loss.json",
+      "sha256": "b1dc4a00bc4b0b724babe2f84e3d64d4a352d611ff7fdaf221436e11dfc2c257"
+    },
+    "frame_json": {
+      "bytes": 697748,
+      "file": "holla/finder/query-redone/100x30/16.frame.json",
+      "sha256": "79369a65492c3271dbbeea9660480e7eaa4f6486e6247e7b022ca704dc28d7dc"
+    },
+    "html": {
+      "bytes": 252757,
+      "file": "holla/finder/query-redone/100x30/16.html",
+      "sha256": "bbb50fc530bc0c1f5a1e7c8c5e6bbd4c4c319f46a87d5c5bcaa8e0c37f0d0ae7"
+    },
+    "observations_json": {
+      "bytes": 451,
+      "file": "holla/finder/query-redone/100x30/16.observations.json",
+      "sha256": "ee6cb40e5ac1926045eefd9f1dcef34f606395196f3adfe8ac6acfc3c00f2348"
+    },
+    "png": {
+      "bytes": 179089,
+      "file": "holla/finder/query-redone/100x30/16.png",
+      "sha256": "f9dd4a8e5a0667ac03f0b88794079427f0d069e215eb86650f64bc774e5f06c3"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/query-redone/100x30/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 990,
+      "file": "holla/finder/query-redone/100x30/16.txt",
+      "sha256": "42bc5b98cb74dc7817fbcfd751fb374bc00865d08dfd3959f49b93287677c996"
+    }
+  },
+  "ascii_substitutions_count": 115,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 3055970091485099520,
+  "frame_sha256": "79369a65492c3271dbbeea9660480e7eaa4f6486e6247e7b022ca704dc28d7dc",
+  "generation": "ec79d3ffec63c93ab96e160dfcb1bd1a1e8862d803ba87f39c5310300686f273",
+  "html_sha256": "bbb50fc530bc0c1f5a1e7c8c5e6bbd4c4c319f46a87d5c5bcaa8e0c37f0d0ae7",
+  "legacy_name": "holla/flows/query/redone/100x30/16",
+  "name": "holla/finder/query-redone/100x30/16",
+  "png_sha256": "f9dd4a8e5a0667ac03f0b88794079427f0d069e215eb86650f64bc774e5f06c3",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:33Z",
+  "txt_sha256": "42bc5b98cb74dc7817fbcfd751fb374bc00865d08dfd3959f49b93287677c996"
+}

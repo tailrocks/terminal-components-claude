@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                 work · project collection  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────
+  Disk usage · ~/work
+  scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)
+
+    Filesystems
+    /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB
+    /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB
+
+    largest first · allocated · noise folded
+ ▎▾ ◐ work                                                                         31.8 GiB · 100%
+    ▸ ◐ backend                                                                    12.7 GiB ·  40%
+    ▸ ◐ frontend                                                                    8.8 GiB ·  28%
+    ▸   dumps                                                                       6.3 GiB ·  20%
+    ▸ ◐ android                                                                     4.0 GiB ·  13%
+    ▸   backend-wt                                                                 24.0 KiB ·   0%
+
+
+
+
+
+
+
+
+
+
+ ~/work               3 selected · 24.2 GiB               / ━━━━━━━━━━─ 91%     256 colors · 100×30
+    ↑↓ Move  ← → Fold / open  Space Select  s Sort  f Fold noise  d Delete…  c Artifact plan  …

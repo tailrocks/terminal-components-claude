@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+  ╭──────────────────────────────────────────────────────────────────╮
+  │                                                                  │
+ ━│  Execute write query?                                            │─
+ ╭│                                                                  │╮
+ ││  Action      UPDATE                                              ││
+ ││  Target      Production · production · acme_prod · orders        ││
+ ││  Scope       matching rows in orders                             ││
+ ││  Reversible  Reversible by a compensating UPDATE                 ││
+ ││                                                                  ││
+ ││  UPDATE orders SET status = 'paid' WHERE id = 'x'                ││
+ ││                                                                  ││
+ ││   Type orders to confirm                                         ││
+ ││ ▎                                                                ││
+ ││                                                                  ││
+ ││                                                                  ││
+ ││                                               Cancel   Execute   ││
+ ╰│                                                                  │╯
+  ╰──────────────────────────────────────────────────────────────────╯
+ ← → Choose  Enter Confirm  Esc Cancel          Connected to Production

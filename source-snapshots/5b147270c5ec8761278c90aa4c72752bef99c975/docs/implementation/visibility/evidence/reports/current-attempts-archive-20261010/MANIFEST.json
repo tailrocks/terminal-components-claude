@@ -1,0 +1,312 @@
+{
+  "schema": "termrock-vis13-raw-attempt-archive/v1",
+  "source_baseline": {
+    "commit": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+    "tree": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+    "archive_path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009",
+    "manifest_git_blob": "078810a0e230b002cf8680aaf413ee18aff12f6a",
+    "manifest_sha256": "e77fa551b5669585e9d21356d4f2baeff16a8cbc3f348bbade470d98f90b839a",
+    "prior_raw_member_count": 70,
+    "prior_raw_bytes": 6171844,
+    "verification": "Each of the 70 raw paths from the published manifest was checked against the Git blob in this commit; path set, byte counts, and SHA-256 values matched. The Git tree contains the same 70 raw paths."
+  },
+  "files": [
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/candidate-actions-run.json",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/candidate-actions-run.json",
+      "bytes": 14412,
+      "sha256": "63dc8659c6112f205db3ed2fec2e50134c07cd48fa7bc8b18350aec5ebcf25ee",
+      "description": "CI run API response"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/candidate-check-suites.json",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/candidate-check-suites.json",
+      "bytes": 17353,
+      "sha256": "9bbac2c2f7605dfc6519509e5816706d338d4951e94592bb7ed6591b6270766e",
+      "description": "CI check suites API response"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/candidate-check-runs.json",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/candidate-check-runs.json",
+      "bytes": 57372,
+      "sha256": "762e11457f07f20612ada1e9e1fa9558ed73b76d8f6d71a54ff1e2455c542591",
+      "description": "CI check runs API response"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/candidate-actions-jobs.json",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/candidate-actions-jobs.json",
+      "bytes": 27,
+      "sha256": "b3dab5870ff3a8209160335de7c1077b89e461d875d9041ac9d8b8ed7c1666f6",
+      "description": "CI jobs API response"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/candidate-actions-artifacts.json",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/candidate-actions-artifacts.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "description": "CI artifacts API response"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/candidate-failed-log-cli.txt",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/candidate-failed-log-cli.txt",
+      "bytes": 37,
+      "sha256": "e4238f2f3cbfb95454d5468ba5ee520254b9f3e365b6fe5f6e5df70950a7e3ec",
+      "description": "CLI log retrieval output"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/ci/37985833303/source-manifest.txt",
+      "source_path": "/private/tmp/termrock-ci-latest-poll-20261010-r1/manifest.txt",
+      "bytes": 3706,
+      "sha256": "c0da06f03c30f8a404f95cf8e114f69285b95429598f6cad55bbfb47368fc541",
+      "description": "CI poll source manifest"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/queue6/original/final-receipt.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/final-receipt.json",
+      "bytes": 5606,
+      "sha256": "6fda5fb42e6f448cd91de3dd0e06cdc1d27da92c8e97b9586bab16254bec54ae",
+      "description": "Original wrapper receipt"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/queue6/original/stdout.log",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "description": "Original wrapper stdout"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/queue6/original/stderr.log",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/stderr.log",
+      "bytes": 1570,
+      "sha256": "a169de5454a597609083bf911b6a679d9d6d4ec6ad80c9c96ad887aee2cc7f58",
+      "description": "Original wrapper stderr"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/queue6/original/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/queue-reviewer-handoff-r1-20261010/process-events.jsonl",
+      "bytes": 1316,
+      "sha256": "28cb62e3cafe4d33bdf667e942a194fb4c78fc38845e9ef5583f57b1662149a1",
+      "description": "Original process events"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/queue6/reconstruction/actual-result-reconstruction.json",
+      "source_path": "/private/tmp/termrock-vis08-reviewer-handoff-r1-actual-review-r1-20261010/actual-result-reconstruction.json",
+      "bytes": 4105,
+      "sha256": "735c6826e46aa982f7f5ccd86ea4a509e9d1444b689b2ef530af726cb69dedeb",
+      "description": "Post-run result reconstruction"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/queue6/reconstruction/actual-result-review.json",
+      "source_path": "/private/tmp/termrock-vis08-reviewer-handoff-r1-actual-review-observer-20261010.json",
+      "bytes": 2809,
+      "sha256": "db821385e3c69182c9f66b661054a2bbe32006609dcdb335f42d70d1fcf285ad",
+      "description": "Independent actual-result review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r6/original-final-receipt.json",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/output/final-receipt.json",
+      "bytes": 477522,
+      "sha256": "7c6a1763e0c16f909c893d7e948557b600ca62cf7a9f88c5fad1359eea48dbd8",
+      "description": "Original R6 receipt"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r3/final-receipt.json",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r3-final-receipt.json",
+      "bytes": 461286,
+      "sha256": "299b6510192349547983190d0e9754305893d1f62cae79c06e1f5d8ee5ae5300",
+      "description": "R3 failed receipt"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r3/actual-review.json",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r3-actual-review.json",
+      "bytes": 3857,
+      "sha256": "fa5dc18a5ae54bd1e5eefb82064371528e4ef48e39e0306f367fd534bb6dcb0a",
+      "description": "R3 actual-result review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r3/nextest.stderr.log",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r3-nextest.stderr.log",
+      "bytes": 4800,
+      "sha256": "c386522bc1a8f7dabb7c7903116191eeed12d85aec834d8169bd723cfa0b685b",
+      "description": "R3 raw Nextest stderr"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r3/nextest.stdout.jsonl",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r3-nextest.stdout.jsonl",
+      "bytes": 3274,
+      "sha256": "85506c5fc96f362936956b202cf226ed70f89c9f6c8d8f973693d54711895727",
+      "description": "R3 raw Nextest stdout"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r5/final-receipt.json",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r5-final-receipt.json",
+      "bytes": 468777,
+      "sha256": "193145b5f9e5f703807da300def025fe206b2f534a1095be81b2bf9e43abd4fa",
+      "description": "R5 failed receipt"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r5/failure-diagnosis.json",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r5-failure-diagnosis.json",
+      "bytes": 8268,
+      "sha256": "b4e18833705da2380ea56acf5625f7e14a205d8add030cbcdea26bae6e25c52e",
+      "description": "R5 failure diagnosis"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r5/data-source-review.json",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r5-data-source-review-luna.json",
+      "bytes": 4103,
+      "sha256": "8d0a7dc92f3ccd6ce3e8275ec19f1dae1f259b3b187facfce1e39f509c588363",
+      "description": "R5 data source review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r5/nextest.stderr.log",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r5-nextest.stderr.log",
+      "bytes": 5019,
+      "sha256": "b32f3f025e0c0353691bdc87af0ab0dfaa1760ca9e9266446d1e9ff86bd9642f",
+      "description": "R5 raw Nextest stderr"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r5/nextest.stdout.jsonl",
+      "source_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r5-nextest.stdout.jsonl",
+      "bytes": 3378,
+      "sha256": "a22230aecb2ff55520a8208ae3f9d708ecc45b1a5ce147e2af19a16833810cde",
+      "description": "R5 raw Nextest stdout"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis16/r6/actual-tree-review.json",
+      "source_path": "/private/tmp/termrock-vis16-r6-actual-tree-review-luna-20261010.json",
+      "bytes": 6644,
+      "sha256": "6ed5ba3a9e206d874c35318406d19d0b644f09ca3a804297f1cbb5e5e5b306da",
+      "description": "R6 actual tree review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis17/r4/original-final-receipt.json",
+      "source_path": "/private/tmp/termrock-vis17-rust-trusted-status-writer-nextest-r4-20261010/output/final-receipt.json",
+      "bytes": 901155,
+      "sha256": "bc4532a77edabbd76fb2857384f3cce4b498687a9992034845bc387b5c9b6594",
+      "description": "R4 original receipt"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/vis17/r4/actual-source-review.json",
+      "source_path": "/private/tmp/termrock-vis17-r4-actual-source-review-ci-parity-luna-20261010.json",
+      "bytes": 5691,
+      "sha256": "668e8e35f4b76eb0d393bc6b1b43a8336c34a68e078aa24b715679d89cf6f812",
+      "description": "R4 actual source review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r7/preflight.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/preflight.json",
+      "bytes": 165788,
+      "sha256": "7db0b00d8baa174c31c0ed0dab6dabdac74ca89feb88b8b662d34fe14fcb7119",
+      "description": "R7 preflight"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r7/postflight.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/postflight.json",
+      "bytes": 179531,
+      "sha256": "e9b8f98391548730912a0b36ce139117cc8fe73621ce935ee4aaf24e7c242cde",
+      "description": "R7 postflight"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r7/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/process-events.jsonl",
+      "bytes": 1270,
+      "sha256": "da442e9019f63438a8ab0785cbfe05e92ad6eb6728c7063c65870b5a8c3e3227",
+      "description": "R7 process events"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r7/stderr.log",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stderr.log",
+      "bytes": 3131,
+      "sha256": "0df7b0798e87c80ca88a1df5cef30498a11b6a8d38068583a9600164b64c97b6",
+      "description": "R7 raw stderr"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r7/stdout.log",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stdout.log",
+      "bytes": 7879,
+      "sha256": "68217fa41a5b466418c8ab14b77fbfdfc93af1fbaf23179beea39060990c8dc4",
+      "description": "R7 raw stdout"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r7/reconstruction.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-reconstruction-20261010/reconstruction.json",
+      "bytes": 9986,
+      "sha256": "118555fb2b294ac537e852d443a22d17a9edb4dbe8d713145817b436a825c790",
+      "description": "R7 result reconstruction; original final receipt absent"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/r8/reconstruction.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/reconstruction.json",
+      "bytes": 25757,
+      "sha256": "88a20cfafa6247bbea99c32eca616aec88edfe7c43eed0a4dabbaff5e50e2dca",
+      "description": "R8 result reconstruction"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/reviews/cause-review.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/cause-review-luna.json",
+      "bytes": 3717,
+      "sha256": "ac19c50262a09a8e9a4e05e4f1d2a7b4a1b9d4133621604d18ca25770bc90eb5",
+      "description": "R7 cause review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/reviews/process-containment-review.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/process-containment-review-luna.json",
+      "bytes": 3850,
+      "sha256": "8cf7d350f7574fb2f5f783b43cede4b59fe43da1d4d57862cf33883d26b3f3c1",
+      "description": "R7 process containment review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/run03/reviews/result-review.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r8-reconstruction-20261010/review-luna.json",
+      "bytes": 2487,
+      "sha256": "0f76c572d46ba210af7209e777830493e3b62c0e480a934e54cbf0ff81f9c61e",
+      "description": "R7 result review"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/tag-r15/r7/original-runner-result.json",
+      "source_path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-count-19-readonly-verification-r7-20261010/attempt-01/runner-result.json",
+      "bytes": 9096,
+      "sha256": "6f5b2e275dc2896c6e1511a625106612a302e391cae65bdb492bb1df8fc9d3f0",
+      "description": "Original R7 runner result"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/tag-r15/r7/reconstruction.json",
+      "source_path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r15-r11-r7-raw-result-reconstruction-r5-20261010/reconstruction.json",
+      "bytes": 5030,
+      "sha256": "a7b1505a48de8253b94afeb2fe5926c0f4386e91bb6f50d9873d5d3681f05635",
+      "description": "R7 result reconstruction"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010/raw/tag-r15/r7/actual-review.json",
+      "source_path": "/private/tmp/termrock-vis06-tag-r15-r7-actual-review-luna-20261010.json",
+      "bytes": 2194,
+      "sha256": "4d77b94d5c6ecd97c67daf3ad26c6c70d1d6f115c56dba8f503def030edd45b1",
+      "description": "R7 actual-result review"
+    }
+  ],
+  "file_count": 39,
+  "total_bytes": 2881835,
+  "limits": [
+    "This archive preserves source bytes and review/reconstruction artifacts; it is not an execution receipt when a source says reconstruction.",
+    "The current CI poll has no raw HTTP response for the failed-log request. Its CLI output says the log was not found; HTTP status is NOT_CAPTURED and diagnostic status is NOT_EXPOSED.",
+    "RUN-03 R7 has no original final receipt in the source location; preflight/postflight/process logs are archived alongside an explicitly labeled reconstruction.",
+    "VIS-16 R3/R5 failures and VIS-17 R4 result are separate attempts; do not collapse or overwrite them with later results.",
+    "VIS-19 Tag R15 is a read-only R7 verification and is distinct from the earlier R15 capture attempt.",
+    "No normalized attempt result_record is included in this raw-only archive increment."
+  ],
+  "baseline_verification": {
+    "method": "read-only Git object verification (manifest-listed raw members and recursive raw path set)",
+    "commit": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+    "manifest_path": "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json",
+    "manifest_git_blob": "078810a0e230b002cf8680aaf413ee18aff12f6a",
+    "manifest_sha256": "e77fa551b5669585e9d21356d4f2baeff16a8cbc3f348bbade470d98f90b839a",
+    "raw_files": 70,
+    "raw_bytes": 6171844,
+    "checks": [
+      "all manifest paths equal the commit raw-tree path set",
+      "all 70 blob byte counts match the manifest",
+      "all 70 blob SHA-256 values match the manifest"
+    ]
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "schema": "termrock-vis04-claim-pin-controls-archive-independent-review/v1",
+  "reviewed_at_utc": "2026-10-09T06:08:15Z",
+  "verdict": "READY",
+  "scope": "Exact r3 external evidence archive, its one-file provenance addition, temporal claims, run membership, and allowed-path copy map. No repository writes, Cargo, or tests.",
+  "archive": {
+    "path": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-evidence-archive-20261009-r3",
+    "manifest_sha256": "5ba6a753216be84471fcbbd6238ca5b56a0337e52334c93d2ee87e8ecdd25a12",
+    "readme_sha256": "7eaf026ffce4edfe5ad3bdf4ee018030e93c95fcdd0fd9fdcb873f2e28667756",
+    "copy_plan_sha256": "ce8b442e57c6361cf253c78d867701937692af333918c7bba5b4ef35e388e935",
+    "artifact_count_excluding_manifest": 53,
+    "all_artifact_paths_exact_and_hash_byte_counts_match": true,
+    "no_unlisted_files_or_symlinks": true,
+    "one_allowed_destination": "docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009",
+    "copy_plan_maps_each_file_to_same_relative_path_under_only_that_subtree": true,
+    "prior_r2_artifact_records_unchanged": 52,
+    "only_r2_to_r3_changes": ["MANIFEST.json", "provenance/v2/independent-review-luna.json"],
+    "created_at_utc_refreshed_for_successor": "2026-10-09T06:07:39.957Z"
+  },
+  "added_review_dependency": {
+    "archive_path": "provenance/v2/independent-review-luna.json",
+    "sha256": "1116be98dceea49e0aba188a012a20379312b53b6bfb512f95579bb0b67e81a5",
+    "bytes": 5652,
+    "byte_identical_to_original_runner_packet_review": true,
+    "actual_result_review_frozen_static_review_sha256_matches": true,
+    "verdict": "READY_FOR_ROOT_CONTROLLED_AFFECTED_RUST_GATE"
+  },
+  "source": {
+    "manifest_sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60",
+    "snapshot_files": 14,
+    "all_snapshot_bytes_and_hashes_match_source_manifest": true,
+    "historical_test_input": {
+      "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6"
+    },
+    "published_source_commit": "ed626a6b919fc91c303d1dcdafb11b5a2f200754",
+    "published_blobs_match_tested_hashes": {
+      "tools/visibility/deferred.py": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee",
+      "crates/termrock-visibility-tests/tests/deferred.rs": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94"
+    },
+    "identity_limit": "The v2 run is bound to candidate_product_commit 1d797d… plus fixture_base_commit b106b…; it is not represented as having executed commit ed626. Only the two named published blobs were compared and match."
+  },
+  "results": {
+    "v1": {
+      "run_id": "2026-10-09T05-06-26-032Z-7d60e16b",
+      "selected": 29,
+      "started": 29,
+      "passed": 27,
+      "failed": 2,
+      "skipped": 0,
+      "nextest_exit": 100,
+      "selection_membership_matches_started_and_terminal_events": true,
+      "failed_names": [
+        "claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup",
+        "claim_registry_rejects_non_integer_revisions_before_tool_setup"
+      ],
+      "receipt_sha256": "cc1d73677d1fa73937ae8c3c6128f5edb09178f4fb8ac5675f0425dbf574cc96",
+      "stdout_sha256": "e26228854578dfa12afd8202cfcbc796f985f29149544e089806bc2c81c9a123",
+      "stderr_sha256": "a0b4ac201af7801ececaa6fcc8bf1f79eadbbbc1d9c398ac952bdb501a5d4895"
+    },
+    "v2": {
+      "run_id": "2026-10-09T05-13-58-526Z-adb32ee0",
+      "nextest_run_id": "a0bc2b22-bb0d-409f-95a8-5596e42ed06b",
+      "selected": 29,
+      "started": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "nextest_exit": 0,
+      "suite_events": ["started", "ok"],
+      "selection_membership_matches_started_and_terminal_events": true,
+      "no_timeout_signal_forced_close_or_parse_errors": true,
+      "receipt_sha256": "976e530df3dbbc39498e0bd261950e74a9d98dcceed183027359aa1ba69ee9e7",
+      "stdout_sha256": "e0f391786923482679e3e3e8971a7effc727672db0ac555d3a356d1d212c254f",
+      "stderr_sha256": "5b0d4b4d449e8fae19405a47e39a3764d3b1ba98d3d663512d86239f709cc367"
+    }
+  },
+  "review_bindings": {
+    "static_implementation_review_sha256": "ac3a11153eb5192a74584b4dd21da16453a810d61b50db2933b67fc5466b9ad4",
+    "actual_result_review_sha256": "3fa6f4fe14f6bd39d8e06b31395d6ff4f92b90de25ac6213f3864228d6efd2d2",
+    "actual_review_request_sha256": "68f0c1fce167bb153e7790d625872dea1e75f665c2756c55cfebeda7d9a9dc37",
+    "actual_review_source_run_and_raw_log_pins_match_archive": true,
+    "actual_review_static_runner_review_dependency_is_now_included": true
+  },
+  "claim_boundaries": {
+    "scope": "29 Rust harness controls only",
+    "candidate_23_row_metadata": "NOT_RUN",
+    "separate_product23": "22 PASS / 1 FAIL (BD-21, w13_filter_wide_trail_cells_clear); outside this archive and not rerun",
+    "no_product_qualification_claim": true
+  },
+  "reviewer_actions": {
+    "cargo_or_tests_invoked": false,
+    "repository_mutations": false,
+    "archive_copy_or_publication_performed": false
+  }
+}

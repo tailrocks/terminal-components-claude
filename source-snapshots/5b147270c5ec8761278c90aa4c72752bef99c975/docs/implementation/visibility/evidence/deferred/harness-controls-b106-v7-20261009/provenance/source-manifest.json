@@ -1,0 +1,172 @@
+{
+  "schema": "termrock-vis04-deferred-harness-source-manifest/v2",
+  "prepared_at_utc": "2026-10-09T03:23:56.948Z",
+  "source_worktree": {
+    "path": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+    "branch": "termrock-implementation",
+    "head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+    "note": "The four changed VIS04 source paths are copied from the dirty worktree and bound by digest; no repository files were changed."
+  },
+  "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+  "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6",
+  "fixture_base_note": "Committed b106 fixture/lib/package/lock; dirty mixed-stage fixture bytes at worktree 766ae1e were excluded.",
+  "external_source_root": "/private/tmp/termrock-vis04-deferred-controls-b106-20261009-v6.H4MeYi/source",
+  "files": [
+    {
+      "path": "component-ownership.json",
+      "origin": "git:1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "bytes": 4243,
+      "sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4"
+    },
+    {
+      "path": "crates/termrock-conformance/Cargo.toml",
+      "origin": "git:1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "bytes": 726,
+      "sha256": "4d2b924566c74131adc9e4d57c3dad7ffd03fc487120683f1f8296c8d4f3c8d6"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/control_states.rs",
+      "origin": "git:1d797d41c8141fcbdc3f69d7f11eb8875",
+      "bytes": 278760,
+      "sha256": "dad018454b706e35518f2a405e4f4603f6a625c23de5d697932ec995fd55cabc"
+    },
+    {
+      "path": "crates/termrock-conformance/tests/parity_burndown.rs",
+      "origin": "git:1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "bytes": 4195,
+      "sha256": "30d402b5f71fc078efa205c76139e43fa7effd3f9b9282ec889ce2d5c5e3a738"
+    },
+    {
+      "path": "crates/termrock-e2e/cases/deferred-obligations.json",
+      "origin": "git:1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "bytes": 3675,
+      "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.lock",
+      "origin": "git:b106b2426cfce016381c58b3d380e762a454c7a6",
+      "bytes": 7322,
+      "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/Cargo.toml",
+      "origin": "git:b106b2426cfce016381c58b3d380e762a454c7a6",
+      "bytes": 324,
+      "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "origin": "git:b106b2426cfce016381c58b3d380e762a454c7a6",
+      "bytes": 21577,
+      "sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/src/lib.rs",
+      "origin": "git:b106b2426cfce016381c58b3d380e762a454c7a6",
+      "bytes": 51086,
+      "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247"
+    },
+    {
+      "path": "crates/termrock-visibility-tests/tests/deferred.rs",
+      "origin": "worktree:termrock-implementation@766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "bytes": 62489,
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+      "origin": "worktree:termrock-implementation@766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "bytes": 27023,
+      "sha256": "e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d"
+    },
+    {
+      "path": "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+      "origin": "worktree:termrock-implementation@766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "bytes": 3138,
+      "sha256": "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d"
+    },
+    {
+      "path": "tests/conformance/required_cases.json",
+      "origin": "git:1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "bytes": 621343,
+      "sha256": "04ebb893bdf4f9003e3f0957ff753eda95d1a0c68c4583b336d29af842acb99a"
+    },
+    {
+      "path": "tools/visibility/deferred.py",
+      "origin": "worktree:termrock-implementation@766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+      "bytes": 52726,
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+    }
+  ],
+  "harness_controls": {
+    "target": "termrock-visibility-tests::deferred",
+    "count": 27,
+    "names": [
+      "inventory_uses_canonical_23_rows_and_25_case_references",
+      "inventory_rejects_non_not_run_status_and_changed_reason_sidecar",
+      "filter_uses_exact_names_and_explicit_writer_exclusion",
+      "receipt_separates_accepted_and_current_queue_revisions",
+      "environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing",
+      "source_digest_tracks_workspace_and_ignores_nonworkspace_crates",
+      "source_drift_after_list_or_during_run_blocks_the_receipt",
+      "run_command_keeps_all_selected_failures_visible",
+      "list_requires_the_exact_canonical_selection",
+      "list_reconciles_selected_count_separately_from_nextest_total",
+      "list_rejects_total_smaller_than_the_selection",
+      "list_rejects_missing_and_writer_like_selected_tests",
+      "list_accepts_mixed_registration_and_rejects_metadata_drift",
+      "list_rejects_malformed_json_before_run",
+      "list_rejects_a_wrong_package_or_binary",
+      "list_rejects_a_duplicate_selected_name_across_suites",
+      "assertion_failure_stays_failed_without_expected_failure_inversion",
+      "non_success_terminal_events_stay_incomplete_and_cannot_follow_a_pass",
+      "receipt_rows_keep_stable_ids_and_test_metadata",
+      "prefixed_nextest_event_names_map_to_stable_test_names",
+      "unselected_case_events_are_rejected_with_run_ignored_all",
+      "unselected_terminal_results_are_rejected",
+      "run_requires_one_terminal_event_per_canonical_test",
+      "build_error_is_blocked_with_raw_exit_and_zero_executions",
+      "zero_exit_with_invalid_results_is_blocked_nonzero",
+      "signal_termination_is_blocked_and_maps_to_shell_status",
+      "assertion_failure_remains_failed_with_an_unreadable_event"
+    ],
+    "ignored_count": 0
+  },
+  "candidate_metadata": {
+    "rows": 23,
+    "case_references": 25,
+    "normal_tests": 22,
+    "ignored_ids": [
+      "BD-21"
+    ],
+    "status": "NOT_RUN"
+  },
+  "toolchain": {
+    "rust": "1.98.1",
+    "cargo_nextest": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+    "build_jobs": 2,
+    "test_threads": 1
+  },
+  "boundary": "Rust Nextest deferred harness controls only. The Rust tests may launch the production helper as a CLI in isolated fixtures. No Python test module/test driver or product test suite is selected; this is not product assertion or PTY qualification.",
+  "source_scope": {
+    "vis04_changed_paths": [
+      "tools/visibility/deferred.py",
+      "crates/termrock-visibility-tests/tests/deferred.rs",
+      "docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+      "docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json"
+    ],
+    "fixture_and_package": [
+      "crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "crates/termrock-visibility-tests/src/lib.rs",
+      "crates/termrock-visibility-tests/Cargo.toml",
+      "crates/termrock-visibility-tests/Cargo.lock"
+    ],
+    "candidate_test_inputs": [
+      "component-ownership.json",
+      "tests/conformance/required_cases.json",
+      "crates/termrock-e2e/cases/deferred-obligations.json",
+      "crates/termrock-conformance/Cargo.toml",
+      "crates/termrock-conformance/tests/parity_burndown.rs",
+      "crates/termrock-conformance/tests/control_states.rs"
+    ]
+  }
+}

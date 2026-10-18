@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                      scope ‹ system ›
+
+    System · mbp · 45 entries                                               ┃    Review cleanup candi… cleanup · host
+  › Review cleanup candidates  cleanup  host  10.6 GiB across…              ┃
+    Clean Docker completely    plan     host  7.1 GB reclaima…  destructive ┃    Does       4 detected categories ·
+    List containers            docker   host  5 running                     ┃               10.6 GiB ·
+    Prune builder cache        docker   host  2.9 GB of build…  destructive ┃               rebuilt-on-demand and
+    Show Docker disk usage     docker   host  7.1 GB reclaima…              ┃               safe-if-old candidates
+    Show system resources      system   host  CPU 12%…                      ┃               start selected,
+    Stop all containers        docker   host  5 running on mbp              ┃               review-first never does,
+    Upgrade 8 outdated mise …  task     host  8 tools have ne…              ┃               too-recent ones stay
+    Upgrade everything         plan     host  1 managers dete…              ┃               visible but ineligible
+    Upgrade mise-managed too…  upgrade  host  8 outdated tools              ┃    Runs       'holla cleanup review'
+    Analyze a custom path…     disk     host  available                     ┃    In         mbp · host-wide
+    Clean Cargo registry cac…  cleanup  host  safe if old…                  ┃    Host       mbp · local
+    Clean Project artifacts …  cleanup  host  review first…                 ┃    Scope      host
+    Clean User caches · 900.…  cleanup  host  review first…                 ┃    Why        10.6 GiB across 4
+    Clean User logs · 44.0 K…  cleanup  host  rebuilt on dema…              ┃               categories
+    Connect to bastion         ssh      host  from ~/.ssh/con…              ┃    Changes    none · read-only
+    Connect to devbox          ssh      host  from ~/.ssh/con…              ┃    Risk       read-only
+    Connect to prod-eu-1       ssh      host  from ~/.ssh/con…   privileged ┃    Data       live · 0 s ago
+    Connect to production-db   ssh      host  from ~/.ssh/con…   privileged ┃    Gate       opens a review · the
+    Disk overview              disk     host  available                     ┃               deletion is gated there
+    Find files under home…     file     host  always available              │               (typed phrase)
+    Find the process on a po…  system   host  available on th…              │    Alt+Enter  Pin · Alias · Why here?
+    Follow pgadmin logs        docker   host  exited                        │
+    Open btm                   system   host  installed on th…              │
+    Prune buildx caches        docker   host  expansion beyon…  destructive │
+    Prune unused networks      docker   host  available on th…              │
+    Prune unused volumes       docker   host  3 volumes         destructive │
+    Remove all unused images   docker   host  5 dangling        destructive │
+    Restart acme-api-1         docker   host  container action              │
+    Restart acme-db-1          docker   host  container action              │
+
+ ~/work/acme   main   ↑1                             scope system · mbp                             256 colors · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Here    Scope system · mbp

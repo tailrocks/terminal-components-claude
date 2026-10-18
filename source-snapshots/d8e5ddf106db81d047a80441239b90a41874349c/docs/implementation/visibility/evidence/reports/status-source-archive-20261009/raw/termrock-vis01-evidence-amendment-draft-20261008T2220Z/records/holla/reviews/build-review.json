@@ -1,0 +1,133 @@
+{
+  "record_type": "independent_read_only_actual_holla_build_evidence_review",
+  "reviewer": "/root/technical_review",
+  "reviewed_on": "2026-10-09",
+  "verdict": "REVIEWED_DIAGNOSTIC_BUILD_EVIDENCE_ONLY",
+  "scope": "Read-only integrity and result review of the actual attempt-02 single Holla pair build supervisor receipt. This review is suitable as an input to a later diagnostic trust decision; it is not itself trust, corpus admission, or product qualification.",
+  "inputs": {
+    "outer_execution_receipt": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-actual-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa-attempt-02-home-setup/final-receipt.json",
+      "sha256": "7c9f5c2d6c48d382421892a547a1deee8a5f0f8e32c1ed5ac022c1ab18a183a1"
+    },
+    "subject_manifest": {
+      "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/subject-manifest.json",
+      "sha256": "0799aca655f619a06adda1a13067722e0d8bb8b5c9eb33a70847ee3e997837a9"
+    },
+    "builder_run": {
+      "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/run.json",
+      "sha256": "218de161e2e3b89678565544c62977edae2dfb57b0d9144bb91ab87154595b24"
+    },
+    "source_inputs": {
+      "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/source-inputs.json",
+      "sha256": "c0aedf0d1fd82513cb88856dcb43ae677b63cdb34a192ffe9cb3c348596d8fc7"
+    },
+    "build_environment": {
+      "path": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/build-environment.json",
+      "sha256": "04cb28dbbea276cdb08d24205b170c09578fb539d18b6505741548b67972e239"
+    },
+    "raw_nextest_stderr": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-actual-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa-attempt-02-home-setup/logs/nextest.stderr.raw",
+      "sha256": "03d2107f5e499a0766d828e6a497e1d113b205e6af76dc74d366d51ea59275b0"
+    },
+    "raw_nextest_stdout": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/holla-actual-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa-attempt-02-home-setup/logs/nextest.stdout.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "preexisting_suite_identity_review": {
+      "path": "/private/tmp/termrock-vis02-comparator-s2-inventory-fix-r3-review-20261009.json",
+      "sha256": "1126ea77cdc29b0738a6e6a984e42840cdfec95b477518886f0da50cf62f4304",
+      "scope_limit": "Identity/source-findings addendum only; it explicitly is not a test result, external admission, or visual qualification."
+    }
+  },
+  "observations": {
+    "attempt": {
+      "run_id": "vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
+      "attempt_id": "attempt-02-home-setup",
+      "prior_attempt_exit": 100,
+      "prior_attempt_failure": "test setup failed resolving the missing clean HOME before the Holla CLI or product build started; preserved as a separate failed attempt",
+      "current_nextest_run_id": "04b3524c-a98e-4cd6-ad75-5f975bb79a5d",
+      "process_exit_code": 0,
+      "timed_out": false
+    },
+    "nextest": {
+      "selected": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 15,
+      "case": "termrock-visibility-tests::subjects supervises_real_holla_pair_build",
+      "raw_log_observation": "PASS [138.683s]; raw stderr reports one test passed, one slow, and 15 skipped, with SLOW notices after 60 and 120 seconds.",
+      "parser_gap": "The outer receipt records nextest_counts.summary as null despite the raw summary line. The raw logs support the single PASS; the structured summary gap and slow notices remain explicit."
+    },
+    "builds": [
+      {
+        "role": "reference",
+        "source_commit": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+        "package": "junie-tui@0.1.0",
+        "target_name": "holla",
+        "profile": "release",
+        "toolchain": "1.98.1",
+        "target_triple": "aarch64-apple-darwin",
+        "argv_policy": "cargo build --release --locked --offline --jobs 2 --target aarch64-apple-darwin",
+        "exit_file": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/build/reference/holla/build.exit",
+        "exit_code": 0,
+        "executable": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/targets/reference/aarch64-apple-darwin/release/holla",
+        "executable_sha256": "07f6a793d2af38896873a00c9883855217dbb23610aa2a49779a9915e14e435c",
+        "builder_receipt_sha256": "36a3ecc889335577a8fb95d5d11e3ffc8949fdd9a0ae05db4cb9de59e5c6877e",
+        "manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7",
+        "lock_sha256": "3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460"
+      },
+      {
+        "role": "candidate",
+        "source_commit": "1ea1c17707f0a8f1639af506be179013d5e2d52a",
+        "package": "holla@0.1.0",
+        "target_name": "holla",
+        "profile": "release",
+        "toolchain": "1.98.1",
+        "target_triple": "aarch64-apple-darwin",
+        "argv_policy": "cargo build --release --locked --offline --jobs 2 --target aarch64-apple-darwin",
+        "exit_file": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/build/candidate/holla/build.exit",
+        "exit_code": 0,
+        "executable": "/private/tmp/termrock-vis06-real-holla-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/evidence/vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa/targets/candidate/aarch64-apple-darwin/release/holla",
+        "executable_sha256": "af7bdeca543603e5ce75110fc521dba6ab84d6e51f4a15666b2ab037a9f6cdec",
+        "builder_receipt_sha256": "b55d7015e364d04702fa0ac47ea556558db631522743f6c1bb5b8a40cae46ae3",
+        "manifest_sha256": "ee499e5448f4d051bccc3ecfe8b7fcb361dfd7c66c2a18a3ec52ac148f481963",
+        "lock_sha256": "6ce8eab6040704d9eadb71349aa0f382e232ffeb657c84fe4f266e93660b5a4a"
+      }
+    ],
+    "identity_bindings": {
+      "suite_revision": "termrock-e2e-2026-10-08.1",
+      "suite_sha256": "a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0",
+      "source_facts_sha256": "26f42d1d74f5aee2c0bc2401852e26ac1a18f3a11b525d7d8b0de090145482ca",
+      "producer_subjects_py_sha256": "cdcd4b3ad560a3aaa2dda1bbc19e06f9b3b52838609dad4771669e3739f9d32d",
+      "supervisor_test_subjects_rs_sha256": "67ff9bc647f1c43221dace4be9ccac45865b78a6a67836ef5294ef1e7848eb24",
+      "fixture_rs_sha256": "771b3dff1fbf53a60d9b90ae6cc3934bc411bb3ef953bfbda31b5fb2dfca360c",
+      "direct_harness_inputs_stable_before_after": true,
+      "package_inputs_stable": true,
+      "repository_head_index_stable": true
+    },
+    "lineage": {
+      "reference_branch_ref": "refs/remotes/origin/visual-baseline",
+      "reference_branch_oid": "b682cb26d68b353aeeccf9e51653eddf097b39f5",
+      "oracle_tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+      "oracle_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+    }
+  },
+  "qualification_and_admission": {
+    "run_state": "complete",
+    "run_qualification": "blocked",
+    "manifest_expected_generation": null,
+    "product_launch_or_pty": "NOT RUN",
+    "visual_oracle_capture": "NOT RUN",
+    "paired_visual_parity": "NOT RUN",
+    "external_trust_record": "not present / not created by this reviewer",
+    "corpus_admission": "not performed",
+    "milestone_qualification": "not established"
+  },
+  "limitations": [
+    "This is one Holla pair build diagnostic, not the full app matrix or the required seven-command coverage.",
+    "The reference subject is the selected branch commit b682cb26…, while the immutable visual-baseline tag peels to 4a79c0a2…; the tag binary was not built by this run.",
+    "The suite identity review addendum only carries source findings under the corrected digest and explicitly records no suite test result.",
+    "The execution evidence does not establish source closure against the immutable tag, renderer reproducibility, product behavior, or visual parity.",
+    "This review did not run tests, Cargo, builds, product commands, or UI sessions."
+  ]
+}

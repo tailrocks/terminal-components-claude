@@ -1,0 +1,86 @@
+{
+  "bound_artifacts": {
+    "candidate_helper": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/source/tools/visibility/deferred.py",
+      "sha256": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee"
+    },
+    "candidate_rust_test": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/source/crates/termrock-visibility-tests/tests/deferred.rs",
+      "sha256": "bc934962d1e5534963159356d60c41b4a7537d8d47fb6cb9c4093ce1ce6b5a17"
+    },
+    "implementation_manifest": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/implementation-manifest.json",
+      "sha256": "9dfb7bebafb6a6968f7a24bd1c5a86bde9ac9986d57775e19a1a82046fba66bd"
+    },
+    "prior_design_review": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/design-review.json",
+      "sha256": "ff07e9a2e8d2d1be5e3dd2f1ebcbdf03952039d3f7b36e54e25fced9e3f6bf99",
+      "verdict": "READY_FOR_BOUNDED_IMPLEMENTATION"
+    },
+    "review_request": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/review-request.json",
+      "sha256": "c59be157493b211c51c617ff306dbd6b33a11396aec1a7b2ffdf8f5eb7323f7b"
+    },
+    "sourcefix": {
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/sourcefix.diff",
+      "sha256": "5c49a436ec77e5fc67534dbe6cbccbfd7a1501b480bf39f950f55a090fe638f3"
+    },
+    "test_selection": {
+      "count": 29,
+      "path": "/private/tmp/termrock-vis04-claim-pin-implementation-20261009-v1/test-names.json",
+      "sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369",
+      "target": "termrock-visibility-tests::deferred"
+    }
+  },
+  "closed_prior_design_note": "The earlier design review requested that invalid-pin controls prove rejection before tool setup. The new Rust black-box control asserts an empty fixture tool trace and null version/list fields; this closes that note.",
+  "findings": [],
+  "implementation_assessment": {
+    "assertion_preservation": "Existing Rust test declarations are preserved; only the two assertions hardcoded to current/accepted q24 change to expected accepted q34/current q38. New controls cover obsolete tuple, wrong owner/token/work ID/revision, extra/duplicate fields, pin Boolean revision, and Boolean canonical revisions.",
+    "canonical_claim_checks": "Compares pin owner/token/accepted revision to the unique canonical VIS-04 row; retains branch, claimed/in_progress, base ancestry, and exact allowed-path checks. Pin values are a consistency expectation and are not treated as authentication.",
+    "fail_closed_order": "Claim pin/canonical record validation runs before environment capture, tool version, Nextest list, or test. New black-box controls check zero executions and an empty tool trace for bad pins and Boolean registry revisions.",
+    "pin_parser": "Requires exactly schema/work_id/expected_owner/expected_claim_token/expected_accepted_queue_revision; rejects duplicate keys, missing/unknown fields, non-string/empty string fields, unsupported schema/work ID, non-integer or non-positive accepted revision.",
+    "required_affected_gate": "After Root grants execution, run exactly all 29 names from test-names.json in target termrock-visibility-tests::deferred; no old 27-test receipt or product result can qualify this patch.",
+    "revision_semantics": "Uses strict integer checks (type(value) is int, so Boolean is rejected); requires current q38 >= accepted q34 and records the values separately. Receipt also records SHA-256 of raw caller pin bytes."
+  },
+  "limitations": [
+    "The implementation is an external proposal and remains unapplied/unexecuted.",
+    "This source review does not establish Rust compilation or test results.",
+    "The separate S1d product lane remains its prior 22 PASS / 1 FAIL (BD-21); no product assertion was rerun or relabeled."
+  ],
+  "record_type": "independent_source_patch_review_v1",
+  "review_checks": {
+    "branch/state/path checks retained": true,
+    "caller-pin digest in receipt": true,
+    "canonical VIS-04 matching": true,
+    "claim check precedes tool setup": true,
+    "current >= accepted": true,
+    "exact pin fields": true,
+    "invalid cases assert no tool traces": true,
+    "noninteger registry revision control": true,
+    "owner/token match canonical row": true,
+    "required CLI pin": true,
+    "schema/key/work-id negative cases": true,
+    "separate current/accepted receipt fields": true,
+    "strict canonical revision types": true,
+    "strict duplicate JSON field rejection": true,
+    "strict pin field types": true
+  },
+  "reviewer": "controls_wrapper_review_luna",
+  "scope": "Read-only review of the exact external two-path VIS-04 caller claim-pin implementation proposal. No repository edits, Cargo, Nextest, Python tests, or production CLI run.",
+  "source_scope": {
+    "base_source_pins_match": true,
+    "candidate_source_pins_match": true,
+    "git_apply_check": "PASS, independently rerun read-only against current base files",
+    "interpretation": "Only the two old q24 equality expectations are replaced with q34/q38 and pin-hash assertions; other assertion removal was not observed.",
+    "patch_paths": [
+      "tools/visibility/deferred.py",
+      "crates/termrock-visibility-tests/tests/deferred.rs"
+    ],
+    "product_assertion_files_touched": false,
+    "removed_assertions": [
+      "-    assert_eq!(claim[\"accepted_queue_revision\"], 24);",
+      "-    assert_eq!(claim[\"queue_revision\"], 24);"
+    ]
+  },
+  "verdict": "READY_FOR_AFFECTED_RUST_GATE"
+}

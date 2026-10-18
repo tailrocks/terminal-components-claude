@@ -1,0 +1,36 @@
+{
+  "platform": "darwin",
+  "results": [
+    {
+      "mode": "positive",
+      "outcome": "pass",
+      "stop_latency_ms": [
+        0.048,
+        46.541,
+        102.068,
+        0.031,
+        0.024
+      ]
+    },
+    {
+      "mode": "block-read",
+      "outcome": "rejected",
+      "reason": "timeout: STOPPED"
+    },
+    {
+      "mode": "dirty-stop",
+      "outcome": "rejected",
+      "reason": "terminal modes not restored: before=[11010, 3, 19200, 1483, 9600, 9600, [b'\\x04', b'\\xff', b'\\xff', b'\\x7f', b'\\x17', b'\\x15', b'\\x12', b'\\xff', b'\\x03', b'\\x1c', b'\\x1a', b'\\x19', b'\\x11', b'\\x13', b'\\x16', b'\\x0f', b'\\x01', b'\\x00', b'\\x14', b'\\xff']] after=[2049, 2, 19200, 65, 9600, 9600, [b'\\x04', b'\\xff', b'\\xff', b'\\x7f', b'\\x17', b'\\x15', b'\\x12', b'\\xff', b'\\x03', b'\\x1c', b'\\x1a', b'\\x19', b'\\x11', b'\\x13', b'\\x16', b'\\x0f', 1, 0, b'\\x14', b'\\xff']] output=b'\\r\\n@@PID 77745\\r\\n\\r\\r\\n@@AWAIT_START\\r\\ncontinue\\r\\n\\x1b[?1049h\\x1b[?1000h\\x1b[?1002h\\x1b[?1003h\\x1b[?1015h\\x1b[?1006h\\x1b[?2004h\\x1b[?2004l\\x1b[?1006l\\x1b[?1015l\\x1b[?1003l\\x1b[?1002l\\x1b[?1000l\\x1b[?1049l\\r\\r\\n@@FAILED_SETUP_CLEAN\\r\\n\\r\\n@@STOPPED 17\\r\\nfg\\r\\ncontinue\\r\\n\\x1b[?1049h\\x1b[?1000h\\x1b[?1002h\\x1b[?1003h\\x1b[?1015h\\x1b[?1006h\\x1b[?2004h\\x1b[?7l\\r\\n@@READY 1\\n\\n@@STOPPED 17\\n'"
+    },
+    {
+      "mode": "idle-tick",
+      "outcome": "rejected",
+      "reason": "idle service delivered logical work"
+    },
+    {
+      "mode": "unregister",
+      "outcome": "rejected",
+      "reason": "timeout: STOPPED"
+    }
+  ]
+}

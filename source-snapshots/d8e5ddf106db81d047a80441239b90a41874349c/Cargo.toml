@@ -1,0 +1,42 @@
+[package]
+name = "junie-tui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Junie-inspired Ratatui design-system laboratory"
+license = "MIT"
+
+default-run = "showcase"
+
+[lib]
+name = "junie_tui"
+path = "src/lib.rs"
+
+[[bin]]
+name = "showcase"
+path = "src/bin/showcase/main.rs"
+
+[[bin]]
+name = "tablepro"
+path = "src/bin/tablepro/main.rs"
+
+[[bin]]
+name = "jackin-preview"
+path = "src/bin/jackin_preview/main.rs"
+
+[[bin]]
+name = "holla"
+path = "src/bin/holla/main.rs"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+ratatui = { version = "0.30", features = ["crossterm_0_29"] }
+unicode-width = "0.2"
+unicode-segmentation = "1"
+
+[dev-dependencies]
+tuisnap = { git = "https://github.com/donbeave/tui-snap", rev = "2d43458ad2bc37d76653c22d56e61ee74512d893" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

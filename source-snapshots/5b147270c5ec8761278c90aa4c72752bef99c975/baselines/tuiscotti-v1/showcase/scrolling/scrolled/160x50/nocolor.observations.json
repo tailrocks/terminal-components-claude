@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 15296121595206265324,
+  "legacy_name": "showcase/flows/scrolling/scrolled/160x50/nocolor",
+  "name": "showcase/scrolling/scrolled/160x50/nocolor",
+  "non_empty_cells": 3119,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

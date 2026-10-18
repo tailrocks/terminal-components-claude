@@ -1,0 +1,40 @@
+{
+  "schema": "termrock-vis04-deferred-harness-controls-static-preflight/v1",
+  "result": "PASS_STATIC_PREFLIGHT_NO_CARGO",
+  "checked_at_utc": "2026-10-09T04:03:39.492Z",
+  "source_manifest_sha256": "3fba61dc932f1cd40f7dd522f5883346a947e96746a2819f30834b88add3133b",
+  "runplan_sha256": "834171f244fb72d514192f967a0dbe8a2acb23396bfd9b5282b8c1de71f125f9",
+  "runner_sha256": "cb637afb80b87910dcbdb6b5601c735773c585f25e906cba9ad0a058b7061ee4",
+  "launch_script_sha256": "24a17669a1331fa7a2d22f017e659f2f7e46815a2914acfabdca4ca5b7492106",
+  "test_names_sha256": "78d14ca903206f26ee12a6fba4abc24503511d628454ae4a9f7555035520f596",
+  "copied_source_count": 14,
+  "fixture_source_sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4",
+  "harness_controls_selected": 27,
+  "harness_controls_ignored": 0,
+  "candidate_product_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+  "fixture_base_commit": "b106b2426cfce016381c58b3d380e762a454c7a6",
+  "candidate_product_metadata": {
+    "rows": 23,
+    "case_references": 25,
+    "normal": 22,
+    "ignored_ids": [
+      "BD-21"
+    ],
+    "all_rows_status": "NOT_RUN"
+  },
+  "rust": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "cargo_nextest": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+  "nextest_run_help_options_verified": true,
+  "launch": {
+    "offline": true,
+    "inherits_parent_environment": false,
+    "timeout_ms": 600000,
+    "term_grace_ms": 5000,
+    "post_kill_grace_ms": 1000,
+    "combined_log_cap_bytes": 16777216,
+    "process_group": true
+  },
+  "cargo_or_test_execution": "NOT_RUN",
+  "repository_mutations": false,
+  "source_mutations": false
+}

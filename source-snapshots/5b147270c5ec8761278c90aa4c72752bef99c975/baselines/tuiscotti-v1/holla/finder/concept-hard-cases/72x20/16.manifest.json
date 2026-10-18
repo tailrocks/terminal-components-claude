@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "7162d82ff9127cc3559f7e803837241883deef1dd76bdc1e1ddffb5bb711f933",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4215,
+      "file": "holla/finder/concept-hard-cases/72x20/16.ansi",
+      "sha256": "7162d82ff9127cc3559f7e803837241883deef1dd76bdc1e1ddffb5bb711f933"
+    },
+    "ascii": {
+      "bytes": 1033,
+      "file": "holla/finder/concept-hard-cases/72x20/16.ascii",
+      "sha256": "cdd74834be2b8df2de844ab33bc8aa3f1a9581dd292c58cf2e7e84cbba3216df"
+    },
+    "ascii_loss_json": {
+      "bytes": 9273,
+      "file": "holla/finder/concept-hard-cases/72x20/16.ascii.loss.json",
+      "sha256": "bdf991d56e3c1c0320513143d677be190adb2dc2c3a2a3045aac589501c4a8ef"
+    },
+    "frame_json": {
+      "bytes": 334414,
+      "file": "holla/finder/concept-hard-cases/72x20/16.frame.json",
+      "sha256": "0533e2e97c2b76dd2f16f280ae2c35e9cd320adc29b1f1f37a99d880202689c8"
+    },
+    "html": {
+      "bytes": 307671,
+      "file": "holla/finder/concept-hard-cases/72x20/16.html",
+      "sha256": "d80b02e3a593cad4679dd98fd14da53df69309c67524200f0377917eff877ccf"
+    },
+    "observations_json": {
+      "bytes": 454,
+      "file": "holla/finder/concept-hard-cases/72x20/16.observations.json",
+      "sha256": "4f582e4be4b0c4768c0554fb225bf7b3f7cf7f8af1ccee81fdf4d421043bf87c"
+    },
+    "png": {
+      "bytes": 221402,
+      "file": "holla/finder/concept-hard-cases/72x20/16.png",
+      "sha256": "008e7392f6ca97803d9d9e422cb897d95e33ed22fb4854f07f29851e95075721"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-hard-cases/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1230,
+      "file": "holla/finder/concept-hard-cases/72x20/16.txt",
+      "sha256": "2c86e55d712967230d03a6b1d7ea61a73b6d48774841de5cf65f8bd009bb20f2"
+    }
+  },
+  "ascii_substitutions_count": 100,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 7720254817614289970,
+  "frame_sha256": "0533e2e97c2b76dd2f16f280ae2c35e9cd320adc29b1f1f37a99d880202689c8",
+  "generation": "65627189244a98905e1aced8d00730f6436453ae86e8834a4bafd03a341d6b83",
+  "html_sha256": "d80b02e3a593cad4679dd98fd14da53df69309c67524200f0377917eff877ccf",
+  "legacy_name": "holla/concept/hard-cases/72x20/16",
+  "name": "holla/finder/concept-hard-cases/72x20/16",
+  "png_sha256": "008e7392f6ca97803d9d9e422cb897d95e33ed22fb4854f07f29851e95075721",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:57Z",
+  "txt_sha256": "2c86e55d712967230d03a6b1d7ea61a73b6d48774841de5cf65f8bd009bb20f2"
+}

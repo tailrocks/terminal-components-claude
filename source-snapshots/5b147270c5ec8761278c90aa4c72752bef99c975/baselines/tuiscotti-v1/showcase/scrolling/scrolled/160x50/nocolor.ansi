@@ -1,0 +1,50 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling                                                                       no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows           [0m
+   Overview                                                                                                                                                     [0m
+                           ▎[0m[1mWrapped text[0m                 4–44 of 78      Long list                   1–41 of 120      Log        1960–2000 of 2000 · following  [0m
+   Components                                                                                                                                                   [0m
+   Buttons                  [0m[2mfocused changes, runs the tests, and  [0m│         Row 001                            ┃      [0m[2m 724.83s  info   Compiling serde v1.0… [0m│  [0m
+   Inputs                   reports back with a summary you can   │         Row 002                            ┃       725.20s  warn   unused import: `std:… │  [0m
+   Text areas               review before anything is merged.     ┃         Row 003                            ┃       725.57s  info   Compiling tokio v1.4… │  [0m
+   Forms                                                          ┃         Row 004                            ┃       725.94s  info   Running unittests sr… │  [0m
+   Lists                    Each step is visible. You can pause,  ┃         Row 005                            ┃       726.31s  info   test api::auth::test… │  [0m
+   Trees                    redirect, or take over at any point,  ┃         Row 006                            ┃       726.68s  info   test db::pool::tests… │  [0m
+   Tables                   and every change lands as an ordinary ┃         Row 007                    flagged ┃       727.05s  error  test checkout::place… │  [0m
+   Editable tables          diff in your working tree.            ┃         Row 008                            ┃       727.42s  info   test workers::schedu… │  [0m
+   Panels                                                         ┃         Row 009                            ┃       727.79s  info   Linking target/debug… │  [0m
+   Sidebars                 The design system in this prototype   ┃         Row 010                            ┃       728.16s  info   Resolving workspace … │  [0m
+   Dialogs                  exists so that the terminal version   ┃         Row 011                            ┃       728.53s  info   Fetching crates.io i… │  [0m
+   Progress                 of that experience feels as           ┃         Row 012                            ┃       728.90s  info   Compiling proc-macro… │  [0m
+ › Scrolling                deliberate as the web version: quiet  ┃         Row 013                            ┃       729.27s  info   Compiling serde v1.0… │  [0m
+   Terminal                 surfaces, one accent, clear focus,    ┃         Row 014                    flagged ┃       729.64s  warn   unused import: `std:… │  [0m
+   Code editor              and no decoration that does not carry ┃         Row 015                            │       730.01s  info   Compiling tokio v1.4… │  [0m
+   Diff                     information.                          ┃         Row 016                            │       730.38s  info   Running unittests sr… │  [0m
+   Data grid                                                      ┃         Row 017                            │       730.75s  info   test api::auth::test… │  [0m
+   Chips & selects          Scroll with the mouse wheel,          ┃         Row 018                            │       731.12s  info   test db::pool::tests… │  [0m
+   Pickers                  PageUp/PageDown, or the arrow keys    ┃         Row 019                            │       731.49s  error  test checkout::place… │  [0m
+   Chrome                   while this panel has focus. The       ┃         Row 020                            │       731.86s  info   test workers::schedu… │  [0m
+                            scrollbar on the right shows where    ┃         Row 021                    flagged │       732.23s  info   Linking target/debug… │  [0m
+   Screens                  you are and how much remains.         ┃         Row 022                            │       732.60s  info   Resolving workspace … │  [0m
+   Settings                                                       ┃         Row 023                            │       732.97s  info   Fetching crates.io i… │  [0m
+   Task runner              Junie works through a task the way a  │         Row 024                            │       733.34s  info   Compiling proc-macro… │  [0m
+                            careful engineer would: it reads the  │         Row 025                            │       733.71s  info   Compiling serde v1.0… │  [0m
+                            relevant code, forms a plan, makes    │         Row 026                            │       734.08s  warn   unused import: `std:… │  [0m
+                            focused changes, runs the tests, and  │         Row 027                            │       734.45s  info   Compiling tokio v1.4… │  [0m
+                            reports back with a summary you can   │         Row 028                    flagged │       734.82s  info   Running unittests sr… │  [0m
+                            review before anything is merged.     │         Row 029                            │       735.19s  info   test api::auth::test… │  [0m
+                                                                  │         Row 030                            │       735.56s  info   test db::pool::tests… │  [0m
+                            Each step is visible. You can pause,  │         Row 031                            │       735.93s  error  test checkout::place… │  [0m
+                            redirect, or take over at any point,  │         Row 032                            │       736.30s  info   test workers::schedu… │  [0m
+                            and every change lands as an ordinary │         Row 033                            │       736.67s  info   Linking target/debug… │  [0m
+                            diff in your working tree.            │         Row 034                            │       737.04s  info   Resolving workspace … │  [0m
+                                                                  │         Row 035                    flagged │       737.41s  info   Fetching crates.io i… │  [0m
+                            The design system in this prototype   │         Row 036                            │       737.78s  info   Compiling proc-macro… │  [0m
+                            exists so that the terminal version   │         Row 037                            │       738.15s  info   Compiling serde v1.0… │  [0m
+                            of that experience feels as           │         Row 038                            │       738.52s  warn   unused import: `std:… │  [0m
+                            deliberate as the web version: quiet  │         Row 039                            │       738.89s  info   Compiling tokio v1.4… │  [0m
+                            surfaces, one accent, clear focus,    │         Row 040                            │       739.26s  info   Running unittests sr… │  [0m
+                            [0m[2mand no decoration that does not carry [0m│      [0m[2m   Row 041                            [0m│       739.63s  info   test api::auth::test… ┃  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑ ↓[0m Scroll  [0m[1mPgUp PgDn[0m Page  [0m[1mg G[0m Ends  [0m[1mTab[0m Next                                                                                                                 [0m

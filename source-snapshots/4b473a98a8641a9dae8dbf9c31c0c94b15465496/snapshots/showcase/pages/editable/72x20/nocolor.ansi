@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Editable ta i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mEditable tables[0m  Navigation is reversed cell; edi… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃    Tasks                       0 edits · 1–6 of 14  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃       ID     Task                      Owner    …   [0m
+   Lists          ┃       #1040  Add rate limiting to au…  mira      ┃  [0m
+   Trees          ┃       #1041  Migrate sessions table …  jonas     ┃  [0m
+   Tables         ┃       #1042  Fix flaky checkout inte…  ana       │  [0m
+[0m[1m▎› Editable tabl… [0m┃       #1043  Write release notes for…  mira      │  [0m
+   Panels         ┃       #1044  Replace deprecated Vue …  kai       │  [0m
+   Sidebars       ┃    [0m[2m   #1045  Upgrade Postgres driver…  jonas     [0m│  [0m
+   Dialogs        │                                                     [0m
+   Progress       │                                                     [0m
+   Scrolling      │  reversed  cell cursor (navigation)                 [0m
+   Terminal       │  ▁         editing cursor + accent underline        [0m
+[0m[2m   Code editor    [0m│  !         validation error                         [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

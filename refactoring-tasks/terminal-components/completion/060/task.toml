@@ -1,3 +1,0 @@
-schema = "task-meta/v1"
-status = "pending"
-dependencies = ["terminal-components/completion/059","terminal-components/completion/022"]

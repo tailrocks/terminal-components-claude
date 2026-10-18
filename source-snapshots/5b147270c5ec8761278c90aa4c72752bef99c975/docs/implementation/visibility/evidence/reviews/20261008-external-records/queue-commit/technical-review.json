@@ -1,0 +1,35 @@
+{
+  "review_id": "VIS-05-queue-staged-commit-review",
+  "reviewer": "/root/reference_luna",
+  "reviewed_at_utc": "2026-10-08T04:02:17Z",
+  "decision": "approved",
+  "work_item": "VIS-05",
+  "subject": {
+    "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+    "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+    "diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+    "paths": [
+      "tools/visibility/queue.py",
+      "tools/visibility/tests/test_queue.py"
+    ],
+    "file_sha256": {
+      "tools/visibility/queue.py": "c10b3389ee252c78f17df516602d32a3ce43cbc36d3b671df18e343921ce5514",
+      "tools/visibility/tests/test_queue.py": "a8f61ae362b3ad129114dd51a2823f635a2b10fca917404f9f6da95214af14d4"
+    }
+  },
+  "identity_checks": {
+    "current_head_matches_parent": true,
+    "current_write_tree_matches_proposed_tree": true,
+    "current_staged_binary_diff_matches_saved_diff": true,
+    "staged_path_set_matches_subject": true,
+    "staged_files_match_prior_reviewed_hashes": true,
+    "prior_file_review": "/tmp/termrock-queue-review-v2.json"
+  },
+  "findings": [],
+  "approval_limits": [
+    "This approval binds only the stated parent, tree, diff digest, paths, and file hashes. Any staged-content or base change requires another review.",
+    "The commit has not yet been created. After commit, verify its parent and tree against this subject and bind the resulting commit SHA in the required external record.",
+    "Only the two staged queue files are in scope. Other unstaged or untracked repository changes are not reviewed or approved.",
+    "The parent reported 34 focused tests passing. I did not rerun tests or builds."
+  ]
+}

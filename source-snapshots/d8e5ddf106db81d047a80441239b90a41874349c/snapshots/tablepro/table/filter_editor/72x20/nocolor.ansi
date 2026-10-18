@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe        [0m
+    ╭──────────────────────────────────────────────────────────────╮    [0m
+  ≡ │  [0m[1mAdd filter[0m                                                  │+   [0m
+ ───│                                                              │─── [0m
+ ╭─ │   Column                        Operator                     │ ─╮ [0m
+ │  │   id                      ▾     =                        ▾   │  │ [0m
+ │  │                                 Operators that fit the col…  │─ │ [0m
+ │  │   [0m[1mValue                                                    [0m  │  │ [0m
+ │  │ ▎ value                                                      │  │ [0m
+ │  │                                                              │┃ │ [0m
+ │  │                                                              ││ │ [0m
+ │  │  WHERE id = ''                                               ││ │ [0m
+ │  │                                                              ││ │ [0m
+ │  │                                                              ││ │ [0m
+ │  │                                        Cancel   [0m[1mAdd filter [0m  ││ │ [0m
+ │  ╰──────────────────────────────────────────────────────────────╯│ │ [0m
+ │   rows 1–7 of 500 loaded · 1,203,338 total · cols 1–2 of 14        │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1mTab[0m Next field  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel        Connected to Production [0m

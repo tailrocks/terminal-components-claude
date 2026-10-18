@@ -1,0 +1,209 @@
+diff --git a/src/bin/showcase/app.rs b/src/bin/showcase/app.rs
+index c735c1be..33d58c91 100644
+--- a/src/bin/showcase/app.rs
++++ b/src/bin/showcase/app.rs
+@@ -1,7 +1,32 @@
+ //! Application shell: layout, event routing, focus/hover bookkeeping,
+ //! navigation, modal stack, footer hints.
+ 
+-use std::time::{Duration, Instant};
++use std::time::Duration;
++use crate::oracle_clock::Instant;
++
++#[cfg(test)]
++mod planner_clock_probe {
++    use super::*;
++    #[test]
++    fn exact_flash_and_status_boundaries() {
++        crate::oracle_clock::set_millis(0);
++        let mut app = App::new(Theme::junie());
++        app.flash = Some((NAV, Instant::now()));
++        app.status = Some(("probe".into(), Instant::now()));
++        crate::oracle_clock::set_millis(139);
++        app.handle(Input::Tick);
++        assert!(app.flash.is_some());
++        crate::oracle_clock::set_millis(140);
++        app.handle(Input::Tick);
++        assert!(app.flash.is_none());
++        crate::oracle_clock::set_millis(4000);
++        app.handle(Input::Tick);
++        assert!(app.status.is_some());
++        crate::oracle_clock::set_millis(4001);
++        app.handle(Input::Tick);
++        assert!(app.status.is_none());
++    }
++}
+ 
+ use ratatui::Frame;
+ use ratatui::buffer::Buffer;
+diff --git a/src/bin/showcase/main.rs b/src/bin/showcase/main.rs
+index b225ead7..cabe228b 100644
+--- a/src/bin/showcase/main.rs
++++ b/src/bin/showcase/main.rs
+@@ -1,5 +1,6 @@
+ //! Junie-inspired Ratatui design-system laboratory.
+ 
++mod oracle_clock;
+ mod app;
+ #[cfg(test)]
+ mod app_tests;
+diff --git a/src/bin/showcase/pages/buttons.rs b/src/bin/showcase/pages/buttons.rs
+index 18b554f1..bb283af1 100644
+--- a/src/bin/showcase/pages/buttons.rs
++++ b/src/bin/showcase/pages/buttons.rs
+@@ -11,11 +11,32 @@ use junie_tui::widgets::panel::Panel;
+ 
+ const ID: WidgetId = WidgetId::of("buttons");
+ 
++#[cfg(test)]
++mod planner_clock_probe {
++    use super::*;
++    #[test]
++    fn busy_completes_at_exact_2200() {
++        crate::oracle_clock::set_millis(0);
++        let mut page = ButtonsPage::new();
++        let mut focus = junie_tui::core::focus::Focus::default();
++        let ring = junie_tui::core::focus::FocusRing::default();
++        let mut cx = PageCtx { focus: &mut focus, ring: &ring, requests: vec![] };
++        page.activated(8, &mut cx);
++        assert!(page.buttons[8].busy);
++        crate::oracle_clock::set_millis(2199);
++        page.handle(&PageEvent::Tick, &mut cx);
++        assert!(page.buttons[8].busy);
++        crate::oracle_clock::set_millis(2200);
++        page.handle(&PageEvent::Tick, &mut cx);
++        assert!(!page.buttons[8].busy);
++    }
++}
++
+ pub struct ButtonsPage {
+     buttons: Vec<Button>,
+     clicks: u32,
+     last: Option<String>,
+-    busy_until: Option<std::time::Instant>,
++    busy_until: Option<crate::oracle_clock::Instant>,
+ }
+ 
+ impl ButtonsPage {
+@@ -50,7 +71,7 @@ impl ButtonsPage {
+         if i == 8 {
+             self.buttons[8].busy = true;
+             self.busy_until =
+-                Some(std::time::Instant::now() + std::time::Duration::from_millis(2200));
++                Some(crate::oracle_clock::Instant::now() + std::time::Duration::from_millis(2200));
+             cx.status("Working…".to_owned());
+         } else {
+             cx.status(msg.clone());
+@@ -187,7 +208,7 @@ impl Page for ButtonsPage {
+         match ev {
+             PageEvent::Tick => {
+                 if let Some(until) = self.busy_until
+-                    && std::time::Instant::now() >= until
++                    && crate::oracle_clock::Instant::now() >= until
+                 {
+                     self.busy_until = None;
+                     self.buttons[8].busy = false;
+diff --git a/src/bin/showcase/pages/forms.rs b/src/bin/showcase/pages/forms.rs
+index 712f5112..43c3efca 100644
+--- a/src/bin/showcase/pages/forms.rs
++++ b/src/bin/showcase/pages/forms.rs
+@@ -13,6 +13,30 @@ use junie_tui::widgets::textarea::TextArea;
+ 
+ const ID: WidgetId = WidgetId::of("forms");
+ 
++#[cfg(test)]
++mod planner_clock_probe {
++    use super::*;
++    #[test]
++    fn form_completes_strictly_after_1800() {
++        crate::oracle_clock::set_millis(0);
++        let mut page = FormsPage::new();
++        page.state = Submit::Busy(crate::oracle_clock::Instant::now());
++        page.submit.busy = true;
++        let mut focus = junie_tui::core::focus::Focus::default();
++        let ring = junie_tui::core::focus::FocusRing::default();
++        let mut cx = PageCtx { focus: &mut focus, ring: &ring, requests: vec![] };
++        for ms in [1799,1800] {
++            crate::oracle_clock::set_millis(ms);
++            page.handle(&PageEvent::Tick, &mut cx);
++            assert!(matches!(page.state, Submit::Busy(_)));
++        }
++        crate::oracle_clock::set_millis(1801);
++        page.handle(&PageEvent::Tick, &mut cx);
++        assert_eq!(page.state, Submit::Done);
++        assert!(!page.submit.busy);
++    }
++}
++
+ fn email(s: &str) -> Option<String> {
+     if s.is_empty() {
+         None
+@@ -36,7 +60,7 @@ fn name(s: &str) -> Option<String> {
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ enum Submit {
+     Idle,
+-    Busy(std::time::Instant),
++    Busy(crate::oracle_clock::Instant),
+     Done,
+ }
+ 
+@@ -105,7 +129,7 @@ impl FormsPage {
+             return;
+         }
+         self.submit.busy = true;
+-        self.state = Submit::Busy(std::time::Instant::now());
++        self.state = Submit::Busy(crate::oracle_clock::Instant::now());
+         cx.status("Creating task…");
+     }
+ 
+diff --git a/src/bin/tablepro/app.rs b/src/bin/tablepro/app.rs
+index 80cb1e66..f1326202 100644
+--- a/src/bin/tablepro/app.rs
++++ b/src/bin/tablepro/app.rs
+@@ -1,7 +1,32 @@
+ //! TablePro shell: screens (Connections, Workbench), overlays (dialogs,
+ //! pickers, filter editor), identity strip, footer hints, routing.
+ 
+-use std::time::{Duration, Instant};
++use std::time::Duration;
++use crate::oracle_clock::Instant;
++
++#[cfg(test)]
++mod planner_clock_probe {
++    use super::*;
++    #[test]
++    fn exact_flash_and_status_boundaries() {
++        crate::oracle_clock::set_millis(0);
++        let mut app = App::new(Theme::junie());
++        app.flash = Some((WidgetId::of("probe"), Instant::now()));
++        app.status = Some(("probe".into(), Instant::now()));
++        crate::oracle_clock::set_millis(139);
++        app.handle(Input::Tick);
++        assert!(app.flash.is_some());
++        crate::oracle_clock::set_millis(140);
++        app.handle(Input::Tick);
++        assert!(app.flash.is_none());
++        crate::oracle_clock::set_millis(5000);
++        app.handle(Input::Tick);
++        assert!(app.status.is_some());
++        crate::oracle_clock::set_millis(5001);
++        app.handle(Input::Tick);
++        assert!(app.status.is_none());
++    }
++}
+ 
+ use ratatui::Frame;
+ use ratatui::buffer::Buffer;
+diff --git a/src/bin/tablepro/main.rs b/src/bin/tablepro/main.rs
+index fb3e8b1e..bf5f93af 100644
+--- a/src/bin/tablepro/main.rs
++++ b/src/bin/tablepro/main.rs
+@@ -1,6 +1,7 @@
+ //! TablePro, terminal edition: the core database workbench built on the
+ //! Junie-inspired design system.
+ 
++mod oracle_clock;
+ mod app;
+ #[cfg(test)]
+ mod app_tests;
+

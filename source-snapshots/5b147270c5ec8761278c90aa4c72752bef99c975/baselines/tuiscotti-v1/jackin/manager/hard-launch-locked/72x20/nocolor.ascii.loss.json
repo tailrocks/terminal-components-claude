@@ -1,0 +1,42 @@
+{
+  "lossy": true,
+  "substitutions": [
+    {
+      "original": "❯",
+      "replacement": "?",
+      "x": 8,
+      "y": 0
+    },
+    {
+      "original": "▎",
+      "replacement": "?",
+      "x": 11,
+      "y": 0
+    },
+    {
+      "original": "›",
+      "replacement": "?",
+      "x": 62,
+      "y": 0
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 64,
+      "y": 18
+    },
+    {
+      "original": "…",
+      "replacement": ".",
+      "x": 29,
+      "y": 19
+    },
+    {
+      "original": "·",
+      "replacement": ".",
+      "x": 46,
+      "y": 19
+    }
+  ],
+  "substitutions_count": 6
+}

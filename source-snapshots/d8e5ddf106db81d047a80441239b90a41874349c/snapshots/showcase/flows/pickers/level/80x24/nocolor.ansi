@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Pickers             i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mPickers[0m  One modal list for files, tabs and levels: searc… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Open a picker                                            [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     [0m[1mOpen quickly [0m   Switch tab    Choose a level            [0m
+   Lists          ┃                                                             [0m
+   Trees          ┃    Quick: fuzzy over files and tasks, Tab cycles the scop…  [0m
+   Tables         ┃                                                             [0m
+   Editable tabl… ┃                                                             [0m
+   Panels         ┃                                                             [0m
+   Sidebars       ┃    Result                                                   [0m
+   Dialogs        ┃                                                             [0m
+   Progress       ┃    Chosen          Safe Mode (Full)                         [0m
+   Scrolling      ┃    Detail          Every statement asks for confirmation …  [0m
+   Terminal       ┃    Level           Safe Mode (Full)                         [0m
+   Code editor    ┃    Open tabs       Query 1 · orders · order_items · Histo…  [0m
+   Diff           ┃    Pickers opened  1                                        [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │                                                             [0m
+ › Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1mEnter[0m Open  [0m[1mTab[0m Next                                    Chose Safe Mode (Full) [0m

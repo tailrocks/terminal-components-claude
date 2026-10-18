@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help            svc · Rust project  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+  Here   [0m[1m pull with merge ! ×  [0m                                         [0m
+ ────────━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────── [0m
+  [0m[1mpull with merge[0m · failed · 0 s · exit 1                               [0m
+  $ git -C /Users/alex/work/svc pull --no-rebase · started by Pull wi…  [0m
+                                                                        [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────── following ─╮ [0m
+ │  $ git -C /Users/alex/work/svc pull --no-rebase                    │ [0m
+ │  [0m[1merror: Your local changes to the following files would be overwri[0m │ [0m
+ │  [0m[1mtten by merge:[0m                                                    │ [0m
+ │  [0m[1m        src/api/mod.rs[0m                                            │ [0m
+ │  [0m[1mPlease commit your changes or stash them before you merge.[0m        │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1 • 1       ! exit 1 · 0 s        [0m
+     [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  …   [0m[1m![0m pull with merge failed · exit 1 [0m

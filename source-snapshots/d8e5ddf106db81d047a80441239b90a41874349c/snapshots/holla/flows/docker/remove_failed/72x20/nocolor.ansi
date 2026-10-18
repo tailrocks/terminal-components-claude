@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help                    no project  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+  Here   [0m[1m stop all containers ! ×  [0m                                     [0m
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────── [0m
+  [0m[1mstop all containers[0m · failed · 0 s · exit 1                      mbp  [0m
+  $ docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-…  [0m
+                                                                        [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────── following ─╮ [0m
+ │  $ docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acm │ [0m
+ │  e-scheduler-1                                                     │ [0m
+ │  acme-db-1                                                         │ [0m
+ │  [0m[1mError response from daemon: cannot stop container: acme-scheduler[0m │ [0m
+ │  [0m[1m-1: tried to kill container, but did not receive an exit event[0m    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ │                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1m~/work/stack[0m              ! exit 1 · 0 s              no color · 72×20 [0m
+ [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  …   [0m[1m![0m stop all containers failed · exit 1 [0m

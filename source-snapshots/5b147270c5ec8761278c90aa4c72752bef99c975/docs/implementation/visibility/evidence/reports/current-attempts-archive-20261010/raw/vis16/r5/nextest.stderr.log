@@ -1,0 +1,69 @@
+   Compiling termrock-visibility-publisher v0.1.0 (/private/tmp/termrock-vis16-observer-ingest-nextest-r4-diagnostic-20261010/source-root/crates/termrock-visibility-publisher)
+warning: variant `RunHead` is never constructed
+  --> crates/termrock-visibility-publisher/src/bin/observer-ingest.rs:23:36
+   |
+23 | pub(crate) enum GithubShaBinding { RunHead }
+   |                 ----------------   ^^^^^^^
+   |                 |
+   |                 variant in this enum
+   |
+   = note: `GithubShaBinding` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `termrock-visibility-publisher` (bin "observer-ingest" test) generated 1 warning (1 duplicate)
+warning: `termrock-visibility-publisher` (bin "observer-ingest") generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.26s
+────────────
+ Nextest run ID 5445200a-7a6f-480e-bec0-194ed0faa3e9 with nextest profile: default
+    Starting 7 tests across 2 binaries
+        PASS [   0.027s] termrock-visibility-publisher::observer_ingest_cli caller_api_identity_mismatches_stop_before_workflow_or_target_lookup
+        PASS [   0.016s] termrock-visibility-publisher::observer_ingest_cli github_sha_pull_request_and_target_sha_mismatches_fail_before_observer_lookup
+        FAIL [   0.015s] termrock-visibility-publisher::observer_ingest_cli handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name
+── output ──
+
+running 1 test
+
+thread 'handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name' (111778244) panicked at crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs:259:23:
+handler failed: strict observer ingestion failed; public ingest failed: Observer(MemberTooLarge); synthetic_gets=8; last_endpoint=Some("https://objects.githubusercontent.com/artifacts/900.zip")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name ... FAILED
+
+failures:
+
+failures:
+    handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+
+        PASS [   0.014s] termrock-visibility-publisher::observer_ingest_cli incomplete_observer_run_stops_before_observer_record_or_artifact_lookup
+        PASS [   0.013s] termrock-visibility-publisher::observer_ingest_cli observer_api_attempt_mismatch_stops_before_jobs_artifacts_and_receipt
+        PASS [   0.419s] termrock-visibility-publisher::observer_ingest_cli process_help_and_fail_closed_policy_are_observable_without_network_access
+        PASS [   0.017s] termrock-visibility-publisher::observer_ingest_cli workflow_ref_or_workflow_source_mismatch_stops_before_target_and_observer_lookup
+────────────
+     Summary [   0.522s] 7 tests run: 6 passed, 1 failed, 0 skipped
+        PASS [   0.027s] termrock-visibility-publisher::observer_ingest_cli caller_api_identity_mismatches_stop_before_workflow_or_target_lookup
+        PASS [   0.016s] termrock-visibility-publisher::observer_ingest_cli github_sha_pull_request_and_target_sha_mismatches_fail_before_observer_lookup
+        PASS [   0.014s] termrock-visibility-publisher::observer_ingest_cli incomplete_observer_run_stops_before_observer_record_or_artifact_lookup
+        PASS [   0.013s] termrock-visibility-publisher::observer_ingest_cli observer_api_attempt_mismatch_stops_before_jobs_artifacts_and_receipt
+        PASS [   0.419s] termrock-visibility-publisher::observer_ingest_cli process_help_and_fail_closed_policy_are_observable_without_network_access
+        PASS [   0.017s] termrock-visibility-publisher::observer_ingest_cli workflow_ref_or_workflow_source_mismatch_stops_before_target_and_observer_lookup
+        FAIL [   0.015s] termrock-visibility-publisher::observer_ingest_cli handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name
+── output ──
+
+running 1 test
+
+thread 'handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name' (111778244) panicked at crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs:259:23:
+handler failed: strict observer ingestion failed; public ingest failed: Observer(MemberTooLarge); synthetic_gets=8; last_endpoint=Some("https://objects.githubusercontent.com/artifacts/900.zip")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name ... FAILED
+
+failures:
+
+failures:
+    handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+
+error: test run failed

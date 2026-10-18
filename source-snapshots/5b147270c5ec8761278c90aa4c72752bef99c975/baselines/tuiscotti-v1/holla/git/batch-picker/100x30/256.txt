@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                repos · project collection  mbp · local
+
+  Here    pull alpha ✓ ×
+ ────────━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────
+  pull alpha · succeeded · 0 s · exit 0                           child · ~/work/repos/alpha · mbp
+  $ git -C /Users/alex/work/repos/alpha pull · started by Pull 4 sibling repositories · batch git…
+
+ ╭─ output ────╭────────────────────────────────────────────────────────────────────╮─ following ─╮
+ │  $ git -C /U│ Activities                                                  0 live │             │
+ │  From github│ ▎✓ pull alpha  succeeded · child · 0 s                 activities  │             │
+ │     a1b2c3d.│  ✓ pull beta   succeeded · child · 0 s                             │             │
+ │  Updating a1│  ! pull delta  failed · child · 0 s                                │             │
+ │  Fast-forwar│  ! pull gamma  failed · child · 0 s                                │             │
+ │   6 files ch│                                                                    │             │
+ │             │                                                                    │             │
+ │             ╰────────────────────────────────────────────────────────────────────╯             │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ~/work/repos                          succeeded · 0 s                          256 colors · 100×30
+ ↑↓ Move  Enter Switch  Esc Cancel    ! Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled

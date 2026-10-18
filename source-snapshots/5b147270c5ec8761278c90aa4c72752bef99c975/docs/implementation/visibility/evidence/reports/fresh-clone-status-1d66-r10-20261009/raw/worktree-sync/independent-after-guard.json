@@ -1,0 +1,10 @@
+{
+  "mode": "after",
+  "result": "PASS",
+  "checked_path_count": 64,
+  "head": "766ae1e925e32b4b28aa9100bb3fde5279aa223b",
+  "index_sha256": "bdb1c1ea3935936eeaaaa4dadd3728f4490c4e2b20bbdc8f7decf8e7be633ed8",
+  "fixture_sha256": "771b3dff1fbf53a60d9b90ae6cc3934bc411bb3ef953bfbda31b5fb2dfca360c",
+  "publication_commit": "1d66f444f5962414b7c33734fa37376471e5f853",
+  "publication_tree": "0ae9e285e8f771b8e250c63bf80f902d112dcd95"
+}

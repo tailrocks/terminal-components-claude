@@ -1,0 +1,51 @@
+{
+  "schema": "termrock-vis04-claim-pin-implementation-manifest/v1",
+  "state": "external_patch_proposal_not_applied",
+  "design_review": {
+    "path": "design-review.json",
+    "sha256": "ff07e9a2e8d2d1be5e3dd2f1ebcbdf03952039d3f7b36e54e25fced9e3f6bf99",
+    "verdict": "READY_FOR_BOUNDED_IMPLEMENTATION"
+  },
+  "base_source": {
+    "tools/visibility/deferred.py": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0",
+    "crates/termrock-visibility-tests/tests/deferred.rs": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+  },
+  "candidate_source": {
+    "tools/visibility/deferred.py": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee",
+    "crates/termrock-visibility-tests/tests/deferred.rs": "bc934962d1e5534963159356d60c41b4a7537d8d47fb6cb9c4093ce1ce6b5a17"
+  },
+  "patch": {
+    "path": "sourcefix.diff",
+    "sha256": "5c49a436ec77e5fc67534dbe6cbccbfd7a1501b480bf39f950f55a090fe638f3",
+    "paths": [
+      "tools/visibility/deferred.py",
+      "crates/termrock-visibility-tests/tests/deferred.rs"
+    ],
+    "git_apply_check": "PASS"
+  },
+  "queue_fixture": {
+    "current_queue_revision": 38,
+    "accepted_queue_revision": 34,
+    "owner": "/root",
+    "claim_token": "visibility-deferred-root-q33-20261009-01",
+    "work_id": "VIS-04"
+  },
+  "rust_controls": {
+    "target": "termrock-visibility-tests::deferred",
+    "count": 29,
+    "test_names_path": "test-names.json",
+    "changed_or_new_controls": [
+      "receipt_separates_accepted_and_current_queue_revisions",
+      "claim_pin_rejects_obsolete_or_mismatched_identity_before_tool_setup",
+      "claim_registry_rejects_non_integer_revisions_before_tool_setup"
+    ]
+  },
+  "execution": {
+    "cargo": "NOT_RUN",
+    "nextest": "NOT_RUN",
+    "python_test_suite": "NOT_RUN",
+    "production_cli": "NOT_RUN",
+    "product_assertions": "NOT_RUN_IN_THIS_PATCH_PACKET; existing S1d run remains 22 PASS / 1 FAIL (BD-21)"
+  },
+  "repository_mutation_performed": false
+}

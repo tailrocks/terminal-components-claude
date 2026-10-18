@@ -1,0 +1,19 @@
+[package]
+name = "jackin-preview-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+jackin-preview-domain.workspace = true
+jackin-preview-sim.workspace = true
+jackin-preview-presentation.workspace = true
+jackin-preview-host-ui.workspace = true
+jackin-preview-capsule-ui.workspace = true
+termrock.workspace = true
+ratatui.workspace = true
+
+[dev-dependencies]
+termrock-test-support.workspace = true
+

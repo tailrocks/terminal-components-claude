@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+
+  ≡ Query 1 ×    T orders ×    T order_items ×                      +
+ ───╭──────────────────────────────────────────────────────────────╮───
+ ╭─ │ Open tabs                                                    │ ─╮
+ │  │ ▎ Filter tabs…                                               │  │
+ │  │                                                              │─ │
+ │  │  ≡ Query 1      query                                        │  │
+ │  │  T orders       public.orders · data                         │  │
+ │  │ ▎T order_items  public.order_items · data           active   │┃ │
+ │  │                                                              ││ │
+ │  │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        ││ │
+ │  ╰──────────────────────────────────────────────────────────────╯│ │
+ │       5 de25ba66-9ba7-4da9-be2f-73dc8d1a627f  2f8b3fcc-f…a52→    │ │
+ │       6 9e3d2906-68f5-4661-9c1c-e263532d8d84  da8dba6a-5…c81→    │ │
+ │       7 2f8b3fcc-f12a-461e-b3a5-11a3b6b4a528  6332dc8a-b…ec4→    │ │
+ │   rows 1–7 of 500 loaded · 3,811,020 total · cols 1–1 of 7         │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                Connected to Production

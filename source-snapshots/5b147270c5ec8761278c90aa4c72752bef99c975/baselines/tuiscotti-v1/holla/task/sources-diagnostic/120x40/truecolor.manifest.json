@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "0b7789457d3944ce2952492ea15bbc947ebb83aa919652a0341fadc6470d8d84",
+  "artifacts": {
+    "ansi": {
+      "bytes": 12166,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.ansi",
+      "sha256": "0b7789457d3944ce2952492ea15bbc947ebb83aa919652a0341fadc6470d8d84"
+    },
+    "ascii": {
+      "bytes": 2858,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.ascii",
+      "sha256": "fe45b2a144da6e586770e8ff6c99053e4b73fac4e32e81cfb47d7b4c1f63cea7"
+    },
+    "ascii_loss_json": {
+      "bytes": 13245,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.ascii.loss.json",
+      "sha256": "47e06f29b5711c1216aa4f88a48e7fd9dcbf733f0c6f8104a76a4113c1950c25"
+    },
+    "frame_json": {
+      "bytes": 1279547,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.frame.json",
+      "sha256": "7d76df517b2cd98a61a15bd792e4b0f2bf85d829e1ae0b0b63c8f24d9742666e"
+    },
+    "html": {
+      "bytes": 418013,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.html",
+      "sha256": "e2cabd4f0817605b5d23f99e6ae9198284312b4b9625590270fbac3324819a35"
+    },
+    "observations_json": {
+      "bytes": 481,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.observations.json",
+      "sha256": "4f3be1da2f1234a1941272a725478d09b8d8e5a7dde156e02ffa14644d2de074"
+    },
+    "png": {
+      "bytes": 292658,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.png",
+      "sha256": "9e4c5bc44c8fa58a417c0b177e129f020f37d6ec62f03ec0a30a1009a630427f"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3128,
+      "file": "holla/task/sources-diagnostic/120x40/truecolor.txt",
+      "sha256": "eefc5e6f83d572fa6d5d114dbf6c8d36d1ca5543a59e0ca830a6770287c47bcd"
+    }
+  },
+  "ascii_substitutions_count": 143,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 16273413604699779737,
+  "frame_sha256": "7d76df517b2cd98a61a15bd792e4b0f2bf85d829e1ae0b0b63c8f24d9742666e",
+  "generation": "93ea47be47a1ac2a55bfc0f6bc7ef9bc347997a697cc0b7642a6b46d4acda2ad",
+  "html_sha256": "e2cabd4f0817605b5d23f99e6ae9198284312b4b9625590270fbac3324819a35",
+  "legacy_name": "holla/flows/task/sources_diagnostic/120x40/truecolor",
+  "name": "holla/task/sources-diagnostic/120x40/truecolor",
+  "png_sha256": "9e4c5bc44c8fa58a417c0b177e129f020f37d6ec62f03ec0a30a1009a630427f",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:39Z",
+  "txt_sha256": "eefc5e6f83d572fa6d5d114dbf6c8d36d1ca5543a59e0ca830a6770287c47bcd"
+}

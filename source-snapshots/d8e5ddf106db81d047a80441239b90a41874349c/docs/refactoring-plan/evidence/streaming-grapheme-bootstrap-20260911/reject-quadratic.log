@@ -1,0 +1,35 @@
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui/src/lib.rs
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui/src/lib.rs
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui-testing/src/lib.rs
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui-testing/src/lib.rs
+   Compiling stream-projection-feasibility v0.0.0 (/tmp/stream-projection.ghBlfQ)
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[83033]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <AC0D75A8-23BF-301F-B7CE-3E5CC0C1BC06> /Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: `stream-projection-feasibility` (lib test) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 0.30s
+     Running unittests lib.rs (/tmp/stream-projection.ghBlfQ/target/release/deps/stream_projection_feasibility-373e07785aa0b9b0)
+
+running 1 test
+test tests::exact_clusters_all_fragment_boundaries_and_bounded_work ... FAILED
+
+failures:
+
+---- tests::exact_clusters_all_fragment_boundaries_and_bounded_work stdout ----
+
+thread 'tests::exact_clusters_all_fragment_boundaries_and_bounded_work' (46419807) panicked at lib.rs:246:17:
+revalidated growing heap prefix
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::exact_clusters_all_fragment_boundaries_and_bounded_work
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`
+mbx[savings]: 119680 cache hits and counting. rustc thinks it has been busy.

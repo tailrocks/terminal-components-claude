@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                             work · project collection  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Disk usage · ~/work
+  scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)
+
+    Filesystems
+    /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB
+    /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB
+
+    largest first · allocated · noise folded                                                                   work                                 directory
+ ▎▾ ◐ work                                                                                 31.8 GiB · 100%
+    ▸ ◐ backend                                                                            12.7 GiB ·  40%     Path       ~/work
+    ▸ ◐ frontend                                                                            8.8 GiB ·  28%     Allocated  31.8 GiB
+    ▸   dumps                                                                               6.3 GiB ·  20%     Apparent   31.8 GiB · block rounding
+    ▸ ◐ android                                                                             4.0 GiB ·  13%     Entries    35 · hardlinks counted once
+    ▸   backend-wt                                                                         24.0 KiB ·   0%     Modified   2026-09-07 08:41
+                                                                                                               Freshness  live · complete
+                                                                                                               Selection  not selected · Space selects
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work                                             3 selected · 24.2 GiB                                              / ━━━━━━━━━━─ 91%     truecolor · 160×50
+      ↑↓ Move  ← → Fold / open  Space Select  s Sort  f Fold noise  d Delete…  c Artifact plan  r Rescan  x Cancel scan  t Top files  p Facts  Esc Back

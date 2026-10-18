@@ -1,0 +1,112 @@
+{
+  "schema": "termrock.vis16.r6-actual-result-and-tree-review/luna-v1",
+  "verdict": "READY_FOR_PUBLICATION_DECISION_ONLY",
+  "scope": "Read-only review of the frozen R6 actual result and its two-path publication proposal. No preflight, Cargo, Nextest, tests, network, commit, or ref update performed by reviewer.",
+  "bindings": {
+    "review_request": {
+      "path": "/private/tmp/termrock-vis16-r6-source-publication-luna-20261010/review-request.json",
+      "sha256": "18cbd59ea3a241d12ab787f63499d96ae87a70c71b9b8f30e9bf90f6f63eb9a4"
+    },
+    "proposal": {
+      "path": "/private/tmp/termrock-vis16-r6-source-publication-luna-20261010/proposal.json",
+      "sha256": "f9165c3b5780faa7198666e61b44a93e2dce647fc9ec644eaf97f08fc0f369bf",
+      "parent_commit": "75e2c207418e6c54b1c38d517a8f95b2dfdeb240",
+      "parent_tree": "e35578e7fd40cfabd11f679573a27bbf89bc70b4",
+      "proposed_tree": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+      "private_gitdir": "/private/tmp/termrock-vis11-q50-v1-plan-publication-r1/proposal.git",
+      "patch_path": "/private/tmp/termrock-vis16-r6-source-publication-luna-20261010/candidate.patch",
+      "patch_sha256": "2539245c4ce378944430cd2be3fd8c10e388f1606a66046f0a39f78cb09e7fcb",
+      "source_closure_path": "/private/tmp/termrock-vis16-r6-source-publication-luna-20261010/source-closure.json",
+      "source_closure_sha256": "cc4c80c36699237c4d2ef7078ca03a6202ef0300dbc406c3426ee8b08732f4a2",
+      "commit_message_path": "/private/tmp/termrock-vis16-r6-source-publication-luna-20261010/commit-message.txt",
+      "commit_message_sha256": "abc5998781e0734ca5161cd96070146d7a3a93b9100dce9537ccd2c7be47d7c0",
+      "packet_checksums_path": "/private/tmp/termrock-vis16-r6-source-publication-luna-20261010/SHA256SUMS",
+      "packet_checksums_sha256": "69d0243c5214bd434c48412dea4404c99982544e6e3ddc5d13445d964df9ef48",
+      "all_listed_packet_files_verified": true
+    },
+    "actual_result": {
+      "path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/output/final-receipt.json",
+      "sha256": "7c6a1763e0c16f909c893d7e948557b600ca62cf7a9f88c5fad1359eea48dbd8",
+      "stdout_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/output/nextest.stdout.jsonl",
+      "stdout_sha256": "d61651a6e8f81bce00292dfdcccb7932ae93a4f17b3f84502a0659dbca50043a",
+      "stderr_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/output/nextest.stderr.log",
+      "stderr_sha256": "69aaa68acc2caac7f31687a2edc4c1f8cd5b980646811afc7e6e45644ff15132",
+      "process_events_path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/output/process-events.jsonl",
+      "process_events_sha256": "49b0e59e6e50a706cc84a1787ae8f3b9e24633a4dcb672d9b54450b32b8cff95",
+      "preflight_sha256": "67aefb631516f607818dc39dae98f76229eaff1f304703f400421cb0266844c7"
+    },
+    "source_review_sha256": "09fa6977ce22d888cfda9ea41484a42d9036da65568a732e1e09a99bb604ee0d",
+    "runner_sha256": "d22705499678f79f155281e987a0fc0dd51b9a3a420e506c310c4618eae0e309",
+    "runplan_sha256": "42c2f1693f299280a1be928d37f245a3b4fcf0e6bb81915056bfa1b6fa1973e4",
+    "test_names_sha256": "f167d80a7a867364735db1df3207836d7dd8a799427030e7fd15b35e064c2541"
+  },
+  "actual_result_review": {
+    "result": "PASSED_SELECTED_INTEGRATION_TARGET",
+    "child_exit_code": 0,
+    "direct_child_reaped": true,
+    "timed_out": false,
+    "expected_tests": 7,
+    "started": 7,
+    "passed": 7,
+    "failed": 0,
+    "incomplete": 0,
+    "suite_test_count": 7,
+    "raw_stdout_matches_all_seven_test_events_and_suite_summary": true,
+    "raw_stderr_sha256_matches_receipt": true,
+    "source_stable_before_after": true,
+    "artifacts_verified": true,
+    "packet_input_changes": [],
+    "stale_receipt_scope_limit_preserved": "The frozen actual receipt still contains copied planning boilerplate saying ‘R6 has not run’. It is stale; the concrete child exit, raw Nextest events, seven passing outcomes, stable-source and artifact fields establish the actual result. Receipt was not edited."
+  },
+  "tree_review": {
+    "changed_paths": [
+      {
+        "path": "crates/termrock-visibility-publisher/src/bin/observer-ingest.rs",
+        "status": "A",
+        "mode": "100644",
+        "blob": "509b8fed19c760cad38b90ecd4d31b00ccaf5ebe",
+        "sha256": "e56c46ff2f47005ffee35b363aa5e31d49223a8def756ca865abdb90cd2bf4c1",
+        "bytes": 14758,
+        "lines": 356
+      },
+      {
+        "path": "crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs",
+        "status": "A",
+        "mode": "100644",
+        "blob": "7ae21ed790f884caa15f37e6aa5833ab46568aa6",
+        "sha256": "7b595820d2968f6a7ba87d8b0a53b052dd1b7ac156108bbf89e724104573896b",
+        "bytes": 19937,
+        "lines": 399
+      }
+    ],
+    "parent_to_tree_diff_matches_exactly_two_additions": true,
+    "patch_paths_modes_and_blob_ids_match_proposed_tree": true,
+    "source_closure": {
+      "seven_inherited_build_inputs_match_r6_source_manifest": true,
+      "two_new_build_inputs_absent_from_parent": true,
+      "source_review_chain": [
+        {
+          "path": "/private/tmp/termrock-vis16-observer-ingest-cli-source-review-luna-r1-20261010.json",
+          "sha256": "bb51958a4534665e9044b52e12b64808c3b9127bdf060406eed6c65584f2e6e7",
+          "scope": "Initial static CLI and synthetic test source review; source hashes are bound in the accepted R6 manifest."
+        },
+        {
+          "path": "/private/tmp/termrock-vis16-observer-ingest-nextest-r6-run-20261010/provenance/r6-source-review-luna-r1.json",
+          "sha256": "09fa6977ce22d888cfda9ea41484a42d9036da65568a732e1e09a99bb604ee0d",
+          "scope": "Focused review of the R6 one-field test-helper correction; exact final test source hash is bound above."
+        }
+      ]
+    },
+    "commit_message": {
+      "subject": "feat(visibility): add observer ingestion CLI",
+      "signoff": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+      "message_bytes_match_pin": true
+    },
+    "no_commit_or_ref_update": true
+  },
+  "preserved_history_and_limits": [
+    "R3 remains 7 started, 6 passed, 1 failed, exit 100; R5 remains 7 started, 6 passed, 1 failed, exit 100 with Observer(MemberTooLarge). Neither record was changed.",
+    "R5 did not retain the ZIP response as a standalone file; its fixture-size figures remain source-derived and are not direct response capture.",
+    "R6 is a targeted observer-ingest binary/integration gate, not full-workspace qualification. Production policy remains None; this does not qualify live collection, publication, or release."
+  ]
+}
