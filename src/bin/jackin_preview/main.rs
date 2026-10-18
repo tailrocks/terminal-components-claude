@@ -48,8 +48,7 @@ const NO_MOTION_ENV: &str = "JACKIN_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-
-    #[arg(help = "The fixture scenario to open")]
+    /// The fixture scenario to open
     #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
     scenario: Scenario,
 }
@@ -87,6 +86,5 @@ fn main() -> std::io::Result<()> {
     let cli: Cli = junie_tui::cli::parse(cli_after_help());
     let motion = cli.common.motion(NO_MOTION_ENV);
     let mut app = App::for_scenario(cli.scenario, motion, cli.common.frame, cli.common.theme());
-
     junie_tui::shell::run(&mut app)
 }
