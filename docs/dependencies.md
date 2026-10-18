@@ -26,7 +26,7 @@ These selected pins are recorded by the manifests and lockfiles; the lockfiles r
 | `num_threads` | 0.1.8 |
 | Tuiscotti Git source | `a1ea27f757d75d07b05499276cd932e9f8e067ad` |
 
-The repo-local tool pins are cargo-nextest 0.9.148, actionlint 1.7.12, shellcheck 0.11.0, zizmor 1.31.1, GitHub CLI 2.102.0, Velnor Actions 0.1.13, and mr-boxington 1.24.1. Rust is pinned to 1.99.1 with clippy and rustfmt; the repository's declared MSRV is 1.99. `mise.toml` declares mise 2026.10.13 as its minimum. Velnor's target binaries are hash-pinned by `.velnor/release-manifest.json`; `mise.lock` locks the mise tools. Install the declared tools with `mise install`.
+The repo-local tool pins are cargo-nextest 0.9.148, actionlint 1.7.12, shellcheck 0.11.0, zizmor 1.31.1, GitHub CLI 2.102.0, Velnor Actions 0.1.14, and mr-boxington 1.24.1. Rust is pinned to 1.99.1 with clippy and rustfmt; the repository's declared MSRV is 1.99. `mise.toml` declares mise 2026.10.13 as its minimum. Velnor's target binaries are hash-pinned by `.velnor/release-manifest.json`; `mise.lock` locks the mise tools. Install the declared tools with `mise install`.
 
 The `mise.toml` pin makes the `mbx` executable available, while intentionally disabling mr-boxington's automatic command wrapping. Invoke it explicitly, for example `mise exec -- mbx --help`.
 
