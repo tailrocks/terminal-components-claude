@@ -1,4 +1,3 @@
-//! Multiline keyed List geometry, scrolling and publication contracts.
 use std::cell::RefCell;
 use termrock_core::{Axis, Id, ItemKey, KeyCode, Response, StateFlags, Variant};
 use termrock_navigation::{List, ListState};
@@ -115,7 +114,7 @@ fn reveal_wheel_and_resize_preserve_stride_and_reach_last_key() {
     let _ = h.key(KeyCode::Home);
     assert!(row(&h, 10).is_some());
     let _ = h.wheel(Axis::V, 1, 2, 1);
-    assert_eq!(h.app().state.scroll().offset(), 12); // Junie admits three row units per wheel notch.
+    assert_eq!(h.app().state.scroll().offset(), 12);
     assert_eq!(row(&h, 40).map(|r| r.y), Some(0));
     let _ = h.resize(20, 3);
     let _ = h.key(KeyCode::End);
@@ -161,7 +160,7 @@ fn warmed_multiline_publication_has_no_allocations() {
 fn scrollbar_drag_and_multi_step_wheel_share_row_aligned_extent() {
     let mut h = make(3, 1, false, 7);
     let _ = h.wheel(Axis::V, 2, 2, 1);
-    assert_eq!(h.app().state.scroll().offset(), 12); // Two notches clamp at the final aligned viewport.
+    assert_eq!(h.app().state.scroll().offset(), 12);
     let _ = h.key(KeyCode::Home);
     let thumb = h.area_of_part(ID, PartRef::of(Part::THUMB));
     assert!(thumb.is_some());
@@ -206,7 +205,7 @@ fn ancestor_clip_preserves_three_line_logical_row_and_clips_hits() {
         h.app().seen.borrow().first().map(|r| r.1),
         Some(Rect::new(0, 0, 19, 3))
     );
-    assert_eq!(h.buffer()[(2, 1)].symbol(), "s"); // second line, not a shifted first line
+    assert_eq!(h.buffer()[(2, 1)].symbol(), "s");
     h.app_mut().clip = Some(Rect::new(2, 4, 10, 2));
     h.draw();
     assert_eq!(h.app().seen.borrow().len(), 1);

@@ -1,5 +1,3 @@
-//! External contract tests for `RowUi` marker and cell-owning part glyphs.
-
 use termrock::{
     ColorLevel, Family, GlyphRole, Id, ItemKey, Part, Rect, RowUi, Slot, StateFlags, Theme, Track,
     Ui, Variant,

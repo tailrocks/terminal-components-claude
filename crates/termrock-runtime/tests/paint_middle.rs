@@ -1,4 +1,3 @@
-//! Public borrowed middle painter: immutable helper equivalence and semantic clipping.
 use std::cell::Cell;
 use std::rc::Rc;
 use termrock_runtime::{App, Cx, Rect, Response, Role, Surface, Ui};

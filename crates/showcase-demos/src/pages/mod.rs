@@ -1,17 +1,7 @@
-//! The twenty-two showcase screens.
-//!
-//! Every screen owns the state for the controls it demonstrates. The shell
-//! only selects a screen and supplies its content rectangle; this keeps the
-//! application package a consumer of the public `junie-tui` facade rather than
-//! a second component implementation.
-
 use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
-/// Product intent returned to the shell, which owns its display lifetime.
 pub struct PageStatus(pub String);
 
-/// A page preserves the component response metadata while returning any
-/// status change from the same update; no later outbox drain is required.
 pub struct PageUpdate {
     pub response: Response<()>,
     pub status: Option<PageStatus>,
@@ -26,13 +16,9 @@ impl From<Response<()>> for PageUpdate {
     }
 }
 
-/// A stateful screen in the showcase.
 pub trait Page: Send {
-    /// Stable navigation title.
     fn title(&self) -> &'static str;
-    /// Drain this screen's runtime intents.
     fn update(&mut self, cx: &mut termrock::Cx<'_>) -> PageUpdate;
-    /// Handle an application-level command before component intents run.
     fn command(
         &mut self,
         _cx: &mut termrock::Cx<'_>,
@@ -40,21 +26,16 @@ pub trait Page: Send {
     ) -> Response<()> {
         Response::ignored()
     }
-    /// Draw this screen into the shell's content rectangle.
     fn draw(&self, ui: &mut Ui<'_>, area: Rect);
-    /// Contextual footer hints for the focused page or layer.
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         &[]
     }
-    /// Whether the focused page control is in edit mode.
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         false
     }
-    /// Set an animation state for deterministic, paused inspection.
     fn seek_paused(&mut self, _frame: usize) {}
 }
 
-/// Draw a screen frame and hand its inset body to the page.
 pub fn frame(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -62,10 +43,6 @@ pub fn frame(
     meta: &'static str,
     body: impl FnOnce(&mut Ui<'_>, Rect),
 ) {
-    // The historical shell has a title row, a blank row, then page content;
-    // it does not put a second card around every page.  Keep the title/meta
-    // paint behind the new Ui boundary, while leaving ownership of the page
-    // body with the migrated component composition.
     if area.is_empty() {
         return;
     }
@@ -131,7 +108,6 @@ fn paint_clipped_meta(
     }
 }
 
-/// Paint a set of lines with one-cell spacing, clipping at the body edge.
 pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     let style = ui.surface_style();
     for (offset, line) in text.iter().enumerate() {

@@ -1,5 +1,3 @@
-//! `seal` rejects fixture tasks with empty `seal_products`.
-
 use std::path::Path;
 
 use super::authority::{load_authority, load_campaign, load_preparation};

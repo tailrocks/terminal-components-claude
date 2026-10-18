@@ -1,8 +1,3 @@
-//! Deterministic demo database: catalog (connections, databases, schemas,
-//! tables, columns, indexes, keys) and generated rows. No drivers: a small
-//! in-memory engine evaluates the SQL subset the workbench needs, so every
-//! interaction is real while results stay reproducible.
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -13,8 +8,6 @@
     clippy::too_many_lines,
     reason = "This migrated in-memory domain adapter preserves the product fixture vocabulary; generated values use bounded catalog data and deterministic arithmetic."
 )]
-
-// ------------------------------------------------------------------ catalog
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
@@ -40,21 +33,13 @@ impl Engine {
     }
 }
 
-/// `TablePro`'s per-connection Safe Mode level (`SafeModeLevel.swift`).
-/// Destructive statements always confirm regardless of level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SafeMode {
-    /// Default: writes and reads run; only dangerous statements ask.
     Silent,
-    /// Writes ask for confirmation.
     Alert,
-    /// Every statement asks for confirmation.
     AlertFull,
-    /// Writes ask and require authentication (Touch ID on macOS).
     Safe,
-    /// Every statement asks and requires authentication.
     SafeFull,
-    /// Writes are refused.
     ReadOnly,
 }
 
@@ -79,7 +64,6 @@ impl SafeMode {
         }
     }
 
-    /// Short token for the identity strip.
     pub fn token(self) -> &'static str {
         match self {
             SafeMode::Silent => "silent",
@@ -134,7 +118,6 @@ impl Environment {
     }
 }
 
-/// One configured database connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connection {
     pub name: String,
@@ -149,7 +132,6 @@ pub struct Connection {
     pub ssh: Option<String>,
     pub group: String,
     pub last_used: String,
-    /// Simulated behaviour when connecting.
     pub outcome: ConnectOutcome,
 }
 
@@ -255,26 +237,16 @@ pub fn connections() -> Vec<Connection> {
     ]
 }
 
-/// Column storage type used by the deterministic catalog.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColType {
-    /// UUID-like identifier.
     Uuid,
-    /// Text value.
     Text,
-    /// Signed integer.
     Int,
-    /// Decimal number.
     Numeric,
-    /// Boolean value.
     Bool,
-    /// Timestamp value.
     Timestamp,
-    /// Calendar date.
     Date,
-    /// JSON value.
     Json,
-    /// Enumerated text value.
     Enum,
 }
 
@@ -320,11 +292,9 @@ pub struct Constraint {
     pub definition: String,
 }
 
-/// Catalog table metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
     pub schema: String,
-    /// Stable unqualified table name.
     pub name: String,
     pub kind: ObjectKind,
     pub columns: Vec<Column>,
@@ -409,7 +379,6 @@ fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
     }
 }
 
-/// Deterministic database catalog used by the application.
 #[derive(Debug, Clone)]
 pub struct Catalog {
     pub database: String,
@@ -418,7 +387,6 @@ pub struct Catalog {
 }
 
 impl Catalog {
-    /// Build the stable `acme_prod` fixture catalog.
     pub fn acme_prod() -> Self {
         let created = || dflt(col("created_at", ColType::Timestamp), "now()");
         let updated = || nullable(col("updated_at", ColType::Timestamp));
@@ -748,7 +716,6 @@ impl Catalog {
         }
     }
 
-    /// Find a table or view by optional schema and name.
     pub fn find(&self, schema: Option<&str>, name: &str) -> Option<&Table> {
         self.tables.iter().find(|t| {
             t.name.eq_ignore_ascii_case(name)
@@ -763,24 +730,14 @@ impl Catalog {
     }
 }
 
-// ---------------------------------------------------------------- values
-
-/// One deterministic result-cell value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
-    /// SQL NULL.
     Null,
-    /// Use the database column default during insertion.
     Default,
-    /// Text value.
     Text(String),
-    /// Signed integer.
     Int(i64),
-    /// Decimal value.
     Num(f64),
-    /// Boolean value.
     Bool(bool),
-    /// JSON text.
     Json(String),
 }
 
@@ -811,7 +768,6 @@ impl Value {
     }
 }
 
-/// Deterministic pseudo-random stream (`SplitMix64`).
 #[derive(Clone)]
 struct Rng(u64);
 impl Rng {
@@ -953,7 +909,6 @@ fn date(r: &mut Rng, year: i32) -> String {
     format!("{year}-{:02}-{:02}", 1 + r.below(12), 1 + r.below(28))
 }
 
-/// Generate deterministic rows for a table. `n` rows starting at `offset`.
 pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);
     for i in offset..offset + n {

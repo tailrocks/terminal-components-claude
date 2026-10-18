@@ -1,4 +1,3 @@
-//! Bounded, GET-only GitHub REST API client primitives.
 
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
@@ -17,9 +16,6 @@ pub const PAGE_SIZE: usize = 100;
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 pub const MAX_REDIRECTS: usize = 3;
 
-/// The only transport operation exposed to this crate is a bounded GET.
-/// Implementations must not follow redirects automatically, must enforce the
-/// supplied deadline while reading the body, and must stop after `max_bytes`.
 pub trait ReadOnlyTransport: Send + Sync {
     fn get(
         &self,
@@ -60,7 +56,6 @@ impl fmt::Debug for HttpRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HttpResponse {
     pub status: u16,
-    /// Header names are compared without case sensitivity.
     pub headers: BTreeMap<String, String>,
     pub body: Vec<u8>,
 }
@@ -369,8 +364,6 @@ impl<T: ReadOnlyTransport> ApiClient<T> {
         self.get_bytes(&url, max_bytes)
     }
 
-    /// Read a workflow file through the Contents API at the exact commit SHA.
-    /// The bytes are returned as data and are never checked out or executed.
     pub fn get_workflow_file(
         &self,
         repository: &Repository,
@@ -685,8 +678,8 @@ struct ApiArtifactRun {
     head_sha: String,
 }
 
-// PageEnvelope is specialized through a small Value envelope so unexpected
-// collection names fail closed without accepting arbitrary response shapes.
+
+
 #[derive(Deserialize)]
 struct PageEnvelope<T> {
     total_count: u64,

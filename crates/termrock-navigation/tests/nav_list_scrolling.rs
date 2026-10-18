@@ -1,4 +1,3 @@
-//! Borrowed `NavList` scrolling uses the same rows for reveal, paint and hits.
 use termrock_core::{Id, ItemKey, KeyCode, Response};
 use termrock_navigation::{NavList, NavListState};
 use termrock_runtime::{App, Cx, Ui};

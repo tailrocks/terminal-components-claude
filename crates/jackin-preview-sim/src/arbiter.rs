@@ -1,24 +1,24 @@
-//! Construct boundary arbiter: the deterministic, in-memory model of the
-//! cross-process rules that decide when the entry ritual plays and who
-//! gets to play the exit ritual.
-//!
-//! - A pending entry claim suppresses a duplicate intro while another
-//!   client is already entering the empty Construct.
-//! - Remaining-instance discovery returns a typed result; a failure is
-//!   surfaced and the rich outro is withheld (fail closed).
-//! - One exit token exists per Construct; the first consumer plays the
-//!   outro, later requests are told the Construct already ended.
-//! - Repeating a message (claim, release, complete, exit) is idempotent.
+
+
+
+
+
+
+
+
+
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Discovery failure modes for remaining-instance lookup.
+
 pub enum DiscoveryError {
-    /// The daemon index could not be read.
+
     IndexUnreadable,
 }
 
 impl DiscoveryError {
-    /// Human-readable label for the failure.
+
     pub fn label(self) -> &'static str {
         match self {
             DiscoveryError::IndexUnreadable => "instance index unreadable",
@@ -27,60 +27,60 @@ impl DiscoveryError {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Outcome of an entry request.
+
 pub enum EntryDecision {
-    /// Zero running instances and no other claim: play the intro.
+
     PlayIntro,
-    /// The Construct is active with `running` instances: join without replay.
-    /// Join the active Construct with `running` attached instances.
+
+
     JoinActive {
-        /// Instances currently attached.
+
         running: usize,
     },
-    /// Another client already holds the pending entry claim.
+
     Duplicate,
-    /// Discovery failed: enter without the ritual and report the failure.
+
     Unknown(DiscoveryError),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Outcome of an exit request.
+
 pub enum ExitDecision {
-    /// This client consumed the exit token: play the rich outro.
-    /// Rich outro, with the elapsed session time if known.
+
+
     Outro {
-        /// Elapsed session time, if known.
+
         elapsed_secs: Option<u64>,
     },
-    /// Other instances remain: compact still-inside feedback.
-    /// Compact feedback: `remaining` instances are still attached.
+
+
     StillInside {
-        /// Instances still attached after this exit.
+
         remaining: usize,
     },
-    /// Somebody else already played the outro for this Construct.
+
     AlreadyEnded,
-    /// Discovery failed: fail closed, no rich outro.
+
     Unknown(DiscoveryError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Deterministic entry/exit boundary state for one Construct.
+
 pub struct Arbiter {
-    /// What remaining-instance discovery reports; scenarios seed it.
+
     pub discovery: Result<usize, DiscoveryError>,
-    /// Another (simulated) client already entering the empty Construct.
+
     pub foreign_claim: bool,
-    /// Whether a client currently holds the pending entry claim.
+
     pending_entry: bool,
-    /// Fixture instant (virtual ms) at which the Construct was entered.
+
     pub entered_at_ms: Option<i64>,
-    /// Whether the single exit token has been consumed.
+
     exit_consumed: bool,
 }
 
 impl Arbiter {
-    /// Seed the arbiter with `running` discovered instances.
+
     pub fn new(running: usize) -> Self {
         Self {
             discovery: Ok(running),
@@ -92,23 +92,23 @@ impl Arbiter {
     }
 
     #[cfg(test)]
-    /// Test probe for the pending entry claim.
+
     pub fn pending_entry(&self) -> bool {
         self.pending_entry
     }
 
-    /// Current discovered instance count.
+
     pub fn running(&self) -> Result<usize, DiscoveryError> {
         self.discovery
     }
 
-    /// Override the discovered instance count.
+
     pub fn set_running(&mut self, n: usize) {
         self.discovery = Ok(n);
     }
 
-    /// Ask to enter. Idempotent: a client that already holds the claim gets
-    /// `PlayIntro` again rather than `Duplicate`.
+
+
     pub fn request_entry(&mut self) -> EntryDecision {
         match self.discovery {
             Err(e) => EntryDecision::Unknown(e),
@@ -124,12 +124,12 @@ impl Arbiter {
         }
     }
 
-    /// An idle quit before any instance started: drop the claim.
+
     pub fn release_entry(&mut self) {
         self.pending_entry = false;
     }
 
-    /// The ritual finished or the client joined: the Construct is entered.
+
     pub fn complete_entry(&mut self, now_ms: i64) {
         self.pending_entry = false;
         if self.entered_at_ms.is_none() {
@@ -137,8 +137,8 @@ impl Arbiter {
         }
     }
 
-    /// A foreground client is leaving its instance; `discovery` already
-    /// reflects what remains once this instance is gone.
+
+
     pub fn request_exit(&mut self, now_ms: i64) -> ExitDecision {
         match self.discovery {
             Err(e) => ExitDecision::Unknown(e),
@@ -159,7 +159,7 @@ impl Arbiter {
     }
 
     #[cfg(test)]
-    /// Test probe for the exit token.
+
     pub fn exit_consumed(&self) -> bool {
         self.exit_consumed
     }
@@ -174,7 +174,7 @@ mod tests {
         let mut a = Arbiter::new(0);
         assert_eq!(a.request_entry(), EntryDecision::PlayIntro);
         assert!(a.pending_entry());
-        // repeating the request is idempotent for the same client
+
         assert_eq!(a.request_entry(), EntryDecision::PlayIntro);
         a.complete_entry(10_000);
         assert!(!a.pending_entry());

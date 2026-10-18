@@ -1,5 +1,3 @@
-//! gh: the signed-in account, its orgs and repos a clone could target.
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GhRepo {
     pub owner: String,

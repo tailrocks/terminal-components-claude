@@ -1,4 +1,3 @@
-//! Author defaults keep semantic pairs before Mono policy and explicit overrides.
 use ratatui_core::style::{Color, Modifier};
 use termrock_runtime::{Rect, Ui};
 use termrock_test_support::Scene;
@@ -472,7 +471,7 @@ fn generic_mono_and_state_targeted_defaults_keep_order_without_cache_aliasing() 
                 None,
             )
             .style;
-        // Paint after all three same-family/part queries: each value owns its pair.
+
         for (x, style) in [plain, error, no_rules].into_iter().enumerate() {
             ui.paint_str(Rect::new(x as u16, 0, 1, 1), "X", style);
         }

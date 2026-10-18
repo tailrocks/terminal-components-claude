@@ -1,7 +1,3 @@
-//! Ranking memory: what the user pinned, the aliases they taught, and how
-//! often each command ran from each path. Ranking must be inspectable —
-//! these facts surface as reasons (`used 6 times in this project`).
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pin {
     pub path: String,
@@ -26,12 +22,10 @@ pub struct Memory {
     pub pins: Vec<Pin>,
     aliases: Vec<Alias>,
     pub usage: Vec<Usage>,
-    /// Rows the user hid at a path (same shape as a pin; reset restores).
     pub hides: Vec<Pin>,
 }
 
 impl Memory {
-    /// Seed deterministic ranking facts while normalizing alias ownership.
     pub fn seeded(pins: Vec<Pin>, aliases: Vec<Alias>, usage: Vec<Usage>, hides: Vec<Pin>) -> Self {
         let mut memory = Self {
             pins,
@@ -40,8 +34,6 @@ impl Memory {
             hides,
         };
         for alias in aliases {
-            // Last seed declaration owns the name and command, just as an
-            // explicit replacement does. Fixtures contain no external input.
             memory.aliases.retain(|old| {
                 alias_key(&old.alias) != alias_key(&alias.alias) && old.expansion != alias.expansion
             });
@@ -54,10 +46,6 @@ impl Memory {
         &self.aliases
     }
 
-    /// Set or replace a command's alias without stealing another command's name.
-    ///
-    /// # Errors
-    /// Refuses an empty name or a name already owned by a different command.
     pub fn set_alias(&mut self, name: &str, command: &str) -> Result<(), AliasError> {
         let name = name.trim();
         if name.is_empty() {
@@ -105,7 +93,6 @@ impl Memory {
             .map(|a| a.expansion.as_str())
     }
 
-    /// The alias pointing at a command, for reason annotation (`alias gs`).
     pub fn alias_for(&self, command: &str) -> Option<&str> {
         self.aliases
             .iter()
@@ -113,8 +100,6 @@ impl Memory {
             .map(|a| a.alias.as_str())
     }
 
-    /// Reset pin/hide at this path and the command’s global alias. Usage history
-    /// stays intact, matching the accepted P5 ranking-reset scope.
     pub fn reset_at(&mut self, path: &str, command: &str) {
         self.pins
             .retain(|p| !(p.path == path && p.command == command));
@@ -124,7 +109,6 @@ impl Memory {
     }
 }
 
-/// Shared alias comparison follows the query's Unicode lowercase grammar.
 pub fn alias_key(name: &str) -> String {
     name.trim().to_lowercase()
 }

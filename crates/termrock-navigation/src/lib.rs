@@ -1,5 +1,3 @@
-//! List, NavList, Tree, Tabs, ChipBar, Steps, PropsList and filtered-list composition over shared collections.
-
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as action;
 pub(crate) use termrock_core as event;
@@ -45,5 +43,4 @@ pub use tree::{
     TreeNode, TreeState, TreeTrailingMarkFn,
 };
 
-// Re-export PropsList types from termrock-controls per CRATES.md
 pub use termrock_controls::{PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};
