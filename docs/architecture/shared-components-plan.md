@@ -1,8 +1,8 @@
 # Shared components plan
 
-Status: plan, 2026-10-16, for `design/interaction-polish`. Owner: main session; every step is done by subagents (AGENTS.md, "Way of working").
+This is the detailed component migration plan for `design/interaction-polish`. Its API and acceptance rows are future requirements unless the current source and required tests demonstrate them. Any historical outcome notes describe evidence recorded at their cited source revision; they do not establish present completion.
 
-**What is left:** [`docs/remaining-work.md`](../remaining-work.md) is the single list of every step, carry-over, audit follow-up and owner decision still open on this branch.
+Open component steps, carry-overs, audit follow-ups, and unresolved decisions are indexed in [`docs/remaining-work.md`](../remaining-work.md). Product behavior remains governed by [`docs/design/DESIGN.md`](../design/DESIGN.md); the main workspace is the structural direction, not parity evidence.
 
 Inputs: [`duplication-shell.md`](../audits/design-review-2026-10/duplication-shell.md), [`duplication-widgets.md`](../audits/design-review-2026-10/duplication-widgets.md) and [`duplication-screens.md`](../audits/design-review-2026-10/duplication-screens.md); [`mouse.md`](../audits/design-review-2026-10/mouse.md) and [`keyboard.md`](../audits/design-review-2026-10/keyboard.md); [`standards-interaction.md`](../audits/design-review-2026-10/standards-interaction.md) and [`standards-visual.md`](../audits/design-review-2026-10/standards-visual.md); the status sections of the other audits; and [`docs/visual-testing/plan.md`](../visual-testing/plan.md), which requires the port to `main` to match this branch 1:1. The showcase coverage track (§7) also takes [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md). Finding references: **M#** is a mouse audit finding, **K#** a keyboard audit finding, **SI#** a standards-interaction verdict, **SV#** a standards-visual verdict, and **SIg#** / **SVg#** a "gaps not yet raised" item in those two reviews.
 
@@ -211,7 +211,7 @@ Default policy: macOS, then APG, then WCAG (standards-interaction.md). Each over
 
 ## 4. Execution plan
 
-**Already done on this branch; not re-planned:**
+**Recorded implementation outcomes at the cited source revisions:**
 
 | Findings | Commit or API |
 |---|---|
