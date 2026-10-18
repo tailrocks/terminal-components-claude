@@ -110,7 +110,16 @@ fn approve_grouped(dir: &Path, name: &str, frame: &Frame) -> GroupedStore {
         Status::MissingApproval,
         "fresh temp store must report missing approval"
     );
-    store.accept(name).expect("accept temp actuals");
+    for (source, destination) in [
+        (&first.actual.ansi, &first.approved.ansi),
+        (&first.actual.txt, &first.approved.txt),
+        (&first.actual.png, &first.approved.png),
+        (&first.actual.html, &first.approved.html),
+    ] {
+        std::fs::create_dir_all(destination.parent().expect("artifact parent"))
+            .expect("create approved artifact parent");
+        std::fs::copy(source, destination).expect("copy generated artifact fixture");
+    }
     let again = store
         .check_with(&mut r, name, frame, 1.0)
         .expect("re-check after accept");
