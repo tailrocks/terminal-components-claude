@@ -1,4 +1,4 @@
-//! Header prefix geometry and customization remain owned by the shared grid.
+
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_grid::{

@@ -1,4 +1,4 @@
-//! State of the data, not of the widget (`COMPONENT_ARCHITECTURE.md` §12.2, §17.0 A8).
+
 
 use ratatui_core::layout::Rect;
 
@@ -8,24 +8,24 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, PaintStyle, Slot, Variant};
 use crate::ui::{FrameRead, Ui};
 
-/// Data readiness of a component; the runtime maps it onto
-/// `StateFlags::{BUSY, LOADING, ERROR}`.
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum Status {
-    /// Ready.
+
     #[default]
     Ready,
-    /// Busy with an operation.
+
     Busy,
-    /// Loading data.
+
     Loading,
-    /// In error.
+
     Error,
 }
 
 impl Status {
-    /// The flags this status adds.
+
     pub const fn flags(self) -> StateFlags {
         match self {
             Status::Ready => StateFlags::empty(),
@@ -36,52 +36,52 @@ impl Status {
     }
 }
 
-/// How many rows a source has.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowTotal {
-    /// Exactly `n`.
+
     Exact(usize),
-    /// About `n`.
+
     Estimated(usize),
-    /// Unknown.
+
     Unknown,
 }
 
-/// The empty / loading / partial / error vocabulary shared by every collection.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EmptyState<'a> {
-    /// No items.
+
     Empty {
-        /// The title.
+
         title: &'a str,
-        /// A hint.
+
         hint: Option<&'a str>,
     },
-    /// Loading.
+
     Loading {
-        /// The label.
+
         label: &'a str,
     },
-    /// Some rows loaded.
+
     Partial {
-        /// Rows loaded.
+
         loaded: usize,
-        /// Rows in total.
+
         total: RowTotal,
-        /// A hint.
+
         hint: &'a str,
     },
-    /// An error.
+
     Error {
-        /// The message.
+
         message: &'a str,
-        /// Detail.
+
         detail: Option<&'a str>,
     },
 }
 
 impl EmptyState<'_> {
-    /// The status this state implies.
+
     pub const fn status(&self) -> Status {
         match self {
             EmptyState::Empty { .. } => Status::Ready,
@@ -90,7 +90,7 @@ impl EmptyState<'_> {
         }
     }
 
-    /// The primary line.
+
     pub const fn title(&self) -> &str {
         match self {
             EmptyState::Empty { title, .. } => title,
@@ -100,7 +100,7 @@ impl EmptyState<'_> {
         }
     }
 
-    /// The secondary line, if any.
+
     pub const fn detail(&self) -> Option<&str> {
         match self {
             EmptyState::Empty { hint, .. } | EmptyState::Error { detail: hint, .. } => *hint,
@@ -108,9 +108,9 @@ impl EmptyState<'_> {
         }
     }
 
-    /// Paint centred: a muted title, a blank row, a faint wrapped hint;
-    /// a spinner frame for loading, an error glyph for errors. Returns the
-    /// rows used.
+
+
+
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, frame: usize) -> u16 {
         if area.is_empty() {
             return 0;
@@ -118,11 +118,11 @@ impl EmptyState<'_> {
         self.paint_inherited(ui, area, frame, None)
     }
 
-    /// Paint a collection's logical empty region with its resolved style.
-    /// The owner styles the blank region and supplies inherited channels to
-    /// title/help/icon. Owner channels replace the title defaults; help/icon
-    /// retain their distinct default tones. Explicit EMPTY child theme/scope
-    /// overrides take precedence, including Clear exposing the owner again.
+
+
+
+
+
     pub fn draw_inherited(
         &self,
         ui: &mut Ui<'_>,
@@ -181,9 +181,9 @@ impl EmptyState<'_> {
             EmptyState::Empty { .. } => None,
         };
         let icon_width = glyph.map_or(0, width);
-        // `truncate` always owns a `String`, including when the title already
-        // fits. The inherited paint path is measured as allocation-free, so
-        // borrow the original until a cut is actually required.
+
+
+
         let title_owned = if width(self.title()) > area.width {
             Some(crate::text::truncate(self.title(), area.width))
         } else {
@@ -215,7 +215,7 @@ impl EmptyState<'_> {
     }
 }
 
-/// Inputs for the shared centred readiness painter.
+
 #[derive(Clone, Copy)]
 pub struct CenteredText<'a> {
     pub title: &'a str,
@@ -223,9 +223,9 @@ pub struct CenteredText<'a> {
     pub icon_width: u16,
 }
 
-/// Paint centred icon/title/blank/detail geometry while leaving icon style,
-/// glyph and slot ownership with the caller. Zero icon width reserves no
-/// column and never invokes `paint_icon`.
+
+
+
 pub fn draw_centered(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -332,9 +332,9 @@ mod tests {
         (text, rows)
     }
 
-    /// §12.2: the four data-readiness shapes each render their own primary
-    /// and secondary line, map onto the right `StateFlags`, and the spinner
-    /// is a pure function of the frame counter.
+
+
+
     #[test]
     fn empty_state_covers_empty_loading_partial_error() {
         let empty = EmptyState::Empty {
@@ -371,13 +371,13 @@ mod tests {
         assert!(t.contains("Failed") && t.contains("timed out"), "{t}");
         assert_eq!(error.status().flags(), StateFlags::ERROR);
 
-        // the spinner advances with the frame and is otherwise deterministic
+
         let a = render(&loading, 0).0;
         let b = render(&loading, 1).0;
         assert_ne!(a, b, "the spinner must advance with the frame");
         assert_eq!(a, render(&loading, 0).0);
 
-        // a rect too small to draw into writes nothing and reports 0 rows
+
         assert_eq!(render(&empty, 0).1, 3);
     }
 

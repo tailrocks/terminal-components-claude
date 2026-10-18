@@ -1,4 +1,4 @@
-//! One invocation boundary for keys, pointer activation and modal actions.
+
 use crate::domain::{
     action::{Action, ActionKind, Availability, Risk},
     activity::{Activity, ActivityState},
@@ -22,8 +22,8 @@ pub(crate) enum Destination {
     Activity(u32, String),
 }
 
-/// Canonical dispatch always re-resolves the selected row. Memory-row identities
-/// remain useful for selection but never select the simulated effect handler.
+
+
 pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
     let action = match catalogue::resolve_intent(world, row) {
         Ok(action) => action,
@@ -60,8 +60,8 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
     }
 }
 
-/// The preview's confirmation returns through the same current-policy lookup.
-/// A policy that became broad must enter the compound review, never run here.
+
+
 pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
     match catalogue::resolve_intent(world, row) {
         Ok(action) if action.risk != Risk::Broad => simulate(world, &action),

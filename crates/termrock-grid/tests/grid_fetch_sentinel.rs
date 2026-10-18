@@ -1,4 +1,4 @@
-//! Fetch-row activation follows the pinned Holla keyboard contract.
+
 use ratatui_core::layout::Rect;
 use termrock_grid::{CellRef, Column, ColumnKey, Grid, GridAction, GridModel, GridState};
 use termrock_runtime::{App, Cx, Id, ItemKey, KeyCode, Response, Ui};
@@ -144,7 +144,7 @@ fn each_activation_key_fetches_once_and_navigation_never_fetches() {
 #[test]
 fn clicking_authoritative_fetch_row_selects_and_fetches() {
     let mut h = Harness::new(Page::new(true, 3), Theme::junie(), 30, 8);
-    // Header y=0; three data rows y=1..3; fetch row y=4.
+
     let _ = h.click(4, 4);
     assert!(h.app().state.on_fetch_row());
     assert_eq!(h.app().fetches, 1);

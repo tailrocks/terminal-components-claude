@@ -1,5 +1,5 @@
-//! `TextArea` — the multi-line text control (`COMPONENT_ARCHITECTURE.md`
-//! §15, §17.0 A7/A10, §18.2, Appendix A 4B).
+
+
 
 use core::fmt;
 
@@ -44,10 +44,10 @@ const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Bi
     }
 }
 
-/// The multi-line flavour of the shared edit table (the legacy
-/// `field_common::edit_key(key, multiline = true)`): `Enter` inserts a
-/// newline, `Esc` **commits** — a document is not cancelled by leaving it —
-/// and `↑`/`↓`/`PgUp`/`PgDn` move the cursor by line and by page.
+
+
+
+
 const BINDINGS: &[Binding<TextCmd>] = &[
     b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
     b(
@@ -250,10 +250,10 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     ),
 ];
 
-/// Durable state of a [`TextArea`]: the in-flight draft, the phase, the
-/// vertical scroll and the last validation error. `Debug` redacts the draft.
-/// `Clone` makes a redacted snapshot for secret state, not a continuation that
-/// can commit the secret.
+
+
+
+
 #[derive(Default)]
 pub struct TextAreaState {
     draft: EditorDraft,
@@ -316,12 +316,12 @@ impl fmt::Debug for TextAreaState {
 }
 
 impl TextAreaState {
-    /// Construct state for direct editing of a secret `String`.
-    ///
-    /// Use this instead of [`TextAreaState::default`] when calling the public
-    /// lifecycle methods directly, without [`TextArea::update`] establishing
-    /// sensitivity first. The returned state is sensitive before
-    /// [`TextAreaState::begin`] can copy caller data into its draft.
+
+
+
+
+
+
     #[must_use]
     pub fn sensitive() -> Self {
         let mut state = Self::default();
@@ -329,12 +329,12 @@ impl TextAreaState {
         state
     }
 
-    /// Whether a draft is in flight.
+
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
     }
 
-    /// The phase.
+
     pub const fn phase(&self) -> EditPhase {
         self.phase
     }
@@ -343,22 +343,22 @@ impl TextAreaState {
         self.draft.is_sensitive()
     }
 
-    /// The vertical scroll.
+
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 
-    /// The vertical scroll, mutably.
+
     pub const fn scroll_mut(&mut self) -> &mut ScrollState {
         &mut self.scroll
     }
 
-    /// The last validation error.
-    ///
-    /// Before the first update reconciles the control's sensitivity, an
-    /// externally supplied error is exposed as `Invalid value`. A plain
-    /// control resolves that pending error during reconciliation and restores
-    /// its detail; a secret control discards the detail.
+
+
+
+
+
+
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
             Some(error) => Some(error.as_ref()),
@@ -389,7 +389,7 @@ impl TextAreaState {
         }
     }
 
-    /// Set (or clear) the error from an external / async validation.
+
     pub fn set_error(&mut self, e: Option<FieldError>) {
         self.clear_error();
         self.error = match (self.sensitivity, e) {
@@ -415,7 +415,7 @@ impl TextAreaState {
         }
     }
 
-    /// Begin an edit over `current` (a no-op while editing).
+
     pub fn begin(&mut self, current: &str) {
         if self.is_editing() {
             return;
@@ -425,10 +425,10 @@ impl TextAreaState {
         self.phase = EditPhase::Editing;
     }
 
-    /// Write the draft to `value`, end the edit and validate.
-    ///
-    /// # Errors
-    /// The validator's error; it is also recorded in the state.
+
+
+
+
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
         self.commit_target(value, v)
     }
@@ -451,7 +451,7 @@ impl TextAreaState {
         self.draft.zeroize();
     }
 
-    /// Drop the draft.
+
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
@@ -461,11 +461,11 @@ impl TextAreaState {
         }
     }
 
-    /// Apply the blur policy.
-    ///
-    /// # Errors
-    /// The validator's error under [`BlurPolicy::CommitAndValidate`]; the
-    /// default policy is [`BlurPolicy::Commit`], which never validates.
+
+
+
+
+
     pub fn blur(
         &mut self,
         value: &mut String,
@@ -495,7 +495,7 @@ impl TextAreaState {
         }
     }
 
-    /// Overwrite the draft bytes.
+
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
         self.clear_error();
@@ -528,92 +528,92 @@ impl TextAreaState {
     }
 }
 
-/// A multi-line text control over the shared [`crate::text::TextEditorCore`], with an
-/// explicit edit lifecycle, a scroll region and grapheme-correct editing.
-///
-/// ## Construction
-/// `TextArea::new(id, rows)` — `rows` is the height of the text region. The
-/// controlled value is passed per phase: `&mut String` to `update`,
-/// `.value(&str)` for `draw`.
-///
-/// ## Ownership
-/// The caller owns the value and a [`TextAreaState`] (draft, phase, scroll,
-/// error). The runtime owns focus, hover, the cursor write, wheel routing
-/// and the scrollbar capture. Controlled is the default (S4): the value
-/// changes only on commit.
-///
-/// ## Configuration
-/// `.value(&str)` (draw), `.placeholder(&str)`, `.validate(&dyn Validate)`
-/// (`NoValidate`), `.blur(BlurPolicy)` (**`Commit`** — a document is
-/// committed, not cancelled, when focus leaves it, §15), `.rows(u16)`,
-/// `.secret(SecretPolicy)`, `.read_only(bool)`, `.disabled(bool)`,
-/// `.status(Status)`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::TEXTAREA`, `DEFAULT` only.
-///
-/// ## States
-/// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` from the runtime; `EDITING` is
-/// owned by the state and declared every frame; `ERROR` from the state's
-/// error or `.status(Error)`; `READ_ONLY`, `DISABLED`, `BUSY`, `LOADING`.
-///
-/// ## Actions
-/// [`TextAction`]: `Changed` (the draft changed), `Committed` (written to
-/// the value — Esc, or focus loss under `Commit`/`CommitAndValidate`),
-/// `Cancelled` (draft dropped), `MoveNext` / `MovePrev` (reserved).
-///
-/// ## Focus
-/// `Focusable` (`FocusableReadOnly` / `Disabled`); swallows typing. Focus
-/// arriving begins an edit; focus leaving applies the blur policy.
-///
-/// ## Keyboard
-/// The multi-line edit table: `Esc` commits (the legacy semantics — a
-/// document is not cancelled by leaving it), `Enter` inserts a newline,
-/// `←`/`→`/`↑`/`↓` (`Shift` selects, `Ctrl`/`Alt` move by word),
-/// `PgUp`/`PgDn` move by page, `Home`/`End` (`Shift` selects, `Ctrl` the
-/// document), `Backspace` (`Ctrl`/`Alt` word), `Del`, `Ctrl+a`/`Ctrl+e`
-/// line start/end, `Ctrl+u`/`Ctrl+k` delete to start/end, `Ctrl+w` delete
-/// word, `Ctrl+l` select all, `Alt+b`/`Alt+f` word motion.
-///
-/// ## Mouse
-/// `PartRef::of(Part::CONTAINER)`: a press begins editing and places the
-/// cursor at the clicked line and column. `TRACK` / `THUMB` and the wheel
-/// go to the embedded [`ScrollRegion`].
-///
-/// ## Layout
-/// `rows` rows (clamped to `area`): a gutter column, a two-cell indent, the
-/// text window, a reserved trailing pad column (the error marker and the
-/// readiness spinner share it), and a scrollbar column while the document
-/// overflows.
-/// `measure` is `(12…40, rows)`; `draw` paints the rows it used and returns
-/// them; `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the embedded scroll surface), `FIELD` (the body fill), `TEXT`
-/// (the value / draft), `PLACEHOLDER`, `ROW` (the selection run), `MARKER`
-/// (the trailing validation glyph), `GUTTER` (the focus bar), `ICON` (the
-/// status error glyph or spinner, in that same trailing cell), `TRACK` /
-/// `THUMB` (the scrollbar).
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER`, `ICON` and
-/// `PLACEHOLDER`; `FIELD` and `TEXT` cannot be replaced.
-///
-/// ## Identity
-/// One `Id`; no items. The scrollbar is `TRACK` / `THUMB` of the same id.
-///
-/// ## Testing
-/// `TextAreaCase` with `FOCUSABLE | EDITS | CURSOR | TYPES | SCROLLS |
-/// DISABLEABLE | REPORTS_STATUS`; `render::components::text_area::*`;
-/// `textarea::blur_commits_without_validation`;
-/// `textarea::busy_and_loading_paint_the_readiness_spinner`;
-/// `textarea::the_icon_slot_replaces_the_readiness_spinner`.
-///
-/// ## Invariants
-/// `draw` never commits, cancels or validates (it takes `&TextAreaState`);
-/// the hardware cursor is written only while editing and focused; the
-/// vertical offset is owned by [`ScrollState`] and clamped by it, never by
-/// arithmetic in `draw`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct TextArea<'a> {
     id: Id,
     rows: u16,
@@ -645,7 +645,7 @@ impl fmt::Debug for TextArea<'_> {
 }
 
 impl<'a> TextArea<'a> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
         Part::TEXT,
@@ -659,7 +659,7 @@ impl<'a> TextArea<'a> {
         Part::CONTAINER,
     ];
 
-    /// A text area `rows` rows tall.
+
     pub const fn new(id: Id, rows: u16) -> Self {
         TextArea {
             id,
@@ -676,36 +676,36 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    /// The controlled value, for `draw`.
+
     #[must_use]
     pub const fn value(mut self, v: &'a str) -> Self {
         self.value = Some(v);
         self
     }
 
-    /// Placeholder shown while the value is empty and no edit is in flight.
+
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
         self.placeholder = Some(s);
         self
     }
 
-    /// The validator run on commit under [`BlurPolicy::CommitAndValidate`].
+
     #[must_use]
     pub const fn validate(mut self, v: &'a dyn Validate) -> Self {
         self.validate = Some(v);
         self
     }
 
-    /// What focus loss does to a draft; the default is
-    /// [`BlurPolicy::Commit`].
+
+
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
         self
     }
 
-    /// Mask the text, including the in-flight draft.
+
     #[must_use]
     pub const fn secret(mut self, policy: SecretPolicy) -> Self {
         self.secret = Some(policy);
@@ -716,7 +716,7 @@ impl<'a> TextArea<'a> {
         self.secret.is_some()
     }
 
-    /// The height of the text region, in rows.
+
     #[must_use]
     pub const fn rows(mut self, n: u16) -> Self {
         self.rows = n;
@@ -727,42 +727,42 @@ impl<'a> TextArea<'a> {
         self.rows
     }
 
-    /// Read-only: stays in the ring, never edits.
+
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
+
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// Data readiness.
+
     #[must_use]
     pub const fn status(mut self, s: termrock_runtime::Status) -> Self {
         self.status = s;
         self
     }
 
-    /// An instance patch over every part.
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -789,7 +789,7 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    /// The owned scroll region.
+
     const fn scroll_region(&self) -> ScrollRegion<'a> {
         ScrollRegion::new(self.id)
     }
@@ -798,7 +798,7 @@ impl<'a> TextArea<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-    /// Rows of text `area` can hold.
+
     const fn body_rows(&self, area: Rect) -> u16 {
         if self.rows < area.height {
             self.rows
@@ -807,18 +807,18 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    /// Columns between the gutter indent and the right pad.
-    ///
-    /// The three columns are the gutter, its one-cell indent, and the
-    /// trailing pad — reserved unconditionally, on every frame, so the
-    /// error marker and the readiness spinner that share it never move the
-    /// text (§29 Q1's geometry discipline).
+
+
+
+
+
+
     const fn inner_width(width: u16) -> u16 {
         width.saturating_sub(3)
     }
 
-    /// The update phase: drains this control's intents and drives the edit
-    /// lifecycle. The controlled `value` is written on commit only.
+
+
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -951,9 +951,9 @@ impl<'a> TextArea<'a> {
                 }
                 Intent::Pointer { .. } => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
-                    // Esc reaching the control after a layer closed keeps the
-                    // document: the `Commit` blur policy is what a text area
-                    // means by "leaving" (§15).
+
+
+
                     let _ = st.blur_target(value, &self.validator(), self.blur);
                     acc.action(TextAction::Committed);
                 }
@@ -993,8 +993,8 @@ impl<'a> TextArea<'a> {
                 acc.action(TextAction::Cancelled);
             }
             TextCmd::Commit => {
-                // Esc commits a document (legacy `textarea::on_key`), and the
-                // policy decides whether the validator runs.
+
+
                 let _ = match self.blur {
                     BlurPolicy::CommitAndValidate => st.commit_target(value, &self.validator()),
                     _ => st.blur_target(value, &self.validator(), BlurPolicy::Commit),
@@ -1045,9 +1045,9 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    /// The draw phase: the body fill, the gutter column, the visible lines,
-    /// the selection run, the scrollbar, the cursor request and the trailing
-    /// readiness affordance.
+
+
+
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the body, the visible lines and the shared trailing cell"
@@ -1077,8 +1077,8 @@ impl<'a> TextArea<'a> {
         } else {
             StateFlags::empty()
         };
-        // runtime: the frame's own focus/hover/press; derived: `.status`,
-        // the edit phase, the error, `.read_only` and `.disabled`
+
+
         let mut derived = self.status.flags();
         if editing {
             derived |= StateFlags::EDITING;
@@ -1122,7 +1122,7 @@ impl<'a> TextArea<'a> {
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         ui.register_editor(self.id, body, focusability, declared);
         ui.publish_bindings(self.id, live, BINDINGS);
-        // gutter: one cell per row, the focus bar when the recipe says so
+
         for row in content.rows() {
             let gutter_cell = cell_at(row, content.x);
             if let Some(f) = ov.slot_for(Part::GUTTER) {
@@ -1229,11 +1229,11 @@ impl<'a> TextArea<'a> {
                 }
             }
         }
-        // The trailing pad column `inner_width` reserves on every frame
-        // carries the readiness affordance §11.4 obliges a component that
-        // accepts `.status(…)` to render. The error glyph and the spinner
-        // share it, error winning, exactly as in `TextInput`; the spinner is
-        // a *symbol*, so it survives `Mono` without a theme rule.
+
+
+
+
+
         let trailing = cell_at(
             first_row(content),
             content.right().saturating_sub(1).max(content.x),
@@ -1308,8 +1308,8 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
-    /// The natural size: `rows` rows, twelve columns minimum, forty
-    /// preferred.
+
+
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, self.rows.max(1)),
@@ -1332,7 +1332,7 @@ fn paint_masked_line(
     cells.glyphs(policy.mask, total);
 }
 
-/// `line`'s sub-rect between display columns `a` and `b`.
+
 fn column_span(row: Rect, a: usize, b: usize) -> Rect {
     let a = a.min(usize::from(u16::MAX)) as u16;
     let b = b.min(usize::from(u16::MAX)) as u16;
@@ -1345,12 +1345,12 @@ fn column_span(row: Rect, a: usize, b: usize) -> Rect {
     .intersection(row)
 }
 
-/// Lines in `s`, counting the trailing empty line a trailing newline makes.
+
 fn line_count(s: &str) -> usize {
     s.split('\n').count()
 }
 
-/// A borrowed validator behind the blanket-impl bound.
+
 struct Dyn<'a>(&'a dyn Validate);
 
 impl Validate for Dyn<'_> {
@@ -1646,10 +1646,10 @@ mod tests {
         );
     }
 
-    /// §16.1: a text area's blur policy is `Commit`, not
-    /// `CommitAndValidate` — a document is written out when focus leaves it
-    /// and the validator does not run, so a half-typed paragraph is never
-    /// rejected on the way out (§15).
+
+
+
+
     #[test]
     fn blur_commits_without_validation() {
         let mut value = "first".to_owned();
@@ -1665,7 +1665,7 @@ mod tests {
         assert_eq!(value, "first\nx");
         assert!(st.error().is_none());
         assert!(!st.is_editing());
-        // the opt-in policy does validate, and records the error
+
         st.begin(&value);
         assert!(
             st.blur(&mut value, &always_bad, BlurPolicy::CommitAndValidate)
@@ -1750,7 +1750,7 @@ mod tests {
         }
     }
 
-    /// Draw a four-row text area at `status` over the stub screen.
+
     fn draw_with(status: termrock_runtime::Status) -> Buffer {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -1765,28 +1765,28 @@ mod tests {
         buf
     }
 
-    /// The symbol painted at `(x, y)`.
+
     fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
         buf.cell(Position::new(x, y))
             .map_or_else(String::new, |c| c.symbol().to_owned())
     }
 
-    /// The columns of row 0 left of the reserved trailing pad.
+
     fn text_run(buf: &Buffer) -> String {
         (0..SCREEN.width - 1)
             .map(|x| symbol_at(buf, x, 0))
             .collect()
     }
 
-    /// The trailing pad column of the first body row — the cell
-    /// `inner_width`'s `- 3` already reserves and the error marker already
-    /// uses.
+
+
+
     const READINESS_X: u16 = SCREEN.width - 1;
 
-    /// §11.4: a component that accepts `.status(…)` must render readiness.
-    /// `BUSY` and `LOADING` paint `design.motion.spinner_frames[0]` into the
-    /// trailing pad column, which `inner_width` reserves on **every** frame,
-    /// so the text run does not move (§29 Q1's geometry discipline).
+
+
+
+
     #[test]
     fn busy_and_loading_paint_the_readiness_spinner() {
         let design = Theme::junie().design;
@@ -1810,8 +1810,8 @@ mod tests {
         }
     }
 
-    /// §11.4: status `ERROR` paints the root-owned `ICON` fallback in the
-    /// same trailing cell as the spinner.
+
+
     #[test]
     fn status_error_paints_the_icon_fallback_in_the_readiness_cell() {
         let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
@@ -1819,11 +1819,11 @@ mod tests {
         assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
     }
 
-    /// §11.4: a ready text area paints no readiness affordance at all — the
-    /// reserved pad column stays blank.
-    ///
-    /// Like the `ERROR` case this held before the spinner was added; its
-    /// value is as the negative half of the busy assertion.
+
+
+
+
+
     #[test]
     fn ready_paints_no_readiness_affordance() {
         let design = Theme::junie().design;
@@ -1833,8 +1833,8 @@ mod tests {
         assert_eq!(cell, " ", "the reserved pad column must stay blank");
     }
 
-    /// §12.1: the readiness affordance resolves through the slot path, so
-    /// `.slot(Part::ICON, …)` replaces it.
+
+
     #[test]
     fn the_icon_slot_replaces_the_readiness_spinner() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());

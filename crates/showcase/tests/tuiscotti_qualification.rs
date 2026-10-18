@@ -1,6 +1,6 @@
-//! Tuiscotti PTY qualification against the shipped `showcase` binary:
-//! launch, boot needle, six-format capture invariants, input navigation and
-//! clean exit. Lives beside the binary it qualifies.
+
+
+
 
 use std::time::Duration;
 
@@ -32,7 +32,7 @@ fn qualify_pty_session_lifecycle_and_capture() {
     .spawn()
     .expect("session spawn succeeds");
 
-    // Wait until boot needle or settled
+
     let deadline = std::time::Instant::now() + Duration::from_secs(5);
     let cancel = tuiscotti::tui::CancelToken::new();
     let obs = session
@@ -50,7 +50,7 @@ fn qualify_pty_session_lifecycle_and_capture() {
     assert_eq!(obs.screen.cols(), cols);
     assert_eq!(obs.screen.rows(), rows);
 
-    // Convert observed screen to Frame
+
     let profile = Profile::default_profile();
     let frame = frame_from_screen(&obs.screen, &profile.name);
 
@@ -68,14 +68,14 @@ fn qualify_pty_session_lifecycle_and_capture() {
     let parsed = parse_canonical(&bundle.json).expect("valid frame json");
     assert_eq!(parsed.digest(), frame.digest());
 
-    // Send key input to navigate
+
     session.press("Tab").expect("press Tab succeeds");
     let settle_deadline = std::time::Instant::now() + Duration::from_secs(2);
     session
         .wait_stable(settle_deadline, &cancel)
         .expect("session settled after Tab");
 
-    // Clean exit
+
     session.press("q").expect("press q succeeds");
     let exit_deadline = std::time::Instant::now() + Duration::from_secs(3);
     let exit_wait = session

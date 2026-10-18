@@ -1,4 +1,4 @@
-//! Connection list and the app-owned 15-field connection draft.
+
 
 #![allow(
     missing_docs,
@@ -12,57 +12,57 @@ use termrock::{
 
 use tablepro_demo::db::{self, ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
-/// Connection form id.
+
 pub const FORM: Id = Id::root("tablepro.connections.form");
 
-/// Stable form field ids.
+
 pub mod field {
     use termrock::Id;
 
-    /// Connection name field.
+
     pub const NAME: Id = Id::root("tablepro.connections.form.name");
-    /// Database engine field.
+
     pub const ENGINE: Id = Id::root("tablepro.connections.form.engine");
-    /// Host name field.
+
     pub const HOST: Id = Id::root("tablepro.connections.form.host");
-    /// Port field.
+
     pub const PORT: Id = Id::root("tablepro.connections.form.port");
-    /// Database name field.
+
     pub const DATABASE: Id = Id::root("tablepro.connections.form.database");
-    /// User name field.
+
     pub const USER: Id = Id::root("tablepro.connections.form.user");
-    /// Password field.
+
     pub const PASSWORD: Id = Id::root("tablepro.connections.form.password");
-    /// Prompt-for-password field.
+
     pub const ASK_PASSWORD: Id = Id::root("tablepro.connections.form.ask-password");
-    /// Environment field.
+
     pub const ENVIRONMENT: Id = Id::root("tablepro.connections.form.environment");
-    /// Connection group field.
+
     pub const GROUP: Id = Id::root("tablepro.connections.form.group");
-    /// Safe-mode field.
+
     pub const SAFE_MODE: Id = Id::root("tablepro.connections.form.safe-mode");
-    /// TLS toggle field.
+
     pub const SSL: Id = Id::root("tablepro.connections.form.ssl");
-    /// SSH tunnel toggle field.
+
     pub const SSH: Id = Id::root("tablepro.connections.form.ssh");
-    /// SSH host field.
+
     pub const SSH_HOST: Id = Id::root("tablepro.connections.form.ssh-host");
-    /// Startup command field.
+
     pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
 }
 
-/// Test action.
+
 pub const TEST: ActionKey = ActionKey::application("tablepro.connections.test");
-/// Save-and-connect action.
+
 pub const SAVE_CONNECT: ActionKey = ActionKey::application("tablepro.connections.save-connect");
 
-/// Engine option labels.
+
 pub const ENGINES: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];
-/// Environment option labels.
+
 pub const ENVIRONMENTS: &[&str] = &["Local", "Development", "Staging", "Production"];
-/// Group option labels.
+
 pub const GROUPS: &[&str] = &["Personal", "Acme"];
-/// Safe-mode option labels.
+
 pub const SAFE_MODES: &[&str] = &[
     "Silent",
     "Alert",
@@ -72,7 +72,7 @@ pub const SAFE_MODES: &[&str] = &[
     "Read-Only",
 ];
 
-/// Default port for an engine choice.
+
 pub const fn default_port(engine: usize) -> &'static str {
     match engine {
         0 => "5432",
@@ -89,7 +89,7 @@ fn valid_port(value: &str) -> Result<(), termrock::FieldError> {
     }
 }
 
-/// The public `Form` declaration for the complete connection editor.
+
 pub fn form_fields() -> [FieldSpec<'static>; 15] {
     use field::{
         ASK_PASSWORD, DATABASE, ENGINE, ENVIRONMENT, GROUP, HOST, NAME, PASSWORD, PORT, SAFE_MODE,
@@ -163,7 +163,7 @@ pub fn form_fields() -> [FieldSpec<'static>; 15] {
     ]
 }
 
-/// The public `Form` action row.
+
 pub fn form_actions() -> [Action<'static>; 4] {
     [
         Action::quiet(TEST, "Test connection"),
@@ -176,44 +176,44 @@ pub fn form_actions() -> [Action<'static>; 4] {
     ]
 }
 
-/// Controlled connection form data. Password storage is a `Secret`, so this
-/// type intentionally has no `Clone`, `Eq`, or string-producing debug path.
+
+
 #[derive(Debug, Default)]
 pub struct ConnectionDraft {
-    /// Display name.
+
     pub name: String,
-    /// Engine option index.
+
     pub engine: usize,
-    /// Host name.
+
     pub host: String,
-    /// Port text.
+
     pub port: String,
-    /// Database name.
+
     pub database: String,
-    /// User name.
+
     pub user: String,
-    /// Password.
+
     pub password: Secret,
-    /// Prompt for password.
+
     pub ask_password: bool,
-    /// Environment option index.
+
     pub environment: usize,
-    /// Group option index.
+
     pub group: usize,
-    /// Safe-mode option index.
+
     pub safe_mode: usize,
-    /// TLS toggle.
+
     pub ssl: bool,
-    /// SSH tunnel toggle.
+
     pub ssh: bool,
-    /// SSH host.
+
     pub ssh_host: String,
-    /// Startup SQL.
+
     pub startup: String,
 }
 
 impl ConnectionDraft {
-    /// Build a draft from an existing connection. Passwords are never copied.
+
     pub fn from_connection(connection: &Connection) -> Self {
         Self {
             name: connection.name.clone(),
@@ -249,11 +249,11 @@ impl ConnectionDraft {
         }
     }
 
-    /// Validate required fields and the port.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first invalid field and its user-facing validation error.
+
+
+
+
+
     pub fn validate_all(&self) -> Result<(), (Id, termrock::FieldError)> {
         use field::{DATABASE, NAME, PORT};
         if self.name.trim().is_empty() {
@@ -271,7 +271,7 @@ impl ConnectionDraft {
         valid_port(&self.port).map_err(|e| (PORT, e))
     }
 
-    /// Build a connection value without persisting the password.
+
     pub fn to_connection(&self, base: Option<&Connection>) -> Option<Connection> {
         let port = if self.port.is_empty() {
             default_port(self.engine).parse().ok()?
@@ -313,11 +313,11 @@ impl ConnectionDraft {
         })
     }
 
-    /// Whether a password is present.
+
     pub fn has_password(&self) -> bool {
         !self.password.is_empty()
     }
-    /// Redacted password status.
+
     pub fn password_status(&self) -> &'static str {
         if self.has_password() {
             "saved"
@@ -417,21 +417,21 @@ impl FormData for ConnectionDraft {
     }
 }
 
-/// Connection-list state.
+
 #[derive(Debug)]
 pub struct ConnectionsScreen {
-    /// Configured rows.
+
     pub connections: Vec<Connection>,
-    /// Selected visible-row index.
+
     pub selected: usize,
-    /// Case-insensitive filter text.
+
     pub filter: String,
-    /// Last connection error.
+
     pub error: Option<String>,
 }
 
 impl ConnectionsScreen {
-    /// Build a connection list.
+
     pub fn new(connections: Vec<Connection>) -> Self {
         Self {
             connections,
@@ -440,11 +440,11 @@ impl ConnectionsScreen {
             error: None,
         }
     }
-    /// Build the demo list.
+
     pub fn default_list() -> Self {
         Self::new(db::connections())
     }
-    /// Return rows visible under the current filter.
+
     pub fn visible(&self) -> Vec<(usize, &Connection)> {
         let q = self.filter.to_ascii_lowercase();
         self.connections
@@ -453,7 +453,7 @@ impl ConnectionsScreen {
             .filter(|(_, c)| q.is_empty() || c.name.to_ascii_lowercase().contains(&q))
             .collect()
     }
-    /// Connect the selected visible row.
+
     pub fn connect_selected(&mut self) -> Option<Connection> {
         let index = self.visible().get(self.selected).map(|(i, _)| *i)?;
         let connection = self.connections.get(index)?.clone();
@@ -472,7 +472,7 @@ impl ConnectionsScreen {
             }
         }
     }
-    /// Retry the selected row.
+
     pub fn retry(&mut self) -> Option<Connection> {
         self.connect_selected()
     }

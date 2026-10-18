@@ -1,4 +1,4 @@
-//! Independent header and gap policies preserve default geometry.
+
 use ratatui_core::layout::Rect;
 use termrock_grid::{
     CellRef, Column, ColumnKey, Grid, GridHeaderSizing, GridModel, GridSortIndicator, GridState,
@@ -111,7 +111,7 @@ fn header_minimum_is_capped_and_tiny_rectangles_remain_clipped() {
     page.columns[0].title = "abcdefghijklmnopqrstuvwxyz";
     page.area = Rect::new(0, 0, 60, 4);
     let mut h = Harness::new(page, Theme::junie(), 60, 4);
-    // First column grows beyond max4 to cap24; second begins2+24+2.
+
     assert_eq!(h.cell(28, 0).symbol(), "c");
     for width in 0..=3 {
         for height in 0..=3 {

@@ -1,10 +1,10 @@
-//! `Meter`, `MeterTone` and `MeterVisual` (`COMPONENT_ARCHITECTURE.md`
-//! §14.2 J12, §18.2, Appendix A 4G).
-//!
-//! The tone is driven by [`MeterTokens`](crate::theme::MeterTokens) and
-//! `design.meter`'s thresholds through [`MeterTone::from_ratio`], never by a
-//! hard-coded match: the duplicate app-side matches J12 names are deleted
-//! because this is the one place the mapping lives.
+
+
+
+
+
+
+
 
 use core::fmt;
 
@@ -24,36 +24,36 @@ use crate::theme::{
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::Status;
 
-/// What a meter's run says about the value it reports.
-///
-/// The three graded tones are derived from the value through
-/// [`MeterTone::from_ratio`] against `design.meter`; the two flat tones
-/// describe the *data* rather than the value.
+
+
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum MeterTone {
-    /// Healthy: at or below `design.meter.low_max`.
+
     #[default]
     Low,
-    /// Needs attention: at or below `design.meter.medium_max`.
+
     Medium,
-    /// Critical: above `design.meter.medium_max`.
+
     High,
-    /// Last-good data.
+
     Stale,
-    /// No value to report.
+
     Unknown,
-    /// Series `n` of a grouped meter; wraps over the six series tokens.
+
     Series(u8),
 }
 
 impl MeterTone {
-    /// The tone `ratio` earns under `t` — the helper J12 introduces so an
-    /// application never re-implements the thresholds.
-    ///
-    /// `ratio` is clamped to `0.0..=1.0` and compared as whole percent, so
-    /// the boundaries are exactly `design.meter`'s `low_max` and
-    /// `medium_max`.
+
+
+
+
+
+
     #[must_use]
     pub fn from_ratio(ratio: f64, t: MeterThresholds) -> MeterTone {
         let pct = (ratio.clamp(0.0, 1.0) * 100.0).round() as u16;
@@ -66,7 +66,7 @@ impl MeterTone {
         }
     }
 
-    /// The colour role this tone paints its run with.
+
     #[must_use]
     pub const fn role(self) -> MeterRole {
         match self {
@@ -80,108 +80,108 @@ impl MeterTone {
     }
 }
 
-/// How a meter draws its track.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum MeterVisual {
-    /// A compact `━━━━────` run followed by the value.
+
     #[default]
     Line,
-    /// The used share is a filled block with the value inside it, so the bar
-    /// reads as filled rather than as a line.
+
+
     Block,
 }
 
-/// A capacity meter: a value, a semantic tone and a visual mode.
-///
-/// ## Construction
-/// `Meter::new(id)`; `.ratio(f)` supplies the value. A meter with no ratio
-/// paints no run — it reports whatever `.value(…)` says, which is how an
-/// unknown or failed reading is expressed.
-///
-/// ## Ownership
-/// Stateless. The caller owns the ratio, the value text and the animation
-/// frame; the runtime owns nothing.
-///
-/// ## Configuration
-/// `.variant(Variant)` (default `Recipe.default_variant`), `.ratio(f64)`
-/// (none; clamped to `0.0..=1.0`), `.value(&str)` (empty — the percentage is
-/// used when a ratio is set), `.tone(MeterTone)` (none — derived with
-/// [`MeterTone::from_ratio`] against `design.meter`), `.visual(MeterVisual)`
-/// (`Line`), `.status(Status)` (`Ready`), `.frame(usize)` (`0`),
-/// `.suffix_width(u16)` (minimum zero), `.leading_activity(bool)` (false), `.patch`,
-/// `.patch_part`, `.part_defaults`, `.slot`.
-///
-/// ## Variants
-/// `Family::METER`; `DEFAULT` only.
-///
-/// ## States
-/// Derives `BUSY`/`LOADING`/`ERROR` from `.status(Status)`; wears no runtime
-/// state. A busy meter paints the spinner in `Part::ICON` and an errored one
-/// the error glyph, which is what keeps the three apart without colour
-/// (§11.4).
-///
-/// ## Actions
-/// None; `Meter` has no `update` phase.
-///
-/// ## Focus
-/// Never a focus stop.
-///
-/// ## Keyboard
-/// None.
-///
-/// ## Mouse
-/// None.
-///
-/// ## Layout
-/// `measure` returns `(design.size.meter_track + the value + the glyph, 1)`.
-/// `draw` uses the first row of `area`; below a six-cell track it reports the
-/// value alone. Returns the rect it painted; a degenerate rect paints
-/// nothing (R5).
-///
-/// ## Parts
-/// `TRACK` (the unfilled remainder), `THUMB` (the used share), `LABEL` (the
-/// value text), `ICON` (the readiness glyph, optionally leading activity).
-///
-/// ## Overrides
-/// `.part_defaults` supplies borrowed role-level defaults after intrinsic
-/// tone defaults and before recipe/state, Mono policy and explicit overrides.
-/// `.patch` and `.patch_part` on any part. `.slot` on exactly `TRACK`,
-/// `LABEL` and `ICON`. `THUMB` is **not** slot-addressable: a slot on
-/// `TRACK` replaces the whole run, used share included, because the split
-/// between the two is the meter's own arithmetic. The `ICON` slot replaces
-/// the busy spinner as well as the error glyph (§45.4).
-///
-/// ## Identity
-/// One `Id` per instance; no items.
-///
-/// ## Testing
-/// `MeterCase` in `crates/tui/tests/conformance.rs`, declaring
-/// `Caps::REPORTS_STATUS`. Its mono states retain the default, `ERROR` and
-/// `BUSY` renderings required by that readiness capability.
-///
-/// The render matrix in `crates/tui/tests/render_components.rs` generates
-/// exactly eight cells per component, one per `St` variant, so there is no
-/// `render::components::meter::busy` and no `::error` to cite. Readiness
-/// arrives through the matrix's `status_for` mapping: `::pressed` draws
-/// `Status::Busy`, `::editing` `Status::Loading`, `::disabled`
-/// `Status::Error`, and the other five cells `Status::Ready`, so the spinner
-/// and the error glyph really are painted — and pinned as digests — by those
-/// three cells. `Meter::icon` reads the **resolved flags** for the glyph
-/// (§39.2); only the spinner branch reads `self.status`, through `busy`.
-///
-/// The threshold mapping is unit-tested in this module by
-/// `tone_follows_the_design_thresholds_not_a_hard_coded_match` and
-/// `every_tone_names_a_meter_role`.
-///
-/// `tests/meter_defaults.rs` covers both visual modes and every tone, authored
-/// part defaults, theme/subtree/instance precedence, and unchanged default
-/// cells across both themes and all four color capabilities.
-///
-/// ## Invariants
-/// The tone is a function of the ratio and `design.meter`, never of a
-/// hard-coded threshold (J12); the run colour is a `MeterRole`, so a theme
-/// that changes `MeterTokens` changes every meter. Never allocates.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct Meter<'a> {
     id: Id,
     ratio: Option<f64>,
@@ -220,13 +220,13 @@ impl fmt::Debug for Meter<'_> {
 }
 
 impl<'a> Meter<'a> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[Part::TRACK, Part::THUMB, Part::LABEL, Part::ICON];
 
-    /// The smallest run worth painting.
+
     const MIN_TRACK: u16 = 6;
 
-    /// A meter with no value.
+
     pub const fn new(id: Id) -> Self {
         Meter {
             id,
@@ -244,109 +244,109 @@ impl<'a> Meter<'a> {
         }
     }
 
-    /// The id.
+
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Set the variant.
+
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
 
-    /// The used share, clamped to `0.0..=1.0`.
+
     #[must_use]
     pub fn ratio(mut self, r: f64) -> Self {
         self.ratio = Some(r.clamp(0.0, 1.0));
         self
     }
 
-    /// The text beside the run; the percentage is used when this is empty
-    /// and a ratio is set.
+
+
     #[must_use]
     pub const fn value(mut self, s: &'a str) -> Self {
         self.value = s;
         self
     }
 
-    /// Force the tone instead of deriving it from the ratio.
+
     #[must_use]
     pub const fn tone(mut self, t: MeterTone) -> Self {
         self.tone = Some(t);
         self
     }
 
-    /// The visual mode.
+
     #[must_use]
     pub const fn visual(mut self, v: MeterVisual) -> Self {
         self.visual = v;
         self
     }
 
-    /// Data readiness; `Busy`/`Loading` paint the spinner, `Error` the error
-    /// glyph.
+
+
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
 
-    /// Minimum trailing marker budget, including its leading gap. The
-    /// resolved glyph may enlarge it. Default zero retains dynamic width.
+
+
     #[must_use]
     pub const fn suffix_width(mut self, cells: u16) -> Self {
         self.suffix_width = cells;
         self
     }
 
-    /// Put busy/loading activity before the value instead of after it.
-    /// Default false. The shared animation frames and ICON slot still apply.
+
+
     #[must_use]
     pub const fn leading_activity(mut self, yes: bool) -> Self {
         self.leading_activity = yes;
         self
     }
 
-    /// The animation frame the spinner reads.
+
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
 
-    /// Borrowed author defaults layered over intrinsic tone defaults, before
-    /// recipe/state, Mono policy, theme/scope and instance overrides.
+
+
     #[must_use]
     pub const fn part_defaults(mut self, defaults: &'a [(Part, StylePatch)]) -> Self {
         self.part_defaults = defaults;
         self
     }
 
-    /// An instance patch over every part (precedence 6).
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part patches.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The tone this meter paints with: the explicit one, else the one the
-    /// ratio earns under `design.meter` (J12), else `Unknown`.
+
+
     pub fn resolved_tone(&self, ui: &Ui<'_>) -> MeterTone {
         match (self.tone, self.ratio) {
             (Some(t), _) => t,
@@ -359,13 +359,13 @@ impl<'a> Meter<'a> {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
-    /// The trailing readiness glyph, or the spinner frame.
-    ///
-    /// The `Slot::Inherit` fallback reads `live` and not `self.status`
-    /// (§39.2): the recipe above it is matched against the resolved flags, so
-    /// a fallback keyed on the prop would give one glyph two sources of truth
-    /// and let them disagree. `StatusBar` and
-    /// `HintBar` already read the resolved flags here; this is the same shape.
+
+
+
+
+
+
+
     fn icon(
         &self,
         ui: &Ui<'_>,
@@ -386,8 +386,8 @@ impl<'a> Meter<'a> {
         g.map(|g| ui.glyph_str(g))
     }
 
-    /// Paint the value readout into `cell`, or hand the cell to the
-    /// `Part::LABEL` slot. Returns the columns used.
+
+
     fn paint_value(&self, ui: &mut Ui<'_>, cell: Rect, value: &str, style: PaintStyle) -> u16 {
         if let Some(f) = self.ov.slot_for(Part::LABEL) {
             f(ui, cell);
@@ -396,12 +396,12 @@ impl<'a> Meter<'a> {
         ui.paint_str(cell, value, style)
     }
 
-    /// Paint the trailing readiness glyph into `cell`, or hand the cell to
-    /// the `Part::ICON` slot.
-    ///
-    /// The slot is consulted **before** `design.motion.spinner_frames`
-    /// (§45.4): a slot is substitution, not suppression, so one `Part` keeps
-    /// one answer whether the glyph came from the recipe or from the spinner.
+
+
+
+
+
+
     fn paint_icon(&self, ui: &mut Ui<'_>, cell: Rect, glyph: &str, style: PaintStyle) {
         if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, cell);
@@ -410,7 +410,7 @@ impl<'a> Meter<'a> {
         ui.paint_str(cell, glyph, style);
     }
 
-    /// The value text painted beside the run.
+
     fn value_text<'p>(&self, pct: &'p Pct) -> &'p str
     where
         'a: 'p,
@@ -497,7 +497,7 @@ impl<'a> Meter<'a> {
         lead.saturating_add(self.paint_value(ui, cell, value, style))
     }
 
-    /// The draw phase; returns the rect painted.
+
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the two visual modes, the value and the trailing glyph"
@@ -507,8 +507,8 @@ impl<'a> Meter<'a> {
         if area.is_empty() {
             return area;
         }
-        // runtime: none — a meter is a readout and registers no control;
-        // derived: the readiness the caller's `.status` declares
+
+
         let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
         let tone = self.resolved_tone(ui);
@@ -535,7 +535,7 @@ impl<'a> Meter<'a> {
         let icon_w = readout.suffix;
 
         let Some(ratio) = self.ratio else {
-            // no run: the value and the marker only
+
             let mut x = area.x;
             if vw > 0 {
                 let text = Rect {
@@ -635,8 +635,8 @@ impl<'a> Meter<'a> {
                         )
                         .style;
                     ui.fill(bar, rest_bg);
-                    // the value sits inside the bar; the used share is
-                    // restyled over it, so one string keeps two planes
+
+
                     let text = Rect {
                         x: bar.x.saturating_add(1),
                         width: bar.width.saturating_sub(1),
@@ -675,9 +675,9 @@ impl<'a> Meter<'a> {
         area
     }
 
-    /// One-row size from the same readout/suffix geometry used by draw.
-    /// Line mode adds the value beside the track; block mode holds it inside.
-    /// A value-only meter has no minimum track budget.
+
+
+
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);
         let value = self.value_text(&pct);
@@ -730,7 +730,7 @@ mod tests {
         assert_eq!(MeterTone::from_ratio(0.84, T), MeterTone::Medium);
         assert_eq!(MeterTone::from_ratio(0.85, T), MeterTone::High);
         assert_eq!(MeterTone::from_ratio(1.0, T), MeterTone::High);
-        // a theme that moves the thresholds moves every meter
+
         let tight = MeterThresholds {
             low_max: 10,
             medium_max: 20,

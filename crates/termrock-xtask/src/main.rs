@@ -1,7 +1,7 @@
-//! `termrock-xtask`: repository enforcement checks.
-//!
-//! `cargo run -p termrock-xtask -- check-ownership` enforces the FIX-008
-//! consumer/author boundary (see `RULES.md` next to this crate).
+
+
+
+
 
 use std::path::PathBuf;
 
@@ -91,7 +91,7 @@ fn print_usage() {
     );
 }
 
-/// Machine-readable report for review tooling (counts, not verdicts).
+
 fn render_json(report: &termrock_xtask::ownership::Report) -> String {
     use std::fmt::Write as _;
     let mut out = String::from("{\"files_scanned\":");
@@ -144,6 +144,6 @@ fn render_json(report: &termrock_xtask::ownership::Report) -> String {
 mod tests {
     #[test]
     fn test_xtask_binary_entry() {
-        // Sanity test verifying xtask entry point compiles and links.
+
     }
 }

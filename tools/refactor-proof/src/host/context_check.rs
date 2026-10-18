@@ -1,4 +1,4 @@
-//! Frozen per-check `tc-proof` dispatch during host `verify`.
+
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

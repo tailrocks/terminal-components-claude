@@ -1,5 +1,5 @@
-//! `Field<C>` — draw-time field chrome (`COMPONENT_ARCHITECTURE.md` §15,
-//! §21 item 7, Appendix A 4B).
+
+
 
 use core::fmt;
 
@@ -14,66 +14,66 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
-/// Label, required / optional marker, help and error rows around a control.
-///
-/// ## Construction
-/// `Field::new(label, control)` — no `Id`: the control owns identity, and
-/// the chrome registers `Decorative` regions under the control's id.
-///
-/// ## Ownership
-/// Draw-time chrome only: `Field` has no state and no `update`. The caller
-/// keeps calling the control's `update` and owns the control's state.
-///
-/// ## Configuration
-/// `.required(bool)` (`false`; paints `*`), `.optional_suffix(bool)`
-/// (`true`; paints `optional` when not required and the row is wide
-/// enough), `.help(&str)`, `.error(Option<&str>)` (wins over help),
-/// `.plain(bool)` (`false`; suppresses the optional suffix),
-/// `.patch_part`.
-///
-/// ## Variants
-/// `Family::FIELD`, `DEFAULT` only.
-///
-/// ## States
-/// Reads the control's runtime flags (`FOCUSED`, `DISABLED`) and adds
-/// `ERROR` when `.error` is `Some`; reference fixtures inject runtime state
-/// through [`Ui::reference`](termrock_runtime::Ui::reference).
-///
-/// ## Actions
-/// None.
-///
-/// ## Focus
-/// Never a focus stop; the control registers its own.
-///
-/// ## Keyboard
-/// None.
-///
-/// ## Mouse
-/// None; the chrome is `Decorative`.
-///
-/// ## Layout
-/// Three rows — label, control, help/error — indented by two columns like
-/// the legacy field; `measure` is the control's width by
-/// `design.size.field_height`. A one-row area paints the label only, a
-/// two-row area label and control; `draw` returns the rows used.
-///
-/// ## Parts
-/// `CONTAINER`, `GUTTER` (reserved), `LABEL`, `MARKER` (the required
-/// asterisk), `FIELD` (the control's row), `HELP` (help or error).
-///
-/// ## Overrides
-/// `.patch_part` on the chrome parts; the control keeps its own overrides.
-///
-/// ## Identity
-/// The control's id.
-///
-/// ## Testing
-/// `FieldCase` (over a `TextInput`) with `FOCUSABLE | EDITS | CURSOR |
-/// TYPES | DISABLEABLE`; `render::components::field::*`.
-///
-/// ## Invariants
-/// One id per field (no `DuplicateId`); the chrome never commits, cancels
-/// or validates; the error row is the caller's message, never derived.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct Field<'a, C: FieldControl> {
     label: &'a str,
     required: bool,
@@ -99,7 +99,7 @@ impl<C: FieldControl> fmt::Debug for Field<'_, C> {
 }
 
 impl<'a, C: FieldControl> Field<'a, C> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -109,7 +109,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
         Part::HELP,
     ];
 
-    /// Chrome around `control`.
+
     pub const fn new(label: &'a str, control: C) -> Self {
         Field {
             label,
@@ -123,62 +123,62 @@ impl<'a, C: FieldControl> Field<'a, C> {
         }
     }
 
-    /// Mark required (`*` after the label).
+
     #[must_use]
     pub const fn required(mut self, yes: bool) -> Self {
         self.required = yes;
         self
     }
 
-    /// Whether a non-required field shows the `optional` suffix.
+
     #[must_use]
     pub const fn optional_suffix(mut self, yes: bool) -> Self {
         self.optional_suffix = yes;
         self
     }
 
-    /// Help text under the control.
+
     #[must_use]
     pub const fn help(mut self, s: &'a str) -> Self {
         self.help = Some(s);
         self
     }
 
-    /// An error message under the control (wins over help).
+
     #[must_use]
     pub const fn error(mut self, s: Option<&'a str>) -> Self {
         self.error = s;
         self
     }
 
-    /// Plain label: no optional suffix.
+
     #[must_use]
     pub const fn plain(mut self, yes: bool) -> Self {
         self.plain = yes;
         self
     }
 
-    /// Per-part instance patches for the chrome.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// The control.
+
     pub const fn control(&self) -> &C {
         &self.control
     }
 
-    /// The draw phase: label row, control, help/error row.
+
     #[expect(clippy::too_many_lines, reason = "one pass over the three chrome rows")]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &C::State) -> Rect {
         if area.is_empty() {
             return area;
         }
         let id = self.control.id();
-        // runtime: the wrapped control's frame state; derived: the `ERROR`
-        // the caller's own `.error` message implies
+
+
         let derived = if self.error.is_some() {
             StateFlags::ERROR
         } else {
@@ -193,7 +193,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
         ui.fill(area, container.style);
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
-        // label row
+
         let label_row = first_row(area);
         let text = Rect {
             x: area.x.saturating_add(2),
@@ -234,7 +234,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
             return label_row;
         }
 
-        // control row(s)
+
         let control_h = self
             .control
             .measure(
@@ -261,7 +261,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
             };
         }
 
-        // help / error row
+
         let msg_row = Rect {
             x: area.x.saturating_add(2),
             y: rest_y,
@@ -290,7 +290,7 @@ impl<'a, C: FieldControl> Field<'a, C> {
         }
     }
 
-    /// The control's width by `design.size.field_height`.
+
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let inner = self.control.measure(ui, c);
         let h = ui.design().size.field_height;
@@ -315,10 +315,10 @@ mod tests {
 
     const INPUT: Id = Id::root("field.tests.input");
 
-    /// A reference `Field` is a picture, not a control. Scoping only the
-    /// chrome previously left the control it owns registering a live
-    /// editor and a focus stop — a `DuplicateId` and a stray tab stop the
-    /// first time a page renders the same control twice.
+
+
+
+
     #[test]
     fn a_reference_field_registers_no_control() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());

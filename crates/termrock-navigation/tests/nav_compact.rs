@@ -1,4 +1,4 @@
-//! Public-consumer proof of compact layout and replacement renderer ownership.
+
 use std::cell::RefCell;
 use termrock_core::{Id, ItemKey, StateFlags};
 use termrock_navigation::{NavList, NavListState};
@@ -17,7 +17,7 @@ fn section<'a>(item: &'a (&str, &str)) -> &'a str {
 
 #[test]
 fn auto_compact_threshold_comes_from_sectioned_content() {
-    // Expanded: A, one, gap, B, two, three = six rows.
+
     for (height, expected) in [(5, vec![1, 2, 3]), (6, vec![2, 5, 6])] {
         let calls = RefCell::new(Vec::new());
         let painter = |_ui: &mut Ui<'_>, area: Rect, _flags, item_key, _item: &(&str, &str)| {
@@ -58,7 +58,7 @@ fn full_row_override_is_clipped_and_receives_current_key_flags() {
     let calls = RefCell::new(Vec::new());
     let painter = |ui: &mut Ui<'_>, area: Rect, flags, item_key, _item: &(&str, &str)| {
         calls.borrow_mut().push((flags, item_key));
-        // Deliberately try to escape all four boundaries. Only the row may change.
+
         ui.fill(Rect::new(0, 0, 20, 8), Style::new());
         ui.paint_str(
             Rect::new(0, area.y, 20, 1),

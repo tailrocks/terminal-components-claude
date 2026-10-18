@@ -1,42 +1,42 @@
-//! Demo fixtures carried over from the legacy showcase.
+
 
 use termrock::{ItemKey, TreeNode};
 
-/// One deterministic task row shared by the table and task-runner pages.
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TaskRow {
-    /// Stable row identity.
+
     pub id: u32,
-    /// Task title.
+
     pub name: &'static str,
-    /// Assignee.
+
     pub owner: &'static str,
-    /// Status.
+
     pub status: TaskStatus,
-    /// Source branch.
+
     pub branch: &'static str,
-    /// Number of changed files.
+
     pub changes: u32,
-    /// Duration in seconds.
+
     pub duration_s: u32,
 }
 
-/// Domain status used in the table fixture.
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TaskStatus {
-    /// Waiting to start.
+
     Queued,
-    /// Currently running.
+
     Running,
-    /// Completed.
+
     Done,
-    /// Failed.
+
     Failed,
-    /// Paused.
+
     Paused,
 }
 
-/// The exact legacy 24-row table fixture.
+
 pub const TASKS: &[TaskRow] = &[
     TaskRow {
         id: 1040,
@@ -256,7 +256,7 @@ pub const TASKS: &[TaskRow] = &[
     },
 ];
 
-/// The exact legacy language fixture used by single and multi lists.
+
 pub const LANGUAGES: &[&str] = &[
     "Rust",
     "TypeScript",
@@ -280,9 +280,9 @@ pub const LANGUAGES: &[&str] = &[
     "Erlang",
 ];
 
-/// Stable pre-order project tree copied from the legacy showcase. Keys are
-/// explicit domain identities, never derived from depth or display position,
-/// so expansion cannot alias a sibling or move a selection.
+
+
+
 pub const TREE: &[TreeNode] = &[
     TreeNode::parent(0).keyed(ItemKey::Num(1)),
     TreeNode::parent(1).keyed(ItemKey::Num(2)),
@@ -316,7 +316,7 @@ pub const TREE: &[TreeNode] = &[
     TreeNode::leaf(0).keyed(ItemKey::Num(30)),
 ];
 
-/// Label and metadata for each tree key, in the same order as [`TREE`].
+
 pub const TREE_LABELS: &[(&str, &str)] = &[
     ("src", "directory"),
     ("api", "directory"),
@@ -350,7 +350,7 @@ pub const TREE_LABELS: &[(&str, &str)] = &[
     ("README.md", "3.5 KB"),
 ];
 
-/// Repeated terminal output used by the scrolling and terminal screens.
+
 pub fn log_lines(n: usize) -> Vec<String> {
     let steps = [
         ("info", "Resolving workspace members"),
@@ -382,10 +382,10 @@ pub fn log_lines(n: usize) -> Vec<String> {
         .collect()
 }
 
-/// Long explanatory prose for the scrolling screen.
+
 pub const PROSE: &str = "Junie works through a task the way a careful engineer would: it reads the relevant code, forms a plan, makes focused changes, runs the tests, and reports back with a summary you can review before anything is merged.\n\nEach step is visible. You can pause, redirect, or take over at any point, and every change lands as an ordinary diff in your working tree.\n\nThe design system in this prototype exists so that the terminal version of that experience feels as deliberate as the web version: quiet surfaces, one accent, clear focus, and no decoration that does not carry information.\n\nScroll with the mouse wheel, PageUp/PageDown, or the arrow keys while this panel has focus. The scrollbar on the right shows where you are and how much remains.";
 
-/// The exact long-list fixture used by the legacy scrolling page.
+
 pub const SCROLL_ROWS: &[&str] = &[
     "Row 001", "Row 002", "Row 003", "Row 004", "Row 005", "Row 006", "Row 007", "Row 008",
     "Row 009", "Row 010", "Row 011", "Row 012", "Row 013", "Row 014", "Row 015", "Row 016",

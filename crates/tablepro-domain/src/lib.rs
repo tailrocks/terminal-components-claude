@@ -1,5 +1,5 @@
-//! Domain model for the `TablePro` application: connections, switcher
-//! index, result grids, and pending-edit bookkeeping.
+
+
 
 #![forbid(unsafe_code)]
 

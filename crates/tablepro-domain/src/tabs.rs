@@ -1,5 +1,5 @@
-//! `TablePro` tab models. Each tab owns product state; terminal components
-//! only receive controlled values and generic grid adapters.
+
+
 
 #![allow(
     missing_docs,
@@ -13,29 +13,29 @@ use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
 use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
 
-/// Stable identity for an open workbench tab.
-///
-/// The identity is allocated by the workbench and remains
-/// stable when another tab is inserted or closed.  UI collections use this
-/// value rather than a position, so focus and pending state cannot drift to a
-/// neighbouring tab.
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TabKey(u64);
 
 impl TabKey {
-    /// Build a tab identity from a monotonically increasing value.
+
     #[must_use]
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
 
-    /// Return the underlying value for diagnostics and keyed UI adapters.
+
     #[must_use]
     pub const fn get(self) -> u64 {
         self.0
     }
 
-    /// Namespace a control by this logical tab, independent of display position.
+
     pub fn control(self, name: &'static str) -> Id {
         Id::root("tablepro.tab")
             .item(ItemKey::num(self.0))
@@ -43,19 +43,19 @@ impl TabKey {
     }
 }
 
-/// One tab's grid, with borrowed column props independent of mutable row data.
+
 #[derive(Clone)]
 pub struct GridView {
-    /// Column metadata published with this result.
+
     pub columns: Vec<(String, ColType)>,
-    /// Sole owner of row values, pending edits and undo state.
+
     pub model: ResultGrid,
-    /// Durable selection, scrolling and editor state for this grid.
+
     pub state: GridState,
 }
 
 impl GridView {
-    /// Publish a complete result and its matching headers together.
+
     pub fn from_result(result: &sql::ResultSet) -> Self {
         Self {
             columns: result.columns.clone(),
@@ -64,8 +64,8 @@ impl GridView {
         }
     }
 
-    /// Pending row operations, including an uncommitted changed inline draft.
-    /// An existing row update or inserted row already accounts for that draft.
+
+
     pub fn pending_total(&self) -> usize {
         let pending = self.model.pending_total();
         let (Some((key, column)), Some(draft)) = (self.state.edit_cell(), self.state.edit_draft())
@@ -116,32 +116,32 @@ impl core::ops::Deref for GridView {
     }
 }
 
-/// Table tab body.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableMode {
-    /// Data grid mode.
+
     Data,
-    /// Structure grid mode.
+
     Structure,
 }
 
-/// A table tab with data and structure modes.
+
 #[derive(Debug, Clone)]
 pub struct TableTab {
-    /// Catalog table.
+
     pub table: Table,
-    /// Current mode.
+
     pub mode: TableMode,
-    /// Data result adapter.
+
     pub result: GridView,
-    /// Independent, read-only schema grid; switching modes never replaces data.
+
     pub structure: Box<GridView>,
-    /// Active local filters.
+
     pub filters: Vec<Filter>,
 }
 
 impl TableTab {
-    /// Load a bounded deterministic result for a table.
+
     pub fn new(table: Table, catalog: &Catalog) -> Self {
         let query = format!("SELECT * FROM {}.{}", table.schema, table.name);
         let result = sql::parse(&query)
@@ -168,18 +168,18 @@ impl TableTab {
         }));
         tab
     }
-    /// Toggle Data/Structure.
+
     pub const fn toggle_structure(&mut self) {
         self.mode = match self.mode {
             TableMode::Data => TableMode::Structure,
             TableMode::Structure => TableMode::Data,
         };
     }
-    /// Whether the table is in structure mode.
+
     pub const fn is_structure(&self) -> bool {
         matches!(self.mode, TableMode::Structure)
     }
-    /// Add or replace a filter chip.
+
     pub fn set_filter(&mut self, filter: Filter) {
         if let Some(existing) = self
             .filters
@@ -191,18 +191,18 @@ impl TableTab {
             self.filters.push(filter);
         }
     }
-    /// Remove all filters.
+
     pub fn clear_filters(&mut self) {
         self.filters.clear();
     }
-    /// Apply a local sort while preserving adapter row identity.
+
     pub fn sort(&mut self, column: usize, direction: termrock::SortDir) {
         self.result.model.sort(
             termrock::ColumnKey::num((column as u16).saturating_add(1)),
             direction,
         );
     }
-    /// Structure rows as generic grid data.
+
     pub fn structure(&self) -> Vec<Vec<Value>> {
         self.table
             .columns
@@ -225,7 +225,7 @@ impl TableTab {
             })
             .collect()
     }
-    /// Structure column definitions.
+
     pub fn structure_columns(&self) -> Vec<(String, ColType)> {
         vec![
             ("name".to_owned(), ColType::Text),
@@ -236,32 +236,32 @@ impl TableTab {
             ("references".to_owned(), ColType::Text),
         ]
     }
-    /// Exact pending SQL preview.
+
     pub fn preview(&self) -> Vec<String> {
         crate::grid_model::preview_for(&self.table, &self.result)
     }
 }
 
-/// Query editor tab.
+
 #[derive(Clone)]
 pub struct QueryTab {
-    /// Stable tab id.
+
     pub id: usize,
-    /// Display name.
+
     pub name: String,
-    /// SQL text.
+
     pub query: String,
-    /// Caller-owned editor draft, cursor and selection for this query.
+
     pub editor_state: TextInputState,
-    /// Last saved editor text; executing a query does not save it.
+
     pub saved_text: String,
-    /// Last result, when successful.
+
     pub result: Option<GridView>,
-    /// Last execution error.
+
     pub error: Option<String>,
-    /// Last explain plan.
+
     pub plan: Option<PlanNode>,
-    /// Whether execution is in flight.
+
     pub running: bool,
 }
 
@@ -282,7 +282,7 @@ impl core::fmt::Debug for QueryTab {
 }
 
 impl QueryTab {
-    /// New empty query tab.
+
     pub fn new(id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
         Self {
@@ -297,12 +297,12 @@ impl QueryTab {
             running: false,
         }
     }
-    /// Execute this query through the deterministic app-owned engine.
-    ///
-    /// # Errors
-    ///
-    /// Returns a parser or executor message when the query is unsupported or
-    /// the catalog cannot evaluate it.
+
+
+
+
+
+
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
@@ -317,12 +317,12 @@ impl QueryTab {
         self.error = None;
         Ok(rows)
     }
-    /// Build an explain plan for this query.
-    ///
-    /// # Errors
-    ///
-    /// Returns a parser or planner message when the query is not a supported
-    /// `SELECT` statement.
+
+
+
+
+
+
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
@@ -331,31 +331,31 @@ impl QueryTab {
         self.plan = Some(sql::explain(catalog, &select, false).map_err(|error| error.message)?);
         Ok(())
     }
-    /// Whether replacing this result would discard committed or retained inline edits.
+
     pub fn has_pending_result(&self) -> bool {
         self.result
             .as_ref()
             .is_some_and(|grid| grid.pending_total() > 0)
     }
-    /// Whether the editor has changed text since its last saved copy.
+
     pub fn dirty(&self) -> bool {
         self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
     }
 }
 
-/// History tab.
+
 #[derive(Debug, Clone)]
 pub struct HistoryTab {
-    /// Search text.
+
     pub search: String,
-    /// Selected entry index.
+
     pub selected: usize,
-    /// Filtered entries.
+
     pub entries: Vec<HistoryEntry>,
 }
 
 impl HistoryTab {
-    /// Build from history.
+
     pub fn new(history: &History) -> Self {
         Self {
             search: String::new(),
@@ -363,7 +363,7 @@ impl HistoryTab {
             entries: history.entries.clone(),
         }
     }
-    /// Search this tab.
+
     pub fn filter(&mut self, history: &History) {
         self.entries = history
             .search(&self.search, None, false)
@@ -372,7 +372,7 @@ impl HistoryTab {
             .collect();
         self.selected = self.selected.min(self.entries.len().saturating_sub(1));
     }
-    /// Reopen the selected query.
+
     pub fn selected_query(&self) -> Option<String> {
         self.entries
             .get(self.selected)
@@ -380,19 +380,19 @@ impl HistoryTab {
     }
 }
 
-/// Product tab union.
+
 #[derive(Debug, Clone)]
 pub enum Tab {
-    /// Table data or structure tab.
+
     Table(TableTab),
-    /// SQL query tab.
+
     Query(QueryTab),
-    /// Query history tab.
+
     History(HistoryTab),
 }
 
 impl Tab {
-    /// Current grid and its stable control identity.
+
     pub fn grid(&self, key: TabKey) -> Option<(Id, &GridView)> {
         match self {
             Self::Table(tab) if tab.is_structure() => {
@@ -406,7 +406,7 @@ impl Tab {
             Self::History(_) => None,
         }
     }
-    /// Current grid mutably, with no mirrored model or interaction state.
+
     pub fn grid_mut(&mut self, key: TabKey) -> Option<(Id, &mut GridView)> {
         match self {
             Self::Table(tab) => {
@@ -424,7 +424,7 @@ impl Tab {
         }
     }
 
-    /// Display label.
+
     pub fn label(&self) -> String {
         match self {
             Self::Table(tab) => tab.table.name.clone(),
@@ -432,27 +432,27 @@ impl Tab {
             Self::History(_) => "History".to_owned(),
         }
     }
-    /// Whether this tab owns pending changes.
+
     pub fn dirty(&self) -> bool {
         matches!(self, Self::Table(tab) if tab.result.pending_total() > 0)
             || matches!(self, Self::Query(tab) if tab.dirty() || tab.result.as_ref().is_some_and(|grid| grid.pending_total() > 0))
     }
 }
 
-/// An owned tab identity, separate from its freely replaceable payload.
-/// Construction and structural mutation belong exclusively to the workbench.
-///
-/// Payload cloning never includes its enclosing identity; record keys are private.
-/// ```compile_fail
-/// let mut app = tablepro_ui::TableProApp::default();
-/// app.workbench.new_query("");
-/// app.workbench.tabs()[0].key = app.workbench.active_key().unwrap();
-/// ```
-/// The structural collection cannot be replaced or extended directly.
-/// ```compile_fail
-/// let mut app = tablepro_ui::TableProApp::default();
-/// app.workbench.tabs.push(tablepro_ui::Tab::Query(tablepro_ui::QueryTab::new(1, "")));
-/// ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct TabRecord {
     key: TabKey,
     payload: Tab,
@@ -476,25 +476,25 @@ impl TabRecord {
     pub const fn generation(&self) -> Option<u64> {
         self.generation
     }
-    // Only Workbench's private component lifecycle iterator uses this borrow.
-    // Modal routing prevents user edits while a destructive scope is captured.
+
+
     pub fn lifecycle_payload_mut(&mut self) -> &mut Tab {
         &mut self.payload
     }
 
-    /// Immutable logical identity, never copied from an inserted payload.
+
     pub const fn key(&self) -> TabKey {
         self.key
     }
-    /// Borrow the application payload without structural mutation access.
+
     pub const fn payload(&self) -> &Tab {
         &self.payload
     }
-    /// Whether this record owns unsaved work.
+
     pub fn dirty(&self) -> bool {
         self.payload.dirty()
     }
-    /// Current grid and its enclosing record's stable control identity.
+
     pub fn grid(&self) -> Option<(Id, &GridView)> {
         self.payload.grid(self.key)
     }
@@ -516,20 +516,20 @@ impl core::fmt::Debug for TabRecord {
     }
 }
 
-/// One explorer row.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExplorerItem {
-    /// Schema name.
+
     pub schema: String,
-    /// Object name.
+
     pub name: String,
-    /// Catalog object kind.
+
     pub kind: tablepro_demo::db::ObjectKind,
-    /// Estimated row count.
+
     pub rows: usize,
 }
 
-/// Build explorer rows from a catalog.
+
 pub fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
     catalog
         .tables

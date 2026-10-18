@@ -245,7 +245,7 @@ fn expected_requests(target_sha: &str) -> Vec<Expected> {
             response: Ok(HttpResponse::new(200, archive)),
         },
     ];
-    // The mismatch case returns a different SHA only on the first target lookup.
+
     if target_sha != CALLER_SHA {
         requests[2] = json_get(
             format!(

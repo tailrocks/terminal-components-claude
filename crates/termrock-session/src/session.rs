@@ -1,14 +1,14 @@
-//! The terminal session (`COMPONENT_ARCHITECTURE.md` §17.0 A1, §22.2 item 7).
-//!
-//! A faithful mirror of ratatui's `try_init` / `try_restore`
-//! (`ratatui-0.30.2/src/init.rs:369-399`, unavailable through
-//! `ratatui-core`) plus the two modes ratatui's `init` never enables: mouse
-//! capture and bracketed paste. The chained panic hook is installed
-//! **before** the first mode change (`init.rs:196-197`); every mode is a
-//! typed crossterm command in one `execute!`, never a raw escape string;
-//! restoration attempts every reverse-order step and `leave` is retryable
-//! after failure, idempotent after success. This
-//! is the only file that names raw-mode / alternate-screen commands.
+
+
+
+
+
+
+
+
+
+
+
 
 use std::io::{self, Stdout, Write, stdout};
 use std::time::{Duration, Instant};
@@ -30,11 +30,11 @@ use termrock_core::event::Input;
 use termrock_runtime::{App, FeedbackClock, Moment, Runtime};
 use termrock_theme::Theme;
 
-/// The terminal every application draws into.
+
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-/// Owns raw mode, the alternate screen, mouse capture and bracketed paste for
-/// the duration of the session.
+
+
 pub struct TerminalSession {
     terminal: DefaultTerminal,
     left: bool,
@@ -48,7 +48,7 @@ impl core::fmt::Debug for TerminalSession {
     }
 }
 
-/// Undo every mode this session sets; safe to call more than once.
+
 fn restore_modes() -> io::Result<()> {
     let mut out = stdout();
     restore_modes_with(&mut out, disable_raw_mode)
@@ -59,8 +59,8 @@ fn restore_modes_with(
     restore_raw: impl FnOnce() -> io::Result<()>,
 ) -> io::Result<()> {
     let mut first = Ok(());
-    // Evaluate each step even when an earlier write failed. In particular,
-    // broken stdout must never prevent restoring the terminal's input mode.
+
+
     first = first.and(execute!(out, EnableLineWrap));
     first = first.and(execute!(out, DisableBracketedPaste));
     first = first.and(execute!(out, DisableMouseCapture));
@@ -108,8 +108,8 @@ fn leave_with(
     result
 }
 
-/// Install a panic hook that runs `restore` and then delegates to the
-/// previous hook — in that order, mirroring `try_init`.
+
+
 pub fn chain_panic_hook(restore: impl Fn() + Send + Sync + 'static) {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -119,13 +119,13 @@ pub fn chain_panic_hook(restore: impl Fn() + Send + Sync + 'static) {
 }
 
 impl TerminalSession {
-    /// Enter the session: hook first, then raw mode, then the alternate
-    /// screen, mouse capture and bracketed paste.
-    ///
-    /// # Errors
-    /// Any terminal command that fails. A construction guard attempts every
-    /// restoration step on failure, including ordinary I/O errors. The original
-    /// entry error is retained even when restoration also fails.
+
+
+
+
+
+
+
     pub fn enter() -> io::Result<Self> {
         chain_panic_hook(|| {
             let _ = restore_modes();
@@ -151,16 +151,16 @@ impl TerminalSession {
         })
     }
 
-    /// The terminal.
+
     pub const fn terminal(&mut self) -> &mut DefaultTerminal {
         &mut self.terminal
     }
 
-    /// Leave the session; idempotent after success. Failed restoration remains
-    /// retryable, including the final attempt made by `Drop`.
-    ///
-    /// # Errors
-    /// A terminal command that fails.
+
+
+
+
+
     pub fn leave(&mut self) -> io::Result<()> {
         leave_with(
             &mut self.left,
@@ -176,33 +176,33 @@ impl Drop for TerminalSession {
     }
 }
 
-/// Run an application to completion: draw, wait for input or the earliest
-/// requested repaint deadline, handle, repeat until `App::should_quit` or
-/// `Cx::quit`.
-///
-/// `theme` is narrowed once, here, by [`Theme::for_terminal`] (§34.2). This is
-/// the only place in the library that resolves colour capability: a theme is
-/// built before the terminal is known, and this is the function that opens it.
-/// [`Runtime::new`] deliberately does **not** do it — `Harness`, `Scene` and
-/// the crate's front-page doc example all call it, so an environment read there
-/// would make every render digest a function of the CI runner's `TERM`.
-///
-/// [`run_with_feedback_clock`] selects simulation feedback explicitly while
-/// retaining the same terminal capability narrowing.
-///
-/// # Errors
-/// Terminal I/O errors.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     run_with_feedback_clock(app, theme, FeedbackClock::Elapsed)
 }
 
-/// Run with a feedback clock selected before initialization or first activation.
-/// Domain adapters pass their already-seeked simulation epoch and synchronize
-/// absolute simulation time through `Cx`; the driver still owns elapsed time.
-/// Simulation feedback never adds a wall-clock expiry wake or a polling loop.
-///
-/// # Errors
-/// Terminal I/O errors.
+
+
+
+
+
+
+
 #[expect(
     clippy::needless_pass_by_value,
     reason = "session owns the supplied theme API and narrows capability once before runtime construction"
@@ -219,8 +219,8 @@ pub fn run_with_feedback_clock<A: App>(
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut pending = None;
     loop {
-        // Exactly one clock advance per scheduler turn. A callback rearming
-        // deadline <= now cannot recursively starve an already-read input.
+
+
         rt.advance_to(Moment::from_duration(origin.elapsed()))
             .map_err(io::Error::other)?;
         loop {
@@ -256,8 +256,8 @@ pub fn run_with_feedback_clock<A: App>(
         }
         let now = Moment::from_duration(origin.elapsed());
         let ready = match rt.next_deadline() {
-            // Bound transport timeout representations even for Moment's
-            // saturated maximum. This never synthesizes an application update.
+
+
             Some(at) => poll(
                 at.saturating_duration_since(now)
                     .min(Duration::from_secs(60)),
@@ -267,18 +267,18 @@ pub fn run_with_feedback_clock<A: App>(
         if ready {
             pending = Input::from_crossterm(read()?);
         }
-        // A real idle timeout advances elapsed time on the next turn. It never
-        // fabricates input ticks, and an immediate deadline still polls input.
+
+
     }
     session.leave()
 }
 
 fn reset_frame_colors(buffer: &mut ratatui_core::buffer::Buffer) {
-    // Crossterm 0.29 serializes suppressed SetColors as ESC[;m, which resets
-    // modifiers emitted immediately before it. Reset color values prevent
-    // Ratatui from emitting those commands, preserving bold/underline/reverse.
-    // Keep semantic theme colors during rendering: widgets use them to select
-    // planes and state styles before this final backend boundary.
+
+
+
+
+
     for cell in &mut buffer.content {
         cell.fg = ratatui_core::style::Color::Reset;
         cell.bg = ratatui_core::style::Color::Reset;

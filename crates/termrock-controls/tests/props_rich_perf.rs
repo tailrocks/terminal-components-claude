@@ -1,4 +1,4 @@
-//! Rich decorative rows keep the Props allocation-free paint contract.
+
 use termrock_controls::{Props, PropsRow};
 use termrock_core::id::ItemKey;
 use termrock_runtime::Role;

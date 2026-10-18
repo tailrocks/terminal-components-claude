@@ -1,4 +1,4 @@
-//! Workspace editor state and public control ids.
+
 
 use core::{fmt, mem};
 use std::collections::BTreeMap;
@@ -11,54 +11,54 @@ use jackin_preview_domain::workspace::{
     env_key_error,
 };
 
-/// Editor root.
+
 pub const ROOT: Id = Id::root("jackin.editor");
-/// Editor form root retained as a stable namespace for nested controls.
+
 pub const FORM: Id = ROOT.sub("form");
-/// Legacy editor configuration root retained for save-form compatibility.
+
 pub const CFG: Id = Id::root("editor.cfg");
-/// Legacy editor configuration form root retained for save-form compatibility.
+
 pub const CFG_FORM: Id = CFG.sub("form");
-/// Save action.
+
 pub const SAVE: Id = CFG_FORM.sub("save");
-/// Editor tabs.
+
 pub const TABS: Id = ROOT.sub("tabs");
-/// General tab control id.
+
 pub const TAB_GENERAL: Id = TABS.sub("general");
-/// Mounts tab control id.
+
 pub const TAB_MOUNTS: Id = TABS.sub("mounts");
-/// Roles tab control id.
+
 pub const TAB_ROLES: Id = TABS.sub("roles");
-/// Environments tab control id.
+
 pub const TAB_ENVIRONMENTS: Id = TABS.sub("environments");
-/// Accounts tab control id.
+
 pub const TAB_ACCOUNTS: Id = TABS.sub("accounts");
-/// New environment-variable key input.
+
 pub const ENV_KEY: Id = FORM.sub("env-key");
-/// New environment-variable source selector.
+
 pub const ENV_SOURCE: Id = FORM.sub("env-source");
-/// New environment-variable value input.
+
 pub const ENV_VALUE: Id = FORM.sub("env-value");
 
-/// Editor tab projection.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tab {
-    /// General workspace properties.
+
     #[default]
     General,
-    /// Mounts.
+
     Mounts,
-    /// Roles.
+
     Roles,
-    /// Environment variables.
+
     Environments,
-    /// Account policy.
+
     Accounts,
 }
 
 impl Tab {
-    /// Canonical editor tab order.  Keep this in one place so keyboard and
-    /// pointer navigation cannot drift apart.
+
+
     pub const ALL: [Self; 5] = [
         Self::General,
         Self::Mounts,
@@ -67,7 +67,7 @@ impl Tab {
         Self::Accounts,
     ];
 
-    /// Convert a one-based public tab alias to a tab.
+
     pub const fn from_alias(index: u8) -> Option<Self> {
         match index {
             1 => Some(Self::General),
@@ -79,7 +79,7 @@ impl Tab {
         }
     }
 
-    /// Return the one-based public tab alias.
+
     pub const fn alias(self) -> u8 {
         match self {
             Self::General => 1,
@@ -90,7 +90,7 @@ impl Tab {
         }
     }
 
-    /// Return the next tab, wrapping at the end of the strip.
+
     pub const fn next(self) -> Self {
         match self {
             Self::General => Self::Mounts,
@@ -101,7 +101,7 @@ impl Tab {
         }
     }
 
-    /// Return the previous tab, wrapping at the beginning of the strip.
+
     pub const fn previous(self) -> Self {
         match self {
             Self::General => Self::Accounts,
@@ -112,7 +112,7 @@ impl Tab {
         }
     }
 
-    /// Stable control id for this tab.
+
     pub const fn id(self) -> Id {
         match self {
             Self::General => TAB_GENERAL,
@@ -130,26 +130,26 @@ struct SaveReview {
     pending: PendingWorkspace,
 }
 
-/// Durable editor state.
+
 #[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
-    /// Active editor tab.
+
     pub tab: Tab,
-    /// Whether the draft has unsaved changes.
+
     pub dirty: bool,
-    /// Whether the read-only preview is open.
+
     pub preview_open: bool,
-    /// Whether the environment-variable form is open.
+
     pub env_form_open: bool,
-    /// Draft environment-variable key.
+
     pub env_key: String,
-    /// Draft environment-variable value; never rendered unmasked.
+
     pub env_value: String,
-    /// Runtime state for the key input.
+
     pub env_key_input: termrock::TextInputState,
-    /// Sensitive runtime state for the value input.
+
     pub env_value_input: termrock::TextInputState,
-    /// Mutable workspace draft projected by the editor controls.
+
     pub pending: PendingWorkspace,
     original: Option<Box<Workspace>>,
     reviewed: Option<SaveReview>,
@@ -164,8 +164,8 @@ impl Clone for EditorState {
             preview_open: self.preview_open,
             env_form_open: self.env_form_open,
             env_key: self.env_key.clone(),
-            // A cloned editor is a safe snapshot, not a continuation that
-            // copies an in-flight environment secret.
+
+
             env_value: String::new(),
             env_key_input: self.env_key_input.clone(),
             env_value_input: termrock::TextInputState::sensitive(),
@@ -202,15 +202,15 @@ impl Drop for EditorState {
 }
 
 impl EditorState {
-    /// Select a tab by the legacy transition index used by the preview shell.
-    ///
-    /// The old shell passed the *destination offset* here (`1` means Mounts,
-    /// `2` means Roles, …).  Keep that contract for compatibility; new code
-    /// should use [`Self::select_alias`] or [`Tab::next`] instead.
+
+
+
+
+
     pub const fn select_index(&mut self, index: u8) {
         self.tab = match (self.tab, index) {
-            // The shell passes `1` when wrapping from Accounts.  The old
-            // value-only match sent that transition back to Mounts.
+
+
             (Tab::Accounts, 1) => Tab::General,
             (_, 1) => Tab::Mounts,
             (_, 2) => Tab::Roles,
@@ -220,24 +220,24 @@ impl EditorState {
         };
     }
 
-    /// Select a tab by its one-based public alias (`1 = General`, …).
+
     pub const fn select_alias(&mut self, index: u8) {
         if let Some(tab) = Tab::from_alias(index) {
             self.tab = tab;
         }
     }
 
-    /// Advance to the next tab, wrapping at the strip boundary.
+
     pub const fn next_tab(&mut self) {
         self.tab = self.tab.next();
     }
 
-    /// Move to the previous tab, wrapping at the strip boundary.
+
     pub const fn previous_tab(&mut self) {
         self.tab = self.tab.previous();
     }
 
-    /// Start a fresh editor draft from a persisted workspace.
+
     pub fn load_workspace(&mut self, workspace: &Workspace) {
         self.tab = Tab::General;
         self.dirty = false;
@@ -249,21 +249,21 @@ impl EditorState {
         self.clear_env_form();
     }
 
-    /// Mark the current draft as changed and close any stale preview.
+
     pub fn mark_dirty(&mut self) {
         self.reviewed = None;
         self.dirty = true;
         self.preview_open = false;
     }
 
-    /// Mark a successful save and close the preview.
+
     pub fn mark_saved(&mut self) {
         self.reviewed = None;
         self.dirty = false;
         self.preview_open = false;
     }
 
-    /// Open the save preview only when there are pending changes.
+
     pub fn open_preview(&mut self) -> bool {
         if self.dirty && self.saving.is_none() {
             self.reviewed = Some(SaveReview {
@@ -275,13 +275,13 @@ impl EditorState {
         self.preview_open
     }
 
-    /// Close a save preview without discarding the draft.
+
     pub fn close_preview(&mut self) {
         self.preview_open = false;
         self.reviewed = None;
     }
 
-    /// Drop the draft and restore the persisted workspace.
+
     pub fn discard_draft(&mut self) {
         if let Some(original) = &self.original {
             self.pending = PendingWorkspace::from_workspace(original);
@@ -292,7 +292,7 @@ impl EditorState {
         self.clear_env_form();
     }
 
-    /// Bind a new configuration explicitly, clearing any previous editor ticket.
+
     pub fn load_new(&mut self, pending: PendingWorkspace) {
         self.tab = Tab::General;
         self.pending = pending;
@@ -304,22 +304,22 @@ impl EditorState {
         self.clear_env_form();
     }
 
-    /// Whether this draft creates a configuration rather than replacing a loaded one.
+
     pub const fn is_create(&self) -> bool {
         self.original.is_none()
     }
 
-    /// Whether this editor owns an admitted asynchronous save.
+
     pub const fn is_saving(&self) -> bool {
         self.saving.is_some()
     }
 
-    /// Stable loaded workspace, independent of list order.
+
     pub fn workspace_id(&self) -> Option<jackin_preview_domain::workspace::WorkspaceId> {
         self.original.as_ref().map(|workspace| workspace.id)
     }
 
-    /// Admit exactly the immutable preview; changed values require a fresh review.
+
     pub fn begin_save(
         &mut self,
         world: &mut jackin_preview_sim::world::World,
@@ -350,8 +350,8 @@ impl EditorState {
         Ok(ticket)
     }
 
-    /// Settle only this editor's ticket. True means its unchanged draft is now clean.
-    /// Newer drafts remain dirty; replacing the editor cannot steal a completion.
+
+
     pub fn settle_save(
         &mut self,
         result: &jackin_preview_domain::workspace_save::SaveResult,
@@ -381,14 +381,14 @@ impl EditorState {
         }
     }
 
-    /// Open a fresh environment-variable form, dropping any previous input.
+
     pub fn open_env_form(&mut self) {
         self.clear_env_form();
         self.env_form_open = true;
         self.env_value_input = termrock::TextInputState::sensitive();
     }
 
-    /// Cancel and clear all transient environment-variable input.
+
     pub fn clear_env_form(&mut self) {
         self.env_form_open = false;
         self.env_key.clear();
@@ -398,7 +398,7 @@ impl EditorState {
         wipe_string(&mut self.env_value);
     }
 
-    /// Move the committed transient value into its durable draft owner.
+
     pub fn take_env_value(&mut self) -> String {
         self.env_value_input.zeroize();
         self.env_value_input = termrock::TextInputState::sensitive();
@@ -411,22 +411,22 @@ fn wipe_string(value: &mut String) {
     secret.zeroize();
 }
 
-/// Workspace draft owned by the editor route.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PendingWorkspace {
-    /// Proposed display name.
+
     pub name: String,
-    /// Proposed working directory.
+
     pub workdir: String,
-    /// Mount rows.
+
     pub mounts: Vec<Mount>,
-    /// Role allow-list and preferred role.
+
     pub roles: RolePolicy,
-    /// Workspace environment draft. Persisted only after the editor save job succeeds.
+
     pub env: Vec<EnvVar>,
-    /// Role-scoped environment drafts keyed by role name.
+
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-    /// Account activation policy.
+
     pub accounts: AccountPolicy,
 }
 
@@ -448,7 +448,7 @@ impl Default for PendingWorkspace {
 }
 
 impl PendingWorkspace {
-    /// Copy a persisted workspace into an editable draft.
+
     pub fn from_workspace(workspace: &Workspace) -> Self {
         Self {
             name: workspace.name.clone(),
@@ -461,7 +461,7 @@ impl PendingWorkspace {
         }
     }
 
-    /// Apply this draft to a persisted workspace without changing its id.
+
     pub fn apply_to(&self, workspace: &mut Workspace) {
         workspace.name = self.name.clone();
         workspace.workdir = self.workdir.clone();
@@ -472,7 +472,7 @@ impl PendingWorkspace {
         workspace.accounts = self.accounts.clone();
     }
 
-    /// Consume this draft into a persisted workspace with `id`.
+
     pub fn into_workspace(self, id: u32) -> Workspace {
         let mut workspace = Workspace::new(id, &self.name, &self.workdir);
         workspace.mounts = self.mounts;
@@ -483,7 +483,7 @@ impl PendingWorkspace {
         workspace
     }
 
-    /// Effective accounts projected with current registry metadata.
+
     pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
         let mut workspace = Workspace::new(0, &self.name, &self.workdir);
         workspace.mounts = self.mounts.clone();
@@ -494,14 +494,14 @@ impl PendingWorkspace {
         workspace.effective_accounts(registry)
     }
 
-    /// Set a proposed account as enabled in this workspace.
+
     pub fn enable_account(&mut self, id: impl Into<AccountId>) {
         let id = id.into();
         self.accounts.disabled_defaults.remove(&id);
         self.accounts.enabled.insert(id);
     }
 
-    /// Disable an account in this workspace, if it is known to the registry.
+
     pub fn disable_account(
         &mut self,
         id: impl Into<AccountId>,
@@ -524,7 +524,7 @@ impl PendingWorkspace {
         Ok(())
     }
 
-    /// Toggle an account's workspace activation and return its new state.
+
     pub fn toggle_account(
         &mut self,
         id: impl Into<AccountId>,
@@ -541,8 +541,8 @@ impl PendingWorkspace {
             };
             self.accounts.disabled_defaults.remove(&id);
             if account.default_for_provider {
-                // A provider default remains inherited when it is switched
-                // back on; putting it in `enabled` would change its origin.
+
+
                 self.accounts.enabled.remove(&id);
             } else {
                 self.enable_account(id);
@@ -551,7 +551,7 @@ impl PendingWorkspace {
         }
     }
 
-    /// Set the preferred account for its provider.
+
     pub fn prefer_account(
         &mut self,
         id: impl Into<AccountId>,
@@ -568,7 +568,7 @@ impl PendingWorkspace {
         Ok(())
     }
 
-    /// Set a role-specific preferred account for its provider.
+
     pub fn prefer_role_account(
         &mut self,
         role: impl Into<RoleName>,
@@ -589,12 +589,12 @@ impl PendingWorkspace {
         Ok(())
     }
 
-    /// Add a workspace-scoped plain environment variable after validation.
+
     pub fn add_environment(&mut self, key: &str, value: String) -> Result<(), String> {
         add_env(&mut self.env, key, value)
     }
 
-    /// Add a role-scoped plain environment variable after validation.
+
     pub fn add_role_environment(
         &mut self,
         role: impl Into<RoleName>,
@@ -605,12 +605,12 @@ impl PendingWorkspace {
         add_env(self.role_env.entry(role).or_default(), key, value)
     }
 
-    /// Number of configured role overrides.
+
     pub fn configured_role_count(&self) -> usize {
         self.role_env.values().filter(|env| !env.is_empty()).count()
     }
 
-    /// Number of workspace and role-scoped environment variables.
+
     pub fn environment_count(&self) -> usize {
         self.env.len() + self.role_env.values().map(Vec::len).sum::<usize>()
     }

@@ -1,6 +1,6 @@
-//! The simulated world: one deterministic fixture universe per scenario.
-//! Discovery is progressive and per domain — each capability lands at its
-//! own virtual-ms mark so early frames honestly show a half-known folder.
+
+
+
 
 use crate::clock::Clock;
 use crate::domain::activity::Activity;
@@ -16,7 +16,7 @@ use crate::domain::ranking::Memory;
 use crate::domain::ssh::SshHost;
 use crate::scenario::Scenario;
 
-/// A capability domain discovery can land (or fail) in.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Domain {
     Mise,
@@ -52,7 +52,7 @@ impl Domain {
     }
 }
 
-/// One discovery mark: when it lands, whether it fails.
+
 #[derive(Debug, Clone)]
 pub struct Discovery {
     pub domain: Domain,
@@ -83,22 +83,22 @@ impl Discovery {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Msg {
-    /// A capability domain finished discovering.
+
     Discovered(Domain),
-    /// Discovery of this domain failed (hard-cases honesty).
+
     DiscoveryFailed(Domain),
 }
 
 pub struct World {
-    /// Monotonic simulation commit revision; never rendered or driven by ticks.
+
     pub effect_revision: u64,
     pub scenario: Scenario,
     pub clock: Clock,
     pub host: Host,
-    /// Where holla was launched — the primary context object.
+
     pub cwd: String,
     pub discovery: Vec<Discovery>,
-    // Fixture slots; `None` = discovery ran and found nothing here.
+
     pub mise: Option<MiseState>,
     pub git: Option<GitRepo>,
     pub ssh: Vec<SshHost>,
@@ -137,7 +137,7 @@ impl World {
         self.clock.now_ms
     }
 
-    /// Default progressive schedule; scenarios may override marks.
+
     pub fn default_schedule() -> Vec<Discovery> {
         vec![
             Discovery::at(Domain::Mise, 600),
@@ -150,7 +150,7 @@ impl World {
         ]
     }
 
-    /// Any domain still pending (failures settle: they are known, not pending).
+
     pub fn discovering(&self) -> bool {
         self.discovery.iter().any(|d| !d.done && !d.failed)
     }
@@ -165,7 +165,7 @@ impl World {
             .any(|d| d.domain == domain && d.failed)
     }
 
-    /// Advance virtual time and emit due events. No-op while paused.
+
     pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         if !self.clock.running {
             return vec![];
@@ -174,12 +174,12 @@ impl World {
         self.step()
     }
 
-    /// Fast-forward to a fixture tick for `--motion paused --frame N`.
-    ///
-    /// Historical frames round upward in 80 ms increments from the current
-    /// instant. Discovery only compares deadlines, so crossing every tick adds
-    /// no information. Advance once to the same rounded instant; clamp values
-    /// outside the signed fixture-clock range rather than wrap or loop.
+
+
+
+
+
+
     pub fn seek(&mut self, frame_ms: u64) {
         let target = i64::try_from(frame_ms).unwrap_or(i64::MAX);
         if target <= self.clock.now_ms {
@@ -191,7 +191,7 @@ impl World {
         self.step();
     }
 
-    /// Trust one exact mise task file; affected tasks re-resolve as Ready.
+
     pub fn trust_mise_file(&mut self, path: &str) -> bool {
         let Some(mise) = &mut self.mise else {
             return false;
@@ -206,7 +206,7 @@ impl World {
         hit
     }
 
-    /// Shared state evolution for tick and seek: land due discoveries.
+
     fn step(&mut self) -> Vec<Msg> {
         let now = self.clock.now_ms;
         let mut msgs = vec![];
@@ -248,7 +248,7 @@ mod tests {
         assert!(!w.discovering());
         assert!(w.discovery_failed(Domain::Docker));
         assert!(w.discovered(Domain::Git));
-        // failures do not refire
+
         assert!(w.tick(100).is_empty());
         let _ = Environment::Local;
     }

@@ -1,25 +1,25 @@
-//! Agent runtime, provider adapter identity and Usage surface are three
-//! separate axes that one operator-facing row may link together.
 
-/// Closed runtime selection offered by current Jackin.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Agent {
-    /// Anthropic's Claude Code runtime.
+
     ClaudeCode,
-    /// OpenAI's Codex runtime.
+
     Codex,
-    /// Amp's coding-agent runtime.
+
     Amp,
-    /// Moonshot's Kimi Code runtime.
+
     KimiCode,
-    /// OpenCode runtime.
+
     OpenCode,
-    /// xAI's Grok Build runtime.
+
     GrokBuild,
 }
 
 impl Agent {
-    /// All supported agents in operator-facing order.
+
     pub const ALL: [Agent; 6] = [
         Agent::ClaudeCode,
         Agent::Codex,
@@ -29,7 +29,7 @@ impl Agent {
         Agent::GrokBuild,
     ];
 
-    /// Return the full operator-facing agent label.
+
     pub fn label(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "Claude Code",
@@ -41,8 +41,8 @@ impl Agent {
         }
     }
 
-    /// Return the short identifier used in tabs and chips.
-    /// Short form for tab labels and chips.
+
+
     pub fn short(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "claude",
@@ -54,7 +54,7 @@ impl Agent {
         }
     }
 
-    /// Return the provider adapter used by this agent.
+
     pub fn provider(self) -> Provider {
         match self {
             Agent::ClaudeCode => Provider::Anthropic,
@@ -66,7 +66,7 @@ impl Agent {
         }
     }
 
-    /// Auth modes the core registry exposes for this agent.
+
     pub fn auth_modes(self) -> &'static [AuthMode] {
         match self {
             Agent::ClaudeCode => &[
@@ -79,8 +79,8 @@ impl Agent {
         }
     }
 
-    /// Agents whose accounts may be registered manually in the Account &
-    /// Usage Center. Others are discovered, read-only.
+
+
     pub fn registerable(self) -> bool {
         matches!(
             self,
@@ -89,29 +89,29 @@ impl Agent {
     }
 }
 
-/// Launch/provider adapter identity.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Provider {
-    /// Anthropic's provider adapter.
+
     Anthropic,
-    /// OpenAI's provider adapter.
+
     OpenAi,
-    /// Amp's provider adapter.
+
     Amp,
-    /// xAI's provider adapter.
+
     XAi,
-    /// OpenCode's provider adapter.
+
     OpenCode,
-    /// Moonshot's provider adapter.
+
     Moonshot,
-    /// Z.AI's provider adapter.
+
     Zai,
-    /// MiniMax's provider adapter.
+
     MiniMax,
 }
 
 impl Provider {
-    /// Return the full operator-facing provider label.
+
     pub fn label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic / Claude",
@@ -125,7 +125,7 @@ impl Provider {
         }
     }
 
-    /// Return the compact provider label.
+
     pub fn short(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic",
@@ -139,7 +139,7 @@ impl Provider {
         }
     }
 
-    /// Return the usage surface represented by this provider.
+
     pub fn usage_surface(self) -> UsageSurface {
         match self {
             Provider::Anthropic => UsageSurface::Claude,
@@ -153,7 +153,7 @@ impl Provider {
         }
     }
 
-    /// The agent runtime this provider serves, when one exists.
+
     pub fn agent(self) -> Option<Agent> {
         match self {
             Provider::Anthropic => Some(Agent::ClaudeCode),
@@ -166,12 +166,12 @@ impl Provider {
         }
     }
 
-    /// Only the source-backed Grok fixture carries an endpoint/deployment.
+
     pub fn supports_endpoint(self) -> bool {
         matches!(self, Provider::XAi)
     }
 
-    /// Return the label used when entering a plain API key for this provider.
+
     pub fn plain_key_label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic API key",
@@ -185,7 +185,7 @@ impl Provider {
         }
     }
 
-    /// Return the label used when selecting a provider profile folder.
+
     pub fn folder_label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Claude profile / home folder",
@@ -200,31 +200,31 @@ impl Provider {
     }
 }
 
-/// Provider-specific quota/account projection registry, in current order.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum UsageSurface {
-    /// Claude usage surface.
+
     Claude,
-    /// Codex usage surface.
+
     Codex,
-    /// Amp usage surface.
+
     Amp,
-    /// Grok usage surface.
+
     Grok,
-    /// Z.AI usage surface.
+
     Zai,
-    /// Kimi usage surface.
+
     Kimi,
-    /// MiniMax usage surface.
+
     Minimax,
-    /// OpenCode usage surface.
+
     OpenCode,
-    /// Placeholder for providers without a supported usage projection.
+
     Unsupported,
 }
 
 impl UsageSurface {
-    /// All usage surfaces in registry order.
+
     pub const ALL: [UsageSurface; 9] = [
         UsageSurface::Claude,
         UsageSurface::Codex,
@@ -237,8 +237,8 @@ impl UsageSurface {
         UsageSurface::Unsupported,
     ];
 
-    /// Return the provider label shown by the usage registry.
-    /// Provider label as the Usage registry shows it.
+
+
     pub fn label(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Anthropic",
@@ -253,8 +253,8 @@ impl UsageSurface {
         }
     }
 
-    /// Return the operator-facing name of this usage surface.
-    /// Surface name (what the operator calls the meter).
+
+
     pub fn surface_name(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Claude",
@@ -269,7 +269,7 @@ impl UsageSurface {
         }
     }
 
-    /// Return the provider mapped to this surface, if supported.
+
     pub fn provider(self) -> Option<Provider> {
         match self {
             UsageSurface::Claude => Some(Provider::Anthropic),
@@ -285,16 +285,16 @@ impl UsageSurface {
     }
 }
 
-/// Credential forwarding mode from the core auth registry.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AuthMode {
-    /// Forward the host agent's own credentials/profile.
+
     Sync,
-    /// Forward a plain API key.
+
     ApiKey,
-    /// Forward an OAuth token.
+
     OAuthToken,
-    /// Do not forward anything.
+
     Ignore,
 }
 

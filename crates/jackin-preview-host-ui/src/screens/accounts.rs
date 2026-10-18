@@ -1,4 +1,4 @@
-//! Accounts route state and controls.
+
 
 use core::fmt;
 
@@ -6,79 +6,79 @@ use termrock::{Id, ListState, TextInputState};
 
 use jackin_preview_domain::onepassword::OpReference;
 
-/// Accounts list control.
+
 pub const LIST: Id = Id::root("jackin.accounts.list");
-/// Account form root.
+
 pub const FORM: Id = Id::root("jackin.accounts.form");
-/// Account form save action.
+
 pub const SAVE: Id = FORM.sub("save");
-/// Provider selection control.
+
 pub const PROVIDER: Id = FORM.sub("provider");
-/// Credential-source selection control.
+
 pub const SOURCE: Id = FORM.sub("source");
-/// 1Password source control.
+
 pub const OP: Id = FORM.sub("op");
-/// New-account opener.
+
 pub const START: Id = FORM.sub("start");
-/// Display-name field.
+
 pub const NAME: Id = FORM.sub("name");
-/// Agent/runtime selection control.
+
 pub const AGENT: Id = FORM.sub("agent");
-/// Local-folder field.
+
 pub const FOLDER: Id = FORM.sub("folder");
-/// Plain API-key field.
+
 pub const SECRET: Id = FORM.sub("secret");
-/// Closed-list filter field. It is absent until filtering is on.
+
 pub const FILTER: Id = Id::root("jackin.accounts.filter");
 
-/// Durable accounts route state.
+
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct AccountsState {
-    /// Public-list selection state owned by this route.
+
     pub list: ListState,
-    /// Whether the account form is visible.
+
     pub form_open: bool,
-    /// Whether the opener has handed focus to the editable form.
+
     pub started: bool,
-    /// Existing account name being edited, if any.
+
     pub editing: Option<String>,
-    /// Draft account display name.
+
     pub draft_name: String,
-    /// Masked transient credential input.
+
     pub masked_input: String,
-    /// Pending account refresh message, if any.
+
     pub pending_refresh: Option<String>,
-    /// Pending account-removal confirmation, if any.
+
     pub remove_confirmation: Option<String>,
-    /// Controlled public text field state for the display name.
+
     pub name_input: TextInputState,
-    /// Controlled public text field state for a local folder.
+
     pub folder_input: TextInputState,
-    /// Controlled public text field state for a transient API key.
+
     pub secret_input: TextInputState,
-    /// Provider selector list state.
+
     pub provider_list: ListState,
-    /// Credential-source selector list state.
+
     pub source_list: ListState,
-    /// Selected registerable provider (Anthropic, OpenAI, xAI, OpenCode).
+
     pub provider_index: u8,
-    /// Credential source choice (1Password, folder, API key).
+
     pub source_index: u8,
-    /// Selected 1Password item metadata.
+
     pub selected_op: Option<OpReference>,
-    /// Selected item label in the 1Password browser.
+
     pub op_item: String,
-    /// Current 1Password browser level.
+
     pub op_stage: u8,
-    /// Stable selected account id for semantic commands.
+
     pub selected_id: Option<String>,
-    /// Whether the closed list is showing the filter field.
+
     pub filtering: bool,
-    /// Draft filter text. Empty until the field is open.
+
     pub filter_query: String,
-    /// Filter field edit state.
+
     pub filter_input: TextInputState,
-    /// Whether the account inspector drawer is open.
+
     pub drawer_open: bool,
 }
 
@@ -113,7 +113,7 @@ impl fmt::Debug for AccountsState {
 }
 
 impl AccountsState {
-    /// Open a new account form.
+
     pub fn open_new(&mut self) {
         self.form_open = true;
         self.started = false;
@@ -139,19 +139,19 @@ impl AccountsState {
         self.drawer_open = false;
     }
 
-    /// Close the form without writing a credential.
+
     pub const fn close(&mut self) {
         self.form_open = false;
     }
 
-    /// True while a name, folder, or secret draft is in flight.
+
     pub fn form_editing(&self) -> bool {
         self.name_input.is_editing()
             || self.folder_input.is_editing()
             || self.secret_input.is_editing()
     }
 
-    /// Footer for the open account form. The closed list does not use this.
+
     pub fn form_hints(&self) -> &'static str {
         if self.form_editing() {
             "EDIT  Enter Commit  Tab Next field  Esc Revert"

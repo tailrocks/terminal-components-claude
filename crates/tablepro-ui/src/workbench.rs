@@ -1,42 +1,42 @@
-//! `TablePro` workbench state: explorer, tabs, history and query routing.
+
 
 use crate::filter_editor::Filter;
 use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
 use tablepro_demo::db::{Catalog, Connection, ObjectKind};
 use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 
-/// Workbench state for one active connection.
+
 #[derive(Debug)]
 pub struct Workbench {
     owner: std::sync::Arc<()>,
-    /// Active connection.
+
     pub connection: Connection,
-    /// Database catalog.
+
     pub catalog: Catalog,
     current_schema: String,
     schema_caption: String,
-    /// Explorer rows.
+
     pub explorer: Vec<ExplorerItem>,
-    /// Explorer filter text.
+
     pub explorer_filter: String,
-    /// Selected explorer row.
+
     pub explorer_selected: usize,
-    /// Open tabs.
+
     tabs: Vec<TabRecord>,
-    /// Stable active tab identity.
+
     active: Option<TabKey>,
-    /// Next query number.
+
     pub query_counter: usize,
-    /// Next monotonic tab identity.
+
     next_tab_key: Option<u64>,
-    /// Query history.
+
     pub history: History,
-    /// Whether the active tab is maximised.
+
     pub maximized: bool,
 }
 
 impl Workbench {
-    /// Build a workbench for a connection.
+
     pub fn new(connection: Connection, catalog: Catalog) -> Self {
         Self {
             owner: std::sync::Arc::new(()),
@@ -55,7 +55,7 @@ impl Workbench {
             maximized: false,
         }
     }
-    /// Schema selected for explorer reconstruction.
+
     pub fn current_schema(&self) -> &str {
         &self.current_schema
     }
@@ -64,7 +64,7 @@ impl Workbench {
         &self.schema_caption
     }
 
-    /// Select an existing schema while preserving every owned tab and draft.
+
     pub fn select_schema(&mut self, schema: &str) -> bool {
         if !self
             .catalog
@@ -81,7 +81,7 @@ impl Workbench {
         true
     }
 
-    /// Visible explorer rows.
+
     pub fn visible_explorer(&self) -> Vec<(usize, &ExplorerItem)> {
         let query = self.explorer_filter.to_ascii_lowercase();
         self.explorer
@@ -94,19 +94,19 @@ impl Workbench {
             })
             .collect()
     }
-    /// Set explorer search text.
+
     pub fn filter_explorer(&mut self, query: impl Into<String>) {
         self.explorer_filter = query.into();
         self.explorer_selected = self
             .explorer_selected
             .min(self.visible_explorer().len().saturating_sub(1));
     }
-    /// Open the named table.
+
     pub fn open_table(&mut self, name: &str) -> bool {
         self.open_table_in_schema("public", name)
     }
 
-    /// Open a table by its schema-qualified identity.
+
     pub fn open_table_in_schema(&mut self, schema: &str, name: &str) -> bool {
         if let Some(key) = self.tabs.iter().find_map(|record| match record.payload() {
             Tab::Table(tab) if tab.table.schema == schema && tab.table.name == name => {
@@ -124,11 +124,11 @@ impl Workbench {
         self.insert_tab(self.tabs.len(), payload).is_some()
     }
 
-    /// Open the exact explorer object, retaining its schema identity.
+
     pub fn open_explorer_item(&mut self, item: &ExplorerItem) -> bool {
         self.open_table_in_schema(&item.schema, &item.name)
     }
-    /// Open the selected explorer table.
+
     pub fn open_selected(&mut self) -> bool {
         let item = self
             .visible_explorer()
@@ -144,7 +144,7 @@ impl Workbench {
         self.next_tab_key.is_some()
     }
 
-    /// Insert a payload with a fresh identity; invalid positions or exhaustion refuse atomically.
+
     pub fn insert_tab(&mut self, index: usize, payload: Tab) -> Option<TabKey> {
         if index > self.tabs.len() {
             return None;
@@ -157,12 +157,12 @@ impl Workbench {
         Some(key)
     }
 
-    /// Borrow the owned records without permitting structural mutation.
+
     pub fn tabs(&self) -> &[TabRecord] {
         &self.tabs
     }
 
-    /// Borrow one payload by its immutable enclosing identity.
+
     pub fn tab(&self, key: TabKey) -> Option<&Tab> {
         self.tabs
             .iter()
@@ -170,8 +170,8 @@ impl Workbench {
             .map(TabRecord::payload)
     }
 
-    /// Edit or replace a payload while preserving its enclosing identity.
-    /// Invalidates captured destructive authorization before borrowing, even if unchanged.
+
+
     pub fn tab_mut(&mut self, key: TabKey) -> Option<&mut Tab> {
         self.tabs
             .iter_mut()
@@ -215,7 +215,7 @@ impl Workbench {
                 .all(|(key, generation)| self.generation(*key) == Some(*generation))
     }
 
-    /// Reorder complete records using an exact permutation of existing identities.
+
     pub fn reorder_tabs(&mut self, keys: &[TabKey]) -> bool {
         if keys.len() != self.tabs.len() {
             return false;
@@ -241,21 +241,21 @@ impl Workbench {
         true
     }
 
-    /// Open a new query tab, refusing without mutation if identity space is exhausted.
+
     pub fn new_query(&mut self, query: impl Into<String>) -> Option<TabKey> {
         let number = self.query_counter.checked_add(1)?;
         let key = self.insert_tab(self.tabs.len(), Tab::Query(QueryTab::new(number, query)))?;
         self.query_counter = number;
         Some(key)
     }
-    /// Open history with a fresh identity.
+
     pub fn open_history(&mut self) -> Option<TabKey> {
         self.insert_tab(
             self.tabs.len(),
             Tab::History(HistoryTab::new(&self.history)),
         )
     }
-    /// Close a clean tab; dirty tabs require explicit confirmation.
+
     pub fn close_tab(&mut self, index: usize) -> bool {
         let Some(tab) = self.tabs.get(index) else {
             return false;
@@ -266,7 +266,7 @@ impl Workbench {
         self.close_tab_confirmed(tab.key())
     }
 
-    /// Apply an already confirmed close to the captured logical tab only.
+
     pub(crate) fn close_tab_confirmed(&mut self, key: TabKey) -> bool {
         let Some(index) = self.tabs.iter().position(|tab| tab.key() == key) else {
             return false;
@@ -281,18 +281,18 @@ impl Workbench {
         true
     }
 
-    /// Current tab identity, if still present.
+
     pub fn active_key(&self) -> Option<TabKey> {
         self.active_index()
             .and_then(|index| self.tabs.get(index))
             .map(TabRecord::key)
     }
-    /// Current positional index, derived only for a view boundary.
+
     pub fn active_index(&self) -> Option<usize> {
         let key = self.active?;
         self.tabs.iter().position(|tab| tab.key() == key)
     }
-    /// Activate an existing logical tab.
+
     pub fn activate(&mut self, key: TabKey) -> bool {
         if !self.tabs.iter().any(|tab| tab.key() == key) {
             return false;
@@ -300,7 +300,7 @@ impl Workbench {
         self.active = Some(key);
         true
     }
-    /// Start another connection without reusing prior control identities.
+
     pub fn reconnect(&mut self, connection: Connection, catalog: Catalog) -> bool {
         if self.has_unsaved_work() {
             return false;
@@ -309,7 +309,7 @@ impl Workbench {
         true
     }
 
-    /// Whether any owned tab has unsaved work, including retained inline drafts.
+
     pub fn has_unsaved_work(&self) -> bool {
         self.tabs.iter().any(TabRecord::dirty)
     }
@@ -320,63 +320,63 @@ impl Workbench {
         self.next_tab_key = next_tab_key;
     }
 
-    /// Current grid and control identity derive from one owned record.
+
     pub fn active_grid(&self) -> Option<(termrock::Id, &tabs::GridView)> {
         self.tabs.get(self.active_index()?)?.grid()
     }
-    /// Mutate the current grid without exposing its record identity.
-    /// Invalidates captured destructive authorization before borrowing, even if unchanged.
+
+
     pub fn active_grid_mut(&mut self) -> Option<(termrock::Id, &mut tabs::GridView)> {
         let index = self.active_index()?;
         let record = self.tabs.get_mut(index)?;
         let key = record.key();
         record.payload_mut().grid_mut(key)
     }
-    /// Active tab.
+
     pub fn active(&self) -> Option<&Tab> {
         self.tabs.get(self.active_index()?).map(TabRecord::payload)
     }
-    /// Active tab mutably, invalidating any captured destructive authorization.
+
     pub fn active_mut(&mut self) -> Option<&mut Tab> {
         let index = self.active_index()?;
         self.tabs.get_mut(index).map(TabRecord::payload_mut)
     }
-    /// Active table tab.
+
     pub fn active_table(&self) -> Option<&TableTab> {
         match self.active()? {
             Tab::Table(tab) => Some(tab),
             _ => None,
         }
     }
-    /// Active table tab mutably, invalidating any captured destructive authorization.
+
     pub fn active_table_mut(&mut self) -> Option<&mut TableTab> {
         match self.active_mut()? {
             Tab::Table(tab) => Some(tab),
             _ => None,
         }
     }
-    /// Apply a filter to the active table.
+
     pub fn apply_filter(&mut self, filter: Filter) -> bool {
         self.active_table_mut()
             .map(|table| table.set_filter(filter))
             .is_some()
     }
-    /// Toggle the active table's structure view.
+
     pub fn toggle_structure(&mut self) -> bool {
         self.active_table_mut()
             .map(TableTab::toggle_structure)
             .is_some()
     }
-    /// Toggle maximisation.
+
     pub const fn toggle_maximized(&mut self) {
         self.maximized = !self.maximized;
     }
-    /// Execute the active query and record successful/failed history.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the active tab is not a query or its SQL cannot
-    /// be executed by the deterministic catalog.
+
+
+
+
+
+
     pub fn execute_active(&mut self) -> Result<usize, String> {
         let (query, source) = match self.active() {
             Some(Tab::Query(tab)) if tab.has_pending_result() => {
@@ -408,11 +408,11 @@ impl Workbench {
         });
         result
     }
-    /// Build the quick-switcher index.
+
     pub fn switcher(&self) -> SwitcherIndex {
         SwitcherIndex::from_workbench(&self.catalog, &self.history, &self.connection, &self.tabs)
     }
-    /// Return tables only, useful to draw a structure/data explorer.
+
     pub fn table_count(&self) -> usize {
         self.explorer
             .iter()

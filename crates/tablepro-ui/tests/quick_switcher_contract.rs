@@ -1,4 +1,4 @@
-//! Real keyboard switcher and current-schema selection contracts.
+
 use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;

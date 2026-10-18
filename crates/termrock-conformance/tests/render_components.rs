@@ -1,24 +1,24 @@
-//! The component digest matrix — `render::components::<component>::<state>`
-//! (`COMPONENT_ARCHITECTURE.md` §16.3, Slice 2 acceptance condition 5).
-//!
-//! Forty components × eight states × `{junie, paper}` × `{truecolor, mono}` ×
-//! `{120×40, 40×10}` = 2560 checked-in digest lines in
-//! `tests/baselines/components.txt`. The theme, colour level and size are part
-//! of the baseline **key**, so one test function owns eight lines and a
-//! regression names the exact cell of the matrix that moved.
-//!
-//! **File placement.** §16.3 puts this matrix in `tests/render.rs`. It is a
-//! separate target because `tests/render.rs` is owned by the foundations work
-//! package and this file by the components one; the test *paths*
-//! (`render::components::…`) are what §16.3 and the acceptance condition name,
-//! and they are identical either way. Merge the two targets at Slice 5 if the
-//! split stops paying for itself.
-//!
-//! Runtime-owned states are injected into exactly one target by
-//! [`Ui::reference`]; selected, editing and disabled remain real component
-//! state or props. A digest is therefore a pure function of
-//! `(props, theme, colour, size)` with no live focus, pointer or frame counter.
-//! `empty` is expressed as the absence of content.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #![cfg_attr(
     test,
     allow(
@@ -96,7 +96,7 @@ const PICKER_CHAIN: Id = Id::root("render.picker_chain");
 const WIZARD: Id = Id::root("render.wizard");
 const SCROLL_FIXTURE_ROWS: usize = 80;
 
-/// `(label, meta)` rows for the list.
+
 const ROWS: [(&str, &str); 6] = [
     ("Ada Lovelace", "analyst"),
     ("Grace Hopper", "rear admiral"),
@@ -258,7 +258,7 @@ impl FormData for RenderFormData {
     }
 }
 
-/// The eight states the matrix renders.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum St {
     Default,
@@ -268,12 +268,12 @@ enum St {
     Disabled,
     Selected,
     Editing,
-    /// Not a state but the absence of content: no rows, no tabs, no value.
+
     Empty,
 }
 
 impl St {
-    /// The runtime-owned reference state; semantic states use real data.
+
     const fn reference_state(self) -> Option<ReferenceState> {
         match self {
             St::Focused => Some(ReferenceState::FOCUSED.union(ReferenceState::FOCUS_VISIBLE)),
@@ -287,8 +287,8 @@ impl St {
         matches!(self, St::Empty)
     }
 
-    /// The `::<state>` half of the baseline key, matching `matrix!`'s
-    /// `stringify!`d function names.
+
+
     const fn name(self) -> &'static str {
         match self {
             St::Default => "default",
@@ -303,7 +303,7 @@ impl St {
     }
 }
 
-/// The forty components the matrix covers.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Comp {
     Button,
@@ -349,13 +349,13 @@ enum Comp {
 }
 
 impl Comp {
-    /// Every component the matrix registers, with the `render::components::`
-    /// prefix's middle segment.
-    ///
-    /// Hand-written, and cross-checked against the baseline's own line count
-    /// by `theme::readiness_states_are_digest_distinct`: a component added to
-    /// `matrix!` but not here makes the baseline hold 64 more digest lines
-    /// than this list accounts for, and that check fails.
+
+
+
+
+
+
+
     const ALL: [(&'static str, Comp); 40] = [
         ("button", Comp::Button),
         ("text_input", Comp::TextInput),
@@ -506,20 +506,20 @@ impl Comp {
         Some(ReferenceTarget::new(owner, reference).part(part))
     }
 
-    /// The [`Status`] this fixture hands `comp` in state `st`, or `None` when
-    /// the fixture drives it with no status prop at all.
-    ///
-    /// **This is the single declaration of which components are
-    /// status-driven.** The four `draw_*` functions that paint a status take
-    /// it as an argument rather than calling `status_for` themselves, so the
-    /// set `theme::readiness_states_are_digest_distinct` iterates cannot drift
-    /// away from the set the fixture actually drives. The match is exhaustive
-    /// with no `_` arm, so a twenty-first component has to be classified here
-    /// before it compiles.
-    ///
-    /// `Empty` is deliberately `None`: it is driven by an [`EmptyState`]
-    /// variant and re-derives its own `BUSY`/`LOADING`/`ERROR` flags, so it
-    /// carries no `Status` prop for the property to be about.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const fn status_prop(self, st: St) -> Option<Status> {
         match self {
             Comp::StatusBar | Comp::HintBar | Comp::ProgressBar | Comp::Meter => {
@@ -698,9 +698,9 @@ fn text_area(st: St) -> TextArea<'static> {
     t.disabled(matches!(st, St::Disabled))
 }
 
-/// The readiness the fixture reports for each matrix state. Reached only
-/// through [`Comp::status_prop`], so the mapping and the set of components it
-/// applies to are declared in one place.
+
+
+
 const fn status_for(st: St) -> Status {
     match st {
         St::Pressed => Status::Busy,
@@ -735,13 +735,13 @@ const STATUS_LEFT: [StatusItem<'static>; 2] = [
 const STATUS_CENTER: [StatusItem<'static>; 1] = [StatusItem::new("Ready")];
 const STATUS_RIGHT: [StatusItem<'static>; 1] = [StatusItem::new("0 changes").key(ItemKey::num(2))];
 
-/// The `(label, meta)` rows a collection renders in state `st`: `St::Empty` is
-/// the absence of content, every other state gets the full set.
+
+
 fn rows_for(st: St) -> &'static [(&'static str, &'static str)] {
     if st.is_empty() { &[] } else { &ROWS }
 }
 
-/// The tab labels for state `st`.
+
 fn tabs_for(st: St) -> &'static [&'static str] {
     if st.is_empty() { &[] } else { &TAB_LABELS }
 }
@@ -981,9 +981,9 @@ fn text_area_status_paints_the_readiness_affordance() {
         40,
         10,
     );
-    // TextArea's readiness icon is a reserved paint cell, not an interactive
-    // hit region. Derive that cell from the stable component area rather than
-    // requiring a decorative part to appear in the hit registry.
+
+
+
     let ready_area = ready
         .area_of(TEXT_AREA)
         .expect("TextArea registers its body area");
@@ -1402,14 +1402,14 @@ fn draw_wizard(st: St, ui: &mut Ui<'_>, area: Rect) {
     Wizard::new(WIZARD, steps).draw(ui, area, &WizardState::<()>::default());
 }
 
-/// Draw `comp` in state `st` into `area`.
-///
-/// Dispatch only: every arm is one `draw_*` above, so adding a component adds
-/// a function and a line rather than growing one function without bound.
+
+
+
+
 fn draw(comp: Comp, st: St, ui: &mut Ui<'_>, area: Rect) {
-    // the four status-driven components receive their status as an argument,
-    // so `Comp::status_prop` is the only place the fixture decides which
-    // components report readiness
+
+
+
     let status = |c: Comp| {
         c.status_prop(st).unwrap_or_else(|| {
             panic!("{c:?} paints a status prop but Comp::status_prop returns None for {st:?}")
@@ -1459,8 +1459,8 @@ fn draw(comp: Comp, st: St, ui: &mut Ui<'_>, area: Rect) {
     });
 }
 
-/// Render one matrix cell name across both themes, both colour levels and
-/// both sizes, and compare every digest against the checked-in baseline.
+
+
 fn run(name: &'static str, comp: Comp, st: St) {
     for theme in [Theme::junie(), Theme::paper()] {
         for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
@@ -1545,22 +1545,22 @@ macro_rules! matrix {
     };
 }
 
-/// A pair of readiness states that is **known** to render identically, and
-/// must stay that way: `(component, a, b, colour)`.
-///
-/// **This list inverts.** A listed pair that turns out to be *distinct* is a
-/// failure, not a pass. An exemption is a recorded fact about the design; a
-/// stale one is how a gate quietly stops looking at the thing it was written
-/// for, which is the defect class this whole matrix has spent the refactor
-/// cataloguing.
-///
-/// The four entries record one fact: `BUSY` and `LOADING` both mean *an
-/// operation is in flight*, every one of these components paints the same
-/// `design.motion.spinner_frames[0]` affordance for the union
-/// `BUSY | LOADING`, and no `junie`/`paper` rule separates them by colour. They
-/// diverge only under `mono`, where §11.4 gives `PRESSED` and `EDITING` their
-/// own symbols — which is why the colour is part of the key here and why the
-/// mono half of each pair is *not* exempt.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const READINESS_COLLISIONS: [(&str, Status, Status, &str); 4] = [
     ("status_bar", Status::Busy, Status::Loading, "truecolor"),
     ("hint_bar", Status::Busy, Status::Loading, "truecolor"),
@@ -1568,7 +1568,7 @@ const READINESS_COLLISIONS: [(&str, Status, Status, &str); 4] = [
     ("meter", Status::Busy, Status::Loading, "truecolor"),
 ];
 
-/// The four readiness values and the matrix state that carries each.
+
 const READINESS: [(Status, St); 4] = [
     (Status::Ready, St::Default),
     (Status::Busy, St::Pressed),
@@ -1580,9 +1580,9 @@ const THEME_NAMES: [&str; 2] = ["junie", "paper"];
 const COLOR_NAMES: [&str; 2] = ["truecolor", "mono"];
 const SIZES: [(u16, u16); 2] = [(120, 40), (40, 10)];
 
-/// `tests/baselines/components.txt` as `key -> hash`, where the key is the
-/// line minus its last whitespace field — `Baseline`'s own rule, and the one
-/// `xtask bless-guard` uses, so all three agree about what a key is.
+
+
+
 fn baseline_entries() -> std::collections::BTreeMap<String, String> {
     let text = std::fs::read_to_string(BASELINE.path())
         .unwrap_or_else(|e| panic!("read {}: {e}", BASELINE.path()));
@@ -1599,9 +1599,9 @@ fn baseline_entries() -> std::collections::BTreeMap<String, String> {
     out
 }
 
-/// Every readiness cell of the matrix as `key -> hash`, rendered by the code
-/// in this tree. `BLESS=1` writes exactly these values, so this is what the
-/// baseline will hold after the next bless.
+
+
+
 fn live_entries() -> std::collections::BTreeMap<String, String> {
     let mut out = std::collections::BTreeMap::new();
     for (name, comp) in Comp::ALL {
@@ -1632,11 +1632,11 @@ fn live_entries() -> std::collections::BTreeMap<String, String> {
     out
 }
 
-/// Every readiness pair of `entries` that violates §49.5, as a report line.
-///
-/// Separated from the test so the same rule can be run against the recorded
-/// baseline, against freshly rendered digests, and against deliberately broken
-/// inputs. A missing key is a failure, never a skip.
+
+
+
+
+
 fn readiness_failures(entries: &std::collections::BTreeMap<String, String>) -> Vec<String> {
     let mut failures: Vec<String> = Vec::new();
     let mut used = [false; READINESS_COLLISIONS.len()];
@@ -1707,39 +1707,39 @@ fn readiness_failures(entries: &std::collections::BTreeMap<String, String>) -> V
 mod theme {
     use super::*;
 
-    /// §20.10 item 20 / §49.5. For every component the matrix drives with a
-    /// `Status` prop, the `Ready`, `Busy`, `Loading` and `Error` digests are
-    /// **pairwise distinct** at every size, theme and colour level.
-    ///
-    /// **Why this is asserted about the recorded values and not about a fresh
-    /// render, and why that generalises.** A first-generation baseline line is
-    /// unprotected by any diff-based gate: `xtask bless-guard` compares a tree
-    /// with its base, and the *first* recording of a key has no before-image,
-    /// so there is nothing for a diff to refuse. That is exactly how §20.10
-    /// item 19's 896 lines came to pin `progress_bar::disabled` as a bar that
-    /// is in error and paints no error glyph — at `truecolor` all four of its
-    /// `::disabled` digests were byte-identical to its own `::default` ones,
-    /// although the fixture supplies `Status::Error` to one and `Status::Ready`
-    /// to the other. A component declaring `Caps::REPORTS_STATUS` reporting
-    /// nothing. **So the properties that pin a first generation have to be
-    /// asserted about the values themselves**, read out of the baseline file,
-    /// rather than about the movement of those values.
-    ///
-    /// Item 19's own review could not have caught it and did not claim to: its
-    /// six rejection conditions include textual identity only under `mono`,
-    /// and these cells are identical at `truecolor`.
-    ///
-    /// The set of components checked comes from [`Comp::status_prop`], not
-    /// from a list written here, and every failing cell is reported rather
-    /// than only the first — §49.1 records what reading a single panic as "the
-    /// moved set" cost.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     #[test]
     fn readiness_states_are_digest_distinct() {
         let entries = baseline_entries();
 
-        // A component registered by `matrix!` but missing from `Comp::ALL`
-        // would be silently unchecked. It cannot be: the baseline holds
-        // 8 states × 2 themes × 2 colours × 2 sizes = 64 lines per component.
+
+
+
         let recorded = entries
             .keys()
             .filter(|k| k.starts_with("render::components::"))
@@ -1753,8 +1753,8 @@ mod theme {
             Comp::ALL.len()
         );
 
-        // the state each readiness value is carried by must be the state the
-        // fixture actually maps onto it
+
+
         for (status, st) in READINESS {
             assert_eq!(
                 Comp::ProgressBar.status_prop(st),
@@ -1772,14 +1772,14 @@ mod theme {
         );
     }
 
-    /// The green half of the demonstration, run without a bless.
-    ///
-    /// `BLESS=1` writes exactly `Scene::digest()` for each key, so rendering
-    /// every status-driven cell here produces the values the re-bless will
-    /// record. The property must hold on those. That splits "the code is
-    /// right" from "the file is right": this test is green today and
-    /// `readiness_states_are_digest_distinct` is red, and the difference
-    /// between them is the eight stale `truecolor` lines §49.1 identified.
+
+
+
+
+
+
+
+
     #[test]
     fn readiness_distinctness_holds_on_the_digests_the_code_produces_now() {
         let failures = readiness_failures(&live_entries());
@@ -1791,11 +1791,11 @@ mod theme {
         );
     }
 
-    /// The check can fail in both of its directions, on inputs built here.
-    ///
-    /// COORDINATION.md: a check that has never been observed red is not
-    /// evidence. The inverted exemption is the half that is easy to get wrong,
-    /// because a stale entry silently stops the gate looking at a real pair.
+
+
+
+
+
     #[test]
     fn readiness_distinctness_fails_on_a_collision_and_on_a_stale_exemption() {
         let mut collided = live_entries();
@@ -1819,8 +1819,8 @@ mod theme {
         );
     }
 
-    /// A missing key is a failure, never a skip: an exemption list that
-    /// silently passes over absent cells is a gate that stops looking.
+
+
     #[test]
     fn readiness_distinctness_fails_on_a_missing_baseline_line() {
         let mut entries = live_entries();
@@ -1858,9 +1858,9 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                     .expect("matrix position is inside the scene")
                     .symbol()
             };
-            // Full-track geometry (pinned by scrollbar_full_track) lets the
-            // thumb cover the cap rows at the extremes, so a cap row shows the
-            // begin/end glyph unless the thumb rests on it.
+
+
+
             let cap = |symbol: &str, expected: &str, label: String| {
                 assert!(
                     symbol == expected || symbol == glyphs.thumb,

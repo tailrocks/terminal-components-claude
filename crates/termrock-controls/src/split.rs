@@ -1,13 +1,13 @@
-//! `SplitPane` — the two-pane split and its draggable seam
-//! (`COMPONENT_ARCHITECTURE.md` §10, §14.1, §18.2 `splitter`, §18.3 item 20,
-//! Appendix A 4E).
-//!
-//! The legacy `Splitter` widget and the `ui::layout::Split` value type are
-//! **one** component here: the seam cannot register a hit region without the
-//! container rect, and the container rect cannot be known without laying the
-//! split out, so keeping them apart forced every caller to cache a
-//! `seam_container: Rect` between the two phases. `SplitPane::draw` owns that
-//! rect and reports it, and `update` reads it back through `Cx::area`.
+
+
+
+
+
+
+
+
+
+
 
 use core::fmt;
 
@@ -25,24 +25,24 @@ use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
-/// The percent a [`SplitCmd::Reset`] returns the seam to.
+
 const BALANCED: u8 = 50;
 
-/// What a split reports.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitAction {
-    /// The seam moved; carries the new percent of the first pane.
+
     Resized(u8),
 }
 
-/// The const-constructible commands of the split keymap.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitCmd {
-    /// Give the first pane one cell less.
+
     Shrink,
-    /// Give the first pane one cell more.
+
     Grow,
-    /// Balance the panes and clear any maximised pane.
+
     Reset,
 }
 
@@ -104,12 +104,12 @@ const VERTICAL: &[Binding<SplitCmd>] = &[
     ),
 ];
 
-/// Durable state of a [`SplitPane`]: where the seam sits and which pane, if
-/// any, is maximised.
-///
-/// The axis, the gap and the minima are **props**, not state: they are
-/// configuration the caller writes once, and only the percent and the
-/// maximise state are moved by interaction.
+
+
+
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SplitPaneState {
     percent: u8,
@@ -126,8 +126,8 @@ impl Default for SplitPaneState {
 }
 
 impl SplitPaneState {
-    /// A split with `percent` of the usable length given to the first pane,
-    /// clamped to `5..=95` by [`SplitModel`].
+
+
     pub const fn new(percent: u8) -> Self {
         SplitPaneState {
             percent: clamp_percent(percent),
@@ -135,24 +135,24 @@ impl SplitPaneState {
         }
     }
 
-    /// The percent of the usable length given to the first pane.
+
     pub const fn percent(&self) -> u8 {
         self.percent
     }
 
-    /// Move the seam. Clamped to `5..=95` and to the minima when the split
-    /// is next laid out.
+
+
     pub const fn set_percent(&mut self, p: u8) {
         self.percent = clamp_percent(p);
     }
 
-    /// Which pane, if any, fills the whole area.
+
     pub const fn maximized(&self) -> Maximized {
         self.maximized
     }
 
-    /// Maximise `which`, or restore both panes when `which` is already
-    /// maximised.
+
+
     pub fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
             Maximized::None
@@ -169,94 +169,94 @@ enum SeamAlign {
     End,
 }
 
-/// Two panes with a draggable seam between them.
-///
-/// ## Construction
-/// `SplitPane::new(id, axis)` — the axis is required because it is not a
-/// look but a different layout, and a `bool` for it would be exactly the
-/// parameter soup §13 forbids.
-///
-/// ## Ownership
-/// The caller owns a [`SplitPaneState`] (percent and maximise state) and
-/// paints both panes in `draw`'s body closure. The runtime owns focus,
-/// hover, press and the seam's pointer capture.
-///
-/// ## Configuration
-/// `.gap(u16)` (`1`), `.min_first(u16)` (`1`), `.min_second(u16)` (`1`),
-/// `.resizable(bool)` (`false`), `.disabled(bool)` (`false`),
-/// `.seam_start/center/end(width)` (full gap
-/// by default), `.patch`, `.patch_part`, `.slot`,
-/// reference fixtures use [`Ui::reference`](crate::Ui::reference).
-///
-/// ## Variants
-/// `Family::SPLIT`, `Variant::DEFAULT` only.
-///
-/// ## States
-/// The seam wears `HOVERED`, `FOCUSED` and `PRESSED` from the runtime; a
-/// live seam capture keeps `PRESSED` for the whole drag. `DISABLED` comes
-/// from the explicit disabled prop and revokes focus/input admission.
-///
-/// ## Actions
-/// `SplitAction::Resized(u8)` — the seam moved, carrying the new percent.
-/// It carries no `ItemKey`: a split has no items. Maximising is not an
-/// action because it is not an input the component owns: the caller calls
-/// [`SplitPaneState::toggle_max`] and already knows.
-///
-/// ## Focus
-/// One `Focusable` stop over the whole container by default, or the visible
-/// seam when its width/alignment is configured, registered **only** when
-/// `.resizable(true)`, because a seam nobody can move with the keyboard has
-/// no business in the ring. Disabled instances register an unreachable stop
-/// for shared admission and capture cancellation. It does not swallow typing,
-/// opens no scope and traps nothing.
-///
-/// ## Keyboard
-/// Only when `.resizable(true)` and enabled; the table is empty otherwise.
-/// The hint bar advertises nothing that does not work. Horizontal: `←` narrower, `→`
-/// wider, `Home` balance. Vertical: `↑` shorter, `↓` taller, `Home`
-/// balance.
-///
-/// ## Mouse
-/// `PartRef::of(Part::SEAM)`: a press claims pointer capture, drags put the
-/// seam under the pointer (clamped by the minima), release ends the
-/// capture, and a double-click balances the panes. Disabled instances reject
-/// all of these actions. Nothing else in the container is a hit target of
-/// this component's.
-///
-/// ## Layout
-/// [`SplitModel`] does the arithmetic: `gap` cells between the panes, the
-/// minima honoured, and **when both minima cannot fit the first pane wins
-/// on both axes** — which is also the narrow-collapse mode, so a caller
-/// that wants a single pane below a width sets `min_second` and lets the
-/// model collapse. `measure` reports the minima plus the gap. `draw`
-/// passes the two pane rects to its body; both are `Rect::ZERO`-safe and either may be
-/// empty (maximised or collapsed). A degenerate `area` registers nothing
-/// and passes two origin-anchored empty rects to the body (R5).
-///
-/// ## Parts
-/// `SEAM` — the configured strip within the gap (the full gap by default),
-/// and the only part this component paints. The
-/// panes are the caller's.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach `Part::SEAM`. `.slot` is honoured for
-/// `Part::SEAM`, which is the whole of this component's painting.
-///
-/// ## Identity
-/// One `Id`; no items and no `ItemKey`.
-///
-/// ## Testing
-/// `SplitPaneCase` with `Caps::FOCUSABLE | Caps::CAPTURES` and a fixture
-/// that sets `.resizable(true)`; `render::components::split_pane::*`.
-///
-/// ## Invariants
-/// The seam is painted with the **quiet** rule glyph at rest, the **active**
-/// rule glyph while pressed, and `GlyphRole::FocusBar` while focused, so all
-/// three states differ by a symbol and survive `ColorLevel::Mono` — the
-/// recipe's own `SEAM` rules are colour-only, and R-8 forbids a component
-/// assembling a `Style` of its own. The container rect `update` reads back
-/// through published logical layout facts is the one `draw` used, even when
-/// ancestor clipping narrows the visible and hittable seam.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct SplitPane<'a> {
     id: Id,
     axis: SplitAxis,
@@ -286,10 +286,10 @@ impl fmt::Debug for SplitPane<'_> {
 }
 
 impl<'a> SplitPane<'a> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[Part::SEAM];
 
-    /// A split along `axis`.
+
     pub const fn new(id: Id, axis: SplitAxis) -> Self {
         SplitPane {
             id,
@@ -304,108 +304,108 @@ impl<'a> SplitPane<'a> {
         }
     }
 
-    /// The id.
+
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Cells between the panes. `0` removes the seam, and with it the drag
-    /// affordance.
+
+
     #[must_use]
     pub const fn gap(mut self, g: u16) -> Self {
         self.gap = g;
         self
     }
 
-    /// Paint and drag only `width` cells at the start of the gap.
-    /// Width is clamped to the gap; zero leaves spacing but removes the seam.
+
+
     #[must_use]
     pub const fn seam_start(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::Start));
         self
     }
 
-    /// Paint and drag only `width` cells centred in the gap.
-    /// An odd spare cell stays at the end. Pane layout is unchanged.
+
+
     #[must_use]
     pub const fn seam_center(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::Center));
         self
     }
 
-    /// Paint and drag only `width` cells at the end of the gap.
-    /// For example, `.gap(2).seam_end(1)` leaves the leading gap cell blank.
+
+
     #[must_use]
     pub const fn seam_end(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::End));
         self
     }
 
-    /// The first pane's minimum length along the axis.
+
     #[must_use]
     pub const fn min_first(mut self, n: u16) -> Self {
         self.min_first = n;
         self
     }
 
-    /// The second pane's minimum length along the axis.
+
     #[must_use]
     pub const fn min_second(mut self, n: u16) -> Self {
         self.min_second = n;
         self
     }
 
-    /// Whether the keyboard can move the seam. `false` leaves the split out
-    /// of the focus ring and its binding table empty; the seam still drags.
+
+
     #[must_use]
     pub const fn resizable(mut self, yes: bool) -> Self {
         self.resizable = yes;
         self
     }
 
-    /// Disable keyboard and pointer resizing, preserving layout and painting.
-    /// The next publication revokes any existing seam capture.
+
+
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The layout model for `st` under this instance's configuration.
+
     const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
         m.maximized = st.maximized;
         m
     }
 
-    /// The two pane rects for `area`, without painting anything.
+
     pub(crate) fn panes(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
         self.model(st).layout(area, self.gap)
     }
 
-    /// The seam strip for `area`; empty when a pane is maximised, when the
-    /// split collapsed, or when `gap` is `0`.
+
+
     pub(crate) fn seam(&self, st: SplitPaneState, area: Rect) -> Rect {
         let mut seam = self.model(st).handle(area, self.gap);
         if let Some((width, align)) = self.seam {
@@ -434,8 +434,8 @@ impl<'a> SplitPane<'a> {
         seam
     }
 
-    /// The binding table: empty unless the split is resizable, so the hint
-    /// bar never advertises a chord `update` will not honour.
+
+
     const fn table(&self) -> &'static [Binding<SplitCmd>] {
         if self.disabled || !self.resizable {
             return &[];
@@ -446,7 +446,7 @@ impl<'a> SplitPane<'a> {
         }
     }
 
-    /// Apply `f` to the model and report the resulting percent.
+
     fn apply(
         &self,
         st: &mut SplitPaneState,
@@ -465,7 +465,7 @@ impl<'a> SplitPane<'a> {
         }
     }
 
-    /// The update phase: keyboard resize (when resizable) and the seam drag.
+
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut SplitPaneState) -> Response<SplitAction> {
         let area = cx
             .layout(self.id)
@@ -553,15 +553,15 @@ impl<'a> SplitPane<'a> {
             Phase::Click | Phase::Secondary => acc.consumed(),
             Phase::Move => {}
 
-            // `Phase` is `#[non_exhaustive]`: unseen phases keep the seam idle.
+
             _ => {}
         }
     }
 
-    /// The draw phase: register and paint the seam, then run `body` exactly
-    /// once with the logical first and second pane rects. All body painting is
-    /// clipped to `area`; an empty input yields two empty rects anchored at the
-    /// input origin.
+
+
+
+
     pub fn draw<R>(
         &self,
         ui: &mut Ui<'_>,
@@ -620,18 +620,18 @@ impl<'a> SplitPane<'a> {
         ui.with_area(area, |ui| body(ui, first, second))
     }
 
-    /// Paint the gap strip.
-    ///
-    /// The `SEAM` recipe distinguishes hovered, focused and pressed by colour
-    /// alone, and `ColorLevel::Mono` erases colour, so the **symbol** carries
-    /// all three — the same shape §11.4 gives the mono `PRESSED` bracket and
-    /// the mono focus bar, and for the same reason: a `StateRule` binds one
-    /// glyph to one part, and only the component knows which of the theme's
-    /// three glyphs this strip should be drawn from. R-8 rules out the
-    /// alternative, which is assembling a `Style` here.
-    ///
-    /// A pressed seam beats a focused one: a seam being dragged is being
-    /// dragged whatever the focus ring says.
+
+
+
+
+
+
+
+
+
+
+
+
     fn paint_seam(&self, ui: &mut Ui<'_>, seam: Rect, live: StateFlags) {
         let s = self.ov.style(
             ui,
@@ -677,8 +677,8 @@ impl<'a> SplitPane<'a> {
         }
     }
 
-    /// The natural size: both minima plus the gap along the axis, and one
-    /// cell across it.
+
+
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let along = self
             .min_first
@@ -869,11 +869,11 @@ mod tests {
         );
     }
 
-    /// The two panes and the seam tile the container exactly: no cell belongs
-    /// to two of them and no cell belongs to none. This is what lets the
-    /// caller delete its `seam_container: Rect` field (§18.2) — the component
-    /// is the only thing that knows the partition, so the partition has to be
-    /// total.
+
+
+
+
+
     #[test]
     fn the_panes_and_the_seam_tile_the_container() {
         for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
@@ -900,11 +900,11 @@ mod tests {
         }
     }
 
-    /// `.resizable(false)` — the default, and what the legacy mouse-only
-    /// `Splitter` did — must leave the split out of the focus ring **and**
-    /// out of the hint bar. A visible chord for a resize that cannot happen
-    /// is exactly the drift §16.2 case 20 exists to catch, so the table is
-    /// empty rather than merely unreachable.
+
+
+
+
+
     #[test]
     fn a_non_resizable_split_declares_no_bindings_and_no_focus_stop() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -938,13 +938,13 @@ mod tests {
         );
     }
 
-    /// The `SPLIT` recipe separates the seam's default, hovered and pressed
-    /// looks by **colour alone**, and `ColorLevel::Mono` erases colour, so
-    /// the component owes the symbol and the modifier (§11.4's `PRESSED`
-    /// row, same mechanism as the mono bracket). Compares the `(symbol,
-    /// modifier)` multiset of the seam cells, colour excluded — conformance
-    /// case 9's own comparison, run here so the property is owned by the
-    /// component rather than only asserted about it.
+
+
+
+
+
+
+
     #[test]
     fn the_seam_distinguishes_focus_and_press_without_colour() {
         let theme = Theme::junie().downgrade(ColorLevel::Mono);
@@ -981,11 +981,11 @@ mod tests {
         );
     }
 
-    /// The minima are enforced once, in [`SplitModel`], and the component
-    /// inherits the documented rule: when both minima cannot fit, the first
-    /// pane wins on **both** axes. A caller relies on this for
-    /// narrow-collapse, so it is asserted through the component's own API and
-    /// not only through the layout primitive.
+
+
+
+
+
     #[test]
     fn the_first_pane_wins_when_the_minima_do_not_fit() {
         for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
@@ -998,7 +998,7 @@ mod tests {
         }
     }
 
-    /// A reference split is not a live drag target.
+
     #[test]
     fn a_reference_split_registers_nothing() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -1016,9 +1016,9 @@ mod tests {
         assert!(!rt.ring().is_registered(ID));
     }
 
-    /// §33's Invariant P: every declared part is one a drawn split actually
-    /// resolves, proven by the property (a per-part patch changes the painted
-    /// cells) rather than by reading the const back.
+
+
+
     #[test]
     fn every_declared_part_is_one_a_drawn_split_styles() {
         let st = SplitPaneState::default();
@@ -1049,9 +1049,9 @@ mod tests {
         }
     }
 
-    /// §45's Invariant R: `## Overrides` names `Part::SEAM` and nothing else,
-    /// so a slot on the seam must replace the strip and a slot on anything
-    /// else must be inert.
+
+
+
     #[test]
     fn the_slot_addressable_parts_are_exactly_the_documented_ones() {
         let st = SplitPaneState::default();
