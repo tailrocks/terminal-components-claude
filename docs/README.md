@@ -13,6 +13,6 @@ This documentation describes a Rust terminal UI library whose modular rewrite is
 - [Plan](plan.md) is the live implementation backlog and links the detailed, immutable design-branch requirement inventory.
 - [Development](development.md) lists workspace checks and the no-new-code-comments rule.
 - [Quick start](guides/quickstart.md) is a current in-workspace facade example; check its APIs against source before depending on them externally.
-- [Safety rationales](../SAFETY.md) retains justifications removed from Rust comments.
+- [Safety rationales](../SAFETY.md) records the original unsafe-operation rationales.
 
 The design work index preserves original acceptance detail and branch provenance. Its recorded checklist counts are historical inventory, not current completion claims. Other branch audits, reviews, prompts, and execution reports are not project authority.
