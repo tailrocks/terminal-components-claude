@@ -1,25 +1,7 @@
 # tuisnap snapshot baseline — coverage design
 
-## Status
 
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
-
+> Historical evidence; claims below apply to the revisions and scope identified in the report.
 
 > **v2 migration (2026-09-13):** the suite now uses the grouped
 > multi-artifact store — approved frames at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`

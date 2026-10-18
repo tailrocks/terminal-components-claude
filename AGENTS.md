@@ -1,6 +1,6 @@
 # Agent instructions
 
-To continue the open work, start from docs/GOAL.md.
+Use docs/README.md for project documentation and docs/plan.md for future work.
 
 ## Role
 

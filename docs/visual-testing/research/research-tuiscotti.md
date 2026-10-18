@@ -1,19 +1,4 @@
-
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
+# Research Tuiscotti
 
 **tuiscotti research report (scratch clone: `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/tuiscotti`, main at `a47c9aa`)**
 

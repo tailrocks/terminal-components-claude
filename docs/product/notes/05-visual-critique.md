@@ -1,26 +1,5 @@
 # 05 · Visual critique of the Holla frames
 
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
-
-
 Scope: 58 captures in `shots/` read as images (all four sizes of
 `h_rust_dirty`, `h_docker_cleanup`, `h_disk_cleanup`, `h_upgrade_plan`,
 `h_activities_multi`, `h_hard_cases`; both `_mono`; `h_first_use_80x24`,

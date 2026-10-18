@@ -1,63 +1,40 @@
-# Planning completion audit
+# Planning acceptance gate
 
 ## Status
 
-Historical evidence. Its dated findings and source pins describe the recorded review only.
+Open. This gate defines what must be demonstrated before the refactoring plan is accepted for execution. It does not report that the gate currently passes or that product implementation is complete.
 
 ## Authority
 
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+The requirement set is [PLANNING_GOAL.md §22](../sources/PLANNING_GOAL.md). The current source-first audit and unresolved findings are in [reaudit-plan.md](reaudit-plan.md) and [reaudit-findings.tsv](reaudit-findings.tsv). Task packages define their own implementation and proof contracts.
 
-## Current evidence
+## Acceptance conditions
 
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+All conditions require evidence tied to the current source/task revisions. Historical reviews and previous-pass reports do not satisfy them.
 
-## Remaining work
+| # | Required condition | Evidence to inspect |
+|---|---|---|
+| 1 | Pin the immutable UI/UX reference and preserve its source identity. | [History](history.md), protected oracle inputs, and capture provenance. |
+| 2 | Explain branch ancestry, divergence, and which branch controls structure versus product behavior. | [History](history.md), [branch continuation proposal](branch-continuation-proposal.md), and current authority docs. |
+| 3 | Reconstruct the historical source versions needed to identify accepted, changed, and superseded behavior. | [Revision index](history-revision-index.tsv), [canonical historical obligations](historical-obligations-canonical.tsv), and the open history audit. |
+| 4 | Distinguish accepted decisions from rejected, deferred, or superseded proposals. | [Decision ledger](decision-ledger.tsv), [adjudications](architecture-adjudication.md), and source-qualified task contracts. |
+| 5 | Inventory the current component/API architecture and separate measured preservation from unimplemented work. | [Architecture matrix](architecture-matrix.tsv), [component parity](component-parity.tsv), and [components audit](components.md). |
+| 6 | Inventory all four applications against the immutable design reference. | [Showcase](showcase.md), [Holla](holla.md), [Jackin](jackin.md), and [TablePro](tablepro.md). |
+| 7 | Bind important screens, states, inputs, and journeys to source, owners, and proof. | [Application parity](application-parity.tsv), scenario identities, and staged contributions. |
+| 8 | Provide deterministic behavioral and visual regression checks with explicit capture provenance and comparison rules. | Task-owned tests and capture protocols; full application captures remain required outputs. |
+| 9 | Record external tool dependencies and their exact scope without treating a tool review as project-harness acceptance. | [Tui-snap review](tuisnap-review.md), dependency records, and task contracts. |
+| 10 | Map every architecture obligation and accepted decision to an implementation owner and proof. | [Architecture matrix](architecture-matrix.tsv), [component parity](component-parity.tsv), and [traceability](traceability-components.tsv). |
+| 11 | Map every important parity obligation to an owner and automated or explicitly reviewed proof. | [Application parity](application-parity.tsv), contribution records, and app task plans. |
+| 12 | Validate every task package against the pinned task-format contract. | [Task format](task-format.md) and canonical task lint. |
+| 13 | Require each task to state its purpose, scope, dependencies, authority, acceptance conditions, commands, and evidence. | Canonical `README.md`, `task.toml`, verification config, task index, and task-format lint. |
+| 14 | Prove the dependency graph is acyclic, complete, and ordered for safe integration. | [Task graph](task-graph.md), canonical dependencies, and graph validation. |
+| 15 | Identify parallel work and serialize conflicting source or integration work. | Derived graph and explicit worktree/join contracts. |
+| 16 | Define an integration gate requiring complete architecture, system, parity, ancestry, and verification evidence. | [TASK-069](../../refactoring-tasks/terminal-components/completion/069/README.md) and its trusted acceptance inputs. |
+| 17 | Obtain independent review of material plan and repair changes. | Current review records with named scope and exact revisions; authors cannot approve their own repairs. |
+| 18 | Disposition every material finding with source-backed repair or evidence-backed rejection, then independently recheck its reproducer. | [Review findings](review-findings.tsv), [re-audit findings](reaudit-findings.tsv), and task-owned checks. |
+| 19 | Show that no important source requirement, protected clause, scenario, or proof is orphaned from the task graph. | [Traceability tables](traceability.tsv), canonical historical obligations, scenario mappings, and exact joins. |
+| 20 | Ensure every important UI/UX behavior has a design-authoritative contract and a verification owner. | Design branch source, [application parity](application-parity.tsv), detailed app plans, and reviewed visual evidence. |
 
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Decision rule
 
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
-
-
-This register evaluates all twenty items in [docs/sources/PLANNING_GOAL.md §22](../sources/PLANNING_GOAL.md). It tracks planning readiness, not completion of the future refactoring. Investigations can be evidence-complete while verification qualification or final independent acceptance remains incomplete.
-
-Current overall assessment: **reopened; the table below records the previous acceptance pass, not current execution readiness**. A renewed source-first, line-by-line audit has identified additional scope and contract gaps. See [the re-audit register](reaudit-plan.md). All twenty conditions require renewed current evidence after repairs. Qualified preparation is not a claim that the future production harness or refactored applications already pass.
-
-| §22 item | Required proof | Previous pass assessment and evidence — not current readiness |
-| --- | --- | --- |
-| 1 | Immutable UI/UX reference pinned | Evidence complete. Peeled oracle and annotated tag identities are recorded in [history](history.md) and [history](history.md). |
-| 2 | Branch history and divergence understood | Proven. [History](history.md) records topology and authority; [contract rereview](review-contract-repairs.md) accepts integration ordering and ancestry rules. |
-| 3 | Meaningful historical versions reconstructed | Investigation complete: 248 exact parent-relative edges, 15 linked inputs and 620 canonical HIST clauses. See [revision index](history-revision-index.tsv) and [canonical union](historical-obligations-canonical.tsv). |
-| 4 | Accepted/rejected/superseded decisions distinguished | Investigation complete. [Decision ledger](decision-ledger.tsv), [historical reconciliation](history-ledger-reconciliation.md) and [eight adjudications](architecture-adjudication.md) retain source authority and rejected/deferred alternatives. |
-| 5 | Current main known component by component | Investigation complete: [32 ARCH rows](architecture-matrix.tsv), [54 COMP families](component-parity.tsv), [architecture](architecture.md) and [component audit](components.md). Measured preservation is distinguished from remaining implementation/proof. |
-| 6 | Four apps inventoried against oracle | Investigation complete: [Showcase](showcase.md), [Holla](holla.md), [Jackin](jackin.md), [TablePro](tablepro.md). |
-| 7 | Important visible states/flows inventoried | Proven. [361 scenarios](application-parity.tsv), 84 derived Jackin/TablePro identities and 35 named Holla/shell contributions have complete source/owner/proof bindings; [parity rereview](review-parity-repairs.md) accepts staging and native/resized coverage. |
-| 8 | Deterministic visual/behavioral regression detection | Proven at planning boundary. [Executed verification](planning-verification.md), [verifier rereview](review-verifier-repairs.md), [bootstrap review](bootstrap-review.md) and [Rust qualification](review-rust-qualification.md) establish independently qualified, frozen acceptance mechanisms. Full application captures remain prerequisite outputs. |
-| 9 | Tui-snap gaps resolved or actual PR dependency | Evidence complete for identified tool gaps. [PR #1](https://github.com/donbeave/tui-snap/pull/1) exists; [independent tool review](tuisnap-review.md) approves scoped head `883d03f19d890bbbf27468798db78b04e85297ac`. This is not approval of the separate project harness. |
-| 10 | All architecture obligations mapped to tasks | Proven. [Traceability](traceability-components.tsv) covers 32 ARCH, 54 COMP and eight decisions; registry non-frame classification and actual architecture witnesses passed [rereview](review-contract-repairs.md). |
-| 11 | All important parity obligations mapped to automation | Proven. [Application matrix](application-parity.tsv), exact source-derived contributions and [parity rereview](review-parity-repairs.md) preserve all intact parents and their valid automated closing owners. |
-| 12 | Every implementation task follows current task-format | Proven. All 73 packages pass pinned canonical lint with zero errors/warnings, including final TASK-072 AC-009/CHK-011. [Format identity](task-format.md) was remotely reconfirmed. |
-| 13 | Every task has complete explicit contract fields | Proven. [Task index](task-index.tsv), canonical lint, exact payload checks and [contract rereview](review-contract-repairs.md) establish requirements, typed acceptance, commands, scope, dependencies and authority. |
-| 14 | Complete DAG valid and execution-ready | Proven at planning boundary. [Graph](task-graph.md) has depth33 and24 longest paths; receipts, preparation transitions and observer contracts passed independent contract and executable qualification review. |
-| 15 | Parallel and serialized work identified | Proven. [Derived graph](task-graph.md) has zero unordered scope overlaps; hard serialization, isolated worktrees and reverified parallel joins are explicit and mechanically checked. |
-| 16 | Final integration/merge-readiness gate exists | Proven. [TASK-069](../../refactoring-tasks/terminal-components/completion/069/README.md) requires complete unfiltered system/parity/architecture proof, exact ancestry and no automatic main update. Host/integration contracts passed independent review. |
-| 17 | Independent subagents reviewed plan | Proven. Five fresh reports cover [architecture](review-architecture-final.md), [parity](review-parity-final.md), [DAG](review-dag-final.md), [verification](review-verification-final.md) and [integration](review-integration-final.md); material corrections received independent rereview. |
-| 18 | Material findings incorporated or evidence-backed rejected | Proven. All18 [registered findings](review-findings.tsv) have independent closure; additional rereview defects were repaired and their concrete reproducers rejected. |
-| 19 | No known requirement orphaned | Proven. [Traceability](traceability.tsv) has3,159 edges over1,159 source IDs; all620 historical clauses, protected payloads,84 derived identities and35 additional named contributions pass exact joins with no orphan task/source/check mapping. |
-| 20 | No important UI/UX behavior without owner and proof | Proven at planning boundary. The complete four-app inventory and every staged contribution have required automated owners; [independent parity review](review-parity-repairs.md) found no remaining planning gap. Future runtime parity is not pre-accepted. |
-
-## Previous pass additional deliverable checks
-
-- [docs/sources/REFACTORING_COMPLETION_PLAN.md](../sources/REFACTORING_COMPLETION_PLAN.md) contains all24 required sections. Required matrices, current tool/source pins and complete canonical packages are present; [executed verification](planning-verification.md) records their checks.
-- Canonical graph, source ledgers, protected clauses, all derived contributions and typed R/AC/CHK references pass final cross-artifact validation. [Frozen bootstrap hashes](bootstrap-assets.tsv) bind151 assets; [complete artifact hashes](planning-artifacts.tsv) bind the delivered planning tree.
-- Oracle source, membership, expected frames, comparison policy and judge inputs are protected. Independently qualified mutation fixtures cover exact inline-test spans, untrusted extraction, real preparation transitions, qualified closure, host isolation and actual production ownership witnesses.
-- Current task-format schemas are preserved. [Campaign executor adaptation](campaign-executor-protocol.md) explicitly reconciles canonical template provenance with operator-controlled frozen verification, complete progress and host-only acceptance.
-- Existing histories, render archives and old self-baselines retain their source provenance; none are relabeled as new-oracle parity. Future numeric captures and bundle hashes are prerequisite outputs, not fabricated evidence.
-- All build/test/lint/docs/backend/API/architecture/registry/performance and four-app obligations have concrete contract owners. Independently reviewed qualification supplies the future acceptance gate; actual final implementation execution remains required, not inferred from planning or lint.
-- This goal has not executed terminal-components production refactoring, the task campaign, integration branch creation, merges or publication. The scoped external tui-snap PR is a distinct explicitly permitted dependency.
-
-## Completion rule
-
-The reopened goal is incomplete until every planning condition has affirmative evidence for the repaired current artifacts. The previous table is retained as historical evidence, not a present verdict. No historical PASS report or intended future command substitutes for source-first audit, executable preparation tests and independent repair reviews. Any change to source, task contracts, trusted fixtures or integration assumptions requires applicable requalification and a new artifact identity; the plan does not authorize its own weakening or automatic implementation/merge.
+The plan is acceptable only when every condition above is supported by current evidence and all open findings are resolved or explicitly retained with an owner, prerequisite, and closure proof. A successful compile or validator run alone is not execution readiness. Acceptance of the plan is separate from completion of the split-crate refactor and application parity.

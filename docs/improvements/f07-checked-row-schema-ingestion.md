@@ -1,26 +1,5 @@
 # F07 — Checked row/schema ingestion
 
-## Status
-
-Active specification or plan; completion is not implied by this document.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Claims below are scoped to their cited sources and recorded test results.
-
-## Remaining work
-
-Keep all listed requirements and open tasks in scope; track implementation state in docs/remaining-work.md.
-
-## Verification
-
-Verify against current sources and task acceptance criteria; historical passes are not current proof.
-
-
 [Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
@@ -53,9 +32,7 @@ and invalid source references produce documented errors or deliberate normalizat
 well-formed behavior is unchanged. Additive checked APIs are a migration step,
 not a complete root fix while unchecked storage remains writable.
 
-Evidence and detailed probes for F02/F03/F05–F07:
-[API verification](../plan-verification/plan-api-verification.md), with independent user-flow
-checks in [design verification](../plan-verification/plan-design-verification.md).
+Related cases are mapped in the [finding-to-work crosswalk](plan-reference-audit.md); the acceptance cases above and in F02/F03/F05 define current work.
 
 ## Evidence
 

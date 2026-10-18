@@ -20,7 +20,7 @@ The complete plan and task catalog below remain in scope, including re-audits, p
 
 The plan is verified only when its task-level criteria pass on current code and the integrated result passes applicable architecture, Rust, interaction, and visual gates. Recorded historical passes prove only their cited revision and scope.
 
-**Provenance:** Consolidated on 2026-09-12 from `docs/sources/REFACTORING_COMPLETION_PLAN.md` and all of `docs/refactoring-plan/` (notably `proof-contract.md`, `task-index.tsv`, `traceability.tsv`, `task-graph.md`, `reaudit-plan.md`, `branch-continuation-proposal.md`, `verification.md`), `refactoring-tasks/README.md`, `refactoring-tasks/terminal-components/README.md`, `refactoring-tasks/terminal-components/completion/README.md` and a sampled task package (`completion/001/`) (holla working tree, now `visual-baseline`); historical phases from `docs/sources/main/GOAL.md`, `docs/sources/main/GOAL2.md`, `docs/sources/main/REFACTORING_GOAL.md` (via `git show`); planning requirements from `docs/sources/PLANNING_GOAL.md`. The governing goal statement is `docs/refactoring/goal.md`.
+**Provenance:** Consolidated on 2026-09-12 from `docs/sources/REFACTORING_COMPLETION_PLAN.md` and all of `docs/refactoring-plan/` (notably `proof-contract.md`, `task-index.tsv`, `traceability.tsv`, `task-graph.md`, `reaudit-plan.md`, `branch-continuation-proposal.md`, `verification.md`), `refactoring-tasks/README.md`, `refactoring-tasks/terminal-components/README.md`, `refactoring-tasks/terminal-components/completion/README.md` and a sampled task package (`completion/001/`) (holla working tree, now `visual-baseline`); historical phases from [GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/GOAL.md), [GOAL2.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/GOAL2.md), [REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md) (via `git show`); planning requirements from `docs/sources/PLANNING_GOAL.md`. The governing goal statement is `docs/refactoring/goal.md`.
 
 ## 1. Current status (read first)
 
@@ -45,9 +45,9 @@ Topology: main and visual-baseline have 774 and 38 commits outside the merge bas
 
 ## 3. Historical phases (main era — evidence, not dependency authority)
 
-- **`docs/sources/main/REFACTORING_GOAL.md`:** the original in-place architectural refactor into a reusable, themeable component system (shadcn/ui-analogous qualities translated to idiomatic Rust/Ratatui), executed as numbered slices; it was interrupted around Slice 4 (`HANDOFF_SLICE4_WAVE1.md`). Produced the workspace and `junie-tui` foundations.
-- **`docs/sources/main/GOAL.md` phases 0–5 (parity-first restoration, partially done):** Phase 0 safe preflight and freezing `baseline/before/**`; Phase 1 build the parity oracle (map 499 historical recipes to current replay, fail-closed comparator over `.txt`/`.ansi`/`.cursor` plus `.png`/`.html` review); Phase 2 restore shared visual contracts (tokens, glyphs, panels, focus/hit/cursor/scroll/layers); Phase 3 restore each application (Showcase shell + 22 pages, TablePro connection/workbench, Jackin route-by-route); Phase 4 tests and evidence (narrow parity tests, immutable archive, reviewed baseline updates); Phase 5 required verification (full workspace gates, real binaries, comparator, `bless-guard`).
-- **`docs/sources/main/GOAL2.md` (completed):** consolidation of all worktrees into `codex/main-holla-integration` with an explicit per-worktree disposition ledger; merged as PR #1 at `7b27732a`.
+- **[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md):** the original in-place architectural refactor into a reusable, themeable component system (shadcn/ui-analogous qualities translated to idiomatic Rust/Ratatui), executed as numbered slices; it was interrupted around Slice 4 ([HANDOFF_SLICE4_WAVE1.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/HANDOFF_SLICE4_WAVE1.md)). Produced the workspace and `junie-tui` foundations.
+- **[GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/GOAL.md) phases 0–5 (parity-first restoration, partially done):** Phase 0 safe preflight and freezing `baseline/before/**`; Phase 1 build the parity oracle (map 499 historical recipes to current replay, fail-closed comparator over `.txt`/`.ansi`/`.cursor` plus `.png`/`.html` review); Phase 2 restore shared visual contracts (tokens, glyphs, panels, focus/hit/cursor/scroll/layers); Phase 3 restore each application (Showcase shell + 22 pages, TablePro connection/workbench, Jackin route-by-route); Phase 4 tests and evidence (narrow parity tests, immutable archive, reviewed baseline updates); Phase 5 required verification (full workspace gates, real binaries, comparator, `bless-guard`).
+- **[GOAL2.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/GOAL2.md) (completed):** consolidation of all worktrees into `codex/main-holla-integration` with an explicit per-worktree disposition ledger; merged as PR #1 at `7b27732a`.
 
 The current plan uses historical Slice/Wave terminology as evidence only; the initial 69-outcome decomposition proposal is historical evidence, not dependency authority (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §14).
 
@@ -103,7 +103,7 @@ Two lanes, each compared against its own oracle lane: direct production-view fra
 
 ## 9. Historical integration proposal (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §13)
 
-This section records the earlier proposal: branch from pinned main `7b27732a`, prepare proof and baseline receipts first, then adapt app behavior through reusable APIs. Its prohibition on production refactoring is superseded by the current project goal. Preserve the plan's concrete task dependencies and verification contracts where current; the current branch roles are stated in `docs/refactoring/goal.md` §6 and `docs/status.md`.
+This section records the earlier proposal: branch from pinned main `7b27732a`, prepare proof and baseline receipts first, then adapt app behavior through reusable APIs. Its prohibition on production refactoring is superseded by the current project goal. Preserve the plan's concrete task dependencies and verification contracts where current; the current branch roles are stated in `docs/refactoring/goal.md` §6 and `docs/README.md`.
 
 ## 10. Evidence matrices and traceability mechanics
 
@@ -121,9 +121,10 @@ This section records the earlier proposal: branch from pinned main `7b27732a`, p
 - Dynamic identity, capture, query attribution, callbacks and alternative paint paths require nonvacuous adversarial tests.
 - The critical path is structural; no duration estimates exist or should be fabricated.
 
-## 12. Contradictions flagged
+## 12. Current reconciliation
 
-1. Catalog size: "74 packages" (companion text) vs 73 task packages + group README in `completion/` and 73 data rows in `task-index.tsv` — see §6.
-2. Historical phase baselines (`docs/sources/main/GOAL.md` Phase 1: 499 `baseline/before` recipes, three apps) vs the current four-app design scope — the current UI/UX authority is `design/interaction-polish`; historical captures remain historical evidence (see goal.md §9.1).
-3. `docs/sources/main/GOAL.md` Phase 4 allows reviewed baseline updates; the proof contract forbids any candidate-side expected-evidence authority — the proof contract governs (see goal.md §9.2).
-4. Execution base framing ("on top of visual-baseline") vs the earlier pinned-main strategy — reconciled in goal.md §6: `main` defines split-crate architecture, `design/interaction-polish` defines UI/UX and behavior, and planned work remains in scope.
+1. The task catalog contains 73 task packages (`001`–`073`) and 73 data rows in `task-index.tsv`; the group README is not a task package.
+2. Historical captures document their original scope only. Current UI/UX, behavior, color, and layout authority is `design/interaction-polish`; all four application families remain in scope.
+3. Oracle outputs and protected proof inputs determine expected evidence. Candidate-side output cannot authorize its own expected result. TASK-008 owns exact test migration and disposition; follow its task contract and protected receipts.
+4. TASK-066 owns render-target consolidation and exact test preservation. Its task package and verification inputs define the required migration; superseded historical adjudication summaries do not impose another decision gate.
+5. `main` defines the split-crate architecture and reusable API direction; `design/interaction-polish` defines the product behavior contract. Work remains open until current source and task-specific verification establish the relevant scope.

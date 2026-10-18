@@ -1,32 +1,12 @@
 # Shared components plan
 
-## Status
+This is the detailed candidate architecture and implementation plan, including its API contracts, component work, audit findings, and showcase requirements. The document copy is scoped to `reach-pages-a-2` at `904dc6723d33`; any recorded status is evidence for that scope only. The split-crate architecture on `main` remains incomplete and not ready. Use [the branch backlog](../remaining-work.md) for its active work items and [the visual-testing guide](../visual-testing/README.md) for current procedures. Design/interaction-polish remains the reference for appearance, UI/UX, colors, and behavior.
 
-This detailed plan and its planned design work remain in scope. Completion labels and progress tables are scoped to the revisions and evidence recorded in each section. The main refactor is unfinished, broken, and not ready.
-
-## Authority
-
-The architecture target is `main`'s split crates and reusable APIs. The behavior, interactions, visuals, and colors being extracted are governed by `design/interaction-polish`. Keep every planned component, audit follow-up, and showcase task below.
-
-## Current evidence
-
-This plan records design-branch findings and dated task status. Validate current source and exact acceptance evidence before treating any row as complete.
-
-## Remaining work
-
-Use this plan together with `docs/remaining-work.md`; the latter is the active item register. Do not remove open planned work while reconciling outdated branch or implementation claims.
-
-## Verification
-
-Each component milestone requires its task-specific API, behavior, showcase, and visual evidence. See `docs/visual-testing/README.md` for current visual procedures. Historical gates do not prove the current integration.
-
-This is a detailed design and implementation plan. Its dated status and staffing assignment are retired; the task ledger at `docs/remaining-work.md` carries open work.
-
-**What is left:** [`docs/remaining-work.md`](../remaining-work.md) is the single list of every step, carry-over, audit follow-up and owner decision still open on this branch.
+**Branch work register:** [`docs/remaining-work.md`](../remaining-work.md) records branch-specific open items, dependencies, acceptance criteria, and scoped closures. This plan retains detailed technical requirements and task relationships.
 
 Inputs: [`duplication-shell.md`](../audits/design-review-2026-10/duplication-shell.md), [`duplication-widgets.md`](../audits/design-review-2026-10/duplication-widgets.md) and [`duplication-screens.md`](../audits/design-review-2026-10/duplication-screens.md); [`mouse.md`](../audits/design-review-2026-10/mouse.md) and [`keyboard.md`](../audits/design-review-2026-10/keyboard.md); [`standards-interaction.md`](../audits/design-review-2026-10/standards-interaction.md) and [`standards-visual.md`](../audits/design-review-2026-10/standards-visual.md); and [`docs/visual-testing/plan.md`](../visual-testing/plan.md), whose retained requirements are scoped to the design branch and must be reconciled with current split-crate gates. The showcase coverage track (§7) also takes [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md). Finding references: **M#** is a mouse audit finding, **K#** a keyboard audit finding, **SI#** a standards-interaction verdict, **SV#** a standards-visual verdict, and **SIg#** / **SVg#** a "gaps not yet raised" item in those two reviews.
 
-**The problem.** The four apps hold about 11k lines of shell code and about 11.5k lines of hand-built screen UI. Inside `src/widgets` there are about 145 duplicated functions (about 1,750 lines). The copies have drifted: the same gesture behaves differently in different apps and widgets. This plan moves that behavior into shared reusable crates, decides each divergence once, and names API concepts that can be reused in the split-crate architecture.
+**The problem.** The four apps hold about 11k lines of shell code and about 11.5k lines of hand-built screen UI. Inside `src/widgets` there are about 145 duplicated functions (about 1,750 lines). The copies have drifted: the same gesture behaves differently in different apps and widgets. This plan specifies shared behavior and reusable APIs for implementation across the split-crate architecture, including decisions for known divergences.
 
 ## 1. Product/API contracts and candidate architecture
 

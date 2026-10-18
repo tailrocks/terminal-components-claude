@@ -1,23 +1,5 @@
 # 03 · Recipe audit: assembling `holla` exactly like `jackin-preview` / `tablepro`
 
-## Status
-
-Historical recipe audit for the Holla implementation. Holla now exists; this document is reference evidence, not a current build prompt or a claim that source paths, line numbers, or tools remain unchanged.
-
-## Authority
-
-Current product requirements: `docs/product/CONCEPT.md`. Current UI/UX: `design/interaction-polish`. Current crate/API direction: `main`. Preserve useful patterns from this audit only after checking them against current source and architecture.
-
-## Current evidence
-
-The source facts and commands below describe the audited revision. Their dates, code locations, and verification tools are historical unless independently confirmed.
-
-## Remaining work
-
-Retain relevant product patterns and decisions in the concept, design specification, and active improvement plan. Do not use this audit as authority for current implementation status.
-
-## Verification
-
 Use the current project gates in `docs/ci.md` and the visual process in `docs/visual-testing/README.md`. Historical command output proves only its recorded source revision and scope.
 
 Audited against the working tree at `src/` (library crate `junie_tui`, edition 2024, rust 1.98 toolchain, `rust-version = "1.88"`).

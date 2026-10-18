@@ -25,11 +25,11 @@ Planning-only. This closes the three early parent-delta gaps identified by `hist
 
 | Exact source edge | Directly read scope | Complementary direct reading |
 | --- | --- | --- |
-| `95ab652983bf6c8e77c727bd31eeeaf93b0e7635` / `e2be0ced5cf12e78aab12f88f03ed7435c5a36b3` | Entire parent-relative `COMPONENT_ARCHITECTURE.md` diff before newly appended §21, including deleted/replaced prose, signatures, examples, test/perf tables and appendices A/B | `history-early.md` directly reads appended §21 J |
+| `95ab652983bf6c8e77c727bd31eeeaf93b0e7635` / `e2be0ced5cf12e78aab12f88f03ed7435c5a36b3` | Entire parent-relative [COMPONENT_ARCHITECTURE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/COMPONENT_ARCHITECTURE.md) diff before newly appended §21, including deleted/replaced prose, signatures, examples, test/perf tables and appendices A/B | `history-early.md` directly reads appended §21 J |
 | `27bd918e3a8a0a7fdba14fb10643139340d6281f` / `f2d30b654e5c6bea154392a8be6e9f4b7d4dbcb1` | Entire parent-relative diff before appended §22, including inline §15.1 F1–F13, example 13, manifests and changes within §21 | `history-early.md` directly reads appended §§22–23 K/L |
 | `87ab93d4d21b75ce975c3a5cfecd987a0b935d2f` / `d57ed9ff43a8f6845eaa298969826c9e14b8a122` | Entire parent-relative diff before appended §24, including examples, facade lists and resolution of earlier open items | `history-early.md` directly reads appended §24 M |
 
-Read method: `git diff <parent> <commit> -- COMPONENT_ARCHITECTURE.md`, sequential line ranges. Truncated result ranges were re-read narrowly. The exact before/after blob IDs are in `history-revision-index.tsv`. The combined readings cover each entire edge, not just named decision headings.
+Read method: `git diff <parent> <commit> -- [COMPONENT_ARCHITECTURE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/COMPONENT_ARCHITECTURE.md), sequential line ranges. Truncated result ranges were re-read narrowly. The exact before/after blob IDs are in `history-revision-index.tsv`. The combined readings cover each entire edge, not just named decision headings.
 
 ## Material inline decisions and reconciliation
 

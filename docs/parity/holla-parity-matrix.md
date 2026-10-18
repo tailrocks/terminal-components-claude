@@ -1,25 +1,7 @@
 # Existing Holla capability parity matrix
 
-## Status
 
-Historical evidence. Its dated findings and source pins describe the recorded review only.
-
-## Authority
-
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
-
-## Current evidence
-
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
-
-## Remaining work
-
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
-
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
-
+> Historical evidence; claims below apply to the revisions and scope identified in the report.
 
 This is the authoritative classification ledger for [docs/improvements/PLAN.md](../improvements/PLAN.md#existing-holla-functional-parity-audit). Old source is pinned to `fca7d0cc41e139014900e1876a4ab30f126cddda`; new evidence is only local `holla-fable` at `215990ef2d682151bc0b16bd1697da3cbdbd7d9e`. Full source/test qualifications are retained in [evidence](holla-parity-evidence.md) and [preview inventory](holla-preview-inventory.md).
 
