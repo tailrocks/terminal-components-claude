@@ -1,5 +1,26 @@
 # tuiscotti migration status
 
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
+
 The visual baseline suite (`tests/visual_baseline/`) runs on
 [tuiscotti](https://github.com/tailrocks/tuiscotti) `main`, pinned in
 `Cargo.toml` to `a47c9aaefb34e4c00026f99d8a8dd7ee5916b274`. Its predecessor

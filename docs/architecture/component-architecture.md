@@ -1,5 +1,25 @@
 # Component Architecture — Current visual-baseline Tree vs. Target
 
+## Status
+
+Historical branch comparison and architecture plan. The current `main` refactor is started but incomplete, broken, and not ready. This document's target architecture does not establish that the implementation is correct or complete.
+
+## Authority
+
+Use `main` as the direction for split crates and reusable APIs. Use `design/interaction-polish` as the authority for visuals, colors, interactions, and behavior. Preserve useful API proposals here only when they fit the split-crate direction and retain the design contract.
+
+## Current evidence
+
+The comparison below was compiled for the branches and commits stated in its provenance. In particular, the present single-package manifest must be checked directly; quoted historical toolchain or branch facts may be stale.
+
+## Remaining work
+
+Retain the concrete component decomposition, boundary decisions, and open work. Reconcile outdated identities and status claims using current code without discarding accepted design requirements.
+
+## Verification
+
+Verify crate ownership from current manifests and dependencies. Verify reusable behavior with task-specific checks and visual parity procedures in `docs/visual-testing/README.md`. Historical measurements apply only to their recorded revision.
+
 **Provenance.** Compiled 2026-09-12 on branch `holla` (now `visual-baseline`) from three sources:
 (1) `docs/sources/main/COMPONENT_ARCHITECTURE.md` at `main` (the adjudicated target, accepted
 through §74), (2) [`DESIGN.md`](../design/DESIGN.md) in this working tree (the approved

@@ -1,3 +1,20 @@
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 Audited `origin/design/interaction-polish` at 9776abef7. I walked Tab across every showcase page and every holla and jackin scenario, plus the tablepro welcome and connected workbench, using throwaway TestBackend harnesses that record the focus stop, its area, whether the caret is visible and the footer. Four read-only subagents then went through the code screen by screen. The worktree has been removed and nothing was committed.
 
 **The main result:** across all 24 showcase pages, every holla scenario and the jackin host screens, Tab never produced a visible caret. In TablePro, a newly focused text field also shows no caret; the caret only appears in an editor or grid cell after Enter. The only stops that showed a caret on arrival were holla's finder search and the jackin terminal pane. Text fields, prompts, typed confirmations, the SQL editor and filters all need Enter or F2 before typing does anything. Until then, stray letters fall through to page shortcuts, including `q` quit, `e` reload the form and `z` zoom. Second, hints are hand-written per page, so they often don't match the focused control.

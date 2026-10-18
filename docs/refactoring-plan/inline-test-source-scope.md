@@ -1,5 +1,26 @@
 # Pinned-main inline-test source scope
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Source: `7b27732a8c3c131760ec3438f641cb3c11343a42`. This finite 146-path inventory was derived by source search for test attributes/configuration across every crate/app `src` tree. It is an initial location inventory, not a claim that grep proves complete test identity discovery. TASK-007 must reconcile it with parser discovery, external test modules, generated/macro tests and actual compiled test listings under all required profiles. No listed file is authorized for a production change.
 
 TASK-008 may change a listed source file only within independently approved exact test assertion spans. Before its executor edits, the host freezes a test-only patch manifest from accepted TASK-007 source identities and accepted TASK-006 oracle evidence: source blob, qualified test, old span bytes/hash and offsets, replacement bytes/hash, oracle scenario/checkpoint, retained assertion identities and independent review decision. The executor's proposed patch cannot approve itself. Recompute unchanged-byte projection outside these exact spans; preserve source module attributes, cfg/ignore conditions, production functions and retained safety assertions byte-for-byte. Whole-file archives retain original bytes. New conflicts outside this finite scope fail preparation and require a separately reviewed catalog amendment, not wildcard permission.

@@ -1,6 +1,21 @@
 # TablePro parity investigation and execution contract
 
-## Authority and inspected state
+## Status
+Historical parity investigation; findings remain concrete specifications, not proof of current parity. The current refactor remains incomplete.
+
+## Authority
+The split-crate architecture is the current structural direction. The design/interaction-polish branch is authoritative for UI/UX, colors, and behavior; historical visual-baseline pins are comparison evidence only.
+
+## Current evidence
+This document records source findings against the exact revisions named below; those pins do not establish present implementation state.
+
+## Remaining work
+Carry all concrete parity requirements and unresolved findings into the current work ledger at [remaining work](../remaining-work.md).
+
+## Verification
+Verification described below is scoped to its recorded revisions and methods. Re-run against current sources before closure.
+
+## Historical comparison pins and inspected state
 
 The UI oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). The architecture comparison is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. The investigation checkout was later, but `git diff 02f5294b HEAD -- src/bin/tablepro` is empty, so the cited application files exactly match the oracle. Widget acceptance still requires reading/capturing the immutable commit, not the moving checkout.
 

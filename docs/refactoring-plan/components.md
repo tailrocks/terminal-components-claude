@@ -1,5 +1,26 @@
 # Component system inventory and parity obligations
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This is a source audit for planning, not a report that the refactor passes. The immutable oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). The candidate source is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. References below use `O:path:line` and `M:path:line` for those exact trees. Paths without a line identify the complete module. The companion [component-parity.tsv](component-parity.tsv) is the exhaustive family ledger. Owner names are bounded work streams for the task planner to map to canonical task IDs; they are not task packages.
 
 ## Evidence rules

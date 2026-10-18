@@ -1,5 +1,26 @@
 # Independent rereview: Showcase and Holla app repairs
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 2026-09-11. Planning-only, source-backed rereview under `docs/sources/PLANNING_GOAL.md` and verify-and-stop. This reviewer did not author these app repairs. Only this report was written in the repository; no production, baseline, task package, shared copy, fixture source or Git ref was changed. The disposable replay harnesses were inspected and rerun without modification.
 
 ## Bounded result

@@ -1,5 +1,26 @@
 # Showcase oracle and execution contract
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Provenance and limits
 
 UI oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Candidate **M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. `O:pages/foo.rs` means `O:src/bin/showcase/pages/foo.rs`; `M:pages/foo.rs` means `M:apps/showcase/src/pages/foo.rs`. Other references give full repository paths. Findings below are source-proven unless explicitly marked runtime evidence. No candidate visual parity is claimed. The investigation checkout was `2e2401393c47360741ebd321679de08982dca50a`; `git diff O HEAD -- src Cargo.toml Cargo.lock` is empty, so its production sources and dependency lock equal O.
@@ -87,4 +108,4 @@ Full-executable runs use O's real `showcase --page NAME --color LEVEL` parser fo
 
 ## Execution ownership and stop condition
 
-Baseline acquisition owns SC-* fixture materialization, deterministic clock bridge, PTY input recording and immutable hashes. Shared runtime/layout/focus/style tasks own SC-SHELL/FOCUS/RESIZE foundations; reusable component tasks own the corresponding family semantics. Showcase migration tasks own all 23 actual production compositions and complete flows. Final integration consumes every expanded SC-* case and requires full machine equality plus public-API/duplicate-implementation checks; no omitted Diff route, inert enabled control, second visual data model, stale reference or mutable expected artifact is permitted. This file performs planning only; no production refactoring is implemented.
+The historical task partition assigns SC-* fixture materialization, runtime/layout/focus/style foundations, reusable component behavior, the 23 Showcase compositions and final integration checks. Preserve each ownership requirement and acceptance condition when reconciling this specification with current split-crate task boundaries. This file is not a current readiness report; the split-crate refactor remains incomplete.

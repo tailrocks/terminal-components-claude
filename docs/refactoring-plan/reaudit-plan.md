@@ -1,8 +1,23 @@
 # Source-first planning re-audit
 
+## Status
+Historical audit plan; its dated execution gate is superseded. The split-crate implementation remains incomplete.
+
+## Authority
+The current architecture direction is main’s reusable crate split. The design/interaction-polish branch owns UI/UX, colors, and interaction behavior. This report is evidence from the recorded pins below, not a competing authority.
+
+## Current evidence
+The findings and task coverage below are historical, commit-scoped audit records. Their verification applies only to the named artifacts and recorded revisions.
+
+## Remaining work
+Preserve unresolved findings and planned repairs in [remaining work](../remaining-work.md); use [current status](../status.md) for readiness.
+
+## Verification
+No current verification is implied by this historical report. Re-run relevant checks against the current branch before closing a task.
+
 ## Scope and current disposition
 
-The user reopened the planning goal on 2026-09-11 to verify every plan item and every line of every task, identify omissions, and repair them. The original planning/preparation boundary remains: no terminal-components production refactor, task execution, integration branch, commit, merge or publication is authorized by this re-audit. The explicitly permitted external tui-snap dependency remains separate.
+This is a historical source-first audit plan. Its old authorization boundary and dated task checkpoints do not govern current work. Current direction keeps the main branch’s reusable crate architecture while treating design/interaction-polish as authoritative for UI/UX, colors, and behavior. The architecture refactor remains incomplete; use the current status and remaining-work ledgers for present readiness.
 
 Completion is unproven. The previous turn made progress by producing the catalog and executed evidence, but those results do not settle the expanded source-first audit. At audit start, the previous complete artifact inventory matched 864 files and 143,008,176 bytes; its manifest SHA-256 was `e31a2cb70a4a987c5a5e5abc46fcc3d8c1f3188cd4c6ac5988dc0e4de6fce82f`. That inventory is a pre-audit snapshot, not a current seal after edits.
 
@@ -42,7 +57,7 @@ Reports and repairs are in progress. No current completion claim is made.
 
 ## Added whole-branch comparison
 
-The user additionally requested a complete reread of the difference between `main` and `visual-baseline` (then `holla`), including completed and half-completed work on main, broken behavior, and changes that made the product worse. The working interpretation is to continue main's accepted architecture and restore source-qualified Holla behavior, not restart the refactoring from Holla or mutate either branch. Clarification about a separate Holla-branch plan is pending.
+The user additionally requested a complete reread of the difference between `main` and `visual-baseline` (then `holla`), including completed and half-completed work on main, broken behavior, and changes that made the product worse. The historical comparison records source-qualified findings for preservation. Current implementation follows the split-crate architecture while matching the design branch’s product contract.
 
 Compare exact recorded tips `main=7b27732a8c3c131760ec3438f641cb3c11343a42` and `2e2401393c47360741ebd321679de08982dca50a` (then `holla`; live checkout is `visual-baseline`). Keep immutable oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c` separate: moving-branch additions are contextual evidence, not automatic product acceptance. Enumerate every changed path without relying on incomplete rename detection; inspect relocation counterparts explicitly. Text changes require complete assigned diff reading, binary artifacts require exact identity, decoded content where applicable, and provenance/use disposition. Record completed main work to preserve, unfinished main work to continue, regressions requiring source-compatible repair, and obsolete material not to port. Every proposed change must join a task owner and proof obligation. The whole-branch census, source reading, decisions and independent recheck are additional completion conditions; previous task-file audit alone does not satisfy them.
 

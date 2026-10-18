@@ -7,6 +7,26 @@ kind: refactor
 
 # TASK-044 — Restore Holla activity stdin cancellation and plan output
 
+## Status
+
+Historical task contract. This document records required work; it does not prove the task is complete or the current implementation is ready.
+
+## Authority
+
+Use `main` for the target split-crate architecture and reusable APIs. The refactor on `main` remains incomplete, broken, and not ready. Use `design/interaction-polish` for intended UI/UX, colors, layout, interactions, and behavior. Its planned work remains active; its monolithic structure is not the target architecture.
+
+## Current evidence
+
+Commit pins, source names, test identities, and oracle outputs below are historical task inputs. They identify this task's frozen evidence scope; they do not establish current product status. Check current source and host-protected receipts before making completion claims. Nested `trusted/*fixture/README.md` and `AGENTS.md` files are synthetic qualification inputs, not current project documentation or status.
+
+## Remaining work
+
+Keep every concrete requirement, acceptance criterion, checklist item, and trusted obligation in this package. Each remains open until its required current evidence passes the task's authoritative gate. Plans and historical completion labels do not close work.
+
+## Verification
+
+The task's `verify.toml`, protected host receipts, and specified checks define its gate and scope. Preserve exact commands, pins, IDs, and machine inputs. A prior check or an unverified report does not prove current completion.
+
 ## Goal
 
 Restore running/succeeded/failed/stopping/stopped/launch-failure activity output, exact mixed streams/filter chips/retention loss/find/selection/follow; available/waiting/plain/password stdin, Enter/EOF/cancel and TERM→KILL settlement; plan step/output focus/maximize/retry/failure/dependent blocked/cancel; activity picker, running close and quit settlement with tab restoration. Secret input must not remain in frames, logs or retained stdin bytes.
@@ -184,9 +204,6 @@ Then every declared state and effect assertion passes without granting a parent 
 
 R-001 and R-002 explicitly permit extraction-only observation seams in this task's already writable production source or completion-test files. They are untrusted candidate code, built with the frozen candidate and real production handlers/renderers; they are not accepted oracle adapters, judges, schema authors or receipt producers. TASK-002–006 own the protected observation schema and logical identity mapping; TASK-070 owns independently qualified source/binary/action binding and wrong-state, constant-state, omitted-field, wrong-source and test-only-substitution rejection. Candidate seams may serialize actual focus/edit/selection/target/overlay/domain state, but may not replace input dispatch/rendering, synthesize expected state, branch on a test-only product path or alter protected mappings. The existing prohibition on changing observation adapters means protected reference adapters and runner policy; it does not forbid these explicitly scoped untrusted extraction seams. A seam needing another task's source path remains outside scope and must be assigned before dispatch.
 
-## Campaign execution binding
-
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with immutable per-check contexts, pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
 
 ## Checklist
 

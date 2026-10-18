@@ -1,5 +1,26 @@
 # Later amendments to architecture sections 0–29
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Scope and completion
 
 This planning ledger directly reconstructs amendments to the prefix of `COMPONENT_ARCHITECTURE.md` before the top-level §30 heading. The prefix includes the original appendices and sections 21–29. It covers every indexed parent edge after `3ed377e3`, which is the last edge owned by the early reader; the parent assignment's `3ed5c26f` spelling was corrected against Git. The early reader owns `70dacec1` and `3ed377e3` themselves. The historian owns the initial J/L/M inline reconciliation. Later numbered sections belong to the middle and late readers, even when their decisions amend the earlier prefix.

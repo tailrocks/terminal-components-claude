@@ -1,5 +1,26 @@
 # Rediscovered prompt, reference and design history
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Evidence boundary
 
 This is the source-first continuation of `reaudit-history.md`, not certification by a successful ledger join. All three rediscovered prompt/reference blobs were read completely. DESIGN was read as the complete initial generation, complete rewrite, complete oracle generation, and every distinct subsequent parent-relative delta, including the non-first merge parent. Exact unchanged object identities reuse a read; a merge subject alone does not establish equality. `git log --all --follow` found no earlier rename of these four paths. Additions and deletions were also checked with `--full-history` and actual parents, not inferred from `--follow` output.

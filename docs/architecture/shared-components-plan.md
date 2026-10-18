@@ -1,16 +1,36 @@
 # Shared components plan
 
-Status: plan, 2026-10-16, for `design/interaction-polish`. Owner: main session; every step is done by subagents (AGENTS.md, "Way of working").
+## Status
+
+This detailed plan and its planned design work remain in scope. Completion labels and progress tables are scoped to the revisions and evidence recorded in each section. The main refactor is unfinished, broken, and not ready.
+
+## Authority
+
+The architecture target is `main`'s split crates and reusable APIs. The behavior, interactions, visuals, and colors being extracted are governed by `design/interaction-polish`. Keep every planned component, audit follow-up, and showcase task below.
+
+## Current evidence
+
+This plan records design-branch findings and dated task status. Validate current source and exact acceptance evidence before treating any row as complete.
+
+## Remaining work
+
+Use this plan together with `docs/remaining-work.md`; the latter is the active item register. Do not remove open planned work while reconciling outdated branch or implementation claims.
+
+## Verification
+
+Each component milestone requires its task-specific API, behavior, showcase, and visual evidence. See `docs/visual-testing/README.md` for current visual procedures. Historical gates do not prove the current integration.
+
+This is a detailed design and implementation plan. Its dated status and staffing assignment are retired; the task ledger at `docs/remaining-work.md` carries open work.
 
 **What is left:** [`docs/remaining-work.md`](../remaining-work.md) is the single list of every step, carry-over, audit follow-up and owner decision still open on this branch.
 
-Inputs: [`duplication-shell.md`](../audits/design-review-2026-10/duplication-shell.md), [`duplication-widgets.md`](../audits/design-review-2026-10/duplication-widgets.md) and [`duplication-screens.md`](../audits/design-review-2026-10/duplication-screens.md); [`mouse.md`](../audits/design-review-2026-10/mouse.md) and [`keyboard.md`](../audits/design-review-2026-10/keyboard.md); [`standards-interaction.md`](../audits/design-review-2026-10/standards-interaction.md) and [`standards-visual.md`](../audits/design-review-2026-10/standards-visual.md); the status sections of the other audits; and [`docs/visual-testing/plan.md`](../visual-testing/plan.md), which requires the port to `main` to match this branch 1:1. The showcase coverage track (§7) also takes [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md). Finding references: **M#** is a mouse audit finding, **K#** a keyboard audit finding, **SI#** a standards-interaction verdict, **SV#** a standards-visual verdict, and **SIg#** / **SVg#** a "gaps not yet raised" item in those two reviews.
+Inputs: [`duplication-shell.md`](../audits/design-review-2026-10/duplication-shell.md), [`duplication-widgets.md`](../audits/design-review-2026-10/duplication-widgets.md) and [`duplication-screens.md`](../audits/design-review-2026-10/duplication-screens.md); [`mouse.md`](../audits/design-review-2026-10/mouse.md) and [`keyboard.md`](../audits/design-review-2026-10/keyboard.md); [`standards-interaction.md`](../audits/design-review-2026-10/standards-interaction.md) and [`standards-visual.md`](../audits/design-review-2026-10/standards-visual.md); and [`docs/visual-testing/plan.md`](../visual-testing/plan.md), whose retained requirements are scoped to the design branch and must be reconciled with current split-crate gates. The showcase coverage track (§7) also takes [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md). Finding references: **M#** is a mouse audit finding, **K#** a keyboard audit finding, **SI#** a standards-interaction verdict, **SV#** a standards-visual verdict, and **SIg#** / **SVg#** a "gaps not yet raised" item in those two reviews.
 
-**The problem.** The four apps hold about 11k lines of shell code and about 11.5k lines of hand-built screen UI. Inside `src/widgets` there are about 145 duplicated functions (about 1,750 lines). The copies have drifted: the same gesture behaves differently in different apps and widgets. This plan moves that behaviour into one shared layer, decides each divergence once, and names everything so that porting to `main` (termrock) moves code instead of rewriting it.
+**The problem.** The four apps hold about 11k lines of shell code and about 11.5k lines of hand-built screen UI. Inside `src/widgets` there are about 145 duplicated functions (about 1,750 lines). The copies have drifted: the same gesture behaves differently in different apps and widgets. This plan moves that behavior into shared reusable crates, decides each divergence once, and names API concepts that can be reused in the split-crate architecture.
 
-## 1. Principles and target architecture
+## 1. Product/API contracts and candidate architecture
 
-### 1.1 Principles (from AGENTS.md)
+### 1.1 Product and API principles (from AGENTS.md)
 
 | # | Principle | What it means for this plan |
 |---|---|---|
@@ -246,7 +266,7 @@ The rules that go with the gate:
 - Pattern: **expand** (add the library API plus an adapter over the old API), **migrate** (move every caller in all apps), **contract** (delete the old API and the app copies).
 - `rg` checks named per step must return 0 hits after the contract.
 
-**Parallel groups** (agents work on disjoint files in isolated worktrees):
+**Dependency groups** (step order and non-overlapping scopes):
 
 | Group | Steps |
 |---|---|
@@ -295,7 +315,7 @@ The rules that go with the gate:
 
 ### Step status
 
-Each step's agent updates its row when the step lands: state, commits, and every deviation from the row in the table above.
+Update each step row when its scope lands: state, commits, and any deviation from the contract in the table above.
 
 | Step | State | Commits | Deviations and notes |
 |---|---|---|---|
@@ -534,7 +554,7 @@ Each step's agent updates its row when the step lands: state, commits, and every
 2. No `Cx` yet (S7): dialog-like widgets take `pointer_in(ev, &mut Focus)`; the router focuses the pressed region when it is in the ring, pages focus the owner as before.
 3. `Phase::DragStart` is never sent: the first move is a `Drag`. `Phase::SecondaryRelease` is not sent either: a secondary release on an accepting row is a `Click` (M12, as before). `MouseKind::{SecondaryUp, SecondaryDrag}` already existed (M12, `1cee36e98`).
 4. M12, M37 and M38 were already fixed (mouse audit, widget pass); S6 routes them through the router unchanged (`SecondaryUp` → click; `PointerConfig::{pointer_shapes, caret_shape}` stay opt-out knobs).
-5. Visual: none intended. holla's 25 `elements/menubar/file-pressed` captures now show the File menu open on the held press (holla never called `MenuBar::on_press`; every changed cell attributed by the holla agent's diff script). holla has no re-approved captures yet, so the gate does not see them; they go to the app visual re-approval. The in-bin showcase digest changed only on the Inspector (the State tab's hit-region count, Focus on: press).
+5. Visual: none intended. holla's 25 `elements/menubar/file-pressed` captures now show the File menu open on the held press (holla never called `MenuBar::on_press`; every changed cell attributed by the holla capture diff script). holla has no re-approved captures yet, so the gate does not see them; they go to the app visual re-approval. The in-bin showcase digest changed only on the Inspector (the State tab's hit-region count, Focus on: press).
 6. The showcase still has no `ShellLayers` of its own: its dialog and keyboard reference are modal layers it routes directly (S7).
 7. Intermediate showcase commits: `cf09e3a28` fails `clippy -D warnings` on a dead `PageCtx::mods` that `72c275f59` removes; the series' head passes the full gate.
 8. `PartMap` is not deleted: it is `pub(crate)` (`PartEntry` private, `get`/`contains`/`key`/`is` gone, catalog lines removed) and stays as a field of DataTable (the `▾` lookup of `on_click_editor(id)`) and DataGrid (`cell_of`, `rownum_of`, `open_of` behind its id-taking `on_click`, `on_press`, `on_drag`): a hit records a cell's row, not its column, so the id-only methods need the map until S15 replaces them. 14 `WidgetId::item_of` calls remain in private helpers behind id-taking legacy methods (toolbar, menu, select, option editor, tabs, picker, completion, props, table and grid seams, grid headers); ContextMenu, Select and ChoiceEditor have a `pub(crate) contains_id` for their containers' id-taking methods. All go with S15.
@@ -909,11 +929,11 @@ Each step's agent updates its row when the step lands: state, commits, and every
 |---|---|
 | Every app's event path changes (S6, S7, S8a) | Each lands behind adapters; the old paths are deleted only in the contract commit. G plus the per-app journeys run on every commit; the pointer and keyboard audit harnesses are re-run as regression tests. |
 | A visual change is slipped in | The digest (`tests/showcase_baseline.txt`) and the smoke tier gate every commit. Visual changes are only the **visual**-marked items, each in its own re-approval commit. |
-| Parallel agents conflict in the same widget files | Each step owns disjoint files (§4 groups). S0 and S15 are cross-cutting and run alone. App screen migrations (S16) are split per app. |
+| Concurrent edits can conflict in widget files | Keep step scopes distinct (§4 dependencies). S0 and S15 are cross-cutting and should be sequenced. App screen migrations (S16) can be separated by app. |
 | `main` port drift | §1.9 fixes the names now. Shapes follow `main` except where §1.9 records a better design (`Dismiss`, `count`, `ListCore`, typed key maps, traits). A port checklist row is added to visual-testing plan §F3 for each. |
 | The `Page` trait becomes the new god object | `Page` has defaults for every method except `draw` and `update`. Domain-specific pieces stay in the app's `App::on_command`. |
 | Retained widgets (`&mut self` render) vs `main`'s immediate mode | Out of scope here. `Draw` takes `&mut self` now; the port splits `XState` from the props struct. Nothing in this plan blocks that. |
-| Effort | 24 steps plus a theme track, each one subagent-sized. Groups C, F, G, J and K run 3–5 agents in parallel. |
+| Work breakdown | The 24 steps and theme track preserve the planned behavior and reusable API scope. Their old sequencing and ownership are not current assignments. |
 
 **Expected deletions from `src/bin` (estimates, from the three reviews):**
 
@@ -929,7 +949,7 @@ Inside the library, about 1,750 duplicated lines in `src/widgets` collapse into 
 
 ## 7. Showcase coverage track (SC)
 
-Status: plan, 2026-10-16. Owner: main session; every step is done by subagents. Inputs: [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) (244 rows: 82 ✅, 69 ⚠️, 93 ❌) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md) (92 app patterns: 10 ✅, 82 ⚠️ or ❌; many still app-local).
+This is a planned showcase-coverage workstream. Its dated status and staffing assignment are retired. Inputs: [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) (244 rows: 82 ✅, 69 ⚠️, 93 ❌) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md) (92 app patterns: 10 ✅, 82 ⚠️ or ❌; many still app-local).
 
 **The problem.** The showcase shows every widget family, but only about a third of the library's capabilities. Ten whole widgets are never shown (`Breadcrumb`, `SidebarRail`, `ButtonRow`, `ChoiceDialog`, `FormDialog`, `InfoDialog`, `HelpOverlay`, `KeyReference`, `PropsList`, stacked modals through `ModalStack`). Most builder methods and policy variants are never called, and no option can be flipped while the showcase runs. The apps meanwhile use 82 patterns that the showcase does not show, and many of those live only in app code. This track makes the showcase the complete catalogue of the library and adds a gate so that a capability can never again ship without being shown.
 
@@ -987,7 +1007,7 @@ Beyond the gate G (§4):
 
 ### 7.5 Steps
 
-Files named are the files the step owns; steps in the same parallel group own disjoint files. "After Sx" means the capability is extracted or changed in Sx first. From now on (AGENTS.md, "Showcase") an S-step's own change must include its demo, so a follow-on step (SC29–SC45) either lands inside its S-step or is run by a paired agent in the same group, before the S-step is marked done.
+File names identify each step's change scope; dependency groups do not authorize overlapping edits. "After Sx" means the capability is extracted or changed in Sx first. An S-step includes its demo, so a follow-on step (SC29–SC45) either lands inside its S-step or is paired with that step before it is marked done.
 
 **Foundation**
 
@@ -1052,7 +1072,7 @@ Files named are the files the step owns; steps in the same parallel group own di
 | **SC57** | Strategy B on Focus & navigation and Toolbars: `focusnavigation.*` options per policy (`FocusPolicy`, `AdjacentMove` stop/wrap/next control, `AdjacentKeys`, `Scope`, `Bounds`) applied to a list, a tab strip, a tree, a select and a toolbar side by side, with a readout of where each edge key sends focus; `toolbars.adjacent` | S27 | `pages/focus_navigation.rs`, `pages/toolbars.rs` |
 | **SC58** | Function coverage (added by SC-G1): the public queries, labels, theme roles and render helpers the gate registers since SC-G1 and no other step owns, shown on their pages: `Theme` style roles (`status`, `tone`, `env`, `syntax`, `badge`, `button`, ...) as a roles readout beside the Overview token table; `DiffFile`/`DiffStatus`/`diff::unified_lines` labels on Diff; `DataGrid`/`DataTable`/`PendingChanges` labels and counts on the grid and table pages; `TreeView`, `StepRail`, `Picker`, `ColumnEditor` queries in their readouts; `ui::leave` dialogs by name on Quit & leave; `ui::text::{wrap, fuzzy}`, `progress::spinner_frame`, `TooSmall::applies` | SC-G1 | the pages named |
 
-**Screens (group SC-S; composed from the library only, parallel among themselves)**
+**Screens (group SC-S; composed from the library only, after their dependencies land)**
 
 | Step | Screen | Deps |
 |---|---|---|
@@ -1068,15 +1088,15 @@ Files named are the files the step owns; steps in the same parallel group own di
 | **SC55** | Launch cockpit: `StepRail` stages, activity chip opening the build log overlay, Cancel launch (the handoff cross-fade stays jackin-only, owner decision 2026-10-17) | S22, S26 |
 | **SC56** | Read-only report: `live · ago` meta, meters, facts, toned body, `r` refresh, Next buttons | S17 |
 
-### 7.6 Parallel groups
+### 7.6 Dependency groups
 
 | Group | Steps | Notes |
 |---|---|---|
 | SC-A | SC0 | Alone: it writes the registry and the allowlist every later step edits. |
-| SC-B | SC1 ‖ SC2 | Disjoint: SC1 owns the Inspector, `options.rs` and `--opt`; SC2 owns `specimen.rs`, the template, page registration and stubs. Both may run beside S-group B or later. |
-| SC-C | SC3 ‖ SC4 ‖ SC7 ‖ SC8 ‖ SC9 ‖ SC10 ‖ SC11 ‖ SC12 ‖ SC13 ‖ SC14 ‖ SC15 ‖ SC16 ‖ SC17 ‖ SC18 ‖ SC19 ‖ SC20 ‖ SC21 ‖ SC22 ‖ SC23 ‖ SC24 ‖ SC25 ‖ SC26 ‖ SC28; then SC5 → SC6 (both touch `app.rs`); SC27 after SC14 | One agent per step, disjoint page files; each rebases only its allowlist lines. Run 4–6 at a time. A page step must not run while an S-step migrates the same page file (check §4's owners). |
-| SC-F | SC29–SC45, SC57 | Each in the same change as its S-step, or by a paired agent in that S-step's group. |
-| SC-S | SC46–SC56 | When their deps have landed; parallel among themselves. |
+| SC-B | SC1 ‖ SC2 | SC1 covers the Inspector, `options.rs` and `--opt`; SC2 covers `specimen.rs`, the template, page registration and stubs. Requires the corresponding S-group B foundations. |
+| SC-C | SC3 ‖ SC4 ‖ SC7 ‖ SC8 ‖ SC9 ‖ SC10 ‖ SC11 ‖ SC12 ‖ SC13 ‖ SC14 ‖ SC15 ‖ SC16 ‖ SC17 ‖ SC18 ‖ SC19 ‖ SC20 ‖ SC21 ‖ SC22 ‖ SC23 ‖ SC24 ‖ SC25 ‖ SC26 ‖ SC28; then SC5 → SC6 (both touch `app.rs`); SC27 after SC14 | Keep page-file scopes distinct and reconcile each step's allowlist changes. A page step depends on completion of any S-step migrating the same page file (see §4 dependencies). |
+| SC-F | SC29–SC45, SC57 | Each is paired with its S-step so the capability and showcase use land together. |
+| SC-S | SC46–SC56 | Independent page scopes begin after their listed dependencies have landed. |
 
 ### 7.7 Inventory mapping
 
@@ -1350,7 +1370,7 @@ The ✅ library rows with gaps noted in their "missing" column (Theme tokens, Bu
 
 ### 7.8 Step status
 
-Each step's agent updates its row when the step lands: state, commits, deviations, and the number of allowlist entries it removed.
+Update each step row when its scope lands: state, commits, deviations, and the number of allowlist entries it removed.
 
 | Step | State | Commits | Deviations and notes |
 |---|---|---|---|
