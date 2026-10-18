@@ -1,8 +1,8 @@
-//! Deterministic replacements for the historical `TablePro` performance entry points.
-//!
-//! These retain the named smoke-test contracts while exercising only the
-//! public application facade and domain adapter. Allocation budgets belong to
-//! a separate harness because the old backend is outside this package.
+
+
+
+
+
 
 use tablepro_ui::{ColType, QueryOutcome, ResultGrid, ResultSet, TableProApp, Value};
 use termrock::{Axis, ColumnKey, GridModel, ItemKey, KeyCode, Part, PartRef, SortDir, Theme};

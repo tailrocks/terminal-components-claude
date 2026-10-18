@@ -1,4 +1,4 @@
-//! Coordinates derived from pinned Holla app.rs `draw_sidebar`, not candidate regions.
+
 use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{Color, Id, ItemKey, KeyCode, Modifier, MouseKind, Part, PartRef, Rect, Theme};
 use termrock_test_support::Harness;
@@ -104,7 +104,7 @@ fn right_and_l_enter_page_but_enter_stays_navigation() {
         if key == KeyCode::Enter {
             assert_eq!(h.focus(), Some(NAV));
         } else {
-            // Pinned Buttons registers Run task first; index6/7 are disabled.
+
             assert_eq!(
                 h.focus(),
                 Some(Id::root("showcase_ui::pages::buttons::buttons").index(0))

@@ -1,4 +1,4 @@
-//! `seal` rejects fixture tasks with empty `seal_products`.
+
 
 use std::path::Path;
 

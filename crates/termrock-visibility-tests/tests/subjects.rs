@@ -1,9 +1,9 @@
-//! Black-box contract tests for the pinned subject-build launcher.
-//!
-//! The operational success case uses synthetic Cargo metadata/build messages,
-//! but resolves and archives the exact current branch tips from a synthetic
-//! caller-pinned facts record, plus the immutable oracle tag. The fake Cargo
-//! fixture never compiles or launches a product executable.
+
+
+
+
+
+
 
 #[cfg(unix)]
 use std::cell::Cell;
@@ -548,11 +548,11 @@ fn install_rustup_fixture_test_adapter(
         "a new test invocation must have a fresh rustup adapter path"
     );
 
-    // Bash's exec -a keeps argv[0] equal to the rustup alias while this
-    // test-only adapter supplies synthetic fixture settings to the child.
-    // The production CLI still receives and applies its unchanged clean-env
-    // policy. This adapter is verified on the pinned macOS runner; other Unix
-    // targets need their own native portability check.
+
+
+
+
+
     let interpreter_entry_path = PathBuf::from("/bin/bash");
     let interpreter_path = interpreter_entry_path
         .canonicalize()
@@ -596,11 +596,11 @@ fn install_rustup_fixture_test_adapter(
         .get("VISIBILITY_FIXTURE_CARGO_BUILD_STDOUT")
         .is_some_and(|path| !path.is_empty());
     if let Some(exit) = requested_build_exit.filter(|_| has_build_stdout) {
-        // The committed fixture returns before emitting configured stdout for
-        // a failed build. For this synthetic protocol case only, let it emit
-        // the requested streams on the success branch, then return the
-        // requested failure status from the adapter so the production CLI
-        // observes the complete command result.
+
+
+
+
+
         script.push_str(&format!(
             "if [ \"$#\" -ge 4 ] && [ \"$1\" = run ] && [ \"$2\" = 1.98.1 ] && [ \"$3\" = cargo ] && [ \"$4\" = build ]; then\n\\
              VISIBILITY_FIXTURE_CARGO_BUILD_EXIT=0 /bin/bash -c 'exec -a \"$0\" \"$1\" \"${{@:2}}\"' \"$0\" {} \"$@\"\n\\
@@ -784,8 +784,8 @@ fn remove_owned_readonly_tree(repository_root: &Path, tree: &Path) -> std::io::R
 
 #[cfg(not(unix))]
 fn remove_owned_readonly_tree(_repository_root: &Path, _tree: &Path) -> std::io::Result<()> {
-    // The shared CLI runner is Unix-only and returns before any snapshot can
-    // be materialized on other hosts.
+
+
     Ok(())
 }
 
@@ -1984,9 +1984,9 @@ fn validates_tag_bundle_source_closure_but_keeps_execution_unverified() {
     fs::remove_file(&alternates_path).expect("hide the fixed tag object from this disposable repo");
     let object_store = repository.join(".git/objects");
 
-    // Prove this is a promisor-missing object case: with lazy fetch enabled,
-    // Git reaches only the local probe helper, which records the attempt and
-    // exits before any network or object transfer can occur.
+
+
+
     let lazy_fetch_control = Command::new("git")
         .current_dir(&repository)
         .args([
@@ -4244,15 +4244,15 @@ fn real_build_unix_millis() -> u128 {
         .as_millis()
 }
 
-/// Runs one caller-authorized production Holla pair build, without launching either product.
-///
-/// The invocation driver must provide a fresh, absent Nextest target root and verify that
-/// absence before calling Nextest. It also supplies a unique per-run disposable CARGO_HOME
-/// populated for locked offline builds. This test confirms the paths and rejects symlinked
-/// registry/git roots, but does not copy or clean the caller's cache.
+
+
+
+
+
+
 #[cfg(unix)]
 #[test]
-// Real Holla pair build: requires accepted source facts and an assigned build slot.
+
 #[ignore = "branch-scoped evidence gate: builds synthetic subjects from the refs/remotes/origin/{visual-baseline,termrock-implementation} fixtures that the two-branch consolidation removed; preserved with the recovery refs and bundle (ledger R-41/R-47)"]
 fn supervises_real_holla_pair_build() {
     const REFERENCE_COMMIT: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
@@ -5062,12 +5062,12 @@ fn supervises_real_holla_pair_build() {
     );
 }
 
-/// The only positive tag-receipt producer uses the real pinned tag and real Cargo.
-/// An outer caller supplies a unique external run root, private cache/HOME, and exact
-/// reviewed producer digest. Run with process-group timeout and an external Cargo slot.
+
+
+
 #[cfg(unix)]
 #[test]
-// Actual immutable-tag Holla build: requires a root-granted build slot.
+
 #[ignore = "branch-scoped evidence gate: builds synthetic subjects from the refs/remotes/origin/{visual-baseline,termrock-implementation} fixtures that the two-branch consolidation removed; preserved with the recovery refs and bundle (ledger R-41/R-47)"]
 fn supervises_real_frozen_tag_holla_build() {
     const OUTER_TIMEOUT: Duration = Duration::from_secs(1200);

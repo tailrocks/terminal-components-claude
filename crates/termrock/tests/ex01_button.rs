@@ -1,17 +1,17 @@
-//! External facade integration test for recipe EX-01.
-//!
-//! Compile this file as a `termrock` integration test (`termrock` is the
-//! only crate dependency). It does not import `termrock_controls` or
-//! `termrock_fields`.
+
+
+
+
+
 
 use termrock::{
     Activated, App, Buffer, Button, Cx, Flow, Id, Rect, Response, Runtime, Theme, Ui, Variant,
 };
 
 const SAVE_ID: Id = Id::root("ex01.save");
-/// Wide enough for the button gutter, the four-column "Save" label, and the pad.
+
 const SAVE_AREA: Rect = Rect::new(0, 0, 12, 1);
-/// Disabled button. This test supplies no key and no mouse.
+
 const CAN_SAVE: bool = false;
 
 fn update_save(id: Id, cx: &mut Cx<'_>, can_save: bool) -> Response<Activated> {
@@ -32,15 +32,15 @@ struct SaveProbe {
     id: Id,
     area: Rect,
     can_save: bool,
-    /// The value `update_save` returned. Never a constructed `Response`.
+
     captured: Option<Response<Activated>>,
 }
 
 impl App for SaveProbe {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let response = update_save(self.id, cx, self.can_save);
-        // `App::update` must return `Response<()>`. Keep the original
-        // `Response<Activated>` and forward only its erased form.
+
+
         let forwarded = response.clone().erase();
         self.captured = Some(response);
         forwarded
@@ -88,7 +88,7 @@ fn ex01_disabled_save_without_input_paints_label() {
         Theme::junie(),
     );
 
-    // Bootstrap only. No `Runtime::handle`, key, or mouse.
+
     let _bootstrap = runtime.initialize();
 
     let response = runtime
@@ -100,8 +100,8 @@ fn ex01_disabled_save_without_input_paints_label() {
     assert!(!response.activated());
     assert!(response.action_ref().is_none());
     assert_eq!(response.flow(), Flow::Ignored);
-    // No intent was delivered. A negative `activated` result does not prove
-    // that a disabled button rejects keyboard or pointer activation.
+
+
 
     let mut buffer = Buffer::empty(SAVE_AREA);
     assert!(

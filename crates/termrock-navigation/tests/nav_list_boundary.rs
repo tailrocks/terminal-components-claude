@@ -1,4 +1,4 @@
-//! Opt-in list exits preserve collection state and default navigation.
+
 use termrock_core::{Id, ItemKey, KeyCode, Response};
 use termrock_navigation::{NavList, NavListAction, NavListState};
 use termrock_runtime::{App, Cx, Ui};
@@ -80,7 +80,7 @@ fn default_edges_remain_consumed_and_opt_in_edges_preserve_state() {
             h.app().actions,
             vec![NavListAction::Moved(ItemKey::text("last"))]
         );
-        // Commit the preceding move's reveal before probing an exit attempt.
+
         let _ = h.key(KeyCode::F(12));
         h.app_mut().actions.clear();
         let offset = h.app().state.scroll().offset();

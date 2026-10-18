@@ -1,4 +1,4 @@
-//! Captured editor writes through the production editor and deterministic World APIs.
+
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,

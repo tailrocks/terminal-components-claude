@@ -1,12 +1,12 @@
-//! The distinct non-Junie theme (`COMPONENT_ARCHITECTURE.md` §11.7): a
-//! **light** theme that inverts the plane direction (hover darkens),
-//! changes hue family (indigo accent), uses square borders and compact
-//! density — the four axes that expose hidden Junie assumptions.
-//!
-//! Seeds: surfaces `#fbfaf8 #f2f0ec #e8e5df #ded9d0 #cfc8bb`, fg from
-//! `#1b1a17` down to `#c6c0b6`, accent `#3b5bdb`, danger `#b02525`,
-//! warning `#a86400`, success `#1f7a3d`, borders `#ded9d0` / `#9c948a`.
-//! Everything else is derived by `ThemeBuilder::build`.
+
+
+
+
+
+
+
+
+
 
 use ratatui_core::style::Color;
 
@@ -21,7 +21,7 @@ const WARNING: Color = Color::from_u32(0xa8_64_00);
 const SUCCESS: Color = Color::from_u32(0x1f_7a_3d);
 const INFO: Color = Color::from_u32(0x2b_6c_b0);
 
-/// The paper seeds; `Color::Reset` marks a token for derivation.
+
 pub(crate) const fn seeds() -> ColorTokens {
     let r = Color::Reset;
     ColorTokens {
@@ -75,7 +75,7 @@ pub(crate) const fn seeds() -> ColorTokens {
     }
 }
 
-/// Build the paper theme.
+
 pub(crate) fn theme() -> Theme {
     let mut t = Theme::from_tokens(seeds())
         .builder()

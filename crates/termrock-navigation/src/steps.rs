@@ -1,15 +1,15 @@
-//! `Steps` (`COMPONENT_ARCHITECTURE.md` §12.4, §18.2, Appendix A 4C).
-//!
-//! The ordered-lifecycle rail. `Steps` deliberately has **no selection**:
-//! that is the difference §12.4 preserves between it and `List`. What it has
-//! instead is a *frontier* — the first step that has not finished — derived
-//! from the step states the caller supplies, and painted.
-//!
-//! Whether the rail is navigable is chosen by the **constructor**, never by a
-//! flag: [`Steps::new`] is a display rail that still answers the pointer and
-//! the wheel, and [`Steps::navigable`] adds the focus stop, the cursor and
-//! the keymap. That is §23 K2's G4 shape ("capability is chosen by the entry
-//! point") rather than the legacy `selectable: bool`.
+
+
+
+
+
+
+
+
+
+
+
+
 
 use core::fmt;
 use core::marker::PhantomData;
@@ -33,27 +33,27 @@ use termrock_core::response::{Response, StateFlags};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-/// Where one step is in its lifecycle.
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum StepState {
-    /// Not started.
+
     #[default]
     Queued,
-    /// In flight.
+
     Running,
-    /// Finished successfully.
+
     Done,
-    /// Deliberately not run.
+
     Skipped,
-    /// Finished unsuccessfully.
+
     Failed,
-    /// Cannot start until something outside the rail changes.
+
     Blocked,
 }
 
 impl StepState {
-    /// The word the rail paints as the step's trailing metadata when the row
-    /// renderer supplies none.
+
+
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
@@ -66,8 +66,8 @@ impl StepState {
         }
     }
 
-    /// Whether the step has finished, one way or another. The frontier is
-    /// the first step for which this is `false`.
+
+
     #[must_use]
     pub const fn terminal(self) -> bool {
         matches!(
@@ -76,7 +76,7 @@ impl StepState {
         )
     }
 
-    /// The flags a row wears for this state.
+
     #[must_use]
     pub const fn flags(self) -> StateFlags {
         match self {
@@ -89,7 +89,7 @@ impl StepState {
         }
     }
 
-    /// The glyph the rail paints into `Part::ICON`, if any.
+
     #[must_use]
     pub const fn glyph(self) -> Option<GlyphRole> {
         match self {
@@ -102,31 +102,31 @@ impl StepState {
     }
 }
 
-/// What a navigable rail reports.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepsAction {
-    /// The cursor moved.
+
     Moved(ItemKey),
-    /// A step was activated (Enter, or a click on its row).
+
     Activated(ItemKey),
 }
 
-/// The const-constructible commands of the steps keymap.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepsCmd {
-    /// Cursor up.
+
     Up,
-    /// Cursor down.
+
     Down,
-    /// Cursor up one viewport.
+
     PageUp,
-    /// Cursor down one viewport.
+
     PageDown,
-    /// Cursor to the first step.
+
     Home,
-    /// Cursor to the last step.
+
     End,
-    /// Activate the cursor step.
+
     Activate,
 }
 
@@ -227,9 +227,9 @@ const TABLE: [Binding<StepsCmd>; 11] = [
     ),
 ];
 
-/// Durable state of a [`Steps`] rail: the cursor key, the scroll offset and
-/// the reconcile stamp. There is no selection and no checked set — that is
-/// the point of the component.
+
+
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct StepsState {
     core: CollectionCore,
@@ -237,7 +237,7 @@ pub struct StepsState {
 }
 
 impl StepsState {
-    /// A rail with no cursor.
+
     #[must_use]
     pub const fn new() -> Self {
         StepsState {
@@ -246,31 +246,31 @@ impl StepsState {
         }
     }
 
-    /// The cursor key. Always `None` for a display rail that has never been
-    /// clicked.
+
+
     #[must_use]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The scroll state.
+
     #[must_use]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-    /// Point the cursor at `(index, key)` and reveal it on the next layout.
+
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
 
-    /// Force collection reconciliation and a cold frontier scan on the next
-    /// frame.
-    ///
-    /// Monotonic lifecycle progress needs no invalidation. Call this after a
-    /// retry/reset, a same-length interior reorder, or a state regression
-    /// before the cached frontier. Once the revision saturates, correctness
-    /// wins over cache reuse and every draw scans from the beginning.
+
+
+
+
+
+
+
     pub fn invalidate(&mut self) {
         self.frontier_revision = self.frontier_revision.saturating_add(1);
         self.core.invalidate();
@@ -287,99 +287,99 @@ impl Reconcile for StepsState {
     }
 }
 
-/// An ordered lifecycle rail with a frontier.
-///
-/// ## Construction
-/// `Steps::new(id)` — the display rail: a hit target and a wheel target, no
-/// focus stop, no keymap. `Steps::navigable(id)` — the same rail plus a
-/// focus stop, a cursor and the keymap. The two are separate constructors
-/// because they are semantically different modes, not a `bool` (§13, §23 K2
-/// G4). The steps are passed to each phase, never held.
-///
-/// ## Ownership
-/// The caller owns the steps (`&[T]` per phase) and a [`StepsState`]. The
-/// runtime owns focus, hover, press, wheel routing and the scrollbar
-/// capture.
-///
-/// ## Configuration
-/// `.step(&dyn Fn(&T) -> StepState)` (default: every step is
-/// `StepState::Queued`), `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable
-/// under reorder), `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`),
-/// `.disabled(bool)` (default `false`), `.patch`, `.patch_part`, `.slot`,
-/// runtime state.
-///
-/// ## Variants
-/// `Family::STEPS`, `DEFAULT` only.
-///
-/// ## States
-/// The rail wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` and `PRESSED` from
-/// the runtime and `DISABLED` from `.disabled`. Each row derives its own
-/// flags from its [`StepState`] — `BUSY | ACTIVE` running, `CHECKED` done,
-/// `READ_ONLY` skipped, `ERROR` failed, `WARNING` blocked — plus `ACTIVE` on
-/// the frontier and the runtime's focus flags on the cursor row. The rail
-/// takes **no** `.status(Status)` prop: readiness in a rail is per step, and
-/// §11.4 forbids accepting a readiness prop without painting its affordance.
-///
-/// ## Actions
-/// `Moved(k)`, `Activated(k)`. A display rail emits `Moved(k)` on a click (the
-/// cursor is how it reports which step the pointer chose) and `Activated(k)`
-/// on a double-click; a navigable rail also emits `Activated(k)` for `Enter`
-/// and a single click.
-///
-/// ## Focus
-/// `Steps::navigable` registers one `Focusable` stop (`Disabled` when
-/// `.disabled`); `Steps::new` registers `ClickOnly`, so the rail is
-/// addressable and clickable but never in the ring. Neither swallows typing.
-///
-/// ## Keyboard
-/// A navigable rail binds `↑`/`k`, `↓`/`j`, `PgUp`, `PgDn`, `Home`/`g`,
-/// `End`/`G` and `Enter`. A display rail binds nothing.
-///
-/// ## Mouse
-/// `PartRef::item(Part::ROW, k)`: press and click move the cursor;
-/// double-click activates, and on a navigable rail a single click activates
-/// too. `TRACK`/`THUMB` and the wheel go to the embedded [`ScrollRegion`].
-///
-/// ## Layout
-/// One row per step: gutter, the one-cell state glyph, the component-owned
-/// lifecycle word at the far right, then the renderer's row in what remains.
-/// The renderer may add its own [`RowUi::meta`](termrock_runtime::rowui::RowUi::meta)
-/// inside that remaining body. A scrollbar column appears when the steps
-/// overflow. `measure` is `(12…, offered height)`; `draw` returns `area`.
-/// `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the rail surface and each row's fill), `GUTTER` (the focus
-/// column), `ICON` (the lifecycle glyph), `META` (the direct lifecycle word),
-/// `LABEL` (resolved through [`RowUi`] by the row renderer), `TRACK` /
-/// `THUMB` (the embedded [`ScrollRegion`]). Caller-painted row metadata also
-/// resolves as `META`, but is not component-owned. `Part::ROW` is a hit
-/// region only and is deliberately not styled.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach exactly `CONTAINER`, `LABEL`, `GUTTER`,
-/// `ICON`, `META`, `TRACK` and `THUMB`. The scroll parts are forwarded to the
-/// embedded [`ScrollRegion`]; lifecycle `META` is direct component-owned
-/// output. Owner patches are scoped into [`RowUi`]'s automatic `CONTAINER`
-/// and `LABEL` only, so caller-painted `META`, `CELL` and custom parts stay
-/// row-owned. `.slot(p, …)` changes painted cells for exactly `GUTTER`,
-/// `ICON`, `TRACK` and `THUMB`.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under insert, remove
-/// and reorder. Every action carries an `ItemKey`.
-///
-/// ## Testing
-/// `StepsCase` with `ACTIVATES | DISABLEABLE | FOCUSABLE | COLLECTION |
-/// SCROLLS` over `Steps::navigable`; `render::components::steps::*`.
-/// `CAPTURES` belongs to the embedded [`ScrollRegion`] and is declared by
-/// `ScrollRegionCase`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted; only visible rows invoke
-/// the renderer; a frame allocates nothing per row; the rail never mutates
-/// a step's state — the lifecycle belongs to the caller, and the frontier is
-/// derived from it in a runtime-owned cache rather than stored semantically.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -388,10 +388,10 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     navigable: bool,
     disabled: bool,
     ov: PartStyle<'a>,
-    /// The same three override channels again, kept because `PartStyle` has
-    /// no readers: forwarding a caller's `.patch` / `.patch_part` / `.slot`
-    /// into the embedded [`ScrollRegion`] is the §45.1 defect `List` still
-    /// carries, and it cannot be done from the stored `PartStyle` alone.
+
+
+
+
     fwd_patch: Option<&'a StylePatch>,
     fwd_parts: &'a [(Part, StylePatch)],
     fwd_slot: Option<(Part, SlotFn<'a>)>,
@@ -410,7 +410,7 @@ impl<T, K, R> fmt::Debug for Steps<'_, T, K, R> {
 }
 
 impl<T> Steps<'_, T, ByIndex, DefaultRow> {
-    /// The display rail: clickable and scrollable, never a focus stop.
+
     #[must_use]
     pub const fn new(id: Id) -> Self {
         Steps {
@@ -428,7 +428,7 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
         }
     }
 
-    /// The same rail with a focus stop, a cursor and the keymap.
+
     #[must_use]
     pub const fn navigable(id: Id) -> Self {
         let mut s = Steps::new(id);
@@ -438,7 +438,7 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Steps<'a, T, K, R> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::LABEL,
@@ -449,29 +449,29 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         Part::THUMB,
     ];
 
-    /// The width `measure` prefers.
+
     pub const PREFERRED_WIDTH: u16 = 32;
 
-    /// The id.
+
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Whether this rail is a focus stop with a cursor.
+
     #[must_use]
     pub const fn is_navigable(&self) -> bool {
         self.navigable
     }
 
-    /// The lifecycle accessor.
+
     #[must_use]
     pub const fn step(mut self, f: &'a dyn Fn(&T) -> StepState) -> Self {
         self.step = Some(f);
         self
     }
 
-    /// A stable key accessor.
+
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
             id: self.id,
@@ -488,7 +488,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         }
     }
 
-    /// A row painter, called only for the visible rows.
+
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Steps<'a, T, K, R2> {
         Steps {
             id: self.id,
@@ -505,15 +505,15 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         }
     }
 
-    /// Disable the whole rail: it ignores every input, and a navigable rail
-    /// stays in the ring unreachable.
+
+
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
@@ -521,7 +521,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-    /// Per-part instance patches.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
@@ -529,7 +529,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-    /// Replace one part's painting.
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -537,7 +537,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-    /// The embedded scroll region, carrying the caller's overrides (§45.1).
+
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut s = ScrollRegion::new(self.id).patch_part(self.fwd_parts);
         if let Some(p) = self.fwd_patch {
@@ -549,7 +549,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         s
     }
 
-    /// The derived half of the state (§39.2, Invariant Q).
+
     const fn derived(&self) -> StateFlags {
         if self.disabled {
             StateFlags::DISABLED
@@ -571,10 +571,10 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
     }
 }
 
-/// Runtime-owned acceleration for the derived lifecycle frontier.
-///
-/// It contains only keys, indexes and caller-controlled stamps. Dropping or
-/// clearing it can change cost, never component semantics.
+
+
+
+
 #[derive(Clone, Copy, Debug, Default)]
 struct FrontierCache {
     initialized: bool,
@@ -663,9 +663,9 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
             .map_or(ItemKey::index(i), |it| self.key.key(it, i))
     }
 
-    /// The first step that has not finished — the frontier. `None` when
-    /// every step is terminal, which is how a caller knows the rail is done.
-    /// This explicit query is O(n); [`Steps::draw`] uses the runtime cache.
+
+
+
     pub fn frontier(&self, items: &[T]) -> Option<ItemKey> {
         items
             .iter()
@@ -675,7 +675,7 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
-    /// The index of `key`, probing `hint` before scanning.
+
     fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
         if let Some(h) = hint
             && h < items.len()
@@ -701,7 +701,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         acc.action(StepsAction::Moved(key));
     }
 
-    /// The update phase: reconcile, then drain keys, pointer and wheel.
+
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -803,7 +803,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The draw phase.
+
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &StepsState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
@@ -979,7 +979,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         }
     }
 
-    /// The natural size: 32 columns, whatever height is offered.
+
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1037,8 +1037,8 @@ mod tests {
         ItemKey::text(s.0)
     }
 
-    /// The update phase driven through a real runtime: RAIL is focused and
-    /// the app records what the rail answered for the latest input.
+
+
     struct StepsApp {
         rail: Steps<'static, S, fn(&S) -> ItemKey>,
         state: StepsState,
@@ -1092,9 +1092,9 @@ mod tests {
         panic!("steps fixture focus did not settle");
     }
 
-    /// Clicks one row through the runtime's real pointer pipeline. A second
-    /// consecutive call on the same row is synthesised by the runtime into
-    /// a `DoubleClick` phase.
+
+
+
     fn click_row(rt: &mut Runtime<StepsApp>, key: ItemKey) {
         use crate::event::MouseKind;
         use termrock_runtime::stub::{deliver, mouse};
@@ -1107,8 +1107,8 @@ mod tests {
         let _ = deliver(rt, mouse(MouseKind::Up, x, y));
     }
 
-    /// Paints `rail` and returns the rows as text plus the presented
-    /// focus ring.
+
+
     fn render<T: core::fmt::Display>(
         rail: &Steps<'_, T>,
         items: &[T],
@@ -1137,10 +1137,10 @@ mod tests {
         (rows, runtime.ring().reachable().map(|e| e.id).collect())
     }
 
-    /// The frontier is the first step that has not finished, and it is a
-    /// **derived** property, recomputed from the caller's data on every
-    /// frame. The legacy rail had the same rule; what changes is that it now
-    /// names the step by key instead of by index.
+
+
+
+
     #[test]
     fn the_frontier_is_the_first_unfinished_step() {
         let rail: Steps<'_, S> = Steps::new(RAIL).step(&state);
@@ -1152,24 +1152,24 @@ mod tests {
         ];
         assert_eq!(rail.frontier(&items), Some(ItemKey::index(2)));
 
-        // a failed step is terminal, so the frontier moves past it — the
-        // legacy `frontier_and_counts` assertion verbatim
+
+
         items[2].1 = StepState::Failed;
         assert_eq!(rail.frontier(&items), Some(ItemKey::index(3)));
 
-        // blocked is NOT terminal: the rail is still waiting on it
+
         items[3].1 = StepState::Blocked;
         assert_eq!(rail.frontier(&items), Some(ItemKey::index(3)));
 
-        // every step terminal: no frontier at all
+
         items[3].1 = StepState::Done;
         assert_eq!(rail.frontier(&items), None);
         assert_eq!(rail.frontier(&[]), None);
     }
 
-    /// Navigability is chosen by the constructor, and the difference is
-    /// observable in the focus ring — not in a builder flag that `update`
-    /// and `draw` could disagree about (§13, §23 K2 G4).
+
+
+
     #[test]
     fn a_display_rail_is_click_only_and_a_navigable_rail_is_in_the_ring() {
         let items = [S("a", StepState::Queued), S("b", StepState::Running)];
@@ -1191,7 +1191,7 @@ mod tests {
         );
         assert!(!nav.table().is_empty());
 
-        // and a disabled navigable rail is registered but unreachable
+
         let off: Steps<'_, S> = Steps::navigable(RAIL).step(&state).disabled(true);
         let (_, ring) = render(&off, &items, 2);
         assert!(
@@ -1220,16 +1220,16 @@ mod tests {
                 );
             })
             .commit_presented();
-        // Registrations are suppressed inside a reference scope, so the
-        // presented ring carries no reachable rows.
+
+
         assert_eq!(runtime.ring().reachable().count(), 0);
     }
 
-    /// Two lifecycle states must be distinguishable without colour, which is
-    /// what §16.2 case 9 asserts over the whole rail. The rail's two
-    /// symbol-carrying affordances are the `Part::ICON` glyph and the
-    /// `Part::META` state word; `Queued` and `Skipped` share a blank glyph,
-    /// so the word is the only thing separating them and it must be painted.
+
+
+
+
+
     #[test]
     fn every_lifecycle_state_paints_a_symbol_that_separates_it() {
         let items = [
@@ -1250,7 +1250,7 @@ mod tests {
                 "row {i} does not carry its state word {want:?}: {row:?}"
             );
         }
-        // pairwise: no two rows are the same run of symbols
+
         for (i, a) in rows.iter().enumerate() {
             for (j, b) in rows.iter().enumerate() {
                 assert!(
@@ -1293,7 +1293,7 @@ mod tests {
 
         let mut rt = steps_runtime(rail, steps_state, items.to_vec());
 
-        // the rail's own Enter binding activates the skipped row
+
         use termrock_runtime::stub::{deliver, key};
         let _ = deliver(&mut rt, key(crate::event::KeyCode::Enter));
         assert_eq!(rt.app().last, Some(StepsAction::Activated(skip)));
@@ -1314,8 +1314,8 @@ mod tests {
         let mut rt = steps_runtime(rail, StepsState::new(), items.to_vec());
         assert_eq!(rt.app().state.cursor(), Some(ItemKey::text("stable-first")));
 
-        // a Tick update with no intents answers nothing, consumes nothing
-        // and does not repaint
+
+
         {
             let app = rt.app_mut();
             app.last = None;
@@ -1345,7 +1345,7 @@ mod tests {
         assert_eq!(rt.app().last, Some(StepsAction::Moved(key)));
         assert_eq!(rt.app().state.cursor(), Some(key));
 
-        // the runtime synthesises DoubleClick from two consecutive clicks
+
         click_row(&mut rt, key);
         assert_eq!(rt.app().last, Some(StepsAction::Activated(key)));
         assert_eq!(rt.app().state.cursor(), Some(key));
@@ -1741,8 +1741,8 @@ mod tests {
         let mut state = StepsState::new();
         state.set_cursor(4, ItemKey::num(4));
         let area = Rect::new(0, 0, 30, 2);
-        // A persistent runtime owns the derived caches; `set_theme` is the
-        // public "drop every derived cache" entry point.
+
+
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);
         let draw = |rt: &mut Runtime<Stub>, page: &mut Buffer| {

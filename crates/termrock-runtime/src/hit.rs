@@ -1,9 +1,9 @@
-//! Hit registry (`COMPONENT_ARCHITECTURE.md` §3.3, §8.3, §21 items 12–13).
-//!
-//! Every region carries `{owner, part, area, layer, kind, generation}`. The
-//! registry is rebuilt per frame; last registration wins; `hit` returns the
-//! topmost region regardless of layer and the runtime compares layers, which
-//! is what makes "click outside" a real test.
+
+
+
+
+
+
 pub use termrock_core::geometry::{Axes, Headroom};
 
 use ratatui_core::layout::{Position, Rect};
@@ -13,67 +13,67 @@ use crate::event::Axis;
 use crate::id::{Id, Part, PartRef};
 use crate::layer::LayerId;
 
-/// What a region is for.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum RegionKind {
-    /// Focusable, delivers intents.
+
     Control,
-    /// Sub-region of a `Control`; delivers to the control's owner.
+
     Part,
-    /// Wheel target only.
+
     Scroll,
-    /// Paints and answers `area_of`; never delivers, never diagnosed.
+
     Decorative,
 }
 
-/// A resolved pointer hit.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Hit {
-    /// The owner.
+
     pub owner: Id,
-    /// The part under the pointer.
+
     pub part: PartRef,
-    /// The region's layer.
+
     pub layer: LayerId,
-    /// The region kind.
+
     pub kind: RegionKind,
-    /// Position relative to the region's origin.
+
     pub local: Position,
 }
 
-/// One registered region.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
-    /// The owner.
+
     pub owner: Id,
-    /// The part (`PartRef::of(Part::CONTAINER)` for a control's own area).
+
     pub part: PartRef,
-    /// The area.
+
     pub area: Rect,
-    /// The layer.
+
     pub layer: LayerId,
-    /// The kind.
+
     pub kind: RegionKind,
-    /// The frame generation.
+
     pub generation: u32,
     scroll: Option<(Axes, Headroom)>,
     pointer_enabled: bool,
 }
 
 impl Region {
-    /// Whether this geometry participates in pointer hit testing and capture.
+
     pub const fn pointer_enabled(&self) -> bool {
         self.pointer_enabled
     }
 
-    /// The scroll axes and headroom of a `Scroll` region.
+
     pub const fn scroll(&self) -> Option<(Axes, Headroom)> {
         self.scroll
     }
 }
 
-/// The per-frame region list.
+
 #[derive(Clone, Debug)]
 pub struct Registry {
     regions: Vec<Region>,
@@ -88,7 +88,7 @@ impl Default for Registry {
 }
 
 impl Registry {
-    /// An empty registry for generation `generation`.
+
     pub fn new(generation: u32) -> Self {
         Registry {
             regions: Vec::new(),
@@ -97,35 +97,35 @@ impl Registry {
         }
     }
 
-    /// Reset for generation `generation`, keeping the allocation.
+
     pub(crate) fn reset(&mut self, generation: u32) {
         self.regions.clear();
         self.generation = generation;
         self.has_pointer_exclusions = false;
     }
 
-    /// The generation.
+
     pub const fn generation(&self) -> u32 {
         self.generation
     }
 
-    /// Every region, in registration order.
+
     pub fn regions(&self) -> &[Region] {
         &self.regions
     }
 
-    /// The region count.
+
     pub fn len(&self) -> usize {
         self.regions.len()
     }
 
-    /// Whether nothing is registered.
+
     pub fn is_empty(&self) -> bool {
         self.regions.is_empty()
     }
 
-    /// Register a `Control` region. A second `Control` for the same owner in
-    /// one frame is recorded as `DuplicateId`, never a panic.
+
+
     pub fn register_control(
         &mut self,
         owner: Id,
@@ -165,8 +165,8 @@ impl Registry {
             return None;
         }
         let diagnostic = self.register_control(owner, area, layer);
-        // Registration order must not let earlier decoration or later parts
-        // regain pointer authority for a keyboard-only owner.
+
+
         for region in self
             .regions
             .iter_mut()
@@ -178,17 +178,17 @@ impl Registry {
         diagnostic
     }
 
-    /// Register a `Part` region under `owner`.
+
     pub fn register_part(&mut self, owner: Id, part: PartRef, area: Rect, layer: LayerId) {
         self.push(owner, part, area, layer, RegionKind::Part, None);
     }
 
-    /// Register a `Decorative` region under `owner`.
+
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect, layer: LayerId) {
         self.push(owner, part, area, layer, RegionKind::Decorative, None);
     }
 
-    /// Register a `Scroll` region.
+
     pub fn register_scroll(
         &mut self,
         owner: Id,
@@ -249,13 +249,13 @@ impl Registry {
         }
     }
 
-    /// The topmost non-scroll region covering `pos`, ordered by
-    /// `(layer, registration index)`.
-    ///
-    /// z-order is the **layer** order, not the call order (§9.1): a page
-    /// control drawn after a popover must not shadow the popover, or the
-    /// runtime reads `hit.layer < top_layer` and treats a click *on* the
-    /// popover as an outside click.
+
+
+
+
+
+
+
     pub fn hit(&self, pos: Position) -> Option<Hit> {
         self.regions
             .iter()
@@ -267,11 +267,11 @@ impl Registry {
             .map(|(_, r)| Self::hit_of(r, pos))
     }
 
-    /// The topmost intent-delivering region at `pos` on `layer`.
-    ///
-    /// Decorative regions are skipped before ordering, so decoration painted
-    /// after a live part cannot hide that part from pointer movement. Regions
-    /// below `layer` are never considered.
+
+
+
+
+
     pub(crate) fn hit_live(&self, pos: Position, layer: LayerId) -> Option<Hit> {
         self.regions
             .iter()
@@ -286,9 +286,9 @@ impl Registry {
             .map(|(_, r)| Self::hit_of(r, pos))
     }
 
-    /// The innermost scroll region covering `pos` that handles `axis`,
-    /// returned even at zero headroom (§8.3). Ordered by
-    /// `(layer, registration index)`, like [`Registry::hit`].
+
+
+
     pub fn hit_scroll(&self, pos: Position, axis: Axis) -> Option<Hit> {
         self.regions
             .iter()
@@ -303,7 +303,7 @@ impl Registry {
             .map(|(_, r)| Self::hit_of(r, pos))
     }
 
-    /// The last `Control` region of `id`, else its last `Decorative` region.
+
     pub fn area_of(&self, id: Id) -> Option<Rect> {
         self.regions
             .iter()
@@ -318,7 +318,7 @@ impl Registry {
             .map(|r| r.area)
     }
 
-    /// The last region of `id` tagged `part`, any kind.
+
     pub fn area_of_part(&self, id: Id, part: PartRef) -> Option<Rect> {
         self.regions
             .iter()
@@ -327,7 +327,7 @@ impl Registry {
             .map(|r| r.area)
     }
 
-    /// The region of `id` under `layer` (for cursor and capture checks).
+
     pub fn layer_of(&self, id: Id) -> Option<LayerId> {
         self.regions
             .iter()
@@ -336,14 +336,14 @@ impl Registry {
             .map(|r| r.layer)
     }
 
-    /// Whether `id` registered a `Control` or `Part` region (§3.3 step 9).
+
     pub fn delivers_to(&self, id: Id) -> bool {
         self.regions
             .iter()
             .any(|r| r.owner == id && matches!(r.kind, RegionKind::Control | RegionKind::Part))
     }
 
-    /// Whether `id` registered anything.
+
     pub fn has_owner(&self, id: Id) -> bool {
         self.regions.iter().any(|r| r.owner == id)
     }
@@ -380,25 +380,25 @@ mod tests {
         h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
         let hit = h.hit(Position::new(3, 3));
         assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((B, LayerId(1))));
-        // and the last registration on the *same* layer still wins
+
         h.register_control(C, Rect::new(2, 2, 3, 3), LayerId(1));
         assert_eq!(h.hit(Position::new(3, 3)).map(|h| h.owner), Some(C));
     }
 
-    /// z-order is the layer order, **not** the call order (§9.1). A page
-    /// control registered after a popover must not shadow it: the runtime
-    /// compares `hit.layer < top_layer` to detect an outside click, so a
-    /// registration-ordered `hit` would dismiss the popover on a click that
-    /// landed on it (MA-1).
+
+
+
+
+
     #[test]
     fn a_lower_layer_region_registered_later_does_not_shadow_a_higher_one() {
         let mut h = Registry::new(1);
-        // the popover draws first, the page control after it
+
         h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
         h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
         let hit = h.hit(Position::new(3, 3)).expect("a covering region");
         assert_eq!((hit.owner, hit.layer), (B, LayerId(1)));
-        // scroll routing obeys the same order
+
         h.register_scroll(
             C,
             Rect::new(2, 2, 3, 3),
@@ -424,8 +424,8 @@ mod tests {
         let mut h = Registry::new(1);
         h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
         h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
-        // a point outside the dialog still resolves to the page region; the
-        // runtime compares `hit.layer < top_layer` to decide "outside"
+
+
         let hit = h.hit(Position::new(8, 8));
         assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((A, LayerId::PAGE)));
     }
@@ -473,7 +473,7 @@ mod tests {
             h.hit_scroll(Position::new(1, 1), Axis::V).map(|h| h.owner),
             Some(A)
         );
-        // scroll regions are not pointer targets
+
         assert_eq!(h.hit(Position::new(6, 6)), None);
     }
 
@@ -551,9 +551,9 @@ mod tests {
     }
 }
 
-/// MI-3: `inert_below` is enforced by `Ui::register_entry`, not by
-/// `Registry`. At the registry level the old test only proved that an
-/// unregistered region is not hit.
+
+
+
 #[cfg(test)]
 mod runtime_tests {
     use ratatui_core::layout::Rect;
@@ -580,7 +580,7 @@ mod runtime_tests {
             rt.registry().area_of(PAGE_A).is_some(),
             "the page registers"
         );
-        // `LayerSpec::modal` sets `inert_below`
+
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert!(
@@ -588,7 +588,7 @@ mod runtime_tests {
             "a page control below an inert layer registers nothing"
         );
         assert!(rt.registry().area_of(OK).is_some());
-        // and a click on the page's old rect reaches nothing on that layer
+
         rt.app_mut().log.clear();
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
         assert!(!rt.app().saw(PAGE_A, "Press"), "{:?}", rt.app().log);

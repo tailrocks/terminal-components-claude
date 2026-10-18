@@ -701,9 +701,9 @@ pub struct AdmissionWriteReceipt {
     pub decision: String,
 }
 
-/// Read-only identity and policy preflight for the immutable-tag oracle.
-/// `execution_anchor_status` is permanently `unverified` in this entrypoint,
-/// so no product process or capture receipt can be produced from it.
+
+
+
 #[derive(Clone, Debug, Serialize)]
 pub struct TagCapturePreflight {
     schema: String,
@@ -4216,8 +4216,8 @@ fn execute_tag_source_validator(
         supplied_helper_path,
         "pinned immutable-tag source validator",
     )?;
-    // Execute the exact bytes hashed here through stdin; never reopen the helper
-    // path as Python's script argument after validating its digest.
+
+
     let helper_bytes = fs::read(&helper_path)
         .map_err(|error| format!("read pinned immutable-tag source validator: {error}"))?;
     let helper_sha256 = sha256_bytes(&helper_bytes);
@@ -4414,8 +4414,8 @@ fn run_pinned_validator_python(
         .arg("--receipt-sha256")
         .arg(expected_receipt_sha256)
         .env_clear()
-        // Git calls in the checked helper are rewritten to its pinned absolute
-        // path before transport. No caller or fallback PATH is provided.
+
+
         .env("LC_ALL", "C")
         .env("PYTHONDONTWRITEBYTECODE", "1")
         .env("GIT_TERMINAL_PROMPT", "0")
@@ -4846,9 +4846,9 @@ fn tag_validator_protected_paths(
     }
     protected.push(git_common_dir);
 
-    // Protect the worktree's .git indirection file as well as the resolved
-    // metadata directories, without treating the whole source checkout as a
-    // protected path. Approved expected data may live beside the source tree.
+
+
+
     let git_entry = repository.join(".git");
     match fs::symlink_metadata(&git_entry) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
@@ -5100,9 +5100,9 @@ pub fn prepare_frozen_tag_holla_preflight(case_id: &str) -> Result<TagCapturePre
     })
 }
 
-/// Capture actual output from the independently built immutable-tag binary.
-/// This records execution evidence only; it cannot create expected data,
-/// qualification, admission, or a paired trust record.
+
+
+
 pub fn run_tag_capture(case_id: &str) -> Result<OracleCaptureReceipt, String> {
     if load_generation_admission_source_optional()?.is_some() {
         return Err(
@@ -5998,8 +5998,8 @@ fn revalidate_captured_tag_source(
     builder_path: &Path,
 ) -> Result<(), String> {
     let oracle = &capture.oracle_identity;
-    // Revalidation must use the path and raw digest supplied by the current
-    // trusted caller. A capture cannot choose its own validator toolchain.
+
+
     let (toolchain, toolchain_reference) = load_caller_pinned_tag_validator_toolchain()?;
     require_caller_pinned_toolchain_reference(
         &oracle.validator_execution.toolchain,
@@ -6206,9 +6206,9 @@ fn require_admission_write_targets_disjoint(
     Ok(())
 }
 
-/// Explicitly admit a prebuilt, exact nine-file expected-generation tree only
-/// after a separate immutable-tag capture and a raw-hash-pinned independent
-/// qualification review. This function writes the admission record only.
+
+
+
 #[allow(clippy::too_many_arguments)]
 pub fn admit_expected_generation(
     generation_id: &str,
@@ -8567,7 +8567,7 @@ fn atomic_publish_capture(
         for (_, filename, bytes) in &outputs[..outputs.len() - 1] {
             write_new_synced(&stage_dir.join(filename), bytes)?;
         }
-        // The manifest is written last, after every listed artifact is durable.
+
         let (_, manifest_filename, manifest_bytes) = outputs
             .last()
             .ok_or_else(|| "capture manifest is missing".to_string())?;
@@ -8644,7 +8644,7 @@ fn ensure_directory_chain_without_symlinks(
                 match fs::create_dir(&current) {
                     Ok(()) => validate_real_directory_beneath(root, &current)?,
                     Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                        // Re-inspect a concurrently created entry without following links.
+
                         validate_real_directory_beneath(root, &current)?;
                     }
                     Err(error) => {
@@ -8969,7 +8969,7 @@ mod tests {
     fn prepared_only_preflight_does_not_launch_or_write_capture_or_receipt() {
         use std::os::unix::fs::PermissionsExt;
 
-        // This fixture is synthetic test material, not an approved oracle or product build.
+
         let mut evidence = build_evidence_chain_fixture();
         let expected = visual::synthetic_expected_generation_fixture();
         let write_root = unique_temp_path("preflight-write-root");
@@ -11950,7 +11950,7 @@ mod tests {
 
     #[test]
     fn visual_comparison_runtime_join_requires_matching_external_admission_and_artifacts() {
-        // Synthetic digests exercise the local join only; they do not create trust or admission.
+
         let expected_fixture = visual::synthetic_expected_generation_fixture();
         let case = registry()
             .expect("load case registry")
@@ -12650,8 +12650,8 @@ mod tests {
 
         impl Drop for RestorePath {
             fn drop(&mut self) {
-                // This test process runs serially under the focused Nextest gate.
-                // Restore the inherited value even if an assertion unwinds.
+
+
                 unsafe {
                     if let Some(path) = self.0.take() {
                         std::env::set_var("PATH", path);
@@ -12706,9 +12706,9 @@ mod tests {
                 ))
         );
         let previous_path = RestorePath(std::env::var_os("PATH"));
-        // Inject a hostile inherited PATH. The pinned runtime must not pass it
-        // through; its shell may create its own default PATH, so assert against
-        // the injected value and the shim's side effect rather than "unset".
+
+
+
         unsafe {
             std::env::set_var("PATH", git_root.as_os_str());
         }

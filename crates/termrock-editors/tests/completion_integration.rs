@@ -1,5 +1,5 @@
-//! Completion and code-editor routing integration: the popup forwards
-//! unclaimed keys to the embedded editor and accepts from its matches.
+
+
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
@@ -200,9 +200,9 @@ fn completion_controller_dismisses_on_editor_motion() {
     assert!(!runtime.is_open(POPUP));
 }
 
-/// `CompletionController::splice` is internal; the observable splice contract
-/// is `accept`, which splices the item's insertion text and dismisses in one
-/// committed update.
+
+
+
 fn splice_via_accept(items: &'static [Item<'static>]) -> Runtime<ControllerApp> {
     let mut runtime = controller_runtime();
     runtime.app_mut().items = items;
@@ -284,8 +284,8 @@ fn editor_owned_completion_binding_honours_remap_and_remove() {
 
 #[test]
 fn pointer_click_accepts_only_the_clicked_popup_row() {
-    // `pressed_target` is internal; the observable contract is that a click
-    // resolves to the semantic row under the pointer, and only that row.
+
+
     fn click(runtime: &mut Runtime<RoutingApp>, y: u16) {
         for kind in [MouseKind::Down, MouseKind::Up] {
             let _ = termrock_runtime::stub::deliver(
@@ -298,8 +298,8 @@ fn pointer_click_accepts_only_the_clicked_popup_row() {
             );
         }
     }
-    // The popover anchors below Rect::new(2, 1, 1, 1); after its border the
-    // rows sit at y = 3 (alpha) and y = 4 (beta).
+
+
     let (mut runtime, _) = routing_runtime();
     click(&mut runtime, 4);
     assert_eq!(runtime.app().accepted, Some(SECOND));

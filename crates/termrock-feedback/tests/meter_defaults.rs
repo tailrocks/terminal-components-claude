@@ -1,4 +1,4 @@
-//! Meter role defaults must remain below caller customization.
+
 use ratatui_core::style::Color;
 use termrock::{
     ColorLevel, Family, Id, Meter, MeterTone, MeterVisual, Part, Role, StylePatch, Theme,
@@ -78,10 +78,10 @@ fn capture_unchanged_default_cells() {
             }
         }
     }
-    // Pinned after d52ee38b/29ed8e5e: the junie palette meters its unfilled
-    // share through the reference lift, which moves the junie truecolor and
-    // ansi256 rows plus the block ansi16 row; mono and the paper palette keep
-    // their pinned values (paper fills with an explicit color).
+
+
+
+
     assert_eq!(
         hashes,
         [

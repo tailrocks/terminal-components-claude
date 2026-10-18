@@ -1,8 +1,8 @@
-//! Synthetic rustup, Cargo, and Nextest command protocols for CLI tests.
-//!
-//! The test modules install this compiled binary under command names such as
-//! `rustup`, `mise`, and `cargo-nextest`. Its output is synthetic and cannot
-//! qualify or stand in for a Termrock product executable.
+
+
+
+
+
 
 use std::env;
 use std::ffi::{OsStr, OsString};
@@ -562,9 +562,9 @@ fn requested_nextest_signal() -> Result<Option<libc::c_int>, String> {
 fn terminate_by_signal(signal: libc::c_int) -> io::Result<()> {
     #[cfg(unix)]
     {
-        // SAFETY: getpid has no preconditions; the validated SIGKILL targets this process.
+
         let pid = unsafe { libc::getpid() };
-        // SAFETY: `pid` is this process and the parser permits only SIGKILL.
+
         if unsafe { libc::kill(pid, signal) } != 0 {
             return Err(io::Error::last_os_error());
         }

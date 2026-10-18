@@ -1,4 +1,4 @@
-//! Row identity, original values and undo must remain one owned record.
+
 use tablepro_ui::{ColType, GridView, ResultGrid, ResultSet, Tab, TableProApp, Value};
 use termrock::{ColumnKey, GridEditor, GridModel, ItemKey, SortDir};
 

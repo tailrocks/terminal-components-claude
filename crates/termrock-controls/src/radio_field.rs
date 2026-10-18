@@ -1,4 +1,4 @@
-//! `RadioField` — a [`RadioGroup`] bound to its items as a [`FieldControl`].
+
 
 use core::fmt;
 
@@ -12,11 +12,11 @@ use crate::ui::Ui;
 use termrock_collections::collection::KeyFn;
 use termrock_runtime::rowui::RowFn;
 
-/// A `Field` control over a fully-built [`RadioGroup`] and its items.
-///
-/// `RadioGroup::draw` needs the option slice every frame, so a bare group
-/// cannot implement [`FieldControl`] on its own; this adapter carries both
-/// halves. The caller builds the group first, then binds it to the items.
+
+
+
+
+
 pub struct RadioField<'a, T, K, R> {
     group: RadioGroup<'a, T, K, R>,
     items: &'a [T],
@@ -32,7 +32,7 @@ impl<T, K, R> fmt::Debug for RadioField<'_, T, K, R> {
 }
 
 impl<'a, T, K, R> RadioField<'a, T, K, R> {
-    /// Bind a fully-built `RadioGroup` to the items it draws.
+
     pub const fn new(group: RadioGroup<'a, T, K, R>, items: &'a [T]) -> Self {
         RadioField { group, items }
     }

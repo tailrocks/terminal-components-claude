@@ -1,39 +1,39 @@
-//! Source scanning: comment/string stripping, test-region exclusion,
-//! import-alias resolution, and item-span tracking.
-//!
-//! The scanner is line-oriented and deliberately small. It resolves what a
-//! `#[cfg(test)]` region covers, which local identifiers name the
-//! component-author `Ui` or a raw `Buffer`/`Cell`, and which `fn` spans each
-//! finding falls in, so rules stay contextual instead of name-based.
+
+
+
+
+
+
+
 
 use std::collections::{BTreeMap, BTreeSet};
 
-/// One physical source line with comments and string/char literals blanked.
-///
-/// Blanking preserves line numbers and keeps every other byte in place, so
-/// downstream matchers see real code only: doc comments that mention app
-/// names and string literals such as `"jackin.quit"` never match.
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct CodeLine {
-    /// 1-based line number.
+
     pub number: usize,
-    /// The line with comments, strings, and char literals replaced by spaces.
+
     pub code: String,
 }
 
-/// A string literal occurrence, tracked so rules can classify literals by
-/// shape (screen-shaped literals, `baselines/` references).
+
+
 #[derive(Debug, Clone)]
 pub struct StringSpan {
-    /// 1-based start line.
+
     pub start_line: usize,
-    /// 1-based end line (inclusive).
+
     pub end_line: usize,
-    /// The literal bytes, without quotes or `r#` sigils.
+
     pub text: String,
 }
 
-/// An inclusive 1-based line range.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LineRange {
     pub start: usize,
@@ -46,39 +46,39 @@ impl LineRange {
     }
 }
 
-/// A scanned source file.
+
 #[derive(Debug, Clone)]
 pub struct ScannedFile {
-    /// Workspace-relative path with `/` separators.
+
     pub path: String,
-    /// Crate member path (e.g. `crates/showcase-ui`).
+
     pub member: String,
-    /// Every source line, blanked.
+
     pub lines: Vec<CodeLine>,
-    /// String literals in source order.
+
     pub strings: Vec<StringSpan>,
-    /// Regions excluded as test code.
+
     pub test_ranges: Vec<LineRange>,
-    /// Production `fn` spans as `(name, range)`.
+
     pub functions: Vec<(String, LineRange)>,
-    /// Local identifier to canonical import path (`Ui` aliases included).
+
     pub aliases: BTreeMap<String, String>,
-    /// Value identifiers declared with a `Ui` type (`canvas: &mut Canvas`).
+
     pub ui_values: BTreeSet<String>,
-    /// `macro_rules!` definitions as `(name, range)`.
+
     pub macros: Vec<(String, LineRange)>,
-    /// True when the file carries a generator marker. Generated files are
-    /// still scanned; the flag only attributes the findings.
+
+
     pub generated: bool,
 }
 
 impl ScannedFile {
-    /// True when `line` is inside test-gated code.
+
     pub fn is_test_line(&self, line: usize) -> bool {
         self.test_ranges.iter().any(|range| range.contains(line))
     }
 
-    /// The innermost production `fn` enclosing `line`, if any.
+
     pub fn enclosing_fn(&self, line: usize) -> Option<&str> {
         self.functions
             .iter()
@@ -87,9 +87,9 @@ impl ScannedFile {
             .map(|(name, _)| name.as_str())
     }
 
-    /// True when `ident` names the component-author `Ui` in this file: the
-    /// conventional `ui` receiver, a value declared with a `Ui` type, or a
-    /// local import alias of `Ui`.
+
+
+
     pub fn is_ui_ident(&self, ident: &str) -> bool {
         ident == "ui"
             || self.ui_values.contains(ident)
@@ -97,15 +97,15 @@ impl ScannedFile {
     }
 }
 
-/// True for canonical paths that name the component-author draw context.
+
 pub fn is_ui_path(path: &str) -> bool {
     path.rsplit("::").next() == Some("Ui")
 }
 
-/// True for canonical paths that name a raw ratatui buffer or cell type.
-///
-/// Preview-local `Cell`/`Buffer` lookalikes (holla-ui widget models) must
-/// not match, so a ratatui/termrock path prefix is required.
+
+
+
+
 pub fn is_raw_buffer_path(path: &str) -> bool {
     let last = path.rsplit("::").next().unwrap_or("");
     if last != "Buffer" && last != "Cell" {
@@ -114,7 +114,7 @@ pub fn is_raw_buffer_path(path: &str) -> bool {
     path.contains("ratatui") || path.contains("termrock") || path.contains("buffer")
 }
 
-/// Scan one source file.
+
 pub fn scan_file(path: &str, member: &str, text: &str) -> ScannedFile {
     let mut out = ScannedFile {
         path: path.to_string(),
@@ -146,20 +146,20 @@ fn is_generated_marker(text: &str) -> bool {
         || lower.contains("automatically generated")
 }
 
-/// Split source into blanked code lines plus string spans.
-///
-/// Handles `//` and nestable `/* */` comments, `"..."` with escapes,
-/// `r"..."`/`r#"..."#` raw strings (multi-line), and `'x'` char literals.
-/// A lone `'` (lifetimes) is left in place.
+
+
+
+
+
 fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSpan>) {
     let chars: Vec<char> = text.chars().collect();
     let mut index = 0;
     let mut number = 1;
     let mut current = String::new();
     let mut block_depth: usize = 0;
-    // (hashes, start line, collected text) while inside a raw string.
+
     let mut raw: Option<(usize, usize, String)> = None;
-    // (start line, collected text) while inside a cooked string.
+
     let mut cooked: Option<(usize, String)> = None;
 
     let finish_line = |number: usize,
@@ -181,7 +181,7 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
 
     while index < chars.len() {
         let rest = &chars[index..];
-        // Inside a block comment: blank everything, track nesting and lines.
+
         if block_depth > 0 {
             if rest.starts_with(&['/', '*']) {
                 block_depth += 1;
@@ -201,7 +201,7 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
             }
             continue;
         }
-        // Inside a raw string: blank, watch for the closing sigil.
+
         if let Some((hashes, start, text)) = raw.as_mut() {
             let closes = rest[0] == '"' && (0..*hashes).all(|h| rest.get(1 + h) == Some(&'#'));
             if closes {
@@ -227,11 +227,11 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
             }
             continue;
         }
-        // Inside a cooked string: blank, honor escapes.
+
         if let Some((start, text)) = cooked.as_mut() {
             if rest[0] == '\\' && rest.len() > 1 {
                 if rest[1] == '\n' {
-                    // Line-continuation escape: the newline is not content.
+
                     text.pop();
                     finish_line(number, &mut current, lines, &mut raw, &mut cooked);
                     number += 1;
@@ -261,7 +261,7 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
             }
             continue;
         }
-        // Plain code.
+
         if rest.starts_with(&['/', '/']) {
             while index < chars.len() && chars[index] != '\n' {
                 current.push(' ');
@@ -295,14 +295,14 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
                 index += 1;
             }
         } else if rest[0] == '\'' && is_char_literal(rest) {
-            // Blank `'x'` / `'\n'`; lifetimes stay as code.
-            let mut taken = 1; // opening quote
+
+            let mut taken = 1;
             if rest.get(1) == Some(&'\\') {
                 taken += 2;
             } else {
                 taken += 1;
             }
-            taken += 1; // closing quote
+            taken += 1;
             for _ in 0..taken {
                 current.push(' ');
             }
@@ -320,7 +320,7 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
     }
 }
 
-/// True when `rest` starts a `'x'`-shaped char literal rather than a lifetime.
+
 fn is_char_literal(rest: &[char]) -> bool {
     if rest.len() < 3 || rest[0] != '\'' {
         return false;
@@ -331,8 +331,8 @@ fn is_char_literal(rest: &[char]) -> bool {
     rest[2] == '\''
 }
 
-/// Line ranges excluded as test code: `#[cfg(test)]`-style items and any
-/// `mod tests`/`mod test` block (defensive: all in-tree ones carry the cfg).
+
+
 fn test_ranges(lines: &[CodeLine]) -> Vec<LineRange> {
     let mut ranges = Vec::new();
     let mut index = 0;
@@ -361,7 +361,7 @@ fn test_ranges(lines: &[CodeLine]) -> Vec<LineRange> {
     ranges
 }
 
-/// The `cfg(...)` body when the line holds a `#[cfg(...)]` attribute.
+
 fn cfg_attribute(code: &str) -> Option<&str> {
     let start = code.find("#[cfg(")?;
     let after = &code[start + "#[cfg(".len()..];
@@ -379,8 +379,8 @@ fn cfg_attribute(code: &str) -> Option<&str> {
     None
 }
 
-/// True for cfg bodies that select test code: a `test` word that is not
-/// negated via `not(test)`.
+
+
 fn cfg_tests(body: &str) -> bool {
     let mut cleaned = body.to_string();
     while let Some(at) = cleaned.find("not(test)") {
@@ -398,9 +398,9 @@ fn is_test_mod(code: &str) -> bool {
         .any(|pair| pair[0] == "mod" && (pair[1] == "tests" || pair[1] == "test"))
 }
 
-/// End line (inclusive) of the item starting at or after `from`, skipping
-/// over intermediate attributes. Attributes on their own lines are part of
-/// the skipped item.
+
+
+
 fn skip_item(lines: &[CodeLine], from: usize) -> Option<usize> {
     let mut index = from;
     while index < lines.len() {
@@ -414,8 +414,8 @@ fn skip_item(lines: &[CodeLine], from: usize) -> Option<usize> {
     None
 }
 
-/// End line (inclusive) of the item starting at `at`: the matching close
-/// brace when the item opens one, else the terminating `;`.
+
+
 fn item_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     brace_close(lines, at).or_else(|| {
         lines[at..]
@@ -425,7 +425,7 @@ fn item_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     })
 }
 
-/// End line (inclusive) of the brace block opened at or after `at`.
+
 fn brace_close(lines: &[CodeLine], at: usize) -> Option<usize> {
     let mut depth: i32 = 0;
     let mut opened = false;
@@ -445,7 +445,7 @@ fn brace_close(lines: &[CodeLine], at: usize) -> Option<usize> {
     None
 }
 
-/// Production `fn` spans as `(name, range)`, outermost and nested.
+
 fn fn_spans(lines: &[CodeLine], test_ranges: &[LineRange]) -> Vec<(String, LineRange)> {
     let mut spans = Vec::new();
     for (index, line) in lines.iter().enumerate() {
@@ -466,7 +466,7 @@ fn fn_spans(lines: &[CodeLine], test_ranges: &[LineRange]) -> Vec<(String, LineR
     spans
 }
 
-/// The declared name when the line starts a `fn` item.
+
 fn fn_name(code: &str) -> Option<String> {
     let words: Vec<&str> = code
         .split(|c: char| !c.is_alphanumeric() && c != '_' && c != ':')
@@ -485,7 +485,7 @@ fn fn_name(code: &str) -> Option<String> {
     None
 }
 
-/// `macro_rules!` spans as `(name, range)`, delimiter-aware.
+
 fn macro_spans(lines: &[CodeLine]) -> Vec<(String, LineRange)> {
     let mut spans = Vec::new();
     for (index, line) in lines.iter().enumerate() {
@@ -505,7 +505,7 @@ fn macro_spans(lines: &[CodeLine]) -> Vec<(String, LineRange)> {
     spans
 }
 
-/// The macro name when the line opens a `macro_rules!` definition.
+
 fn macro_def_name(code: &str) -> Option<String> {
     let at = code.find("macro_rules!")?;
     let after = code[at + "macro_rules!".len()..].trim_start();
@@ -524,8 +524,8 @@ fn macro_def_name(code: &str) -> Option<String> {
     }
 }
 
-/// End line (inclusive) of the `macro_rules!` body: the delimiter opened
-/// after the name can be `{...}`, `(...)`, or `[...]`.
+
+
 fn macro_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     let mut open: Option<char> = None;
     let mut close = '}';
@@ -559,10 +559,10 @@ fn macro_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     None
 }
 
-/// Value identifiers declared with a `Ui` type in production code:
-/// `canvas: &mut Canvas` (params, `let` bindings) where `Canvas` is `Ui`
-/// or a file-local `Ui` alias. Single `:` annotations only: `::` paths,
-/// struct literals, labels, and bounds never match.
+
+
+
+
 fn ui_value_idents(
     lines: &[CodeLine],
     test_ranges: &[LineRange],
@@ -597,9 +597,9 @@ fn ui_value_idents(
     idents
 }
 
-/// The referenced type name at the start of an annotation: `Canvas` in
-/// `&mut Canvas<'_>`, `Ui` in `&termrock::author::Ui`. Non-reference
-/// types return `None`: `Ui` travels by reference in this codebase.
+
+
+
 fn ref_type_name(after: &str) -> Option<String> {
     let after = after.trim_start();
     let bytes = after.as_bytes();
@@ -643,7 +643,7 @@ fn ref_type_name(after: &str) -> Option<String> {
     segments.into_iter().next_back()
 }
 
-/// The identifier immediately before a type-annotation colon.
+
 fn ident_before(before: &str) -> Option<String> {
     let ident: String = before
         .trim_end()
@@ -664,8 +664,8 @@ fn ident_before(before: &str) -> Option<String> {
     Some(ident)
 }
 
-/// Local-identifier to canonical-path map from `use` items, following
-/// `as` renames and `{...}` groups across line breaks.
+
+
 fn import_aliases(lines: &[CodeLine]) -> BTreeMap<String, String> {
     let mut aliases = BTreeMap::new();
     let mut index = 0;
@@ -688,11 +688,11 @@ fn import_aliases(lines: &[CodeLine]) -> BTreeMap<String, String> {
     aliases
 }
 
-/// Parse one `use ...;` statement into `(local, canonical)` pairs.
-///
-/// `use termrock::author::Ui as Canvas;` binds `Canvas` to the true
-/// canonical path `termrock::author::Ui`, so alias resolution keeps working
-/// after a rename.
+
+
+
+
+
 fn parse_use(statement: &str) -> Vec<(String, String)> {
     let mut text = statement.trim().to_string();
     if let Some(stripped) = text.strip_prefix("pub use") {
@@ -704,9 +704,9 @@ fn parse_use(statement: &str) -> Vec<(String, String)> {
     expand_use_path(&text)
 }
 
-/// Expand a `use` tree (with `{...}` groups and `as` renames) into
-/// `(local, canonical)` pairs. Glob imports expand to nothing: a glob
-/// binds no single name, so it can neither create nor hide an alias.
+
+
+
 fn expand_use_path(tree: &str) -> Vec<(String, String)> {
     let tree = tree.trim();
     if tree.is_empty() || tree == "*" {
@@ -737,7 +737,7 @@ fn expand_use_path(tree: &str) -> Vec<(String, String)> {
     vec![(local.to_string(), tree.to_string())]
 }
 
-/// Split `head::{...}` into head and group body.
+
 fn split_group(tree: &str) -> Option<(String, &str)> {
     let open = tree.find('{')?;
     let head = tree[..open].trim().trim_end_matches("::").to_string();
@@ -755,7 +755,7 @@ fn split_group(tree: &str) -> Option<(String, &str)> {
     None
 }
 
-/// Split on a delimiter, ignoring delimiters nested in braces.
+
 fn split_top_level(text: &str, delimiter: char) -> Vec<&str> {
     let mut parts = Vec::new();
     let mut depth = 0;
@@ -774,7 +774,7 @@ fn split_top_level(text: &str, delimiter: char) -> Vec<&str> {
     parts
 }
 
-/// Split a top-level `path as alias` rename.
+
 fn split_alias(tree: &str) -> Option<(&str, &str)> {
     let mut depth = 0;
     let bytes = tree.as_bytes();
@@ -785,8 +785,8 @@ fn split_alias(tree: &str) -> Option<(&str, &str)> {
             b'}' => depth -= 1,
             _ => {}
         }
-        // The leading space in " as " is the boundary: `use` paths never
-        // contain spaces, so no longer word can match.
+
+
         if depth == 0 && tree[index..].starts_with(" as ") {
             let path = tree[..index].trim();
             let alias = tree[index + 4..].trim();
@@ -799,7 +799,7 @@ fn split_alias(tree: &str) -> Option<(&str, &str)> {
     None
 }
 
-/// Word tokens of blanked code.
+
 pub fn words(code: &str) -> Vec<&str> {
     code.split(|c: char| !is_word_char(c))
         .filter(|w| !w.is_empty())
@@ -810,9 +810,9 @@ fn is_word_char(char: char) -> bool {
     char.is_alphanumeric() || char == '_'
 }
 
-/// The receiver identifier of a `.method` call at `dot`, or `None` when
-/// the call is qualified (`Type::method`), chained past a call (`f().m`),
-/// or has no plain identifier receiver.
+
+
+
 pub fn receiver_before(code: &str, dot: usize) -> Option<String> {
     let before = code[..dot].trim_end();
     if before.ends_with(')') || before.ends_with(']') {

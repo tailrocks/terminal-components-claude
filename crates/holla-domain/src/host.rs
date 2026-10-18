@@ -1,17 +1,17 @@
-//! Host identity: where this session runs. Remote and sensitive hosts must be
-//! unmistakable in persistent chrome (CONCEPT.md §5.5.2, §8.12).
 
-/// Environment role of a host; drives identity glyphs and confirmation
-/// strength. `◆` production / `◇` staging per the design-system glyph table.
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Environment {
-    /// Local developer machine.
+
     Local,
-    /// Remote development host.
+
     Dev,
-    /// Remote staging host.
+
     Staging,
-    /// Remote production host: strongest confirmation treatment.
+
     Production,
 }
 
@@ -25,7 +25,7 @@ impl Environment {
         }
     }
 
-    /// Identity marker for remote environments; `None` for a local machine.
+
     pub fn glyph(self) -> Option<&'static str> {
         match self {
             Environment::Local | Environment::Dev => None,
@@ -34,7 +34,7 @@ impl Environment {
         }
     }
 
-    /// Whether destructive confirmation gets the strongest treatment.
+
     pub fn sensitive(self) -> bool {
         matches!(self, Environment::Staging | Environment::Production)
     }
@@ -42,9 +42,9 @@ impl Environment {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HostKind {
-    /// The machine holla runs on.
+
     Local,
-    /// Reached over SSH; the session itself is remote.
+
     Remote,
 }
 
@@ -57,8 +57,8 @@ impl HostKind {
     }
 }
 
-/// Deterministic host vitals for the system snapshot (§8.6). Integers keep
-/// `Host` `Eq`; load is ×100.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostMetrics {
     pub load_x100: (u32, u32, u32),
@@ -93,10 +93,10 @@ pub struct Host {
     pub kind: HostKind,
     pub env: Environment,
     pub metrics: HostMetrics,
-    /// Whether this terminal accepts OSC 52. The preview never writes the
-    /// sequence; copy only reports the outcome.
+
+
     pub osc52: bool,
-    /// Encoded-byte ceiling for an OSC 52 payload.
+
     pub osc52_limit: usize,
 }
 
@@ -127,7 +127,7 @@ impl Host {
         }
     }
 
-    /// Right-hand identity for chrome: `devbox · local`, `◆ prod-eu-1 · production`.
+
     pub fn identity(&self) -> String {
         let role = match (self.kind, self.env) {
             (HostKind::Local, Environment::Local) => "local".to_owned(),

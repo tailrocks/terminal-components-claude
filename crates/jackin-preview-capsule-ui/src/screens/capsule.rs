@@ -1,113 +1,113 @@
-//! Capsule route state and public pane controls.
+
 
 use termrock::Id;
 
-/// Capsule root.
+
 pub const ROOT: Id = Id::root("jackin.capsule");
-/// Capsule tabs.
+
 pub const TABS: Id = ROOT.sub("tabs");
-/// Pane list.
+
 pub const PANES: Id = ROOT.sub("panes");
-/// New-tab action.
+
 pub const NEW_TAB: Id = ROOT.sub("new-tab");
-/// Split action.
+
 pub const SPLIT: Id = ROOT.sub("split");
-/// Detach action.
+
 pub const DETACH: Id = ROOT.sub("detach");
-/// Capsule application-menu layer.
+
 pub const APP_MENU: Id = ROOT.sub("app-menu");
-/// Capsule exit-confirmation layer.
+
 pub const EXIT_DIALOG: Id = ROOT.sub("exit-dialog");
-/// Exit-confirmation choice control.
+
 pub const EXIT_CHOICE: Id = EXIT_DIALOG.sub("choice");
 
-/// Prefix-key timeout used by the Capsule workbench.
+
 pub const PREFIX_TIMEOUT_MS: u64 = 2_000;
 
-/// Top-level transient layer that owns Capsule key routing.
-///
-/// The layer is deliberately separate from [`CapsuleState`].  The latter is
-/// part of the existing public projection and remains a compact pane model;
-/// this state machine owns only ephemeral input routing.
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CapsuleLayer {
-    /// Normal pane interaction.
+
     #[default]
     Normal,
-    /// Waiting for the second key of the `Ctrl+B` prefix chord.
+
     Prefix,
-    /// Application menu is open and owns focus.
+
     AppMenu,
-    /// Exit choices are open and own focus.
+
     ExitConfirmation,
 }
 
-/// Focus owner for Capsule's transient routing state.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CapsuleFocus {
-    /// The active pane owns focus.
+
     #[default]
     Pane,
-    /// The tab strip owns focus.
+
     Tabs,
-    /// The application menu owns focus.
+
     AppMenu,
-    /// The exit-choice control owns focus.
+
     ExitChoice,
 }
 
-/// Prefix command emitted after a complete `Ctrl+B <key>` sequence.
-///
-/// The app shell owns the effects (daemon mutation, route changes and
-/// dialogs); this enum makes the input-to-action mapping total and testable.
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrefixCommand {
-    /// Open a new tab.
+
     NewTab,
-    /// Select the next tab.
+
     NextTab,
-    /// Select the previous tab.
+
     PreviousTab,
-    /// Close the focused pane.
+
     ClosePane,
-    /// Close the active tab.
+
     CloseTab,
-    /// Split below the focused pane.
+
     SplitBelow,
-    /// Split right of the focused pane.
+
     SplitRight,
-    /// Toggle pane zoom.
+
     Zoom,
-    /// Focus the pane on the left.
+
     FocusLeft,
-    /// Focus the pane below.
+
     FocusDown,
-    /// Focus the pane above.
+
     FocusUp,
-    /// Focus the pane on the right.
+
     FocusRight,
-    /// Detach to the workspace manager.
+
     Detach,
-    /// Open usage for the active Capsule.
+
     Usage,
-    /// Open typed container identity details.
+
     ContainerInfo,
-    /// Open the active tab's rename control.
+
     RenameTab,
-    /// Open the active tab context menu.
+
     TabMenu,
-    /// Open the command palette.
+
     Palette,
-    /// Request a redraw.
+
     Redraw,
-    /// Select a numbered tab; zero is the conventional tenth tab.
+
     SelectTab(u8),
-    /// Clear the focused pane.
+
     ClearPane,
 }
 
 impl PrefixCommand {
-    /// Resolve one unmodified prefix character.
+
     pub const fn from_char(key: char) -> Option<Self> {
         match key {
             'c' => Some(Self::NewTab),
@@ -143,7 +143,7 @@ impl PrefixCommand {
         }
     }
 
-    /// Resolve one control character after the prefix.
+
     pub const fn from_control_char(key: char) -> Option<Self> {
         match key {
             'l' => Some(Self::ClearPane),
@@ -152,24 +152,24 @@ impl PrefixCommand {
     }
 }
 
-/// Choice returned when the exit confirmation is committed.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitDecision {
-    /// Leave the current instance running and return to the manager.
+
     StayInside,
-    /// Exit while preserving dirty state for reconnect/restore.
+
     KeepChanges,
-    /// Exit and discard dirty state.
+
     DiscardChanges,
-    /// Close the confirmation without exiting.
+
     Cancel,
 }
 
 impl ExitDecision {
-    /// Number of choices exposed by the state machine.
+
     pub const COUNT: u8 = 4;
 
-    /// Convert the stable choice index into its semantic decision.
+
     pub const fn from_index(index: u8) -> Self {
         match index {
             1 => Self::KeepChanges,
@@ -179,7 +179,7 @@ impl ExitDecision {
         }
     }
 
-    /// Return the stable choice index.
+
     pub const fn index(self) -> u8 {
         match self {
             Self::StayInside => 0,
@@ -190,11 +190,11 @@ impl ExitDecision {
     }
 }
 
-/// Ephemeral Capsule input/focus state.
-///
-/// This type is intentionally independent of daemon state.  It can therefore
-/// survive a route handoff and reconnect without resetting the active tab or
-/// pane projection in [`CapsuleState`].
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CapsuleInteraction {
     layer: CapsuleLayer,
@@ -213,22 +213,22 @@ impl Default for CapsuleInteraction {
 }
 
 impl CapsuleInteraction {
-    /// Current transient routing layer.
+
     pub const fn layer(self) -> CapsuleLayer {
         self.layer
     }
 
-    /// Current focus owner.
+
     pub const fn focus(self) -> CapsuleFocus {
         self.focus
     }
 
-    /// Current exit-choice index.
+
     pub const fn exit_choice(self) -> u8 {
         self.exit_choice
     }
 
-    /// Enter prefix mode if no higher-priority layer owns input.
+
     pub fn begin_prefix(&mut self) -> bool {
         if self.layer != CapsuleLayer::Normal {
             return false;
@@ -238,10 +238,10 @@ impl CapsuleInteraction {
         true
     }
 
-    /// Resolve the second key in a prefix sequence and return its action.
-    ///
-    /// Prefix mode is consumed even for an unknown key.  This prevents a
-    /// stale prefix from stealing the next unrelated key after a miss.
+
+
+
+
     pub fn resolve_prefix(&mut self, key: char) -> Option<PrefixCommand> {
         if self.layer != CapsuleLayer::Prefix {
             return None;
@@ -251,7 +251,7 @@ impl CapsuleInteraction {
         PrefixCommand::from_char(key)
     }
 
-    /// Open the app menu and move focus to it.
+
     pub fn open_app_menu(&mut self) -> bool {
         if self.layer == CapsuleLayer::ExitConfirmation {
             return false;
@@ -261,7 +261,7 @@ impl CapsuleInteraction {
         true
     }
 
-    /// Open exit confirmation and select its first option.
+
     pub fn open_exit_confirmation(&mut self) -> bool {
         self.layer = CapsuleLayer::ExitConfirmation;
         self.focus = CapsuleFocus::ExitChoice;
@@ -269,7 +269,7 @@ impl CapsuleInteraction {
         true
     }
 
-    /// Move the exit choice, clamped to the available options.
+
     pub fn move_exit_choice(&mut self, delta: i8) -> Option<ExitDecision> {
         if self.layer != CapsuleLayer::ExitConfirmation {
             return None;
@@ -284,7 +284,7 @@ impl CapsuleInteraction {
         Some(ExitDecision::from_index(self.exit_choice))
     }
 
-    /// Commit and clear the exit confirmation.
+
     pub fn take_exit_decision(&mut self) -> Option<ExitDecision> {
         if self.layer != CapsuleLayer::ExitConfirmation {
             return None;
@@ -294,7 +294,7 @@ impl CapsuleInteraction {
         Some(decision)
     }
 
-    /// Dismiss any transient layer and return focus to the active pane.
+
     pub fn dismiss(&mut self) -> bool {
         if self.layer == CapsuleLayer::Normal {
             return false;
@@ -305,14 +305,14 @@ impl CapsuleInteraction {
         true
     }
 
-    /// Move focus to the tab strip after a tab activation.
+
     pub fn focus_tabs(&mut self) {
         if self.layer == CapsuleLayer::Normal {
             self.focus = CapsuleFocus::Tabs;
         }
     }
 
-    /// Restore focus to the active pane.
+
     pub fn focus_pane(&mut self) {
         if self.layer == CapsuleLayer::Normal {
             self.focus = CapsuleFocus::Pane;
@@ -320,16 +320,16 @@ impl CapsuleInteraction {
     }
 }
 
-/// Capsule interaction state.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CapsuleState {
-    /// Selected capsule tab index.
+
     pub tab: u8,
-    /// Whether the selected pane is zoomed.
+
     pub zoomed: bool,
-    /// Stable identifier of the selected pane.
+
     pub selected_pane: u64,
-    /// Whether the pane context menu is open.
+
     pub context_open: bool,
 }
 

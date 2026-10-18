@@ -1,4 +1,4 @@
-//! Operator authority, campaign, and receipt parsing.
+
 
 use std::collections::HashMap;
 use std::fs;

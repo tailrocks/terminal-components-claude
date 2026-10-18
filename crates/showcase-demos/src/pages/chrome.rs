@@ -1,4 +1,4 @@
-//! Application chrome: brand lockup, status strip and inline meters.
+
 
 use termrock::author::PaintStyle;
 use termrock::{
@@ -248,8 +248,8 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
         },
         canvas,
     );
-    // The historical strip sits above the shell footer, whose hint rows own
-    // the bottom cells of the frame.
+
+
     let status_y = body.y.saturating_add(15);
     ui.paint_str(
         termrock::Rect {
@@ -274,9 +274,9 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
     } else {
         format!("brand activations: {brand_clicks}")
     };
-    // The historical line right-aligns the activation readout inside the
-    // visible body; the shell sidebar leaves this page narrower than the
-    // 120-column historical terminal.
+
+
+
     let prefix = " ↑↓ Move  m Context menu  right-click Context menu  Tab Next";
     let filler = body
         .width
@@ -297,7 +297,7 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
     let _ = (active_detail, key, action, last_style);
 }
 
-/// Chrome keeps a clickable brand and a deterministic status strip in state.
+
 #[derive(Debug, Default)]
 pub struct ChromePage {
     brand_clicks: u32,
@@ -335,8 +335,8 @@ impl Page for ChromePage {
             self.title(),
             "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers",
             |ui, body| {
-                // Keep the component projection live so it owns hit testing;
-                // the frozen paint below restores the historical cells.
+
+
                 brand().draw(ui, body);
                 status_bar(&CENTER, self.frame).draw(ui, body);
                 paint_body(

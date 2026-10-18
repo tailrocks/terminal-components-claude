@@ -1,14 +1,14 @@
-//! Jackin application-shell benchmarks (`docs/audit/performance-audit.md`
-//! §7.2 A/B). Run in release:
-//!
-//! ```text
-//! cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture
-//! ```
-//!
-//! Fixtures: the `hard-cases` scenario for the manager (every Workspace
-//! expanded so all instance rows are visible) and `capsule-multi` for the
-//! Capsule, with the active tab split to four panes and every pane's
-//! scrollback filled to `SCROLLBACK` (2 000) lines.
+
+
+
+
+
+
+
+
+
+
+
 
 #![allow(
     unsafe_code,
@@ -49,7 +49,7 @@ fn report(name: &str, stats: &Stats) {
 }
 
 impl H {
-    /// `hard-cases` manager with every Workspace expanded.
+
     fn manager(w: u16, h: u16) -> Self {
         let mut hh = H::new(Scenario::HardCases, Motion::Reduced, 0, w, h);
         assert_eq!(hh.app().route(), Route::Manager);
@@ -62,7 +62,7 @@ impl H {
         hh
     }
 
-    /// `capsule-multi` Capsule with four panes of 2 000 scrollback lines.
+
     fn capsule(w: u16, h: u16) -> Self {
         let mut hh = H::new(Scenario::CapsuleMulti, Motion::Full, 0, w, h);
         assert_eq!(hh.app().route(), Route::Capsule);
@@ -107,9 +107,9 @@ impl H {
     }
 }
 
-/// The application baseline carries the three live Slice 7 measurements.
-/// The old per-frame viewport clone is intentionally absent: its deletion is
-/// an acceptance condition, not another benchmark row.
+
+
+
 #[test]
 fn jackin_perf_baseline_has_required_rows_and_no_deleted_clone() {
     const ROWS: [&str; 3] = [
@@ -126,10 +126,10 @@ fn jackin_perf_baseline_has_required_rows_and_no_deleted_clone() {
     assert!(!names.contains(&"capsule_pane_clone_4x2000"));
 }
 
-// ------------------------------------------------------------ A. frames
 
-/// Manager render with every Workspace expanded: exercises the cached row
-/// projection, detail projection and action controls per frame.
+
+
+
 #[test]
 fn frame_jackin_manager_100rows_120x40() {
     let _g = lock();
@@ -146,8 +146,8 @@ fn frame_jackin_manager_100rows_120x40() {
     }
 }
 
-/// Four panes × 2 000 scrollback lines: renders each daemon viewport in place
-/// without cloning its scrollback (`capsule.rs`).
+
+
 #[test]
 fn frame_jackin_capsule_4panes_120x40() {
     let _g = lock();
@@ -159,10 +159,10 @@ fn frame_jackin_capsule_4panes_120x40() {
     }
 }
 
-// ------------------------------------------------------------ B. events
 
-/// 1 000 arrow keys (Down/Up alternating) in the manager tree; the stable
-/// projection must not rebuild or allocate per key.
+
+
+
 #[test]
 fn key_jackin_manager_move() {
     let _g = lock();

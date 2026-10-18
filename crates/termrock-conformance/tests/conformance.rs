@@ -1,7 +1,7 @@
-//! The conformance matrix (`COMPONENT_ARCHITECTURE.md` §16.2). Slice 3 has no
-//! components yet; `ProbeCase` is a minimal button-like control written on
-//! the `author` surface so the driver itself is exercised end to end. Slice 4
-//! packages append their `Case`s to the `conformance_suite!` list below.
+
+
+
+
 #![cfg_attr(
     test,
     allow(
@@ -77,8 +77,8 @@ struct ProbeState {
     fired: u32,
 }
 
-/// A button-like control: Enter / Space / click activate; writes the cursor
-/// while focused; honours `disabled` and `patch`.
+
+
 struct ProbeCase;
 
 impl Conformance for ProbeCase {
@@ -207,7 +207,7 @@ impl Conformance for ProbeCase {
     }
 }
 
-// ───────────────────────────── Slice 4 cases ─────────────────────────────
+
 
 fn patch_of(f: &Fixture) -> &[(Part, StylePatch)] {
     f.patch.as_slice()
@@ -215,8 +215,8 @@ fn patch_of(f: &Fixture) -> &[(Part, StylePatch)] {
 
 const BTN: Id = Id::root("conformance.button");
 
-/// `Button`: Enter / Space / click activate; honours `disabled`,
-/// `patch_part` and caller-owned semantic props.
+
+
 struct ButtonCase;
 
 impl Conformance for ButtonCase {
@@ -261,10 +261,10 @@ impl Conformance for ButtonCase {
         Button::new(BTN, "").bindings(s)
     }
 
-    /// `BUSY` is kept: the spinner `Button` paints from
-    /// `design.motion.spinner_frames` is a *symbol*, so it is
-    /// mono-distinguishable without a theme rule — the driver makes the
-    /// forced state real by setting `Status::Busy` on the props too.
+
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 7] = [
             StateFlags::empty(),
@@ -290,7 +290,7 @@ impl Conformance for ButtonCase {
 
 const INPUT: Id = Id::root("conformance.text_input");
 
-/// The controlled value beside the input's durable state.
+
 #[derive(Clone, Default, PartialEq)]
 struct InputState {
     st: TextInputState,
@@ -319,8 +319,8 @@ fn text_input(id: Id, f: &Fixture) -> TextInput<'_> {
     t
 }
 
-/// The value shown while nothing was typed: a fixture row, so the mono
-/// states have text to underline.
+
+
 fn shown_value<'a>(st: &'a InputState, f: &'a Fixture) -> &'a str {
     if st.value.is_empty() && st.st.error().is_none() {
         f.rows.first().map_or("", |r| r.label.as_str())
@@ -329,7 +329,7 @@ fn shown_value<'a>(st: &'a InputState, f: &'a Fixture) -> &'a str {
     }
 }
 
-/// `TextInput`: the edit lifecycle, the cursor, typing, secrets.
+
 struct TextInputCase;
 
 impl Conformance for TextInputCase {
@@ -381,10 +381,10 @@ impl Conformance for TextInputCase {
         "hunter2"
     }
 
-    /// The full set the caps imply. `DISABLED` is reachable because §11.4's
-    /// mono table now carries `(FIELD, DISABLED)` and `(TEXT, DISABLED)` —
-    /// the two parts a text control paints for its own content — and `BUSY`
-    /// because `draw` paints the readiness spinner in the trailing cell.
+
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 6] = [
             StateFlags::empty(),
@@ -403,7 +403,7 @@ impl Conformance for TextInputCase {
 
 const FIELD_INPUT: Id = Id::root("conformance.field");
 
-/// `Field` chrome over a `TextInput`.
+
 struct FieldCase;
 
 impl Conformance for FieldCase {
@@ -452,10 +452,10 @@ impl Conformance for FieldCase {
         }
     }
 
-    /// `DISABLED` no longer depends on the chrome's `LABEL` being the one
-    /// part a mono rule reaches: the control's own `FIELD`/`TEXT` carry the
-    /// `DIM` too, so this asserts what §29 requires rather than what the
-    /// chrome happens to paint.
+
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 5] = [
             StateFlags::empty(),
@@ -516,7 +516,7 @@ fn list(f: &Fixture) -> FixtureList<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `List`: keyed rows, cursor, choose / activate, wheel and the bar.
+
 struct ListCase;
 
 impl Conformance for ListCase {
@@ -579,9 +579,9 @@ impl Conformance for ListCase {
         }
     }
 
-    /// A list never edits and is never the `ACTIVE` element of a strip, so
-    /// only `EDITING` and `ACTIVE` are narrowed. Readiness is root-owned in
-    /// the conditional left rail.
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 8] = [
             StateFlags::empty(),
@@ -611,7 +611,7 @@ impl Conformance for ListCase {
 const TABS: Id = Id::root("conformance.tabs");
 
 fn tab_paint(r: &FixtureRow, u: &mut RowUi<'_>) {
-    // the digit only, so every fixture tab fits the window
+
     u.label(r.label.get(4..).unwrap_or(""));
 }
 
@@ -630,7 +630,7 @@ fn tabs(f: &Fixture) -> FixtureTabs<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `Tabs`: stable keys, the active tab and the strip window.
+
 struct TabsCase;
 
 impl Conformance for TabsCase {
@@ -690,10 +690,10 @@ impl Conformance for TabsCase {
         PartRef::item(Part::TAB, k)
     }
 
-    /// `SELECTED` is established through the real Enter activation path;
-    /// forcing it cannot synthesize `TabsState::active`. `ACTIVE` remains
-    /// narrowed because it is the internal style state of that same semantic
-    /// selection, not an independent public state.
+
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 6] = [
             StateFlags::empty(),
@@ -706,9 +706,9 @@ impl Conformance for TabsCase {
         &STATES
     }
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
-        // The default update seeds the first tab as active. Move through the
-        // real next-tab activation path so SELECTED changes the rendered
-        // active rule instead of reproducing the empty state.
+
+
+
         const ACTIVATE: &[Chord] = &[Chord::key(KeyCode::Right)];
         if state.contains(StateFlags::SELECTED) {
             ACTIVATE
@@ -735,8 +735,8 @@ fn dialog(f: &Fixture) -> Dialog<'_> {
         .patch_part(patch_of(f))
 }
 
-/// A real dialog action is the tested control; a separate launcher opens its
-/// modal layer for the overlay contract.
+
+
 struct DialogCase;
 
 impl Conformance for DialogCase {
@@ -828,9 +828,9 @@ impl Conformance for DialogCase {
     }
 
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
-        // The dialog publishes the navigation chords per action button at draw
-        // time (`publish_dynamic_bindings`); they never live in the static
-        // table, so the conformance contract must declare them here.
+
+
+
         vec![
             (ActionKey::CANCEL, Chord::key(KeyCode::F(6))),
             (
@@ -901,7 +901,7 @@ fn dialog_prompt_renders_caller_owned_error_in_the_field() {
 const SCROLL: Id = Id::root("conformance.scroll_region");
 const SCROLL_ROWS: usize = 40;
 
-/// `ScrollRegion` over forty painted rows.
+
 struct ScrollRegionCase;
 
 impl Conformance for ScrollRegionCase {
@@ -928,9 +928,9 @@ impl Conformance for ScrollRegionCase {
         let sr = ScrollRegion::new(SCROLL).patch_part(patch_of(f));
         let content = sr.draw(ui, area, st, SCROLL_ROWS);
         let view = ScrollRegion::view(st, content, SCROLL_ROWS);
-        // the rows are the *container's* content, not a part of the scroll
-        // region, so they are painted with a plain style query (which records
-        // nothing) rather than through `RowUi`
+
+
+
         let style = ui
             .style(
                 Family::LIST,
@@ -948,11 +948,11 @@ impl Conformance for ScrollRegionCase {
         PartRef::of(Part::THUMB)
     }
 
-    /// `PRESSED` is **kept**, and that is the whole point of the case: a
-    /// `Caps::CAPTURES` component holds `PRESSED` for the life of a thumb
-    /// drag, and §11.4's `(THUMB, PRESSED, add(BOLD))` mono rule exists to
-    /// keep that drag visible without hue. Narrowing it away left the rule
-    /// unexecuted.
+
+
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 2] = [StateFlags::empty(), StateFlags::PRESSED];
         &STATES
@@ -967,7 +967,7 @@ impl Conformance for ScrollRegionCase {
 
 const PROPS: Id = Id::root("conformance.props");
 
-/// `Props`: label / value rows.
+
 struct PropsCase;
 
 impl Conformance for PropsCase {
@@ -1021,7 +1021,7 @@ fn props_list(f: &Fixture) -> PropsList<'_> {
     PropsList::new(PROPS_LIST).patch_part(patch_of(f))
 }
 
-/// `PropsList`: keyed borrowed rows, navigation, scrolling and copy actions.
+
 struct PropsListCase;
 
 impl Conformance for PropsListCase {
@@ -1131,7 +1131,7 @@ fn text_area(f: &Fixture) -> TextArea<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `TextArea`: multiline editing, scrolling and the hardware cursor.
+
 struct TextAreaCase;
 
 impl Conformance for TextAreaCase {
@@ -1162,8 +1162,8 @@ impl Conformance for TextAreaCase {
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &TextAreaCaseState, f: &Fixture) {
         if !area.is_empty() {
-            // Keep the first harness focus stop outside the editor so `tab_to`
-            // delivers FocusIn before the cursor assertion runs.
+
+
             let settle = Rect {
                 width: 1.min(area.width),
                 height: 1.min(area.height),
@@ -1222,14 +1222,14 @@ fn select(f: &Fixture) -> FixtureSelect<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `Select`: a one-row field that opens a keyed popover.
-///
-/// `OVERLAY` without `TRAPS_FOCUS` is §29.6 verbatim: the `LayerSpec::popover`
-/// is a pointer barrier, the field keeps the one focus stop while the popup is
-/// open, so case 14 checks the open/Esc/restore half and skips the trap half.
-///
-/// `COLLECTION` exercises the keyed popup rows after the overlay driver opens
-/// the component through its real activation route.
+
+
+
+
+
+
+
+
 struct SelectCase;
 
 impl Conformance for SelectCase {
@@ -1366,7 +1366,7 @@ fn radio(f: &Fixture, value: Option<ItemKey>) -> FixtureRadio<'_> {
     r
 }
 
-/// `RadioGroup`: keyed options with a cursor separate from the value.
+
 struct RadioGroupCase;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -1470,7 +1470,7 @@ fn checkbox(f: &Fixture, checked: bool) -> Checkbox<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `Checkbox`: a controlled boolean choice.
+
 struct CheckboxCase;
 
 impl Conformance for CheckboxCase {
@@ -1540,7 +1540,7 @@ fn toggle(f: &Fixture, on: bool) -> Toggle<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `Toggle`: a controlled switch.
+
 struct ToggleCase;
 
 impl Conformance for ToggleCase {
@@ -1618,7 +1618,7 @@ fn chip_bar(f: &Fixture) -> FixtureChips<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `ChipBar`: a keyed, single-activation chip strip.
+
 struct ChipBarCase;
 
 impl Conformance for ChipBarCase {
@@ -1737,7 +1737,7 @@ fn status_bar(f: &Fixture) -> StatusBar<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `StatusBar`: stateless priority-ordered status items.
+
 struct StatusBarCase;
 
 impl Conformance for StatusBarCase {
@@ -1764,10 +1764,10 @@ impl Conformance for StatusBarCase {
         status_bar(f).draw(ui, area);
     }
 
-    /// `PRESSED` is kept beyond what `Caps::REPORTS_STATUS` requires because
-    /// the strip really can wear it: `LastFrame::state` sets `PRESSED` when
-    /// `snapshot.pressed == Some(id)`, and `StatusBar` registers its
-    /// clickable item regions under its **own** id.
+
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 5] = [
             StateFlags::empty(),
@@ -1792,7 +1792,7 @@ impl Conformance for StatusBarCase {
 
 const HINT_BAR: Id = Id::root("conformance.hint_bar");
 
-/// `HintBar`: derived key hints and a status message.
+
 struct HintBarCase;
 
 impl Conformance for HintBarCase {
@@ -1905,7 +1905,7 @@ impl Conformance for DerivedHintBarCase {
 
 const KEY_HINT: Id = Id::root("conformance.key_hint");
 
-/// `KeyHint`: one fixed-width chord/action pair.
+
 struct KeyHintCase;
 
 impl Conformance for KeyHintCase {
@@ -1944,7 +1944,7 @@ impl Conformance for KeyHintCase {
 
 const PROGRESS_BAR: Id = Id::root("conformance.progress_bar");
 
-/// `ProgressBar`: determinate progress with readiness status.
+
 struct ProgressBarCase;
 
 impl Conformance for ProgressBarCase {
@@ -1990,7 +1990,7 @@ impl Conformance for ProgressBarCase {
 
 const SPINNER: Id = Id::root("conformance.spinner");
 
-/// `Spinner`: deterministic frame-driven progress indication.
+
 struct SpinnerCase;
 
 impl Conformance for SpinnerCase {
@@ -2021,9 +2021,9 @@ impl Conformance for SpinnerCase {
         s.draw(ui, area);
     }
 
-    /// Deliberately **not** `Caps::REPORTS_STATUS`: that capability is the
-    /// obligation to paint §11.4's readiness affordance, and a `Spinner` does
-    /// not paint one — it *is* one.
+
+
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 1] = [StateFlags::empty()];
         &STATES
@@ -2041,7 +2041,7 @@ impl Conformance for SpinnerCase {
 
 const METER: Id = Id::root("conformance.meter");
 
-/// `Meter`: a ratio-driven compact meter.
+
 struct MeterCase;
 
 impl Conformance for MeterCase {
@@ -2107,7 +2107,7 @@ fn empty_state(f: &Fixture) -> EmptyState<'static> {
     }
 }
 
-/// `Empty`: the shared empty/loading/error surface.
+
 struct EmptyCase;
 
 impl Conformance for EmptyCase {
@@ -2153,7 +2153,7 @@ impl Conformance for EmptyCase {
 
 const BRAND: Id = Id::root("conformance.brand");
 
-/// `Brand`: a non-interactive application lockup.
+
 struct BrandCase;
 
 impl Conformance for BrandCase {
@@ -2194,7 +2194,7 @@ impl Conformance for BrandCase {
 
 const PANEL: Id = Id::root("conformance.panel");
 
-/// `Panel`: stateless container chrome around caller-painted content.
+
 struct PanelCase;
 
 impl Conformance for PanelCase {
@@ -2254,7 +2254,7 @@ fn split_pane(f: &Fixture) -> SplitPane<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `SplitPane`: focusable keyboard resizing and pointer-captured seam dragging.
+
 struct SplitPaneCase;
 
 impl Conformance for SplitPaneCase {
@@ -2326,7 +2326,7 @@ fn text_viewport(f: &Fixture) -> TextViewport<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `TextViewport`: read-only scrolling, selection capture, and caret output.
+
 struct TextViewportCase;
 
 impl Conformance for TextViewportCase {
@@ -2346,9 +2346,9 @@ impl Conformance for TextViewportCase {
     }
 
     fn update(cx: &mut Cx<'_>, st: &mut ViewportState, f: &Fixture) -> Response<ViewportAction> {
-        // The generic driver owns this layer. Its lifecycle event is not a
-        // viewport intent and must not become an unrelated undelivered-event
-        // diagnostic in the cursor-layer case.
+
+
+
         let _ = cx.layer_event(DRIVER_POPOVER);
         text_viewport(f).update(cx, st, &viewport_lines(f))
     }
@@ -2361,9 +2361,9 @@ impl Conformance for TextViewportCase {
             .scroll()
             .offset()
             .min(lines.len().saturating_sub(1));
-        // `ScrollState` can transiently hold the unclamped tail offset from
-        // the zero-viewport bootstrap frame. The cursor fixture must name a
-        // visible logical line, not that pre-layout sentinel.
+
+
+
         reference.set_caret(Some(CellPos::new(caret_line, 0)));
         text_viewport(f).draw(ui, area, &reference, &lines);
     }
@@ -2599,7 +2599,7 @@ fn tree(f: &Fixture) -> FixtureTree<'_> {
         .patch_part(patch_of(f))
 }
 
-/// `Tree`: keyed rows, choice/activation, focus, and scrolling.
+
 struct TreeCase;
 
 impl Conformance for TreeCase {
@@ -3899,9 +3899,9 @@ impl core::fmt::Debug for FormCaseData {
 
 impl Clone for FormCaseData {
     fn clone(&self) -> Self {
-        // `Secret` deliberately has no public plaintext-copy operation. Keep
-        // only a non-reversible identity token in snapshots used by the
-        // generic driver, never a redacted string that could be committed.
+
+
+
         FormCaseData {
             secret: Secret::default(),
             snapshot: Some(self.secret_snapshot()),
@@ -4076,10 +4076,10 @@ conformance_suite!(
     form => FormCase,
 );
 
-/// §16.2 suite-level (MA-8): the states a component's capabilities imply are
-/// a **union**, not a first match. The `if / else if` chain this replaced is
-/// what let a case declaring `EDITS | DISABLEABLE` keep only `EDITING` and
-/// narrow `DISABLED` away while the guard stayed green.
+
+
+
+
 #[test]
 fn mono_states_required_by_is_a_union() {
     let both = mono_states_required_by(Caps::EDITS | Caps::DISABLEABLE);
@@ -4087,7 +4087,7 @@ fn mono_states_required_by_is_a_union() {
         both.contains(&StateFlags::EDITING) && both.contains(&StateFlags::DISABLED),
         "EDITS | DISABLEABLE must require both: {both:?}"
     );
-    // every capability contributes, and the default state is always required
+
     let all = mono_states_required_by(
         Caps::FOCUSABLE
             | Caps::ACTIVATES
@@ -4106,7 +4106,7 @@ fn mono_states_required_by_is_a_union() {
     ] {
         assert!(all.contains(&s), "{s:?} missing from {all:?}");
     }
-    // a component with no capabilities owes only the default state
+
     assert_eq!(
         mono_states_required_by(Caps::empty()),
         vec![StateFlags::empty()]
@@ -4119,7 +4119,7 @@ fn activation_gesture_defaults_to_click_and_grid_declares_double_click() {
     assert_eq!(GridCase::activation_gesture(), PointerGesture::DoubleClick);
 }
 
-/// Every binding table `C` publishes over `states` is conflict-free.
+
 fn clean<C: Conformance>(states: &[StateFlags]) {
     for f in states {
         let st = BindingState { flags: *f };
@@ -4128,10 +4128,10 @@ fn clean<C: Conformance>(states: &[StateFlags]) {
     }
 }
 
-/// One [`clean`] call per registered case: `clean` is generic, so the roster
-/// cannot be a slice. It lives beside the test rather than inside it so that
-/// registering the next component does not push the test over
-/// `clippy::too_many_lines`.
+
+
+
+
 fn every_registered_table_is_clean() {
     let states = [
         StateFlags::empty(),
@@ -4175,11 +4175,11 @@ fn every_registered_table_is_clean() {
     clean::<GridCase>(&states);
 }
 
-/// §16.2 suite-level: two **visible** bindings on the same chord in one
-/// phase are a `Diagnostic::BindingConflict`. This is the check that makes
-/// the historically dead grid `Ctrl+D` detectable, so it is asserted twice:
-/// the detector fires on a table built to conflict, and every table every
-/// registered component publishes is clean under it.
+
+
+
+
+
 #[test]
 fn conflicting_visible_bindings_are_reported() {
     const OWNER: Id = Id::root("conformance.bindings");
@@ -4234,14 +4234,14 @@ fn conflicting_visible_bindings_are_reported() {
         "{found:?}"
     );
 
-    // Hidden effective duplicates conflict too: visibility controls hints,
-    // never dispatch ambiguity.
+
+
     assert_eq!(binding_conflicts(OWNER, KeyPhase::Bubble, &ALIAS).len(), 1);
 
-    // and no registered component publishes a conflicting table
+
     every_registered_table_is_clean();
-    // every selection mode and every strip configuration, not just the
-    // fixture's own
+
+
     for m in [
         SelectMode::Single,
         SelectMode::Multi,
@@ -4265,10 +4265,10 @@ fn conflicting_visible_bindings_are_reported() {
     }
 }
 
-/// §16.2 suite-level: a component that cannot draw registers nothing — the
-/// `0×0` case across the whole registry, extended by §26 N1 to a
-/// `LayerSize::Fixed(0, h)` request, which is an **empty layer** and never
-/// the screen.
+
+
+
+
 #[test]
 fn draw_registers_nothing_when_it_cannot_draw() {
     fn degenerate<C: Conformance>() {
@@ -4343,8 +4343,8 @@ fn draw_registers_nothing_when_it_cannot_draw() {
     }
     assert_eq!(cases.len(), 44, "update the degenerate dispatcher");
 
-    // §26 N1: a zero-size request resolves to `Rect::ZERO`, so the layer's
-    // content is clipped away and registers nothing either.
+
+
     let screen = Rect::new(0, 0, 40, 12);
     assert_eq!(
         resolve_anchor(
@@ -4371,7 +4371,7 @@ fn draw_registers_nothing_when_it_cannot_draw() {
 
 const ZERO: Id = Id::root("conformance.zero_layer");
 
-/// An app whose only layer asks for `LayerSize::Fixed(0, h)`.
+
 struct ZeroLayer;
 
 impl termrock::App for ZeroLayer {
@@ -4393,7 +4393,7 @@ impl termrock::App for ZeroLayer {
 mod registry {
     use super::*;
 
-    /// The parts a case resolves in one draw.
+
     fn styled<C: Conformance>() -> Vec<Part> {
         let f = Fixture::default();
         let mut scene = Scene::new(C::NAME, f.theme.clone(), f.color, 40, 12);
@@ -4481,7 +4481,7 @@ mod registry {
     fn declared_parts_are_the_parts_actually_styled() {
         check::<ButtonCase>(&[]);
         check::<TextInputCase>(&[]);
-        // the chrome and its control register under one id
+
         check::<FieldCase>(TextInput::PARTS);
         check::<ListCase>(&[]);
         check::<TabsCase>(&[]);

@@ -1,4 +1,4 @@
-//! Explicit picker widths retain shared placement, selection, and resizing.
+
 use termrock_core::event::KeyCode;
 use termrock_core::id::{Id, ItemKey};
 use termrock_core::response::Response;

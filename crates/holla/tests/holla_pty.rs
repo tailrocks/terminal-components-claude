@@ -1,13 +1,13 @@
-//! Fresh-process proofs of the holla preview on an owned pseudo-terminal:
-//! the colour policy matrix (F23f: explicit palette, `NO_COLOR` empty and
-//! non-empty, `NO_COLOR` against an explicit flag) and the bounded input
-//! flood (F23d: dispatch and quit latency under a queue the terminal keeps
-//! feeding). Every wait is bounded and nothing touches the developer's
-//! terminal.
-//!
-//! Scope: macOS and Linux. Colour SGR is asserted separately from
-//! reverse/bold/dim/underline so an attribute-only frame is never mistaken
-//! for a coloured one.
+
+
+
+
+
+
+
+
+
+
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -64,7 +64,7 @@ impl Pty {
             ws_xpixel: 0,
             ws_ypixel: 0,
         };
-        // SAFETY: valid out-pointers; the winsize outlives the call.
+
         let rc = unsafe {
             openpty(
                 &mut master,
@@ -75,7 +75,7 @@ impl Pty {
             )
         };
         assert_eq!(rc, 0, "openpty failed");
-        // SAFETY: freshly created descriptors owned here.
+
         let slave_in = unsafe { File::from_raw_fd(slave) };
         let slave_out = slave_in.try_clone().unwrap();
         let slave_err = slave_in.try_clone().unwrap();
@@ -100,7 +100,7 @@ impl Pty {
                 }
             }
         }
-        // SAFETY: only async-signal-safe calls run between fork and exec.
+
         unsafe {
             cmd.pre_exec(|| {
                 setsid();
@@ -110,7 +110,7 @@ impl Pty {
         }
         let child = cmd.spawn().expect("spawn holla on the pty");
         drop(cmd);
-        // SAFETY: master is an owned open descriptor.
+
         let master = unsafe { File::from_raw_fd(master) };
         let output = Arc::new(Mutex::new(Vec::new()));
         let sink = Arc::clone(&output);
@@ -148,8 +148,8 @@ impl Pty {
     }
 
     fn send(&mut self, bytes: &[u8]) {
-        // the pty input buffer is small: feed it in chunks and, on a write
-        // error, say whether the application is still alive
+
+
         for (i, chunk) in bytes.chunks(512).enumerate() {
             if let Err(e) = self.master.write_all(chunk) {
                 let status = self.child.try_wait().unwrap();
@@ -185,22 +185,22 @@ impl Drop for Pty {
     }
 }
 
-/// SGR classes found in a stream, counted separately: colour never hides
-/// behind an attribute and an attribute never counts as colour. Crossterm
-/// serializes the sixteen named colours as `38;5;n` with n below 16, so
-/// that form counts as the basic palette, never as the 256-colour cube.
+
+
+
+
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Sgr {
     truecolor: usize,
-    /// `38;5;n` with n >= 16: the 256-colour cube and greys.
+
     indexed: usize,
-    /// `3x`/`9x`/`4x`/`10x` or `38;5;n` with n < 16.
+
     basic: usize,
     reverse: usize,
     bold: usize,
     dim: usize,
     underline: usize,
-    /// Distinct palette indexes below 16 that were used.
+
     palette: Vec<u32>,
 }
 
@@ -271,12 +271,12 @@ fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
     pty.wait_for("the first frame", |t| {
         t.contains("holla") && t.contains("Suggested")
     });
-    // a stable second frame: Tab moves to the preview and back
+
     pty.send(b"\t");
     std::thread::sleep(Duration::from_millis(150));
     pty.send(b"\x1b[Z");
     std::thread::sleep(Duration::from_millis(150));
-    // current quit contract: Ctrl+C is the direct interrupt-quit
+
     pty.send(b"\x03");
     let code = pty.wait_exit();
     assert_eq!(code, 0, "clean exit: {:?}", pty.text());
@@ -316,8 +316,8 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
         "no extended colour at 16: {c16:?}"
     );
 
-    // Mono is a palette of four greys, not the absence of SGR: that is
-    // what separates it from NO_COLOR below
+
+
     let (mono, _) = frame(&["--color", "none"], &[]);
     assert_eq!(
         mono.truecolor + mono.indexed,
@@ -338,9 +338,9 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
 
 #[test]
 fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
-    // NO_COLOR non-empty: colour is suppressed even against an explicit flag,
-    // attributes survive the suppression (the runtime resets colours, never
-    // modifiers)
+
+
+
     let (off, _) = frame(&["--color", "truecolor"], &[("NO_COLOR", Some("1"))]);
     assert_eq!(
         off.truecolor + off.indexed + off.basic,
@@ -351,14 +351,14 @@ fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
         off.reverse > 0 || off.bold > 0,
         "attributes survive NO_COLOR: {off:?}"
     );
-    // NO_COLOR empty is not set: colour stays
+
     let (empty, _) = frame(&["--color", "truecolor"], &[("NO_COLOR", Some(""))]);
     assert!(
         empty.truecolor > 0,
         "an empty NO_COLOR does not disable colour: {empty:?}"
     );
-    // a force flag from the environment is not a crossterm policy: it does
-    // not override NO_COLOR, and the preview never pretends it does
+
+
     let (forced, _) = frame(
         &["--color", "truecolor"],
         &[
@@ -384,17 +384,17 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     );
     pty.wait_for("the first frame", |t| t.contains("holla"));
     let before = pty.text().len();
-    // 2000 Ctrl+B presses: a single byte each (no escape-sequence boundary
-    // ambiguity across pty reads) bound to nothing on the root, so every one
-    // is an ignored event; the queue keeps feeding while the loop drains
+
+
+
     let flood: Vec<u8> = vec![0x02; 2000];
     let start = Instant::now();
     pty.send(&flood);
-    // discovery ticks keep landing while the flood drains: the frame changes
+
     pty.wait_for("a redraw during the flood", |t| t.len() > before + 64);
-    // a quit queued behind the flood is honoured once the flood is consumed.
-    // The current quit contract: Ctrl+C is the direct interrupt-quit (the
-    // single-Esc quit predates the quit-dialog redesign).
+
+
+
     pty.send(b"\x03");
     let code = pty.wait_exit();
     let elapsed = start.elapsed();

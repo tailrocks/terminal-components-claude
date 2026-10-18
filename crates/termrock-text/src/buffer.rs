@@ -1,9 +1,9 @@
-//! Editable text storage (`COMPONENT_ARCHITECTURE.md` §15, §18.1).
-//!
-//! Text is a `String` addressed by byte offset; every cursor movement is
-//! grapheme aware and every width is the one width function. `Debug`
-//! redacts and `zeroize` overwrites bytes before they are released, so a
-//! secret draft never reaches a log or lingers in freed memory.
+
+
+
+
+
+
 
 use core::fmt;
 use core::ops::Range;
@@ -11,16 +11,16 @@ use std::borrow::Cow;
 
 use super::measure::{grapheme_width, graphemes, is_word_grapheme, width};
 
-/// Cursor as `(line, display column)`.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CursorPos {
-    /// Zero-based line.
+
     pub line: usize,
-    /// Display column within the line, in cells.
+
     pub col: usize,
 }
 
-/// Text, cursor, selection anchor and the single/multi-line flag.
+
 #[derive(Default, PartialEq, Eq)]
 pub struct TextBuffer {
     text: String,
@@ -145,47 +145,47 @@ impl TextBuffer {
         }
     }
 
-    /// A single-line buffer with the cursor at the end.
+
     pub fn single(text: impl Into<String>) -> Self {
         Self::from_text(text.into(), false, false)
     }
 
-    /// A single-line buffer used for a secret draft.
+
     pub(crate) fn sensitive_single(text: &str) -> Self {
         Self::from_text(text.to_owned(), false, true)
     }
 
-    /// A multi-line buffer with the cursor at the end.
+
     pub fn multi(text: impl Into<String>) -> Self {
         Self::from_text(text.into(), true, false)
     }
 
-    /// A multi-line buffer used for a secret draft.
+
     pub(crate) fn sensitive_multi(text: &str) -> Self {
         Self::from_text(text.to_owned(), true, true)
     }
 
-    /// The text.
+
     pub fn text(&self) -> &str {
         &self.text
     }
 
-    /// Whether the text is empty.
+
     pub fn is_empty(&self) -> bool {
         self.text.is_empty()
     }
 
-    /// Whether newlines are accepted.
+
     pub const fn is_multiline(&self) -> bool {
         self.multiline
     }
 
-    /// The cursor byte offset.
+
     pub const fn cursor_offset(&self) -> usize {
         self.cursor
     }
 
-    /// Overwrite every byte with zero, then clear (§15 `zeroize`).
+
     pub fn zeroize(&mut self) {
         wipe_string(core::mem::take(&mut self.text));
         self.text = String::new();
@@ -193,7 +193,7 @@ impl TextBuffer {
         self.anchor = None;
     }
 
-    /// Replace the text; cursor at the end, no selection.
+
     pub fn set_text(&mut self, text: &str) {
         if self.sensitive {
             self.replace_text(normalize_owned(text.to_owned(), self.multiline, true));
@@ -212,14 +212,14 @@ impl TextBuffer {
         }
     }
 
-    /// Select `a..b` (either order), cursor at `b`.
+
     pub fn select_range(&mut self, a: usize, b: usize) {
         let len = self.text.len();
         self.anchor = Some(self.snap(a.min(len)));
         self.cursor = self.snap(b.min(len));
     }
 
-    /// The selection, if non-empty.
+
     pub fn selection(&self) -> Option<Range<usize>> {
         let a = self.anchor?;
         if a == self.cursor {
@@ -228,23 +228,23 @@ impl TextBuffer {
         Some(a.min(self.cursor)..a.max(self.cursor))
     }
 
-    /// The selected text, if any.
+
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().and_then(|r| self.text.get(r))
     }
 
-    /// Select everything.
+
     pub fn select_all(&mut self) {
         self.anchor = Some(0);
         self.cursor = self.text.len();
     }
 
-    /// Drop the selection.
+
     pub fn clear_selection(&mut self) {
         self.anchor = None;
     }
 
-    /// First and last line touched by the selection (or the cursor line).
+
     pub fn selection_lines(&self) -> (usize, usize) {
         if let Some(r) = self.selection() {
             let a = Self::pos_of(&self.text, r.start).line;
@@ -270,7 +270,7 @@ impl TextBuffer {
         }
     }
 
-    /// Snap a byte offset to the nearest preceding grapheme boundary.
+
     fn snap(&self, at: usize) -> usize {
         Self::floor_boundary(&self.text, at.min(self.text.len()))
     }
@@ -337,7 +337,7 @@ impl TextBuffer {
         start.saturating_add(end)
     }
 
-    /// Move left one grapheme (collapsing a selection to its start).
+
     pub fn move_left(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
@@ -348,7 +348,7 @@ impl TextBuffer {
         self.cursor = self.prev_boundary(self.cursor);
     }
 
-    /// Move right one grapheme (collapsing a selection to its end).
+
     pub fn move_right(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
@@ -359,43 +359,43 @@ impl TextBuffer {
         self.cursor = self.next_boundary(self.cursor);
     }
 
-    /// Move to the previous word start.
+
     pub fn move_word_left(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.prev_word(self.cursor);
     }
 
-    /// Move to the next word end.
+
     pub fn move_word_right(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.next_word(self.cursor);
     }
 
-    /// Move to the line start.
+
     pub fn move_home(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.line_start(self.cursor);
     }
 
-    /// Move to the line end.
+
     pub fn move_end(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.line_end(self.cursor);
     }
 
-    /// Move to the document start.
+
     pub fn move_doc_start(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = 0;
     }
 
-    /// Move to the document end.
+
     pub fn move_doc_end(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.text.len();
     }
 
-    /// Move to the same display column on the previous line.
+
     pub fn move_up(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
@@ -409,7 +409,7 @@ impl TextBuffer {
         true
     }
 
-    /// Move to the same display column on the next line.
+
     pub fn move_down(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
@@ -423,7 +423,7 @@ impl TextBuffer {
         true
     }
 
-    /// Place the cursor at `(line, col)`, dropping the selection.
+
     pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
         self.anchor = None;
         self.cursor = self.offset_at(line, col);
@@ -442,8 +442,8 @@ impl TextBuffer {
         }
     }
 
-    /// Insert a character (a newline is rejected in single-line mode).
-    /// Returns whether the text changed.
+
+
     pub fn insert_char(&mut self, c: char) -> bool {
         if matches!(c, '\r' | '\n') && !self.multiline {
             return false;
@@ -473,7 +473,7 @@ impl TextBuffer {
         true
     }
 
-    /// Insert text (newlines are stripped in single-line mode).
+
     pub fn insert_str(&mut self, s: &str) -> bool {
         let ins = normalized_text(s, self.multiline);
         let range = self.selection().unwrap_or(self.cursor..self.cursor);
@@ -501,7 +501,7 @@ impl TextBuffer {
         changed
     }
 
-    /// Delete the grapheme before the cursor (or the selection).
+
     pub fn backspace(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -516,7 +516,7 @@ impl TextBuffer {
         true
     }
 
-    /// Delete the grapheme after the cursor (or the selection).
+
     pub fn delete(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -530,7 +530,7 @@ impl TextBuffer {
         true
     }
 
-    /// Delete to the previous word start (or the selection).
+
     pub fn delete_word_left(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -545,7 +545,7 @@ impl TextBuffer {
         true
     }
 
-    /// Delete to the line end (or the selection).
+
     pub fn delete_to_line_end(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -559,7 +559,7 @@ impl TextBuffer {
         true
     }
 
-    /// Delete to the line start (or the selection).
+
     pub fn delete_to_line_start(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -582,17 +582,17 @@ impl TextBuffer {
         }
     }
 
-    /// The line count (one more than the newline count).
+
     pub fn line_count(&self) -> usize {
         self.text.split('\n').count()
     }
 
-    /// The cursor as `(line, display column)`.
+
     pub fn cursor_pos(&self) -> CursorPos {
         Self::pos_of(&self.text, self.cursor)
     }
 
-    /// `(line, display column)` of a byte offset in `text`.
+
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
         let before = text.get(..offset.min(text.len())).unwrap_or("");
         let line = before.matches('\n').count();
@@ -601,7 +601,7 @@ impl TextBuffer {
         CursorPos { line, col }
     }
 
-    /// Byte offset of `(line, display column)`, clamped to the line.
+
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         let mut start = 0usize;
         for (i, l) in self.text.split('\n').enumerate() {
@@ -621,7 +621,7 @@ impl TextBuffer {
         self.text.len()
     }
 
-    /// Display width of the whole text (single-line).
+
     pub fn width(&self) -> u16 {
         width(&self.text)
     }
@@ -696,7 +696,7 @@ mod tests {
 
     #[test]
     fn word_chars_are_consistent_between_buffer_and_viewport() {
-        // `_` joins words; combining marks remain attached to their base.
+
         let mut b = TextBuffer::single("snake_case-kebab");
         b.move_home(false);
         b.move_word_right(false);
@@ -826,7 +826,7 @@ mod tests {
         assert_eq!(b.cursor_offset(), 0);
         assert!(b.selection().is_none());
         assert!(!format!("{:?}", TextBuffer::single("hunter2")).contains("hunter2"));
-        // Drop runs zeroize: the same path, exercised through `set_text`
+
         b.set_text("again");
         assert_eq!(b.text(), "again");
     }
