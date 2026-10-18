@@ -1,7 +1,4 @@
-//! Shared JSON schemas and canonical serialization for tc-proof tools.
-
 #![allow(missing_docs)]
-// Non-shipped proof CLI. Workspace denies encode the TUI library contract.
 #![allow(
     unreachable_pub,
     missing_debug_implementations,

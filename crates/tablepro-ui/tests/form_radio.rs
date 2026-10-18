@@ -1,10 +1,3 @@
-//! Connection-form radio assertions adapted to the stock `Form`.
-//!
-//! Blob `6832fc214a5fa40eac5a8c6e8a34d295b1156e7c` pins a right-card layout.
-//! The tests below keep the checks the one-column form can satisfy, and they
-//! reject the card coordinates, the `( )` off marker, the clipped description,
-//! the invisible focus gutter, the `e` binding, and `is_editing`.
-
 use tablepro_ui::{TableProApp, form_fields};
 use termrock::{GlyphRole, Id, KeyCode, Modifier, Theme};
 use termrock_test_support::Harness;
@@ -41,8 +34,6 @@ fn production_index(app: &TableProApp) -> Option<usize> {
         .position(|connection| format!("{connection:?}").contains("name: \"Production\""))
 }
 
-/// Fresh ctrl-n form: arrows move the radio cursor without a draft write,
-/// and Space commits that cursor for environment then safe mode.
 #[test]
 fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -62,7 +53,6 @@ fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     Ok(())
 }
 
-/// `draw_form_radio` is not part of the app shell.
 #[test]
 fn form_radio_no_legacy_painter() {
     let src = include_str!("../src/app.rs");
@@ -76,11 +66,6 @@ fn form_radio_no_legacy_painter() {
     );
 }
 
-/// Corpus Production draft: ring order, Space commit, Enter submits the
-/// last committed environment and discards the later cursor.
-///
-/// The shell has no `e` edit binding. Connecting to Production and pressing
-/// ctrl-n opens that row through the public form command.
 #[test]
 fn form_radio_enter_submits() -> Result<(), &'static str> {
     let mut app = TableProApp::default();
@@ -166,7 +151,6 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
     Ok(())
 }
 
-/// A fresh form can Tab to the declared DATABASE field and commit into it.
 #[test]
 fn fresh_form_reaches_database_field() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -234,8 +218,6 @@ fn blob_beneath(symbol: &str, fg: &str, bg: &str) -> bool {
     symbol == " " && fg.contains("128, 128, 128") && bg.contains("17, 17, 17")
 }
 
-/// T1/T2/T12 coordinates are the right card. The stock form paints the
-/// caption in the left column and one row per option.
 #[test]
 fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -285,8 +267,6 @@ fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> 
     Ok(())
 }
 
-/// T4/T5/T6 expect the card radios at 100x30, 80x24, and 72x20. Those
-/// frames clip the one-column environment field, including its description.
 #[test]
 fn form_radio_narrow_frames_clip_the_environment_field() {
     for (w, h) in [(100u16, 30u16), (80, 24), (72, 20)] {
@@ -331,8 +311,6 @@ fn form_radio_narrow_frames_clip_the_environment_field() {
     );
 }
 
-/// T8 asks for an off marker of `( )`. The theme glyph is `(○)`. After
-/// Space commits Staging, that row wears `(●)` and Local keeps `(○)`.
 #[test]
 fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     let theme = Theme::junie();
@@ -376,8 +354,6 @@ fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     Ok(())
 }
 
-/// T9's bold cursor row is the painted option, not card column 89. The
-/// focus gutter is the visible bar. The caption stays unbolded.
 #[test]
 fn form_radio_focus_bolds_the_painted_row() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -414,7 +390,6 @@ fn form_radio_focus_bolds_the_painted_row() -> Result<(), &'static str> {
     Ok(())
 }
 
-/// T11's `e` chord is not on the stock keymap. ctrl-n remains the form command.
 #[test]
 fn form_radio_e_does_not_open_the_form() {
     let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
@@ -425,7 +400,6 @@ fn form_radio_e_does_not_open_the_form() {
     );
 }
 
-/// T11's `click(95, 10)` is the card's Staging cell. That cell is not a hit target.
 #[test]
 fn form_radio_blob_click_does_not_choose_staging() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -440,7 +414,6 @@ fn form_radio_blob_click_does_not_choose_staging() -> Result<(), &'static str> {
     Ok(())
 }
 
-/// T7/T9 call `TableProApp::is_editing`. The stock app has no such gate.
 #[test]
 fn form_radio_has_no_is_editing_gate() {
     let src = include_str!("../src/app.rs");

@@ -1,5 +1,3 @@
-//! Settings screen with tabs, member selection and destructive confirmation.
-
 use termrock::author::PaintStyle;
 use termrock::{
     Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
@@ -264,8 +262,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
     }
 }
 
-/// Member records are app state; tabs, list cursor and modal draft are
-/// component state owned by this screen.
 #[derive(Debug)]
 pub struct SettingsPage {
     tabs: TabsState,
@@ -375,8 +371,6 @@ impl Page for SettingsPage {
             "Project settings",
             "Composed: tabs, form, editable table, list, dialogs",
             |ui, body| {
-                // Compatibility paint preserves the historical frame; live
-                // controls still own focus, hit testing, and key bindings.
                 Tabs::new(TAB).draw(ui, Rect { height: 2, ..body }, &self.tabs, TABS);
                 if matches!(
                     self.tabs.active().or(self.tabs.cursor()),

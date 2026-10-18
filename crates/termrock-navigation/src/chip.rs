@@ -1,6 +1,3 @@
-//! `ChipBar` — the horizontal chip strip (`COMPONENT_ARCHITECTURE.md`
-//! §12.4, §17.0 A7, §18.2, Appendix A 4B).
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -22,35 +19,22 @@ use termrock_collections::collection::{
 };
 use termrock_runtime::rowui::{RowFn, RowUi};
 
-/// What a chip bar reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChipBarAction {
-    /// The chip's checked state flipped (`Space`, a click in `Multi`).
     Toggled(ItemKey),
-    /// The chip's close affordance fired (`Del`, `x`, a click on `×`).
     Closed(ItemKey),
-    /// The chip was activated (`Enter`, a click).
     Activated(ItemKey),
-    /// The trailing add affordance was activated.
     AddRequested,
 }
 
-/// The const-constructible commands of the chip keymap.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChipBarCmd {
-    /// Cursor to the previous chip.
     Prev,
-    /// Cursor to the next chip.
     Next,
-    /// Cursor to the first chip.
     First,
-    /// Cursor to the last stop.
     Last,
-    /// Activate the cursor chip.
     Activate,
-    /// Toggle the cursor chip.
     Toggle,
-    /// Close the cursor chip.
     Close,
 }
 
@@ -155,26 +139,17 @@ const TOGGLING_CLOSABLE: [Binding<ChipBarCmd>; 11] = [
     TOGGLING[7],
 ];
 
-/// The default instantiation a form field holds (§15.1, §24 M3): chips are
-/// `&str` labels, keyed positionally, painted through `Display`.
 pub type LabelChips<'a> = ChipBar<'a, &'a str, ByIndex, DefaultRow>;
 
-/// Durable state of a [`ChipBar`]: the cursor key, the checked set, whether
-/// the cursor sits on the trailing add affordance, the strip window and the
-/// reconcile stamp.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ChipBarState {
     core: CollectionCore,
-    /// The cursor is on the add affordance rather than on a chip. The add
-    /// stop is not an item, so it cannot be a cursor **key**: reconcile
-    /// would drop a key no item carries.
     on_add: bool,
     first: Option<ItemKey>,
     first_index: usize,
 }
 
 impl ChipBarState {
-    /// The cursor key, or `None` while the cursor is on the add affordance.
     pub const fn cursor(&self) -> Option<ItemKey> {
         if self.on_add {
             None
@@ -183,40 +158,29 @@ impl ChipBarState {
         }
     }
 
-    /// Whether the cursor is on the trailing add affordance.
     pub const fn on_add(&self) -> bool {
         self.on_add
     }
 
-    /// The checked set.
     pub const fn checked(&self) -> &KeySet {
         self.core.checked()
     }
 
-    /// The checked set, mutably.
     pub const fn checked_mut(&mut self) -> &mut KeySet {
         self.core.checked_mut()
     }
 
-    /// Point the cursor at `(index, key)`.
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.on_add = false;
         self.core.set_cursor(index, key);
     }
 
-    /// The first chip of the visible window.
     pub const fn first(&self) -> Option<ItemKey> {
         self.first
     }
 }
 
 impl Reconcile for ChipBarState {
-    /// Reconcile the cursor and the checked set, then repair the window.
-    ///
-    /// The window head is a **key**, not a position: an item that moves keeps
-    /// the strip anchored on it, exactly as the cursor and the checked set
-    /// keep their items (§16.2 case 12). Only a head that has left the data
-    /// falls back to its old position, clamped.
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
         let r = self.core.reconcile(len, &key);
         match self.first {
@@ -239,88 +203,6 @@ impl Reconcile for ChipBarState {
     }
 }
 
-/// A horizontal strip of chips with per-chip removal, an optional trailing
-/// add affordance and an overflow indicator.
-///
-/// ## Construction
-/// `ChipBar::new(id)`; chips are passed to each phase, never held (§21
-/// item 1).
-///
-/// ## Ownership
-/// The caller owns the chips (`&[T]` per phase) and a [`ChipBarState`]
-/// (cursor, checked set, window). The runtime owns focus, hover and press.
-///
-/// ## Configuration
-/// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
-/// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.select_mode`
-/// (`Multi`), `.closable(bool)` (`false`), `.add(&str)` (none),
-/// `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
-/// `.slot`.
-///
-/// ## Variants
-/// `Family::CHIP`, `DEFAULT` only.
-///
-/// ## States
-/// The bar wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the
-/// runtime and passes them to the **cursor** chip only; a checked chip
-/// wears `CHECKED`; `READ_ONLY` and `DISABLED` reach every chip.
-///
-/// ## Actions
-/// [`ChipBarAction`]: `Toggled(k)` (`Space` / a click in `Multi`),
-/// `Closed(k)` (`Del` / `Backspace` / `x` / a click on `×`), `Activated(k)`
-/// (`Enter` / a click in `Single`) and `AddRequested` (the trailing add
-/// affordance).
-///
-/// ## Focus
-/// One `Focusable` stop for the whole bar (`FocusableReadOnly` /
-/// `Disabled`); does not swallow typing. Chips and the close affordances
-/// are click targets, not focus stops.
-///
-/// ## Keyboard
-/// `←`/`h`, `→`/`l` move the cursor (the add affordance is the last stop);
-/// `Home`/`End` jump; `Enter` activates; `Space` toggles (`Multi` /
-/// `Range`); `Del`, `Backspace` and `x` close (`.closable(true)`).
-///
-/// ## Mouse
-/// `PartRef::item(Part::LABEL, k)`: a press moves the cursor, a click
-/// activates or toggles. `PartRef::item(Part::CLOSE, k)`: a click closes.
-/// The add affordance is `PartRef::of(Part::NEW)`.
-///
-/// ## Layout
-/// One row of tight chips: `gutter | label | pad [ × pad ]`, one blank
-/// column between chips, then the add affordance. The strip starts at the
-/// window head ([`ChipBarState::first`]) and the window follows the cursor,
-/// so the cursor chip is always painted and always addressable. A chip that
-/// does not fit is replaced by the `OVERFLOW` glyph and the strip stops.
-/// `measure` is `(8…, 1)`; `draw` returns the row it used; `0×0` registers
-/// nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the strip and each chip's fill), `MARKER` (the checked
-/// affordance in the leading pad cell, §30), `LABEL` (the chip content),
-/// `CLOSE` (the `×`), `OVERFLOW` (the truncation glyph), `NEW` (the add
-/// affordance). A `META` painted by the caller's [`RowUi`] is row-owned,
-/// outside this component-owned parts contract.
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`; `.slot` on `CLOSE` and `OVERFLOW`.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under
-/// insert/remove/reorder. Item actions carry an `ItemKey`; the add affordance
-/// is not an item and reports payloadless `AddRequested`, so it cannot collide
-/// with an item key.
-///
-/// ## Testing
-/// `ChipBarCase` with `ACTIVATES | FOCUSABLE | COLLECTION | DISABLEABLE |
-/// SELECTS`;
-/// `render::components::chip_bar::*`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted; the cursor is separate
-/// from the checked set; a chip that does not fit is never half-painted;
-/// the window head and the cursor are keys, so both follow their item
-/// through an insert, a removal or a reorder.
 pub struct ChipBar<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -348,7 +230,6 @@ impl<T, K, R> fmt::Debug for ChipBar<'_, T, K, R> {
 }
 
 impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
-    /// A chip bar keyed by index and painted through `Display`.
     pub const fn new(id: Id) -> Self {
         ChipBar {
             id,
@@ -411,7 +292,6 @@ impl<'a> ChipBar<'a, &'a str, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::MARKER,
@@ -421,12 +301,10 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         Part::NEW,
     ];
 
-    /// The id.
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> ChipBar<'a, T, K2, R> {
         ChipBar {
             id: self.id,
@@ -442,7 +320,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         }
     }
 
-    /// A chip painter.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> ChipBar<'a, T, K, R2> {
         ChipBar {
             id: self.id,
@@ -458,63 +335,54 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         }
     }
 
-    /// The selection mode; `Multi` and `Range` make `Space` toggle a chip.
     #[must_use]
     pub const fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
         self
     }
 
-    /// Whether chips carry a close affordance.
     #[must_use]
     pub const fn closable(mut self, yes: bool) -> Self {
         self.closable = yes;
         self
     }
 
-    /// Show a trailing add affordance.
     #[must_use]
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
         self
     }
 
-    /// Read-only: stays in the ring, never toggles or closes.
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// Showcase / fixture use only (A11).
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -550,8 +418,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-    /// Move the cursor to stop `to`; the stop after the last chip is the add
-    /// affordance when there is one.
     fn move_cursor(
         &self,
         st: &mut ChipBarState,
@@ -574,12 +440,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         acc.changed();
     }
 
-    /// Keep the cursor chip inside the window, using last frame's `fit`.
-    ///
-    /// The strip is one row, so a chip outside the window is not merely
-    /// scrolled out of sight: it registers no part and is unreachable by
-    /// pointer. The window therefore follows the cursor the way `Tabs`'
-    /// follows its active tab.
     fn follow(&self, st: &mut ChipBarState, items: &[T], fit: usize) {
         if st.on_add {
             return;
@@ -600,7 +460,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         }
     }
 
-    /// The stop the cursor currently names.
     fn cursor_stop(st: &ChipBarState, items: &[T]) -> usize {
         if st.on_add {
             items.len()
@@ -643,8 +502,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         acc.action(ChipBarAction::Closed(key));
     }
 
-    /// The update phase: reconcile, then move the cursor, activate, toggle
-    /// or close.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -729,8 +586,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The draw phase: the strip, the chips, the add affordance and the
-    /// overflow glyph.
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the strip: chips, close affordances, overflow and the add stop"
@@ -750,8 +605,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             };
             ui.register_control(self.id, row0, f);
         }
-        // runtime: the strip's own frame state; derived: none — the bar's
-        // `.disabled` and `.read_only` enter per row, not on the container
+
         let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
@@ -808,7 +662,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
             }
-            // paint the content into the rest of the strip, then measure it
+
             let content = Rect {
                 x: x.saturating_add(1),
                 y: row0.y,
@@ -836,8 +690,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 .saturating_add(1)
                 .saturating_add(close_w);
             if chip_w > avail {
-                // the chip does not fit whole: erase what the row painter put
-                // down and stop, rather than leave half a chip
                 ui.fill(content, strip.style);
                 truncated = true;
                 break;
@@ -848,11 +700,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 width: chip_w,
                 height: 1,
             };
-            // The strip was filled before the row pass. Do not refill the
-            // remaining tail here: caller-owned `RowUi::meta` is deliberately
-            // right-aligned there and remains outside `ChipBar::PARTS`.
-            // the gutter cell of a chip is part of its fill, so it takes the
-            // chip's own CONTAINER style rather than the strip's
+
             let cs = ov.style(
                 ui,
                 id,
@@ -876,9 +724,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 }
             }
             if flags.contains(StateFlags::PRESSED) {
-                // §11.4's mono `PRESSED` affordance: `[label]`, painted into
-                // the pad cells the chip already reserves, so a mono fallback
-                // never changes geometry
                 let ls = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::LABEL, flags);
                 if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
                     let right = chip
@@ -1011,8 +856,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         row0
     }
 
-    /// The natural size: one row, eight columns minimum, the strip width
-    /// preferred.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (8, 1),
@@ -1022,11 +865,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
     }
 }
 
-/// Width of the label painted at the left of `row`.
-///
-/// `RowUi::meta` is right-aligned after a two-cell gap. Ignore that suffix so
-/// metadata cannot make a keyed label appear wider than the chip's available
-/// width.
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {
         let (buf, clip) = ui.raw();
@@ -1465,7 +1303,7 @@ mod tests {
             acc.finish(BAR).action_ref(),
             Some(&ChipBarAction::Closed(ItemKey::index(2)))
         );
-        // a bar that is not closable consumes the chord instead
+
         let plain: ChipBar<'_, &str> = ChipBar::new(BAR);
         let mut acc = Acc::<ChipBarAction>::new();
         plain.close(&mut st, &items, 0, &mut acc);
@@ -1473,10 +1311,6 @@ mod tests {
         assert!(r.is_consumed() && r.action_ref().is_none());
     }
 
-    /// The window head is a key, so a chip that moves stays painted and stays
-    /// addressable. Before the window was honoured, `draw` always started at
-    /// item 0 and a chip pushed past the strip's right edge by a reorder
-    /// registered no part at all — a pointer could no longer name it.
     #[test]
     fn the_strip_window_is_keyed_so_a_reordered_chip_stays_addressable() {
         const STRIP: Rect = Rect {

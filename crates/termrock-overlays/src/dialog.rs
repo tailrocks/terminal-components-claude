@@ -1,6 +1,3 @@
-//! `Dialog` — layer content (`COMPONENT_ARCHITECTURE.md` §9.2, §14.1, §17.0
-//! A7, Appendix A 4F).
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -24,23 +21,19 @@ use termrock_feedback::keyhint::ChordText;
 use termrock_fields::field::Field;
 use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
 
-/// What a dialog reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DialogAction {
-    /// An action-row button fired.
     Action(ActionKey),
-    /// The layer was dismissed (Esc, outside click, …).
+
     Dismissed(DismissReason),
 }
 
-/// The const-constructible commands of the dialog keymap.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DialogCmd {
-    /// Focus the previous enabled action.
     PrevAction,
-    /// Focus the next enabled action.
+
     NextAction,
-    /// Activate the focused action.
+
     Activate,
 }
 
@@ -96,10 +89,6 @@ const ACK_ACTIONS: [Action<'static>; 2] = [
 ];
 const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close")];
 
-/// Durable state of a [`Dialog`]: the prompt / acknowledgement draft.
-///
-/// The draft is uncontrolled (S4's documented exception: a throwaway
-/// field); read it with [`DialogState::draft`]. `Debug` redacts it.
 #[derive(Default)]
 pub struct DialogState {
     input: TextInputState,
@@ -145,14 +134,10 @@ impl fmt::Debug for DialogState {
 }
 
 impl DialogState {
-    /// Whether the prompt or acknowledgement editor is actively editing.
-    /// This exposes no draft text, acknowledgement token, or comparison result.
     pub const fn is_editing(&self) -> bool {
         self.input.is_editing()
     }
 
-    /// The committed prompt text. Acknowledgement drafts return an empty
-    /// string; the token is only compared inside the dialog.
     pub fn draft(&self) -> &str {
         if self.input.is_sensitive() {
             ""
@@ -161,7 +146,6 @@ impl DialogState {
         }
     }
 
-    /// Overwrite the drafts.
     pub fn zeroize(&mut self) {
         self.input.zeroize();
         zeroize_string(&mut self.draft);
@@ -185,87 +169,6 @@ fn zeroize_string(value: &mut String) {
     crate::secret::wipe_string(core::mem::take(value));
 }
 
-/// A titled surface with a description, an optional prompt or typed
-/// acknowledgement, an arbitrary body slot and a right-aligned action row.
-///
-/// ## Construction
-/// `Dialog::new(id)`; conveniences over the same path: `confirm(id, title,
-/// question)`, `destructive(id, title, question)`, `prompt(id, title,
-/// label)`, `acknowledge(id, title, token)`. The dialog is layer
-/// **content**: open the layer with `cx.open_layer(id, LayerSpec::modal(id))`
-/// and draw inside `ui.layer(id, …)`.
-///
-/// ## Ownership
-/// The caller owns a [`DialogState`] (the prompt draft); the layer stack,
-/// trap, backdrop, Esc, outside-click and focus restore belong to the
-/// runtime.
-///
-/// ## Configuration
-/// `.title(&str)`, `.description(&str)`, `.actions(&[Action])`,
-/// `.cancel(ActionKey)` (the action Esc stands for), `.width(u16)`
-/// (`design.size.dialog_width`), `.body_rows(u16)` (rows for the body slot;
-/// `code_preview_lines` for `new`, `0` for the conveniences — the dialog
-/// never sees the body closure before `draw`, so the caller states it),
-/// `.error(Option<&str>)` for caller-owned prompt validation, `.patch`,
-/// `.patch_part`.
-///
-/// ## Variants
-/// `Family::DIALOG`, `DEFAULT` only; the action buttons carry their
-/// `Action`'s variant.
-///
-/// ## States
-/// None of its own; the border is painted strong (the legacy focused
-/// frame); action buttons derive `DISABLED` from arming.
-/// Reference fixtures target an individual prompt or action through
-/// [`Ui::reference`](termrock_runtime::Ui::reference) (A11).
-///
-/// ## Actions
-/// `Action(key)` when a button fires, `Dismissed(reason)` when the layer
-/// closed without one.
-///
-/// ## Focus
-/// The dialog registers no stop; its buttons and prompt do. Focus enters
-/// the first registered control when the modal opens (rule (c)).
-///
-/// ## Keyboard
-/// `←` / `→` move between enabled actions. Esc reaches the focused control
-/// first, then the layer's `Dismiss.esc`.
-///
-/// ## Mouse
-/// The surface is `Decorative` (a click inside is never "outside"); buttons
-/// and the prompt take their own pointer intents.
-///
-/// ## Layout
-/// The dialog computes a **size**, never a rect: `measured_width` /
-/// `measured_height` are pure functions of the props and the design tokens,
-/// [`Dialog::layer`] hands them to the one layer resolver, and
-/// [`Dialog::update`] re-asserts them every frame (§26 N1). `draw` lays out
-/// from `area`'s origin against that measurement — title, description,
-/// prompt, a blank row, the body slot, a blank row, the action row — runs
-/// the body slot exactly once and returns its value. When no chrome fits, the
-/// body receives an origin-anchored empty rect under an empty clip.
-/// `measure` returns the same size.
-///
-/// ## Parts
-/// `CONTAINER`, `BORDER`, `TITLE`, `DETAIL` (the description), `BODY`,
-/// `ACTIONS`, `BACKDROP` (painted by the runtime).
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`; no slots (the body is the
-/// slot).
-///
-/// ## Identity
-/// Child ids: the prompt is `id.part(Part::FIELD)`, action `i` is
-/// `id.part(Part::ACTIONS).index(i)`.
-///
-/// ## Testing
-/// `DialogCase` with `OVERLAY | TRAPS_FOCUS | FOCUSABLE | ACTIVATES` (over a
-/// launcher button); `render::components::dialog::*`.
-///
-/// ## Invariants
-/// Arming is an `update` predicate (`Action::enabled`, or the typed token);
-/// `draw` never changes it. The conveniences render through the body slot
-/// path.
 pub struct Dialog<'a> {
     id: Id,
     title: Option<&'a str>,
@@ -297,10 +200,8 @@ impl fmt::Debug for Dialog<'_> {
 }
 
 impl<'a> Dialog<'a> {
-    /// Maximum actions represented by both update and draw.
     pub const MAX_ACTIONS: usize = 8;
 
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -311,7 +212,6 @@ impl<'a> Dialog<'a> {
         Part::BACKDROP,
     ];
 
-    /// An empty dialog.
     pub const fn new(id: Id) -> Self {
         Dialog {
             id,
@@ -330,7 +230,6 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// Cancel / OK over `question`.
     pub const fn confirm(id: Id, title: &'a str, question: &'a str) -> Self {
         let mut d = Self::new(id).title(title).description(question);
         d.actions = &CONFIRM_ACTIONS;
@@ -340,7 +239,6 @@ impl<'a> Dialog<'a> {
         d
     }
 
-    /// Cancel / Delete over `question`.
     pub const fn destructive(id: Id, title: &'a str, question: &'a str) -> Self {
         let mut d = Self::new(id).title(title).description(question);
         d.actions = &DESTRUCTIVE_ACTIONS;
@@ -349,7 +247,6 @@ impl<'a> Dialog<'a> {
         d
     }
 
-    /// A labelled prompt; Enter in the prompt fires the primary action.
     pub const fn prompt(id: Id, title: &'a str, label: &'a str) -> Self {
         let mut d = Self::new(id).title(title);
         d.actions = &CONFIRM_ACTIONS;
@@ -360,16 +257,12 @@ impl<'a> Dialog<'a> {
         d
     }
 
-    /// Override the visible prompt or acknowledgement label without changing validation.
-    /// Omitted labels retain the constructor's default. The private draft is never exposed.
     #[must_use]
     pub const fn input_label(mut self, label: &'a str) -> Self {
         self.input_label = Some(label);
         self
     }
 
-    /// A typed acknowledgement: the confirming action is armed only while
-    /// the draft equals `token`.
     pub const fn acknowledge(id: Id, title: &'a str, token: &'a str) -> Self {
         let mut d = Self::new(id).title(title);
         d.actions = &ACK_ACTIONS;
@@ -379,17 +272,12 @@ impl<'a> Dialog<'a> {
         d
     }
 
-    /// A facts body, sized for one row per property and closed by one action.
-    /// Paint `props` through [`Props`](termrock_controls::props::Props) in `draw`'s
-    /// body slot; this constructor stores no closed body representation.
     pub fn facts(id: Id, title: &'a str, props: &'a [(&'a str, &'a str)]) -> Self {
         let mut d = Self::info(id, title);
         d.body_rows = Some(props.len().min(usize::from(u16::MAX)) as u16);
         d
     }
 
-    /// A choice body, sized for one row per option with Cancel / OK actions.
-    /// Paint `options` through a choice control in `draw`'s body slot.
     pub fn choice(id: Id, title: &'a str, options: &'a [&'a str]) -> Self {
         let mut d = Self::confirm(id, title, "");
         d.description = None;
@@ -397,7 +285,6 @@ impl<'a> Dialog<'a> {
         d
     }
 
-    /// Read-only body content with one Close action.
     pub const fn info(id: Id, title: &'a str) -> Self {
         let mut d = Self::new(id).title(title);
         d.actions = &INFO_ACTIONS;
@@ -405,81 +292,66 @@ impl<'a> Dialog<'a> {
         d
     }
 
-    /// The id.
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// The prompt / acknowledgement control's id.
     pub const fn input_id(&self) -> Id {
         self.id.part(Part::FIELD)
     }
 
-    /// The id of action button `i`.
     pub const fn action_id(&self, i: usize) -> Id {
         self.id.part(Part::ACTIONS).index(i)
     }
 
-    /// The title.
     #[must_use]
     pub const fn title(mut self, s: &'a str) -> Self {
         self.title = Some(s);
         self
     }
 
-    /// The description, wrapped under the title.
     #[must_use]
     pub const fn description(mut self, s: &'a str) -> Self {
         self.description = Some(s);
         self
     }
 
-    /// A caller-owned validation message for the prompt or acknowledgement
-    /// field. The message is borrowed for this dialog's draw/update props and
-    /// is never copied into [`DialogState`].
     #[must_use]
     pub const fn error(mut self, error: Option<&'a str>) -> Self {
         self.error = error;
         self
     }
 
-    /// The action row. At most [`Self::MAX_ACTIONS`] entries participate in
-    /// both update and draw; later entries are inert.
     #[must_use]
     pub const fn actions(mut self, a: &'a [Action<'a>]) -> Self {
         self.actions = a;
         self
     }
 
-    /// The action Esc / dismissal stands for.
     #[must_use]
     pub const fn cancel(mut self, k: ActionKey) -> Self {
         self.cancel = Some(k);
         self
     }
 
-    /// The dialog width (clamped to the area).
     #[must_use]
     pub const fn width(mut self, w: u16) -> Self {
         self.width = Some(w);
         self
     }
 
-    /// Rows reserved for the body slot.
     #[must_use]
     pub const fn body_rows(mut self, n: u16) -> Self {
         self.body_rows = Some(n);
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
@@ -525,7 +397,6 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// The first enabled action that is not the cancel action.
     fn primary_index(&self, st: &DialogState) -> Option<usize> {
         self.effective_actions()
             .iter()
@@ -535,12 +406,7 @@ impl<'a> Dialog<'a> {
             })
     }
 
-    /// The update phase: the prompt, the action buttons, `←`/`→` and the
-    /// layer's lifecycle events.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
-        // invariant D1: the dialog re-asserts its size every frame, so a
-        // description that grows or a theme swap corrects the layer on the
-        // next draw without the opener predicting anything (§26 N1).
         let size = LayerSize::Fixed(
             self.measured_width(cx.design()),
             self.measured_height(cx.design()),
@@ -554,11 +420,7 @@ impl<'a> Dialog<'a> {
                     st.zeroize();
                     acc.action(DialogAction::Dismissed(r));
                 }
-                // A lifecycle notification is drained and repainted but NOT
-                // consumed: `Opened` arrives in the same `update` as the key
-                // that is still travelling the Esc ladder (§3.3 step 8), and
-                // consuming it would make the first Esc after opening a modal
-                // do nothing.
+
                 Intent::Layer(_) => acc.repaint(),
                 Intent::Cancel => {
                     st.zeroize();
@@ -580,26 +442,23 @@ impl<'a> Dialog<'a> {
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
             acc.fold(&r.erase());
             if committed && self.prompt.is_some() {
-                // Enter in a prompt submits; in an acknowledgement it only arms
                 if let Some(i) = self.primary_index(st)
                     && let Some(a) = self.actions.get(i)
                 {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
                 }
-            } else if committed && is_ack {
-                // Acknowledgement Enter only arms and leaves the editor. Execution
-                // requires a later deliberate activation of an enabled action.
-                if let Some(id) =
+            } else if committed
+                && is_ack
+                && let Some(id) =
                     self.effective_actions()
                         .iter()
                         .enumerate()
                         .find_map(|(i, action)| {
                             self.enabled(i, action, st).then_some(self.action_id(i))
                         })
-                {
-                    cx.focus(id);
-                }
+            {
+                cx.focus(id);
             }
         }
         for (i, a) in self.effective_actions().iter().enumerate() {
@@ -660,15 +519,12 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// Columns available to the content: the frame minus one border column
-    /// and `design.space.dialog_inset` on each side (§26 N1).
     fn inner_width(&self, d: &DesignTokens) -> u16 {
         self.measured_width(d)
             .saturating_sub(2)
             .saturating_sub(d.space.dialog_inset.saturating_mul(2))
     }
 
-    /// Rows the prompt / acknowledgement control needs, `0` when there is none.
     fn input_rows(&self, d: &DesignTokens) -> u16 {
         if self.prompt.is_some() {
             d.size.field_height
@@ -679,24 +535,15 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    /// Rows the body slot needs, plus the blank row that separates it.
     fn body_block(&self, d: &DesignTokens) -> u16 {
         let rows = self.body_rows.unwrap_or(d.size.code_preview_lines);
         if rows == 0 { 0 } else { rows.saturating_add(1) }
     }
 
-    /// `.width(w)` when set, else `design.size.dialog_width` (§26 N1).
     pub fn measured_width(&self, d: &DesignTokens) -> u16 {
         self.width.unwrap_or(d.size.dialog_width)
     }
 
-    /// `border(2)` + `title(1)` + the wrapped description + the prompt +
-    /// `[blank + body]` + `[blank + actions]` (§26 N1).
-    ///
-    /// A pure function of the props and the design tokens, and the number
-    /// [`Dialog::draw`] lays out against — the two share
-    /// [`wrapped_rows`], so a description that
-    /// rewraps moves both together.
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
         let inner = self.inner_width(d);
         let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
@@ -707,10 +554,6 @@ impl<'a> Dialog<'a> {
             .saturating_add(actions)
     }
 
-    /// The layer this dialog wants: a modal sized from the props and the
-    /// design tokens. Call it at the moment of opening —
-    /// `cx.open_layer(id, dialog().layer(cx))` — and let [`Dialog::update`]
-    /// re-assert it every frame (§26 N1, invariant D1).
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         let d = cx.design();
         LayerSpec::modal(self.id).size(LayerSize::Fixed(
@@ -719,10 +562,6 @@ impl<'a> Dialog<'a> {
         ))
     }
 
-    /// The rect the dialog paints into: `area`'s origin, sized to what it
-    /// asked the resolver for and clamped to `area`. Anchoring, flipping and
-    /// centring belong to the one layer resolver (§9.1, §26 N1); no component
-    /// computes a screen rect.
     fn frame_rect(&self, ui: &Ui<'_>, area: Rect) -> (Rect, u16) {
         let d = ui.design();
         let desc_h = self
@@ -739,12 +578,6 @@ impl<'a> Dialog<'a> {
         )
     }
 
-    /// The draw phase: chrome, description, prompt, the body slot and the
-    /// action row.
-    ///
-    /// The body runs exactly once for every area. When the dialog or its
-    /// inner rect cannot draw, it receives an empty rect anchored inside
-    /// `area`; its paint and registrations remain clipped away (R1/R5).
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over title, description, prompt, body and actions"
@@ -769,9 +602,7 @@ impl<'a> Dialog<'a> {
         };
         let ov = self.ov;
         let id = self.id;
-        // Dialog chrome has no runtime state of its own. Its border is the
-        // authored strong rule; fixture interaction flags belong to one
-        // prompt/action child below, never to the composite surface.
+
         let live = StateFlags::empty();
         overlay_chrome(
             ui,
@@ -789,8 +620,7 @@ impl<'a> Dialog<'a> {
                 let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
                     ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
                 };
-                // the horizontal inset `measured_height` wraps the description
-                // against; vertically the frame is the padding (§26 N1)
+
                 let pad = ui.design().space.dialog_inset;
                 let inner = crate::layout::inset(
                     framed,
@@ -863,8 +693,7 @@ impl<'a> Dialog<'a> {
                         y = y.saturating_add(1);
                     }
                 }
-                // one blank row separates the body from what precedes it, exactly
-                // as `measured_height`'s `[blank + body]` term says
+
                 let body_top = if self.body_block(ui.design()) == 0 {
                     y
                 } else {
@@ -915,8 +744,6 @@ impl<'a> Dialog<'a> {
                             .disabled(!enabled)
                             .draw(ui, r);
                         if enabled {
-                            // Extend the Button table; publishing another static
-                            // table would replace its Enter/Space activation.
                             ui.publish_dynamic_bindings(
                                 action_id,
                                 ui.state(action_id),
@@ -949,8 +776,6 @@ impl<'a> Dialog<'a> {
         )
     }
 
-    /// The preferred size: exactly what [`Dialog::layer`] asks the resolver
-    /// for.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let d = ui.design();
         Size {
@@ -1006,7 +831,6 @@ mod tests {
         })
     }
 
-    /// A headless runtime whose `App` draws nothing, for `draw_scene`.
     fn scene() -> (Runtime<Stub>, Buffer) {
         (
             Runtime::new(Stub::default(), Theme::junie()),
@@ -1021,7 +845,6 @@ mod tests {
             Rect::new(7, 5, 1, 1),
             Rect::new(7, 5, 3, 8),
             Rect::new(7, 5, 8, 3),
-            // The frame fits, but the dialog inset collapses its inner rect.
             Rect::new(7, 5, 4, 4),
         ];
         for area in areas {
@@ -1198,11 +1021,6 @@ mod tests {
         );
     }
 
-    /// §26 N1: the layer size is a function of `(props, DesignTokens)` and
-    /// of nothing else — no focus, no frame counter, no measured content.
-    /// The `prompt` and `acknowledge` cases are what the `input_rows` term
-    /// added (§28 P4): without it the resolver is asked for a layer shorter
-    /// than the dialog's own content and `draw` clamps the field away.
     #[test]
     fn layer_size_is_a_pure_function_of_props_and_design_tokens() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -1213,12 +1031,9 @@ mod tests {
                 assert_eq!(once, twice, "the same props must measure the same");
                 assert!(once.0 > 0 && once.1 > 0);
             }
-            // the input term, isolated: `prompt` costs one field, an
-            // acknowledgement costs one field plus its echo row
+
             let bare = Dialog::new(DLG).title("Rename").body_rows(0);
-            let bare_h = bare
-                .measured_height(d)
-                .saturating_add(2 /* the action row prompt() carries */);
+            let bare_h = bare.measured_height(d).saturating_add(2);
             assert_eq!(
                 prompt().measured_height(d),
                 bare_h.saturating_add(d.size.field_height),
@@ -1236,7 +1051,7 @@ mod tests {
             );
             assert_eq!(confirm().input_rows(d), 0);
         }
-        // two themes, two answers, each read off that theme's own tokens
+
         for theme in [Theme::junie(), Theme::paper()] {
             let d = &theme.design;
             assert_eq!(prompt().measured_width(d), d.size.dialog_width);
@@ -1430,25 +1245,20 @@ mod tests {
         );
     }
 
-    /// §28 P4: the prompt's `Field` gets exactly the rows `input_rows`
-    /// charged for it, so a prompt is never silently squeezed out of the
-    /// layer its own `measured_height` asked for.
     #[test]
     fn a_prompt_dialog_sizes_its_own_field_row() {
         let (mut rt, _) = scene();
         let st = DialogState::default();
         let d = prompt();
         let dt = &Theme::junie().design;
-        // exactly the layer the dialog asks the resolver for
+
         let area = Rect::new(0, 0, d.measured_width(dt), d.measured_height(dt));
         let mut buf = Buffer::empty(area);
         rt.draw_scene(area, &mut buf, |ui, a| {
             prompt().draw(ui, a, &st, |_, _| {});
         })
         .commit_presented();
-        // the chrome's own region, not the editor's: `Field` registers its
-        // block as `Decorative` under the control's id, and the control then
-        // registers its one-row editor under the same `(id, CONTAINER)` key
+
         let field = rt
             .registry()
             .regions()
@@ -1464,8 +1274,7 @@ mod tests {
             field.height, dt.size.field_height,
             "the drawn field row is not the row `input_rows` charged for"
         );
-        // the arithmetic half: `measured_height` minus every other term is
-        // exactly `input_rows`
+
         let desc = d
             .description
             .map_or(0, |s| wrapped_rows(s, d.inner_width(dt)));
@@ -1503,11 +1312,6 @@ mod tests {
         assert_eq!(before, prompt().measured_height(&Theme::junie().design));
     }
 
-    /// §13 / §28 P3: a component that owns a layer runs its `update`
-    /// **unconditionally**. Esc dismisses the layer at §3.3 step 8 and then
-    /// re-runs `update`; by then `cx.is_open` is false, so the gated shape
-    /// would drain neither the `Cancel` nor the `Layer(Dismissed)` the
-    /// dismissal addressed to the dialog.
     #[test]
     fn an_unconditional_update_receives_the_dismissal() {
         #[derive(Default)]
@@ -1643,10 +1447,6 @@ mod tests {
         assert_eq!(runtime.app().chosen, None);
     }
 
-    /// A reference rendering is a picture, not a control at any depth. The
-    /// dialog registers no region of its own, its action
-    /// buttons register nothing, its prompt registers no editor, and the
-    /// focus ring stays empty.
     #[test]
     fn a_reference_dialog_registers_no_control() {
         for dlg in [confirm(), prompt()] {

@@ -1,5 +1,3 @@
-//! `freeze` reconstructs the tested tree and seals operation contexts.
-
 use std::fs;
 use std::path::{Path, PathBuf};
 

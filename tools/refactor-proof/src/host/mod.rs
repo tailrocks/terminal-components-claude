@@ -1,5 +1,3 @@
-//! Host CLI operations and result schemas (`tc-proof-host-result/v1`).
-
 mod authority;
 mod context;
 mod context_check;

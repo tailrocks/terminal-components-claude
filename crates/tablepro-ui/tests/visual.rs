@@ -1,5 +1,3 @@
-//! `TablePro`'s 21-surface × 2-size deterministic visual matrix.
-
 use tablepro_ui::{Surface, TableProApp};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
@@ -18,9 +16,7 @@ fn tablepro_visual_baseline() {
                     let mut app = TableProApp::default();
                     app.set_surface(surface);
                     let harness = Harness::new(app, theme.clone(), width, height).with_color(color);
-                    // The restored historical shell does not echo the matrix
-                    // label on screen; the cell-exact digest keyed by that
-                    // label is the whole fixture-sanity guard.
+
                     harness
                         .snapshot()
                         .named(surface.label())

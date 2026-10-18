@@ -1,7 +1,3 @@
-//! Catalogue: derive the ranked action list from discovered fixture truth.
-//! Ranking = scope ring weight + pins/usage memory + live urgency; every
-//! score component is visible in the row's reason (ranking is inspectable).
-
 use crate::domain::action::{Action, ActionKind, Availability, Risk, Scope};
 use crate::domain::docker::Health;
 use crate::domain::human_bytes;
@@ -9,15 +5,11 @@ use crate::domain::mise::Trust;
 use crate::domain::ranking::Memory;
 use crate::world::{Domain, World};
 
-/// One ranked section on home.
 pub struct Section {
     pub name: &'static str,
     pub actions: Vec<Action>,
 }
 
-/// Derive every known action for the current world state. Domains still
-/// discovering contribute nothing yet; failed domains contribute a blocked
-/// note row instead of silence.
 pub fn catalogue(w: &World) -> Vec<Action> {
     let mut out = vec![];
     mise_actions(w, &mut out);
@@ -33,13 +25,10 @@ pub fn catalogue(w: &World) -> Vec<Action> {
     out
 }
 
-/// Suggested / Recent / Explore with Suggested holding the top-ranked four.
-/// Pins and exact aliases always lead Suggested; live urgency can elevate a
-/// nonlocal row, but never above them.
 pub fn sections(w: &World) -> Vec<Section> {
     let mut all = catalogue(w);
     rank(w, &mut all);
-    // ranking is inspectable: the alias an action carries shows as a reason
+
     for a in &mut all {
         if let Some(name) = w.memory.alias_for(&a.command) {
             a.reason = format!("{} · alias {name}", a.reason);
@@ -79,8 +68,6 @@ pub fn sections(w: &World) -> Vec<Section> {
     out
 }
 
-/// Score every action: ring weight, pin/alias/usage memory, live urgency.
-/// Sort is total and deterministic: score, then kind, then title.
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "Closed scope weights and capped usage bound the total score to 390"
@@ -88,8 +75,7 @@ pub fn sections(w: &World) -> Vec<Section> {
 pub fn rank(w: &World, actions: &mut [Action]) {
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
-        // pins are the strongest user intent: they must outrank an alias
-        // plus live urgency combined (90 + 30)
+
         if w.memory.pin_at(&w.cwd, &a.command) {
             s += 150;
         }
@@ -110,7 +96,6 @@ pub fn rank(w: &World, actions: &mut [Action]) {
     });
 }
 
-/// Live-urgency elevation (§9 rank 3): something is wrong or stale NOW.
 fn urgent(a: &Action) -> bool {
     a.reason.contains("unhealthy")
         || a.reason.contains("modified")
@@ -119,8 +104,6 @@ fn urgent(a: &Action) -> bool {
         || a.reason.contains("% full")
         || a.reason.contains("detached")
 }
-
-// ------------------------------------------------------------ derivation
 
 fn mise_actions(w: &World, out: &mut Vec<Action>) {
     if !w.discovered(Domain::Mise) {
@@ -132,8 +115,7 @@ fn mise_actions(w: &World, out: &mut Vec<Action>) {
             .defined_in
             .rsplit_once('/')
             .map_or_else(|| w.cwd.clone(), |(d, _)| d.to_owned());
-        // Ring: file in cwd subtree → Here; namespaced child → Project;
-        // parent ecosystem visible from a child cwd → Workspace.
+
         let scope = if std::path::Path::new(&t.defined_in).starts_with(&w.cwd) && !t.namespaced() {
             Scope::Here
         } else if t.namespaced() && std::path::Path::new(&workdir).starts_with(&w.cwd) {
@@ -261,7 +243,7 @@ fn git_actions(w: &World, out: &mut Vec<Action>) {
             &git.root,
             "git -C <child> status --short",
         ));
-        // the bulk plan: per-child chains, per-child primary branches
+
         let behind: u32 = git.children.iter().map(|c| c.behind).sum();
         let diverged = git.children.iter().filter(|c| c.diverged()).count();
         if behind > 0 {
@@ -338,7 +320,6 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
     }
 
     for c in d.unhealthy() {
-        // restarting a service on a production host is broad: two gates
         let risk = match w.host.env {
             crate::domain::Environment::Production => Risk::Broad,
             _ => Risk::Bounded,
@@ -603,8 +584,6 @@ fn inventory_note(
     action
 }
 
-/// Host flows that exist regardless of folder content (Explore never
-/// empty): btm handoff and the disk-usage flow.
 fn flow_actions(w: &World, out: &mut Vec<Action>) {
     let mut btm = Action::new(
         "flow.monitor",
@@ -632,7 +611,6 @@ fn flow_actions(w: &World, out: &mut Vec<Action>) {
     }
 }
 
-/// Recent here: per-path usage from ranking memory.
 fn recent_actions(w: &World, out: &mut Vec<Action>) {
     let mut usage: Vec<_> = w.memory.usage.iter().filter(|u| u.path == w.cwd).collect();
     usage.sort_by_key(|u| std::cmp::Reverse(u.count));
@@ -656,7 +634,6 @@ fn recent_actions(w: &World, out: &mut Vec<Action>) {
 fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
     let mut matches = canonical.iter().filter(|action| action.command == command);
     if let Some(action) = matches.next() {
-        // Ambiguous command text cannot choose an arbitrary target or policy.
         if matches.next().is_none() {
             return action.clone();
         }
@@ -668,12 +645,6 @@ fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
     }
 }
 
-/// Re-resolve current semantic intent at every invocation boundary. Presentation
-/// IDs (`pin:`, `recent:`) never become effect identifiers.
-///
-/// # Errors
-/// Refuses removed/changed targets, untrusted/blocked actions and arbitrary
-/// stored commands. Error codes contain no command or typed input payloads.
 pub fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentError> {
     use crate::domain::action::ActionIntent;
     let all = catalogue(w);
@@ -722,8 +693,6 @@ impl std::fmt::Display for IntentError {
 }
 impl std::error::Error for IntentError {}
 
-// ---------------------------------------------------------------- helpers
-
 const GB: u64 = 1_073_741_824;
 
 fn times(n: u32) -> String {
@@ -738,7 +707,6 @@ fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
 
-/// Ring of a filesystem path relative to cwd.
 pub fn path_scope(cwd: &str, path: &str) -> Scope {
     if path == cwd || path.starts_with(&format!("{cwd}/")) {
         Scope::Here
@@ -749,7 +717,6 @@ pub fn path_scope(cwd: &str, path: &str) -> Scope {
     }
 }
 
-/// Short place label for a scope (`apps/frontend` under the monorepo).
 fn scope_place(cwd: &str, workdir: &str) -> String {
     if workdir == cwd {
         return String::new();
@@ -757,18 +724,10 @@ fn scope_place(cwd: &str, workdir: &str) -> String {
     workdir
         .strip_prefix(&format!("{cwd}/"))
         .map(str::to_owned)
-        .or_else(|| {
-            // child cwd: show the anchor dir name of the parent ecosystem
-            workdir.rsplit('/').next().map(str::to_owned)
-        })
+        .or_else(|| workdir.rsplit('/').next().map(str::to_owned))
         .unwrap_or_default()
 }
 
-/// Filter + grouping for the home list: hidden rows are gone, scope filter
-/// first, then the lowercase substring query across title, reason, scope
-/// and command. An alias query matches the row of the command it expands
-/// to (`gs` finds `git status`). A hidden row resurfaces when the query is
-/// its exact command — that is the only way to reach Unhide/Reset.
 pub fn visible(
     actions: &[Action],
     scope: Option<Scope>,
@@ -847,7 +806,7 @@ mod tests {
             assert_eq!(row.risk, Risk::Broad);
             assert_eq!(row.intent_id(), Some("docker.cleanup"));
             assert_eq!(row.target, canonical.target);
-            row.risk = Risk::ReadOnly; // a stale or forged presentation cannot grant policy
+            row.risk = Risk::ReadOnly;
             let intent = resolve_intent(&world, &row).unwrap();
             assert_eq!(intent.id, "docker.cleanup");
             assert_eq!(intent.risk, Risk::Broad);

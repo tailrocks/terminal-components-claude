@@ -1,22 +1,11 @@
-## Summary
+## Change
 
-Describe the user-visible behavior or maintenance outcome this change delivers.
-
-## Scope and behavior
-
-- What changed:
-- What remains incomplete or deferred:
+Describe the behavior or contract changed and the affected workspace(s).
 
 ## Verification
 
-List the commands run and their results. Use the repository commands from [development guidance](../docs/development.md); report failures and environmental limits explicitly.
+List exact commands, workspace, and results. Use `cargo nextest` for tests. Note visual states, dimensions, and evidence when UI behavior changes.
 
-```text
-<command> — <result>
-```
+## Readiness and compatibility
 
-For visual changes, name the app, scenario, terminal size, color mode, source revisions, and reviewed comparison. A passing build or test does not establish parity. Baseline changes require a separately authorized and reviewed change.
-
-## Documentation
-
-Link any updated user or maintainer guidance that reviewers should read.
+State any remaining parity, API, safety, platform, or proof-tooling limitation. Do not describe a branch as ready based only on compilation or a partial test/capture pass.

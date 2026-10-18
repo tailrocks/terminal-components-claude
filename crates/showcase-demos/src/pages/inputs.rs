@@ -1,5 +1,3 @@
-//! Single-line controlled editing with commit, cancel and validation feedback.
-
 use termrock::{
     BlurPolicy, Cx, Family, Field, FieldError, FrameRead, Id, Panel, PanelKind, Part, Rect,
     Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant,
@@ -36,8 +34,6 @@ fn branch_input<'a>() -> TextInput<'a> {
         .blur(BlurPolicy::Commit)
 }
 
-/// The one card constructor for this page (§13): both phase paths build the
-/// same `Panel::new(CARD)` props and vary only the heading text on top.
 fn card_panel() -> Panel<'static> {
     Panel::new(CARD).kind(PanelKind::Card)
 }
@@ -160,7 +156,6 @@ fn legacy_field_help(
     let _ = ui.paint_str(row, &fitted, style);
 }
 
-/// A pair of independent controlled fields, matching the legacy input page.
 #[derive(Debug)]
 pub struct InputsPage {
     name: String,
@@ -195,8 +190,7 @@ impl Page for InputsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
-        // Both phases build the same card and reference-field props (§13); the
-        // draw pass paints the reference fields inside a frozen state scope.
+
         let _ = fields_panel();
         let _ = playground_panel();
         let _ = state_reference_panel();

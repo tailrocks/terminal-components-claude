@@ -1,7 +1,3 @@
-//! The theme model (`COMPONENT_ARCHITECTURE.md` §11): concrete token data,
-//! typed recipes, role-level patches, a scoped overlay stack and one
-//! six-level precedence chain. No theme trait, no generic theme parameter.
-
 pub(crate) use crate as theme;
 pub(crate) use termrock_core::id;
 pub use termrock_core::id::Part;
@@ -42,25 +38,16 @@ pub use tokens::{
 
 use self::recipe::GlobalOverride;
 
-/// A complete theme: colours, design tokens, recipes and the capability
-/// it is resolved for.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Theme {
-    /// Colour tokens.
     pub color: ColorTokens,
-    /// Design tokens.
     pub design: DesignTokens,
-    /// Recipes.
     pub recipes: Recipes,
-    /// Capability.
     pub capability: Capability,
-    /// Authored semantic palettes at limited color capabilities. `None` uses
-    /// generic conversion for every token, as with custom themes and Paper.
     pub capability_palettes: Option<std::sync::Arc<CapabilityPalettes>>,
 }
 
 impl Theme {
-    /// The approved default; token values unchanged from the baseline.
     pub fn junie() -> Theme {
         Theme {
             color: builtin::junie::tokens(),
@@ -73,13 +60,10 @@ impl Theme {
         }
     }
 
-    /// The distinct non-Junie theme (§11.7): light, indigo, square, compact.
     pub fn paper() -> Theme {
         builtin::paper::theme()
     }
 
-    /// A theme from colour tokens: design tokens and recipe defaults are
-    /// filled in, and every `Color::Reset` token is derived (§11.2).
     pub fn from_tokens(c: ColorTokens) -> Theme {
         let mut color = c;
         builder::derive_unset(&mut color);
@@ -94,12 +78,10 @@ impl Theme {
         }
     }
 
-    /// Partial override with safe derivation.
     pub fn builder(self) -> ThemeBuilder {
         ThemeBuilder::from_theme(self)
     }
 
-    /// A theme-level override applied to every variant of `f` (precedence 4).
     #[must_use]
     pub fn override_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
@@ -115,7 +97,6 @@ impl Theme {
         self
     }
 
-    /// A theme-level override applied to one variant of `f` (precedence 4).
     #[must_use]
     pub fn override_variant(
         mut self,
@@ -136,7 +117,6 @@ impl Theme {
         self
     }
 
-    /// Define (or extend) a variant delta of `f` (precedence 2).
     #[must_use]
     pub fn define_variant(
         mut self,
@@ -157,7 +137,6 @@ impl Theme {
         self
     }
 
-    /// Define (or extend) a family's base recipe (precedence 1).
     #[must_use]
     pub fn define_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
@@ -172,7 +151,6 @@ impl Theme {
         self
     }
 
-    /// The background colour of a surface.
     pub fn bg(&self, s: Surface) -> Color {
         match s {
             Surface::Field => self.color.field,
@@ -186,8 +164,6 @@ impl Theme {
         }
     }
 
-    /// One plane up: `Field → FieldHover`; on the ladder `min(level + 1, last)`.
-    /// Index arithmetic, never colour equality (§10).
     pub fn raise(&self, s: Surface) -> Surface {
         match s {
             Surface::Field | Surface::FieldHover => Surface::FieldHover,
@@ -195,7 +171,6 @@ impl Theme {
         }
     }
 
-    /// Resolve a style without a cache or an overlay stack.
     pub fn resolve(
         &self,
         f: Family,
@@ -207,13 +182,6 @@ impl Theme {
         resolve::resolve_uncached(self, f, v, p, s, surface, &[], None)
     }
 
-    /// Sizes, glyphs and alignment for a part, with no colour binding and no
-    /// overlay stack — an `update` has neither a surface nor a draw-time
-    /// scope. This is the sizing path for `Cx`-phase arithmetic: `Form`'s
-    /// field height (§15.1 F4) and `Dialog::layer` (Adjudication N1).
-    ///
-    /// It runs the same §11.3 `accumulate` as [`Theme::resolve`] and reads the
-    /// same slots, so the two cannot disagree about a size.
     pub fn metrics(
         &self,
         f: Family,
@@ -224,14 +192,6 @@ impl Theme {
         resolve::metrics_of(&resolve::accumulate(self, f, v, p, s, &[]))
     }
 
-    /// A stable fingerprint of the whole theme (tests: byte-identical after
-    /// a scoped render).
-    ///
-    /// It formats the whole theme and hashes the text, which allocates; that
-    /// is acceptable for a test assertion and is why it is **behind the
-    /// `testing` feature** rather than on the release surface (MI-12). A
-    /// structural hash would need `Hash` on `StylePatch`, `PartRecipe` and
-    /// `Recipes`, which are user-constructed data records.
     #[cfg(any(test, feature = "testing"))]
     pub fn fingerprint(&self) -> u64 {
         use std::hash::{Hash, Hasher};
@@ -247,14 +207,10 @@ mod tests {
     use crate::id::Part;
     use crate::response::StateFlags;
 
-    /// `Theme::metrics` is the sizing path a component uses in `update`,
-    /// where there is no `Surface`: the glyph and size it computes there are
-    /// exactly the ones `draw` resolves and paints with (Adjudication N2).
     #[test]
     fn metrics_is_the_sizing_path_for_update() {
         let mut t = Theme::junie();
-        // a themed size and glyph, the shape `Form`'s field height and
-        // `Dialog::measured_height` read
+
         {
             let r = t.recipes.get_mut(Family::FIELD);
             let p = r.parts.entry(Part::FIELD);
@@ -265,7 +221,7 @@ mod tests {
             let m = t.metrics(Family::FIELD, Variant::DEFAULT, Part::FIELD, st);
             assert_eq!(m.size, Some(3));
             assert_eq!(m.glyph, Slot::Set(GlyphRole::FocusBar));
-            // the draw phase resolves the same numbers on every surface
+
             for s in [Surface::Canvas, Surface::Field, Surface::Overlay] {
                 let r = t.resolve(Family::FIELD, Variant::DEFAULT, Part::FIELD, st, s);
                 assert_eq!((r.size, r.glyph, r.align), (m.size, m.glyph, m.align));
@@ -276,7 +232,7 @@ mod tests {
     #[test]
     fn raise_is_ladder_index_arithmetic_not_colour_equality() {
         let mut t = Theme::junie();
-        // duplicate plane colours must not confuse raising
+
         t.color.surfaces[1] = t.color.surfaces[0];
         assert_eq!(t.raise(Surface::Canvas), Surface::Surface);
         assert_eq!(t.raise(Surface::Surface), Surface::Elevated);
@@ -327,7 +283,7 @@ mod tests {
         assert_eq!(p.accent, Color::from_u32(0x3b5bdb));
         assert_eq!(p.danger, Color::from_u32(0xb02525));
         assert_eq!(p.border_strong, Color::from_u32(0x9c948a));
-        // derived, pinned
+
         assert_eq!(p.field, p.surfaces[1]);
         assert_eq!(p.focus, p.accent);
         assert_eq!(p.accent_hover, Color::Rgb(88, 110, 242));

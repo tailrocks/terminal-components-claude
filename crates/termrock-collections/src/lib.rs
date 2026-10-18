@@ -1,5 +1,3 @@
-//! Keyed borrowed collections, reconciliation, selection, and scroll state.
-
 pub(crate) use termrock_core::id;
 pub(crate) use termrock_core::response;
 

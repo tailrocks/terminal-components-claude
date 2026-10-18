@@ -240,6 +240,23 @@ class QueueRecordTests(unittest.TestCase):
         self.assertIn("Highest open priority: **P0**", first)
         self.assertIn("Expiry does not release an active claim", first)
 
+    def test_render_links_current_guidance_from_stdout_and_ignored_view_location(self):
+        data = records(task())
+        stdout_view = queue.render_queue(data)
+        target_view = queue.render_queue(data, link_prefix="../../")
+        for path in (
+            "README.md",
+            "docs/architecture.md",
+            "docs/direction.md",
+            "docs/requirements.md",
+            "docs/implementation/visibility/tasks.json",
+        ):
+            self.assertIn("]({})".format(path), stdout_view)
+            self.assertIn("](../../{})".format(path), target_view)
+        for retired in ("docs/README.md", "docs/design.md", "docs/plan.md"):
+            self.assertNotIn(retired, stdout_view)
+            self.assertNotIn(retired, target_view)
+
 
 class ClaimOperationTests(unittest.TestCase):
     def test_accept_allows_parallel_same_priority_and_increments_revision(self):

@@ -1,4 +1,3 @@
-//! Held pointer targets must remain eligible across live publication.
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};

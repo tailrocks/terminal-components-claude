@@ -1,63 +1,3 @@
-//! Live busy-button regressions: the PTY spinner-cycle test and the
-//! row-geometry test.
-//!
-//! Candidate port of `tests/harness/tests/visual_baseline/button_busy_live.rs`
-//! at `origin/visual-baseline` (`3c5833cb1`). The headless pin this module
-//! extends lives in the sibling `button_busy_frames` test target
-//! (`tests/button_busy_frames.rs`): one buffer render per tick, busy+checked
-//! clipping. This module proves the same contract through the two paths
-//! those renders cannot reach:
-//!
-//! * `busy_spinner_cycle_advances_live` drives the REAL showcase binary in a
-//!   PTY via tuiscotti, clicks `Start long job` (`ButtonsPage` index 8),
-//!   and samples the marker cell across the whole 28-tick busy window. The
-//!   reference reads the glyph from the *current* render tick
-//!   (`spinner_frame(ctx.interaction.tick)`, `button.rs`), so consecutive
-//!   frames must walk the 10-frame braille cycle forward with no repeats,
-//!   no jumps, and full coverage — then the window must close with
-//!   `Long job finished ✓` and the plain label restored. A frozen glyph, a
-//!   subset cycle, or a stuck-busy button all fail.
-//! * `busy_checked_row_geometry_shared_marker` renders the REAL production
-//!   [`Button`](termrock::Button) as a busy+checked row leader with two
-//!   subsequent controls through the reference [`row_layout`] chaining,
-//!   captured via the component path ([`capture_buffer`]). The target keeps
-//!   TWO independent 2-cell lanes for busy (static `spinner_frames.first()`
-//!   icon) and checked (`●` marker), so the busy row is the idle checked row
-//!   shifted right by exactly the icon lane; the clipping ladder then
-//!   narrows the row until followers drop out and the leader itself clips.
-//!
-//! Evidence: every test writes its captured frames and a human-readable
-//! record under a unique run dir in `target/tuiscotti-actuals/` (gitignored
-//! scratch, like `target/tuiscotti/`). The dir is printed via `eprintln`.
-//!
-//! No snapshot gating here on purpose: these are contract tests — headless
-//! in the default nextest run, plus one ignored PTY probe. This file
-//! deliberately declares no ported-matrix captures.
-//!
-//! Port notes (setup only; assertions are the reference assertions,
-//! unweakened):
-//!
-//! * The live probe spawns through [`support::spawn`] with a suite [`Case`](support::Case)
-//!   (the suite convention) instead of a hand-built `Tui` argv; the PTY
-//!   mechanics and boot needle are unchanged.
-//! * The suite [`Session`](support::Session) wrapper returns a canonical
-//!   [`Frame`](tuiscotti::Frame) straight from `snapshot()`, so the sampler
-//!   reads cells and window text off the frame instead of converting a
-//!   screen first.
-//! * The geometry test drives the candidate `Runtime` + `Stub` +
-//!   `draw_scene` (one `Input::Tick` per animation tick, as in
-//!   `tests/button_busy_frames.rs`); logical widths come from
-//!   `Button::measure` and rendered widths from the `draw` return.
-//! * [`row_layout`] has no candidate equivalent (`layout::distribute`
-//!   pre-subtracts every gap and re-shares the remainder, which diverges
-//!   from the reference chaining under narrowing), so the 8-line reference
-//!   helper is reproduced verbatim; the widths it chains are the
-//!   candidate's own measured widths.
-//! * [`capture_buffer`] mirrors `tuiscotti::ratatui::from_buffer`
-//!   cell-for-cell (wide cells, continuations, style mapping) because
-//!   tuiscotti pins ratatui 0.29 while the candidate buffer is
-//!   ratatui-core 0.1, so `from_buffer` cannot take it directly.
-
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -73,35 +13,21 @@ use tuiscotti::{Cell as TCell, Color as TColor, Frame, Mods, Provenance, Rgb, Un
 
 use crate::support;
 
-/// Label of the real showcase busy button (`ButtonsPage` index 8).
 const LABEL: &str = "Start long job";
-/// Display width of [`LABEL`] (all ASCII).
 const LABEL_W: u16 = 14;
-/// Busy+checked leader width: label + 2 padding + 2 icon + 2 marker lanes.
 const FULL_W: u16 = LABEL_W + 2 + 2 + 2;
-/// Busy-only leader width: label + 2 padding + 2 icon lane.
 const BUSY_ONLY_W: u16 = LABEL_W + 2 + 2;
-/// Idle checked leader width: label + 2 padding + 2 marker lane.
 const IDLE_FULL_W: u16 = LABEL_W + 2 + 2;
-/// The reference ten-frame braille cycle (`spinner_frame`, `progress.rs`):
-/// the oracle every marker glyph below is compared against.
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-/// Reference `spinner_frame(tick) = SPINNER[tick % 10]`.
 fn spinner_frame(tick: u64) -> &'static str {
     SPINNER[(tick % SPINNER.len() as u64) as usize]
 }
-/// Showcase boot needle (same as the ported matrix).
 const BOOT: &str = "Junie Design system";
-/// Live probe geometry: canonical wide combo, footer + last-line visible.
 const PTY_COLS: u16 = 120;
 const PTY_ROWS: u16 = 40;
-/// Reference busy window: 28 render ticks at 80 ms (`LONG_JOB_TICKS`).
 const BUSY_TICKS: u64 = 28;
-/// Live-sample cadence: well under the 80 ms tick, like the state waits.
 const POLL: Duration = Duration::from_millis(25);
 
-/// Unique evidence dir for this process run (shared by the tests in this
-/// file; each test writes distinctly-named files).
 fn evidence_dir() -> &'static Path {
     static DIR: OnceLock<PathBuf> = OnceLock::new();
     DIR.get_or_init(|| {
@@ -129,8 +55,6 @@ fn spinner_index(glyph: &str) -> Option<usize> {
     SPINNER.into_iter().position(|s| s == glyph)
 }
 
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
-/// Mirrors the pointer group's hand-off (clicks take `(col, row)`).
 fn find(s: &mut support::Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -141,8 +65,6 @@ fn find(s: &mut support::Session, needle: &str, timeout: Duration) -> (u16, u16)
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-/// Consecutive spinner frames from the real binary must walk the braille
-/// cycle forward across the whole busy window, then restore the label.
 #[test]
 #[ignore = "pty probe; run with --ignored"]
 fn busy_spinner_cycle_advances_live() {
@@ -162,10 +84,6 @@ fn busy_spinner_cycle_advances_live() {
         support::screen_text(screen).contains(BOOT)
     });
 
-    // Pin the button geometry before the click. The idle label starts at
-    // the button's text cell (gutter + label); going busy inserts the
-    // 2-cell marker there and pushes the label right — so the busy marker
-    // cell is exactly the idle label start.
     let (row, label_col) = find(&mut s, LABEL, timeout);
     assert!(label_col >= 1, "label at col 0 has no gutter");
     let marker_col = label_col;
@@ -178,8 +96,6 @@ fn busy_spinner_cycle_advances_live() {
         |screen| support::screen_text(screen).contains("Working…"),
     );
 
-    // Sample the marker cell until the window closes (or the bound hits):
-    // every change is one observed frame transition.
     let start = Instant::now();
     let bound = Duration::from_secs(10);
     let mut changes: Vec<(u128, String, Frame)> = Vec::new();
@@ -219,9 +135,6 @@ fn busy_spinner_cycle_advances_live() {
         changes.last().map(|(_, _, f)| f.text()).unwrap_or_default()
     );
 
-    // The spinner run: from the first braille glyph to the first non-braille
-    // cell after it (the restored label start). Everything before the run
-    // would be a pre-busy sample; everything after is the idle tail.
     let run_start = changes
         .iter()
         .position(|(_, g, _)| spinner_index(g).is_some())
@@ -269,8 +182,6 @@ fn busy_spinner_cycle_advances_live() {
         seen.len()
     );
 
-    // The tail restores the plain label: the marker cell becomes the label
-    // start again and the row reads ` Start long job `.
     let (_, _, last_frame) = changes.last().expect("non-empty samples");
     let tail_text: String = (0..last_frame.cols)
         .filter_map(|x| last_frame.get(x, row).map(|c| c.symbol.clone()))
@@ -311,31 +222,19 @@ fn busy_spinner_cycle_advances_live() {
     eprintln!("{record}");
 }
 
-// ------------------------------------------------- row geometry (headless) --
-
-/// Second control in the row: plain secondary, no marker of its own.
 const FOLLOWER: &str = "Preview";
 const FOLLOWER_W: u16 = 9;
-/// Third control: a checked toggle, marker included.
 const THIRD_W: u16 = 11;
-/// Gap between row controls, as the pages lay them out.
 const GAP: u16 = 2;
-/// Full row width: leader + gap + follower + gap + third.
 const ROW_W: u16 = FULL_W + GAP + FOLLOWER_W + GAP + THIRD_W;
-/// Capture viewport: the full row plus a sentinel zone proving no overflow.
 const VIEW_COLS: u16 = ROW_W + 8;
 const VIEW_ROWS: u16 = 1;
-/// Sentinel outside painted rects: any paint outside a button's own width
-/// dirties it and fails.
 const SENTINEL: &str = "·";
 
 fn row_id() -> Id {
     Id::root("test.busy_live_row")
 }
 
-/// Reference `row_layout` (`src/widgets/button.rs` at `visual-baseline`),
-/// reproduced verbatim: chain each width off the previous rect, clipped to
-/// the area remainder, stepping by width + gap.
 fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     let mut x = area.x;
     let mut out = Vec::new();
@@ -347,8 +246,6 @@ fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     out
 }
 
-/// Colour conversion mirroring `tuiscotti::ratatui` (private there): named
-/// ANSI colours become their palette index, the rest map one-to-one.
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -373,7 +270,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-/// Modifier conversion mirroring `tuiscotti::ratatui` (private there).
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -392,10 +288,6 @@ fn convert_mods(m: Modifier) -> Mods {
     }
 }
 
-/// Capture a candidate buffer through the component path. The conversion
-/// mirrors `tuiscotti::ratatui::from_buffer` (wide cells, continuations,
-/// cursor-less): empty symbols become continuation followers, wide symbols
-/// emit a lead plus a follower (downgraded at the exact row end).
 fn capture_buffer(buf: &Buffer) -> Frame {
     let mut frame = Frame::blank(
         VIEW_COLS,
@@ -464,13 +356,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-/// Render the busy-leader row at `tick` into a sentinel buffer and capture
-/// it through the component path. `on` selects the leader's toggle state;
-/// `busy` toggles the busy flag; `area_w` narrows the row area to exercise
-/// follower drop-out and leader clipping.
-///
-/// Returns the buffer, the captured frame, the logical (measured) widths,
-/// the rendered (`draw`-returned) rects, and the layout rects.
 fn render_row(
     tick: u64,
     on: Option<bool>,
@@ -529,14 +414,12 @@ fn render_row(
     (buf, frame, widths, used, rects)
 }
 
-/// One row of buffer symbols, sentinel zone included.
 fn row_text(buf: &Buffer) -> String {
     (0..buf.area.width)
         .map(|x| buf[(x, 0)].symbol().to_owned())
         .collect()
 }
 
-/// The sentinel zone past `painted_end` (exclusive) must be untouched.
 fn assert_sentinel_intact(buf: &Buffer, painted_end: u16, what: &str) {
     for x in painted_end..VIEW_COLS {
         assert_eq!(
@@ -547,8 +430,6 @@ fn assert_sentinel_intact(buf: &Buffer, painted_end: u16, what: &str) {
     }
 }
 
-/// Busy + checked leader: shared marker space, exact follower positions,
-/// and the clipping ladder — through the real layout helper.
 #[test]
 fn busy_checked_row_geometry_shared_marker() {
     assert_eq!(ROW_W, 44, "fixture row width");
@@ -559,8 +440,6 @@ fn busy_checked_row_geometry_shared_marker() {
         let what = format!("busy+on={on}");
         let (buf, frame, widths, _, rects) = render_row(tick, Some(on), true, ROW_W);
 
-        // Two independent lanes: busy icon at x=1, checked marker at x=3,
-        // label at x=5; widths label + 2 pad + 2 + 2.
         assert_eq!(widths[0], FULL_W, "{what}: leader width");
         assert_eq!(widths[1], FOLLOWER_W, "{what}: follower width");
         assert_eq!(widths[2], THIRD_W, "{what}: third width");
@@ -576,15 +455,12 @@ fn busy_checked_row_geometry_shared_marker() {
             "{what}: third control position"
         );
 
-        // Lane precedence: the static spinner icon at x = 1, the toggle
-        // dot in its own lane at x = 3, label at x = 5.
         assert_eq!(
             buf[(1, 0)].symbol(),
             SPINNER[0],
             "{what}: icon lane holds the static spinner frame"
         );
-        // (The target styles the ICON lane with the neutral Part::ICON
-        // style, not the accent tone, so no colour assertion here.)
+
         assert_eq!(
             frame.get(1, 0).expect("icon cell").symbol.as_str(),
             SPINNER[0],
@@ -605,7 +481,6 @@ fn busy_checked_row_geometry_shared_marker() {
             "{what}: trailing pad x=w-1"
         );
 
-        // Subsequent controls: gutter, then text at x+1, at exact offsets.
         let fx = FULL_W + GAP;
         assert_eq!(buf[(fx + 1, 0)].symbol(), "P", "{what}: follower label");
         assert_eq!(
@@ -617,7 +492,6 @@ fn busy_checked_row_geometry_shared_marker() {
         assert_eq!(buf[(tx + 1, 0)].symbol(), "●", "{what}: third marker");
         assert_eq!(buf[(tx + 3, 0)].symbol(), "V", "{what}: third label");
 
-        // Total width: the row ends at ROW_W and nothing paints past it.
         assert_eq!(
             buf[(ROW_W - 1, 0)].symbol(),
             " ",
@@ -625,9 +499,6 @@ fn busy_checked_row_geometry_shared_marker() {
         );
         assert_sentinel_intact(&buf, ROW_W, &what);
 
-        // The target adds a separate 2-cell icon lane for busy: every
-        // subsequent control shifts right by exactly those 2 cells versus
-        // the idle checked row, cell-for-cell.
         let (idle_buf, _, _, _, idle_rects) = render_row(tick, Some(on), false, ROW_W);
         assert_eq!(
             idle_rects[0].width, IDLE_FULL_W,
@@ -672,9 +543,6 @@ fn busy_checked_row_geometry_shared_marker() {
         );
     }
 
-    // Clipping ladder: narrowing the row drops followers first (their x
-    // still derives from the shared leader width), then clips the leader
-    // itself with the `fit` contract.
     for area_w in [ROW_W, 30, 24, 20, 18, 12, 8, 6, 4, 3, 2] {
         let what = format!("clip area_w={area_w}");
         let (buf, frame, widths, used, rects) = render_row(5, Some(true), true, area_w);
@@ -682,7 +550,7 @@ fn busy_checked_row_geometry_shared_marker() {
         assert_eq!(widths[0], FULL_W, "{what}: logical width");
         assert_eq!(used[0].width, leader_w, "{what}: rendered width");
         assert_eq!(rects[0].width, leader_w, "{what}: leader rect width");
-        // Follower rects chain off the rendered leader width at every size.
+
         let fx = leader_w + GAP;
         assert_eq!(rects[1].x, fx, "{what}: follower x");
         assert_eq!(
@@ -695,7 +563,7 @@ fn busy_checked_row_geometry_shared_marker() {
             rects[1].x + rects[1].width + GAP,
             "{what}: third control chains off the follower"
         );
-        // Nothing paints past the last non-empty rect.
+
         let painted_end = rects
             .iter()
             .filter(|r| r.width > 0)
@@ -707,9 +575,7 @@ fn busy_checked_row_geometry_shared_marker() {
         if leader_w == FULL_W {
             assert!(row.contains(LABEL), "{what}: full leader shows it");
             assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
-            // A partially clipped follower truncates hard (the target
-            // `paint_str` clips without an ellipsis) and keeps its trailing
-            // pad; a zero-width follower paints nothing at all.
+
             let follower_w = rects[1].width;
             if follower_w > 0 && follower_w < FOLLOWER_W {
                 assert_eq!(
@@ -719,8 +585,6 @@ fn busy_checked_row_geometry_shared_marker() {
                 );
             }
         } else if leader_w > 3 {
-            // Clipped leader: the icon lane survives and the label truncates
-            // hard (no ellipsis on the target).
             assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
         } else if leader_w == 3 {
             assert!(
@@ -733,7 +597,7 @@ fn busy_checked_row_geometry_shared_marker() {
                 "{what}: gutter+pad-only row {row:?} must not show the label"
             );
         }
-        // Marker survives until the area is too narrow for a text cell.
+
         if leader_w > 2 {
             assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
             assert_eq!(
@@ -751,8 +615,6 @@ fn busy_checked_row_geometry_shared_marker() {
         );
     }
 
-    // The plain busy leader (no toggle state) keeps only the icon lane:
-    // label + 2 padding + 2 icon.
     let (buf, _, widths, _, _) = render_row(7, None, true, ROW_W);
     assert_eq!(widths[0], BUSY_ONLY_W, "busy-only leader width");
     assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "busy-only marker");
