@@ -1,43 +1,10 @@
-# Remaining work on `design/interaction-polish`
+# Remaining product and verification requirements
 
-Restart entry point: [docs/GOAL.md](GOAL.md). Unfinished work on `wip/*`
-branches and how to continue it: [docs/handoff/README.md](handoff/README.md)
-(read it first on every restart).
+This ledger preserves future work, acceptance criteria, owner decisions, task IDs, and verification obligations for the design/interaction-polish product. It is a requirements inventory, not a live handoff or a report of current branch completion. Branch names, tips, staffing assignments, dates, and previously recorded passes are historical; verify implementation against the current source and required evidence before closing an item.
 
-## Live status (handoff, 2026-10-18)
+The exact visual and interaction target is the design/interaction-polish product authority and its approved immutable captures. The main workspace is the structural direction; its existence does not close product-parity items. See [the documentation guide](README.md), [architecture](architecture.md), [design authority](design.md), and [the active plan](plan.md).
 
-The session stopped on 2026-10-18 and handed over. Base:
-`origin/design/interaction-polish` at `6f8a4b3af` plus the handoff docs.
-
-Done this session (landed):
-
-- Priority 0b reach: R33-R54 except the rows below (R33, R35-R39,
-  R45-R54 done; R45 DiskCleanup, R46 Activity, R47 Workspaces, R48
-  AccountsUsage and R51 Forms landed 2026-10-18, `4ce6bd5c1`..`6f8a4b3af`).
-  R34 and R40 are on `wip/reach-pages-a-2` (`267a8d085`, rebased, gate
-  not verified); R41-R44 are a WIP commit on `wip/reach-pages-a`
-  (`f5b538137`). Next steps in the handoff.
-- Footer peek: the peek line never drops the primary hint or costs a key
-  hint (`270ea65d3`, `f3cb3bbd5`); the holla finder peeks only while it has
-  focus (`941fd8c23`).
-- Splitter states: seam hover is a brighter heavy rule, drag the accent
-  (`2ea7940a6`, `2d4262375`).
-- R-apps-7: button rows wrap instead of dropping buttons (`6e19572c0`,
-  `5629775d9`).
-- R-apps-14: a dialog's code preview joins the body scroll (`a2f397f1b`,
-  `3144afba9`).
-
-Unfinished, each on a `wip/*` branch with exact next steps in the
-[handoff](handoff/README.md):
-
-| Item | Branch | Tip |
-|---|---|---|
-| R34, R40 (rebased; gate not verified; next: gate in the lock, fast-forward) | `wip/reach-pages-a-2` | `267a8d085` |
-| R41-R44 (WIP, ungated; next: cherry-pick onto `wip/reach-pages-a-2`, finish, gate, land) | `wip/reach-pages-a` | `f5b538137` |
-| R-apps-3 | `wip/rapps-3-7-14` | `81be99a79` (not gated) |
-| S16 (S16a library) | `wip/plan-s16` | `b249a81be` (builds only) |
-| S14 follow-ups (task 2 clipboard; tasks 3 K6 and 4 P0-G6 not started) | `wip/s14-followups` | `95f62ca33` |
-| V1 (not started) and the D10 holla flake fix | `wip/v1-showcase` | `c1a49af0f` |
+Each unchecked criterion remains open. Preserve its scenario, dimensions, IDs, and acceptance details until a current qualifying result closes it. The detailed component/API contracts remain in [shared-components-plan.md](architecture/shared-components-plan.md), and task-specific contracts remain in the sealed [`refactoring-tasks/`](../refactoring-tasks/) catalog.
 
 ## Priority 0 (owner, 2026-10-17): fill every empty showcase page
 

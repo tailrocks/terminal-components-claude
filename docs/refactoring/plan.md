@@ -1,35 +1,25 @@
-# Consolidated refactoring plan — as it stands on visual-baseline
+# Refactoring plan and task contracts
 
-**Provenance:** Consolidated on 2026-09-12 from `docs/sources/REFACTORING_COMPLETION_PLAN.md` and all of `docs/refactoring-plan/` (notably `proof-contract.md`, `task-index.tsv`, `traceability.tsv`, `task-graph.md`, `reaudit-plan.md`, `branch-continuation-proposal.md`, `verification.md`), `refactoring-tasks/README.md`, `refactoring-tasks/terminal-components/README.md`, `refactoring-tasks/terminal-components/completion/README.md` and a sampled task package (`completion/001/`) (holla working tree, now `visual-baseline`); historical phases from `docs/sources/main/GOAL.md`, `docs/sources/main/GOAL2.md`, `docs/sources/main/REFACTORING_GOAL.md` (via `git show`); planning requirements from `docs/sources/PLANNING_GOAL.md`. The governing goal statement is `docs/refactoring/goal.md`.
+This plan preserves the task graph, acceptance machinery, and implementation requirements for the refactor. It is a live planning specification, not a progress diary. Pin values and pass counts below are included only where they remain required task inputs; verify all current refs and evidence before execution.
 
-## 1. Current status (read first)
+## 1. Goal and readiness boundary
 
-**Completion is reopened; execution readiness is NOT currently accepted.** The 73-task catalog passed its recorded checks, but the source-first, line-by-line re-audit reopened on 2026-09-11 identified scope and contract gaps (`docs/sources/REFACTORING_COMPLETION_PLAN.md` header; `docs/refactoring-plan/reaudit-plan.md`). The previous completion audit and verification record are historical evidence, not acceptance. The 151-row frozen asset manifest (`bootstrap-assets.tsv`) is stale and must be resealed only after independent review. The production refactor and the production verification harness have **not** been implemented or executed.
+Complete the reusable component and app-workspace refactor while preserving the exact design/interaction-polish product behavior. The design branch is the product reference; main provides the structural direction. A workspace build or self-generated baseline does not establish parity.
 
-Active boundary: no terminal-components production refactor, task execution, integration branch, commit, merge or publication is authorized. The only permitted external implementation is the tui-snap dependency, which is done but unmerged: PR #1 head `883d03f19d890bbbf27468798db78b04e85297ac`, a hard prerequisite of reference qualification.
+Execution is gated by the task graph and proof contract. Do not treat any historical completion statement, report, or task package status field as a current acceptance receipt. The production refactor can begin only after the required oracle, inventory, test-disposition, runner, accounting, and architecture evidence is independently accepted. Current readiness must be established from the exact candidate revision.
 
-The re-audit is organized as seven task partitions (001–008/070–072, 009–020, 021–031/073, 032–039, 040–050, 051–064, 065–069) plus cross-cutting history and a coordinator, each with exact coverage and independent recheck rules (`reaudit-plan.md`). Findings and dispositions live in `reaudit-findings.tsv`; material work remains open until repaired bytes, all source/task joins, executable qualifiers and the final manifest are independently checked. A parallel whole-branch review (`branch-continuation-proposal.md`, exact inventory 7,885 changed paths) maps required continuation areas to existing task owners — it routes changes into the existing task graph, not a competing rewrite.
+## 2. Authorities and identity handling
 
-## 2. Resolved identities (pins, measured 2026-09-11)
+- Product behavior and appearance: [design authority](../design.md), the design/interaction-polish source, and approved immutable captures.
+- Structural architecture: [architecture.md](../architecture.md) and the detailed component contracts in [shared-components-plan.md](../architecture/shared-components-plan.md).
+- Work allocation and acceptance: the task graph, traceability inputs, and sealed task package files.
+- Current implementation facts: source and tests on the exact candidate revision.
 
-| Authority | Identity |
-| --- | --- |
-| Immutable UI oracle | `02f5294bfdbf38004cc49130d0aff1d01f31434c` (tag object `a643909d9a782adaf0aa1e3357710a5ed3f24443`) |
-| Architectural main | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| Planning checkout visual-baseline | `2e2401393c47360741ebd321679de08982dca50a` |
-| Main/visual-baseline merge base | `cc14dd6beae526884aabdf897e309be837b4f504` |
-| task-format main + installed CLI | `52d9f1eb7721f409bc47beb9fced7997b5c13ede` |
-| tui-snap reviewed PR #1 head | `883d03f19d890bbbf27468798db78b04e85297ac` (tree `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`) |
+Historical oracle hashes, branch tips, tool revisions, and commit counts in earlier planning records are provenance, not moving aliases. Resolve current required identities from protected task inputs before execution; do not repin expected evidence from candidate output.
 
-Topology: main and visual-baseline have 774 and 38 commits outside the merge base respectively. Main is a virtual workspace (`junie-tui`, `junie-tui-testing`, `xtask`, four app packages) and already contains the prior integration merged as PR #1; the oracle retains the old root library and `src/bin` applications (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §3–4).
+## 3. Historical project context
 
-## 3. Historical phases (main era — evidence, not dependency authority)
-
-- **`docs/sources/main/REFACTORING_GOAL.md`:** the original in-place architectural refactor into a reusable, themeable component system (shadcn/ui-analogous qualities translated to idiomatic Rust/Ratatui), executed as numbered slices; it was interrupted around Slice 4 (`HANDOFF_SLICE4_WAVE1.md`). Produced the workspace and `junie-tui` foundations.
-- **`docs/sources/main/GOAL.md` phases 0–5 (parity-first restoration, partially done):** Phase 0 safe preflight and freezing `baseline/before/**`; Phase 1 build the parity oracle (map 499 historical recipes to current replay, fail-closed comparator over `.txt`/`.ansi`/`.cursor` plus `.png`/`.html` review); Phase 2 restore shared visual contracts (tokens, glyphs, panels, focus/hit/cursor/scroll/layers); Phase 3 restore each application (Showcase shell + 22 pages, TablePro connection/workbench, Jackin route-by-route); Phase 4 tests and evidence (narrow parity tests, immutable archive, reviewed baseline updates); Phase 5 required verification (full workspace gates, real binaries, comparator, `bless-guard`).
-- **`docs/sources/main/GOAL2.md` (completed):** consolidation of all worktrees into `codex/main-holla-integration` with an explicit per-worktree disposition ledger; merged as PR #1 at `7b27732a`.
-
-The current plan uses historical Slice/Wave terminology as evidence only; the initial 69-outcome decomposition proposal is historical evidence, not dependency authority (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §14).
+Earlier main-era goals described an in-place component refactor and worktree-consolidation campaign. They explain how the workspace direction arose, but their slice order, completion claims, model routing, branch status, and self-baseline results do not define current readiness. The detailed historical source records remain under `docs/sources/` where task inputs require them. The accepted behavior target and current package boundaries are stated in the maintained architecture and design documents.
 
 ## 4. Current execution waves (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §15)
 
@@ -54,7 +44,7 @@ Parallelization: independent oracle app capture/inventory after shared contracts
 
 **Location:** `refactoring-tasks/terminal-components/completion/` — 73 sealed task-format packages (`001/`–`073/`) plus the group `README.md`. Project `terminal-components`, group `completion`. Companion text sometimes says "74 packages"; the directory holds 73 task packages + 1 README = 74 entries, and `task-index.tsv` has 73 data rows — flagged, not an omission.
 
-**Format:** canonical task-format revision `52d9f1e`; schemas `task/v5` (contract README), `verify/v2` (`verify.toml`), `task-meta/v1` (`task.toml`). Dependencies live in each `task.toml`, never in Markdown ordering. All packages are `status = "pending"`; an accepted host receipt and integrated ancestry — not a mutable status field — establish a usable predecessor.
+**Format:** task packages declare their schemas and dependencies in `task.toml` and `verify.toml`; these files, not Markdown ordering, define machine-readable scope. A status field or prior report is not acceptance. A usable predecessor requires the specified independent verification evidence and integrated ancestry.
 
 **Package anatomy** (verified on `001/`):
 - `README.md` — the contract: goal, context, preconditions, in/out of scope, MUST/MUST-NOT/non-regression requirements, typed acceptance blocks (constrained Gherkin per non-gate `AC-*`, `Type: gate` for gates), requirement→acceptance mapping, fixed decisions, checklist.
@@ -77,13 +67,17 @@ Parallelization: independent oracle app capture/inventory after shared contracts
 - **Qualification machinery:** the comparator fixture pack (72 cases + 69 fresh positive recoveries) and the separate host freeze/isolation/ref-update suite qualify the harness black-box; TASK-071 implements host-selected `preparation`/`production` accounting modes; TASK-008's test migration is governed by an independently applied, byte-exact assertion-span patch manifest producing a frozen post-approved-test-migration expectation register.
 - **Readiness blockers before any execution:** freeze bootstrap drivers/fixtures; resolve the final tui-snap PR/revision; freeze source-level required IDs, finite axes and source-only expansion algorithms; map every protocol operation to its bounded producer; materialize and independently validate every flat numeric trace and oracle namespace; accept exact test dispositions/stage maps; seal the complete baseline receipt.
 
-## 8. Verification architecture (`verification.md`, `docs/sources/REFACTORING_COMPLETION_PLAN.md` §11–12)
+## 8. Verification architecture
 
-Two lanes, each compared against its own oracle lane: direct production-view frame capture, and real PTY executable interaction with unmodified CLI binaries. Compare complete canonical cells plus cursor, then semantic observations that distinguish identical-looking states (focus, target identity, editing, selection, scroll position, overlays, effects), including required no-op checkpoints. Reference adapters may translate observation and controlled time only (the isolated oracle clock adapter is the concrete qualified case: 76 existing Showcase/TablePro binary tests plus four deadline probes, original duration literals unchanged). PNG/HTML diffs aid human review; exact machine equality is the gate. The whole proof chain is protected: oracle SHA, adapters, scenario membership, numeric actions, expected frames/state, comparator, hashes, tool/profile/font and environment. Repaired tui-snap at `883d03f` passed 51 all-target/all-feature tests, 41 no-default-feature tests, doctest, fmt, Clippy `-D warnings`, downstream consumer, reproducible migration and a 384-cell PTY fixture, plus all 256 modifier combinations across serialization modes.
+Each required lane must compare candidate behavior to its independently selected oracle: direct production-view capture and real executable/PTY interaction where the contract requires it. Compare complete rendered cells and cursor state together with semantic observations such as focus, target identity, editing, selection, scroll position, overlays, effects, and navigation outcome. Include required no-op checkpoints so missing transitions cannot pass by producing no evidence.
 
-## 9. Integration strategy (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §13)
+Only explicitly qualified reference adapters may control observation or time. Expected output, scenario membership, actions, and source identities must be protected from candidate authority. Visual diffs aid review; machine acceptance follows the exact comparator and immutable evidence rules in [proof-contract.md](../refactoring-plan/proof-contract.md). Historical tool test counts and PR identities are not current verification evidence.
 
-At the start of future execution: create the isolated integration branch from pinned main `7b27732a` before proof/baseline preparation; accepted preparation commits form the same auditable ancestry chain as later work. Production refactoring remains prohibited until complete oracle and test-disposition receipts are sealed. Preserve the workspace, reusable API, runtime and accepted safety/identity protections; adapt oracle app composition, deterministic domain fixtures and behavior through those APIs. Do not merge the two full branches, recreate the legacy API, or cherry-pick stale ports wholesale. Use canonical standalone `taskfmt verify` on isolated worktrees; the pinned dispatcher/promotion workflow that hardcodes main must not target the original repository. Final publication/merge is a separately authorized action; the resulting merge tree must itself be verified.
+## 9. Integration strategy
+
+Before execution, select and freeze the structural starting revision and all required source, tool, and oracle identities in protected task inputs. Build an isolated integration line from the accepted structural workspace. Preserve its reusable APIs and safety contracts while adapting the design branch's application composition, deterministic domain fixtures, and behavior through those APIs. Do not merge both branch histories wholesale, revive a superseded API, or cherry-pick old ports without qualification.
+
+Use the task-format's accepted isolated verification workflow. Parallel work is not accepted until integrated on a common tree and the union of required checks is rerun. Publication and merge remain separate actions requiring the applicable authorization and final-tree verification.
 
 ## 10. Evidence matrices and traceability mechanics
 
@@ -91,19 +85,19 @@ At the start of future execution: create the isolated integration branch from pi
 - `traceability.tsv` — ~3,236 data rows: `source_namespace, source_id, task_id, requirement_id, acceptance_id, check_id, role, disposition`; joins historical clauses, architecture contracts, component families and app scenarios to tasks with roles such as `baseline`, `frame-contribution` and `primary`, enabling requirement→task, task→requirement, component→task, scenario→verification and decision→implementation queries. Rejected/deferred decisions remain as explicit forbidden-path/scope dispositions; namespaced references distinguish `HIST:A01` from `ARCH:A01`.
 - Supporting matrices: `historical-obligations-canonical.tsv` (620 retained clauses across nine ledgers), `architecture-matrix.tsv` (32 cross-cutting contracts), `component-parity.tsv` (54 families covering all 31 oracle widget modules and all 37 main component modules), `application-parity.tsv` (361 scenario contracts: 76 Showcase, 135 Holla, 70 Jackin, 80 TablePro) with per-app inventories and scenario TSVs, `decision-ledger.tsv` (ADJ bindings to implementation owners), `history-revision-index.tsv` (281 parent-relative document edges). Shell/app-flow contribution tables bind partial checkpoint ownership without ever closing a parent scenario early.
 
-## 11. Known risks and open items
+## 11. Completion risks and open gates
 
-- Re-audit findings (`reaudit-findings.tsv`) with repairs and independent rechecks still open; `bootstrap-assets.tsv` stale pending reseal.
-- tui-snap PR #1 open and unmerged; its exact reviewed head is a hard prerequisite of reference qualification.
-- Parameterized scenarios require complete deterministic oracle-only expansion frozen before candidate replay; broad prose ("all states") is insufficient.
-- Main's green self-baselines can conflict with the oracle; every conflict needs an explicit TASK-008 disposition preserving useful structural assertions.
-- Exact clock proof and unmodified PTY proof have distinct boundaries; wall time never establishes deadline boundaries.
-- Dynamic identity, capture, query attribution, callbacks and alternative paint paths require nonvacuous adversarial tests.
-- The critical path is structural; no duration estimates exist or should be fabricated.
+- Required source, task, test, scenario, and architecture inventories must be complete and independently checked.
+- Scenario expansion must be deterministic and oracle-derived; broad labels such as “all states” do not enumerate acceptance coverage.
+- Every app and component closure must retain exact source-qualified outcomes and protected expected evidence.
+- Main's self-generated baselines can differ from the product oracle; conflicts require explicit dispositions and cannot be blessed from candidate output.
+- Time-control proofs and real PTY proofs answer different questions; wall-clock measurements cannot prove deadline boundaries.
+- Dynamic identity, capture, query attribution, callbacks, and alternative paint paths need nonvacuous adversarial tests where the contract uses them.
+- The task graph gives dependency order, not durations; no schedule estimate is implied.
 
-## 12. Contradictions flagged
+## 12. Decisions that resolve historical conflicts
 
-1. Catalog size: "74 packages" (companion text) vs 73 task packages + group README in `completion/` and 73 data rows in `task-index.tsv` — see §6.
-2. Historical phase baselines (`docs/sources/main/GOAL.md` Phase 1: 499 `baseline/before` recipes, three apps) vs the current four-app `visual-baseline` oracle namespaces — the current oracle supersedes; historical captures stay historical evidence (see goal.md §9.1).
-3. `docs/sources/main/GOAL.md` Phase 4 allows reviewed baseline updates; the proof contract forbids any candidate-side expected-evidence authority — the proof contract governs (see goal.md §9.2).
-4. Execution base framing ("on top of visual-baseline") vs the chosen strategy (branch from pinned main `7b27732a`) — reconciled in goal.md §6: planning and behavior from visual-baseline, architecture from main, end state replaces main.
+1. Product authority follows the design/interaction-polish contract and protected captures; older baseline namespaces remain historical inputs only when explicitly named by a task.
+2. The structural refactor follows the workspace direction in the maintained architecture plan; this does not certify current product parity.
+3. Preserve exact task IDs and dependencies, but derive execution order from the graph rather than task number or historical slice order.
+4. Candidate-generated output never changes oracle evidence. Any intentional product change requires an explicit design decision and a separately qualified reference update.

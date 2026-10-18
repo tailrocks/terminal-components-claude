@@ -1,44 +1,17 @@
-# Documentation index
+# Documentation guide
 
-All project documentation lives under `docs/`. The repository root keeps only `README.md`.
-For where every retired file landed, see [traceability.md](traceability.md).
+This checkout is the visual and interaction reference branch. The product target is the exact behavior and presentation recorded by [`design/interaction-polish`](design/DESIGN.md) and its accepted snapshots. This branch's implementation and remaining-work ledger describe this checkout only; they do not claim that the separate main workspace has completed the target.
 
-## Start here: the refactoring
+| Document | Purpose |
+|---|---|
+| [architecture.md](architecture.md) | Current monolithic package and the intended workspace boundary. |
+| [design.md](design.md) | Product authority and visual/interaction contracts. |
+| [development.md](development.md) | Setup, run, verification, and documentation maintenance. |
+| [plan.md](plan.md) | Active refactor plan, acceptance gates, and task navigation. |
+| [remaining-work.md](remaining-work.md) | Unfinished product, component, parity, and verification requirements. |
+| [design/DESIGN.md](design/DESIGN.md) | Detailed design-system source. |
+| [architecture/shared-components-plan.md](architecture/shared-components-plan.md) | Detailed component API and state contracts for the intended architecture. |
+| [refactoring-tasks/](../refactoring-tasks/) | Sealed task packages and their exact acceptance contracts. |
+| [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md) | Captured surface inventory and baseline verification procedure. |
 
-The current mission is to finish the refactoring on top of the `visual-baseline` branch, porting
-what `main` actually completed, without breaking UI/UX or visual output. Reading order:
-
-1. [refactoring/goal.md](refactoring/goal.md) — the consolidated current goal, with per-section provenance.
-2. [refactoring/plan.md](refactoring/plan.md) — the consolidated plan: waves, pins, task-catalog mechanics.
-3. [refactoring/task-status-audit.md](refactoring/task-status-audit.md) — all 73 execution tasks re-checked against plans and main, with per-task verdicts.
-4. [refactoring/main-port-analysis.md](refactoring/main-port-analysis.md) — what main completed, what is partial, port candidates and strategy.
-5. [refactoring/state.md](refactoring/state.md) — honest current status across both branches.
-6. [refactoring/goal-evolution.md](refactoring/goal-evolution.md) — how the goal changed across history (6 REFACTORING_GOAL versions + REFACTORING_STATE timeline).
-
-## Visual baseline (regression guard)
-
-- [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md) — the full capturable-surface inventory, the baseline matrix, legacy supersession map, and regeneration procedure.
-- `tests/visual_baseline/` — the Rust suite that regenerates the whole baseline into `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}` (scratch actuals/diffs/report under `target/tuisnap/`). Run: `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`.
-- Re-verify after changes: `cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'` (or `ln -sfn target/tuisnap/actual snapshots.actual` then `tuisnap report --grouped --store snapshots --report-path target/tuisnap/report.html`; bless with `tuisnap accept --grouped --store snapshots --all`).
-
-## Directories
-
-| Path | Contents |
-| --- | --- |
-| [architecture/](architecture/) | Component architecture: current holla layout, target model, structural delta. |
-| [design/](design/) | The living behavioral/visual contract ([DESIGN.md](design/DESIGN.md)). |
-| [refactoring/](refactoring/) | Goal, plan, state, audits and analyses for the current refactoring (see above). |
-| [refactoring-plan/](refactoring-plan/) | Planning machinery: proof contract, task index, traceability TSVs, wave breakdowns. |
-| [baseline/](baseline/) | Snapshot baseline coverage and procedures. |
-| [product/](product/) | Product vision behind the Holla app: concept, goals, notes, reference patterns. |
-| [improvements/](improvements/) | Active improvements tracker (PLAN.md) + per-task improvement files + historical audit annex. |
-| [parity/](parity/) | Holla parity evidence, matrix, verification, preview inventory. |
-| [audits/](audits/) | TUI audits: inventory, interactions, editor, research, verification. |
-| [plan-verification/](plan-verification/) | Verification records for earlier planning rounds. |
-| [sources/](sources/) | Verbatim retired planning files, incl. `sources/main/` snapshots of main-branch docs. |
-
-## Related locations outside docs/
-
-- `refactoring-tasks/` — the sealed execution catalog (73 task-format packages 001–073 + catalog READMEs). Read-only task contracts; execution order comes from each `task.toml`.
-- `snapshots/` — approved grouped baseline (`<group>/<sub_group>/<name>.{ansi,txt,png,html}`); scratch under `target/tuisnap/`. Taxonomy and bless workflow: [baseline/snapshots-v2.md](baseline/snapshots-v2.md).
-- `tests/visual_baseline/` — the baseline suite (it replaced `tools/tuisnap_baseline.sh`, removed 2026-09-12; the legacy tmux capture harness was removed the same day — see [baseline/snapshots-v2.md](baseline/snapshots-v2.md) and [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).
+Historical reports are evidence only. Current behavior comes from this checkout's source and tests; product acceptance comes from the design authority and immutable approved evidence. A historical pass or implementation note does not close current work.

@@ -37,6 +37,8 @@ The application is the specification: *if the
 instead of a browser, what would its components look and feel like — and does
 the language hold up when a real tool is built from it?*
 
+This branch is the visual and interaction reference for the refactor. Its source and local tests describe this checkout; they do not claim that the separate main workspace has completed the product target. The intended workspace structure and remaining parity work are indexed in [the documentation guide](docs/README.md).
+
 ## Run
 
 ```sh
