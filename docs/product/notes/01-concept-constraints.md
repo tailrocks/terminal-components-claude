@@ -1,26 +1,5 @@
 # 01 · Concept constraints every Holla design must satisfy
 
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
-
-
 Source of truth: `docs/product/CONCEPT.md` (cited as CONCEPT §n), `references/`
 (cited as launcher, workflow, principles, tech-stack §n, mole), and `GOAL.md`
 (cited as GOAL §n). One line per constraint, imperative. No visuals prescribed.

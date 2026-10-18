@@ -1,24 +1,6 @@
 # Visual testing
 
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
+This guide documents the visual-test harness and its branch-scoped evidence. The exact UI/UX, color, appearance, and interaction reference is `design/interaction-polish`; captures on this WIP do not establish parity or readiness. The split-crate refactor on `main` remains incomplete and not ready.
 
 
 The real binaries (`showcase`, `tablepro`, `jackin-preview`, `holla`) run in

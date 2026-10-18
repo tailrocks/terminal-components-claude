@@ -21,11 +21,11 @@ Preserve concrete requirements and unresolved items in docs/remaining-work.md; s
 Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
 
 
-This ledger covers the initial `COMPONENT_ARCHITECTURE.md` and decisions through §29 (Adjudication Q), plus selected later amendments to early contracts. It is planning evidence, not a claim that the implementation satisfies those contracts. Main is pinned to `7b27732a8c3c131760ec3438f641cb3c11343a42`; the controlling Holla oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`.
+This ledger covers the initial [COMPONENT_ARCHITECTURE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/COMPONENT_ARCHITECTURE.md) and decisions through §29 (Adjudication Q), plus selected later amendments to early contracts. It is planning evidence, not a claim that the implementation satisfies those contracts. Main is pinned to `7b27732a8c3c131760ec3438f641cb3c11343a42`; the controlling Holla oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`.
 
 ## Authority and coverage
 
-Original sources were read with `git show <commit>:COMPONENT_ARCHITECTURE.md` and parent-relative `git diff`. Large original additions were read in overlapping chunks; adjudication sections were read at the revision introducing them. An authoritative decision section is evidence for its decisions, but does not prove every simultaneous inline signature/example edit was inspected. Such revisions remain partial below.
+Original sources were read with `git show <commit>:[COMPONENT_ARCHITECTURE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/COMPONENT_ARCHITECTURE.md) and parent-relative `git diff`. Large original additions were read in overlapping chunks; adjudication sections were read at the revision introducing them. An authoritative decision section is evidence for its decisions, but does not prove every simultaneous inline signature/example edit was inspected. Such revisions remain partial below.
 
 The initial 1–15 document and the 16–20/appendix addition are directly inspected originals. J–Q decision sections are directly inspected. The complete parent-relative inline deltas at 69fcdcad, 587c53bd, 4aabceb7, dc3e0fa1, 70dacec1 and 3ed377e3 are now directly inspected too; the main historian owns the remaining J/K/L/M inline reconciliation at 95ab6529, 27bd918e and 87ab93d4. Later amendments listed as direct are inspected original deltas, not deductions from the latest cumulative document. The early-amendments reader owns remaining later §§1–29 deltas. Reviews from other agents supply navigation only until their independently documented evidence is joined. REFACTORING_GOAL versions belong to the main historian; initial linked audits/reviews and early REFACTORING_STATE belong to the history-inputs reader.
 
@@ -90,7 +90,7 @@ Highest-risk unresolved requirements:
 
 ## Per-revision coverage
 
-All rows use path `COMPONENT_ARCHITECTURE.md`. Commit + parent + path is the exact join key into `history-revision-index.tsv`; after-blob identifies the source content. Full semantic parent-delta means the changed text and its removed counterpart were directly read (repeated long unchanged test lists may be read once through additions plus the original). Partial means only the stated ranges are credited. Pending means no direct credit from this reader, even if another reader inspected a later adjudication section.
+All rows use path [COMPONENT_ARCHITECTURE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/COMPONENT_ARCHITECTURE.md)`. Commit + parent + path is the exact join key into `history-revision-index.tsv`; after-blob identifies the source content. Full semantic parent-delta means the changed text and its removed counterpart were directly read (repeated long unchanged test lists may be read once through additions plus the original). Partial means only the stated ranges are credited. Pending means no direct credit from this reader, even if another reader inspected a later adjudication section.
 
 | Commit | Parent | After blob | Direct coverage |
 |---|---|---|---|

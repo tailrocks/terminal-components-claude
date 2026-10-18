@@ -90,7 +90,7 @@ The first transient's exact OS cause was not established, so it is not attribute
 ## Boundaries not proved
 
 This proves a feasible safe dependency/protocol on macOS, not full TASK-009 acceptance.
-Independent review additionally built Rust 1.98.0 and Rust 1.88.0/MSRV executables in fresh directories, passed the two unit tests under MSRV, and passed ordinary-Python/stable plus optimized-Python/MSRV PTY campaigns with all four negatives rejected. The exact executed matrix and hashes are recorded in `../../reaudit-session-broker-rereview.md`; an unexecuted four-way cross-product is not claimed.
+Independent review additionally built Rust 1.98.0 and Rust 1.88.0/MSRV executables in fresh directories, passed the two unit tests under MSRV, and passed ordinary-Python/stable plus optimized-Python/MSRV PTY campaigns with all four negatives rejected. This is bounded feasibility evidence; it does not qualify an unexecuted four-way cross-product.
 This qualifier does not test Linux, backend-free feature isolation, arbitrary signal handlers, concurrent OS registration changes, panic-hook chaining, process shutdown races or all signal-arrival interleavings.
 Setup failure is injected after a successful operation; actual failing terminal writes, failed raw-mode restoration, cleanup retry and failed re-entry recovery remain TASK-009 obligations.
 In particular the small prototype's restoration mask is consumed even after an I/O error; it must not be copied as a production cleanup-retry implementation.
@@ -99,4 +99,4 @@ Resumed size/mode evidence is not an application frame/cursor parity claim.
 The proof does not freeze or bless any baseline, mutate a production source file, or authorize execution of the refactoring campaign.
 
 The Rust correctness skill influenced the safe dependency boundary, explicit ownership/failure model, isolated negative paths, strict lint/test checks and these measured-claim limits.
-Independent review accepted this bounded macOS/MSRV feasibility evidence in `../../reaudit-session-broker-rereview.md`, while retaining every production-obligation boundary above.
+This bounded macOS/MSRV feasibility evidence does not close any production-obligation boundary above.
