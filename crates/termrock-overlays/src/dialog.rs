@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -23,19 +21,15 @@ use termrock_feedback::keyhint::ChordText;
 use termrock_fields::field::Field;
 use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DialogAction {
-
     Action(ActionKey),
 
     Dismissed(DismissReason),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DialogCmd {
-
     PrevAction,
 
     NextAction,
@@ -95,7 +89,6 @@ const ACK_ACTIONS: [Action<'static>; 2] = [
 ];
 const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close")];
 
-
 #[derive(Default)]
 pub struct DialogState {
     input: TextInputState,
@@ -141,12 +134,9 @@ impl fmt::Debug for DialogState {
 }
 
 impl DialogState {
-
-
     pub const fn is_editing(&self) -> bool {
         self.input.is_editing()
     }
-
 
     pub fn draft(&self) -> &str {
         if self.input.is_sensitive() {
@@ -155,7 +145,6 @@ impl DialogState {
             &self.draft
         }
     }
-
 
     pub fn zeroize(&mut self) {
         self.input.zeroize();
@@ -179,7 +168,6 @@ impl DialogState {
 fn zeroize_string(value: &mut String) {
     crate::secret::wipe_string(core::mem::take(value));
 }
-
 
 pub struct Dialog<'a> {
     id: Id,
@@ -212,9 +200,7 @@ impl fmt::Debug for Dialog<'_> {
 }
 
 impl<'a> Dialog<'a> {
-
     pub const MAX_ACTIONS: usize = 8;
-
 
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -225,7 +211,6 @@ impl<'a> Dialog<'a> {
         Part::ACTIONS,
         Part::BACKDROP,
     ];
-
 
     pub const fn new(id: Id) -> Self {
         Dialog {
@@ -245,7 +230,6 @@ impl<'a> Dialog<'a> {
         }
     }
 
-
     pub const fn confirm(id: Id, title: &'a str, question: &'a str) -> Self {
         let mut d = Self::new(id).title(title).description(question);
         d.actions = &CONFIRM_ACTIONS;
@@ -255,7 +239,6 @@ impl<'a> Dialog<'a> {
         d
     }
 
-
     pub const fn destructive(id: Id, title: &'a str, question: &'a str) -> Self {
         let mut d = Self::new(id).title(title).description(question);
         d.actions = &DESTRUCTIVE_ACTIONS;
@@ -263,7 +246,6 @@ impl<'a> Dialog<'a> {
         d.body_rows = Some(0);
         d
     }
-
 
     pub const fn prompt(id: Id, title: &'a str, label: &'a str) -> Self {
         let mut d = Self::new(id).title(title);
@@ -275,13 +257,11 @@ impl<'a> Dialog<'a> {
         d
     }
 
-
     #[must_use]
     pub const fn input_label(mut self, label: &'a str) -> Self {
         self.input_label = Some(label);
         self
     }
-
 
     pub const fn acknowledge(id: Id, title: &'a str, token: &'a str) -> Self {
         let mut d = Self::new(id).title(title);
@@ -292,13 +272,11 @@ impl<'a> Dialog<'a> {
         d
     }
 
-
     pub fn facts(id: Id, title: &'a str, props: &'a [(&'a str, &'a str)]) -> Self {
         let mut d = Self::info(id, title);
         d.body_rows = Some(props.len().min(usize::from(u16::MAX)) as u16);
         d
     }
-
 
     pub fn choice(id: Id, title: &'a str, options: &'a [&'a str]) -> Self {
         let mut d = Self::confirm(id, title, "");
@@ -307,7 +285,6 @@ impl<'a> Dialog<'a> {
         d
     }
 
-
     pub const fn info(id: Id, title: &'a str) -> Self {
         let mut d = Self::new(id).title(title);
         d.actions = &INFO_ACTIONS;
@@ -315,21 +292,17 @@ impl<'a> Dialog<'a> {
         d
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     pub const fn input_id(&self) -> Id {
         self.id.part(Part::FIELD)
     }
 
-
     pub const fn action_id(&self, i: usize) -> Id {
         self.id.part(Part::ACTIONS).index(i)
     }
-
 
     #[must_use]
     pub const fn title(mut self, s: &'a str) -> Self {
@@ -337,13 +310,11 @@ impl<'a> Dialog<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn description(mut self, s: &'a str) -> Self {
         self.description = Some(s);
         self
     }
-
 
     #[must_use]
     pub const fn error(mut self, error: Option<&'a str>) -> Self {
@@ -351,13 +322,11 @@ impl<'a> Dialog<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn actions(mut self, a: &'a [Action<'a>]) -> Self {
         self.actions = a;
         self
     }
-
 
     #[must_use]
     pub const fn cancel(mut self, k: ActionKey) -> Self {
@@ -365,13 +334,11 @@ impl<'a> Dialog<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn width(mut self, w: u16) -> Self {
         self.width = Some(w);
         self
     }
-
 
     #[must_use]
     pub const fn body_rows(mut self, n: u16) -> Self {
@@ -379,13 +346,11 @@ impl<'a> Dialog<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
@@ -432,7 +397,6 @@ impl<'a> Dialog<'a> {
         }
     }
 
-
     fn primary_index(&self, st: &DialogState) -> Option<usize> {
         self.effective_actions()
             .iter()
@@ -442,10 +406,7 @@ impl<'a> Dialog<'a> {
             })
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
-
-
         let size = LayerSize::Fixed(
             self.measured_width(cx.design()),
             self.measured_height(cx.design()),
@@ -459,7 +420,6 @@ impl<'a> Dialog<'a> {
                     st.zeroize();
                     acc.action(DialogAction::Dismissed(r));
                 }
-
 
                 Intent::Layer(_) => acc.repaint(),
                 Intent::Cancel => {
@@ -482,26 +442,23 @@ impl<'a> Dialog<'a> {
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
             acc.fold(&r.erase());
             if committed && self.prompt.is_some() {
-
                 if let Some(i) = self.primary_index(st)
                     && let Some(a) = self.actions.get(i)
                 {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
                 }
-            } else if committed && is_ack {
-
-
-                if let Some(id) =
+            } else if committed
+                && is_ack
+                && let Some(id) =
                     self.effective_actions()
                         .iter()
                         .enumerate()
                         .find_map(|(i, action)| {
                             self.enabled(i, action, st).then_some(self.action_id(i))
                         })
-                {
-                    cx.focus(id);
-                }
+            {
+                cx.focus(id);
             }
         }
         for (i, a) in self.effective_actions().iter().enumerate() {
@@ -562,13 +519,11 @@ impl<'a> Dialog<'a> {
         }
     }
 
-
     fn inner_width(&self, d: &DesignTokens) -> u16 {
         self.measured_width(d)
             .saturating_sub(2)
             .saturating_sub(d.space.dialog_inset.saturating_mul(2))
     }
-
 
     fn input_rows(&self, d: &DesignTokens) -> u16 {
         if self.prompt.is_some() {
@@ -580,17 +535,14 @@ impl<'a> Dialog<'a> {
         }
     }
 
-
     fn body_block(&self, d: &DesignTokens) -> u16 {
         let rows = self.body_rows.unwrap_or(d.size.code_preview_lines);
         if rows == 0 { 0 } else { rows.saturating_add(1) }
     }
 
-
     pub fn measured_width(&self, d: &DesignTokens) -> u16 {
         self.width.unwrap_or(d.size.dialog_width)
     }
-
 
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
         let inner = self.inner_width(d);
@@ -602,7 +554,6 @@ impl<'a> Dialog<'a> {
             .saturating_add(actions)
     }
 
-
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         let d = cx.design();
         LayerSpec::modal(self.id).size(LayerSize::Fixed(
@@ -610,7 +561,6 @@ impl<'a> Dialog<'a> {
             self.measured_height(d),
         ))
     }
-
 
     fn frame_rect(&self, ui: &Ui<'_>, area: Rect) -> (Rect, u16) {
         let d = ui.design();
@@ -627,7 +577,6 @@ impl<'a> Dialog<'a> {
             desc_h,
         )
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -654,7 +603,6 @@ impl<'a> Dialog<'a> {
         let ov = self.ov;
         let id = self.id;
 
-
         let live = StateFlags::empty();
         overlay_chrome(
             ui,
@@ -672,7 +620,6 @@ impl<'a> Dialog<'a> {
                 let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
                     ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
                 };
-
 
                 let pad = ui.design().space.dialog_inset;
                 let inner = crate::layout::inset(
@@ -747,7 +694,6 @@ impl<'a> Dialog<'a> {
                     }
                 }
 
-
                 let body_top = if self.body_block(ui.design()) == 0 {
                     y
                 } else {
@@ -798,8 +744,6 @@ impl<'a> Dialog<'a> {
                             .disabled(!enabled)
                             .draw(ui, r);
                         if enabled {
-
-
                             ui.publish_dynamic_bindings(
                                 action_id,
                                 ui.state(action_id),
@@ -831,7 +775,6 @@ impl<'a> Dialog<'a> {
             },
         )
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let d = ui.design();
@@ -888,7 +831,6 @@ mod tests {
         })
     }
 
-
     fn scene() -> (Runtime<Stub>, Buffer) {
         (
             Runtime::new(Stub::default(), Theme::junie()),
@@ -903,7 +845,6 @@ mod tests {
             Rect::new(7, 5, 1, 1),
             Rect::new(7, 5, 3, 8),
             Rect::new(7, 5, 8, 3),
-
             Rect::new(7, 5, 4, 4),
         ];
         for area in areas {
@@ -1080,7 +1021,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn layer_size_is_a_pure_function_of_props_and_design_tokens() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -1092,11 +1032,8 @@ mod tests {
                 assert!(once.0 > 0 && once.1 > 0);
             }
 
-
             let bare = Dialog::new(DLG).title("Rename").body_rows(0);
-            let bare_h = bare
-                .measured_height(d)
-                .saturating_add(2                                      );
+            let bare_h = bare.measured_height(d).saturating_add(2);
             assert_eq!(
                 prompt().measured_height(d),
                 bare_h.saturating_add(d.size.field_height),
@@ -1308,7 +1245,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn a_prompt_dialog_sizes_its_own_field_row() {
         let (mut rt, _) = scene();
@@ -1322,7 +1258,6 @@ mod tests {
             prompt().draw(ui, a, &st, |_, _| {});
         })
         .commit_presented();
-
 
         let field = rt
             .registry()
@@ -1339,7 +1274,6 @@ mod tests {
             field.height, dt.size.field_height,
             "the drawn field row is not the row `input_rows` charged for"
         );
-
 
         let desc = d
             .description
@@ -1377,7 +1311,6 @@ mod tests {
         assert_eq!(st, DialogState::default(), "draw mutated prompt state");
         assert_eq!(before, prompt().measured_height(&Theme::junie().design));
     }
-
 
     #[test]
     fn an_unconditional_update_receives_the_dismissal() {
@@ -1513,7 +1446,6 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, None);
     }
-
 
     #[test]
     fn a_reference_dialog_registers_no_control() {

@@ -1,13 +1,9 @@
-
-
 use termrock::{ItemKey, Status};
 
 use jackin_preview_sim::onepassword::OpError;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OpFlowStage {
-
     Account,
 
     Vault,
@@ -18,7 +14,6 @@ pub enum OpFlowStage {
 }
 
 impl OpFlowStage {
-
     pub const fn key(self) -> ItemKey {
         ItemKey::num(match self {
             Self::Account => 1,
@@ -27,7 +22,6 @@ impl OpFlowStage {
             Self::Field => 4,
         })
     }
-
 
     pub const fn label(self) -> &'static str {
         match self {
@@ -38,7 +32,6 @@ impl OpFlowStage {
         }
     }
 
-
     pub const fn next(self) -> Option<Self> {
         match self {
             Self::Account => Some(Self::Vault),
@@ -47,7 +40,6 @@ impl OpFlowStage {
             Self::Field => None,
         }
     }
-
 
     pub const fn previous(self) -> Option<Self> {
         match self {
@@ -59,27 +51,16 @@ impl OpFlowStage {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpFlowStatus {
-
     Ready,
 
-    Loading {
+    Loading { label: String },
 
-        label: String,
-    },
-
-    Error {
-
-        message: String,
-
-        detail: String,
-    },
+    Error { message: String, detail: String },
 }
 
 impl OpFlowStatus {
-
     pub const fn collection_status(&self) -> Status {
         match self {
             Self::Ready => Status::Ready,
@@ -89,29 +70,16 @@ impl OpFlowStatus {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpFlowAction {
-
-    Entered {
-
-        stage: OpFlowStage,
-
-        id: String,
-    },
+    Entered { stage: OpFlowStage, id: String },
 
     Back(OpFlowStage),
 
     Retry(OpFlowStage),
 
-    Completed {
-
-        stage: OpFlowStage,
-
-        id: String,
-    },
+    Completed { stage: OpFlowStage, id: String },
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpFlowState {
@@ -131,23 +99,19 @@ impl Default for OpFlowState {
 }
 
 impl OpFlowState {
-
     pub const fn current(&self) -> OpFlowStage {
         self.current
     }
 
-
     pub const fn status(&self) -> &OpFlowStatus {
         &self.status
     }
-
 
     pub fn selected(&self, stage: OpFlowStage) -> Option<&str> {
         self.selected
             .get(Self::index(stage))
             .and_then(Option::as_deref)
     }
-
 
     pub fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {
         let index = Self::index(stage);
@@ -165,14 +129,12 @@ impl OpFlowState {
         true
     }
 
-
     pub fn begin_load(&mut self, stage: OpFlowStage, label: impl Into<String>) {
         self.current = stage;
         self.status = OpFlowStatus::Loading {
             label: label.into(),
         };
     }
-
 
     pub fn choose(&mut self, id: impl Into<String>) -> Option<OpFlowAction> {
         let id = id.into();
@@ -194,7 +156,6 @@ impl OpFlowState {
         }
     }
 
-
     pub fn back(&mut self) -> Option<OpFlowAction> {
         let previous = self.current.previous()?;
         self.current = previous;
@@ -202,7 +163,6 @@ impl OpFlowState {
         self.status = OpFlowStatus::Ready;
         Some(OpFlowAction::Back(previous))
     }
-
 
     pub fn back_to(&mut self, stage: OpFlowStage) -> Option<OpFlowAction> {
         if Self::index(stage) >= Self::index(self.current) {
@@ -213,7 +173,6 @@ impl OpFlowState {
         self.status = OpFlowStatus::Ready;
         Some(OpFlowAction::Back(stage))
     }
-
 
     pub fn set_error(&mut self, error: OpError) {
         let message = error.message();
@@ -235,7 +194,6 @@ impl OpFlowState {
         };
     }
 
-
     pub fn retry(&mut self) -> Option<OpFlowAction> {
         if matches!(self.status, OpFlowStatus::Error { .. }) {
             self.status = OpFlowStatus::Loading {
@@ -246,7 +204,6 @@ impl OpFlowState {
             None
         }
     }
-
 
     pub fn reset(&mut self) {
         *self = Self::default();

@@ -1,5 +1,3 @@
-
-
 use std::any::TypeId;
 use std::borrow::Cow;
 
@@ -11,22 +9,16 @@ use crate::response::StateFlags;
 
 pub use termrock_core::keys::KeyPhase;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct BindingState {
-
     pub flags: StateFlags,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Binding<C: 'static> {
-
     pub action: ActionKey,
 
-
     pub chord: Option<Chord>,
-
 
     pub cmd: C,
 
@@ -38,21 +30,16 @@ pub struct Binding<C: 'static> {
 }
 
 impl<C: Copy + 'static> Binding<C> {
-
     pub fn command(table: &[Binding<C>], action: ActionKey) -> Option<C> {
         table.iter().find(|b| b.action == action).map(|b| b.cmd)
     }
 }
 
-
 pub trait Bindings {
-
     type Cmd: Copy + 'static;
-
 
     fn bindings(&self, st: BindingState) -> &'static [Binding<Self::Cmd>];
 }
-
 
 pub fn binding_conflicts<C: Copy + 'static>(
     owner: Id,
@@ -101,7 +88,6 @@ struct ComponentEntry {
     chord: Option<Chord>,
 }
 
-
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct KeyMap {
     entries: Vec<Entry>,
@@ -110,24 +96,19 @@ pub struct KeyMap {
 }
 
 impl KeyMap {
-
     pub const EMPTY: KeyMap = KeyMap {
         entries: Vec::new(),
         components: Vec::new(),
         typing: Vec::new(),
     };
 
-
     pub const EMPTY_REF: &'static KeyMap = &KeyMap::EMPTY;
 
-
     pub const OWNER: Id = Id::root("tui.keymap");
-
 
     pub const fn new() -> Self {
         Self::EMPTY
     }
-
 
     #[must_use]
     pub fn bind(mut self, phase: KeyPhase, chord: Chord, key: ActionKey) -> Self {
@@ -135,18 +116,15 @@ impl KeyMap {
         self
     }
 
-
     pub fn add(&mut self, phase: KeyPhase, chord: Chord, key: ActionKey) {
         self.entries.push(Entry { phase, chord, key });
     }
-
 
     #[must_use]
     pub fn bind_before_typing(mut self, owner: Id, chord: Chord, command: ActionKey) -> Self {
         self.add_before_typing(owner, chord, command);
         self
     }
-
 
     pub fn add_before_typing(&mut self, owner: Id, chord: Chord, command: ActionKey) {
         self.typing.push(TypingCapture {
@@ -155,7 +133,6 @@ impl KeyMap {
             key: command,
         });
     }
-
 
     pub fn remove_before_typing(&mut self, owner: Id, chord: Chord) {
         self.typing
@@ -169,12 +146,10 @@ impl KeyMap {
             .map(|entry| entry.key)
     }
 
-
     pub fn remove(&mut self, phase: KeyPhase, chord: Chord) {
         self.entries
             .retain(|e| !(e.phase == phase && e.chord == chord));
     }
-
 
     pub fn remap(&mut self, phase: KeyPhase, from: Chord, to: Chord) {
         for e in &mut self.entries {
@@ -184,18 +159,15 @@ impl KeyMap {
         }
     }
 
-
     #[must_use]
     pub fn bind_component(mut self, owner: Id, action: ActionKey, chord: Chord) -> Self {
         self.remap_component(owner, action, chord);
         self
     }
 
-
     pub fn remap_component(&mut self, owner: Id, action: ActionKey, chord: Chord) {
         self.set_component(owner, action, Some(chord));
     }
-
 
     pub fn remove_component(&mut self, owner: Id, action: ActionKey) {
         self.set_component(owner, action, None);
@@ -269,7 +241,6 @@ impl KeyMap {
         out
     }
 
-
     pub fn lookup(&self, phase: KeyPhase, key: &Key, swallows_typing: bool) -> Option<ActionKey> {
         self.entries
             .iter()
@@ -279,11 +250,9 @@ impl KeyMap {
             .map(|e| e.key)
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty() && self.components.is_empty() && self.typing.is_empty()
     }
-
 
     pub fn conflicts(&self) -> Vec<Diagnostic> {
         let mut out = Vec::new();
@@ -321,12 +290,9 @@ impl KeyMap {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BindingTableId {
-
     Static {
-
         command_type: TypeId,
 
         address: usize,
@@ -335,7 +301,6 @@ pub enum BindingTableId {
     },
 
     Dynamic {
-
         revision: u64,
 
         len: usize,
@@ -375,7 +340,6 @@ pub(crate) struct PublishedBindings {
     start: usize,
     len: usize,
 }
-
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct BindingRegistry {
@@ -677,28 +641,19 @@ impl FocusedHints {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ChordCase {
-
     #[default]
     Preserve,
 
     UppercaseAscii,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HintKey {
-
     Chord(Chord),
 
-    ChordWithCase {
-
-        chord: Chord,
-
-        case: ChordCase,
-    },
+    ChordWithCase { chord: Chord, case: ChordCase },
 
     Label(&'static str),
 }
@@ -712,10 +667,8 @@ impl HintKey {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hint {
-
     pub key: HintKey,
 
     pub label: &'static str,
@@ -723,10 +676,8 @@ pub struct Hint {
     pub priority: u8,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct HintLayer {
-
     pub hints: Vec<Hint>,
 
     pub badge: Option<&'static str>,
@@ -737,7 +688,6 @@ pub struct HintLayer {
 }
 
 impl HintLayer {
-
     pub const fn empty() -> Self {
         HintLayer {
             hints: Vec::new(),
@@ -747,13 +697,11 @@ impl HintLayer {
         }
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.hints.is_empty()
             && self.badge.is_none()
             && self.status.as_deref().is_none_or(str::is_empty)
     }
-
 
     pub fn from_bindings<C: Copy + 'static>(table: &[Binding<C>]) -> Self {
         let mut hints: Vec<Hint> = table
@@ -1125,7 +1073,6 @@ mod tests {
         assert!(!hints.contains_chord(chord));
     }
 
-
     #[test]
     fn table_conflicts_use_effective_chord_identity() {
         #[derive(Clone, Copy)]
@@ -1184,7 +1131,6 @@ mod tests {
             "structural identity still distinguishes modifier forms"
         );
     }
-
 
     #[test]
     fn component_conflicts_use_effective_chord_identity() {
@@ -1256,7 +1202,6 @@ mod tests {
         assert_eq!(remapped.component_conflicts(owner, &table).len(), 1);
     }
 
-
     #[test]
     fn keymap_conflicts_use_effective_chord_identity() {
         let owner = Id::root("effective-scopes");
@@ -1295,7 +1240,6 @@ mod tests {
             );
         }
     }
-
 
     #[test]
     fn focused_hints_deduplicate_effective_chords() {
