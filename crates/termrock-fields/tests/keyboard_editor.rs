@@ -1,4 +1,4 @@
-//! Keyboard editors retain published geometry without pointer authority.
+
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
 use termrock_fields::{BlurPolicy, TextInput, TextInputState};

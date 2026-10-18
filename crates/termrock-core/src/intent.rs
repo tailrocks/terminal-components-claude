@@ -1,11 +1,11 @@
-//! Pre-resolved input (`COMPONENT_ARCHITECTURE.md` §6.1, §21 item 6).
-//!
-//! The runtime resolves every `Input` to an owner and a part against the
-//! last frame's registry and focus ring (§3.3 steps 3–6) and files the
-//! resulting [`Intent`]s into a per-frame [`IntentQueue`] keyed by owner.
-//! The queue is frozen for the whole of `app.update`; a component drains
-//! its own bucket through `Cx::intents`, which
-//! borrows only the queue, so services on `Cx` stay usable inside the loop.
+
+
+
+
+
+
+
+
 
 use core::cell::Cell;
 use core::fmt;
@@ -18,54 +18,54 @@ use crate::event::{Axis, Key, KeyModifiers};
 use crate::id::{Id, PartRef};
 use crate::layer_types::LayerEvent;
 
-/// What a component actually receives.
+
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Intent<'f> {
-    /// A declared component action resolved through its effective chord.
+
     Binding(ActionKey),
-    /// A key press delivered to the focused owner.
+
     Key(Key),
-    /// Pasted text delivered to the focused owner iff it declared `EDITING`.
+
     Paste(&'f str),
-    /// A pointer phase over one of the owner's parts.
+
     Pointer {
-        /// The phase.
+
         phase: Phase,
-        /// The part under the pointer.
+
         part: PartRef,
-        /// Absolute position.
+
         pos: Position,
-        /// Position relative to the part's area (or the captured area).
+
         local: Position,
-        /// Modifiers held.
+
         mods: KeyModifiers,
     },
-    /// Wheel motion over a scroll region; `delta` is already multiplied by
-    /// `design.motion.wheel_rows`.
+
+
     Wheel {
-        /// The axis.
+
         axis: Axis,
-        /// Rows or columns to scroll, signed.
+
         delta: i16,
-        /// The scroll region's part.
+
         part: PartRef,
-        /// Absolute position.
+
         pos: Position,
     },
-    /// Focus arrived.
+
     FocusIn {
-        /// How.
+
         via: FocusVia,
     },
-    /// Focus left, towards `to`.
+
     FocusOut {
-        /// The new owner, if any.
+
         to: Option<Id>,
     },
-    /// A layer owned by this component changed lifecycle.
+
     Layer(LayerEvent),
-    /// Esc reached this owner after layer dismissal.
+
     Cancel,
 }
 
@@ -113,45 +113,45 @@ impl fmt::Debug for Intent<'_> {
     }
 }
 
-/// Pointer phases.
+
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
-    /// Pointer moved over the topmost live non-decorative part.
+
     Move,
-    /// Primary button down on the part.
+
     Press,
-    /// Primary button up (anywhere, after a press on the owner).
+
     Release,
-    /// Press + release on the same part.
+
     Click,
-    /// A second click within the double-click window on the same part.
+
     DoubleClick,
-    /// Secondary button down on the part.
+
     Secondary,
-    /// The first motion with the button held.
+
     DragStart,
-    /// Motion with the button held.
+
     Drag,
-    /// The button was released after a drag.
+
     DragEnd,
 }
 
-/// How focus arrived.
+
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FocusVia {
-    /// Tab / Shift+Tab.
+
     Keyboard,
-    /// A press focused the owner.
+
     Pointer,
-    /// `cx.focus(id)` or reconciliation.
+
     Programmatic,
-    /// Restored after a layer closed.
+
     Restore,
 }
 
-/// Owned form of an intent; `Paste` indexes the queue's arena.
+
 #[derive(Debug)]
 enum Stored {
     Binding {
@@ -187,22 +187,22 @@ struct Bucket {
     drained: Cell<bool>,
 }
 
-/// Number of open-addressed slots for the owner table.
+
 const TABLE: usize = 32;
-/// Owners beyond this fall back to a linear scan.
+
 const TABLE_MAX_OWNERS: usize = 24;
 
-/// The per-frame intent queue, keyed by owner.
+
 pub struct IntentQueue {
     arena: String,
     buckets: Vec<Bucket>,
-    /// Buckets in use this frame; the rest are retained for reuse.
+
     used: usize,
     table: [Option<(u64, u16)>; TABLE],
     overflow: bool,
-    /// Bucket probes performed since construction (adjudication 2.6): the
-    /// deterministic replacement for a ±10 % wall-clock band on a ~600 ns
-    /// measurement.
+
+
+
     #[cfg(feature = "testing")]
     probes: Cell<usize>,
 }
@@ -226,13 +226,13 @@ impl IntentQueue {
         }
     }
 
-    /// Bucket probes performed since construction.
+
     #[cfg(feature = "testing")]
     pub fn probes(&self) -> usize {
         self.probes.get()
     }
 
-    /// Empty the queue, keeping bucket allocations while wiping paste data.
+
     pub fn clear(&mut self) {
         zeroize_string(&mut self.arena);
         for b in &mut self.buckets {
@@ -385,7 +385,7 @@ impl IntentQueue {
         self.push(owner, Stored::Cancel);
     }
 
-    /// Owners that hold intents and drained nothing (§3.3 step 9).
+
     pub fn undrained(&self) -> impl Iterator<Item = Id> + '_ {
         self.live()
             .iter()
@@ -393,15 +393,15 @@ impl IntentQueue {
             .map(|b| b.owner)
     }
 
-    /// Whether `owner`'s bucket holds an intent the **runtime itself**
-    /// addressed to it (§3.3 step 9).
-    ///
-    /// `Layer`, `Cancel`, `FocusIn` and `FocusOut` are addressed by the
-    /// runtime to a known owner, so a lost one is always a defect — whatever
-    /// that owner registered. Pointer intents are different: `deliverable`
-    /// already keeps them away from a `Decorative` region, which is why the
-    /// undelivered-intent guard can widen for these four without re-opening
-    /// §21 item 13's exemption for container regions.
+
+
+
+
+
+
+
+
+
     pub fn has_runtime_addressed(&self, owner: Id) -> bool {
         self.bucket_index(owner)
             .and_then(|i| self.live().get(i))
@@ -419,7 +419,7 @@ impl IntentQueue {
             })
     }
 
-    /// Whether `owner` drained its bucket this pass.
+
     #[cfg(test)]
     pub(crate) fn was_drained(&self, owner: Id) -> bool {
         self.bucket_index(owner)
@@ -427,8 +427,8 @@ impl IntentQueue {
             .is_some_and(|b| b.drained.get())
     }
 
-    /// The frozen-queue probe (§20.9-12): one `bool` check when empty,
-    /// otherwise one open-addressed probe.
+
+
     pub fn iter(&self, owner: Id) -> IntentIter<'_> {
         if self.used == 0 {
             return IntentIter {
@@ -532,8 +532,8 @@ fn zeroize_string(value: &mut String) {
     *value = String::new();
 }
 
-/// Iterator over one owner's intents for the frame. A named type so it can
-/// outlive the `&Cx` borrow that produced it (§22.3).
+
+
 #[derive(Debug, Clone)]
 pub struct IntentIter<'f> {
     queue: &'f IntentQueue,
@@ -564,9 +564,9 @@ mod tests {
 
     #[test]
     fn paste_reaches_only_an_editing_owner() {
-        // the queue-level half: paste text lives in the arena and is delivered
-        // to exactly the owner it was filed under; the runtime files it only
-        // when the focused owner declared EDITING (runtime tests cover that)
+
+
+
         let mut q = IntentQueue::new();
         let a = Id::root("a");
         let b = Id::root("b");

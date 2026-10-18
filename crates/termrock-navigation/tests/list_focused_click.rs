@@ -1,4 +1,4 @@
-//! Selected-pane clicks use prior runtime focus, not a double-click deadline.
+
 use std::time::Duration;
 use termrock_controls::Button;
 use termrock_core::{Id, Intent, ItemKey, KeyCode, MouseKind, Phase, Response};

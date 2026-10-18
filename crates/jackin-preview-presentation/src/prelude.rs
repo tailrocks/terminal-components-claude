@@ -1,17 +1,17 @@
-//! Workspace creation prelude state.
+
 
 use termrock::Id;
 
-/// Prelude composition root.
+
 pub const ROOT: Id = Id::root("jackin.prelude");
-/// Source browser control.
+
 pub const SOURCE: Id = ROOT.sub("source");
-/// Destination control.
+
 pub const DESTINATION: Id = ROOT.sub("destination");
-/// Continue action.
+
 pub const CONTINUE: Id = ROOT.sub("continue");
 
-/// Five-step workspace creation state.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreludeState {
     step: u8,
@@ -34,42 +34,42 @@ impl Default for PreludeState {
 }
 
 impl PreludeState {
-    /// Current one-based step.
+
     pub const fn step(&self) -> u8 {
         self.step
     }
 
-    /// Current source path.
+
     pub fn source(&self) -> &str {
         &self.source
     }
 
-    /// Proposed workspace name.
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// Advance one step, bounded by the five-step flow.
+
     pub fn advance(&mut self) {
         self.step = self.step.saturating_add(1).min(5);
     }
 
-    /// Rewind one step.
+
     pub fn back(&mut self) {
         self.step = self.step.saturating_sub(1).max(1);
     }
 
-    /// Whether the proposed name collides with an existing workspace.
+
     pub const fn duplicate(&self) -> bool {
         self.duplicate
     }
 
-    /// Mark duplicate-name validation result.
+
     pub const fn set_duplicate(&mut self, duplicate: bool) {
         self.duplicate = duplicate;
     }
 
-    /// Move the source browser cursor within the deterministic fixture.
+
     pub fn move_selection(&mut self, down: bool) {
         if down {
             self.selection = self.selection.saturating_add(1).min(2);
@@ -78,7 +78,7 @@ impl PreludeState {
         }
     }
 
-    /// Choose the currently highlighted source and advance to destination.
+
     pub fn choose_source(&mut self) {
         self.source = match self.selection {
             1 => "~/src/customer-portal".into(),
@@ -94,7 +94,7 @@ impl PreludeState {
         self.step = 2;
     }
 
-    /// Advance one prelude step while preserving skipped edit semantics.
+
     pub const fn advance_flow(&mut self) {
         self.step = match self.step {
             1 => 2,
@@ -104,18 +104,18 @@ impl PreludeState {
         };
     }
 
-    /// Return to the source browser.
+
     pub fn source_back(&mut self) {
         self.step = 1;
         self.source = "~/src".into();
     }
 
-    /// Source browser cursor index.
+
     pub const fn selection(&self) -> u8 {
         self.selection
     }
 
-    /// Paint one fixture row, marking the row the cursor is on.
+
     pub fn marked_source(&self, label: &str, index: u8) -> String {
         if self.selection == index {
             format!("▸ {label}")
@@ -124,10 +124,10 @@ impl PreludeState {
         }
     }
 
-    /// Follow a source-list cursor the way `PreludeScreen::update` does.
-    ///
-    /// Only step 1 listens. A move of exactly one row changes the domain
-    /// selection. Any other jump is ignored and the painted mark stays put.
+
+
+
+
     pub fn follow_source_cursor(&mut self, from: u8, to: u8) -> bool {
         if self.step != 1 {
             return false;

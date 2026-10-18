@@ -1,5 +1,5 @@
-//! Jackin domain: Workspaces, Roles, mounts, environments, Auth, instances,
-//! sessions, accounts, Usage. Plain data; no rendering, no services.
+
+
 
 #![forbid(unsafe_code)]
 #![expect(
@@ -20,22 +20,22 @@
     )
 )]
 
-/// Account identities, credential sources, and registry rules.
+
 pub mod account;
-/// Agent runtimes, providers, and authentication modes.
+
 pub mod agent;
-/// Persisted instance, session, daemon, and pane models.
+
 pub mod instance;
-/// Public 1Password reference metadata.
+
 pub mod onepassword;
-/// Deterministic scenario contract: fixture world, motion, capture frames.
+
 pub mod scenario;
-/// Usage windows, freshness, and roll-up summaries.
+
 pub mod usage;
-/// Workspace, role, mount, and environment models.
+
 pub mod workspace;
 
-/// Captured workspace save identities and results.
+
 pub mod workspace_save;
 
 pub use account::{

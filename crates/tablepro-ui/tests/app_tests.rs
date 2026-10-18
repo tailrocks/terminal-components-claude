@@ -1,4 +1,4 @@
-//! Slice 6's preserved `TablePro` workflow scenarios.
+
 #![allow(
     clippy::all,
     clippy::pedantic,
@@ -251,8 +251,8 @@ fn visual_surface_fixture_materializes_the_real_route() {
         app.set_surface(surface);
         assert_eq!(app.surface(), surface);
         let harness = Harness::new(app, Theme::junie(), 120, 40);
-        // Historical headers are shared by route: connection surfaces render
-        // "Connections"; every workbench surface renders "Production".
+
+
         let expected_marker = match surface {
             Surface::Connections | Surface::ConnectionsFailed => "Connections",
             _ => "Production",
@@ -308,8 +308,8 @@ fn connection_form_keyboard_and_mouse_reach_every_field() {
     assert!(harness.app().connection_form_open());
     let fields = form_fields();
     assert_eq!(fields.len(), 15);
-    // Form content scrolls through the same public focus ring. Advance the
-    // viewport as needed until each declared control becomes addressable.
+
+
     for (index, field) in fields.iter().enumerate() {
         let mut reached = false;
         for _ in 0..32 {
@@ -320,8 +320,8 @@ fn connection_form_keyboard_and_mouse_reach_every_field() {
             let _ = harness.wheel(Axis::V, 1, 60, 26);
         }
         assert!(reached, "field {:?} was unreachable", field.id);
-        // SSH host is conditional; enable the toggle before continuing into
-        // the newly visible host and startup controls.
+
+
         if index == 12 {
             let _ = harness.key(KeyCode::Char(' '));
         }
@@ -370,7 +370,7 @@ fn focus_is_restored_after_every_overlay_closes() {
     let cancel = termrock::Id::root("tablepro.connections.form")
         .part(termrock::Part::ACTIONS)
         .index(1);
-    // Walk the actual focus ring and scroll the form until Cancel is reachable.
+
     for _ in 0..64 {
         if harness.focus() == Some(cancel) {
             break;

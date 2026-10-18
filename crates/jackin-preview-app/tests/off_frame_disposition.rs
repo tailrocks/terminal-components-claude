@@ -1,35 +1,35 @@
-//! Disposition of B45 `c4f47c954f88166ec25ddd78115119529bdae76b` behaviors
-//! that are not on the locked visual frame.
-//!
-//! Ported, behind a key, with no `unsafe` and no `Box::leak`:
-//! - Exit confirm names the running count from an owned `String`.
-//! - Cockpit Cancel asks, then leaves without attaching an instance.
-//! - Escape on a failed launch returns to the Manager and does not invent an
-//!   instance. A second Escape still quits.
-//! - Cockpit `i` opens a debug-info dialog that starts closed. `d` adds the
-//!   `otlp://collector.internal` row only inside that dialog. A failed launch
-//!   does not bind either key, so Escape still returns to the Manager.
-//! - Dirty-editor Cancel/Discard/Save opens only after Escape from the tabs.
-//!   The first Escape on a mount control returns to the tabs. Cancel stays.
-//!   Discard drops the draft. Save opens the existing preview.
-//!
-//! Rejected:
-//! - Manager help stays the hint layer. `?` must leave `Current directory`
-//!   visible and the last row on Esc/Close.
-//! - Choosing a workspace does not fold it. Enter keeps the expanded tree
-//!   and opens the agent picker or the capsule.
-//! - Mount isolation is set to readonly Clone once. A cycle would move the
-//!   assertion in `editor_edits_count_once_preview_then_saves_and_returns`.
-//! - Holla keeps `Route::Home` for every paused scenario. `DiskCleanup`'s
-//!   source boot page and the grouped Finder default would replace `home.draw`.
-//!   The other source pages are a second stack, not an overlay on Home,
-//!   Plan, or Activity. Holla copy reports the OSC 52 outcome in status and
-//!   does not emit the sequence.
-//! - Locked-paint rejects stay out: manager meta tone, host-menu header
-//!   replacement, prelude source-list replacement, accounts provider tree,
-//!   capsule meters and extra menu rows, live keep-awake and git-pull
-//!   checkboxes, settings co-author and DCO checkboxes, Showcase diff page,
-//!   and `TablePro` safe-mode note wrapping. Visual suites cover those frames.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #![allow(
     dead_code,
@@ -191,7 +191,7 @@ fn dirty_editor_keeps_the_status_question_and_mount_isolation_stays_clone() {
 #[test]
 fn dirty_editor_discard_returns_to_the_manager_without_saving() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    // `e` loads the first workspace, ignoring the manager cursor.
+
     let id = h.app().world.workspaces[0].id;
     let before = h
         .app()

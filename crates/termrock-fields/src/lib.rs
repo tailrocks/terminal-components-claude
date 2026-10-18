@@ -1,4 +1,4 @@
-//! Field chrome, TextInput and TextArea behavior, drafts, editing policy, generic validation and protected input adapters.
+
 
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as action;

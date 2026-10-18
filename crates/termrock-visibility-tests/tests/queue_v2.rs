@@ -1,7 +1,7 @@
-//! Black-box checks for read-only queue v2 records and registry roles.
-//!
-//! These tests launch the exact production queue CLI against disposable Git
-//! repositories. They do not import Python modules or use a Python test runner.
+
+
+
+
 
 use std::fs;
 use std::io::{self, Write};

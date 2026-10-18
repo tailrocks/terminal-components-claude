@@ -1,9 +1,9 @@
-//! Fuzzy matching over graphemes of the original label
-//! (`COMPONENT_ARCHITECTURE.md` §22.2 item 4, §20.10 item 7f).
+
+
 
 use unicode_segmentation::UnicodeSegmentation;
 
-/// Case-insensitive grapheme equality without allocating.
+
 fn eq_fold(a: &str, b: &str) -> bool {
     if a == b {
         return true;
@@ -17,13 +17,13 @@ fn eq_fold(a: &str, b: &str) -> bool {
             .map(|c| if c == 'ς' { 'σ' } else { c }))
 }
 
-/// Which separators give a substring the word-boundary ranking bonus.
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FuzzyBoundary {
-    /// Underscore, dot, space and hyphen; the default collection-search policy.
+
     #[default]
     Word,
-    /// Underscore and dot only, for identifier-oriented completion/ranking.
+
     Identifier,
 }
 impl FuzzyBoundary {
@@ -32,26 +32,26 @@ impl FuzzyBoundary {
     }
 }
 
-/// Match `word` against `label`: a prefix wins (0), then a substring on a
-/// `_`/`.`/` `/`-` boundary (10), then any substring (30), then a subsequence
-/// (60 + position of the last match). Returns the penalty (lower is better)
-/// and the **grapheme ordinals in the original label** that matched, so a
-/// list can bold them while walking the label's graphemes.
-///
-/// **Allocates three `Vec`s per call** (the label grapheme index, query
-/// grapheme index and match ordinals). That is fine for a Slice-3 primitive and a
-/// dialog-sized candidate set; a 100 k-item `Picker` filter would make
-/// 300 000 allocations per keystroke, so 4F must either take a scratch buffer
-/// or filter incrementally (MI-10). Recorded here so it is not discovered
-/// under a profiler.
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     fuzzy_with_boundary(label, word, FuzzyBoundary::default())
 }
 
-/// Match with an explicit boundary-bonus policy.
-///
-/// Case folding, prefix/substring/subsequence matching and original-label
-/// grapheme ordinals are identical to [`fuzzy`]; only the boundary bonus varies.
+
+
+
+
 pub fn fuzzy_with_boundary(
     label: &str,
     word: &str,
@@ -65,7 +65,7 @@ pub fn fuzzy_with_boundary(
     if wg.len() > lg.len() {
         return subsequence(&lg, &wg);
     }
-    // substring search over graphemes
+
     let last_start = lg.len().saturating_sub(wg.len());
     for start in 0..=last_start {
         let hit = wg.iter().enumerate().all(|(k, w)| {
@@ -110,8 +110,8 @@ mod tests {
 
     #[test]
     fn fuzzy_returns_grapheme_indices_into_the_original_label() {
-        // `İ` lowercases to two code points, so byte offsets into a lowercased
-        // copy would drift; grapheme ordinals of the original do not
+
+
         let label = "İstanbul_Ünïted";
         let (score, idx) = fuzzy(label, "ün").unwrap_or((u32::MAX, Vec::new()));
         assert_eq!(score, 10);

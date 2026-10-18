@@ -1,4 +1,4 @@
-//! Overview screen: the public-facade contract and its stable sample data.
+
 
 use termrock::author::PaintStyle;
 use termrock::{
@@ -44,9 +44,9 @@ const PROPS_ROWS: [(&str, &str); 3] = [
     ("Rendering", "public Ui facade"),
 ];
 
-/// Compile the public component roster through the external Showcase crate.
-/// These zero-sized declarations keep coverage honest without adding pixels
-/// to the frozen historical Overview frame.
+
+
+
 fn component_roster() {
     let _ = Form::new(COMPONENT_ROSTER, &[] as &[FieldSpec<'static>]);
     let _ = Meter::new(COMPONENT_ROSTER);
@@ -161,8 +161,8 @@ fn state_language_panel() -> Panel<'static> {
         .patch_part(OVERVIEW_PANEL_PARTS)
 }
 
-/// The landing page has no mutable controls; its content is deliberately
-/// useful as a smoke test for themes, clipping and public component exports.
+
+
 #[derive(Debug)]
 pub struct OverviewPage {
     author: AuthorBadge,
@@ -231,9 +231,9 @@ impl Page for OverviewPage {
             self.title(),
             "Tokens and principles behind every component",
             |ui, body| {
-                // Restore the historical responsive split: below 68 columns
-                // the token card and the legend stack vertically. This is
-                // what preserves the compact 80-column composition.
+
+
+
                 let (left, right) = if body.width < 68 {
                     let rows = layout::rows(
                         body,
@@ -280,9 +280,9 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
     }
     let token_count = u16::try_from(TOKEN_LABELS.len()).unwrap_or(u16::MAX);
     let area = Rect {
-        // The historical compact frame gives the token card only six data
-        // rows. Keeping the card short is what lets the second token column
-        // and the state legend occupy their legacy positions at 80 columns.
+
+
+
         height: if area.width >= 40 && area.height <= 18 {
             area.height.min(9)
         } else {
@@ -382,9 +382,9 @@ fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
         return;
     }
     if area.height <= 10 {
-        // At the compact terminal width the principles card is intentionally
-        // clipped out of the historical composition. The state card starts
-        // below the token rows and owns the visible right-hand legend.
+
+
+
         let state_area = Rect {
             y: area.y.saturating_add(1),
             height: area.height.saturating_sub(1),

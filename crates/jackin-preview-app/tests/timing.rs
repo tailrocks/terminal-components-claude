@@ -1,4 +1,4 @@
-//! Product ticks are coalesced wakes, not elapsed-time or input-count units.
+
 use jackin_preview_app::{App, Motion, Scenario};
 use std::time::Duration;
 use termrock::{KeyCode, Theme};

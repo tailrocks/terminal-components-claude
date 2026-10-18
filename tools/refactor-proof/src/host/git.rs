@@ -1,4 +1,4 @@
-//! Host-owned Git helpers with executor configuration disabled.
+
 
 use std::collections::HashMap;
 use std::fs;

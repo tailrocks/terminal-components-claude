@@ -1,12 +1,12 @@
-//! External facade integration test for recipe EX-02.
-//!
-//! Compile this file as a `termrock` integration test (`termrock` is the
-//! only crate dependency). It does not import `termrock_controls` or
-//! `termrock_fields`.
-//!
-//! The EX-02 snippet matches the facade. `TextInput::new` takes only an
-//! `Id`. Draw borrows the fixture through `.value(&str)`. There is no
-//! `TextInput::new(id, value, revision)` constructor.
+
+
+
+
+
+
+
+
+
 
 use termrock::{
     App, Buffer, Cx, EditPhase, Flow, Id, Rect, Response, Runtime, TextAction, TextInput,
@@ -14,11 +14,11 @@ use termrock::{
 };
 
 const NAME_ID: Id = Id::root("ex02.name");
-/// `TextInput::measure` minimum is eight columns: gutter, indent, text, trailing cell.
+
 const NAME_AREA: Rect = Rect::new(0, 0, 8, 1);
-/// Two graphemes. Neither is the empty-cell symbol `" "`.
+
 const NAME: &str = "ab";
-/// Editable field. This test supplies no key and no mouse.
+
 const LOCKED: bool = false;
 
 fn update_name(
@@ -53,15 +53,15 @@ struct NameProbe {
     locked: bool,
     state: TextInputState,
     value: String,
-    /// The value `update_name` returned. Never a constructed `Response`.
+
     captured: Option<Response<TextAction>>,
 }
 
 impl App for NameProbe {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let response = update_name(self.id, cx, &mut self.state, &mut self.value, self.locked);
-        // `App::update` must return `Response<()>`. Keep the original
-        // `Response<TextAction>` and forward only its erased form.
+
+
         let forwarded = response.clone().erase();
         self.captured = Some(response);
         forwarded
@@ -119,7 +119,7 @@ fn ex02_idle_name_without_input_paints_value() {
         Theme::junie(),
     );
 
-    // Bootstrap only. No `Runtime::handle`, key, or mouse.
+
     let _bootstrap = runtime.initialize();
 
     let response = runtime
@@ -127,8 +127,8 @@ fn ex02_idle_name_without_input_paints_value() {
         .captured
         .clone()
         .expect("initialize must call update_name through App::update");
-    // No intents: `Acc::finish` returns `Response::ignored()` and does not
-    // tag an id. `Response<TextAction>` has no `activated()` method.
+
+
     let action: Option<TextAction> = response.action_ref().copied();
     assert_eq!(
         action, None,

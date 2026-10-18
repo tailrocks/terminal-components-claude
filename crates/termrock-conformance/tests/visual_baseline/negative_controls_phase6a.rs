@@ -1,25 +1,25 @@
-//! Phase-6a negative controls for the visual-baseline harness.
-//!
-//! Companion to [`crate::negative_controls`]: each test here proves the
-//! suite FAILS when it must, closing the gaps the base module leaves open:
-//! a single cursor *value* (not three at once), the four integrity faults
-//! contrasted side by side with pairwise-distinct signatures, sharded-run
-//! inventory (omitted shard case, duplicated full capture name), the
-//! remaining mode-gated inputs (hover, wheel, drag, focus-out), a dropped
-//! input inside a test-owned PTY sequence failing its postcondition, and a
-//! timestamp-only frame matching the same approval through the real gate
-//! (no unjustified visual failure).
-//!
-//! Isolation contract (same as the base module): all checks run against
-//! small synthetic [`Frame`]s, pure inventory sets, and `cat` PTY sessions;
-//! artifact stores live in temp copies under
-//! `target/tuiscotti-negative-phase6a/` (gitignored scratch). Nothing here
-//! reads `snapshots/` as approval state and nothing writes outside its own
-//! temp dir. No production code is mutated.
-//!
-//! Gate reference: grouped store (`.ansi` cell-exact + `.txt` content +
-//! `.html` render-level + `.png` pixel-exact at threshold 1.0). See
-//! `tuiscotti::grouped` docs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -84,7 +84,7 @@ fn set_text(frame: &mut Frame, x0: u16, y: u16, text: &str) {
     }
 }
 
-/// Small deterministic base frame: 20x6, text rows, one styled cell.
+
 fn base_frame() -> Frame {
     let mut f = Frame::blank(20, 6, prov("negative-phase6a"));
     set_text(&mut f, 0, 0, "hello phase6a");
@@ -97,8 +97,8 @@ fn base_frame() -> Frame {
     f
 }
 
-/// Approve `frame` under `name`, then prove the same frame matches.
-/// Returns the store for the subsequent negative check.
+
+
 fn approve_grouped(dir: &Path, name: &str, frame: &Frame) -> GroupedStore {
     let store = grouped_store(dir);
     let mut r = renderer();
@@ -130,11 +130,11 @@ fn cat_binary() -> &'static str {
     }
 }
 
-// --------------------------------- one-cursor-value mutations are detected --
 
-/// Base cursor: visible block at (3, 0). Each case below changes exactly
-/// ONE cursor value; the pixel gate must catch it while the cell-exact
-/// (ansi) and content (txt) gates stay green.
+
+
+
+
 fn cursor_base() -> Frame {
     let mut f = base_frame();
     f.cursor.visible = true;
@@ -147,7 +147,7 @@ fn cursor_base() -> Frame {
 
 #[test]
 fn negative_phase6a_single_cursor_value_mutation_detected() {
-    // Case A: style is the only changed value (Block -> Underline).
+
     let base = cursor_base();
     let dir = scratch_dir("cursor-style");
     let name = "neg6a/cursor-style/80x24/truecolor";
@@ -178,7 +178,7 @@ fn negative_phase6a_single_cursor_value_mutation_detected() {
     );
     outcome.ensure_matched().unwrap_err();
 
-    // Case B: horizontal position is the only changed value (3 -> 4).
+
     let dir2 = scratch_dir("cursor-x");
     let name2 = "neg6a/cursor-x/80x24/truecolor";
     let store2 = approve_grouped(&dir2, name2, &base);
@@ -196,13 +196,13 @@ fn negative_phase6a_single_cursor_value_mutation_detected() {
     outcome2.ensure_matched().unwrap_err();
 }
 
-// ----------------------- integrity faults fail with distinct signatures --
+
 
 #[test]
 fn negative_phase6a_integrity_faults_detected_distinctly() {
     let base = base_frame();
 
-    // Fault 1: missing required artifact (.txt) fails closed.
+
     let dir_a = scratch_dir("integrity-missing");
     let name_a = "neg6a/integrity/80x24/truecolor";
     let store_a = approve_grouped(&dir_a, name_a, &base);
@@ -220,8 +220,8 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     );
     let sig_missing = format!("status={:?}", out_a.status());
 
-    // Fault 2: corrupt hash (one flipped byte mid-PNG) is a loud decode
-    // error, never a silent pass and never a plain mismatch status.
+
+
     let dir_b = scratch_dir("integrity-corrupt");
     let name_b = "neg6a/integrity/80x24/truecolor";
     let store_b = approve_grouped(&dir_b, name_b, &base);
@@ -242,7 +242,7 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     );
     let sig_corrupt = "error:cannot-decode".to_string();
 
-    // Fault 3: mixed generations (B's bytes over A's approval) mismatch.
+
     let mut gen_b = base.clone();
     let mut c = gen_b.get(0, 0).unwrap().clone();
     c.symbol = "Z".to_string();
@@ -262,7 +262,7 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     assert_eq!(out_c.ansi_match, Some(false));
     let sig_mixed = format!("status={:?}", out_c.status());
 
-    // Fault 4: stale run dir (approved name the suite no longer declares).
+
     let suite: BTreeSet<String> = ["neg6a/integrity/80x24/truecolor".to_string()]
         .into_iter()
         .collect();
@@ -276,17 +276,17 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     assert_eq!(orphans, vec!["neg6a/stale/80x24/truecolor".to_string()]);
     let sig_stale = format!("orphan:{}", orphans.join(","));
 
-    // All four faults detected, each with a distinct signature.
+
     let sigs = BTreeSet::from([sig_missing, sig_corrupt, sig_mixed, sig_stale]);
     assert_eq!(sigs.len(), 4, "integrity faults must differ: {sigs:?}");
 }
 
-// --------------------------- sharded inventory: omitted / duplicated fail --
+
 
 #[test]
 fn negative_phase6a_shard_inventory_omitted_and_duplicated_fail() {
-    // Omitted shard case: the suite spans shards, but this run covers only
-    // "smoke"; the "full"-shard case must fail acceptance by name.
+
+
     let suite: BTreeSet<String> = [
         "neg6a/s/a/80x24/truecolor".to_string(),
         "neg6a/s/b/80x24/truecolor".to_string(),
@@ -313,8 +313,8 @@ fn negative_phase6a_shard_inventory_omitted_and_duplicated_fail() {
         "omitted shard case must fail acceptance: {err}"
     );
 
-    // Duplicated full capture name: the same exact declaration twice is a
-    // config conflict, not a precedence rule.
+
+
     let decls = [
         "neg6a/d/x/80x24/truecolor",
         "neg6a/d/y/80x24/truecolor",
@@ -333,13 +333,13 @@ fn negative_phase6a_shard_inventory_omitted_and_duplicated_fail() {
     assert!(derr.contains("neg6a/d/x/80x24/truecolor"), "{derr}");
 }
 
-// --------------------- remaining mode-gated inputs fail without reporting --
+
 
 #[test]
 fn negative_phase6a_mode_gated_inputs_fail_without_reporting() {
-    // `cat` never enables mouse reporting or focus tracking, so hover,
-    // wheel, drag, and focus-out must each fail with its own mode error
-    // instead of silently injecting input.
+
+
+
     let s = Tui::new([cat_binary()])
         .size(80, 24)
         .spawn()
@@ -367,17 +367,17 @@ fn negative_phase6a_mode_gated_inputs_fail_without_reporting() {
     );
 }
 
-// ----------------- dropped sequence input fails its postcondition (owned) --
+
 
 #[test]
 fn negative_phase6a_dropped_sequence_input_fails_postcondition() {
-    // Test-owned PTY sequence against `cat`: the full sequence satisfies
-    // its postcondition; the same sequence minus one necessary input must
-    // fail it. No product code involved.
-    let full = "seq6a-postcondition-789";
-    let prefix = "seq6a-postcondition-78"; // `full` minus the last char.
 
-    // Control: the complete sequence passes its postcondition.
+
+
+    let full = "seq6a-postcondition-789";
+    let prefix = "seq6a-postcondition-78";
+
+
     let s = Tui::new([cat_binary()])
         .size(80, 24)
         .spawn()
@@ -389,7 +389,7 @@ fn negative_phase6a_dropped_sequence_input_fails_postcondition() {
     )
     .expect("full sequence must satisfy postcondition");
 
-    // Dropped input: one necessary char removed from the owned sequence.
+
     let t = Tui::new([cat_binary()])
         .size(80, 24)
         .spawn()
@@ -408,12 +408,12 @@ fn negative_phase6a_dropped_sequence_input_fails_postcondition() {
     );
 }
 
-// ----------------- timestamp-only frame matches the same approval (gate) --
+
 
 #[test]
 fn negative_phase6a_timestamp_only_frame_matches_same_approval() {
-    // Same cells, different provenance clock: the frame must match the
-    // approval through the real gate (no unjustified visual failure).
+
+
     let mut a = base_frame();
     a.provenance.created_unix = 1_000;
     let mut b = base_frame();

@@ -1,7 +1,7 @@
-//! Actual Holla production-view and input-lifecycle measurements.
-//! Each sample reports totals for a complete fixed-size workload batch.
-//! Input pairs include the runtime's required pre-input frame publication.
-//! Wall time is informational; allocation limits require independent review.
+
+
+
+
 use holla_ui::{App, Motion, Scenario};
 use termrock::{Id, KeyCode, Theme};
 use termrock_test_support::{

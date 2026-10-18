@@ -1,4 +1,4 @@
-//! Capsule screens owned by `jackin-preview-capsule-ui`.
+
 
 pub mod capsule;
 pub mod file_browser;

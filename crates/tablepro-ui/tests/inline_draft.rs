@@ -1,4 +1,4 @@
-//! Inline cell drafts remain owned across blur and guarded exit.
+
 use tablepro_ui::{GridView, Surface, TableProApp, Value};
 use termrock::{App, Dialog, Id, KeyCode, Part, Theme};
 use termrock_test_support::Harness;

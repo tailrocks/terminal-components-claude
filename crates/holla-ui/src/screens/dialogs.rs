@@ -1,4 +1,4 @@
-//! Product dialog intents projected through the shared Dialog and Props controls.
+
 use super::context::Context;
 use crate::dispatch::{self, Destination};
 use crate::domain::{
@@ -35,19 +35,19 @@ pub(crate) enum Intent {
         login: String,
     },
     Alias(Action),
-    /// Largest-file list. Closed until the command opens it.
+
     TopFiles,
-    /// Cleanup review. Confirming it does not delete anything.
+
     CleanupReview,
-    /// Folder browser for the launch directory.
+
     FolderBrowser,
-    /// Home find page. Closed until the command opens it.
+
     HomeFind,
-    /// Custom-action file. Closed until the command opens it.
+
     CustomAction,
-    /// Snapshot page, distinct from the home system-snapshot dialog.
+
     SnapshotPage,
-    /// Trust review for a definition that is not open on the home frame.
+
     DefinitionTrust,
 }
 pub(crate) enum Event {
@@ -466,8 +466,8 @@ impl ProductDialog {
                 ..
             }
         ) {
-            // The pinned lock dialog retains the policy-recommended cancel
-            // action's initial focus when inserting Close before it.
+
+
             props.action_id(1)
         } else {
             props.action_id(0)
@@ -503,8 +503,8 @@ impl ProductDialog {
             self.dialog.zeroize();
             cx.close_layer(DIALOG, Some(ActionKey::CLOSE));
         }
-        // The update pass builds every prop the draw pass will render, so each
-        // set of props keeps exactly one construction site (§13).
+
+
         let _ = confirm_action("Confirm");
         (response, event)
     }
@@ -642,8 +642,8 @@ fn facts(rows: &[(&str, String)]) -> Vec<(String, String)> {
         .map(|(label, value)| ((*label).into(), value.clone()))
         .collect()
 }
-/// The dialog's sole confirming action; every intent routes its confirm row
-/// through this one construction site (§13).
+
+
 fn confirm_action(label: &'static str) -> UiAction<'static> {
     UiAction::new(ActionKey::CONFIRM, label)
 }

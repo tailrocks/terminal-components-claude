@@ -1,4 +1,4 @@
-//! Basic actionable/decorative controls: Button, Brand, choices, Panel, SplitPane, Props, Empty and TooSmall.
+
 
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as action;

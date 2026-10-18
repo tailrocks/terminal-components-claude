@@ -1,4 +1,4 @@
-//! Gate two binds a shared exact-match acknowledgement to one reviewed plan.
+
 use crate::domain::plan::StepState;
 use crate::sim::{
     plans::{ReviewBinding, ReviewedPlan},
@@ -124,9 +124,9 @@ impl PlanGate {
         let (response, action) = self.poll(cx);
         let result = match action {
             Some(DialogAction::Action(ActionKey::CONFIRM)) => {
-                // Dialog's exact-match action is the acknowledgement proof. Its
-                // secret draft remains private; domain validation receives the
-                // immutable phrase whose matching armed this specific action.
+
+
+
                 let result = if review.matches_binding(&self.binding) {
                     match review
                         .approve(&self.phrase, world)

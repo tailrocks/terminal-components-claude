@@ -1,5 +1,5 @@
-//! `Empty` — the standalone empty / loading / partial / error surface
-//! (`COMPONENT_ARCHITECTURE.md` §12.2, §18.2, Appendix A 4G).
+
+
 
 use core::fmt;
 
@@ -14,84 +14,84 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::EmptyState;
 
-/// A pane with nothing to show: a quiet title, an optional hint, never a big
-/// glyph.
-///
-/// ## Construction
-/// `Empty::new(id, state)` over the shared [`EmptyState`] vocabulary, so a
-/// screen-level empty pane and a collection's own empty slot say the same
-/// four things in the same words (§12.2).
-///
-/// ## Ownership
-/// Stateless. The caller owns the [`EmptyState`] and the strings it borrows,
-/// and supplies the animation frame; the runtime owns nothing.
-///
-/// ## Configuration
-/// `.variant(Variant)` (default `Recipe.default_variant`), `.frame(usize)`
-/// (`0` — the spinner frame, a prop so a digest is a pure function of the
-/// props), `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::EMPTY`; `DEFAULT` only.
-///
-/// ## States
-/// Derives `BUSY`/`LOADING`/`ERROR` from the [`EmptyState`] variant through
-/// [`EmptyState::status`]; wears no runtime state, because it is never
-/// focused, hovered, pressed or disabled.
-///
-/// ## Actions
-/// None; `Empty` has no `update` phase. A retry affordance is a `Button` the
-/// owning screen places beside it.
-///
-/// ## Focus
-/// Never a focus stop; registers no ring entry.
-///
-/// ## Keyboard
-/// None.
-///
-/// ## Mouse
-/// None; no `PartRef` is registered.
-///
-/// ## Layout
-/// `measure` returns `(the widest line, 1 or 3)` — one row for the title,
-/// plus a blank row and the wrapped detail when there is one. `draw`
-/// centres the block in `area` and returns the rect it used; a degenerate
-/// rect paints nothing (R5).
-///
-/// ## Parts
-/// `EMPTY` (the whole slot; the part a container reserves for it, filled on
-/// every non-degenerate frame), then the three nested parts painted under
-/// `Family::EMPTY`:
-/// `TITLE` (the primary line, on every frame), `HELP` (the wrapped detail,
-/// only when the state carries one and the block has three rows) and `ICON`
-/// (the readiness glyph: the spinner frame for `Loading`/`Partial`, the error
-/// glyph for `Error`, nothing for `Empty`). `EMPTY` is first because it is
-/// the only one painted unconditionally, and `PARTS[0]` is what §16.2 case 10
-/// patches when it asserts an instance patch reaches the surface.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach all four declared parts, and
-/// Readiness derived from [`EmptyState`] reaches every part (§39.2).
-/// `.slot(Part::EMPTY, …)` replaces the whole
-/// surface, which is the documented way to put an illustration or an action
-/// row where the default text goes.
-///
-/// ## Identity
-/// One `Id` per instance, used to attribute style resolution and overrides;
-/// no items.
-///
-/// ## Testing
-/// `EmptyCase` with no capabilities;
-/// `collection::empty::tests::empty_state_covers_empty_loading_partial_error`;
-/// the render matrix names states, not readiness, so the four surfaces are
-/// `render::components::empty::{default, editing, disabled, empty}` — the
-/// matrix maps `editing` onto `Loading` and `disabled` onto `Error`.
-///
-/// ## Invariants
-/// The readiness glyph is a *symbol* — the spinner frame for
-/// `Loading`/`Partial`, the error glyph for `Error` — so the four states stay
-/// distinguishable with colour removed (§11.4, §16.2 case 9). Never writes
-/// outside `area`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct Empty<'a> {
     id: Id,
     state: EmptyState<'a>,
@@ -112,10 +112,10 @@ impl fmt::Debug for Empty<'_> {
 }
 
 impl<'a> Empty<'a> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[Part::EMPTY, Part::TITLE, Part::HELP, Part::ICON];
 
-    /// The surface for `state`.
+
     pub const fn new(id: Id, state: EmptyState<'a>) -> Self {
         Empty {
             id,
@@ -126,59 +126,59 @@ impl<'a> Empty<'a> {
         }
     }
 
-    /// The id.
+
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// The data state being reported.
+
     pub const fn state(&self) -> EmptyState<'a> {
         self.state
     }
 
-    /// Set the variant.
+
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
 
-    /// The animation frame the spinner reads. A prop, never a clock read:
-    /// two draws with the same props are byte-identical (§16.2 case 5).
+
+
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
 
-    /// An instance patch over every part (precedence 6).
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part patches.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace the whole surface.
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The draw phase; returns the rect the block occupies.
+
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if area.is_empty() {
             return area;
         }
-        // runtime: none; derived: the readiness of the surface the caller
-        // handed us (`EmptyState::status`)
+
+
         let live = PartStyle::flags(StateFlags::empty(), self.state.status().flags());
         let ov = self.ov;
         if let Some(f) = ov.slot_for(Part::EMPTY) {
@@ -201,9 +201,9 @@ impl<'a> Empty<'a> {
         }
     }
 
-    /// Paint the shared empty-state shape through this component's instance
-    /// overrides. Collection-owned empty slots use [`EmptyState::draw`]
-    /// directly because they have no standalone `Empty` override surface.
+
+
+
     fn paint_state(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> u16 {
         if area.is_empty() {
             return 0;
@@ -272,7 +272,7 @@ impl<'a> Empty<'a> {
         rows
     }
 
-    /// Rows the block needs at `w` columns.
+
     fn rows(&self, w: u16) -> u16 {
         match self.state.detail() {
             Some(d) => wrapped_rows(d, w.max(1)).saturating_add(2),
@@ -280,7 +280,7 @@ impl<'a> Empty<'a> {
         }
     }
 
-    /// The natural size: the widest line, and one or three rows.
+
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let title = width(self.state.title());
         let detail = self.state.detail().map_or(0, width);

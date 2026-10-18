@@ -1,17 +1,17 @@
-//! Headless digest scenes (`COMPONENT_ARCHITECTURE.md` §16.3, §21 item 28).
-//!
-//! A `Scene` owns a headless runtime (registry + ring + layers + style
-//! stack) built from a theme, draws a closure into a buffer and produces an
-//! FNV-1a digest of `(symbol, fg, bg, modifier)` per cell. Baselines are
-//! one `name w h theme color hash` line each, sorted; `BLESS=1` merges.
-//!
-//! Blessing is safe at any `--test-threads` and across the several test
-//! binaries that share one baseline file: every write is serialised by a
-//! process-wide lock, merged into the file's *current* content (never a
-//! snapshot read before the assertion) and published by an atomic rename,
-//! so no reader ever observes a partial file and no writer drops another
-//! writer's entries. A non-bless run reads each baseline once per process
-//! and never touches the file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -21,7 +21,7 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 use termrock::{App, ColorLevel, Cx, FocusRing, Registry, Response, Runtime, Theme, Ui};
 
-/// An application that does nothing; the scene draws through a closure.
+
 #[derive(Debug, Default, Clone, Copy)]
 pub struct NoApp;
 
@@ -33,7 +33,7 @@ impl App for NoApp {
     fn draw(&self, _ui: &mut Ui<'_>) {}
 }
 
-/// A named headless frame.
+
 pub struct Scene {
     name: &'static str,
     theme_name: &'static str,
@@ -44,8 +44,8 @@ pub struct Scene {
     snapshot: termrock::RenderSnapshot,
 }
 
-/// Repeated captures bound to one immutably borrowed model and snapshot.
-/// Drop the binding before replacing or mutating the model or scene snapshot.
+
+
 pub struct SceneProjection<'a, M: ?Sized, F> {
     scene: &'a mut Scene,
     binding: termrock::RenderModel<'a, M, F>,
@@ -58,7 +58,7 @@ impl<M: ?Sized, F> core::fmt::Debug for SceneProjection<'_, M, F> {
 }
 
 impl<M: ?Sized, F: Fn(&M, &mut Ui<'_>, Rect)> SceneProjection<'_, M, F> {
-    /// Capture the bound model without initialization, effects or cache rebinding.
+
     pub fn draw(&mut self) {
         let Some(rt) = self.scene.rt.as_mut() else {
             return;
@@ -68,7 +68,7 @@ impl<M: ?Sized, F: Fn(&M, &mut Ui<'_>, Rect)> SceneProjection<'_, M, F> {
             .commit_inspected();
     }
 
-    /// Inspect the most recent acknowledged capture.
+
     pub const fn scene(&self) -> &Scene {
         self.scene
     }
@@ -116,7 +116,7 @@ fn theme_label(theme: &Theme) -> &'static str {
 }
 
 impl Scene {
-    /// A scene of `w × h` under `theme` downgraded to `color`.
+
     pub fn new(name: &'static str, theme: Theme, color: ColorLevel, w: u16, h: u16) -> Self {
         let theme_name = theme_label(&theme);
         let theme = if color == ColorLevel::TrueColor {
@@ -136,7 +136,7 @@ impl Scene {
         }
     }
 
-    /// A scene over an existing frame buffer (the harness snapshot).
+
     pub fn from_buffer(
         name: &'static str,
         theme_name: &'static str,
@@ -155,20 +155,20 @@ impl Scene {
         }
     }
 
-    /// Rename the scene (the baseline key).
+
     #[must_use]
     pub const fn named(mut self, name: &'static str) -> Self {
         self.name = name;
         self
     }
 
-    /// Replace the explicit interaction facts used by every subsequent capture.
+
     pub fn set_snapshot(&mut self, snapshot: termrock::RenderSnapshot) {
         self.snapshot = snapshot;
     }
 
-    /// Bind immutable model data and its painter for repeated warmed captures.
-    /// The painter's captures must obey the same immutable-view contract as App.
+
+
     pub fn bind_model<'a, M: ?Sized, F>(
         &'a mut self,
         model: &'a M,
@@ -184,22 +184,22 @@ impl Scene {
         }
     }
 
-    /// Bind a production app for repeated warmed captures. The app cannot be
-    /// ordinarily mutated while the binding remains usable.
-    /// ```compile_fail,E0506
-    /// use termrock::{App, Cx, Response, Ui, Theme, ColorLevel};
-    /// use termrock_test_support::Scene;
-    /// struct Model(u8);
-    /// impl App for Model {
-    ///     fn update(&mut self, _: &mut Cx<'_>) -> Response<()> { Response::ignored() }
-    ///     fn draw(&self, _: &mut Ui<'_>) {}
-    /// }
-    /// let mut model = Model(0);
-    /// let mut scene = Scene::new("bound", Theme::junie(), ColorLevel::TrueColor, 8, 2);
-    /// let mut bound = scene.bind_app(&model);
-    /// model.0 = 1;
-    /// bound.draw();
-    /// ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     pub fn bind_app<'a, A: App>(
         &'a mut self,
         app: &'a A,
@@ -207,17 +207,17 @@ impl Scene {
         self.bind_model(app, |app, ui, _| app.draw(ui))
     }
 
-    /// Project an application's supplied model under the explicit snapshot.
-    /// This one-shot capture uses fresh model caches and never calls `App::update`.
-    /// Use `bind_app` for repeated captures with zero warm allocations.
+
+
+
     pub fn draw_app<A: App>(&mut self, app: &A) {
         self.draw(|ui, _| app.draw(ui));
     }
 
-    /// Run the whole draw phase with `f` as the page painter.
-    /// Every one-shot capture starts fresh derived model caches and reads the
-    /// same explicit snapshot; previous captures cannot
-    /// change its focus, hover, layers or read facts. No initialization/update runs.
+
+
+
+
     pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect)) {
         let area = self.area;
         let Some(rt) = self.rt.as_mut() else {
@@ -228,7 +228,7 @@ impl Scene {
             .commit_inspected();
     }
 
-    /// Draw over a pre-filled buffer (sentinel tests).
+
     pub fn draw_over(
         &mut self,
         prefill: impl FnOnce(&mut Buffer),
@@ -244,7 +244,7 @@ impl Scene {
             .commit_inspected();
     }
 
-    /// FNV-1a over `(symbol, fg, bg, modifier)` per cell.
+
     pub fn digest(&self) -> u64 {
         let mut h = FNV_OFFSET;
         for pos in self.area.positions() {
@@ -260,7 +260,7 @@ impl Scene {
         h
     }
 
-    /// The frame as text, rows joined with newlines.
+
     pub fn text(&self) -> String {
         let mut out = String::new();
         for y in 0..self.area.height {
@@ -272,49 +272,49 @@ impl Scene {
         out
     }
 
-    /// The buffer.
+
     pub const fn buffer(&self) -> &Buffer {
         &self.buf
     }
 
-    /// The area.
+
     pub const fn area(&self) -> Rect {
         self.area
     }
 
-    /// The underlying cache runtime, when this scene owns one.
-    /// Capture geometry belongs to `Scene::registry`, `Scene::ring` and
-    /// `Scene::cursor_position`; projection never changes live runtime geometry.
+
+
+
     pub const fn runtime(&self) -> Option<&Runtime<NoApp>> {
         self.rt.as_ref()
     }
 
-    /// The cache runtime, mutably. Interaction for captures is supplied explicitly
-    /// with `set_snapshot`; live runtime changes do not alter that snapshot.
+
+
     pub const fn runtime_mut(&mut self) -> Option<&mut Runtime<NoApp>> {
         self.rt.as_mut()
     }
 
-    /// Last frame's registry.
+
     pub fn registry(&self) -> Option<&Registry> {
         self.rt
             .as_ref()
             .map(|rt| rt.projection_registry().unwrap_or_else(|| rt.registry()))
     }
 
-    /// Last frame's ring.
+
     pub fn ring(&self) -> Option<&FocusRing> {
         self.rt
             .as_ref()
             .map(|rt| rt.projection_ring().unwrap_or_else(|| rt.ring()))
     }
 
-    /// Cursor from the last acknowledged capture.
+
     pub fn cursor_position(&self) -> Option<ratatui_core::layout::Position> {
         self.rt.as_ref().and_then(Runtime::projection_cursor)
     }
 
-    /// The baseline line key: `name w h theme color`.
+
     pub fn key(&self) -> String {
         format!(
             "{} {} {} {} {}",
@@ -326,13 +326,13 @@ impl Scene {
         )
     }
 
-    /// Compare against (or, under `BLESS=1` / `UPDATE_BASELINE=1`, merge into)
-    /// a baseline file. `BLESS` is canonical and takes precedence when both
-    /// variables are present.
-    ///
-    /// Thread- and process-safe in both directions: blessing merges one
-    /// entry under a lock, comparing reads the file at most once per
-    /// process and writes nothing.
+
+
+
+
+
+
+
     pub fn assert_against(&self, baseline: &Baseline) {
         let key = self.key();
         let digest = self.digest();
@@ -340,9 +340,9 @@ impl Scene {
             baseline.bless(&key, &format!("{digest:016x}"));
             return;
         }
-        // both failures print the frame: a digest cannot be eyeballed, and a
-        // first-generation line has no before-image to diff against, so the
-        // frame text is the only artefact a reviewer can read
+
+
+
         let why = match baseline.lookup(&key, digest) {
             Lookup::Match => return,
             Lookup::Mismatch(expected) => format!(
@@ -358,11 +358,11 @@ impl Scene {
     }
 }
 
-/// Whether this process was asked to rewrite baselines.
-///
-/// `UPDATE_BASELINE` is the documented compatibility alias for `BLESS`, but
-/// an explicitly supplied `BLESS` value always wins. This makes `BLESS=0`
-/// fail closed even when a caller's environment also contains the alias.
+
+
+
+
+
 fn bless_enabled() -> bool {
     let enabled = |v: std::ffi::OsString| !v.is_empty() && v != "0";
     match std::env::var_os("BLESS") {
@@ -371,8 +371,8 @@ fn bless_enabled() -> bool {
     }
 }
 
-/// The outcome of one baseline lookup; the expected text is cloned only
-/// when the assertion is about to fail.
+
+
 enum Lookup {
     Match,
     Mismatch(String),
@@ -382,18 +382,18 @@ enum Lookup {
 const HEADER: &str =
     "# digest baseline: name w h theme color hash — regenerate with BLESS=1, review like source\n";
 
-/// Every baseline this process has touched, keyed by path: the file's
-/// entries as first read, plus everything blessed since. One lock for all
-/// paths — blessing is rare and never on a hot path.
+
+
+
 fn store() -> MutexGuard<'static, BTreeMap<&'static str, BTreeMap<String, String>>> {
     static STORE: OnceLock<Mutex<BTreeMap<&'static str, BTreeMap<String, String>>>> =
         OnceLock::new();
     STORE
         .get_or_init(|| Mutex::new(BTreeMap::new()))
         .lock()
-        // the map is consistent at every point a panic could unwind
-        // through, so poisoning must never cascade a single failed scene
-        // into every other scene in the same binary
+
+
+
         .unwrap_or_else(PoisonError::into_inner)
 }
 
@@ -422,26 +422,26 @@ fn render(entries: &BTreeMap<String, String>) -> String {
     s
 }
 
-/// A baseline file: one `name w h theme color hash` line each, sorted.
+
 #[derive(Debug, Clone, Copy)]
 pub struct Baseline {
     path: &'static str,
 }
 
 impl Baseline {
-    /// A baseline at `path`.
+
     pub const fn new(path: &'static str) -> Self {
         Baseline { path }
     }
 
-    /// The path.
+
     pub const fn path(&self) -> &'static str {
         self.path
     }
 
-    /// Compare `digest` with the recorded entry for `key`. No file access
-    /// after the first lookup of this path, so the assertion path of a
-    /// non-bless run neither reads nor writes the baseline.
+
+
+
     fn lookup(&self, key: &str, digest: u64) -> Lookup {
         let mut store = store();
         let entries = store
@@ -459,13 +459,13 @@ impl Baseline {
         }
     }
 
-    /// Merge one entry into the file.
-    ///
-    /// Held under the process-wide lock: re-read the file, fold in whatever
-    /// another process wrote since, apply this entry, render and publish by
-    /// atomic rename. Nothing here rewrites the file from a snapshot taken
-    /// before the assertion, so concurrent blessing cannot drop entries and
-    /// no `--test-threads=1` is required.
+
+
+
+
+
+
+
     fn bless(&self, key: &str, digest: &str) {
         let mut store = store();
         let entries = store.entry(self.path).or_default();
@@ -478,18 +478,18 @@ impl Baseline {
         entries.insert(key.to_owned(), digest.to_owned());
         let text = render(entries);
         if on_disk.as_deref() == Some(text.as_str()) {
-            return; // already recorded: leave the file, and its mtime, alone
+            return;
         }
         self.publish(&text);
     }
 
-    /// Write `text` where a reader can only ever see the old or the new file.
+
     fn publish(&self, text: &str) {
         if let Some(dir) = Path::new(self.path).parent() {
             let _ = std::fs::create_dir_all(dir);
         }
-        // one writer per process (the store lock) and a pid-tagged name, so
-        // two processes blessing the same baseline never share a temporary
+
+
         let tmp = format!("{}.tmp.{}", self.path, std::process::id());
         std::fs::write(&tmp, text).expect("write baseline");
         if let Err(e) = std::fs::rename(&tmp, self.path) {
@@ -509,9 +509,9 @@ mod tests {
 
     use super::*;
 
-    /// Where a spawned worker writes; set by the driver tests below.
+
     const PATH_ENV: &str = "TUI_NEXT_DIGEST_TEST_BASELINE";
-    /// Which half of [`NAMES`] a worker records.
+
     const SLICE_ENV: &str = "TUI_NEXT_DIGEST_TEST_SLICE";
     const WORKER: &str = "digest::tests::bless_worker";
     const PER_THREAD: usize = 6;
@@ -526,10 +526,10 @@ mod tests {
         "bless.42", "bless.43", "bless.44", "bless.45", "bless.46", "bless.47",
     ];
 
-    /// The regression worker, driven as a child process so baseline flags can
-    /// be set without mutating this process's environment. Every thread builds
-    /// its scenes, waits on a barrier so the writes collide as hard as the
-    /// scheduler allows, then asserts (or, under blessing, records) them.
+
+
+
+
     #[test]
     #[ignore = "spawned by the concurrent-bless driver tests"]
     fn bless_worker() {
@@ -582,14 +582,14 @@ mod tests {
         dir.join("baseline.txt")
     }
 
-    /// Run the worker over `path` for `slice`, with or without `BLESS`.
+
     fn run_worker(path: &Path, slice: usize, bless: bool) -> std::process::Output {
         run_worker_with_flags(path, slice, bless.then_some("1"), None)
     }
 
-    /// Run the worker with explicit baseline environment values. Removing both
-    /// variables first keeps each child independent of the test runner's
-    /// environment and makes precedence cases deterministic.
+
+
+
     fn run_worker_with_flags(
         path: &Path,
         slice: usize,
@@ -691,11 +691,11 @@ mod tests {
         )
     }
 
-    /// The truncation regression: blessing used to read the whole baseline,
-    /// insert one entry and rewrite the file, so parallel threads (and the
-    /// second test binary sharing one baseline) overwrote each other — a
-    /// 387-line `components.txt` came back with 6 lines. Every entry of both
-    /// worker processes must survive, sorted, with the header intact.
+
+
+
+
+
     #[test]
     fn concurrent_bless_keeps_every_entry() {
         let path = temp_baseline("concurrent");
@@ -724,7 +724,7 @@ mod tests {
         let mut sorted = lines.clone();
         sorted.sort_unstable();
         assert_eq!(lines, sorted, "baseline order is not deterministic");
-        // idempotent: re-blessing recorded scenes changes nothing at all
+
         let out = run_worker(&path, 0, true);
         assert!(out.status.success(), "{}", output_text(&out));
         assert_eq!(
@@ -735,9 +735,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
     }
 
-    /// A non-bless run compares and never writes: it passes against a
-    /// matching baseline, fails loudly against a corrupted one, and leaves
-    /// the file byte-identical either way.
+
+
+
     #[test]
     fn non_bless_run_fails_loudly_and_never_writes() {
         let path = temp_baseline("assert");
@@ -784,12 +784,12 @@ mod tests {
         let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
     }
 
-    /// A run that is about to record a first-generation baseline must show
-    /// what it would record. A digest is sixteen hex digits and a new line
-    /// has no before-image to diff against, so the frame text is the only
-    /// reviewable artefact; the `Missing` branch used to print none of it,
-    /// which would have left the review clause naming an artefact the run
-    /// does not produce.
+
+
+
+
+
+
     #[test]
     fn a_missing_baseline_prints_the_frame_it_would_record() {
         let path = temp_baseline("missing");

@@ -1,4 +1,4 @@
-//! Pinned repository catalogue and captured Manager `o` effect proofs.
+
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,

@@ -1,4 +1,4 @@
-//! Guarded exit through the real runtime and production dialog.
+
 use tablepro_ui::{Catalog, ColType, QueryTab, ResultSet, Surface, Tab, TableProApp, Value};
 use termrock::{
     App, Cx, Dialog, DialogState, GridEditor, Id, Input, KeyCode, KeyMap, LayerId, Response, Theme,

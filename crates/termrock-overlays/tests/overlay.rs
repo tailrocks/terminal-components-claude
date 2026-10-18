@@ -8,14 +8,14 @@
         clippy::arithmetic_side_effects
     )
 )]
-//! Layer composition on the real components (Slice 2 acceptance condition 7,
-//! Scenario F, `COMPONENT_ARCHITECTURE.md` §9, §20.10-2).
-//!
-//! `tests/render.rs` proves the same four properties on a synthetic page
-//! painted straight onto `Ui`. This file proves them on `Dialog` as layer
-//! content with a `List` in a popover on top of it — the nested case §9.2 is
-//! written for, and the one the prototype has to demonstrate before Slice 4
-//! builds `Picker` on the same mechanism.
+
+
+
+
+
+
+
+
 use ratatui_core::layout::Rect;
 
 use termrock_controls::Button;
@@ -42,8 +42,8 @@ const PEOPLE: [&str; 4] = ["Ada", "Grace", "Alan", "Edsger"];
 const K_DONE: ActionKey = ActionKey::CONFIRM;
 const ACTIONS: [Action<'static>; 1] = [Action::new(K_DONE, "Done")];
 
-/// The single props constructor, used by both phases: the action row is part
-/// of the props, so `measured_height` and `draw` agree (§13, §26 N1).
+
+
 fn dialog() -> Dialog<'static> {
     Dialog::new(DLG)
         .title("Edit task")
@@ -64,15 +64,15 @@ fn picker() -> List<
         .row(|s: &&'static str, u: &mut RowUi<'_>| u.label(s))
 }
 
-/// A page with a footer row, a launcher, a modal dialog and a popover list
-/// on top of the dialog.
+
+
 struct Nested {
     dlg: DialogState,
     pick: ListState,
     owner: Option<String>,
-    /// Draw the popover's `ui.layer` call *before* the dialog's.
+
     reverse: bool,
-    /// Open the modal with no backdrop at all.
+
     no_backdrop: bool,
 }
 
@@ -121,9 +121,9 @@ impl App for Nested {
                         },
                     )
                     .dismiss(Dismiss::ESC_AND_OUTSIDE)
-                    // a popover is `ScopeMode::Normal`: it barriers the
-                    // pointer but does not trap focus, so a picker that wants
-                    // the keyboard says so
+
+
+
                     .initial_focus(PICK)
                     .size(picker().measured_size(cx, &PEOPLE)),
                 );
@@ -207,7 +207,7 @@ fn page(reverse: bool) -> Harness<Nested> {
     Harness::new(Nested::new(reverse), Theme::junie(), 60, 20)
 }
 
-/// Open the modal, then the popover inside it.
+
 fn opened(reverse: bool) -> Harness<Nested> {
     let mut h = page(reverse);
     let _ = h.click_id(OPEN);
@@ -217,8 +217,8 @@ fn opened(reverse: bool) -> Harness<Nested> {
     h
 }
 
-/// The modal is composited over the page, traps focus and hides what is
-/// under it.
+
+
 #[test]
 fn modal_over_page() {
     let mut h = page(false);
@@ -233,19 +233,19 @@ fn modal_over_page() {
         "the body slot drew: {}",
         h.text()
     );
-    // focus entered the modal (rule (c)) and the launcher is no longer reachable
+
     let focus = h.focus().expect("the modal takes focus");
     assert_ne!(focus, OPEN);
     assert!(h.ring().reachable().all(|e| e.id != OPEN));
 
-    // the dialog's own rect covers the page where it draws
+
     let a = h
         .area_of_part(DLG, PartRef::of(Part::BORDER))
         .expect("the dialog registered its surface");
     let mid = h.cell(a.x + 2, a.y + 1).symbol().to_owned();
     assert_ne!(mid, "p", "the page shows through the modal");
 
-    // §26 N1: the resolver, not the dialog, centres it
+
     assert!(a.x > 0 && a.y > 0, "the modal is not at the screen origin");
     assert_eq!(
         a.width,
@@ -258,15 +258,15 @@ fn modal_over_page() {
         "and exactly the height it measured"
     );
 
-    // Esc closes it and focus is restored to the launcher
+
     let _ = h.key(KeyCode::Esc);
     assert!(!h.is_open(DLG));
     assert_eq!(h.focus(), Some(OPEN));
     assert!(h.text().contains("page page"));
 }
 
-/// A `List` in a popover opened from inside the modal: two live layers, the
-/// popover on top, its own focus scope, and Esc closing only the top one.
+
+
 #[test]
 fn nested_picker_over_dialog() {
     let mut h = opened(false);
@@ -274,7 +274,7 @@ fn nested_picker_over_dialog() {
     assert_eq!(h.top_layer().index(), 2, "the popover is the top layer");
     assert!(h.text().contains("Ada"), "{}", h.text());
 
-    // the popover is anchored below the button that opened it
+
     let btn = h.area_of(OWNER_BTN).expect("the owner button drew");
     let pick = h.area_of(PICK).expect("the popover registered");
     assert_eq!(pick.y, btn.y + 1, "anchored below");
@@ -285,13 +285,13 @@ fn nested_picker_over_dialog() {
         "the list sized its own layer (§26 N1)"
     );
 
-    // focus is inside the popover — a popover does not trap, so it asked for
-    // it with `initial_focus`; the dialog beneath keeps its ring entries
-    // because a popover sets no `inert_below`
+
+
+
     assert_eq!(h.focus(), Some(PICK));
     assert!(h.ring().reachable().any(|e| e.id == OWNER_BTN));
 
-    // Esc closes only the popover
+
     let _ = h.key(KeyCode::Esc);
     assert!(!h.is_open(PICK), "the popover closed");
     assert!(h.is_open(DLG), "the dialog beneath stayed open");
@@ -299,8 +299,8 @@ fn nested_picker_over_dialog() {
     assert!(h.text().contains("Edit task"));
 }
 
-/// z-order is the `LayerId` assigned at `open_layer`, never the order of the
-/// `ui.layer` calls (§21 item 14).
+
+
 #[test]
 fn layer_composites_bottom_to_top_regardless_of_call_order() {
     let a = opened(false);
@@ -308,7 +308,7 @@ fn layer_composites_bottom_to_top_regardless_of_call_order() {
     assert_eq!(a.text(), b.text(), "call order must not change z-order");
     assert_eq!(a.snapshot().digest(), b.snapshot().digest());
     assert_eq!(a.top_layer().index(), b.top_layer().index());
-    // where they overlap, the popover wins in both
+
     let pick = a.area_of(PICK).expect("the popover registered");
     for pos in pick.positions() {
         assert_eq!(
@@ -320,8 +320,8 @@ fn layer_composites_bottom_to_top_regardless_of_call_order() {
     assert!(a.text().contains("Ada") && b.text().contains("Ada"));
 }
 
-/// A modal's backdrop dims the page and stops one row short: the footer keeps
-/// its own colours so the shared status/hint row stays legible (§9.1).
+
+
 #[test]
 fn backdrop_excludes_the_footer() {
     let mut h = page(false);
@@ -339,7 +339,7 @@ fn backdrop_excludes_the_footer() {
     );
     assert_eq!(h.cell(0, 19).symbol(), "F", "the footer still reads FOOTER");
 
-    // the geometry the runtime used is `backdrop_area`, one row short
+
     let screen = Rect::new(0, 0, 60, 20);
     assert_eq!(
         backdrop_area(
@@ -351,7 +351,7 @@ fn backdrop_excludes_the_footer() {
         Rect::new(0, 0, 60, 19)
     );
 
-    // …and with `Backdrop::None` nothing is dimmed at all
+
     let mut plain = page(false);
     plain.app_mut().no_backdrop = true;
     let before = plain.cell(0, 0).fg;

@@ -1,7 +1,7 @@
-//! Read-only ingestion of GitHub Actions run metadata and observer artifacts.
-//!
-//! The transport is deliberately GET-only. This crate never checks out source,
-//! writes Git refs, executes an artifact, or writes downloaded bytes to disk.
+
+
+
+
 
 pub mod api;
 pub mod observer;
@@ -18,7 +18,7 @@ pub const MAX_OBSERVER_ZIP_BYTES: usize = api::MAX_ARTIFACT_DOWNLOAD_BYTES;
 pub const MAX_OBSERVER_JSON_BYTES: usize = 1024 * 1024;
 pub const OBSERVER_REPORT_SCHEMA_VERSION: u16 = 2;
 
-/// Concrete HTTPS transport for the existing bounded GET-only API client.
+
 pub mod transport {
     use std::io::Read;
     use std::net::SocketAddr;
@@ -137,7 +137,7 @@ pub mod transport {
         "other"
     }
 
-    /// A reusable reqwest client that only issues bounded HTTPS GET requests.
+
     #[derive(Clone)]
     pub struct ReqwestTransport {
         client: Client,
@@ -228,14 +228,14 @@ pub mod transport {
                 .filter(|duration| !duration.is_zero())
                 .ok_or(TransportError::Deadline)?;
 
-            // Validate scheme, origin, and bearer authority against the
-            // caller's original URL above. Tests may route only the two
-            // HTTPS GitHub hosts to an ephemeral loopback listener after
-            // those checks; production builds have no routing override.
+
+
+
+
             #[cfg(test)]
             let parsed = self.test_wire_url(parsed)?;
-            // Record only the URL authority immediately before passing this
-            // exact parsed value to Reqwest. Never retain a path or query.
+
+
             #[cfg(test)]
             self.record_test_wire_url(&parsed);
             let mut request = self.client.get(parsed);
@@ -329,9 +329,9 @@ pub mod transport {
         builder.build().map_err(|_| TransportError::Unavailable)
     }
 
-    /// Reqwest's `rustls-no-provider` mode needs a process default. Keep an
-    /// existing host choice; install Ring only when no default exists, and
-    /// accept another thread's successful one-time installation.
+
+
+
     fn ensure_default_provider() -> Result<(), TransportError> {
         if rustls::crypto::CryptoProvider::get_default().is_none() {
             let _ = rustls::crypto::ring::default_provider().install_default();
@@ -1440,7 +1440,7 @@ pub mod transport {
     }
 }
 
-/// Expected identity of a workflow run, including the workflow source pin.
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RunIdentity {
     pub repository: Repository,
@@ -1453,7 +1453,7 @@ pub struct RunIdentity {
     pub head_sha: String,
 }
 
-/// Caller context supplied by the generated publisher workflow.
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CallerIdentity {
     pub run: RunIdentity,
@@ -1461,20 +1461,20 @@ pub struct CallerIdentity {
     pub workflow_sha: String,
 }
 
-/// The complete read-only input for one ingestion operation.
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IngestRequest {
     pub caller: CallerIdentity,
     pub target: RunSelector,
     pub observer: RunIdentity,
-    /// The expected workflow artifact name. It must contain the observer run
-    /// ID and attempt as distinct decimal tokens.
+
+
     pub observer_artifact_name: String,
 }
 
-/// Strict V2 form of the selected producer's root `ci-observer-report.json`.
-/// V1 reports do not carry a version or observer identity and are deliberately
-/// rejected rather than interpreted by guessing from their other fields.
+
+
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ObserverReportV2 {
@@ -1584,8 +1584,8 @@ impl From<ObserverError> for IngestError {
     }
 }
 
-/// Resolve the caller, target CI run, observer run, and the inert observer
-/// artifact. All network access is mediated by the GET-only transport.
+
+
 pub fn ingest<T: api::ReadOnlyTransport>(
     client: &ApiClient<T>,
     request: &IngestRequest,

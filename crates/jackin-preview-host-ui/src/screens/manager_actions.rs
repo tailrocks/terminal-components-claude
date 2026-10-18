@@ -1,7 +1,7 @@
-//! Captured Manager commands and deterministic simulation effects.
-//!
-//! Rendering never calls this reducer. Reviews retain their original target;
-//! confirmation and completion validate it again, independently of selection.
+
+
+
+
 
 use jackin_preview_domain::{
     account::AccountId,
@@ -14,82 +14,82 @@ use jackin_preview_sim::{
     world::{DaemonHealth, GithubRepo, Msg, World},
 };
 
-/// Stable object selected by a Manager command.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Target {
-    /// Durable instance key.
+
     Instance(String),
-    /// Saved workspace key.
+
     Workspace(WorkspaceId),
 }
 
-/// Domain actions; launch/editor/prelude navigation stays with the shell.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-    /// Attach to a live instance or restore a preserved one.
+
     Reconnect,
-    /// Open read-only public instance facts.
+
     Inspect,
-    /// Review stopping a live container.
+
     Stop,
-    /// Review irreversible simulated removal of recovery state.
+
     Purge,
-    /// Schedule a derived-image prewarm.
+
     Prewarm,
-    /// Review removal of saved workspace configuration.
+
     Delete,
-    /// Choose an agent/account for a live instance.
+
     NewSession,
-    /// Start a shell without a provider account.
+
     Shell,
 }
 
-/// Semantic emphasis for app-owned shared property rows.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FactTone {
-    /// Ordinary public data.
+
     Normal,
-    /// Supporting or inactive data.
+
     Secondary,
-    /// Recovery risk or unavailable daemon.
+
     Warning,
-    /// Destructive action scope.
+
     Error,
 }
 
-/// A public, non-secret inspection or confirmation fact.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Fact {
-    /// Human-readable fact label.
+
     pub label: &'static str,
-    /// Non-secret display or copy value.
+
     pub value: String,
-    /// Whether the app may expose a copy action.
+
     pub copyable: bool,
-    /// Source-authored semantic emphasis, before theme overrides.
+
     pub tone: FactTone,
 }
 
-/// A session choice has no magic account sentinel.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionChoice {
-    /// Start a shell without a provider account.
+
     Shell,
-    /// An explicit agent and selected provider account.
+
     Agent {
-        /// Selected agent runtime.
+
         agent: Agent,
-        /// Selected canonical account identity.
+
         account: Option<AccountId>,
     },
 }
 
-/// Captured durable incarnation, not a current row index.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceTarget {
-    /// Durable instance identifier.
+
     pub id: String,
-    /// Captured launch incarnation.
+
     pub run_id: RunId,
 }
 
@@ -99,8 +99,8 @@ impl CapturedInstance {
     fn valid(&self, world: &World) -> bool {
         self.0.workspace.and_then(|id| world.workspace(id)) == self.1.as_deref()
             && world.instance(&self.0.id).is_some_and(|now| {
-                // Daemon snapshots and observation timestamps advance naturally.
-                // All reviewed durable identity, lifecycle and destructive facts stay fixed.
+
+
                 let mut expected = self.0.as_ref().clone();
                 expected.daemon = now.daemon.clone();
                 expected.last_seen_secs = now.last_seen_secs;
@@ -115,7 +115,7 @@ impl CapturedInstance {
     }
 }
 
-/// Immutable destructive review; only this module can construct its capture.
+
 #[derive(Debug, Clone)]
 pub struct Review {
     token: u64,
@@ -127,23 +127,23 @@ pub struct Review {
     acknowledgement: Option<String>,
 }
 impl Review {
-    /// Exact required acknowledgement, if any.
+
     pub fn acknowledgement(&self) -> Option<&str> {
         self.acknowledgement.as_deref()
     }
-    /// Action described by this immutable review.
+
     pub const fn action(&self) -> Action {
         self.action
     }
-    /// Captured confirmation heading.
+
     pub fn title(&self) -> &str {
         &self.title
     }
-    /// Captured confirmation explanation.
+
     pub fn body(&self) -> &str {
         &self.body
     }
-    /// Captured non-secret review facts.
+
     pub fn facts(&self) -> &[Fact] {
         &self.facts
     }
@@ -168,73 +168,73 @@ impl Capture {
     }
 }
 
-/// Instance context retained while the app's account picker is open.
+
 #[derive(Debug, Clone)]
 pub struct SessionReview {
     token: u64,
     captured: CapturedInstance,
 }
 impl SessionReview {
-    /// Captured durable instance incarnation.
+
     pub fn target(&self) -> InstanceTarget {
         self.captured.target()
     }
-    /// Canonical role used for account policy.
+
     pub fn role(&self) -> &str {
         &self.captured.0.role
     }
-    /// Captured workspace association for account policy.
+
     pub const fn workspace(&self) -> Option<WorkspaceId> {
         self.captured.0.workspace
     }
 }
 
-/// Shell-facing effects. The app supplies real shared overlays/navigation.
+
 #[derive(Debug, Clone)]
 pub enum Effect {
-    /// No state or navigation change.
+
     None,
-    /// Operator feedback without navigation.
+
     Status(String),
-    /// Source error feedback requiring the app error presentation.
+
     Error(String),
-    /// Attach to the captured live/restored instance.
+
     Attach {
-        /// Validated destination instance.
+
         target: InstanceTarget,
-        /// Optional restore feedback.
+
         status: Option<String>,
     },
-    /// Read-only inspection overlay data.
+
     Inspect {
-        /// Overlay heading.
+
         title: String,
-        /// Public fact rows.
+
         facts: Vec<Fact>,
     },
-    /// Destructive review requiring a later explicit confirmation.
+
     Confirm(Review),
-    /// Open an instance-scoped session picker.
+
     ChooseSession(SessionReview),
-    /// Create a session in the captured live instance.
+
     NewSession {
-        /// Validated destination instance.
+
         target: InstanceTarget,
-        /// Validated explicit session choice.
+
         choice: SessionChoice,
     },
-    /// A validated simulated repository open; no host browser is launched.
+
     RepositoryOpened {
-        /// Captured source URL.
+
         url: String,
-        /// Source operator feedback.
+
         status: String,
     },
-    /// Configuration removed; app reconciles selection.
+
     WorkspaceDeleted {
-        /// Deleted saved workspace identifier.
+
         id: WorkspaceId,
-        /// Source-derived completion feedback.
+
         status: String,
     },
 }
@@ -247,15 +247,15 @@ struct Pending {
     capture: Capture,
 }
 
-/// Sole owner of busy rows and pending completion tokens.
+
 #[derive(Debug, Clone, Default)]
 pub struct ManagerActions {
     last_refresh_error: bool,
     pending: Vec<Pending>,
 }
 impl ManagerActions {
-    /// Apply the source five-second refresh on a Manager product tick.
-    /// First failure latches stale health; later refreshes retain that observation.
+
+
     pub fn refresh(&mut self, world: &mut World) -> bool {
         if world.now_secs().saturating_sub(world.last_refresh_secs) < 5 {
             return false;
@@ -277,7 +277,7 @@ impl ManagerActions {
         true
     }
 
-    /// Current operation label from the sole pending-operation owner.
+
     pub fn busy(&self, target: &Target) -> Option<&'static str> {
         self.pending
             .iter()
@@ -293,7 +293,7 @@ impl ManagerActions {
             })
     }
 
-    /// Compute action availability from the same lifecycle used by execution.
+
     pub fn available(action: Action, target: &Target, world: &World) -> bool {
         match target {
             Target::Workspace(id) => {
@@ -311,7 +311,7 @@ impl ManagerActions {
         }
     }
 
-    /// Resolve one explicit command against current durable state.
+
     pub fn request(&mut self, action: Action, target: Target, world: &mut World) -> Effect {
         if self.busy(&target).is_some() {
             return Effect::Status("An operation is already running for this target".into());
@@ -387,7 +387,7 @@ impl ManagerActions {
         }
     }
 
-    /// Cancel by dropping a Review. Only an exact acknowledgement can confirm purge.
+
     pub fn confirm(&mut self, review: Review, acknowledgement: &str, world: &mut World) -> Effect {
         if !world.consume_manager_review(review.token) || !review.captured.valid(world) {
             return stale();
@@ -444,7 +444,7 @@ impl ManagerActions {
         Effect::Status(status.into())
     }
 
-    /// Consume a scheduled token once; stale or duplicate results cannot mutate a target.
+
     pub fn complete(&mut self, world: &mut World, operation: u64) -> Effect {
         let Some(index) = self.pending.iter().position(|p| p.id == operation) else {
             return Effect::None;
@@ -499,7 +499,7 @@ impl ManagerActions {
         }
     }
 
-    /// Validate a captured session picker result before navigation.
+
     pub fn session(
         &self,
         review: SessionReview,
@@ -779,7 +779,7 @@ fn inspect(i: &Instance, world: &World) -> Effect {
     }
 }
 
-/// Launch context captured before a picker opens; unrelated selection cannot replace it.
+
 #[derive(Debug, Clone)]
 pub struct LaunchTarget {
     workspace: Option<Workspace>,
@@ -787,8 +787,8 @@ pub struct LaunchTarget {
     role: String,
 }
 impl LaunchTarget {
-    /// Capture an explicitly selected saved workspace or unassociated directory.
-    /// The caller resolves source default/last-role policy before this boundary.
+
+
     pub fn capture(world: &World, workspace: Option<WorkspaceId>, role: &str) -> Option<Self> {
         if !world.roles.iter().any(|entry| entry.full_name() == role) {
             return None;
@@ -803,22 +803,22 @@ impl LaunchTarget {
             role: role.to_owned(),
         })
     }
-    /// Stable saved workspace selected when the review began.
+
     pub fn workspace(&self) -> Option<WorkspaceId> {
         self.workspace.as_ref().map(|w| w.id)
     }
-    /// Canonical catalogue identity, never a shortened display label.
+
     pub fn role(&self) -> &str {
         &self.role
     }
-    /// Captured host workdir, including an unassociated current directory.
+
     pub fn workdir(&self) -> &str {
         self.workspace.as_ref().map_or_else(
             || self.cwd.as_deref().unwrap_or_default(),
             |w| w.workdir.as_str(),
         )
     }
-    /// Reject removed/replaced configurations or catalogue roles before launch.
+
     pub fn valid(&self, world: &World) -> bool {
         world
             .roles
@@ -831,12 +831,12 @@ impl LaunchTarget {
     }
 }
 
-/// Why the selected context cannot resolve a discovered repository.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RepositoryError {
-    /// No saved workspace is selected or associated with CurrentDir.
+
     NoWorkspace,
-    /// The selected workspace has no matching repository metadata.
+
     NoRepository(String),
 }
 impl std::fmt::Display for RepositoryError {
@@ -849,8 +849,8 @@ impl std::fmt::Display for RepositoryError {
 }
 impl std::error::Error for RepositoryError {}
 
-/// Repository context captured from a saved workspace or current-directory association.
-/// The immutable metadata is revalidated before emitting a simulated open.
+
+
 #[derive(Debug, Clone)]
 pub struct RepositoryTarget {
     workspace: Workspace,
@@ -858,8 +858,8 @@ pub struct RepositoryTarget {
     cwd: Option<String>,
 }
 impl RepositoryTarget {
-    /// Capture the explicitly selected workspace; `None` means CurrentDir.
-    /// Source lookup uses the first catalogue name ending in the workspace name.
+
+
     pub fn capture(world: &World, workspace: Option<WorkspaceId>) -> Result<Self, RepositoryError> {
         let cwd = workspace.is_none().then(|| world.cwd.clone());
         let workspace = match workspace {
@@ -879,13 +879,13 @@ impl RepositoryTarget {
         })
     }
 
-    /// Read-only URL for a reviewed simulated destination.
+
     pub fn url(&self) -> &str {
         &self.repository.url
     }
 
-    /// Revalidate saved configuration, CurrentDir association and exact catalogue entry.
-    /// Returns source feedback only after resolving real fixture metadata.
+
+
     pub fn execute(self, world: &World) -> Effect {
         let workspace_valid = world.workspace(self.workspace.id) == Some(&self.workspace);
         let cwd_valid = self.cwd.as_ref().is_none_or(|cwd| {

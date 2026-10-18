@@ -1,4 +1,4 @@
-//! Deferred navigation resolves against the next frame, not the previous route.
+
 
 use ratatui_core::buffer::Buffer;
 use termrock::{

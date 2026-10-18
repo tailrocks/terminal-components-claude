@@ -1,4 +1,4 @@
-//! Explicit source-width sampling never scans hidden rows during draw.
+
 use termrock_grid::{CellRef, Column, ColumnKey, Grid, GridModel, GridState, WidthSample};
 use termrock_runtime::{Id, ItemKey};
 const ID: Id = Id::root("sample.grid");

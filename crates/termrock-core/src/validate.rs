@@ -1,17 +1,17 @@
-//! Validation (`COMPONENT_ARCHITECTURE.md` §15): a trait with a blanket
-//! closure impl, no `fn` pointers anywhere.
+
+
 
 use core::fmt;
 use std::borrow::Cow;
 
 use crate::secret::wipe_string;
 
-/// A field validation error.
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct FieldError {
-    /// The message shown to the user.
+
     pub message: Cow<'static, str>,
-    /// A machine-readable code.
+
     pub code: Option<&'static str>,
 }
 
@@ -25,7 +25,7 @@ impl Drop for FieldError {
 }
 
 impl FieldError {
-    /// An error with a message.
+
     pub fn new(message: impl Into<Cow<'static, str>>) -> Self {
         FieldError {
             message: message.into(),
@@ -33,7 +33,7 @@ impl FieldError {
         }
     }
 
-    /// An error with a message and a code.
+
     pub fn coded(message: impl Into<Cow<'static, str>>, code: &'static str) -> Self {
         FieldError {
             message: message.into(),
@@ -59,12 +59,12 @@ impl fmt::Debug for FieldError {
 
 impl core::error::Error for FieldError {}
 
-/// A validation rule.
+
 pub trait Validate {
-    /// Check `s`.
-    ///
-    /// # Errors
-    /// The rule's [`FieldError`] when `s` is rejected.
+
+
+
+
     fn check(&self, s: &str) -> Result<(), FieldError>;
 }
 
@@ -74,7 +74,7 @@ impl<F: Fn(&str) -> Result<(), FieldError>> Validate for F {
     }
 }
 
-/// Accept everything.
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct NoValidate;
 

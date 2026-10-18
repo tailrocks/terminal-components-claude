@@ -61,9 +61,9 @@ pub(crate) struct AdmissionBinding {
     pub(crate) renderer_sha256: String,
 }
 
-/// This document is authored by the independent qualification reviewer. The
-/// admission writer accepts only an explicit `approve` decision, a qualified
-/// execution anchor, and exact bindings for the tag capture and generation.
+
+
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct QualificationReview {

@@ -18,11 +18,11 @@ Collect one trusted GitHub Actions observer report using read-only API requests.
 const RECEIPT_SCHEMA_VERSION: u16 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-// The external cli fixture constructs the binding; the binary only validates it.
+
 #[allow(dead_code)]
 pub(crate) enum GithubShaBinding {
-    /// The run must bind to the caller's head SHA (validated at check time).
-    /// The run must bind to the caller's head SHA (validated at check time).
+
+
     RunHead,
 }
 
@@ -52,8 +52,8 @@ pub(crate) struct TrustedPolicy {
     pub(crate) artifact_name_prefix: String,
 }
 
-/// Environment values select a run; authenticated API records and a trusted
-/// workflow policy establish its identity.
+
+
 pub(crate) struct InvocationContext {
     pub(crate) repository: String,
     pub(crate) run_id: u64,
@@ -187,8 +187,8 @@ fn run_process() -> Result<(), CliError> {
     write_receipt(&run_with_transport(context, &policy, transport)?)
 }
 
-/// Pending the exact generated workflow policy, the production entry point is
-/// disabled. Environment and command-line values cannot provide this policy.
+
+
 fn production_policy() -> Option<TrustedPolicy> {
     None
 }
@@ -217,8 +217,8 @@ pub(crate) fn run_with_transport<T: ReadOnlyTransport>(
         ));
     }
 
-    // Resolve target before observer so a mismatched target identity cannot
-    // cause any observer lookup or produce a receipt.
+
+
     let target_selector = RunSelector {
         repository: repository.clone(),
         workflow_id: policy.target.workflow_id,

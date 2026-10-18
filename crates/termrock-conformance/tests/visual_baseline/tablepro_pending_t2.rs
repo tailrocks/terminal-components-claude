@@ -1,73 +1,73 @@
-//! TablePro pending-roots slice 8A-T2 executable checks — impl port.
-//!
-//! Ported verbatim from VB commit `0ae8cbe8cc208a5cda4d30f70da04c6f435e591f`
-//! (`tests/harness/tests/visual_baseline/tablepro_pending_t2.rs`), adapting
-//! only paths, binary resolution, and harness API:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()` / `s.inner.snapshot()`), not
-//!   `tuiscotti::tui::Session` directly.
-//! - The subject is the `tablepro` binary built from this impl worktree's
-//!   sources, resolved via [`support::try_resolve_bin`] (name -> executed
-//!   path + sha256); [`write_provenance`] records path, digest, size,
-//!   mtime, and argv behind each check.
-//! - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]
-//!   (timeout in ms, via [`drive_ms`]).
-//! - `support::frame_from_screen` (VB helper over `Provenance`) becomes
-//!   `tuiscotti::render::frame_from_screen` (provenance `"default"`).
-//! - `Session::click` (4-arg with button+mods) becomes the wrapper's
-//!   2-arg `click` (primary button, no mods).
-//!
-//! One ignored PTY test per T2 registry row (14 rows), over the real
-//! `tablepro` binary built from this worktree's impl sources (resolved via
-//! [`support::try_resolve_bin`]). Each test drives the row's specified
-//! inputs and asserts its visual (V), state (S), action (A), and negative
-//! (N) checks in live-PTY executable form:
-//!
-//! - V: live needles plus same-line coexistence for grids, strips, editors,
-//!   dialogs, and overlay action rows.
-//! - S: live labels (cursor/detail/focus/hints/footer rows) plus boot-vs-final
-//!   and pre/post comparisons captured from the same session.
-//! - A: behavior probes — the specified gesture runs and the specified
-//!   advance (or boundary refusal) is observed; `Changed`/`Consumed`/
-//!   `Ignored` outcomes are proven by their screen correlates (moved,
-//!   stopped-at-end, byte-identical), since PTY cannot see the enum.
-//! - N: absence assertions, each paired with a presence proof in the same
-//!   test (boot frame, second session, or pre/post transition) so no
-//!   absence passes vacuously.
-//!
-//! No new snapshots and no new static captures: all 14 roots already have
-//! approved frames gated cell-exact by the ported matrices in `tablepro.rs`,
-//! `pointer.rs`, and `audit.rs` (plan §Reconciliation: "rows plus checks,
-//! not recaptures"), so every case here uses owned (dynamic) names and stays
-//! out of the `snapshots/` inventory. No isolated-component captures: every
-//! row's `requires` set (key-injection, glyph-capture, tick-control,
-//! geometry-probe) is PTY-level, and every assertion has a live-PTY
-//! executable form.
-//!
-//! Per-test scratch lands under this conformance crate's
-//! `target/tuiscotti/journeys/<test>/` (gitignored): the row's named
-//! checkpoint(s) as text frames, `00-boot.txt` where the row needs a boot
-//! comparison, and `provenance.txt` (binary path, digest, size, mtime, argv).
-//! Typed input is synthetic and in-memory only (simulation data); the demo
-//! database never touches disk (no connection persistence exists).
-//!
-//! Row → test map (registry id → `t2_*` test):
-//!
-//! - GRID-SORT-004 → [`t2_grid_local_sort`]
-//! - GRID-CELL-005 → [`t2_grid_cell_lifecycle`]
-//! - GRID-RESULTS-006 → [`t2_grid_results_view`]
-//! - CODE-SQL-003 → [`t2_code_sql_editor`]
-//! - SELECT-FILTER-002 → [`t2_select_filter_builder`]
-//! - CHIP-FILTER-002 → [`t2_chip_filter_bar`]
-//! - TABS-STATES-002 → [`t2_tabs_workbench_states`]
-//! - TI-FORM-010 → [`t2_input_form_field`]
-//! - FORM-CONN-004 → [`t2_form_connection_full`]
-//! - DIALOG-ACK-003 → [`t2_dialog_ack_full`]
-//! - HELP-TABLEPRO-003 → [`t2_help_viewer_full`]
-//! - TREE-FILTER-002 → [`t2_tree_connection_filter`]
-//! - PICKER-SWITCHER-003 → [`t2_picker_switcher_scopes`]
-//! - COMPLETE-SQL-001 → [`t2_complete_sql_popup`]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -81,14 +81,14 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, TABLEPRO};
 
-/// Boot needle on the connections screen: the Production tree row.
+
 const BOOT_CONN: &str = "Production";
-/// Boot needle once connected: the first query tab.
+
 const BOOT_WB: &str = "Query 1";
-/// Braille spinner glyphs (the busy indicator family).
+
 const SPIN: &str = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
-/// Owned-name T2 case on the connections screen (120x40 truecolor).
+
 fn t2_case_conn(slug: &str) -> Case {
     Case::dynamic(
         format!("journeys/tablepro/t2/{slug}"),
@@ -101,7 +101,7 @@ fn t2_case_conn(slug: &str) -> Case {
     )
 }
 
-/// Owned-name T2 case on the workbench (120x40 truecolor).
+
 fn t2_case_wb(slug: &str) -> Case {
     Case::dynamic(
         format!("journeys/tablepro/t2/{slug}"),
@@ -114,7 +114,7 @@ fn t2_case_wb(slug: &str) -> Case {
     )
 }
 
-/// Unique scratch dir for one T2 test (created, never shared).
+
 fn t2_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -123,14 +123,14 @@ fn t2_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary path + identity: absolute path, byte size, mtime, argv.
-/// Written to `provenance.txt`, echoed too (the build-identity record).
+
+
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
 
-/// [`write_provenance`] with an explicit filename, for multi-session tests
-/// where each session's argv deserves its own record.
+
+
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -150,7 +150,7 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("t2 provenance ({file}): {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the test dir.
+
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -171,12 +171,12 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-/// `drive_with_timeout` takes u64 ms; cases carry a `Duration`.
+
 fn drive_ms(timeout: Duration) -> u64 {
     u64::try_from(timeout.as_millis()).expect("case timeout fits u64 ms")
 }
 
-/// One fresh live text sample (no wait).
+
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -185,8 +185,8 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-/// One fresh live frame with cell colors (no wait). Provenance is
-/// informational only (excluded from digests).
+
+
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -195,7 +195,7 @@ fn live_frame(s: &mut Session) -> Frame {
     frame_from_screen(&screen, "default")
 }
 
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
+
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -206,7 +206,7 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-/// `notches` wheel steps at fixed `(col, row)`, paced like send steps.
+
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
@@ -214,7 +214,7 @@ fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     }
 }
 
-/// Parse the `Copied N chars` status count out of live text.
+
 fn copied_count(text: &str, what: &str) -> u32 {
     let line = text
         .lines()
@@ -229,8 +229,8 @@ fn copied_count(text: &str, what: &str) -> u32 {
         .unwrap_or_else(|_| panic!("{what}: unparsable Copied count"))
 }
 
-/// Resolve a cell foreground to `(r, g, b)`. Panics (fail-closed) on
-/// non-RGB cells so tone assertions never pass on defaults.
+
+
 fn fg_rgb(frame: &Frame, col: u16, row: u16, what: &str) -> (u8, u8, u8) {
     let cell = frame
         .get(col, row)
@@ -241,7 +241,7 @@ fn fg_rgb(frame: &Frame, col: u16, row: u16, what: &str) -> (u8, u8, u8) {
     }
 }
 
-/// Same for the background channel.
+
 fn bg_rgb(frame: &Frame, col: u16, row: u16, what: &str) -> (u8, u8, u8) {
     let cell = frame
         .get(col, row)
@@ -252,15 +252,15 @@ fn bg_rgb(frame: &Frame, col: u16, row: u16, what: &str) -> (u8, u8, u8) {
     }
 }
 
-/// Relative luminance of an sRGB triple (0.0 dark … 1.0 bright).
+
 fn lum(rgb: (u8, u8, u8)) -> f32 {
     0.2126 * f32::from(rgb.0) / 255.0
         + 0.7152 * f32::from(rgb.1) / 255.0
         + 0.0722 * f32::from(rgb.2) / 255.0
 }
 
-/// Sample until two consecutive screens are byte-identical (bounded):
-/// the quiesce form for comparisons that must not catch a spinner mid-tick.
+
+
 fn quiesce_text(s: &mut Session, what: &str) -> String {
     let mut prev = live_text(s);
     for _ in 0..8 {
@@ -274,8 +274,8 @@ fn quiesce_text(s: &mut Session, what: &str) -> String {
     panic!("{what}: screen never quiesced");
 }
 
-/// Press Esc while the footer shows EDIT (bounded). Never Esc's when idle,
-/// so the connection-ladder (`Esc` un-focuses panels) is never triggered.
+
+
 fn escape_to_idle(s: &mut Session, what: &str) {
     for _ in 0..6 {
         let idle = live_text(s)
@@ -291,7 +291,7 @@ fn escape_to_idle(s: &mut Session, what: &str) {
     panic!("{what}: still editing after 6 Esc");
 }
 
-/// Press Down until the `▎` cursor line contains `needle` (bounded).
+
 fn down_to(s: &mut Session, needle: &str, max: usize, what: &str) {
     for _ in 0..max {
         let hit = live_text(s)
@@ -306,7 +306,7 @@ fn down_to(s: &mut Session, needle: &str, max: usize, what: &str) {
     panic!("{what}: never reached `{needle}`");
 }
 
-/// Press Tab until the `▎` cursor line contains `needle` (bounded).
+
 fn tab_to_cursor(s: &mut Session, needle: &str, max: usize, what: &str) {
     for _ in 0..max {
         let hit = live_text(s)
@@ -321,7 +321,7 @@ fn tab_to_cursor(s: &mut Session, needle: &str, max: usize, what: &str) {
     panic!("{what}: cursor never reached `{needle}`");
 }
 
-/// Press Up until the `▎` cursor line contains `needle` (bounded).
+
 fn up_to(s: &mut Session, needle: &str, max: usize, what: &str) {
     for _ in 0..max {
         let hit = live_text(s)
@@ -336,8 +336,8 @@ fn up_to(s: &mut Session, needle: &str, max: usize, what: &str) {
     panic!("{what}: never reached `{needle}`");
 }
 
-/// Press Tab until the footer hint row contains `needle` (bounded).
-/// Returns the stops consumed (positive proof the ring turned).
+
+
 fn tab_to_footer(s: &mut Session, needle: &str, max: usize, what: &str) -> usize {
     for used in 0..max {
         let hit = live_text(s)
@@ -353,7 +353,7 @@ fn tab_to_footer(s: &mut Session, needle: &str, max: usize, what: &str) -> usize
     panic!("{what}: footer never showed `{needle}`");
 }
 
-/// Click the first cell of `needle` shifted by `dcol` display columns.
+
 fn click_text(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what: &str) {
     let (row, col) = find_pos(s, needle, timeout);
     let target = col.saturating_add_signed(dcol);
@@ -362,19 +362,19 @@ fn click_text(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what:
     std::thread::sleep(Duration::from_millis(400));
 }
 
-/// The workbench tab strip: screen line 2 (`0`-based) on a 120x40 paint.
+
 fn strip_line(text: &str) -> &str {
     text.lines().nth(2).unwrap_or("")
 }
 
-/// The grid-pane half of a full-width workbench line (right of the
-/// `│ │` pane boundary), so explorer glyphs never pollute grid asserts.
+
+
 fn grid_half(line: &str) -> &str {
     line.split("│ │").nth(1).unwrap_or(line)
 }
 
-/// The explorer-pane half (left of the boundary): for asserting what the
-/// connection tree does or does not list.
+
+
 fn explorer_half(text: &str) -> String {
     text.lines()
         .map(|l| l.split("│ │").next().unwrap_or(l))
@@ -382,19 +382,19 @@ fn explorer_half(text: &str) -> String {
         .join("\n")
 }
 
-/// Index of the grid header line via the early `order_number` column.
-/// Callers press Home first: the status-column recipes hscroll the grid
-/// (`cols 5–7 of 14`) and push early columns out of view. Panics with
-/// the full screen so a missed header stays diagnosable.
+
+
+
+
 fn grid_header_idx(text: &str, what: &str) -> usize {
     text.lines()
         .position(|l| l.contains("order_number"))
         .unwrap_or_else(|| panic!("{what}: no grid header on screen:\n{text}"))
 }
 
-/// Bounded poll for absence WITHOUT a presence requirement: for closes
-/// that land synchronously during a drive (a presence-demanding wait
-/// would fail vacuously after the fact).
+
+
+
 fn wait_absent(s: &mut Session, needle: &str, secs: u64, what: &str) {
     for _ in 0..secs * 10 {
         if !live_text(s).contains(needle) {
@@ -405,7 +405,7 @@ fn wait_absent(s: &mut Session, needle: &str, secs: u64, what: &str) {
     panic!("{what}: `{needle}` never left");
 }
 
-/// The demo engine's orders status values (db.rs `enum_col`).
+
 const KNOWN_STATUSES: [&str; 6] = [
     "pending",
     "paid",
@@ -415,15 +415,15 @@ const KNOWN_STATUSES: [&str; 6] = [
     "refunded",
 ];
 
-/// First known status value on the grid half of `line`, if any.
+
 fn row_status(line: &str) -> Option<&str> {
     let half = grid_half(line);
     KNOWN_STATUSES.into_iter().find(|s| half.contains(s))
 }
 
-/// Whether the Name field's own rows (label/field/error) show `Required`.
-/// Whole-screen waits are useless here: the Database help line always
-/// reads `Required for PostgreSQL`.
+
+
+
 fn name_field_error(text: &str) -> bool {
     let lines: Vec<&str> = text.lines().collect();
     let Some(i) = lines.iter().position(|l| l.contains("Name *")) else {
@@ -434,7 +434,7 @@ fn name_field_error(text: &str) -> bool {
         .any(|l| l.contains("Required"))
 }
 
-/// Poll until the Name field's error equals `want` (bounded).
+
 fn poll_name_error(s: &mut Session, want: bool, secs: u64, what: &str) {
     for _ in 0..secs * 10 {
         if name_field_error(&live_text(s)) == want {
@@ -445,9 +445,9 @@ fn poll_name_error(s: &mut Session, want: bool, secs: u64, what: &str) {
     panic!("{what}: Name error never became {want}");
 }
 
-/// Lines of the modal titled `title`: title row through its bottom border.
-/// Scopes row assertions to the modal so background panes never pollute
-/// absence checks.
+
+
+
 fn modal_region(text: &str, title: &str) -> Vec<String> {
     let lines: Vec<&str> = text.lines().collect();
     let top = lines
@@ -462,16 +462,16 @@ fn modal_region(text: &str, title: &str) -> Vec<String> {
     lines[top..=bottom].iter().map(|s| s.to_string()).collect()
 }
 
-/// Screen text without the footer line: ambient status flickers there
-/// (`Connected to ...` vs transient blanks), so no-op proofs compare
-/// panes, not the footer.
+
+
+
 fn no_footer(text: &str) -> String {
     let mut lines: Vec<&str> = text.lines().collect();
     lines.pop();
     lines.join("\n")
 }
 
-/// Display column of `needle` within the strip line (wide-cell exact).
+
 fn strip_col(text: &str, needle: &str, what: &str) -> u16 {
     let strip = strip_line(text);
     let off = strip
@@ -480,7 +480,7 @@ fn strip_col(text: &str, needle: &str, what: &str) -> u16 {
     unicode_width::UnicodeWidthStr::width(&strip[..off]) as u16
 }
 
-/// Click `needle` inside the strip (line 2), shifted by `dcol` columns.
+
 fn strip_click(s: &mut Session, needle: &str, dcol: i16, what: &str) {
     let col = strip_col(&live_text(s), needle, what);
     s.click(col.saturating_add_signed(dcol), 2)
@@ -488,8 +488,8 @@ fn strip_click(s: &mut Session, needle: &str, dcol: i16, what: &str) {
     std::thread::sleep(Duration::from_millis(400));
 }
 
-/// Drive the explorer to the orders table: boot cursor is on Production,
-/// five Downs reach orders, Enter opens the `T orders` tab.
+
+
 fn drive_open_orders(s: &mut Session, timeout: Duration) {
     support::drive_with_timeout(
         s,
@@ -506,8 +506,8 @@ fn drive_open_orders(s: &mut Session, timeout: Duration) {
     );
 }
 
-/// Extend [`drive_open_orders`] with the filter-editor recipe: focus the
-/// status cell, open the editor, commit `pending`, wait for the filtered set.
+
+
 fn drive_filtered_orders(s: &mut Session, timeout: Duration) {
     drive_open_orders(s, timeout);
     support::drive_with_timeout(
@@ -531,9 +531,9 @@ fn drive_filtered_orders(s: &mut Session, timeout: Duration) {
     );
 }
 
-/// Run a PK-less 25-row results query (unattributable: no `id` in the
-/// projection, so editable=false per sql.rs). Single-shot typing: no
-/// newlines, so completion popups can only watch, never accept.
+
+
+
 fn drive_readonly_query(s: &mut Session, timeout: Duration) {
     support::drive_with_timeout(
         s,
@@ -558,8 +558,8 @@ fn drive_readonly_query(s: &mut Session, timeout: Duration) {
     support::drive_with_timeout(s, &["ctrl-r", "wait:25 rows"], drive_ms(timeout));
 }
 
-/// Run the canonical 25-row results query in the Query 1 editor (the
-/// ported-matrix recipe), ending on the results grid.
+
+
 fn drive_results_query(s: &mut Session, timeout: Duration) {
     support::drive_with_timeout(
         s,
@@ -579,9 +579,9 @@ fn drive_results_query(s: &mut Session, timeout: Duration) {
     );
 }
 
-/// GRID-SORT-004: the three-step sort cycle on a table grid (`s`:
-/// ascending → descending → cleared), both marker glyphs, the status
-/// line, header-click sorting, and the JSON-column refusal.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_grid_local_sort() {
@@ -604,11 +604,11 @@ fn t2_grid_local_sort() {
         "orders table loads its first page"
     );
     checkpoint(&mut s, &dir, "01-open");
-    // Ascending: marker suffix, status line, grouped reorder. (The demo
-    // engine re-randomizes rows on every owner reload and sorts the enum
-    // alphabetically rather than in decl order, so reorder is proven
-    // within one load: the lead status groups the first rows and flips
-    // when the direction changes.)
+
+
+
+
+
     support::drive_with_timeout(
         &mut s,
         &["home", "right", "right", "right", "right"],
@@ -635,7 +635,7 @@ fn t2_grid_local_sort() {
             "ascending groups its lead (V2): {r}"
         );
     }
-    // Descending: marker flips, the enum-last status leads instead.
+
     support::drive_with_timeout(
         &mut s,
         &["s", "wait:Sorted by status descending"],
@@ -662,9 +662,9 @@ fn t2_grid_local_sort() {
         );
     }
     checkpoint(&mut s, &dir, "02-desc");
-    // Third press clears the sort entirely (the marker is gone in every
-    // header; N2's stored-vs-display proof runs on the local-sort results
-    // path in t2_grid_results_view, where no reload intervenes).
+
+
+
     support::drive_with_timeout(&mut s, &["s", "wait:Sort cleared"], drive_ms(timeout));
     let cleared = quiesce_text(&mut s, "grid-local-sort cleared");
     let cleared_header: String = grid_half(cleared.lines().nth(header_idx).expect("header")).into();
@@ -677,7 +677,7 @@ fn t2_grid_local_sort() {
         first_cleared.contains('│'),
         "cleared grid still lists rows: {first_cleared}"
     );
-    // `S` clears directly from a sorted state.
+
     support::drive_with_timeout(&mut s, &["s", "wait:Sorted by status"], drive_ms(timeout));
     support::drive_with_timeout(&mut s, &["S", "wait:Sort cleared"], drive_ms(timeout));
     let direct = quiesce_text(&mut s, "grid-local-sort direct-clear");
@@ -687,7 +687,7 @@ fn t2_grid_local_sort() {
         "`S` clears the marker: {direct_header}"
     );
     checkpoint(&mut s, &dir, "03-cleared");
-    // Filtering keeps the sort marker (V2): sort, then filter on the cell.
+
     support::drive_with_timeout(&mut s, &["s", "wait:Sorted by status"], drive_ms(timeout));
     support::drive_with_timeout(
         &mut s,
@@ -703,8 +703,8 @@ fn t2_grid_local_sort() {
         ],
         drive_ms(timeout),
     );
-    // (No homing: the status column and its marker live in the
-    // hscrolled viewport; the `▴` line IS the header here.)
+
+
     let kept = quiesce_text(&mut s, "grid-local-sort filtered");
     let kept_header: String = grid_half(
         kept.lines()
@@ -717,7 +717,7 @@ fn t2_grid_local_sort() {
         "filter keeps the sort marker beside its own: {kept_header}"
     );
 
-    // Session B: header click sorts; the JSON column refuses the cycle.
+
     let case_b = t2_case_wb("grid-local-sort-click");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -732,7 +732,7 @@ fn t2_grid_local_sort() {
         clicked_header.contains("order_number ▴"),
         "header click sorts ascending: {clicked_header}"
     );
-    // JSON column: `s` is Consumed — no marker, no status line.
+
     support::drive_with_timeout(
         &mut b,
         &[
@@ -757,7 +757,7 @@ fn t2_grid_local_sort() {
         !refused.contains("Sorted by shipping_address"),
         "JSON column raises no sort status"
     );
-    // Pairing presence: back on a sortable column `s` sorts immediately.
+
     support::drive_with_timeout(
         &mut b,
         &["home", "right", "right", "right", "right", "s"],
@@ -771,9 +771,9 @@ fn t2_grid_local_sort() {
     checkpoint(&mut b, &dir, "04-click");
 }
 
-/// GRID-CELL-005: dirty tint, horizontal scroll, row duplication, copy,
-/// commit routing, fetch-more, and refresh on a table grid — plus the
-/// read-only refusal (no editor on result grids).
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_grid_cell_lifecycle() {
@@ -783,17 +783,17 @@ fn t2_grid_cell_lifecycle() {
     let timeout = case_timeout(&case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-    // The status column is enum-validated: free text can never commit
-    // there. The numeric total_amount column (one right of status) takes
-    // a known value instead.
+
+
+
     drive_open_orders(&mut s, timeout);
     support::drive_with_timeout(
         &mut s,
         &["home", "right", "right", "right", "right", "right"],
         drive_ms(timeout),
     );
-    // Enter opens the cell editor (also the N2 pairing: editable grids
-    // DO edit on Enter).
+
+
     support::drive_with_timeout(&mut s, &["enter"], drive_ms(timeout));
     waits::wait_state(&mut s, "Enter Commit", "cell editor opens");
     let editing = live_text(&mut s);
@@ -802,7 +802,7 @@ fn t2_grid_cell_lifecycle() {
         edit_footer.contains("EDIT") && edit_footer.contains("Esc Cancel"),
         "cell editing footer: {edit_footer}"
     );
-    // Commit one dirty cell: value sticks, pending label counts it.
+
     support::drive_with_timeout(
         &mut s,
         &["end", "ctrl-u", "type:99991", "enter"],
@@ -818,8 +818,8 @@ fn t2_grid_cell_lifecycle() {
         dirty.contains("Preview SQL") && dirty.contains("Discard") && dirty.contains("Save"),
         "dirty actions offered"
     );
-    // V1: the dirty cell's tint differs from a committed cell's (every
-    // other row is committed: only one cell is dirty).
+
+
     let (drow, dcol) = find_pos(&mut s, "99991", timeout);
     let frame = live_frame(&mut s);
     let dirty_bg = bg_rgb(&frame, dcol, drow, "grid-cell dirty tint");
@@ -829,9 +829,9 @@ fn t2_grid_cell_lifecycle() {
         "dirty tint differs from committed cells"
     );
     checkpoint(&mut s, &dir, "01-dirty");
-    // A1: `y` copies the committed cell value (`99991`: 5 chars).
+
     support::drive_with_timeout(&mut s, &["y", "wait:Copied 5 chars"], drive_ms(timeout));
-    // A1: Ctrl+S routes CommitRequested to the commit review dialog.
+
     support::press_step(&s, "ctrl-s");
     waits::wait_state(&mut s, "Save changes?", "commit review opens");
     let review = live_text(&mut s);
@@ -846,7 +846,7 @@ fn t2_grid_cell_lifecycle() {
     checkpoint(&mut s, &dir, "02-commit");
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Save changes?", "commit review dismisses");
-    // Dirty refresh asks to discard instead of reloading.
+
     support::press_step(&s, "r");
     waits::wait_state(&mut s, "Discard unsaved changes?", "dirty refresh guards");
     let guard = live_text(&mut s);
@@ -857,12 +857,12 @@ fn t2_grid_cell_lifecycle() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Discard unsaved changes?", "guard dismisses");
 
-    // Session B: duplication, fetch-more, clean refresh on a fresh grid.
+
     let case_b = t2_case_wb("grid-cell-pages");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
     drive_open_orders(&mut b, timeout);
-    // S1: Alt+D appends a copy of the cursor row.
+
     support::press_step(&b, "alt-d");
     waits::wait_state(&mut b, "1 insert", "duplicate lands");
     let duped = quiesce_text(&mut b, "grid-cell duplicated");
@@ -871,20 +871,20 @@ fn t2_grid_cell_lifecycle() {
         "the copy appends a 501st loaded row"
     );
     checkpoint(&mut b, &dir, "03-duplicated");
-    // A2: the more-row explains the demo cap instead of loading.
+
     support::drive_with_timeout(&mut b, &["ctrl-end", "down", "enter"], drive_ms(timeout));
     waits::wait_state(
         &mut b,
         "Fetch more: the demo engine caps results at 500 rows",
         "fetch-more message",
     );
-    // A2: clean refresh reloads with a status line.
+
     support::drive_with_timeout(&mut b, &["F", "wait:Filters cleared"], drive_ms(timeout));
     support::press_step(&b, "r");
     waits::wait_state(&mut b, "Refreshed", "clean refresh");
     checkpoint(&mut b, &dir, "04-refreshed");
 
-    // Session C: horizontal scroll keeps the cursor (V2/S2/N1).
+
     let case_c = t2_case_wb("grid-cell-hscroll");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -897,7 +897,7 @@ fn t2_grid_cell_lifecycle() {
     support::drive_with_timeout(&mut c, &["end", "wait:cols 13–14 of 14"], drive_ms(timeout));
     support::drive_with_timeout(&mut c, &["y", "wait:Copied "], drive_ms(timeout));
     let before = copied_count(&live_text(&mut c), "grid-cell pre-page copy");
-    // Ctrl+Left pages the viewport; the polled label proves the state moved.
+
     support::press_step(&c, "ctrl-left");
     waits::wait_state(&mut c, "cols 11–13 of 14", "hscroll pages left");
     support::drive_with_timeout(&mut c, &["y", "wait:Copied "], drive_ms(timeout));
@@ -906,8 +906,8 @@ fn t2_grid_cell_lifecycle() {
         before, after,
         "paging never moves the cell cursor (N1): same value copies"
     );
-    // (Pages overlap: right from `11–13` lands on `12–14`, not back on
-    // the two-column `13–14` tail the End key shows.)
+
+
     support::press_step(&c, "ctrl-right");
     std::thread::sleep(Duration::from_millis(800));
     checkpoint(&mut c, &dir, "05-hscroll-right-prefind");
@@ -917,10 +917,10 @@ fn t2_grid_cell_lifecycle() {
     assert_eq!(before, back, "paging back keeps the cursor too");
     checkpoint(&mut c, &dir, "05-hscroll");
 
-    // Session D: N2 — Enter on a read-only result grid never opens the
-    // editor. (Readonly means unattributable here: the PK-less query
-    // yields editable=false. The SELECT * grid is editable — its PK is
-    // in the projection — and must never back a readonly proof.)
+
+
+
+
     let case_d = t2_case_wb("grid-cell-readonly");
     write_provenance_named(&dir, &case_d, "provenance-d.txt");
     let mut d = support::spawn_boot(&case_d);
@@ -952,8 +952,8 @@ fn t2_grid_cell_lifecycle() {
     checkpoint(&mut d, &dir, "06-readonly");
 }
 
-/// GRID-RESULTS-006: the read-only result grid — duration meta, local
-/// sort without a re-run, the empty state, and Activated-instead-of-editing.
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_grid_results_view() {
@@ -964,7 +964,7 @@ fn t2_grid_results_view() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     drive_results_query(&mut s, timeout);
-    // V1: the grid renders under the editor with a duration meta.
+
     let ran = quiesce_text(&mut s, "grid-results ran");
     let meta: String = ran
         .lines()
@@ -985,15 +985,15 @@ fn t2_grid_results_view() {
     checkpoint(&mut s, &dir, "01-results");
     tab_to_footer(&mut s, "↑↓←→ Cell", 8, "grid-results focus");
     support::drive_with_timeout(&mut s, &["y", "wait:Copied "], drive_ms(timeout));
-    // S1/A1: `s` sorts locally — marker and reorder, but no SortRequested
-    // (the owner path would announce `Sorted by ...` on the status line).
+
+
     support::drive_with_timeout(
         &mut s,
         &["home", "right", "right", "right", "right"],
         drive_ms(timeout),
     );
-    // The before-row is captured after the move so all three captures
-    // share one cell-cursor column (the `▎` would otherwise differ).
+
+
     let settled = quiesce_text(&mut s, "grid-results settled");
     let first_before: String = settled.lines().nth(header_idx + 1).expect("row").into();
     support::press_step(&s, "s");
@@ -1013,9 +1013,9 @@ fn t2_grid_results_view() {
         !sorted.contains("Sorted by"),
         "no SortRequested leaves the widget (S1)"
     );
-    // Reorder is proven by grouping (deterministic: random rows never
-    // group three alike) rather than by whole-line inequality (padding
-    // and cursor chrome would pollute it).
+
+
+
     let lead_after =
         row_status(sorted.lines().nth(header_idx + 1).expect("row")).expect("sorted lead status");
     for i in 1..=3 {
@@ -1026,7 +1026,7 @@ fn t2_grid_results_view() {
             "local sort groups its lead: {r}"
         );
     }
-    // N1: the query did not re-run — meta and statement byte-identical.
+
     let meta_after: String = sorted
         .lines()
         .find(|l| l.contains("25 rows · "))
@@ -1038,15 +1038,15 @@ fn t2_grid_results_view() {
         .find(|l| l.contains("FROM orders"))
         .expect("editor statement")
         .into();
-    // (The editor gutter `▎` follows focus, not content: blank it to a
-    // space so the unfocused gutter still aligns.)
+
+
     assert_eq!(
         editor_line.replace('▎', " "),
         editor_after.replace('▎', " "),
         "statement survives the sort"
     );
-    // N2 (GRID-SORT-004): clearing a local sort restores the stored order
-    // exactly — no reload intervenes on this path, so the row is stable.
+
+
     support::drive_with_timeout(&mut s, &["s"], drive_ms(timeout));
     std::thread::sleep(Duration::from_millis(400));
     support::drive_with_timeout(&mut s, &["s"], drive_ms(timeout));
@@ -1057,8 +1057,8 @@ fn t2_grid_results_view() {
         "the local path emits no sort events at all"
     );
     let first_restored: String = restored.lines().nth(header_idx + 1).expect("row").into();
-    // (Column padding reflows across the sort cycle; the stored-order
-    // proof compares whitespace-normalized content.)
+
+
     let norm = |s: &str| {
         grid_half(s)
             .split_whitespace()
@@ -1071,7 +1071,7 @@ fn t2_grid_results_view() {
         "local sort only permutes the display order (N2)"
     );
     checkpoint(&mut s, &dir, "02-sorted");
-    // Session B: V2/N2 — the empty state and its lack of grid chrome.
+
     let case_b = t2_case_wb("grid-results-empty");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -1104,7 +1104,7 @@ fn t2_grid_results_view() {
     );
     checkpoint(&mut b, &dir, "03-empty");
 
-    // Session C: pairing — Enter on an editable table grid DOES edit.
+
     let case_c = t2_case_wb("grid-results-pairing");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -1112,8 +1112,8 @@ fn t2_grid_results_view() {
     support::drive_with_timeout(&mut c, &["enter"], drive_ms(timeout));
     waits::wait_state(&mut c, "Enter Commit", "table grid edits on Enter");
 
-    // Session D: S2/A2 — Enter and Alt+D are inert on a read-only
-    // (unattributable, PK-less: editable=false) result grid.
+
+
     let case_e = t2_case_wb("grid-results-readonly");
     write_provenance_named(&dir, &case_e, "provenance-e.txt");
     let mut e = support::spawn_boot(&case_e);
@@ -1144,8 +1144,8 @@ fn t2_grid_results_view() {
     checkpoint(&mut e, &dir, "04-readonly");
 }
 
-/// CODE-SQL-003: keyword tones, gutter ownership, statement blocks under
-/// the cursor, error readout, dirty tracking, and completion placement.
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_code_sql_editor() {
@@ -1155,7 +1155,7 @@ fn t2_code_sql_editor() {
     let timeout = case_timeout(&case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-    // V1/N2: keywords share one bold tone; plain words do not.
+
     support::drive_with_timeout(
         &mut s,
         &["tab", "i", "type:SELECT zzz FROM orders"],
@@ -1181,8 +1181,8 @@ fn t2_code_sql_editor() {
         fg_rgb(&frame, fcol, frow, "code-sql FROM tone"),
         "keywords share one tone (S2)"
     );
-    // Keywords and plain words share the white foreground; the keyword
-    // tone is carried by bold (proven above), which plain words lack.
+
+
     let (zrow, zcol) = find_pos(&mut s, "zzz", timeout);
     for j in 0..3u16 {
         assert!(
@@ -1192,15 +1192,15 @@ fn t2_code_sql_editor() {
     }
     checkpoint(&mut s, &dir, "01-tones");
 
-    // Session B: gutter ownership + one statement runs at a time (S2/A1/N1).
+
     let case_b = t2_case_wb("code-sql-blocks");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
-    // (The demo engine has no constant expressions (`222` parses as a
-    // column): two single-row table selects keep the per-statement proof
-    // intact, distinguished by table. The `customers` completion opens
-    // mid-typing, so Esc dismisses it before the newline Enter —
-    // otherwise Enter accepts the popup instead of breaking.)
+
+
+
+
+
     support::drive_with_timeout(
         &mut b,
         &["tab", "i", "type:SELECT * FROM customers LIMIT 1;"],
@@ -1239,7 +1239,7 @@ fn t2_code_sql_editor() {
     );
     checkpoint(&mut b, &dir, "02-multiline");
     escape_to_idle(&mut b, "code-sql blocks");
-    // Ctrl+R runs the statement under the cursor (line 2) only.
+
     support::drive_with_timeout(&mut b, &["ctrl-r"], drive_ms(timeout));
     std::thread::sleep(Duration::from_millis(2500));
     checkpoint(&mut b, &dir, "03-run-prefind");
@@ -1253,8 +1253,8 @@ fn t2_code_sql_editor() {
         ran2.contains("FROM customers") && ran2.contains("FROM orders"),
         "running keeps the typed statements (N1)"
     );
-    // Cursor up: now line 1 runs (re-enter edit mode first if the run
-    // left the editor idle, so `up` reaches the text, not the panels).
+
+
     if !live_text(&mut b)
         .lines()
         .last()
@@ -1275,7 +1275,7 @@ fn t2_code_sql_editor() {
     );
     checkpoint(&mut b, &dir, "03-blocks");
 
-    // Session C: S1 — the tab dot follows text-vs-saved.
+
     let case_c = t2_case_wb("code-sql-dirty");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -1286,8 +1286,8 @@ fn t2_code_sql_editor() {
     );
     support::drive_with_timeout(&mut c, &["tab", "i", "type:X"], drive_ms(timeout));
     escape_to_idle(&mut c, "code-sql dirty");
-    // The strip re-syncs on tab events, not on typing: open Query 2 so
-    // Query 1's fresh dot is re-read from the workbench tab.
+
+
     support::drive_with_timeout(&mut c, &["ctrl-t", "wait:Query 2"], drive_ms(timeout));
     let dirtied = live_text(&mut c);
     assert!(
@@ -1296,7 +1296,7 @@ fn t2_code_sql_editor() {
     );
     checkpoint(&mut c, &dir, "04-dirty");
 
-    // Session D: V2 — a failed run keeps the statement with an error card.
+
     let case_d = t2_case_wb("code-sql-error");
     write_provenance_named(&dir, &case_d, "provenance-d.txt");
     let mut d = support::spawn_boot(&case_d);
@@ -1326,7 +1326,7 @@ fn t2_code_sql_editor() {
     );
     checkpoint(&mut d, &dir, "05-error");
 
-    // Session E: A2 — completion opens under the editor cursor cell.
+
     let case_e = t2_case_wb("code-sql-complete");
     write_provenance_named(&dir, &case_e, "provenance-e.txt");
     let mut e = support::spawn_boot(&case_e);
@@ -1369,9 +1369,9 @@ fn t2_code_sql_editor() {
     checkpoint(&mut e, &dir, "06-complete");
 }
 
-/// SELECT-FILTER-002: the filter editor's Column/Operator selects —
-/// labeled ▾ controls, type-ordered operator popups, re-seeding on column
-/// change, gated Tab/Esc traversal, and type-fitting first operators.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_select_filter_builder() {
@@ -1383,7 +1383,7 @@ fn t2_select_filter_builder() {
     checkpoint(&mut s, &dir, "00-boot");
     drive_open_orders(&mut s, timeout);
     support::drive_with_timeout(&mut s, &["ctrl-f", "wait:Add filter"], drive_ms(timeout));
-    // V1: labeled selects with ▾, help row, live WHERE preview.
+
     let open = quiesce_text(&mut s, "select-filter open");
     let selects: String = modal_region(&open, "Add filter")
         .iter()
@@ -1403,9 +1403,9 @@ fn t2_select_filter_builder() {
         "blank preview shows the default predicate"
     );
     checkpoint(&mut s, &dir, "01-open");
-    // Column popup from Value: two BackTabs (value <- op <- col), Enter.
-    // (Popup rows 0-1 sit under the Value label; the visible rows start at
-    // index 2 — the assertions below only touch visible rows.)
+
+
+
     support::drive_with_timeout(&mut s, &["backtab", "backtab", "enter"], drive_ms(timeout));
     waits::wait_state(&mut s, "customer_id", "column popup opens");
     let cols = live_text(&mut s);
@@ -1417,7 +1417,7 @@ fn t2_select_filter_builder() {
         cols.lines().any(|l| l.contains('▎') && l.contains('▴')),
         "the open select carries ▴"
     );
-    // S1/A1: shipping_address (JSON) re-seeds operators at index 0.
+
     support::drive_with_timeout(
         &mut s,
         &[
@@ -1441,8 +1441,8 @@ fn t2_select_filter_builder() {
         "preview follows the JSON column"
     );
     checkpoint(&mut s, &dir, "02-reseeded");
-    // V2: the operator popup lists JSON-first operators; `▎` is the
-    // cursor (it moves), `›` marks the committed row (it stays).
+
+
     support::drive_with_timeout(&mut s, &["tab", "enter"], drive_ms(timeout));
     waits::wait_state(&mut s, "is empty", "operator popup opens");
     checkpoint(&mut s, &dir, "03-popup-prefind");
@@ -1475,7 +1475,7 @@ fn t2_select_filter_builder() {
             .any(|l| l.contains('›') && l.contains("is NULL")),
         "› stays on the committed operator (V2)"
     );
-    // S2: Tab with a popup open never traverses.
+
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(400));
     let tabbed = live_text(&mut s);
@@ -1484,7 +1484,7 @@ fn t2_select_filter_builder() {
         "Tab leaves the open popup in place (S2)"
     );
     checkpoint(&mut s, &dir, "03-popup");
-    // A1: Operator Changed only repaints — column and dialog untouched.
+
     support::press_step(&s, "enter");
     wait_absent(&mut s, "contains", 8, "operator commits");
     let repainted = quiesce_text(&mut s, "select-filter repainted");
@@ -1501,8 +1501,8 @@ fn t2_select_filter_builder() {
         repainted.contains("Add filter") && !repainted.contains("filtered ("),
         "operator change applies no filter (A1)"
     );
-    // N2: an enum column re-seeds to `=` (Json led with `is NULL`);
-    // back to Column via BackTab, three Ups to status.
+
+
     support::drive_with_timeout(&mut s, &["backtab", "enter"], drive_ms(timeout));
     waits::wait_state(&mut s, "customer_id", "column popup reopens");
     support::drive_with_timeout(&mut s, &["up", "up", "up", "enter"], drive_ms(timeout));
@@ -1518,8 +1518,8 @@ fn t2_select_filter_builder() {
     waits::wait_state(&mut s, "not in", "enum operators open");
     support::drive_with_timeout(&mut s, &["down", "down"], drive_ms(timeout));
     checkpoint(&mut s, &dir, "04-enum-moved");
-    // (The cursor `▎` leaves the committed `›` row: poll for a region
-    // line carrying `▎` without `›`.)
+
+
     let mut enum_moved = false;
     for _ in 0..80 {
         if modal_region(&live_text(&mut s), "Add filter")
@@ -1543,9 +1543,9 @@ fn t2_select_filter_builder() {
         epos("not in") < epos("is NULL"),
         "visible enum operators keep type order (N2)"
     );
-    // (The committed-row `›` hides under the Value label with rows 0-1,
-    // so the cursor-off-committed poll above is the N2 mark proof.)
-    // N1/A2: Esc closes the popup first, then cancels the editor.
+
+
+
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "not in", "Esc closes the popup (N1)");
     let kept = live_text(&mut s);
@@ -1557,7 +1557,7 @@ fn t2_select_filter_builder() {
     waits::wait_gone(&mut s, "Add filter", "Esc cancels the editor (A2)");
     checkpoint(&mut s, &dir, "04-cancelled");
 
-    // Session B: S2 — Tab while the Value edits commits AND advances.
+
     let case_b = t2_case_wb("select-filter-tab");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -1566,7 +1566,7 @@ fn t2_select_filter_builder() {
     support::drive_with_timeout(&mut b, &["enter", "type:abc", "tab"], drive_ms(timeout));
     waits::wait_state(&mut b, "WHERE id = 'abc'", "Tab commits the value");
     checkpoint(&mut b, &dir, "05-tab-prefind");
-    // (The committed Tab advances along the button row: Cancel first.)
+
     let advanced = live_text(&mut b);
     assert!(
         advanced
@@ -1588,9 +1588,9 @@ fn t2_select_filter_builder() {
     checkpoint(&mut b, &dir, "05-tab");
 }
 
-/// CHIP-FILTER-002: the filter chip bar — one labeled × chip per filter,
-/// the match-all lead, toggle/remove/lead/add events with re-runs, and the
-/// empty bar that keeps its lead and add stop.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_chip_filter_bar() {
@@ -1601,7 +1601,7 @@ fn t2_chip_filter_bar() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     drive_filtered_orders(&mut s, timeout);
-    // V1/V2/S1: chip, lead, and the mirrored counts.
+
     let bar = quiesce_text(&mut s, "chip-filter bar");
     let chips: String = bar
         .lines()
@@ -1617,15 +1617,15 @@ fn t2_chip_filter_bar() {
         "lead matches match_all: {chips}"
     );
     assert!(chips.contains("+ Add filter"), "add stop renders: {chips}");
-    // (Pending counts vary per demo load; the filter proof is the chip
-    // count plus a pending first row, not the absolute total.)
+
+
     assert!(
         bar.contains("filtered (1)"),
         "counts mirror the single enabled filter"
     );
     checkpoint(&mut s, &dir, "01-bar-prefind");
-    // (The grid is hscrolled to the status column, so the `∇` filter
-    // marker — not an early column name — locates the header.)
+
+
     let bar_header = bar
         .lines()
         .position(|l| l.contains('∇'))
@@ -1638,20 +1638,20 @@ fn t2_chip_filter_bar() {
     );
     checkpoint(&mut s, &dir, "01-bar");
     tab_to_footer(&mut s, "Enter Edit filter", 8, "chip-filter focus");
-    // A2: Enter opens the filter editor for that chip.
+
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "Edit filter", "chip activates its editor");
-    // (The chip editor opens with its value editing: first Esc leaves
-    // the edit, second Esc cancels the editor. A settle-first kills the
-    // open-race that swallows Esc.)
+
+
+
     quiesce_text(&mut s, "chip-filter editor settled");
     support::press_step(&s, "escape");
     std::thread::sleep(Duration::from_millis(500));
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Edit filter", "editor cancels back to the bar");
-    // S2/A1/N2: Space disables — the query runs unfiltered, the chip dims.
-    // (Closing the editor drops chip-bar focus, so refocus first: an
-    // unfocused Space would select a grid row instead.)
+
+
+
     tab_to_footer(&mut s, "Enter Edit filter", 8, "chip-filter refocus");
     let (on_row, on_col) = find_pos(&mut s, "status = 'pending'", timeout);
     let on_lum = lum(fg_rgb(
@@ -1697,7 +1697,7 @@ fn t2_chip_filter_bar() {
             .is_some_and(|l| l.contains("pending")),
         "the filter applies again"
     );
-    // A1: Del removes the filter with a status line.
+
     support::press_step(&s, "delete");
     waits::wait_state(&mut s, "Filter removed", "removal announces");
     let removed = quiesce_text(&mut s, "chip-filter removed");
@@ -1706,7 +1706,7 @@ fn t2_chip_filter_bar() {
         removed.contains("of 500 loaded") && !removed.contains("filtered ("),
         "the query runs unfiltered"
     );
-    // N1: the empty bar keeps its lead and add stop.
+
     let empty_bar: String = removed
         .lines()
         .find(|l| l.contains("match all"))
@@ -1716,20 +1716,20 @@ fn t2_chip_filter_bar() {
         empty_bar.contains("match all ▾") && empty_bar.contains("+ Add filter"),
         "lead and add survive emptiness: {empty_bar}"
     );
-    // A1: Lead clicks flip match_all both ways. (Proven while the empty
-    // bar still shows: cancelling the blank editor below returns focus
-    // to the grid, which hides the empty bar.)
+
+
+
     click_text(&mut s, "match all", 1, timeout, "chip-filter lead off");
     waits::wait_state(&mut s, "match any ▾", "lead flips to any");
     click_text(&mut s, "match any", 1, timeout, "chip-filter lead on");
     waits::wait_state(&mut s, "match all ▾", "lead flips back to all");
     checkpoint(&mut s, &dir, "04-lead");
-    // Cursor already rests on the add stop (it clamped on remove).
+
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "Add filter", "add stop opens a blank editor");
-    // (The blank editor opens idle: one Esc cancels it — but the Esc
-    // sometimes lands mid-open and gets swallowed, so a still-open
-    // editor earns exactly one more, gated on it still showing.)
+
+
+
     quiesce_text(&mut s, "chip-filter blank settled");
     support::press_step(&s, "escape");
     std::thread::sleep(Duration::from_millis(600));
@@ -1740,9 +1740,9 @@ fn t2_chip_filter_bar() {
     checkpoint(&mut s, &dir, "03-empty");
 }
 
-/// TABS-STATES-002: the workbench strip — state glyphs, the single accent
-/// underline, overflow paging, repaired removal, keyboard/mouse tab actions,
-/// and the empty strip that only answers Enter/n.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_tabs_workbench_states() {
@@ -1759,8 +1759,8 @@ fn t2_tabs_workbench_states() {
             && !SPIN.chars().any(|c| fresh.contains(c)),
         "fresh strip idles glyph-free: {fresh}"
     );
-    // V1: dirty dot after the label. (The strip re-syncs on tab events,
-    // not on typing, so Query 2 opens first and re-reads Query 1's dot.)
+
+
     support::drive_with_timeout(&mut s, &["tab", "i", "type:X"], drive_ms(timeout));
     escape_to_idle(&mut s, "tabs dirty");
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], drive_ms(timeout));
@@ -1771,7 +1771,7 @@ fn t2_tabs_workbench_states() {
         "dirty dot trails the label (V1): {dotted}"
     );
     checkpoint(&mut s, &dir, "01-dirty");
-    // V2: active tab owns the accent underline; quiet tabs draw gray.
+
     let pair = live_text(&mut s);
     let active_col = strip_col(&pair, "Query 2", "tabs active tab") + 3;
     let quiet_col = strip_col(&pair, "Query 1", "tabs quiet tab") + 3;
@@ -1799,7 +1799,7 @@ fn t2_tabs_workbench_states() {
         "one accent underline per screen (V2): {active_fg:?} vs {quiet_fg:?}"
     );
     checkpoint(&mut s, &dir, "02-quiet");
-    // V1: background failure marks `!`, cleared on view.
+
     tab_to_footer(&mut s, "Alt+R Run all", 8, "tabs focus editor");
     support::drive_with_timeout(&mut s, &["i", "type:SELECT * FROM nope"], drive_ms(timeout));
     escape_to_idle(&mut s, "tabs failing query");
@@ -1810,8 +1810,8 @@ fn t2_tabs_workbench_states() {
     std::thread::sleep(Duration::from_millis(100));
     support::press_step(&s, "]");
     std::thread::sleep(Duration::from_millis(3000));
-    // The strip re-syncs on tab events: Query 4 opens (never viewing
-    // Query 2) so its settled `!` is re-read from the workbench tab.
+
+
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 4"], drive_ms(timeout));
     let mut flagged = String::new();
     for _ in 0..200 {
@@ -1837,7 +1837,7 @@ fn t2_tabs_workbench_states() {
         "the error card explains the flag"
     );
 
-    // Session B: V1 — the busy spinner on a background run.
+
     let case_b = t2_case_wb("tabs-busy");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -1866,7 +1866,7 @@ fn t2_tabs_workbench_states() {
     assert!(spun, "busy tab spins while the run is in flight (V1)");
     checkpoint(&mut b, &dir, "04-busy");
 
-    // Session C: overflow, removal, actions, empty strip.
+
     let case_c = t2_case_wb("tabs-overflow");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -1877,9 +1877,9 @@ fn t2_tabs_workbench_states() {
     waits::wait_state(&mut c, "Query 11", "eleven queries open");
     tab_to_footer(&mut c, "Enter Open", 8, "tabs focus tree");
     drive_open_orders(&mut c, timeout);
-    // V3/N2: the active tail tab parks the strip at the tail — a left
-    // `‹N` count, full labels, and the trailing +. (The strip takes
-    // focus first: an unfocused click only focuses, never pages.)
+
+
+
     tab_to_footer(&mut c, "← → Switch", 8, "tabs focus strip for paging");
     let tail = strip_line(&quiesce_text(&mut c, "tabs tail")).to_string();
     assert!(
@@ -1892,8 +1892,8 @@ fn t2_tabs_workbench_states() {
     );
     assert!(!tail.contains('…'), "labels never shrink (N2): {tail}");
     assert!(tail.contains("T orders"), "the active tail tab shows");
-    // A2: paging is proven from the middle (tail paging fights the
-    // active-tail re-reveal): jump to Query 5, page head-ward, page back.
+
+
     support::press_step(&c, "5");
     std::thread::sleep(Duration::from_millis(400));
     assert!(
@@ -1931,7 +1931,7 @@ fn t2_tabs_workbench_states() {
     }
     assert!(back == middle, "› pages first tail-ward (A2): {back}");
     checkpoint(&mut c, &dir, "05-overflow");
-    // S1/S2: digit-jump to the middle, close, first preserved.
+
     tab_to_footer(&mut c, "← → Switch", 8, "tabs focus strip");
     support::press_step(&c, "5");
     std::thread::sleep(Duration::from_millis(400));
@@ -1941,8 +1941,8 @@ fn t2_tabs_workbench_states() {
     );
     support::press_step(&c, "x");
     wait_absent(&mut c, "Query 5", 8, "middle tab closes (A1/S1)");
-    // (Remove repairs active onto the next neighbor (Query 6), and the
-    // strip re-reveals around it: Query 4 hides left, Query 6 shows.)
+
+
     let repaired = strip_line(&quiesce_text(&mut c, "tabs repaired")).to_string();
     assert!(
         repaired.contains("Query 6"),
@@ -1953,8 +1953,8 @@ fn t2_tabs_workbench_states() {
         repaired_full.contains("─ Query 6 ─"),
         "remove repairs active onto Query 6 (S1)"
     );
-    // S2: stepping active out of view re-reveals with the active shown.
-    // (Exact counts: `]`/`[` wrap around, so overshooting laps back.)
+
+
     for _ in 0..6 {
         support::press_step(&c, "]");
         std::thread::sleep(Duration::from_millis(150));
@@ -1977,7 +1977,7 @@ fn t2_tabs_workbench_states() {
             && !head_revealed.contains('‹'),
         "stepping head-ward re-reveals the head (S2): {head_revealed}"
     );
-    // S1: Delete closes the head tab; active repairs onto Query 2.
+
     support::press_step(&c, "delete");
     std::thread::sleep(Duration::from_millis(400));
     let after_del = live_text(&mut c);
@@ -1986,16 +1986,16 @@ fn t2_tabs_workbench_states() {
         "Delete repairs active onto Query 2 (S1)"
     );
     checkpoint(&mut c, &dir, "06-repaired");
-    // A1: n and + open queries; A2: tab click activates.
+
     tab_to_footer(&mut c, "← → Switch", 8, "tabs refocus strip");
     support::press_step(&c, "n");
     waits::wait_state(&mut c, "Query 12", "n opens a query (A1)");
     strip_click(&mut c, "+", 0, "tabs + button");
     waits::wait_state(&mut c, "Query 13", "+ opens a query (A1)");
-    // Jump to Query 3 (positioning for the click test; ‹-paging itself
-    // is proven from the middle above, where no re-reveal fights it).
-    // (Digits are positional: Query 3 sits at index 1 now. The +-click
-    // left focus in the editor, so refocus the strip first.)
+
+
+
+
     tab_to_footer(&mut c, "← → Switch", 8, "tabs refocus for jump");
     support::press_step(&c, "2");
     std::thread::sleep(Duration::from_millis(400));
@@ -2015,7 +2015,7 @@ fn t2_tabs_workbench_states() {
         "tab click activates its pane (A2)"
     );
     checkpoint(&mut c, &dir, "07-actions");
-    // N1: empty the strip; only Enter/n answer, and only with New.
+
     tab_to_footer(&mut c, "← → Switch", 8, "tabs focus for emptying");
     for _ in 0..20 {
         let strip = strip_line(&live_text(&mut c)).to_string();
@@ -2049,9 +2049,9 @@ fn t2_tabs_workbench_states() {
     checkpoint(&mut c, &dir, "08-empty");
 }
 
-/// TI-FORM-010: typing and routing in the connection form — filled Name,
-/// masked Password, commit validation, focus routing, pointer editing, and
-/// Esc revert.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_input_form_field() {
@@ -2062,7 +2062,7 @@ fn t2_input_form_field() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     support::drive_with_timeout(&mut s, &["ctrl-n", "wait:Name"], drive_ms(timeout));
-    // V2/S2: the empty Password shows its keychain placeholder, unmasked.
+
     let blank = quiesce_text(&mut s, "input-form blank");
     let pw: String = blank
         .lines()
@@ -2071,22 +2071,22 @@ fn t2_input_form_field() {
         .into();
     assert!(!pw.contains('•'), "empty Password masks nothing (V2): {pw}");
     checkpoint(&mut s, &dir, "01-blank");
-    // V1: the typed Name fills its field.
+
     support::drive_with_timeout(
         &mut s,
         &["enter", "type:Staging replica", "enter"],
         drive_ms(timeout),
     );
     waits::wait_state(&mut s, "Staging replica", "name commits");
-    // S1: committing an empty Name raises Required (scoped to the Name
-    // field: the Database help line always reads `Required for ...`).
+
+
     support::drive_with_timeout(
         &mut s,
         &["enter", "end", "ctrl-u", "enter"],
         drive_ms(timeout),
     );
     poll_name_error(&mut s, true, 8, "empty name rejected (S1)");
-    // Repair: a valid Name clears the error.
+
     support::drive_with_timeout(
         &mut s,
         &["enter", "type:Staging replica", "enter"],
@@ -2095,7 +2095,7 @@ fn t2_input_form_field() {
     checkpoint(&mut s, &dir, "02-repair-prefind");
     poll_name_error(&mut s, false, 8, "valid name clears the error");
     checkpoint(&mut s, &dir, "02-validated");
-    // N1: Esc reverts to the pre-edit value; the dialog stays open.
+
     support::drive_with_timeout(&mut s, &["enter", "type:ZZZ", "escape"], drive_ms(timeout));
     std::thread::sleep(Duration::from_millis(400));
     let reverted = live_text(&mut s);
@@ -2107,7 +2107,7 @@ fn t2_input_form_field() {
         reverted.contains("New connection") || reverted.contains("Save"),
         "Esc never closes the form (N1)"
     );
-    // N2: Password masks one • per grapheme once typed.
+
     tab_to_cursor(&mut s, "stored in the keychain", 20, "input-form password");
     support::drive_with_timeout(&mut s, &["enter", "type:abc"], drive_ms(timeout));
     waits::wait_state(&mut s, "•••", "password masks per grapheme (N2)");
@@ -2119,7 +2119,7 @@ fn t2_input_form_field() {
     checkpoint(&mut s, &dir, "03-masked");
     support::press_step(&s, "escape");
     std::thread::sleep(Duration::from_millis(300));
-    // A2: clicking Host focuses it and edits at the pointer.
+
     let (hrow, hcol) = find_pos(&mut s, "localhost", timeout);
     s.click(hcol + 1, hrow).expect("input-form host click");
     std::thread::sleep(Duration::from_millis(400));
@@ -2133,7 +2133,7 @@ fn t2_input_form_field() {
         "the click focused Host first (A2)"
     );
     checkpoint(&mut s, &dir, "04-pointer");
-    // A1: CommittedTab routes Host -> Port; Ctrl+S submits the form.
+
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(300));
     let routed = live_text(&mut s);
@@ -2153,9 +2153,9 @@ fn t2_input_form_field() {
     checkpoint(&mut s, &dir, "05-saved");
 }
 
-/// FORM-CONN-004: connection validation and the advanced section — port
-/// range errors, blocked saves, optional ports, required names, SSH rows,
-/// and Test-without-saving.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_form_connection_full() {
@@ -2172,9 +2172,9 @@ fn t2_form_connection_full() {
         drive_ms(timeout),
     );
     waits::wait_state(&mut s, "Probe conn", "name commits");
-    // V1: an out-of-range port errors with a `!` marker. (Host shares
-    // the Port row, so the `5432` hunt stops at Host; one Tab steps to
-    // Port, verified by the cursor column against the Port label.)
+
+
+
     tab_to_cursor(&mut s, "5432", 20, "form-conn port");
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(300));
@@ -2206,9 +2206,9 @@ fn t2_form_connection_full() {
     waits::wait_state(&mut s, "Port must", "port rejects 99999 (V1)");
     checkpoint(&mut s, &dir, "01-bad-port-shown");
     let bad_port = live_text(&mut s);
-    // (The narrow Port field clips the validator string to `Port must…`;
-    // the row's full `Port must be 1–65535` lives in port_validator — the
-    // live proof is the clipped message plus the `!` marker.)
+
+
+
     assert!(
         bad_port.contains("Port must…"),
         "range message shows, field-clipped (V1)"
@@ -2220,7 +2220,7 @@ fn t2_form_connection_full() {
         "the field carries `!` (V1)"
     );
     checkpoint(&mut s, &dir, "01-bad-port");
-    // A1/N1: Save stays blocked; nothing reaches the tree.
+
     support::press_step(&s, "ctrl-s");
     std::thread::sleep(Duration::from_millis(800));
     let blocked = live_text(&mut s);
@@ -2237,17 +2237,17 @@ fn t2_form_connection_full() {
         1,
         "unvalidated name stays out of the tree (N1)"
     );
-    // S2: clearing the port validates (the field is optional).
+
     support::drive_with_timeout(
         &mut s,
         &["enter", "end", "ctrl-u", "enter"],
         drive_ms(timeout),
     );
     wait_absent(&mut s, "Port must", 8, "empty port validates (S2)");
-    // N2/S1: a blank name never validates and blocks Save alone (Name
-    // error scoped to its field: Database help always reads `Required`).
-    // (The Name row shares its lines with the Environment radios, so a
-    // text hunt can stop on the wrong field: click the value itself.)
+
+
+
+
     click_text(&mut s, "Probe conn", 1, timeout, "form-conn name");
     support::press_step(&s, "escape");
     std::thread::sleep(Duration::from_millis(300));
@@ -2272,7 +2272,7 @@ fn t2_form_connection_full() {
     );
     poll_name_error(&mut s, false, 8, "name repaired");
     checkpoint(&mut s, &dir, "02-valid");
-    // V2: the advanced section shows SSH rows and all four actions.
+
     support::press_step(&s, "backtab");
     std::thread::sleep(Duration::from_millis(300));
     support::press_step(&s, "right");
@@ -2289,7 +2289,7 @@ fn t2_form_connection_full() {
         assert!(advanced.contains(needle), "advanced shows `{needle}` (V2)");
     }
     checkpoint(&mut s, &dir, "03-advanced");
-    // A2: Test runs without saving or closing.
+
     tab_to_cursor(&mut s, "Test connection", 25, "form-conn test");
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "✓ Connected", "test connects (A2)");
@@ -2299,8 +2299,8 @@ fn t2_form_connection_full() {
         tested.contains("SSH host") && tested.contains("Save & connect"),
         "Test leaves the form open (A2)"
     );
-    // (The Name field lives on the Basic tab; persistence is proven by
-    // its absence from the explorer tree, not by a whole-screen count.)
+
+
     assert!(
         !explorer_half(&tested).contains("Probe conn"),
         "Test persists nothing (A2)"
@@ -2308,9 +2308,9 @@ fn t2_form_connection_full() {
     checkpoint(&mut s, &dir, "04-tested");
 }
 
-/// DIALOG-ACK-003: the typed-acknowledgement write gate — facts plus
-/// clipped preview, ack focus and arming, deliberate Execute, plain/danger
-/// focus rules, close confirmation, and dead y/n keys.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_dialog_ack_full() {
@@ -2320,9 +2320,9 @@ fn t2_dialog_ack_full() {
     let timeout = case_timeout(&case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-    // Seven content lines (blank lines trim out of the gate preview, so
-    // the clip tail needs real content): Esc closes any completion
-    // first, `i` re-enters edit mode when Esc idled the editor.
+
+
+
     support::drive_with_timeout(
         &mut s,
         &["tab", "i", "type:UPDATE orders"],
@@ -2360,13 +2360,13 @@ fn t2_dialog_ack_full() {
         &["ctrl-r", "wait:Type orders to confirm"],
         drive_ms(timeout),
     );
-    // V1: facts above a preview clipped to six lines with its tail.
+
     checkpoint(&mut s, &dir, "01-gate-prefind");
     let gate = quiesce_text(&mut s, "dialog-ack gate");
     for needle in ["Action", "Target", "Safe Mode", "UPDATE orders", "… 1 more"] {
         assert!(gate.contains(needle), "gate shows `{needle}` (V1)");
     }
-    // V2/S2: the ack field sits above the actions and owns the focus.
+
     let ack_idx = gate
         .lines()
         .position(|l| l.contains("Type orders to confirm"))
@@ -2386,7 +2386,7 @@ fn t2_dialog_ack_full() {
         "neither action owns the focus (S2)"
     );
     checkpoint(&mut s, &dir, "01-gate");
-    // N2: y/n in the ack input type text — they never confirm.
+
     support::drive_with_timeout(&mut s, &["enter", "type:yn"], drive_ms(timeout));
     std::thread::sleep(Duration::from_millis(400));
     let typed = live_text(&mut s);
@@ -2394,7 +2394,7 @@ fn t2_dialog_ack_full() {
         typed.contains("Type orders to confirm") && !typed.contains("affected"),
         "y/n never confirm the gate (N2)"
     );
-    // N1/A1: a wrong token advances to Cancel and never arms.
+
     support::drive_with_timeout(
         &mut s,
         &["ctrl-l", "type:000000", "enter"],
@@ -2422,7 +2422,7 @@ fn t2_dialog_ack_full() {
         "the wrong token executes nothing (N1)"
     );
     checkpoint(&mut s, &dir, "02-unarmed");
-    // N1: an untrimmed token (embedded space) never arms either.
+
     support::press_step(&s, "backtab");
     std::thread::sleep(Duration::from_millis(300));
     assert!(
@@ -2446,7 +2446,7 @@ fn t2_dialog_ack_full() {
             .any(|l| l.contains('▎') && l.contains("Cancel")),
         "spaced token never arms (N1)"
     );
-    // S1/A1: the exact token arms; Execute stays one deliberate step away.
+
     support::press_step(&s, "backtab");
     std::thread::sleep(Duration::from_millis(300));
     support::drive_with_timeout(
@@ -2478,8 +2478,8 @@ fn t2_dialog_ack_full() {
     support::press_step(&s, "enter");
     std::thread::sleep(Duration::from_millis(3000));
     checkpoint(&mut s, &dir, "04-executed-prefind");
-    // (The demo engine applies the UPDATE wholesale — 8022 rows — rather
-    // than honoring the uuid WHERE: the Execute proof is count-agnostic.)
+
+
     waits::wait_state(&mut s, "rows affected", "armed Execute runs");
     assert!(
         live_text(&mut s).contains("UPDATE orders ("),
@@ -2493,7 +2493,7 @@ fn t2_dialog_ack_full() {
     );
     checkpoint(&mut s, &dir, "04-executed");
 
-    // Session B: V2 — short screens clip only the facts region.
+
     let case_b = t2_case_wb("dialog-ack-short");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -2546,7 +2546,7 @@ fn t2_dialog_ack_full() {
     );
     checkpoint(&mut b, &dir, "05-short");
 
-    // Session C: S2 — plain writes focus Execute with no ack input.
+
     let case_c = t2_case_wb("dialog-ack-plain");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -2585,7 +2585,7 @@ fn t2_dialog_ack_full() {
     waits::wait_gone(&mut c, "Execute write query?", "plain gate cancels");
     checkpoint(&mut c, &dir, "06-plain");
 
-    // Session D: A2/S2 — the destructive close confirm focuses Cancel.
+
     let case_d = t2_case_wb("dialog-ack-close");
     write_provenance_named(&dir, &case_d, "provenance-d.txt");
     let mut d = support::spawn_boot(&case_d);
@@ -2629,9 +2629,9 @@ fn t2_dialog_ack_full() {
     checkpoint(&mut d, &dir, "07-close");
 }
 
-/// HELP-TABLEPRO-003: the keyboard reference dialog — 78-wide single
-/// Close action, full chord table, saved focus round-trip, every close key,
-/// and dead y/arrow keys.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_help_viewer_full() {
@@ -2644,7 +2644,7 @@ fn t2_help_viewer_full() {
     drive_open_orders(&mut s, timeout);
     support::press_step(&s, "?");
     waits::wait_state(&mut s, "Keyboard", "help opens");
-    // V1/S1/S2: 78-wide frame, lone Close, initial focus on it.
+
     let open = quiesce_text(&mut s, "help open");
     let border: String = open
         .lines()
@@ -2666,8 +2666,8 @@ fn t2_help_viewer_full() {
         78,
         "help frame is 78 wide (V1)"
     );
-    // (The modal's own footer hints `Esc Cancel`; the stripped action is
-    // proven inside the dialog region, not the whole screen.)
+
+
     let help_modal = modal_region(&open, "Keyboard").join("\n");
     assert!(
         help_modal.contains("Close") && !help_modal.contains("Cancel"),
@@ -2677,7 +2677,7 @@ fn t2_help_viewer_full() {
         open.lines().any(|l| l.contains('▎') && l.contains("Close")),
         "initial focus sits on Close (S1/S2)"
     );
-    // V2: the table names the workbench chords from Ctrl+O to q.
+
     let region: Vec<&str> = open
         .lines()
         .skip_while(|l| !l.contains("Keyboard"))
@@ -2696,11 +2696,11 @@ fn t2_help_viewer_full() {
         "chord table ends at q (V2)"
     );
     checkpoint(&mut s, &dir, "01-open");
-    // A1/A2: every close key finishes and restores the grid focus.
+
     for (i, key) in ["escape", "enter", "space", "n"].iter().enumerate() {
         support::press_step(&s, key);
         waits::wait_gone(&mut s, "Keyboard", &format!("{key} closes help (A1)"));
-        // (The focus-ring repaint lags the close: poll, don't snapshot.)
+
         let mut restored = false;
         for _ in 0..30 {
             if live_text(&mut s)
@@ -2720,7 +2720,7 @@ fn t2_help_viewer_full() {
         }
     }
     checkpoint(&mut s, &dir, "02-closes");
-    // N1: y never closes (Close is Secondary — no primary to answer).
+
     support::press_step(&s, "?");
     waits::wait_state(&mut s, "Keyboard", "help reopens for N1");
     let before_y = quiesce_text(&mut s, "help before y");
@@ -2735,7 +2735,7 @@ fn t2_help_viewer_full() {
         "y leaves help open and focused (N1)"
     );
     assert_eq!(before_y, after_y, "y changes nothing at all (N1)");
-    // N2: Left/Right find no second action.
+
     support::press_step(&s, "left");
     std::thread::sleep(Duration::from_millis(400));
     assert_eq!(
@@ -2755,8 +2755,8 @@ fn t2_help_viewer_full() {
     checkpoint(&mut s, &dir, "03-negatives");
 }
 
-/// TREE-FILTER-002: tree filtering with ancestor reveal, lazy expansion
-/// with busy spinners, muted unselectable notes, and identity-kept focus.
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_tree_connection_filter() {
@@ -2766,7 +2766,7 @@ fn t2_tree_connection_filter() {
     let timeout = case_timeout(&case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-    // A2: every keystroke re-runs the filter; V1: ancestors stay open.
+
     support::press_step(&s, "/");
     std::thread::sleep(Duration::from_millis(300));
     support::drive_with_timeout(&mut s, &["type:s"], drive_ms(timeout));
@@ -2788,7 +2788,7 @@ fn t2_tree_connection_filter() {
         1,
         "only the match keeps its marker (V1)"
     );
-    // A2: committing re-runs too; S1: the tree cursor resets to row 0.
+
     support::press_step(&s, "enter");
     std::thread::sleep(Duration::from_millis(400));
     assert!(
@@ -2798,7 +2798,7 @@ fn t2_tree_connection_filter() {
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(400));
     checkpoint(&mut s, &dir, "01-filtered-prefind");
-    // (The focus-ring repaint lags the key: poll, don't snapshot.)
+
     let mut row0 = false;
     for _ in 0..50 {
         if live_text(&mut s)
@@ -2813,7 +2813,7 @@ fn t2_tree_connection_filter() {
     assert!(row0, "filter reset the cursor to row 0 (S1)");
     checkpoint(&mut s, &dir, "01-filtered");
 
-    // Session B: N1 — a match-nothing filter yields zero rows, no crash.
+
     let case_b = t2_case_conn("tree-filter-empty");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -2834,7 +2834,7 @@ fn t2_tree_connection_filter() {
     waits::wait_state(&mut b, "Production", "Esc restores the rows (N1)");
     checkpoint(&mut b, &dir, "02-empty");
 
-    // Session C: V2/A1/S2/N2 — lazy analytics expands above a kept cursor.
+
     let case_c = t2_case_wb("tree-lazy-load");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -2844,8 +2844,8 @@ fn t2_tree_connection_filter() {
     );
     support::press_step(&c, "home");
     std::thread::sleep(Duration::from_millis(200));
-    // Phase 1: cursor on the node — the fetch marks busy (A1/V2) and the
-    // Tables group arrives (A1).
+
+
     down_to(&mut c, "analytics", 25, "tree-lazy analytics");
     support::press_step(&c, "right");
     let mut busy = false;
@@ -2874,10 +2874,10 @@ fn t2_tree_connection_filter() {
             .any(|l| l.contains("Tables")),
         "analytics fetched its own Tables group (A1)"
     );
-    // Phase 2: collapse it, park below, re-expand with cursor-free `*`
-    // (children are loaded now, so expand-all reaches them): arrivals
-    // above never retarget the parked cursor (S2/N2 — flatten keeps the
-    // focused node as an identity, not a display position).
+
+
+
+
     up_to(&mut c, "analytics", 25, "tree-lazy revisit");
     support::press_step(&c, "left");
     waits::wait_state(&mut c, "▸ S analytics", "analytics collapses");
@@ -2892,7 +2892,7 @@ fn t2_tree_connection_filter() {
     );
     checkpoint(&mut c, &dir, "03-lazy");
 
-    // Session D: V3 — the triggers note is muted and never selectable.
+
     let case_d = t2_case_wb("tree-note-row");
     write_provenance_named(&dir, &case_d, "provenance-d.txt");
     let mut d = support::spawn_boot(&case_d);
@@ -2917,7 +2917,7 @@ fn t2_tree_connection_filter() {
         (128, 128, 128),
         "note rows render muted (V3)"
     );
-    // (V3 covers selectability — Space — not keyboard activation.)
+
     let noted = no_footer(&quiesce_text(&mut d, "tree-note settled"));
     support::press_step(&d, "space");
     std::thread::sleep(Duration::from_millis(500));
@@ -2926,16 +2926,16 @@ fn t2_tree_connection_filter() {
         no_footer(&quiesce_text(&mut d, "tree-note space")),
         "Space never selects a note (V3)"
     );
-    // Pairing: Space on a plain collapsed node DOES expand it.
+
     down_to(&mut d, "audit", 25, "tree-note audit");
     support::press_step(&d, "space");
     waits::wait_state(&mut d, "▾ S audit", "Space expands plain nodes");
     checkpoint(&mut d, &dir, "04-note");
 }
 
-/// PICKER-SWITCHER-003: the quick-open switcher, tab list, and safe-mode
-/// pickers — scopes, substring filtering, per-kind dispatch, secondary
-/// close, and the keys that must not act.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_picker_switcher_scopes() {
@@ -2948,8 +2948,8 @@ fn t2_picker_switcher_scopes() {
     tab_to_footer(&mut s, "Enter Open", 8, "switcher focus tree");
     support::press_step(&s, "ctrl-o");
     waits::wait_state(&mut s, "Open Quickly", "switcher opens");
-    // V1: scope label plus kind-glyphed targets (typed queries force exact
-    // matches, so default ranking can never hide the needles).
+
+
     assert!(
         modal_region(&live_text(&mut s), "Open Quickly")
             .iter()
@@ -2976,7 +2976,7 @@ fn t2_picker_switcher_scopes() {
         std::thread::sleep(Duration::from_millis(300));
     }
     checkpoint(&mut s, &dir, "01-all");
-    // S1: Tab cycles All -> Tables -> Schemas -> Queries -> All, rows only.
+
     for (scope, query, present, absent) in [
         ("Tables", "orders", "T orders", "S public"),
         ("Schemas", "public", "S public", "T orders"),
@@ -3016,13 +3016,13 @@ fn t2_picker_switcher_scopes() {
         "scope wraps back to All (S1)"
     );
     checkpoint(&mut s, &dir, "02-scopes");
-    // A1: schema dispatch rebuilds the explorer for that schema.
+
     support::drive_with_timeout(&mut s, &["tab", "tab"], drive_ms(timeout));
     waits::wait_state(&mut s, "Schemas · Tab scope", "back to Schemas");
     support::drive_with_timeout(&mut s, &["type:audit", "enter"], drive_ms(timeout));
     checkpoint(&mut s, &dir, "03-dispatch-prefind");
-    // (The dispatch lands during the drive; presence was proven upstream
-    // by the Schemas-scope wait, so absence needs no presence preamble.)
+
+
     wait_absent(&mut s, "Open Quickly", 8, "schema chosen closes");
     assert!(
         live_text(&mut s)
@@ -3030,12 +3030,12 @@ fn t2_picker_switcher_scopes() {
             .any(|l| l.contains("Explorer") && l.contains("audit")),
         "schema dispatch rebuilds the explorer (A1)"
     );
-    // A1: table dispatch opens the table tab.
+
     tab_to_footer(&mut s, "Enter Open", 8, "switcher focus tree");
     support::press_step(&s, "ctrl-o");
     waits::wait_state(&mut s, "Open Quickly", "switcher reopens");
-    // (A reopened switcher resets its scope: hunt All from wherever it
-    // starts rather than assuming the remembered Schemas.)
+
+
     let mut all_scope = false;
     for _ in 0..5 {
         if live_text(&mut s).contains("All · Tab scope") {
@@ -3048,8 +3048,8 @@ fn t2_picker_switcher_scopes() {
     assert!(all_scope, "scope back to All");
     support::drive_with_timeout(&mut s, &["type:orders", "enter"], drive_ms(timeout));
     waits::wait_state(&mut s, "public › orders", "table dispatch opens (A1)");
-    // A1: query dispatch switches to that tab (stepping away first so the
-    // switch is observable).
+
+
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], drive_ms(timeout));
     escape_to_idle(&mut s, "switcher new tab");
     support::press_step(&s, "[");
@@ -3064,7 +3064,7 @@ fn t2_picker_switcher_scopes() {
         "query dispatch switches tabs (A1)"
     );
     checkpoint(&mut s, &dir, "03-chosen");
-    // N1/A1: Back and Submit keep the picker open; Cancelled closes it.
+
     tab_to_footer(&mut s, "Enter Open", 8, "switcher focus tree");
     support::press_step(&s, "ctrl-o");
     waits::wait_state(&mut s, "Open Quickly", "switcher reopens");
@@ -3091,7 +3091,7 @@ fn t2_picker_switcher_scopes() {
     waits::wait_gone(&mut s, "Open Quickly", "Cancelled closes (A1)");
     checkpoint(&mut s, &dir, "04-n1");
 
-    // Session B: V2/S2/A2 — the tab list filters, details, and closes.
+
     let case_b = t2_case_wb("picker-tab-list");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -3101,7 +3101,7 @@ fn t2_picker_switcher_scopes() {
     tab_to_footer(&mut b, "← → Switch", 8, "tablist focus strip");
     support::press_step(&b, "ctrl-g");
     waits::wait_state(&mut b, "Open tabs", "tab list opens");
-    // (The rows render after the title: poll for them, don't snapshot.)
+
     let mut list = modal_region(&live_text(&mut b), "Open tabs");
     for _ in 0..30 {
         if ["≡ Query 1", "≡ Query 2", "active"]
@@ -3124,13 +3124,13 @@ fn t2_picker_switcher_scopes() {
             .any(|l| l.contains('▎') && l.contains("orders") && l.contains("active")),
         "cursor and tag sit on the active tab (V2)"
     );
-    // S2: substring filtering; the detail carries the tab index.
+
     support::drive_with_timeout(&mut b, &["type:Query"], drive_ms(timeout));
     std::thread::sleep(Duration::from_millis(400));
     checkpoint(&mut b, &dir, "05-tablist-prefind");
     let filtered = modal_region(&live_text(&mut b), "Open tabs");
-    // (The region spans full-width lines: grid_half drops the explorer
-    // background, whose own `▸ T orders` row would pollute the check.)
+
+
     assert!(
         !filtered.iter().any(|l| grid_half(l).contains("T orders")),
         "substring match drops the table tab (S2)"
@@ -3147,7 +3147,7 @@ fn t2_picker_switcher_scopes() {
         );
     }
     checkpoint(&mut b, &dir, "05-filtered");
-    // A2: Delete closes that tab and reopens the list.
+
     for _ in 0..5 {
         support::press_step(&b, "backspace");
         std::thread::sleep(Duration::from_millis(80));
@@ -3177,7 +3177,7 @@ fn t2_picker_switcher_scopes() {
     waits::wait_gone(&mut b, "Open tabs", "tab list cancels");
     checkpoint(&mut b, &dir, "06-secondary");
 
-    // Session C: V2/N2 — safe-mode marks current; NextScope is inert.
+
     let case_c = t2_case_wb("picker-safe-mode");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -3210,8 +3210,8 @@ fn t2_picker_switcher_scopes() {
     let before = scoped(&live_text(&mut c));
     support::press_step(&c, "tab");
     std::thread::sleep(Duration::from_millis(500));
-    // (A background ▎ artifact behind the modal is out of row scope; the
-    // picker rows, cursor, and title below are the NextScope surface.)
+
+
     assert_eq!(
         before,
         scoped(&live_text(&mut c)),
@@ -3222,9 +3222,9 @@ fn t2_picker_switcher_scopes() {
     checkpoint(&mut c, &dir, "07-safemode");
 }
 
-/// COMPLETE-SQL-001: the query editor suggestion popup — anchoring,
-/// kinds, bold prefixes, aligned details, width clamp, scrollbar, wheel
-/// stance, accept/replace, paren landing, dismiss paths, and move keys.
+
+
+
 #[test]
 #[ignore = "tablepro t2 check; run with --ignored"]
 fn t2_complete_sql_popup() {
@@ -3232,7 +3232,7 @@ fn t2_complete_sql_popup() {
     let dir = t2_dir("t2_complete_sql_popup");
     write_provenance(&dir, &case);
     let timeout = case_timeout(&case);
-    // V1/anchor/width/S1/cursor0 + bold prefix + aligned details.
+
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     support::drive_with_timeout(
@@ -3303,8 +3303,8 @@ fn t2_complete_sql_popup() {
             .any(|l| l.contains('▎') && l.contains("T orders")),
         "open resets the cursor to row 0 (S1)"
     );
-    // Bold matched prefix (read on the unselected second row: the selected
-    // first row adds its own selection styling).
+
+
     let (prow, pcol) = find_pos(&mut s, "order_items", timeout);
     let frame = live_frame(&mut s);
     for j in 0..3u16 {
@@ -3334,8 +3334,8 @@ fn t2_complete_sql_popup() {
         ends.push(unicode_width::UnicodeWidthStr::width(&row[..de]));
         details.push(row[ds..de].to_string());
     }
-    // The name column pads to the longest label, so the details share
-    // one start column (left-aligned) as well as one end column.
+
+
     assert_eq!(
         (starts[0], starts[1]),
         (starts[1], starts[2]),
@@ -3355,7 +3355,7 @@ fn t2_complete_sql_popup() {
     );
     checkpoint(&mut s, &dir, "01-anchored");
 
-    // Session B: A1 — Tab accepts and replaces the typed prefix.
+
     let case_b = t2_case_wb("complete-accept");
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
     let mut b = support::spawn_boot(&case_b);
@@ -3378,7 +3378,7 @@ fn t2_complete_sql_popup() {
     );
     checkpoint(&mut b, &dir, "02-accepted");
 
-    // Session C: columns popup — scrollbar, wheel stance, move keys, Enter.
+
     let case_c = t2_case_wb("complete-columns");
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
     let mut c = support::spawn_boot(&case_c);
@@ -3419,8 +3419,8 @@ fn t2_complete_sql_popup() {
         (24..=48).contains(&cspan),
         "columns popup clamps to 24..48 (V2): {cspan}"
     );
-    // S2: a wheel scroll survives later frames (the popup hugs the editor,
-    // so its first row sits exactly two lines below the statement).
+
+
     let top_row = |text: &str| {
         let lines: Vec<&str> = text.lines().collect();
         let e = lines
@@ -3446,9 +3446,9 @@ fn t2_complete_sql_popup() {
         "render never pulls the viewport back (S2)"
     );
     checkpoint(&mut c, &dir, "03-scrolled");
-    // Reset the popup (the wheel may have scrolled the cursor out of
-    // view — and rows out of the viewport, so dismissal is proven by
-    // the anchored border below the editor, not by a row needle).
+
+
+
     support::press_step(&c, "escape");
     let mut dismissed = false;
     for _ in 0..50 {
@@ -3465,7 +3465,7 @@ fn t2_complete_sql_popup() {
     assert!(dismissed, "popup dismisses");
     support::drive_with_timeout(&mut c, &["backspace", "type:."], drive_ms(timeout));
     waits::wait_state(&mut c, "is_gift", "popup reopens");
-    // N1: plain n/p type into the editor (dot-retype reopens deterministically).
+
     support::drive_with_timeout(&mut c, &["type:n"], drive_ms(timeout));
     std::thread::sleep(Duration::from_millis(400));
     assert!(
@@ -3490,11 +3490,11 @@ fn t2_complete_sql_popup() {
         drive_ms(timeout),
     );
     waits::wait_state(&mut c, "is_gift", "popup reopens");
-    // Down/Up move the popup cursor. (The row's N1 names Ctrl+N/Ctrl+P
-    // as the movers, but Ctrl+N opens Quick Open live — even with the
-    // popup up — so the live movers are proven and the discrepancy is
-    // noted.) The popup flickers across repaints, so the cursor row is
-    // polled, never snapshotted.
+
+
+
+
+
     if live_text(&mut c).contains("Open Quickly") {
         support::press_step(&c, "escape");
         wait_absent(&mut c, "Open Quickly", 8, "stray switcher closes");
@@ -3526,7 +3526,7 @@ fn t2_complete_sql_popup() {
     std::thread::sleep(Duration::from_millis(400));
     let cur_back = cursor_row(&mut c);
     assert_eq!(cur_before, cur_back, "Up moves back (N1)");
-    // A1: Enter accepts the cursor row.
+
     support::press_step(&c, "down");
     std::thread::sleep(Duration::from_millis(300));
     support::press_step(&c, "enter");
@@ -3542,7 +3542,7 @@ fn t2_complete_sql_popup() {
     );
     checkpoint(&mut c, &dir, "04-columns");
 
-    // Session D: A1 — functions land the cursor inside the parens.
+
     let case_d = t2_case_wb("complete-function");
     write_provenance_named(&dir, &case_d, "provenance-d.txt");
     let mut d = support::spawn_boot(&case_d);
@@ -3569,7 +3569,7 @@ fn t2_complete_sql_popup() {
     );
     checkpoint(&mut d, &dir, "05-function");
 
-    // Session E: A2 — Esc dismisses with the statement intact.
+
     let case_e = t2_case_wb("complete-esc");
     write_provenance_named(&dir, &case_e, "provenance-e.txt");
     let mut e = support::spawn_boot(&case_e);
@@ -3587,10 +3587,10 @@ fn t2_complete_sql_popup() {
     );
     checkpoint(&mut e, &dir, "06-esc");
 
-    // Session F: A2 — click-outside does NOT close live (editor text,
-    // tree, and results pane all tried): the popup stays with the
-    // statement intact. (The row's click-outside clause is live-false;
-    // Esc-dismiss and commit-close are proven in E and B/D.)
+
+
+
+
     let case_f = t2_case_wb("complete-clickout");
     write_provenance_named(&dir, &case_f, "provenance-f.txt");
     let mut f = support::spawn_boot(&case_f);
@@ -3615,7 +3615,7 @@ fn t2_complete_sql_popup() {
     );
     checkpoint(&mut f, &dir, "07-clickout");
 
-    // Session G: S1/N2 — a match-nothing query closes the popup entirely.
+
     let case_g = t2_case_wb("complete-nomatch");
     write_provenance_named(&dir, &case_g, "provenance-g.txt");
     let mut g = support::spawn_boot(&case_g);

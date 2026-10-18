@@ -1,12 +1,12 @@
-//! Painting (`COMPONENT_ARCHITECTURE.md` §5 R3, §17.0 A2, §22.2 items 1–2, 16, 18).
-//!
-//! Every method clips to the current area and marks the layer's
-//! written-cell bitset. Cell, string, and span painters share Ratatui
-//! grapheme/width semantics in one writer with reusable inline cluster scratch
-//! and a retained heap fallback for oversized clusters;
-//! `paint_cell` resets the cells a wide grapheme shadows; `fill` and
-//! `dim_layer` are deliberate re-implementations of `ratatui_widgets::{Fill,
-//! Dimmed}` because foreign widgets cannot mark the bitset or walk roles.
+
+
+
+
+
+
+
+
+
 
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
@@ -21,7 +21,7 @@ use crate::theme::builder::{FadeOutcome, fade_mix};
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
-    /// Paint graphemes at `pos`, refusing any grapheme wider than the clip.
+
     pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: impl Into<PaintStyle>) {
         if self.clip.contains(pos) {
             self.paint_str(
@@ -32,9 +32,9 @@ impl Ui<'_> {
         }
     }
 
-    /// Paint text with Ratatui's grapheme and width semantics. Lead cells
-    /// retain the supplied origin; shadow cells reset both bytes and origin.
-    /// This single walk is shared by cell, string, span, and glyph painters.
+
+
+
     pub fn paint_str(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
         let area = area.intersection(self.clip);
         if area.is_empty() {
@@ -44,11 +44,11 @@ impl Ui<'_> {
         self.paint_graphemes(area, graphemes(text).map(|(_, symbol)| (symbol, s)))
     }
 
-    /// Paint text with bold emphasis at original-label grapheme ordinals.
-    ///
-    /// Out-of-range and repeated indices are harmless. Control graphemes keep
-    /// their original ordinals but are not painted. Clipping, wide continuations,
-    /// and semantic channel provenance use the same writer as `paint_str`.
+
+
+
+
+
     pub fn paint_matched(
         &mut self,
         area: Rect,
@@ -74,7 +74,7 @@ impl Ui<'_> {
         )
     }
 
-    // Both callers supply their already-clipped row and use the same writer.
+
     fn paint_graphemes<'s>(
         &mut self,
         area: Rect,
@@ -127,17 +127,17 @@ impl Ui<'_> {
         *remaining != 0
     }
 
-    /// Fade the viewport edge rows that conceal more scrollable content.
-    /// Call after drawing the scroll region, passing its returned content rect.
-    /// The scrollbar lies outside that rect. Compatible foregrounds blend on
-    /// painted cells with the dominant background; outer rows receive `DIM`
-    /// when blending is unavailable. Backgrounds, reversed cells, cursor rows,
-    /// and explicitly kept rows retain their original values.
+
+
+
+
+
+
     pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
         self.scroll_edges_except(area, state, &[]);
     }
 
-    /// As [`scroll_edges`](Self::scroll_edges), preserving explicit rows (absolute `y`).
+
     pub fn scroll_edges_except(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {
         let area = area.intersection(self.clip);
         if area.is_empty() || area.height < FADE_MIN_ROWS {
@@ -203,8 +203,8 @@ impl Ui<'_> {
     }
 
     fn majority_bg(&mut self, area: Rect) -> Color {
-        // Retain the color histogram across frames: steady-state drawing does
-        // not allocate, and lookup cost stays bounded for richly styled views.
+
+
         let mut counts = core::mem::take(&mut self.core.scroll_bg_counts);
         let mut order = core::mem::take(&mut self.core.scroll_bg_order);
         counts.clear();
@@ -225,8 +225,8 @@ impl Ui<'_> {
                 }
             }
         }
-        // `max_by_key` selects the last entry on ties, preserving the
-        // historical rule based on first-seen background order.
+
+
         let color = order
             .iter()
             .filter_map(|bg| counts.get(bg).map(|count| (*bg, *count)))
@@ -239,9 +239,9 @@ impl Ui<'_> {
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
         let outer = keep <= FADE_OUTER_KEEP;
-        // Fading changes only physical cell attributes for this frame. Keep
-        // semantic provenance intact for later composition (for example, a
-        // modal layer recomputes its dimmed color from roles).
+
+
+
         for x in area.x..area.right() {
             let pos = Position::new(x, y);
             if !self.cell_written(pos) {
@@ -260,11 +260,11 @@ impl Ui<'_> {
         }
     }
 
-    /// Paint middle-truncated text without allocating, preserving semantic style.
-    ///
-    /// The visible width after ancestor clipping is the truncation budget, as
-    /// with `paint_str`. Widths below five use end truncation. Returns columns
-    /// painted; wide continuations and control graphemes use the shared writer.
+
+
+
+
+
     pub fn paint_middle(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
         let area = area.intersection(self.clip);
         if area.is_empty() {
@@ -287,9 +287,9 @@ impl Ui<'_> {
         used
     }
 
-    /// Paint semantic spans, inheriting `base` independently for each span.
-    /// Spans form one logical string for grapheme segmentation: a grapheme
-    /// split across fragments uses the style from its first byte.
+
+
+
     pub fn paint_spans(
         &mut self,
         area: Rect,
@@ -301,10 +301,10 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
-        // ASCII graphemes are independent except CRLF, which is itself a
-        // skipped control grapheme. Painting each fragment through the
-        // shared string writer therefore preserves the logical-line result
-        // while avoiding scratch/cursor work on the common label path.
+
+
+
+
         if spans.iter().all(|span| span.text.is_ascii()) {
             let mut x = area.x;
             for sp in spans {
@@ -356,7 +356,7 @@ impl Ui<'_> {
         x.saturating_sub(area.x)
     }
 
-    /// Restyle `area` without touching symbols (`Buffer::set_style`).
+
     pub fn paint_style(&mut self, area: Rect, s: impl Into<PaintStyle>) {
         let s = s.into();
         let area = area.intersection(self.clip);
@@ -367,7 +367,7 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
-    /// Fill `area` with spaces in `s` (per-position `set_symbol(" ")`).
+
     pub fn fill(&mut self, area: Rect, s: impl Into<PaintStyle>) {
         let s = s.into();
         let area = area.intersection(self.clip);
@@ -385,7 +385,7 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
-    /// A quiet rule across `area`'s first row (`GlyphRole::RuleQuiet`).
+
     pub fn rule(&mut self, area: Rect) {
         let g = self.theme_ref().design.glyphs.get(GlyphRole::RuleQuiet);
         let s = self.paint_patch(&crate::theme::StylePatch::new().set_fg(Role::BorderSubtle));
@@ -401,7 +401,7 @@ impl Ui<'_> {
         }
     }
 
-    /// Draw the theme border set around `area` in `s`; returns the inner rect.
+
     pub fn frame(&mut self, area: Rect, s: impl Into<PaintStyle>) -> Rect {
         let s = s.into();
         let area = area.intersection(self.clip);
@@ -433,33 +433,33 @@ impl Ui<'_> {
         }
     }
 
-    /// Paint a glyph role at `area`'s origin; returns the columns written.
+
     pub fn glyph(&mut self, area: Rect, g: GlyphRole, s: impl Into<PaintStyle>) -> u16 {
         let s = s.into();
         let sym = self.theme_ref().design.glyphs.get(g);
         self.paint_str(area, sym, s)
     }
 
-    /// The buffer and the current clip rect. The documented escape hatch:
-    /// marks the whole clip rect written.
+
+
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let clip = self.clip;
         self.mark_area(clip, None);
         (self.buffer(), clip)
     }
 
-    /// Dim the page under a layer by walking the role recorded per painted
-    /// cell and stepping it down the foreground ladder semantically
-    /// (§54, `docs/reviews/laneC-app-tick.md` Q4). `steps == 0` is identity:
-    /// not a restyle to the same colours, but no write at all, so the frame
-    /// is byte-identical. One step is `Fg(Muted)`, two `Fg(Faint)`, three
-    /// `Fg(Ghost)` and four or more erases the glyph into the resolved
-    /// backdrop background; ladder roles start from their own rung and erase
-    /// once they step past `Ghost`; `Accent`/`AccentHover`/`AccentPressed`
-    /// walk the accent chain and erase past its end. Backgrounds resolve
-    /// from the recorded background role — never by colour identity, which
-    /// is exactly the reverse-lookup defect this replaces. Only `BOLD`
-    /// survives; every other modifier is cleared. Walks only `area`.
+
+
+
+
+
+
+
+
+
+
+
+
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
         if steps == 0 {
             return;
@@ -472,17 +472,17 @@ impl Ui<'_> {
         for pos in area.positions() {
             let roles = self.roles_at(pos);
             let fg = match roles.fg {
-                // a ladder role steps from its own rung and erases past Ghost
+
                 Some(Role::Fg(step)) => ladder(theme, surface, step.index(), steps),
-                // the accent chain degrades through hover and pressed
+
                 Some(Role::Accent) => accent(theme, surface, 0, steps),
                 Some(Role::AccentHover) => accent(theme, surface, 1, steps),
                 Some(Role::AccentPressed) => accent(theme, surface, 2, steps),
-                // a background role recorded as a foreground carries no text
+
                 Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
                     FadeResult::Fg(None)
                 }
-                // every other semantic foreground: Muted, Faint, Ghost, erase
+
                 Some(_) => ladder(theme, surface, 1, steps),
                 None => FadeResult::Fg(backdrop_text),
             };
@@ -500,8 +500,8 @@ impl Ui<'_> {
                 let mut st = Style::new();
                 st.fg = match fg {
                     FadeResult::Fg(f) => f,
-                    // erased: the glyph goes, and what is left is the
-                    // resolved backdrop background
+
+
                     FadeResult::Erase => {
                         c.set_symbol(" ");
                         backdrop_fill
@@ -520,15 +520,15 @@ const FADE_INNER_KEEP: f32 = 0.8;
 const FADE_DEEP_FROM: u16 = 12;
 const FADE_MIN_ROWS: u16 = 4;
 
-/// The outcome of stepping one recorded foreground role down.
+
 enum FadeResult {
-    /// The dimmed foreground (`None` leaves the cell's foreground alone).
+
     Fg(Option<Color>),
-    /// The glyph is erased into the backdrop.
+
     Erase,
 }
 
-/// Step `base` (an `FgStep` index) down by `steps`, erasing past `Ghost`.
+
 fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult {
     match base.saturating_add(usize::from(steps)) {
         i if i <= 4 => FadeResult::Fg(crate::theme::resolve::bind_role(
@@ -540,8 +540,8 @@ fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult
     }
 }
 
-/// Step the accent chain (`Accent`, `AccentHover`, `AccentPressed`) down by
-/// `steps` from `base`, erasing past its end.
+
+
 fn accent(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult {
     let role = match base.saturating_add(usize::from(steps)) {
         0 => Role::Accent,
@@ -626,8 +626,8 @@ mod tests {
         assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
     }
 
-    /// Paint `symbol` at `(0, 0)` carrying `fg` as its recorded foreground
-    /// role over the canvas, then dim the screen by `steps`.
+
+
     fn dimmed_cell(
         theme: &Theme,
         fg: Role,
@@ -652,10 +652,10 @@ mod tests {
         crate::theme::resolve::bind_role(theme, Role::Fg(step), Surface::Canvas).expect("fg")
     }
 
-    /// §54: `dim_layer(area, 0)` is identity. It is not a restyle to the
-    /// colours the roles already resolve to — it writes nothing at all, so
-    /// every cell, including symbols, modifiers and never-painted cells,
-    /// is byte-for-byte what it was.
+
+
+
+
     #[test]
     fn dim_layer_zero_steps_is_byte_identical() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -681,17 +681,17 @@ mod tests {
         }
     }
 
-    /// Q4: the four non-ladder tone roles walk Muted, Faint, Ghost and then
-    /// erase into the resolved backdrop background; ladder roles step from
-    /// their own rung and erase past `Ghost`; the accent chain degrades
-    /// through hover and pressed and then erases. Only `BOLD` survives, and
-    /// nothing is decided by colour identity.
+
+
+
+
+
     #[test]
     fn dim_layer_semantic_roles_step_monotonically_and_erase() {
         for theme in [Theme::junie(), Theme::paper()] {
             let backdrop_bg =
                 crate::theme::resolve::bind_role(&theme, Role::BackdropBg, Surface::Canvas);
-            // the four non-ladder tones: Muted, Faint, Ghost, erase
+
             for role in [Role::Success, Role::Warning, Role::Danger, Role::Info] {
                 for (steps, step) in [(1u8, FgStep::Muted), (2, FgStep::Faint), (3, FgStep::Ghost)]
                 {
@@ -705,9 +705,9 @@ mod tests {
                     assert_eq!(c.fg, backdrop_bg.expect("backdrop"), "{role:?} at {steps}");
                 }
             }
-            // every other non-ladder foreground role uses the same rule —
-            // `BorderSubtle` and `DisabledFg` are exactly the two the legacy
-            // colour-identity lookup misclassified
+
+
+
             for role in [Role::BorderSubtle, Role::DisabledFg, Role::Focus] {
                 assert_eq!(
                     dimmed_cell(&theme, role, "x", Modifier::empty(), 1).fg,
@@ -720,8 +720,8 @@ mod tests {
                     "{role:?}"
                 );
             }
-            // ladder roles step from their own rung, saturating at Ghost and
-            // erasing only past it
+
+
             for (start, steps, want) in [
                 (FgStep::Primary, 1u8, FgStep::Secondary),
                 (FgStep::Primary, 4, FgStep::Ghost),
@@ -742,7 +742,7 @@ mod tests {
                 assert_eq!(c.symbol(), " ", "{start:?} + {steps} erases past Ghost");
                 assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
             }
-            // the accent chain
+
             let accent_of = |r: Role| {
                 crate::theme::resolve::bind_role(&theme, r, Surface::Canvas).expect("accent")
             };
@@ -764,7 +764,7 @@ mod tests {
                 assert_eq!(c.symbol(), " ", "{start:?} + {steps} erases past the chain");
                 assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
             }
-            // only BOLD survives
+
             let c = dimmed_cell(
                 &theme,
                 Role::Fg(FgStep::Primary),
@@ -781,8 +781,8 @@ mod tests {
                 1,
             );
             assert_eq!(c.modifier, Modifier::empty());
-            // the background is resolved from the recorded background role,
-            // never from the cell's colour
+
+
             let c = dimmed_cell(&theme, Role::Fg(FgStep::Primary), "x", Modifier::empty(), 1);
             assert_eq!(c.bg, theme.bg(Surface::Canvas));
         }

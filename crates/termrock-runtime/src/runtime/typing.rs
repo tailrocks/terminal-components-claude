@@ -1,4 +1,4 @@
-//! Typing ownership is published frame metadata, independent of navigation focus.
+
 
 use crate::diagnostics::Diagnostic;
 use crate::id::Id;
@@ -6,15 +6,15 @@ use crate::layer::LayerId;
 use crate::response::StateFlags;
 use crate::ui::FrameState;
 
-/// How a text control participates in typing ownership.
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TypingPolicy {
-    /// Receive typing through ordinary focus ownership.
+
     #[default]
     Focused,
-    /// Receive text and editing bindings when primary focus is not an editor.
+
     Fallback {
-        /// Also retain this editor's caret while it owns fallback typing.
+
         cursor: bool,
     },
 }
@@ -87,8 +87,8 @@ pub(crate) fn resolve(frame: &mut FrameState, focus: Option<Id>) -> TypingResolv
             candidate = Some((declaration.owner, declaration.cursor));
         }
     }
-    // A primary editor, including readonly/idle, prevents typing from leaking
-    // into a different field. Fallback never manufactures a focus transition.
+
+
     if let Some(owner) = focus
         && frame
             .ring

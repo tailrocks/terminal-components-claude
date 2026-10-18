@@ -1,4 +1,4 @@
-//! Paint-style patches ride their own channel without leaking across styles.
+
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Style};
@@ -85,8 +85,8 @@ fn independent_right_alignment_moves_unpatched_ghost_origin() {
         }
         ui.dim_layer(area, 1);
     });
-    // META resolves its own foreground, so compare transferred background origin
-    // at both lead cells, plus cleared wide continuation.
+
+
     for x in [9, 10] {
         assert_eq!(
             scene.buffer().cell((x, 0)).unwrap().bg,
